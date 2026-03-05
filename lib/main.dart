@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 import 'pages/home_page.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_router.dart';
+import 'utils/user_prefs.dart';
 import 'providers/app_provider.dart';
 
 void main() async {
   // 确保 Flutter 绑定初始化完成
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 初始化用户偏好设置
+  await UserPrefs.init();
   
   // 初始化数据库
   final appProvider = AppProvider();

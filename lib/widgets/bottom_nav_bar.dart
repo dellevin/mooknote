@@ -17,12 +17,8 @@ class CustomBottomNavBar extends StatelessWidget {
               // 新增按钮 - 显示选择对话框
               _showAddDialog(context, provider);
             } else {
+              // 切换主页/我的页面
               provider.setBottomNavIndex(index);
-              if (index == 0) {
-                // 主页 - 重置到首页
-                provider.setMainTabIndex(0);
-              }
-              // index == 2 是我的页面（待实现）
             }
           },
           type: BottomNavigationBarType.fixed,

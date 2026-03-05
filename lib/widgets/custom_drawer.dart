@@ -1,51 +1,55 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../utils/user_prefs.dart';
 
-/// 自定义左侧弹出菜单
+/// 自定义左侧弹出菜单 - 极简主义设计
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
     return Drawer(
+      backgroundColor: Colors.white,
       child: Column(
         children: [
-          // 顶部用户信息区域（含热力图）
+          // 顶部用户信息区域
           _buildHeader(context),
           
-          // 分割线
-          Divider(height: 1, color: colorScheme.outlineVariant),
+          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
           
           // 菜单项列表
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.analytics),
-                  title: const Text('统计'),
+                _buildMenuItem(
+                  icon: Icons.analytics_outlined,
+                  title: '统计',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: 跳转到统计页面
+                    _showToast(context, '统计功能开发中');
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.delete_outline),
-                  title: const Text('回收站'),
+                const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
+                
+                _buildMenuItem(
+                  icon: Icons.delete_outline,
+                  title: '回收站',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: 跳转到回收站页面
+                    _showToast(context, '回收站功能开发中');
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text('设置'),
+                const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
+                
+                _buildMenuItem(
+                  icon: Icons.settings_outlined,
+                  title: '设置',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: 跳转到设置页面
+                    _showToast(context, '设置功能开发中');
                   },
                 ),
               ],
@@ -54,12 +58,12 @@ class CustomDrawer extends StatelessWidget {
           
           // 底部版本信息
           Container(
-            padding: const EdgeInsets.all(16),
-            child: Text(
+            padding: const EdgeInsets.all(24),
+            child: const Text(
               'MookNote v1.0.0',
               style: TextStyle(
                 fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
+                color: Color(0xFF999999),
               ),
             ),
           ),
@@ -68,146 +72,157 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  /// 构建头部（含热力图）
+  /// 构建头部
   Widget _buildHeader(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        // 统计数据
+        final movieCount = provider.movies.where((m) => !m.isDeleted).length;
+        final bookCount = provider.books.length;
+        final noteCount = provider.notes.length;
+        
+        // 获取用户信息
+        final userPrefs = UserPrefs();
+        final nickname = userPrefs.nickname;
+        final motto = userPrefs.motto;
+        final avatarPath = userPrefs.avatarPath;
+        
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primaryContainer,
-                Theme.of(context).colorScheme.surface,
-              ],
-            ),
-          ),
+          padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 用户头像和名称
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '用户',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+              // 用户头像
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
+                ),
+                child: avatarPath != null && avatarPath.isNotEmpty
+                    ? ClipOval(
+                        child: Image.file(
+                          File(avatarPath),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(),
                         ),
-                      ),
-                      Text(
-                        '记录生活点滴',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      )
+                    : _buildAvatarPlaceholder(),
               ),
               
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               
-              // GitHub 风格热力图
-              _buildHeatmap(context),
+              // 用户名称
+              Text(
+                nickname,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              
+              const SizedBox(height: 4),
+              
+              // 座右铭
+              Text(
+                motto,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF666666),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // 简化统计
+              Row(
+                children: [
+                  _buildStatItem('观影', movieCount),
+                  const SizedBox(width: 24),
+                  _buildStatItem('阅读', bookCount),
+                  const SizedBox(width: 24),
+                  _buildStatItem('笔记', noteCount),
+                ],
+              ),
             ],
           ),
         );
       },
     );
   }
+  
+  Widget _buildAvatarPlaceholder() {
+    return const Center(
+      child: Icon(
+        Icons.person_outline,
+        size: 32,
+        color: Color(0xFF999999),
+      ),
+    );
+  }
 
-  /// 构建热力图
-  Widget _buildHeatmap(BuildContext context) {
-    const int weeks = 52; // 一年 52 周
-    const int daysPerWeek = 7;
-    
-    // 生成随机数据（实际应从数据库获取）
-    final random = DateTime.now().millisecondsSinceEpoch;
-    
+  /// 统计项
+  Widget _buildStatItem(String label, int count) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '年度记录',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+          '$count',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
           ),
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: daysPerWeek * 14, // 每个格子 14x14
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List.generate(weeks, (weekIndex) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 2),
-                child: Column(
-                  children: List.generate(daysPerWeek, (dayIndex) {
-                    // 根据随机值决定颜色深度
-                    final intensity = (random + weekIndex * 7 + dayIndex) % 100 / 100;
-                    final color = _getHeatmapColor(intensity, context);
-                    
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 2),
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    );
-                  }),
-                ),
-              );
-            }),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF999999),
           ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Less',
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-            Text(
-              'More',
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ],
         ),
       ],
     );
   }
 
-  /// 根据强度获取热力图颜色
-  Color _getHeatmapColor(double intensity, BuildContext context) {
-    if (intensity == 0) {
-      return Theme.of(context).colorScheme.surfaceContainerHighest;
-    } else if (intensity < 0.25) {
-      return Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4);
-    } else if (intensity < 0.5) {
-      return Theme.of(context).colorScheme.primaryContainer.withOpacity(0.6);
-    } else if (intensity < 0.75) {
-      return Theme.of(context).colorScheme.primaryContainer.withOpacity(0.8);
-    } else {
-      return Theme.of(context).colorScheme.primary;
-    }
+  /// 菜单项
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      leading: Icon(icon, size: 22, color: const Color(0xFF666666)),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          color: Color(0xFF1A1A1A),
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right,
+        size: 20,
+        color: Color(0xFFCCCCCC),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  /// 显示提示
+  void _showToast(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }
