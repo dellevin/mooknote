@@ -6,25 +6,17 @@ import 'database_helper.dart';
 class MovieDao {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
-  // 获取所有影视记录
+  // 获取所有影视记录（未删除的）
   Future<List<Movie>> getAllMovies() async {
     final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.query('movies');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
+      orderBy: 'updated_at DESC',
+    );
 
-    return List.generate(maps.length, (i) {
-      return Movie(
-        id: maps[i]['id'].toString(),
-        title: maps[i]['title'],
-        poster: maps[i]['poster'],
-        rating: maps[i]['rating']?.toDouble(),
-        year: maps[i]['year'],
-        status: maps[i]['status'],
-        watchDate: maps[i]['watch_date'] != null 
-            ? DateTime.parse(maps[i]['watch_date']) 
-            : null,
-        note: maps[i]['note'],
-      );
-    });
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
   }
 
   // 根据状态筛选影视记录
@@ -32,24 +24,90 @@ class MovieDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'movies',
-      where: 'status = ?',
-      whereArgs: [status],
+      where: 'status = ? AND is_deleted = ?',
+      whereArgs: [status, 0],
+      orderBy: 'updated_at DESC',
     );
 
-    return List.generate(maps.length, (i) {
-      return Movie(
-        id: maps[i]['id'].toString(),
-        title: maps[i]['title'],
-        poster: maps[i]['poster'],
-        rating: maps[i]['rating']?.toDouble(),
-        year: maps[i]['year'],
-        status: maps[i]['status'],
-        watchDate: maps[i]['watch_date'] != null 
-            ? DateTime.parse(maps[i]['watch_date']) 
-            : null,
-        note: maps[i]['note'],
-      );
-    });
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
+  }
+
+  // 根据导演筛选
+  Future<List<Movie>> getMoviesByDirector(String director) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
+      orderBy: 'updated_at DESC',
+    );
+    
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
+        .where((movie) => movie.directors.contains(director))
+        .toList();
+  }
+
+  // 根据编剧筛选
+  Future<List<Movie>> getMoviesByWriter(String writer) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
+      orderBy: 'updated_at DESC',
+    );
+    
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
+        .where((movie) => movie.writers.contains(writer))
+        .toList();
+  }
+
+  // 根据演员筛选
+  Future<List<Movie>> getMoviesByActor(String actor) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
+      orderBy: 'updated_at DESC',
+    );
+    
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
+        .where((movie) => movie.actors.contains(actor))
+        .toList();
+  }
+
+  // 根据类型筛选
+  Future<List<Movie>> getMoviesByGenre(String genre) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
+      orderBy: 'updated_at DESC',
+    );
+    
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
+        .where((movie) => movie.genres.contains(genre))
+        .toList();
+  }
+
+  // 搜索影视（标题或别名）
+  Future<List<Movie>> searchMovies(String keyword) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
+      orderBy: 'updated_at DESC',
+    );
+    
+    final lowerKeyword = keyword.toLowerCase();
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
+        .where((movie) => 
+            movie.title.toLowerCase().contains(lowerKeyword) ||
+            movie.alternateTitles.any((t) => t.toLowerCase().contains(lowerKeyword)))
+        .toList();
   }
 
   // 添加影视记录
@@ -69,13 +127,54 @@ class MovieDao {
     );
   }
 
-  // 删除影视记录
+  // 删除影视记录（软删除）
   Future<int> deleteMovie(String id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
+    return await db.update(
       'movies',
+      {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // 获取所有导演（去重）
+  Future<List<String>> getAllDirectors() async {
+    final movies = await getAllMovies();
+    final directors = <String>{};
+    for (final movie in movies) {
+      directors.addAll(movie.directors);
+    }
+    return directors.toList()..sort();
+  }
+
+  // 获取所有编剧（去重）
+  Future<List<String>> getAllWriters() async {
+    final movies = await getAllMovies();
+    final writers = <String>{};
+    for (final movie in movies) {
+      writers.addAll(movie.writers);
+    }
+    return writers.toList()..sort();
+  }
+
+  // 获取所有演员（去重）
+  Future<List<String>> getAllActors() async {
+    final movies = await getAllMovies();
+    final actors = <String>{};
+    for (final movie in movies) {
+      actors.addAll(movie.actors);
+    }
+    return actors.toList()..sort();
+  }
+
+  // 获取所有类型（去重）
+  Future<List<String>> getAllGenres() async {
+    final movies = await getAllMovies();
+    final genres = <String>{};
+    for (final movie in movies) {
+      genres.addAll(movie.genres);
+    }
+    return genres.toList()..sort();
   }
 }

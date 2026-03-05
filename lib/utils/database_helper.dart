@@ -20,9 +20,73 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  /// 数据库升级
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // 升级movies表结构
+      await _upgradeMoviesTableV2(db);
+    }
+  }
+
+  /// 升级movies表到V2
+  Future<void> _upgradeMoviesTableV2(Database db) async {
+    // 备份旧数据
+    final oldData = await db.query('movies');
+    
+    // 删除旧表
+    await db.execute('DROP TABLE IF EXISTS movies');
+    
+    // 创建新表
+    await db.execute('''
+      CREATE TABLE movies (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        release_date TEXT,
+        directors TEXT,
+        writers TEXT,
+        actors TEXT,
+        genres TEXT,
+        alternate_titles TEXT,
+        summary TEXT,
+        rating REAL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+    
+    // 迁移旧数据（尽可能保留）
+    for (final row in oldData) {
+      try {
+        await db.insert('movies', {
+          'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          'title': row['title']?.toString() ?? '',
+          'poster_path': row['poster_path'],
+          'release_date': null,
+          'directors': '[]',
+          'writers': '[]',
+          'actors': '[]',
+          'genres': '[]',
+          'alternate_titles': '[]',
+          'summary': row['note'],
+          'rating': row['rating'],
+          'status': row['status'] ?? 'want_to_watch',
+          'created_at': row['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'is_deleted': row['is_deleted'] ?? 0,
+        });
+      } catch (e) {
+        // 忽略迁移失败的记录
+      }
+    }
   }
 
   // 创建数据库表
@@ -35,14 +99,21 @@ class DatabaseHelper {
     // 影视表
     await db.execute('''
       CREATE TABLE movies (
-        id $idType,
-        title $textType,
-        poster TEXT,
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        release_date TEXT,
+        directors TEXT,
+        writers TEXT,
+        actors TEXT,
+        genres TEXT,
+        alternate_titles TEXT,
+        summary TEXT,
         rating REAL,
-        year INTEGER,
-        status $textType,
-        watch_date TEXT,
-        note TEXT
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
       )
     ''');
 
