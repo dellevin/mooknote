@@ -24,11 +24,11 @@ class UserPrefs {
   // ========== 用户信息 ==========
   
   /// 昵称
-  String get nickname => prefs.getString('nickname') ?? '记录者';
+  String get nickname => prefs.getString('nickname') ?? 'Mook';
   Future<bool> setNickname(String value) => prefs.setString('nickname', value);
   
   /// 座右铭
-  String get motto => prefs.getString('motto') ?? '记录生活，沉淀思考';
+  String get motto => prefs.getString('motto') ?? '好运不会眷顾一无所有之人。';
   Future<bool> setMotto(String value) => prefs.setString('motto', value);
   
   /// 头像路径

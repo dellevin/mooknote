@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import 'movie_reviews_page.dart';
+import 'movie_posters_page.dart';
 
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
@@ -59,6 +61,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 // 别名
                 if (widget.movie.alternateTitles.isNotEmpty)
                   _buildAlternateTitlesSection(),
+                
+                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                
+                // 影评和海报墙入口
+                _buildExtraSections(),
                 
                 const SizedBox(height: 48),
               ],
@@ -466,6 +473,153 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+  
+  /// 构建额外功能区域（影评、海报墙）
+  Widget _buildExtraSections() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '更多',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF999999),
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // 影评入口
+          GestureDetector(
+            onTap: () => _navigateToReviews(),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.rate_review_outlined,
+                    size: 24,
+                    color: Color(0xFF666666),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '影评',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        FutureBuilder<int>(
+                          future: context.read<AppProvider>().getMovieReviewCount(widget.movie.id),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data ?? 0;
+                            return Text(
+                              count > 0 ? '$count 条影评' : '暂无影评',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF999999),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFF999999),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 海报墙入口
+          GestureDetector(
+            onTap: () => _navigateToPosters(),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.photo_library_outlined,
+                    size: 24,
+                    color: Color(0xFF666666),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '海报墙',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        FutureBuilder<int>(
+                          future: context.read<AppProvider>().getMoviePosterCount(widget.movie.id),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data ?? 0;
+                            return Text(
+                              count > 0 ? '$count 张海报' : '暂无海报',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF999999),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFF999999),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _navigateToReviews() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovieReviewsPage(movie: widget.movie),
+      ),
+    );
+  }
+  
+  void _navigateToPosters() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MoviePostersPage(movie: widget.movie),
       ),
     );
   }

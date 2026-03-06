@@ -3,6 +3,8 @@ import '../models/data_models.dart';
 import '../utils/movie_dao.dart';
 import '../utils/book_dao.dart';
 import '../utils/note_dao.dart';
+import '../utils/movie_review_dao.dart';
+import '../utils/movie_poster_dao.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -10,6 +12,8 @@ class AppProvider extends ChangeNotifier {
   final MovieDao _movieDao = MovieDao();
   final BookDao _bookDao = BookDao();
   final NoteDao _noteDao = NoteDao();
+  final MovieReviewDao _reviewDao = MovieReviewDao();
+  final MoviePosterDao _posterDao = MoviePosterDao();
   
   // 数据列表
   List<Movie> _movies = [];
@@ -159,5 +163,54 @@ class AppProvider extends ChangeNotifier {
   Future<void> removeNote(String id) async {
     await _noteDao.deleteNote(id);
     await loadNotes();
+  }
+  
+  // ========== 影评相关方法 ==========
+  
+  /// 获取影视的所有影评
+  Future<List<MovieReview>> getMovieReviews(String movieId) async {
+    return await _reviewDao.getReviewsByMovieId(movieId);
+  }
+  
+  /// 添加影评
+  Future<void> addMovieReview(MovieReview review) async {
+    await _reviewDao.insertReview(review);
+  }
+  
+  /// 更新影评
+  Future<void> updateMovieReview(MovieReview review) async {
+    await _reviewDao.updateReview(review);
+  }
+  
+  /// 删除影评
+  Future<void> removeMovieReview(String id) async {
+    await _reviewDao.deleteReview(id);
+  }
+  
+  /// 获取影视的影评数量
+  Future<int> getMovieReviewCount(String movieId) async {
+    return await _reviewDao.getReviewCount(movieId);
+  }
+  
+  // ========== 海报墙相关方法 ==========
+  
+  /// 获取影视的所有海报
+  Future<List<MoviePoster>> getMoviePosters(String movieId) async {
+    return await _posterDao.getPostersByMovieId(movieId);
+  }
+  
+  /// 添加海报
+  Future<void> addMoviePoster(MoviePoster poster) async {
+    await _posterDao.insertPoster(poster);
+  }
+  
+  /// 删除海报
+  Future<void> removeMoviePoster(String id) async {
+    await _posterDao.deletePoster(id);
+  }
+  
+  /// 获取影视的海报数量
+  Future<int> getMoviePosterCount(String movieId) async {
+    return await _posterDao.getPosterCount(movieId);
   }
 }

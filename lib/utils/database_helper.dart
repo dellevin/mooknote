@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -40,6 +40,43 @@ class DatabaseHelper {
       // 升级notes表结构
       await _upgradeNotesTableV4(db);
     }
+    if (oldVersion < 5) {
+      // 创建影评表和海报墙表
+      await _createMovieReviewsTable(db);
+      await _createMoviePostersTable(db);
+    }
+  }
+  
+  /// 创建影评表
+  Future<void> _createMovieReviewsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movie_reviews (
+        id TEXT PRIMARY KEY,
+        movie_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        reviewer TEXT,
+        source TEXT,
+        review_type INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (movie_id) REFERENCES movies (id)
+      )
+    ''');
+  }
+  
+  /// 创建影视海报墙表
+  Future<void> _createMoviePostersTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movie_posters (
+        id TEXT PRIMARY KEY,
+        movie_id TEXT NOT NULL,
+        poster_path TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (movie_id) REFERENCES movies (id)
+      )
+    ''');
   }
   
   /// 升级notes表到V4
@@ -249,6 +286,34 @@ class DatabaseHelper {
         tags TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
+      )
+    ''');
+    
+    // 影评表
+    await db.execute('''
+      CREATE TABLE movie_reviews (
+        id TEXT PRIMARY KEY,
+        movie_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        reviewer TEXT,
+        source TEXT,
+        review_type INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (movie_id) REFERENCES movies (id)
+      )
+    ''');
+    
+    // 影视海报墙表
+    await db.execute('''
+      CREATE TABLE movie_posters (
+        id TEXT PRIMARY KEY,
+        movie_id TEXT NOT NULL,
+        poster_path TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (movie_id) REFERENCES movies (id)
       )
     ''');
   }

@@ -24,15 +24,6 @@ class CustomDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildMenuItem(
-                  icon: Icons.analytics_outlined,
-                  title: '统计',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showToast(context, '统计功能开发中');
-                  },
-                ),
-                const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
                 
                 _buildMenuItem(
                   icon: Icons.delete_outline,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
@@ -21,6 +22,30 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       appBar: AppBar(
         title: Text(_formatDateTime(widget.note.createdAt)),
         actions: [
+          // 格式指示器
+          if (widget.note.contentType == 'markdown')
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.code, size: 14, color: Color(0xFF666666)),
+                  SizedBox(width: 4),
+                  Text(
+                    'Markdown',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => _navigateToEdit(context),
@@ -67,17 +92,9 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
           // 内容区域
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                widget.note.content,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF1A1A1A),
-                  height: 1.8,
-                ),
-              ),
-            ),
+            child: widget.note.contentType == 'markdown'
+                ? _buildMarkdownContent()
+                : _buildPlainTextContent(),
           ),
 
           // 底部操作栏
@@ -125,6 +142,82 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 构建 Markdown 内容
+  Widget _buildMarkdownContent() {
+    return Markdown(
+      data: widget.note.content,
+      styleSheet: MarkdownStyleSheet(
+        h1: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A),
+          height: 1.4,
+        ),
+        h2: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A),
+          height: 1.4,
+        ),
+        h3: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A),
+          height: 1.4,
+        ),
+        p: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF1A1A1A),
+          height: 1.8,
+        ),
+        code: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF1A1A1A),
+          backgroundColor: Color(0xFFF5F5F5),
+        ),
+        codeblockDecoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+        ),
+        blockquote: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF666666),
+          fontStyle: FontStyle.italic,
+        ),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: const Color(0xFF999999), width: 4),
+          ),
+        ),
+        listBullet: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF1A1A1A),
+        ),
+        a: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF1A1A1A),
+          decoration: TextDecoration.underline,
+        ),
+      ),
+      padding: const EdgeInsets.all(24),
+    );
+  }
+
+  /// 构建纯文本内容
+  Widget _buildPlainTextContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        widget.note.content,
+        style: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF1A1A1A),
+          height: 1.8,
+        ),
       ),
     );
   }

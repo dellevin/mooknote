@@ -20,8 +20,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final UserPrefs _userPrefs = UserPrefs();
   
   // 用户数据
-  String _nickname = '记录者';
-  String _motto = '记录生活，沉淀思考';
+  String _nickname = 'Mook';
+  String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
   bool _isLoading = true;
   
@@ -384,20 +384,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
         
-        _buildMenuItem(
-          icon: Icons.calendar_today_outlined,
-          title: '记录日历',
-          onTap: () => _showToast('日历功能开发中'),
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
-        _buildMenuItem(
-          icon: Icons.favorite_outline,
-          title: '我的收藏',
-          onTap: () => _showToast('收藏功能开发中'),
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
+
         _buildMenuItem(
           icon: Icons.delete_outline,
           title: '回收站',

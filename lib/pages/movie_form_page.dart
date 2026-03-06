@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 
-/// 添加/编辑影视页面 - 极简主义设计
+/// 添加/编辑影视页面 - 紧凑双行布局设计
 class MovieFormPage extends StatefulWidget {
   final Movie? movie;
   
@@ -21,10 +21,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
   
+  // 输入框控制器
   late TextEditingController _titleController;
   late TextEditingController _summaryController;
   late TextEditingController _ratingController;
   
+  // 多值字段的临时输入控制器
+  final Map<String, TextEditingController> _tagControllers = {};
+  
+  // 数据
   List<String> _directors = [];
   List<String> _writers = [];
   List<String> _actors = [];
@@ -59,7 +64,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
     _titleController.dispose();
     _summaryController.dispose();
     _ratingController.dispose();
+    _tagControllers.values.forEach((c) => c.dispose());
     super.dispose();
+  }
+  
+  TextEditingController _getTagController(String key) {
+    return _tagControllers.putIfAbsent(key, () => TextEditingController());
   }
   
   @override
@@ -87,147 +97,198 @@ class _MovieFormPageState extends State<MovieFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           children: [
-            // 封面选择
-            _buildCoverPicker(),
+            // 封面选择 - 居中显示
+            Center(child: _buildCoverPicker()),
             
             const SizedBox(height: 32),
             
-            // 基本信息
-            _buildSectionTitle('基本信息'),
-            const SizedBox(height: 16),
-            
-            // 影视名称
-            _buildTextField(
-              controller: _titleController,
+            // 基本信息区域
+            _buildFormItem(
               label: '影视名称 *',
-              hint: '请输入影视名称',
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '请输入影视名称';
-                }
-                return null;
-              },
+              child: TextFormField(
+                controller: _titleController,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                decoration: const InputDecoration(
+                  hintText: '请输入影视名称',
+                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '请输入影视名称';
+                  }
+                  return null;
+                },
+              ),
             ),
             
-            const SizedBox(height: 16),
+            _buildDivider(),
             
             // 别名
-            _buildTagInput(
+            _buildMultiValueItem(
               label: '别名',
-              hint: '输入别名，按回车添加',
-              tags: _alternateTitles,
-              onAdd: (tag) => setState(() => _alternateTitles.add(tag)),
-              onRemove: (index) => setState(() => _alternateTitles.removeAt(index)),
+              values: _alternateTitles,
+              hint: '输入别名',
+              controllerKey: 'alternateTitles',
+              onAdd: (v) => setState(() => _alternateTitles.add(v)),
+              onRemove: (i) => setState(() => _alternateTitles.removeAt(i)),
             ),
             
-            const SizedBox(height: 16),
+            _buildDivider(),
             
             // 上映日期
-            _buildDatePicker(),
+            _buildFormItem(
+              label: '上映日期',
+              child: GestureDetector(
+                onTap: _selectReleaseDate,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _releaseDate != null
+                            ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
+                            : '选择日期',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: _releaseDate != null
+                              ? const Color(0xFF1A1A1A)
+                              : const Color(0xFFCCCCCC),
+                        ),
+                      ),
+                    ),
+                    if (_releaseDate != null)
+                      GestureDetector(
+                        onTap: () => setState(() => _releaseDate = null),
+                        child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
+                      ),
+                  ],
+                ),
+              ),
+            ),
             
-            const SizedBox(height: 24),
+            _buildDivider(),
             
             // 导演
-            _buildSectionTitle('导演'),
-            const SizedBox(height: 16),
-            
-            _buildTagInput(
+            _buildMultiValueItem(
               label: '导演',
-              hint: '输入导演，按回车添加',
-              tags: _directors,
-              onAdd: (tag) => setState(() => _directors.add(tag)),
-              onRemove: (index) => setState(() => _directors.removeAt(index)),
+              values: _directors,
+              hint: '输入导演姓名',
+              controllerKey: 'directors',
+              onAdd: (v) => setState(() => _directors.add(v)),
+              onRemove: (i) => setState(() => _directors.removeAt(i)),
             ),
             
-            const SizedBox(height: 24),
+            _buildDivider(),
             
             // 编剧
-            _buildSectionTitle('编剧'),
-            const SizedBox(height: 16),
-            
-            _buildTagInput(
+            _buildMultiValueItem(
               label: '编剧',
-              hint: '输入编剧，按回车添加',
-              tags: _writers,
-              onAdd: (tag) => setState(() => _writers.add(tag)),
-              onRemove: (index) => setState(() => _writers.removeAt(index)),
+              values: _writers,
+              hint: '输入编剧姓名',
+              controllerKey: 'writers',
+              onAdd: (v) => setState(() => _writers.add(v)),
+              onRemove: (i) => setState(() => _writers.removeAt(i)),
             ),
             
-            const SizedBox(height: 24),
+            _buildDivider(),
             
             // 主演
-            _buildSectionTitle('主演'),
-            const SizedBox(height: 16),
-            
-            _buildTagInput(
+            _buildMultiValueItem(
               label: '主演',
-              hint: '输入主演，按回车添加',
-              tags: _actors,
-              onAdd: (tag) => setState(() => _actors.add(tag)),
-              onRemove: (index) => setState(() => _actors.removeAt(index)),
+              values: _actors,
+              hint: '输入主演姓名',
+              controllerKey: 'actors',
+              onAdd: (v) => setState(() => _actors.add(v)),
+              onRemove: (i) => setState(() => _actors.removeAt(i)),
             ),
             
-            const SizedBox(height: 24),
+            _buildDivider(),
             
             // 类型
-            _buildSectionTitle('类型'),
-            const SizedBox(height: 16),
-            
-            _buildTagInput(
+            _buildMultiValueItem(
               label: '类型',
-              hint: '输入类型，按回车添加',
-              tags: _genres,
-              onAdd: (tag) => setState(() => _genres.add(tag)),
-              onRemove: (index) => setState(() => _genres.removeAt(index)),
+              values: _genres,
+              hint: '如：剧情、科幻',
+              controllerKey: 'genres',
+              onAdd: (v) => setState(() => _genres.add(v)),
+              onRemove: (i) => setState(() => _genres.removeAt(i)),
             ),
             
-            const SizedBox(height: 24),
+            _buildDivider(),
             
             // 剧情简介
-            _buildSectionTitle('剧情简介'),
-            const SizedBox(height: 16),
-            
-            _buildTextField(
-              controller: _summaryController,
-              label: '',
-              hint: '写下剧情简介...',
-              maxLines: 5,
+            _buildFormItem(
+              label: '剧情简介',
+              child: TextFormField(
+                controller: _summaryController,
+                maxLines: 4,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A), height: 1.5),
+                decoration: const InputDecoration(
+                  hintText: '写下剧情简介...',
+                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
             ),
             
-            const SizedBox(height: 24),
+            _buildDivider(),
             
-            // 评分和状态
-            _buildSectionTitle('评分与状态'),
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _buildTextField(
-                    controller: _ratingController,
-                    label: '评分',
-                    hint: '1-10',
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final rating = double.tryParse(value);
-                        if (rating == null || rating < 1 || rating > 10) {
-                          return '评分必须在 1-10 之间';
+            // 评分
+            _buildFormItem(
+              label: '评分',
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _ratingController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                      decoration: const InputDecoration(
+                        hintText: '1-10',
+                        hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final rating = double.tryParse(value);
+                          if (rating == null || rating < 1 || rating > 10) {
+                            return '评分必须在 1-10 之间';
+                          }
                         }
-                      }
-                      return null;
-                    },
+                        return null;
+                      },
+                    ),
                   ),
+                  if (_ratingController.text.isNotEmpty)
+                    const Text(
+                      '分',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                    ),
+                ],
+              ),
+            ),
+            
+            _buildDivider(),
+            
+            // 状态
+            _buildFormItem(
+              label: '状态',
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(
+                  spacing: 12,
+                  children: [
+                    _buildStatusChip('想看', 'want_to_watch'),
+                    _buildStatusChip('在看', 'watching'),
+                    _buildStatusChip('已看', 'watched'),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 3,
-                  child: _buildStatusSelector(),
-                ),
-              ],
+              ),
             ),
             
             const SizedBox(height: 48),
@@ -237,15 +298,193 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
-  /// 构建区块标题
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF999999),
-        letterSpacing: 1,
+  /// 构建表单条目（标签 + 内容）
+  Widget _buildFormItem({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: label.contains('*') ? const Color(0xFF1A1A1A) : const Color(0xFF666666),
+            fontWeight: label.contains('*') ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+  
+  /// 构建多值条目
+  Widget _buildMultiValueItem({
+    required String label,
+    required List<String> values,
+    required String hint,
+    required String controllerKey,
+    required Function(String) onAdd,
+    required Function(int) onRemove,
+  }) {
+    final controller = _getTagController(controllerKey);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 第一行：标签 + 添加按钮
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+            ),
+            const Spacer(),
+            // 添加按钮（当输入框有内容时显示）
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, child) {
+                final hasText = value.text.trim().isNotEmpty;
+                return GestureDetector(
+                  onTap: hasText
+                      ? () {
+                          final text = controller.text.trim();
+                          if (text.isNotEmpty && !values.contains(text)) {
+                            onAdd(text);
+                            controller.clear();
+                          }
+                        }
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFE5E5E5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add,
+                          size: 14,
+                          color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '添加',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // 第二行：已选标签 + 输入框
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ...values.asMap().entries.map((entry) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  border: Border.all(color: const Color(0xFFE5E5E5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      entry.value,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => onRemove(entry.key),
+                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            // 输入框
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
+              child: TextField(
+                controller: controller,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                decoration: InputDecoration(
+                  hintText: values.isEmpty ? hint : '',
+                  hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 5),
+                ),
+                onSubmitted: (value) {
+                  final trimmed = value.trim();
+                  if (trimmed.isNotEmpty && !values.contains(trimmed)) {
+                    onAdd(trimmed);
+                    controller.clear();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  
+  /// 构建分隔线
+  Widget _buildDivider() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      height: 0.5,
+      color: const Color(0xFFE5E5E5),
+    );
+  }
+  
+  /// 构建状态选择 Chip
+  Widget _buildStatusChip(String label, String value) {
+    final isSelected = _status == value;
+    Color color;
+    switch (value) {
+      case 'watched':
+        color = const Color(0xFF1A1A1A);
+        break;
+      case 'watching':
+        color = const Color(0xFF666666);
+        break;
+      case 'want_to_watch':
+        color = const Color(0xFF999999);
+        break;
+      default:
+        color = const Color(0xFFCCCCCC);
+    }
+    
+    return GestureDetector(
+      onTap: () => setState(() => _status = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.transparent,
+          border: Border.all(color: color),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: isSelected ? Colors.white : color,
+          ),
+        ),
       ),
     );
   }
@@ -255,8 +494,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
     return GestureDetector(
       onTap: _pickCover,
       child: Container(
-        width: 120,
-        height: 160,
+        width: 140,
+        height: 200,
         decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
           border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
@@ -278,251 +517,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
       children: [
         Icon(
           Icons.add_photo_alternate_outlined,
-          size: 32,
+          size: 40,
           color: Color(0xFF999999),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 12),
         Text(
-          '添加海报',
+          '点击添加海报',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 14,
             color: Color(0xFF999999),
           ),
         ),
       ],
-    );
-  }
-  
-  /// 构建文本输入框
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    String? hint,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: const TextStyle(
-        fontSize: 15,
-        color: Color(0xFF1A1A1A),
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF666666),
-        ),
-        hintStyle: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFFCCCCCC),
-        ),
-        border: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-        ),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF1A1A1A)),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-      ),
-    );
-  }
-  
-  /// 构建日期选择器
-  Widget _buildDatePicker() {
-    return GestureDetector(
-      onTap: _selectReleaseDate,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Color(0xFFE5E5E5)),
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(
-              _releaseDate != null
-                  ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
-                  : '上映日期',
-              style: TextStyle(
-                fontSize: 15,
-                color: _releaseDate != null
-                    ? const Color(0xFF1A1A1A)
-                    : const Color(0xFFCCCCCC),
-              ),
-            ),
-            const Spacer(),
-            if (_releaseDate != null)
-              GestureDetector(
-                onTap: () => setState(() => _releaseDate = null),
-                child: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: Color(0xFF999999),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  /// 构建标签输入
-  Widget _buildTagInput({
-    required String label,
-    required String hint,
-    required List<String> tags,
-    required Function(String) onAdd,
-    required Function(int) onRemove,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-              ),
-            ),
-          ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ...tags.asMap().entries.map((entry) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      entry.value,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => onRemove(entry.key),
-                      child: const Icon(
-                        Icons.close,
-                        size: 16,
-                        color: Color(0xFF999999),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            SizedBox(
-              width: 120,
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: hint,
-                  hintStyle: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFCCCCCC),
-                  ),
-                  border: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF1A1A1A),
-                ),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty && !tags.contains(value.trim())) {
-                    onAdd(value.trim());
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-  
-  /// 构建状态选择器
-  Widget _buildStatusSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '状态',
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF666666),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            _buildStatusOption('已看', 'watched'),
-            const SizedBox(width: 12),
-            _buildStatusOption('在看', 'watching'),
-            const SizedBox(width: 12),
-            _buildStatusOption('想看', 'want_to_watch'),
-          ],
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildStatusOption(String label, String value) {
-    final isSelected = _status == value;
-    Color color;
-    switch (value) {
-      case 'watched':
-        color = const Color(0xFF1A1A1A);
-        break;
-      case 'watching':
-        color = const Color(0xFF666666);
-        break;
-      case 'want_to_watch':
-        color = const Color(0xFF999999);
-        break;
-      default:
-        color = const Color(0xFFCCCCCC);
-    }
-    
-    return GestureDetector(
-      onTap: () => setState(() => _status = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.transparent,
-          border: Border.all(color: color),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: isSelected ? Colors.white : color,
-            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
-      ),
     );
   }
   
@@ -596,7 +602,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
     final now = DateTime.now();
     
     if (widget.movie == null) {
-      // 添加新模式
       final newMovie = Movie(
         id: now.millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
@@ -616,7 +621,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
       
       await context.read<AppProvider>().addMovie(newMovie);
     } else {
-      // 编辑现有模式
       final updatedMovie = widget.movie!.copyWith(
         title: _titleController.text.trim(),
         posterPath: _posterPath,

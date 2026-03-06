@@ -333,3 +333,139 @@ class Note {
   }
 }
 
+/// 影评模型
+class MovieReview {
+  final String id;
+  final String movieId;
+  final String content;
+  final String reviewer;
+  final String source;
+  final int reviewType; // 1: 短评, 2: 长评
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  MovieReview({
+    required this.id,
+    required this.movieId,
+    required this.content,
+    this.reviewer = '',
+    this.source = '',
+    this.reviewType = 1,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory MovieReview.fromJson(Map<String, dynamic> json) {
+    return MovieReview(
+      id: json['id']?.toString() ?? '',
+      movieId: json['movie_id']?.toString() ?? '',
+      content: json['content'] ?? '',
+      reviewer: json['reviewer'] ?? '',
+      source: json['source'] ?? '',
+      reviewType: json['review_type'] ?? 1,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at']) 
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'movie_id': movieId,
+      'content': content,
+      'reviewer': reviewer,
+      'source': source,
+      'review_type': reviewType,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+  
+  /// 复制并修改
+  MovieReview copyWith({
+    String? id,
+    String? movieId,
+    String? content,
+    String? reviewer,
+    String? source,
+    int? reviewType,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return MovieReview(
+      id: id ?? this.id,
+      movieId: movieId ?? this.movieId,
+      content: content ?? this.content,
+      reviewer: reviewer ?? this.reviewer,
+      source: source ?? this.source,
+      reviewType: reviewType ?? this.reviewType,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+  
+  /// 获取评论摘要
+  String get summary {
+    if (content.length <= 50) return content;
+    return '${content.substring(0, 50)}...';
+  }
+  
+  /// 评论类型文本
+  String get typeText => reviewType == 1 ? '短评' : '长评';
+}
+
+/// 影视海报墙模型
+class MoviePoster {
+  final String id;
+  final String movieId;
+  final String posterPath;
+  final bool isDeleted;
+  final DateTime createdAt;
+
+  MoviePoster({
+    required this.id,
+    required this.movieId,
+    required this.posterPath,
+    this.isDeleted = false,
+    required this.createdAt,
+  });
+
+  factory MoviePoster.fromJson(Map<String, dynamic> json) {
+    return MoviePoster(
+      id: json['id']?.toString() ?? '',
+      movieId: json['movie_id']?.toString() ?? '',
+      posterPath: json['poster_path'] ?? '',
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'movie_id': movieId,
+      'poster_path': posterPath,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+  
+  /// 获取海报文件
+  File? get posterFile {
+    if (posterPath.isEmpty) return null;
+    return File(posterPath);
+  }
+}
+

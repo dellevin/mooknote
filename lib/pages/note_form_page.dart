@@ -17,6 +17,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   late TextEditingController _contentController;
   late DateTime _createdAt;
   List<String> _tags = [];
+  String _contentType = 'markdown'; // markdown / rich_text
   bool _isEditing = false;
 
   @override
@@ -26,6 +27,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     _contentController = TextEditingController(text: note?.content ?? '');
     _createdAt = note?.createdAt ?? DateTime.now();
     _tags = note != null ? List.from(note.tags) : [];
+    _contentType = note?.contentType ?? 'markdown';
     _isEditing = note != null;
   }
 
@@ -57,7 +59,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       ),
       body: Column(
         children: [
-          // 顶部信息栏：创建时间 + 标签
+          // 顶部信息栏：创建时间 + 格式选择 + 标签
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: const BoxDecoration(
@@ -65,21 +67,27 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 创建时间
-                Text(
-                  _formatDateTime(_createdAt),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF999999),
-                  ),
+                Row(
+                  children: [
+                    // 创建时间
+                    Text(
+                      _formatDateTime(_createdAt),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF999999),
+                      ),
+                    ),
+                    const Spacer(),
+                    // 格式选择
+                    _buildFormatSelector(),
+                  ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(height: 8),
                 // 标签
-                Expanded(
-                  child: _buildTagSelector(),
-                ),
+                _buildTagSelector(),
               ],
             ),
           ),
@@ -96,18 +104,96 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 color: Color(0xFF1A1A1A),
                 height: 1.6,
               ),
-              decoration: const InputDecoration(
-                hintText: '开始书写...',
-                hintStyle: TextStyle(
+              decoration: InputDecoration(
+                hintText: _contentType == 'markdown' ? '使用 Markdown 格式书写...' : '开始书写...',
+                hintStyle: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFFCCCCCC),
                 ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.all(16),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 构建格式选择器
+  Widget _buildFormatSelector() {
+    return GestureDetector(
+      onTap: () => _showFormatSelector(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _contentType == 'markdown' ? Icons.code : Icons.text_fields,
+              size: 14,
+              color: const Color(0xFF666666),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              _contentType == 'markdown' ? 'Markdown' : '富文本',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_drop_down,
+              size: 16,
+              color: Color(0xFF999999),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 显示格式选择对话框
+  void _showFormatSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.code, size: 20),
+              title: const Text('Markdown'),
+              subtitle: const Text('支持 Markdown 语法'),
+              trailing: _contentType == 'markdown' 
+                  ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
+                  : null,
+              onTap: () {
+                setState(() => _contentType = 'markdown');
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(height: 0.5, indent: 56),
+            ListTile(
+              leading: const Icon(Icons.text_fields, size: 20),
+              title: const Text('纯文本'),
+              subtitle: const Text('普通文本格式'),
+              trailing: _contentType == 'rich_text'
+                  ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
+                  : null,
+              onTap: () {
+                setState(() => _contentType = 'rich_text');
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -257,6 +343,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       // 更新现有笔记
       final updatedNote = widget.note!.copyWith(
         content: content,
+        contentType: _contentType,
         tags: _tags,
         updatedAt: now,
       );
@@ -266,6 +353,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       final newNote = Note(
         id: now.millisecondsSinceEpoch.toString(),
         content: content,
+        contentType: _contentType,
         tags: _tags,
         createdAt: _createdAt,
         updatedAt: now,
