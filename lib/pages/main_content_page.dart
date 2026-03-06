@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import 'movie_tab_page.dart';
 import 'book_tab_page.dart';
 import 'note_tab_page.dart';
+import 'search_page.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页
 class MainContentPage extends StatelessWidget {
@@ -37,7 +38,12 @@ class MainContentPage extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: () {
-                // TODO: 搜索功能
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SearchPage(),
+                  ),
+                );
               },
             ),
           ],
@@ -176,7 +182,18 @@ class MainContentPage extends StatelessWidget {
                 title: const Text('添加观影'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(context, '/movie-form');
+                  // 根据当前影视标签页的选中状态设置默认值
+                  final statusMap = {
+                    0: 'watched',
+                    1: 'watching',
+                    2: 'want_to_watch',
+                  };
+                  final currentStatus = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
+                  Navigator.pushNamed(
+                    context,
+                    '/movie-form',
+                    arguments: {'initialStatus': currentStatus},
+                  );
                 },
               ),
               const Divider(height: 0.5, indent: 56),
@@ -185,7 +202,18 @@ class MainContentPage extends StatelessWidget {
                 title: const Text('添加阅读'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(context, '/book-form');
+                  // 根据当前阅读标签页的选中状态设置默认值
+                  final statusMap = {
+                    0: 'read',
+                    1: 'reading',
+                    2: 'want_to_read',
+                  };
+                  final currentStatus = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
+                  Navigator.pushNamed(
+                    context,
+                    '/book-form',
+                    arguments: {'initialStatus': currentStatus},
+                  );
                 },
               ),
               const Divider(height: 0.5, indent: 56),

@@ -177,4 +177,40 @@ class MovieDao {
     }
     return genres.toList()..sort();
   }
+
+  // ========== 回收站相关方法 ==========
+
+  // 获取已删除的影视
+  Future<List<Movie>> getDeletedMovies() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movies',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
+  }
+
+  // 恢复已删除的影视
+  Future<int> restoreMovie(String id) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'movies',
+      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // 彻底删除影视
+  Future<int> permanentDeleteMovie(String id) async {
+    final db = await _dbHelper.database;
+    return await db.delete(
+      'movies',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

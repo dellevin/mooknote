@@ -31,8 +31,8 @@ class MovieTabPage extends StatelessWidget {
       builder: (context, provider, child) {
         final statusMap = {
           0: 'watched',
-          1: 'want_to_watch',
-          2: 'watching',
+          1: 'watching',
+          2: 'want_to_watch',
         };
         final currentStatus = statusMap[provider.movieStatusIndex]!;
         final movies = provider.getMoviesByStatus(currentStatus);
@@ -45,8 +45,14 @@ class MovieTabPage extends StatelessWidget {
           onRefresh: () async => await provider.loadMovies(),
           color: const Color(0xFF1A1A1A),
           backgroundColor: Colors.white,
-          child: ListView.builder(
-            padding: EdgeInsets.zero,
+          child: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.55,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+            ),
             itemCount: movies.length,
             itemBuilder: (context, index) {
               return MovieListItem(movie: movies[index]);
@@ -59,7 +65,7 @@ class MovieTabPage extends StatelessWidget {
 
   /// 构建空状态
   Widget _buildEmptyState(BuildContext context, int statusIndex) {
-    final statusText = ['已看', '想看', '在看'][statusIndex];
+    final statusText = ['已看', '在看', '想看'][statusIndex];
     
     return Center(
       child: Column(
@@ -80,7 +86,19 @@ class MovieTabPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/movie-form'),
+            onPressed: () {
+              final statusMap = {
+                0: 'watched',
+                1: 'watching',
+                2: 'want_to_watch',
+              };
+              final currentStatus = statusMap[statusIndex]!;
+              Navigator.pushNamed(
+                context,
+                '/movie-form',
+                arguments: {'initialStatus': currentStatus},
+              );
+            },
             child: const Text('添加记录'),
           ),
         ],

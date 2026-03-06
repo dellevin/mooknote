@@ -6,6 +6,9 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import 'recycle_bin_page.dart';
+import 'backup_page.dart';
+import 'statistics_page.dart';
 
 /// 个人中心页面 - 极简主义设计
 class ProfilePage extends StatefulWidget {
@@ -380,7 +383,12 @@ class _ProfilePageState extends State<ProfilePage> {
         _buildMenuItem(
           icon: Icons.analytics_outlined,
           title: '数据统计',
-          onTap: () => _showToast('详细统计功能开发中'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const StatisticsPage()),
+            );
+          },
         ),
         const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
         
@@ -388,21 +396,24 @@ class _ProfilePageState extends State<ProfilePage> {
         _buildMenuItem(
           icon: Icons.delete_outline,
           title: '回收站',
-          onTap: () => _showToast('回收站功能开发中'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const RecycleBinPage()),
+            );
+          },
         ),
         const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
         
         _buildMenuItem(
           icon: Icons.backup_outlined,
           title: '数据备份',
-          onTap: () => _showToast('备份功能开发中'),
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
-        _buildMenuItem(
-          icon: Icons.settings_outlined,
-          title: '设置',
-          onTap: () => _showSettings(context),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BackupPage()),
+            );
+          },
         ),
       ],
     );

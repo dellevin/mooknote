@@ -61,6 +61,7 @@ class MovieStatusBar extends StatelessWidget {
     final isSelected = index == currentIndex;
     
     Color color;
+    // 0:已看(深色), 1:在看(中灰), 2:想看(浅灰)
     switch (index) {
       case 0:
         color = const Color(0xFF1A1A1A);

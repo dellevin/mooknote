@@ -12,15 +12,41 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/movie-form':
-        final movie = settings.arguments as Movie?;
+        // 处理不同参数类型：Movie 对象或 Map（包含 initialStatus）
+        final args = settings.arguments;
+        Movie? movie;
+        String? initialStatus;
+        
+        if (args is Movie) {
+          movie = args;
+        } else if (args is Map<String, dynamic>) {
+          initialStatus = args['initialStatus'] as String?;
+        }
+        
         return MaterialPageRoute(
-          builder: (_) => MovieFormPage(movie: movie),
+          builder: (_) => MovieFormPage(
+            movie: movie,
+            initialStatus: initialStatus,
+          ),
         );
       
       case '/book-form':
-        final book = settings.arguments as Book?;
+        // 处理不同参数类型：Book 对象或 Map（包含 initialStatus）
+        final args = settings.arguments;
+        Book? book;
+        String? initialStatus;
+
+        if (args is Book) {
+          book = args;
+        } else if (args is Map<String, dynamic>) {
+          initialStatus = args['initialStatus'] as String?;
+        }
+
         return MaterialPageRoute(
-          builder: (_) => BookFormPage(book: book),
+          builder: (_) => BookFormPage(
+            book: book,
+            initialStatus: initialStatus,
+          ),
         );
       
       case '/note-form':

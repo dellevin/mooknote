@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 8,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -45,6 +45,31 @@ class DatabaseHelper {
       await _createMovieReviewsTable(db);
       await _createMoviePostersTable(db);
     }
+    if (oldVersion < 6) {
+      // 为笔记表添加软删除字段
+      await _upgradeNotesTableV6(db);
+    }
+    if (oldVersion < 7) {
+      // 创建书评表和摘抄表
+      await _createBookReviewsTable(db);
+      await _createBookExcerptsTable(db);
+    }
+    if (oldVersion < 8) {
+      // 确保书评表和摘抄表存在（兼容之前版本未成功创建的情况）
+      await _createBookReviewsTable(db);
+      await _createBookExcerptsTable(db);
+    }
+  }
+  
+  /// 升级notes表到V6（添加软删除字段）
+  Future<void> _upgradeNotesTableV6(Database db) async {
+    // 检查是否存在 is_deleted 列
+    final columns = await db.rawQuery('PRAGMA table_info(notes)');
+    final hasIsDeleted = columns.any((col) => col['name'] == 'is_deleted');
+    
+    if (!hasIsDeleted) {
+      await db.execute('ALTER TABLE notes ADD COLUMN is_deleted INTEGER DEFAULT 0');
+    }
   }
   
   /// 创建影评表
@@ -64,7 +89,7 @@ class DatabaseHelper {
       )
     ''');
   }
-  
+
   /// 创建影视海报墙表
   Future<void> _createMoviePostersTable(Database db) async {
     await db.execute('''
@@ -75,6 +100,41 @@ class DatabaseHelper {
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (movie_id) REFERENCES movies (id)
+      )
+    ''');
+  }
+
+  /// 创建书评表
+  Future<void> _createBookReviewsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_reviews (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        reviewer TEXT,
+        source TEXT,
+        review_type INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (book_id) REFERENCES books (id)
+      )
+    ''');
+  }
+
+  /// 创建书籍摘抄表
+  Future<void> _createBookExcerptsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_excerpts (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        chapter TEXT,
+        content TEXT NOT NULL,
+        comment TEXT,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (book_id) REFERENCES books (id)
       )
     ''');
   }
@@ -285,7 +345,8 @@ class DatabaseHelper {
         content_type TEXT DEFAULT 'markdown',
         tags TEXT,
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
       )
     ''');
     
@@ -314,6 +375,37 @@ class DatabaseHelper {
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (movie_id) REFERENCES movies (id)
+      )
+    ''');
+
+    // 书评表
+    await db.execute('''
+      CREATE TABLE book_reviews (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        reviewer TEXT,
+        source TEXT,
+        review_type INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (book_id) REFERENCES books (id)
+      )
+    ''');
+
+    // 书籍摘抄表
+    await db.execute('''
+      CREATE TABLE book_excerpts (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        chapter TEXT,
+        content TEXT NOT NULL,
+        comment TEXT,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (book_id) REFERENCES books (id)
       )
     ''');
   }

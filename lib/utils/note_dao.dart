@@ -6,11 +6,13 @@ import 'database_helper.dart';
 class NoteDao {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
-  // 获取所有笔记
+  // 获取所有未删除的笔记
   Future<List<Note>> getAllNotes() async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
+      where: 'is_deleted = ?',
+      whereArgs: [0],
       orderBy: 'updated_at DESC',
     );
 
@@ -47,8 +49,45 @@ class NoteDao {
     );
   }
 
-  // 删除笔记
+  // 软删除笔记
   Future<int> deleteNote(String id) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'notes',
+      {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // ========== 回收站相关方法 ==========
+
+  // 获取已删除的笔记
+  Future<List<Note>> getDeletedNotes() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'notes',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+
+    return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
+  }
+
+  // 恢复已删除的笔记
+  Future<int> restoreNote(String id) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'notes',
+      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // 彻底删除笔记
+  Future<int> permanentDeleteNote(String id) async {
     final db = await _dbHelper.database;
     return await db.delete(
       'notes',
@@ -62,8 +101,8 @@ class NoteDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
-      where: 'content LIKE ? OR tags LIKE ?',
-      whereArgs: ['%$query%', '%$query%'],
+      where: '(content LIKE ? OR tags LIKE ?) AND is_deleted = ?',
+      whereArgs: ['%$query%', '%$query%', 0],
       orderBy: 'updated_at DESC',
     );
 
@@ -75,8 +114,8 @@ class NoteDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
-      where: 'tags LIKE ?',
-      whereArgs: ['%$tag%'],
+      where: 'tags LIKE ? AND is_deleted = ?',
+      whereArgs: ['%$tag%', 0],
       orderBy: 'updated_at DESC',
     );
 

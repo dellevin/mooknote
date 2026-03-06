@@ -124,4 +124,40 @@ class BookDao {
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
   }
+
+  // ========== 回收站相关方法 ==========
+
+  // 获取已删除的书籍
+  Future<List<Book>> getDeletedBooks() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'books',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+
+    return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
+  }
+
+  // 恢复已删除的书籍
+  Future<int> restoreBook(String id) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'books',
+      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // 彻底删除书籍
+  Future<int> permanentDeleteBook(String id) async {
+    final db = await _dbHelper.database;
+    return await db.delete(
+      'books',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

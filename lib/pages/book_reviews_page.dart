@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
-import 'movie_review_form_page.dart';
+import 'book_review_form_page.dart';
 
-/// 影视影评列表页面
-class MovieReviewsPage extends StatefulWidget {
-  final Movie movie;
+/// 书籍书评列表页面
+class BookReviewsPage extends StatefulWidget {
+  final Book book;
 
-  const MovieReviewsPage({super.key, required this.movie});
+  const BookReviewsPage({super.key, required this.book});
 
   @override
-  State<MovieReviewsPage> createState() => _MovieReviewsPageState();
+  State<BookReviewsPage> createState() => _BookReviewsPageState();
 }
 
-class _MovieReviewsPageState extends State<MovieReviewsPage> {
-  List<MovieReview> _reviews = [];
+class _BookReviewsPageState extends State<BookReviewsPage> {
+  List<BookReview> _reviews = [];
   bool _isLoading = true;
 
   @override
@@ -26,11 +26,18 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
 
   Future<void> _loadReviews() async {
     setState(() => _isLoading = true);
-    final reviews = await context.read<AppProvider>().getMovieReviews(widget.movie.id);
-    setState(() {
-      _reviews = reviews;
-      _isLoading = false;
-    });
+    try {
+      final reviews = await context.read<AppProvider>().getBookReviews(widget.book.id);
+      setState(() {
+        _reviews = reviews;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('加载失败: $e')),
+      );
+    }
   }
 
   @override
@@ -38,7 +45,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('影评'),
+        title: const Text('书评'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -67,7 +74,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            '暂无影评',
+            '暂无书评',
             style: TextStyle(
               fontSize: 16,
               color: Color(0xFF999999),
@@ -81,7 +88,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
               side: const BorderSide(color: Color(0xFF1A1A1A)),
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             ),
-            child: const Text('写影评'),
+            child: const Text('写书评'),
           ),
         ],
       ),
@@ -99,7 +106,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
     );
   }
 
-  Widget _buildReviewItem(MovieReview review) {
+  Widget _buildReviewItem(BookReview review) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -151,9 +158,9 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // 评论内容
           Text(
             review.content,
@@ -165,9 +172,9 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
               height: 1.6,
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // 底部信息
           Row(
             children: [
@@ -214,24 +221,24 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieReviewFormPage(movieId: widget.movie.id),
+        builder: (context) => BookReviewFormPage(bookId: widget.book.id),
       ),
     ).then((_) => _loadReviews());
   }
 
-  void _navigateToEditReview(MovieReview review) {
+  void _navigateToEditReview(BookReview review) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieReviewFormPage(
-          movieId: widget.movie.id,
+        builder: (context) => BookReviewFormPage(
+          bookId: widget.book.id,
           review: review,
         ),
       ),
     ).then((_) => _loadReviews());
   }
 
-  void _showDeleteDialog(MovieReview review) {
+  void _showDeleteDialog(BookReview review) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -239,7 +246,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
         elevation: 0,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text('确认删除'),
-        content: const Text('确定要删除这条影评吗？'),
+        content: const Text('确定要删除这条书评吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -247,7 +254,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
           ),
           TextButton(
             onPressed: () async {
-              await context.read<AppProvider>().removeMovieReview(review.id);
+              await context.read<AppProvider>().removeBookReview(review.id);
               Navigator.pop(context);
               _loadReviews();
               ScaffoldMessenger.of(context).showSnackBar(

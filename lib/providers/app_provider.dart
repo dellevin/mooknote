@@ -5,6 +5,8 @@ import '../utils/book_dao.dart';
 import '../utils/note_dao.dart';
 import '../utils/movie_review_dao.dart';
 import '../utils/movie_poster_dao.dart';
+import '../utils/book_review_dao.dart';
+import '../utils/book_excerpt_dao.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -14,6 +16,8 @@ class AppProvider extends ChangeNotifier {
   final NoteDao _noteDao = NoteDao();
   final MovieReviewDao _reviewDao = MovieReviewDao();
   final MoviePosterDao _posterDao = MoviePosterDao();
+  final BookReviewDao _bookReviewDao = BookReviewDao();
+  final BookExcerptDao _bookExcerptDao = BookExcerptDao();
   
   // 数据列表
   List<Movie> _movies = [];
@@ -212,5 +216,130 @@ class AppProvider extends ChangeNotifier {
   /// 获取影视的海报数量
   Future<int> getMoviePosterCount(String movieId) async {
     return await _posterDao.getPosterCount(movieId);
+  }
+
+  // ========== 书评相关方法 ==========
+
+  /// 获取书籍的所有书评
+  Future<List<BookReview>> getBookReviews(String bookId) async {
+    return await _bookReviewDao.getReviewsByBookId(bookId);
+  }
+
+  /// 添加书评
+  Future<void> addBookReview(BookReview review) async {
+    await _bookReviewDao.insertReview(review);
+  }
+
+  /// 更新书评
+  Future<void> updateBookReview(BookReview review) async {
+    await _bookReviewDao.updateReview(review);
+  }
+
+  /// 删除书评
+  Future<void> removeBookReview(String id) async {
+    await _bookReviewDao.deleteReview(id);
+  }
+
+  /// 获取书籍的书评数量
+  Future<int> getBookReviewCount(String bookId) async {
+    return await _bookReviewDao.getReviewCount(bookId);
+  }
+
+  // ========== 摘抄相关方法 ==========
+
+  /// 获取书籍的所有摘抄
+  Future<List<BookExcerpt>> getBookExcerpts(String bookId) async {
+    return await _bookExcerptDao.getExcerptsByBookId(bookId);
+  }
+
+  /// 添加摘抄
+  Future<void> addBookExcerpt(BookExcerpt excerpt) async {
+    await _bookExcerptDao.insertExcerpt(excerpt);
+  }
+
+  /// 更新摘抄
+  Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
+    await _bookExcerptDao.updateExcerpt(excerpt);
+  }
+
+  /// 删除摘抄
+  Future<void> removeBookExcerpt(String id) async {
+    await _bookExcerptDao.deleteExcerpt(id);
+  }
+
+  /// 获取书籍的摘抄数量
+  Future<int> getBookExcerptCount(String bookId) async {
+    return await _bookExcerptDao.getExcerptCount(bookId);
+  }
+
+  // ========== 回收站相关方法 ==========
+  
+  /// 获取已删除的影视
+  Future<List<Movie>> getDeletedMovies() async {
+    return await _movieDao.getDeletedMovies();
+  }
+  
+  /// 恢复影视
+  Future<void> restoreMovie(String id) async {
+    await _movieDao.restoreMovie(id);
+    await loadMovies();
+  }
+  
+  /// 彻底删除影视
+  Future<void> permanentDeleteMovie(String id) async {
+    await _movieDao.permanentDeleteMovie(id);
+  }
+  
+  /// 获取已删除的书籍
+  Future<List<Book>> getDeletedBooks() async {
+    return await _bookDao.getDeletedBooks();
+  }
+  
+  /// 恢复书籍
+  Future<void> restoreBook(String id) async {
+    await _bookDao.restoreBook(id);
+    await loadBooks();
+  }
+  
+  /// 彻底删除书籍
+  Future<void> permanentDeleteBook(String id) async {
+    await _bookDao.permanentDeleteBook(id);
+  }
+  
+  /// 获取已删除的笔记
+  Future<List<Note>> getDeletedNotes() async {
+    return await _noteDao.getDeletedNotes();
+  }
+  
+  /// 恢复笔记
+  Future<void> restoreNote(String id) async {
+    await _noteDao.restoreNote(id);
+    await loadNotes();
+  }
+  
+  /// 彻底删除笔记
+  Future<void> permanentDeleteNote(String id) async {
+    await _noteDao.permanentDeleteNote(id);
+  }
+  
+  /// 清空回收站
+  Future<void> clearRecycleBin() async {
+    final deletedMovies = await _movieDao.getDeletedMovies();
+    final deletedBooks = await _bookDao.getDeletedBooks();
+    final deletedNotes = await _noteDao.getDeletedNotes();
+    
+    for (final movie in deletedMovies) {
+      await _movieDao.permanentDeleteMovie(movie.id);
+    }
+    for (final book in deletedBooks) {
+      await _bookDao.permanentDeleteBook(book.id);
+    }
+    for (final note in deletedNotes) {
+      await _noteDao.permanentDeleteNote(note.id);
+    }
+    
+    await loadMovies();
+    await loadBooks();
+    await loadNotes();
   }
 }

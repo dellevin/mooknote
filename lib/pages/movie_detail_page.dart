@@ -1,6 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import 'movie_reviews_page.dart';
@@ -18,13 +23,31 @@ class MovieDetailPage extends StatefulWidget {
 
 class _MovieDetailPageState extends State<MovieDetailPage> {
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 页面获得焦点时刷新数据
+    _refreshMovieData();
+  }
+  
+  void _refreshMovieData() {
+    final provider = context.read<AppProvider>();
+    // 强制刷新当前影视数据
+    provider.loadMovies();
+  }
+  
+  @override
   Widget build(BuildContext context) {
+    // 从 Provider 获取最新的 movie 数据，实现动态刷新
+    final movie = context.watch<AppProvider>().movies
+        .where((m) => m.id == widget.movie.id)
+        .firstOrNull ?? widget.movie;
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
           // 顶部海报区域
-          _buildSliverAppBar(),
+          _buildSliverAppBar(movie),
           
           // 内容区域
           SliverToBoxAdapter(
@@ -32,40 +55,36 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 基本信息
-                _buildBasicInfo(),
+                _buildBasicInfo(movie),
                 
                 const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
                 
                 // 导演
-                if (widget.movie.directors.isNotEmpty)
-                  _buildDirectorsSection(),
+                if (movie.directors.isNotEmpty)
+                  _buildDirectorsSection(movie),
                 
                 // 编剧
-                if (widget.movie.writers.isNotEmpty)
-                  _buildWritersSection(),
+                if (movie.writers.isNotEmpty)
+                  _buildWritersSection(movie),
                 
                 // 主演
-                if (widget.movie.actors.isNotEmpty)
-                  _buildActorsSection(),
+                if (movie.actors.isNotEmpty)
+                  _buildActorsSection(movie),
                 
                 // 类型
-                if (widget.movie.genres.isNotEmpty)
-                  _buildGenresSection(),
+                if (movie.genres.isNotEmpty)
+                  _buildGenresSection(movie),
                 
                 const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
                 
                 // 简介
-                if (widget.movie.summary != null && widget.movie.summary!.isNotEmpty)
-                  _buildSummarySection(),
-                
-                // 别名
-                if (widget.movie.alternateTitles.isNotEmpty)
-                  _buildAlternateTitlesSection(),
+                if (movie.summary != null && movie.summary!.isNotEmpty)
+                  _buildSummarySection(movie),
                 
                 const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
                 
                 // 影评和海报墙入口
-                _buildExtraSections(),
+                _buildExtraSections(movie),
                 
                 const SizedBox(height: 48),
               ],
@@ -80,18 +99,53 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建顶部 AppBar
-  Widget _buildSliverAppBar() {
+  Widget _buildSliverAppBar(Movie movie) {
+    final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
+    
     return SliverAppBar(
-      expandedHeight: 280,
+      expandedHeight: 320,
       pinned: true,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F5F5),
       flexibleSpace: FlexibleSpaceBar(
-        background: _buildPosterSection(),
+        background: _buildPosterSection(movie),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.edit_outlined),
-          onPressed: () => _navigateToEdit(context),
+        // 下载海报按钮（仅当有海报时显示）
+        if (hasPoster)
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.download_outlined, color: Color(0xFF666666)),
+              onPressed: () => _downloadPoster(movie),
+              tooltip: '下载海报',
+            ),
+          ),
+        // 清空海报按钮（仅当有海报时显示）
+        if (hasPoster)
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.hide_image_outlined, color: Color(0xFF666666)),
+              onPressed: () => _showClearPosterDialog(movie),
+              tooltip: '清空海报',
+            ),
+          ),
+        // 编辑按钮
+        Container(
+          margin: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A1A1A)),
+            onPressed: () => _navigateToEdit(context),
+          ),
         ),
         const SizedBox(width: 8),
       ],
@@ -99,14 +153,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建海报区域
-  Widget _buildPosterSection() {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFFF5F5F5),
-      child: widget.movie.posterPath != null && widget.movie.posterPath!.isNotEmpty
+  Widget _buildPosterSection(Movie movie) {
+    return SizedBox.expand(
+      child: movie.posterPath != null && movie.posterPath!.isNotEmpty
           ? Image.file(
-              File(widget.movie.posterPath!),
-              fit: BoxFit.contain,
+              File(movie.posterPath!),
+              fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _buildPosterPlaceholder(),
             )
           : _buildPosterPlaceholder(),
@@ -136,8 +188,44 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     );
   }
   
+  /// 显示清空海报对话框
+  void _showClearPosterDialog(Movie movie) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('清空海报'),
+        content: const Text('确定要清空海报吗？清空后将使用默认占位图。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final updatedMovie = movie.copyWith(
+                posterPath: null,
+                updatedAt: DateTime.now(),
+              );
+              await context.read<AppProvider>().updateMovie(updatedMovie);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('海报已清空')),
+                );
+              }
+            },
+            child: const Text('清空', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+  
   /// 构建基本信息
-  Widget _buildBasicInfo() {
+  Widget _buildBasicInfo(Movie movie) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -145,7 +233,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         children: [
           // 影视名称
           Text(
-            widget.movie.title,
+            movie.title,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
@@ -154,12 +242,25 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             ),
           ),
           
+          // 别名（显示在主名称下面，用 / 分隔）
+          if (movie.alternateTitles.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              movie.alternateTitles.join(' / '),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF999999),
+                height: 1.4,
+              ),
+            ),
+          ],
+          
           const SizedBox(height: 16),
           
           // 评分和状态
           Row(
             children: [
-              if (widget.movie.rating != null) ...[
+              if (movie.rating != null) ...[
                 const Icon(
                   Icons.star,
                   size: 20,
@@ -167,7 +268,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  widget.movie.rating!.toStringAsFixed(1),
+                  movie.rating!.toStringAsFixed(1),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -176,16 +277,16 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 ),
                 const SizedBox(width: 16),
               ],
-              _buildStatusTag(),
+              _buildStatusTag(movie),
             ],
           ),
           
           const SizedBox(height: 8),
           
           // 上映日期
-          if (widget.movie.releaseDate != null)
+          if (movie.releaseDate != null)
             Text(
-              '${widget.movie.releaseDate!.year}年上映',
+              '${movie.releaseDate!.year}年上映',
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF999999),
@@ -196,7 +297,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           
           // 时间信息
           Text(
-            '添加于 ${_formatDate(widget.movie.createdAt)}',
+            '添加于 ${_formatDate(movie.createdAt)}',
             style: const TextStyle(
               fontSize: 12,
               color: Color(0xFF999999),
@@ -208,10 +309,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建状态标签
-  Widget _buildStatusTag() {
+  Widget _buildStatusTag(Movie movie) {
     String label;
     Color color;
-    switch (widget.movie.status) {
+    switch (movie.status) {
       case 'watched':
         label = '已看';
         color = const Color(0xFF1A1A1A);
@@ -246,7 +347,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建导演区域
-  Widget _buildDirectorsSection() {
+  Widget _buildDirectorsSection(Movie movie) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -265,7 +366,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.movie.directors.map((director) {
+            children: movie.directors.map((director) {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -288,7 +389,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建编剧区域
-  Widget _buildWritersSection() {
+  Widget _buildWritersSection(Movie movie) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
@@ -307,7 +408,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.movie.writers.map((writer) {
+            children: movie.writers.map((writer) {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -330,7 +431,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建主演区域
-  Widget _buildActorsSection() {
+  Widget _buildActorsSection(Movie movie) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
@@ -349,7 +450,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.movie.actors.map((actor) {
+            children: movie.actors.map((actor) {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -372,7 +473,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建类型区域
-  Widget _buildGenresSection() {
+  Widget _buildGenresSection(Movie movie) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
@@ -391,7 +492,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.movie.genres.map((genre) {
+            children: movie.genres.map((genre) {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -413,7 +514,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
   
   /// 构建简介区域
-  Widget _buildSummarySection() {
+  Widget _buildSummarySection(Movie movie) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -430,7 +531,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.movie.summary!,
+            movie.summary!,
             style: const TextStyle(
               fontSize: 15,
               color: Color(0xFF1A1A1A),
@@ -442,43 +543,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     );
   }
   
-  /// 构建别名区域
-  Widget _buildAlternateTitlesSection() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '别名',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: widget.movie.alternateTitles.map((title) {
-              return Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF666666),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-  
   /// 构建额外功能区域（影评、海报墙）
-  Widget _buildExtraSections() {
+  Widget _buildExtraSections(Movie movie) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -496,7 +562,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           const SizedBox(height: 16),
           // 影评入口
           GestureDetector(
-            onTap: () => _navigateToReviews(),
+            onTap: () => _navigateToReviews(movie),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -524,7 +590,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                         ),
                         const SizedBox(height: 4),
                         FutureBuilder<int>(
-                          future: context.read<AppProvider>().getMovieReviewCount(widget.movie.id),
+                          future: context.read<AppProvider>().getMovieReviewCount(movie.id),
                           builder: (context, snapshot) {
                             final count = snapshot.data ?? 0;
                             return Text(
@@ -550,7 +616,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           const SizedBox(height: 12),
           // 海报墙入口
           GestureDetector(
-            onTap: () => _navigateToPosters(),
+            onTap: () => _navigateToPosters(movie),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -578,7 +644,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                         ),
                         const SizedBox(height: 4),
                         FutureBuilder<int>(
-                          future: context.read<AppProvider>().getMoviePosterCount(widget.movie.id),
+                          future: context.read<AppProvider>().getMoviePosterCount(movie.id),
                           builder: (context, snapshot) {
                             final count = snapshot.data ?? 0;
                             return Text(
@@ -606,20 +672,20 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     );
   }
   
-  void _navigateToReviews() {
+  void _navigateToReviews(Movie movie) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieReviewsPage(movie: widget.movie),
+        builder: (context) => MovieReviewsPage(movie: movie),
       ),
     );
   }
   
-  void _navigateToPosters() {
+  void _navigateToPosters(Movie movie) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MoviePostersPage(movie: widget.movie),
+        builder: (context) => MoviePostersPage(movie: movie),
       ),
     );
   }
@@ -711,5 +777,74 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         ],
       ),
     );
+  }
+  
+  /// 下载海报到本地
+  Future<void> _downloadPoster(Movie movie) async {
+    if (movie.posterPath == null || movie.posterPath!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('没有可下载的海报')),
+      );
+      return;
+    }
+    
+    try {
+      final sourceFile = File(movie.posterPath!);
+      if (!await sourceFile.exists()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('海报文件不存在')),
+        );
+        return;
+      }
+      
+      // 生成文件名：影视名称_时间戳_海报.扩展名
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${movie.title}_${timestamp}_海报${path.extension(movie.posterPath!)}';
+      
+      // 复制到临时目录
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(path.join(tempDir.path, fileName));
+      await sourceFile.copy(tempFile.path);
+      
+      // 使用分享功能让用户选择保存位置
+      await Share.shareXFiles(
+        [XFile(tempFile.path)],
+        subject: '${movie.title} 海报',
+        text: '下载自 MookNote',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('下载失败: $e')),
+      );
+    }
+  }
+  
+  /// 请求存储权限
+  Future<bool> _requestStoragePermission() async {
+    // Android 13+ 使用新的权限
+    if (Platform.isAndroid) {
+      final sdkInt = await _getAndroidSdkInt();
+      if (sdkInt >= 33) {
+        // Android 13+ 使用 READ_MEDIA_IMAGES
+        final status = await Permission.photos.request();
+        return status.isGranted;
+      } else {
+        // Android 12 及以下使用存储权限
+        var status = await Permission.storage.request();
+        if (status.isDenied) {
+          status = await Permission.storage.request();
+        }
+        return status.isGranted;
+      }
+    }
+    // iOS 不需要额外权限来保存到应用沙盒
+    return true;
+  }
+  
+  /// 获取 Android SDK 版本
+  Future<int> _getAndroidSdkInt() async {
+    // 简化处理，实际可以通过 platform channel 获取
+    // 这里默认返回较低版本，使用传统存储权限
+    return 30;
   }
 }

@@ -23,27 +23,7 @@ class CustomDrawer extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
-              children: [
-                
-                _buildMenuItem(
-                  icon: Icons.delete_outline,
-                  title: '回收站',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showToast(context, '回收站功能开发中');
-                  },
-                ),
-                const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-                
-                _buildMenuItem(
-                  icon: Icons.settings_outlined,
-                  title: '设置',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showToast(context, '设置功能开发中');
-                  },
-                ),
-              ],
+              children: [],
             ),
           ),
           

@@ -10,8 +10,9 @@ import '../models/data_models.dart';
 /// 添加/编辑影视页面 - 紧凑双行布局设计
 class MovieFormPage extends StatefulWidget {
   final Movie? movie;
+  final String? initialStatus; // 添加时的默认状态
   
-  const MovieFormPage({super.key, this.movie});
+  const MovieFormPage({super.key, this.movie, this.initialStatus});
   
   @override
   State<MovieFormPage> createState() => _MovieFormPageState();
@@ -42,7 +43,22 @@ class _MovieFormPageState extends State<MovieFormPage> {
   @override
   void initState() {
     super.initState();
-    final movie = widget.movie;
+    _initializeData();
+  }
+  
+  void _initializeData() {
+    // 如果有传入movie，尝试从Provider获取最新数据
+    Movie? movie = widget.movie;
+    if (movie != null) {
+      final appProvider = context.read<AppProvider>();
+      final latestMovie = appProvider.movies
+          .where((m) => m.id == movie!.id)
+          .firstOrNull;
+      if (latestMovie != null) {
+        movie = latestMovie;
+      }
+    }
+    
     _titleController = TextEditingController(text: movie?.title ?? '');
     _summaryController = TextEditingController(text: movie?.summary ?? '');
     _ratingController = TextEditingController(text: movie?.rating?.toString() ?? '');
@@ -56,6 +72,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
       _posterPath = movie.posterPath;
       _status = movie.status;
       _releaseDate = movie.releaseDate;
+    } else if (widget.initialStatus != null) {
+      // 添加模式：使用传入的默认状态
+      _status = widget.initialStatus!;
     }
   }
   
@@ -101,6 +120,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
           children: [
             // 封面选择 - 居中显示
             Center(child: _buildCoverPicker()),
+            
+            const SizedBox(height: 32),
+            
+            // 状态选择（靠左显示）
+            _buildStatusSelector(),
+            
+            const SizedBox(height: 20),
+            
+            // 评分 - 星星选择（靠左显示）
+            _buildStarRating(),
             
             const SizedBox(height: 32),
             
@@ -231,62 +260,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-            
-            _buildDivider(),
-            
-            // 评分
-            _buildFormItem(
-              label: '评分',
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _ratingController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                      decoration: const InputDecoration(
-                        hintText: '1-10',
-                        hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final rating = double.tryParse(value);
-                          if (rating == null || rating < 1 || rating > 10) {
-                            return '评分必须在 1-10 之间';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  if (_ratingController.text.isNotEmpty)
-                    const Text(
-                      '分',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
-                    ),
-                ],
-              ),
-            ),
-            
-            _buildDivider(),
-            
-            // 状态
-            _buildFormItem(
-              label: '状态',
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Wrap(
-                  spacing: 12,
-                  children: [
-                    _buildStatusChip('想看', 'want_to_watch'),
-                    _buildStatusChip('在看', 'watching'),
-                    _buildStatusChip('已看', 'watched'),
-                  ],
                 ),
               ),
             ),
@@ -452,37 +425,173 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
-  /// 构建状态选择 Chip
-  Widget _buildStatusChip(String label, String value) {
+  /// 构建状态选择器（靠左显示，带标签）
+  Widget _buildStatusSelector() {
+    return Row(
+      children: [
+        const Text(
+          '状态',
+          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+        ),
+        const SizedBox(width: 16),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatusOption('想看', 'want_to_watch'),
+              _buildStatusOption('在看', 'watching'),
+              _buildStatusOption('已看', 'watched'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  /// 构建星星评分（5星制，每星2分，支持手动输入）
+  Widget _buildStarRating() {
+    return Row(
+      children: [
+        const Text(
+          '评分',
+          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+        ),
+        const SizedBox(width: 16),
+        // 星星选择
+        _buildStarSelector(),
+        const SizedBox(width: 12),
+        // 手动输入框
+        _buildRatingInputField(),
+      ],
+    );
+  }
+  
+  /// 构建星星选择器
+  Widget _buildStarSelector() {
+    final currentRating = double.tryParse(_ratingController.text) ?? 0;
+    final starRating = currentRating / 2;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(5, (index) {
+          final starValue = index + 1;
+          final scoreValue = starValue * 2;
+          final isFilled = starValue <= starRating;
+          final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
+          
+          return InkWell(
+            onTap: () {
+              setState(() {
+                _ratingController.text = scoreValue.toString();
+              });
+            },
+            borderRadius: BorderRadius.circular(4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Icon(
+                isHalf
+                    ? Icons.star_half
+                    : isFilled
+                        ? Icons.star
+                        : Icons.star_border,
+                size: 24,
+                color: isFilled || isHalf
+                    ? const Color(0xFFFFB800)
+                    : const Color(0xFFE5E5E5),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+  
+  /// 构建评分输入框
+  Widget _buildRatingInputField() {
+    return Container(
+      width: 56,
+      height: 36,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: TextFormField(
+        controller: _ratingController,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF1A1A1A),
+        ),
+        decoration: const InputDecoration(
+          hintText: '-',
+          hintStyle: TextStyle(fontSize: 15, color: Color(0xFFCCCCCC)),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        ),
+        validator: (value) {
+          if (value != null && value.isNotEmpty) {
+            final rating = double.tryParse(value);
+            if (rating == null || rating < 0 || rating > 10) {
+              return '0-10';
+            }
+          }
+          return null;
+        },
+        onChanged: (value) {
+          // 限制输入范围
+          if (value.isNotEmpty) {
+            final rating = double.tryParse(value);
+            if (rating != null) {
+              if (rating > 10) {
+                _ratingController.text = '10';
+              } else if (rating < 0) {
+                _ratingController.text = '0';
+              }
+            }
+          }
+          setState(() {}); // 更新星星显示
+        },
+      ),
+    );
+  }
+  
+  /// 构建状态选项
+  Widget _buildStatusOption(String label, String value) {
     final isSelected = _status == value;
-    Color color;
-    switch (value) {
-      case 'watched':
-        color = const Color(0xFF1A1A1A);
-        break;
-      case 'watching':
-        color = const Color(0xFF666666);
-        break;
-      case 'want_to_watch':
-        color = const Color(0xFF999999);
-        break;
-      default:
-        color = const Color(0xFFCCCCCC);
-    }
     
     return GestureDetector(
       onTap: () => setState(() => _status = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.transparent,
-          border: Border.all(color: color),
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13,
-            color: isSelected ? Colors.white : color,
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+            color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
           ),
         ),
       ),
@@ -491,23 +600,61 @@ class _MovieFormPageState extends State<MovieFormPage> {
   
   /// 构建封面选择器
   Widget _buildCoverPicker() {
-    return GestureDetector(
-      onTap: _pickCover,
-      child: Container(
-        width: 140,
-        height: 200,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
+    final hasPoster = _posterPath != null && _posterPath!.isNotEmpty;
+    
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickCover,
+          child: Container(
+            width: 140,
+            height: 200,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
+            ),
+            child: hasPoster
+                ? Image.file(
+                    File(_posterPath!),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
+                  )
+                : _buildCoverPlaceholder(),
+          ),
         ),
-        child: _posterPath != null && _posterPath!.isNotEmpty
-            ? Image.file(
-                File(_posterPath!),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
-              )
-            : _buildCoverPlaceholder(),
-      ),
+        // 清空海报按钮（仅当有海报时显示）
+        if (hasPoster)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: GestureDetector(
+              onTap: () => setState(() => _posterPath = null),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE5E5E5)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.hide_image_outlined,
+                      size: 16,
+                      color: Color(0xFF666666),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      '清空海报',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
   

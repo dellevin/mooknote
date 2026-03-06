@@ -58,8 +58,18 @@ class CustomBottomNavBar extends StatelessWidget {
                 subtitle: const Text('记录你看过的电影'),
                 onTap: () {
                   Navigator.pop(context);
-                  // 直接打开添加观影表单
-                  Navigator.pushNamed(context, '/movie-form');
+                  // 根据当前影视标签页的选中状态设置默认值
+                  final statusMap = {
+                    0: 'watched',
+                    1: 'watching',
+                    2: 'want_to_watch',
+                  };
+                  final currentStatus = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
+                  Navigator.pushNamed(
+                    context,
+                    '/movie-form',
+                    arguments: {'initialStatus': currentStatus},
+                  );
                 },
               ),
               ListTile(
@@ -68,8 +78,18 @@ class CustomBottomNavBar extends StatelessWidget {
                 subtitle: const Text('记录你读过的书'),
                 onTap: () {
                   Navigator.pop(context);
-                  // 直接打开添加阅读表单
-                  Navigator.pushNamed(context, '/book-form');
+                  // 根据当前阅读标签页的选中状态设置默认值
+                  final statusMap = {
+                    0: 'read',
+                    1: 'reading',
+                    2: 'want_to_read',
+                  };
+                  final currentStatus = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
+                  Navigator.pushNamed(
+                    context,
+                    '/book-form',
+                    arguments: {'initialStatus': currentStatus},
+                  );
                 },
               ),
               ListTile(

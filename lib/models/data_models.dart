@@ -1,6 +1,12 @@
 import 'dart:io';
 import 'dart:convert';
 
+/// 用于区分 copyWith 中"未传参数"和"传了 null"的标记
+class _CopyWithNullSentinel {
+  const _CopyWithNullSentinel();
+}
+const _copyWithNull = _CopyWithNullSentinel();
+
 /// 影视条目模型
 class Movie {
   final String id;
@@ -117,14 +123,14 @@ class Movie {
   Movie copyWith({
     String? id,
     String? title,
-    String? posterPath,
+    Object? posterPath = _copyWithNull,
     DateTime? releaseDate,
     List<String>? directors,
     List<String>? writers,
     List<String>? actors,
     List<String>? genres,
     List<String>? alternateTitles,
-    String? summary,
+    Object? summary = _copyWithNull,
     double? rating,
     String? status,
     DateTime? createdAt,
@@ -134,14 +140,14 @@ class Movie {
     return Movie(
       id: id ?? this.id,
       title: title ?? this.title,
-      posterPath: posterPath ?? this.posterPath,
+      posterPath: posterPath is _CopyWithNullSentinel ? this.posterPath : (posterPath as String?),
       releaseDate: releaseDate ?? this.releaseDate,
       directors: directors ?? this.directors,
       writers: writers ?? this.writers,
       actors: actors ?? this.actors,
       genres: genres ?? this.genres,
       alternateTitles: alternateTitles ?? this.alternateTitles,
-      summary: summary ?? this.summary,
+      summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
       rating: rating ?? this.rating,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -233,12 +239,12 @@ class Book {
   Book copyWith({
     String? id,
     String? title,
-    String? coverPath,
+    Object? coverPath = _copyWithNull,
     List<String>? authors,
     List<String>? alternateTitles,
     String? publisher,
     List<String>? genres,
-    String? summary,
+    Object? summary = _copyWithNull,
     double? rating,
     String? status,
     DateTime? createdAt,
@@ -248,12 +254,12 @@ class Book {
     return Book(
       id: id ?? this.id,
       title: title ?? this.title,
-      coverPath: coverPath ?? this.coverPath,
+      coverPath: coverPath is _CopyWithNullSentinel ? this.coverPath : (coverPath as String?),
       authors: authors ?? this.authors,
       alternateTitles: alternateTitles ?? this.alternateTitles,
       publisher: publisher ?? this.publisher,
       genres: genres ?? this.genres,
-      summary: summary ?? this.summary,
+      summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
       rating: rating ?? this.rating,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -271,6 +277,7 @@ class Note {
   final List<String> tags;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isDeleted;
 
   Note({
     required this.id,
@@ -279,6 +286,7 @@ class Note {
     this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
+    this.isDeleted = false,
   });
 
   factory Note.fromJson(Map<String, dynamic> json) {
@@ -293,6 +301,7 @@ class Note {
       updatedAt: json['updated_at'] != null 
           ? DateTime.parse(json['updated_at']) 
           : DateTime.now(),
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
     );
   }
 
@@ -304,6 +313,7 @@ class Note {
       'tags': jsonEncode(tags),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
     };
   }
   
@@ -315,6 +325,7 @@ class Note {
     List<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isDeleted,
   }) {
     return Note(
       id: id ?? this.id,
@@ -323,6 +334,7 @@ class Note {
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
   
@@ -466,6 +478,179 @@ class MoviePoster {
   File? get posterFile {
     if (posterPath.isEmpty) return null;
     return File(posterPath);
+  }
+}
+
+/// 书评模型
+class BookReview {
+  final String id;
+  final String bookId;
+  final String content;
+  final String reviewer;
+  final String source;
+  final int reviewType; // 1: 短评, 2: 长评
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  BookReview({
+    required this.id,
+    required this.bookId,
+    required this.content,
+    this.reviewer = '',
+    this.source = '',
+    this.reviewType = 1,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory BookReview.fromJson(Map<String, dynamic> json) {
+    return BookReview(
+      id: json['id']?.toString() ?? '',
+      bookId: json['book_id']?.toString() ?? '',
+      content: json['content'] ?? '',
+      reviewer: json['reviewer'] ?? '',
+      source: json['source'] ?? '',
+      reviewType: json['review_type'] ?? 1,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'book_id': bookId,
+      'content': content,
+      'reviewer': reviewer,
+      'source': source,
+      'review_type': reviewType,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  /// 复制并修改
+  BookReview copyWith({
+    String? id,
+    String? bookId,
+    String? content,
+    String? reviewer,
+    String? source,
+    int? reviewType,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return BookReview(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      content: content ?? this.content,
+      reviewer: reviewer ?? this.reviewer,
+      source: source ?? this.source,
+      reviewType: reviewType ?? this.reviewType,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  /// 获取评论摘要
+  String get summary {
+    if (content.length <= 50) return content;
+    return '${content.substring(0, 50)}...';
+  }
+
+  /// 评论类型文本
+  String get typeText => reviewType == 1 ? '短评' : '长评';
+}
+
+/// 书籍摘抄模型
+class BookExcerpt {
+  final String id;
+  final String bookId;
+  final String chapter; // 章节
+  final String content; // 摘抄内容
+  final String comment; // 摘抄的评论/感悟
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  BookExcerpt({
+    required this.id,
+    required this.bookId,
+    this.chapter = '',
+    required this.content,
+    this.comment = '',
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory BookExcerpt.fromJson(Map<String, dynamic> json) {
+    return BookExcerpt(
+      id: json['id']?.toString() ?? '',
+      bookId: json['book_id']?.toString() ?? '',
+      chapter: json['chapter'] ?? '',
+      content: json['content'] ?? '',
+      comment: json['comment'] ?? '',
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'book_id': bookId,
+      'chapter': chapter,
+      'content': content,
+      'comment': comment,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  /// 复制并修改
+  BookExcerpt copyWith({
+    String? id,
+    String? bookId,
+    String? chapter,
+    String? content,
+    String? comment,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return BookExcerpt(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      chapter: chapter ?? this.chapter,
+      content: content ?? this.content,
+      comment: comment ?? this.comment,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  /// 获取摘抄摘要
+  String get summary {
+    if (content.length <= 50) return content;
+    return '${content.substring(0, 50)}...';
   }
 }
 

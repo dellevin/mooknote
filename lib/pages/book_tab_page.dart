@@ -43,8 +43,16 @@ class BookTabPage extends StatelessWidget {
         
         return RefreshIndicator(
           onRefresh: () async => await provider.loadBooks(),
-          child: ListView.builder(
+          color: const Color(0xFF1A1A1A),
+          backgroundColor: Colors.white,
+          child: GridView.builder(
             padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.55,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+            ),
             itemCount: books.length,
             itemBuilder: (context, index) {
               return BookListItem(book: books[index]);
@@ -80,7 +88,17 @@ class BookTabPage extends StatelessWidget {
             icon: const Icon(Icons.add),
             label: const Text('添加记录'),
             onPressed: () {
-              Navigator.pushNamed(context, '/book-form');
+              final statusMap = {
+                0: 'read',
+                1: 'reading',
+                2: 'want_to_read',
+              };
+              final currentStatus = statusMap[statusIndex]!;
+              Navigator.pushNamed(
+                context,
+                '/book-form',
+                arguments: {'initialStatus': currentStatus},
+              );
             },
           ),
         ],
