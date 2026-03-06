@@ -14,31 +14,26 @@ class NoteDao {
       orderBy: 'updated_at DESC',
     );
 
-    return List.generate(maps.length, (i) {
-      return Note(
-        id: maps[i]['id'].toString(),
-        title: maps[i]['title'],
-        content: maps[i]['content'],
-        tags: maps[i]['tags'] != null 
-            ? List<String>.from(maps[i]['tags'].split(',')) 
-            : [],
-        createdAt: DateTime.parse(maps[i]['created_at']),
-        updatedAt: DateTime.parse(maps[i]['updated_at']),
-      );
-    });
+    return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
+  }
+
+  // 根据ID获取笔记
+  Future<Note?> getNoteById(String id) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'notes',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isEmpty) return null;
+    return Note.fromJson(maps.first);
   }
 
   // 添加笔记
   Future<int> insertNote(Note note) async {
     final db = await _dbHelper.database;
-    return await db.insert('notes', {
-      'id': note.id,
-      'title': note.title,
-      'content': note.content,
-      'tags': note.tags.join(','),
-      'created_at': note.createdAt.toIso8601String(),
-      'updated_at': note.updatedAt.toIso8601String(),
-    });
+    return await db.insert('notes', note.toJson());
   }
 
   // 更新笔记
@@ -46,12 +41,7 @@ class NoteDao {
     final db = await _dbHelper.database;
     return await db.update(
       'notes',
-      {
-        'title': note.title,
-        'content': note.content,
-        'tags': note.tags.join(','),
-        'updated_at': note.updatedAt.toIso8601String(),
-      },
+      note.toJson(),
       where: 'id = ?',
       whereArgs: [note.id],
     );
@@ -65,5 +55,31 @@ class NoteDao {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // 搜索笔记
+  Future<List<Note>> searchNotes(String query) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'notes',
+      where: 'content LIKE ? OR tags LIKE ?',
+      whereArgs: ['%$query%', '%$query%'],
+      orderBy: 'updated_at DESC',
+    );
+
+    return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
+  }
+
+  // 根据标签筛选
+  Future<List<Note>> getNotesByTag(String tag) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'notes',
+      where: 'tags LIKE ?',
+      whereArgs: ['%$tag%'],
+      orderBy: 'updated_at DESC',
+    );
+
+    return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
   }
 }

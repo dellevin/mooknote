@@ -66,7 +66,7 @@ class BookTabPage extends StatelessWidget {
           Icon(
             Icons.menu_book_outlined,
             size: 80,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -92,48 +92,62 @@ class BookTabPage extends StatelessWidget {
   List<Book> _getSampleBooks(int statusIndex) {
     final statusMap = ['read', 'reading', 'want_to_read'];
     final currentStatus = statusMap[statusIndex];
+    final now = DateTime.now();
     
     // 示例数据（实际应从数据库获取）
     final allBooks = [
       Book(
         id: '1',
         title: '活着',
-        author: '余华',
+        authors: ['余华'],
         rating: 9.2,
         status: 'read',
-        readDate: DateTime(2024, 1, 20),
-        note: '非常感人的故事，让人思考生命的意义',
+        genres: ['小说', '文学'],
+        summary: '非常感人的故事，让人思考生命的意义',
+        createdAt: now,
+        updatedAt: now,
       ),
       Book(
         id: '2',
         title: '百年孤独',
-        author: '加西亚·马尔克斯',
+        authors: ['加西亚·马尔克斯'],
         rating: 9.3,
         status: 'read',
-        readDate: DateTime(2024, 2, 15),
+        genres: ['小说', '魔幻现实主义'],
+        publisher: '南海出版公司',
+        createdAt: now,
+        updatedAt: now,
       ),
       Book(
         id: '3',
         title: '人类简史',
-        author: '尤瓦尔·赫拉利',
+        authors: ['尤瓦尔·赫拉利'],
         rating: 9.0,
         status: 'reading',
+        genres: ['历史', '科普'],
+        createdAt: now,
+        updatedAt: now,
       ),
       Book(
         id: '4',
         title: '三体',
-        author: '刘慈欣',
+        authors: ['刘慈欣'],
         rating: 9.5,
         status: 'want_to_read',
+        genres: ['科幻', '小说'],
+        createdAt: now,
+        updatedAt: now,
       ),
       Book(
         id: '5',
         title: '追风筝的人',
-        author: '卡勒德·胡赛尼',
+        authors: ['卡勒德·胡赛尼'],
         rating: 8.9,
         status: 'read',
-        readDate: DateTime(2024, 3, 5),
-        note: '关于救赎与成长的故事',
+        genres: ['小说', '文学'],
+        summary: '关于救赎与成长的故事',
+        createdAt: now,
+        updatedAt: now,
       ),
     ];
     

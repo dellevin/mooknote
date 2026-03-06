@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 
-/// 添加/编辑笔记页面
+/// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
-  final Note? note; // 如果为 null，则是添加模式；否则是编辑模式
+  final Note? note;
 
   const NoteFormPage({super.key, this.note});
 
@@ -14,170 +14,270 @@ class NoteFormPage extends StatefulWidget {
 }
 
 class _NoteFormPageState extends State<NoteFormPage> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _titleController;
   late TextEditingController _contentController;
-  late TextEditingController _tagsController;
+  late DateTime _createdAt;
+  List<String> _tags = [];
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.note?.title ?? '');
-    _contentController = TextEditingController(text: widget.note?.content ?? '');
-    _tagsController = TextEditingController(
-      text: widget.note?.tags.join(', ') ?? '',
-    );
+    final note = widget.note;
+    _contentController = TextEditingController(text: note?.content ?? '');
+    _createdAt = note?.createdAt ?? DateTime.now();
+    _tags = note != null ? List.from(note.tags) : [];
+    _isEditing = note != null;
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
     _contentController.dispose();
-    _tagsController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.note != null;
-
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(isEdit ? '编辑笔记' : '添加笔记'),
+        title: Text(_isEditing ? '编辑笔记' : '新建笔记'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
+          TextButton(
             onPressed: _saveNote,
+            child: const Text(
+              '保存',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 标题
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: '标题 *',
-                  hintText: '请输入笔记标题',
-                  prefixIcon: Icon(Icons.title),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入标题';
-                  }
-                  return null;
-                },
+      body: Column(
+        children: [
+          // 顶部信息栏：创建时间 + 标签
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
               ),
-
-              const SizedBox(height: 16),
-
-              // 标签
-              TextFormField(
-                controller: _tagsController,
-                decoration: const InputDecoration(
-                  labelText: '标签',
-                  hintText: '多个标签用逗号分隔',
-                  prefixIcon: Icon(Icons.local_offer),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // 内容
-              TextFormField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  labelText: '内容 *',
-                  hintText: '请输入笔记内容...',
-                  prefixIcon: Icon(Icons.edit_note),
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 15,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入内容';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 32),
-
-              // 保存按钮
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: _saveNote,
-                  icon: const Icon(Icons.save),
-                  label: Text(isEdit ? '保存修改' : '添加笔记'),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+            ),
+            child: Row(
+              children: [
+                // 创建时间
+                Text(
+                  _formatDateTime(_createdAt),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF999999),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                // 标签
+                Expanded(
+                  child: _buildTagSelector(),
+                ),
+              ],
+            ),
           ),
-        ),
+          
+          // 书写区域
+          Expanded(
+            child: TextField(
+              controller: _contentController,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF1A1A1A),
+                height: 1.6,
+              ),
+              decoration: const InputDecoration(
+                hintText: '开始书写...',
+                hintStyle: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFFCCCCCC),
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(16),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  /// 构建标签选择器
+  Widget _buildTagSelector() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ..._tags.asMap().entries.map((entry) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  entry.value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF666666),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => setState(() => _tags.removeAt(entry.key)),
+                  child: const Icon(
+                    Icons.close,
+                    size: 12,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        // 添加标签按钮
+        GestureDetector(
+          onTap: () => _showAddTagDialog(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add,
+                  size: 12,
+                  color: Color(0xFF999999),
+                ),
+                SizedBox(width: 2),
+                Text(
+                  '标签',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 显示添加标签对话框
+  void _showAddTagDialog() {
+    final controller = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text(
+          '添加标签',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '输入标签名称',
+            border: UnderlineInputBorder(),
+          ),
+          onSubmitted: (value) {
+            _addTag(value);
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () {
+              _addTag(controller.text);
+              Navigator.pop(context);
+            },
+            child: const Text('添加'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 添加标签
+  void _addTag(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isNotEmpty && !_tags.contains(trimmed)) {
+      setState(() => _tags.add(trimmed));
+    }
+  }
+
+  /// 格式化日期时间
+  String _formatDateTime(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
   /// 保存笔记
   Future<void> _saveNote() async {
-    if (!_formKey.currentState!.validate()) {
+    final content = _contentController.text.trim();
+    
+    if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('笔记内容不能为空')),
+      );
       return;
     }
 
-    // 解析标签
-    final tags = _tagsController.text
-        .split(',')
-        .map((tag) => tag.trim())
-        .where((tag) => tag.isNotEmpty)
-        .toList();
+    final now = DateTime.now();
 
-    if (widget.note == null) {
-      // 添加新模式
-      final now = DateTime.now();
-      final newNote = Note(
-        id: now.millisecondsSinceEpoch.toString(),
-        title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
-        tags: tags,
-        createdAt: now,
+    if (_isEditing) {
+      // 更新现有笔记
+      final updatedNote = widget.note!.copyWith(
+        content: content,
+        tags: _tags,
         updatedAt: now,
       );
-
-      await context.read<AppProvider>().addNote(newNote);
-    } else {
-      // 编辑现有模式
-      final updatedNote = Note(
-        id: widget.note!.id,
-        title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
-        tags: tags,
-        createdAt: widget.note!.createdAt,
-        updatedAt: DateTime.now(),
-      );
-
       await context.read<AppProvider>().updateNote(updatedNote);
+    } else {
+      // 添加新笔记
+      final newNote = Note(
+        id: now.millisecondsSinceEpoch.toString(),
+        content: content,
+        tags: _tags,
+        createdAt: _createdAt,
+        updatedAt: now,
+      );
+      await context.read<AppProvider>().addNote(newNote);
     }
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(widget.note == null ? '添加成功' : '更新成功'),
+        content: Text(_isEditing ? '保存成功' : '添加成功'),
         behavior: SnackBarBehavior.floating,
       ),
     );

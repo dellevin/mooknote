@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 
-/// 笔记详情页
+/// 笔记详情页 - 极简主义设计
 class NoteDetailPage extends StatefulWidget {
   final Note note;
 
@@ -17,133 +17,112 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.note.title),
+        title: Text(_formatDateTime(widget.note.createdAt)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit_outlined),
             onPressed: () => _navigateToEdit(context),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _showDeleteDialog(context),
-          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 标签区域
-            if (widget.note.tags.isNotEmpty) _buildTagsSection(context),
-
-            // 内容区域
-            _buildContentSection(context),
-
-            // 时间信息
-            _buildTimeSection(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 构建标签区域
-  Widget _buildTagsSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: widget.note.tags.map((tag) {
-          return Chip(
-            label: Text(tag),
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            labelStyle: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  /// 构建内容区域
-  Widget _buildContentSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
-          Text(
-            widget.note.content,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          // 标签区域
+          if (widget.note.tags.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: widget.note.tags.map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                        ),
+                        child: Text(
+                          tag,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+
+          // 内容区域
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                widget.note.content,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF1A1A1A),
                   height: 1.8,
                 ),
+              ),
+            ),
           ),
-        ],
-      ),
-    );
-  }
 
-  /// 构建时间信息区域
-  Widget _buildTimeSection(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.access_time,
-                size: 18,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+          // 底部操作栏
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '创建时间',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '更新于 ${_formatDateTime(widget.note.updatedAt)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF999999),
+                      ),
                     ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _formatDateTime(widget.note.createdAt),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.edit,
-                size: 18,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '更新时间',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          color: const Color(0xFF666666),
+                          onPressed: () => _navigateToEdit(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 20),
+                          color: Colors.red,
+                          onPressed: () => _showDeleteDialog(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _formatDateTime(widget.note.updatedAt),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ],
                 ),
+              ),
+            ),
           ),
         ],
       ),
@@ -167,12 +146,15 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text('确认删除'),
-        content: Text('确定要删除"${widget.note.title}"吗？此操作不可恢复。'),
+        content: const Text('确定要删除这条笔记吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
           ),
           TextButton(
             onPressed: () async {
@@ -181,16 +163,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               Navigator.pop(context);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('已删除'),
-                  behavior: SnackBarBehavior.floating,
-                ),
+                const SnackBar(content: Text('已删除')),
               );
             },
-            child: const Text(
-              '删除',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

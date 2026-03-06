@@ -35,10 +35,6 @@ class MainContentPage extends StatelessWidget {
           title: Text(_getAppBarTitle(provider)),
           actions: [
             IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () => _showAddDialog(context, provider),
-            ),
-            IconButton(
               icon: const Icon(Icons.search),
               onPressed: () {
                 // TODO: 搜索功能

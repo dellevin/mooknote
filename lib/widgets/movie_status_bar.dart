@@ -12,25 +12,33 @@ class MovieStatusBar extends StatelessWidget {
       builder: (context, provider, child) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          color: Colors.white,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+            ),
+          ),
           child: Row(
             children: [
               _buildStatusItem(
+                context,
                 '已看',
                 0,
                 provider.movieStatusIndex,
                 () => provider.setMovieStatusIndex(0),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               _buildStatusItem(
-                '想看',
+                context,
+                '在看',
                 1,
                 provider.movieStatusIndex,
                 () => provider.setMovieStatusIndex(1),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               _buildStatusItem(
-                '在看',
+                context,
+                '想看',
                 2,
                 provider.movieStatusIndex,
                 () => provider.setMovieStatusIndex(2),
@@ -44,6 +52,7 @@ class MovieStatusBar extends StatelessWidget {
 
   /// 构建状态项
   Widget _buildStatusItem(
+    BuildContext context,
     String label,
     int index,
     int currentIndex,
@@ -51,14 +60,39 @@ class MovieStatusBar extends StatelessWidget {
   ) {
     final isSelected = index == currentIndex;
     
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+    Color color;
+    switch (index) {
+      case 0:
+        color = const Color(0xFF1A1A1A);
+        break;
+      case 1:
+        color = const Color(0xFF666666);
+        break;
+      case 2:
+        color = const Color(0xFF999999);
+        break;
+      default:
+        color = const Color(0xFFCCCCCC);
+    }
+    
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color : Colors.transparent,
+            border: Border.all(color: color),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: isSelected ? Colors.white : color,
+            ),
+          ),
         ),
       ),
     );

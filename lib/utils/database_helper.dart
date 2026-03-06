@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -31,6 +31,110 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       // 升级movies表结构
       await _upgradeMoviesTableV2(db);
+    }
+    if (oldVersion < 3) {
+      // 升级books表结构
+      await _upgradeBooksTableV3(db);
+    }
+    if (oldVersion < 4) {
+      // 升级notes表结构
+      await _upgradeNotesTableV4(db);
+    }
+  }
+  
+  /// 升级notes表到V4
+  Future<void> _upgradeNotesTableV4(Database db) async {
+    // 备份旧数据
+    final oldData = await db.query('notes');
+    
+    // 删除旧表
+    await db.execute('DROP TABLE IF EXISTS notes');
+    
+    // 创建新表
+    await db.execute('''
+      CREATE TABLE notes (
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        content_type TEXT DEFAULT 'markdown',
+        tags TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    
+    // 迁移旧数据（将title合并到content中）
+    for (final row in oldData) {
+      try {
+        final now = DateTime.now().toIso8601String();
+        final title = row['title']?.toString() ?? '';
+        final content = row['content']?.toString() ?? '';
+        final combinedContent = title.isNotEmpty 
+            ? '# $title\n\n$content'
+            : content;
+        
+        await db.insert('notes', {
+          'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          'content': combinedContent,
+          'content_type': 'markdown',
+          'tags': row['tags'] ?? '',
+          'created_at': row['created_at']?.toString() ?? now,
+          'updated_at': row['updated_at']?.toString() ?? now,
+        });
+      } catch (e) {
+        // 忽略迁移失败的记录
+      }
+    }
+  }
+  
+  /// 升级books表到V3
+  Future<void> _upgradeBooksTableV3(Database db) async {
+    // 备份旧数据
+    final oldData = await db.query('books');
+    
+    // 删除旧表
+    await db.execute('DROP TABLE IF EXISTS books');
+    
+    // 创建新表
+    await db.execute('''
+      CREATE TABLE books (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        cover_path TEXT,
+        authors TEXT,
+        alternate_titles TEXT,
+        publisher TEXT,
+        genres TEXT,
+        summary TEXT,
+        rating REAL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+    
+    // 迁移旧数据
+    for (final row in oldData) {
+      try {
+        final now = DateTime.now().toIso8601String();
+        await db.insert('books', {
+          'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          'title': row['title']?.toString() ?? '',
+          'cover_path': row['cover'],
+          'authors': row['author'] != null ? '["${row['author']}"]' : '[]',
+          'alternate_titles': '[]',
+          'publisher': null,
+          'genres': '[]',
+          'summary': row['note'],
+          'rating': row['rating'],
+          'status': row['status'] ?? 'want_to_read',
+          'created_at': now,
+          'updated_at': now,
+          'is_deleted': 0,
+        });
+      } catch (e) {
+        // 忽略迁移失败的记录
+      }
     }
   }
 
@@ -120,26 +224,31 @@ class DatabaseHelper {
     // 书籍表
     await db.execute('''
       CREATE TABLE books (
-        id $idType,
-        title $textType,
-        author TEXT,
-        cover TEXT,
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        cover_path TEXT,
+        authors TEXT,
+        alternate_titles TEXT,
+        publisher TEXT,
+        genres TEXT,
+        summary TEXT,
         rating REAL,
-        status $textType,
-        read_date TEXT,
-        note TEXT
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
       )
     ''');
 
     // 笔记表
     await db.execute('''
       CREATE TABLE notes (
-        id $idType,
-        title $textType,
-        content $textType,
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        content_type TEXT DEFAULT 'markdown',
         tags TEXT,
-        created_at $textType,
-        updated_at $textType
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
   }

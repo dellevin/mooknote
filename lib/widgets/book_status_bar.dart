@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../utils/app_theme.dart';
 
-/// 阅读状态选择栏
+/// 阅读状态选择栏 - 极简主义设计
 class BookStatusBar extends StatelessWidget {
   const BookStatusBar({super.key});
 
@@ -12,44 +11,34 @@ class BookStatusBar extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+            ),
           ),
           child: Row(
             children: [
               _buildStatusItem(
                 context,
-                '读完',
-                AppTheme.readColor,
-                Icons.check_circle,
+                '已读',
                 0,
                 provider.bookStatusIndex,
                 () => provider.setBookStatusIndex(0),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               _buildStatusItem(
                 context,
                 '在读',
-                AppTheme.readingColor,
-                Icons.auto_stories,
                 1,
                 provider.bookStatusIndex,
                 () => provider.setBookStatusIndex(1),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               _buildStatusItem(
                 context,
-                '准备读',
-                AppTheme.wantToReadColor,
-                Icons.bookmark_border,
+                '想读',
                 2,
                 provider.bookStatusIndex,
                 () => provider.setBookStatusIndex(2),
@@ -65,46 +54,44 @@ class BookStatusBar extends StatelessWidget {
   Widget _buildStatusItem(
     BuildContext context,
     String label,
-    Color color,
-    IconData icon,
     int index,
     int currentIndex,
     VoidCallback onTap,
   ) {
     final isSelected = index == currentIndex;
     
+    Color color;
+    switch (index) {
+      case 0:
+        color = const Color(0xFF1A1A1A);
+        break;
+      case 1:
+        color = const Color(0xFF666666);
+        break;
+      case 2:
+        color = const Color(0xFF999999);
+        break;
+      default:
+        color = const Color(0xFFCCCCCC);
+    }
+    
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? color : Colors.transparent,
-              width: 2,
-            ),
+            color: isSelected ? color : Colors.transparent,
+            border: Border.all(color: color),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 20,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: isSelected ? Colors.white : color,
+            ),
           ),
         ),
       ),

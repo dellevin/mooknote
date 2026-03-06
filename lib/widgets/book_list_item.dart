@@ -1,217 +1,220 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
-import '../utils/app_theme.dart';
 
-/// 书籍列表项组件
+/// 书籍列表项组件 - 极简主义设计
 class BookListItem extends StatelessWidget {
   final Book book;
-
+  
   const BookListItem({super.key, required this.book});
-
+  
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          // 跳转到详情页
-          Navigator.pushNamed(context, '/book-detail', arguments: book);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 封面占位图
-              _buildCover(),
-              
-              const SizedBox(width: 12),
-              
-              // 书籍信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 标题
+    return InkWell(
+      onTap: () {
+        Navigator.pushNamed(context, '/book-detail', arguments: book);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 封面
+            _buildCover(),
+            
+            const SizedBox(width: 16),
+            
+            // 信息
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 书名
+                  Text(
+                    book.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // 作者
+                  if (book.authors.isNotEmpty)
                     Text(
-                      book.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      book.authors.join(' / '),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF666666),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
-                    if (book.author != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        book.author!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  
+                  const SizedBox(height: 8),
+                  
+                  // 评分和状态
+                  Row(
+                    children: [
+                      if (book.rating != null) ...[
+                        const Icon(
+                          Icons.star,
+                          size: 14,
+                          color: Color(0xFF1A1A1A),
                         ),
-                      ),
-                    ],
-                    
-                    const SizedBox(height: 8),
-                    
-                    // 评分和状态
-                    Row(
-                      children: [
-                        if (book.rating != null) ...[
-                          Icon(
-                            Icons.star,
-                            size: 16,
-                            color: Colors.amber[700],
+                        const SizedBox(width: 2),
+                        Text(
+                          book.rating!.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1A1A1A),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            book.rating.toString(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber[700],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        
-                        // 状态标签
-                        _buildStatusTag(context),
+                        ),
+                        const SizedBox(width: 12),
                       ],
+                      _buildStatusTag(),
+                    ],
+                  ),
+                  
+                  // 类型
+                  if (book.genres.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      book.genres.take(3).join(' · '),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF999999),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    
-                    if (book.readDate != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        '阅读日期：${_formatDate(book.readDate!)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                    
-                    if (book.note != null && book.note!.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        book.note!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ],
-                ),
-              ),
-              
-              // 右侧操作按钮
-              Column(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/book-form', arguments: book);
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    color: Colors.red,
-                    onPressed: () => _showDeleteDialog(context, book),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            
+            // 操作按钮
+            Column(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  color: const Color(0xFF666666),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/book-form', arguments: book);
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(height: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: Colors.red,
+                  onPressed: () => _showDeleteDialog(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
-
-  /// 构建封面占位图
+  
+  /// 构建封面
   Widget _buildCover() {
     return Container(
       width: 60,
-      height: 90,
+      height: 80,
       decoration: BoxDecoration(
-        color: Colors.grey[300],
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF5F5F5),
+        border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
       ),
+      child: book.coverPath != null && book.coverPath!.isNotEmpty
+          ? Image.file(
+              File(book.coverPath!),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
+            )
+          : _buildCoverPlaceholder(),
+    );
+  }
+  
+  Widget _buildCoverPlaceholder() {
+    return const Center(
       child: Icon(
         Icons.menu_book,
-        color: Colors.grey[500],
-        size: 32,
+        size: 24,
+        color: Color(0xFFCCCCCC),
       ),
     );
   }
-
+  
   /// 构建状态标签
-  Widget _buildStatusTag(BuildContext context) {
-    Color statusColor;
-    String statusText;
-    
+  Widget _buildStatusTag() {
+    String label;
+    Color color;
     switch (book.status) {
       case 'read':
-        statusColor = AppTheme.readColor;
-        statusText = '读完';
+        label = '已读';
+        color = const Color(0xFF1A1A1A);
         break;
       case 'reading':
-        statusColor = AppTheme.readingColor;
-        statusText = '在读';
+        label = '在读';
+        color = const Color(0xFF666666);
         break;
       case 'want_to_read':
-        statusColor = AppTheme.wantToReadColor;
-        statusText = '准备读';
+        label = '想读';
+        color = const Color(0xFF999999);
         break;
       default:
-        statusColor = Colors.grey;
-        statusText = '未知';
+        label = '未知';
+        color = const Color(0xFFCCCCCC);
     }
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: statusColor,
-          width: 1,
-        ),
+        color: color.withValues(alpha: 0.1),
+        border: Border.all(color: color),
       ),
       child: Text(
-        statusText,
+        label,
         style: TextStyle(
           fontSize: 11,
-          color: statusColor,
-          fontWeight: FontWeight.bold,
+          color: color,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
-
-  /// 格式化日期
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-
+  
   /// 显示删除对话框
-  void _showDeleteDialog(BuildContext context, Book book) {
+  void _showDeleteDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text('确认删除'),
-        content: Text('确定要删除"${book.title}"吗？此操作不可恢复。'),
+        content: Text('确定要删除"${book.title}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
           ),
           TextButton(
             onPressed: () async {
@@ -219,16 +222,10 @@ class BookListItem extends StatelessWidget {
               if (!context.mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('已删除'),
-                  behavior: SnackBarBehavior.floating,
-                ),
+                const SnackBar(content: Text('已删除')),
               );
             },
-            child: const Text(
-              '删除',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

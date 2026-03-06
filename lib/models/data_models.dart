@@ -89,8 +89,8 @@ class Movie {
     return File(posterPath!);
   }
 
-  /// 解析字符串列表
-  static List<String> _parseStringList(dynamic data) {
+  /// 解析字符串列表（公共静态方法，供Book使用）
+  static List<String> parseStringList(dynamic data) {
     if (data == null) return [];
     if (data is List) {
       return data.map((e) => e.toString()).toList();
@@ -109,6 +109,9 @@ class Movie {
     }
     return [];
   }
+  
+  /// 解析字符串列表（私有别名，保持兼容性）
+  static List<String> _parseStringList(dynamic data) => parseStringList(data);
 
   /// 复制并修改
   Movie copyWith({
@@ -151,37 +154,54 @@ class Movie {
 /// 书籍条目模型
 class Book {
   final String id;
-  final String title;
-  final String? author;
-  final String? cover;
-  final double? rating;
-  final String status; // 'read', 'reading', 'want_to_read'
-  final DateTime? readDate;
-  final String? note;
+  final String title; // 书籍名称
+  final String? coverPath; // 本地封面路径
+  final List<String> authors; // 作者列表
+  final List<String> alternateTitles; // 别名
+  final String? publisher; // 出版社
+  final List<String> genres; // 类型
+  final String? summary; // 书籍简介
+  final double? rating; // 评分 1-10
+  final String status; // read/reading/want_to_read
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
 
   Book({
     required this.id,
     required this.title,
-    this.author,
-    this.cover,
+    this.coverPath,
+    this.authors = const [],
+    this.alternateTitles = const [],
+    this.publisher,
+    this.genres = const [],
+    this.summary,
     this.rating,
     required this.status,
-    this.readDate,
-    this.note,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
-      author: json['author'],
-      cover: json['cover'],
+      coverPath: json['cover_path'],
+      authors: Movie.parseStringList(json['authors']),
+      alternateTitles: Movie.parseStringList(json['alternate_titles']),
+      publisher: json['publisher'],
+      genres: Movie.parseStringList(json['genres']),
+      summary: json['summary'],
       rating: json['rating']?.toDouble(),
       status: json['status'] ?? 'want_to_read',
-      readDate: json['read_date'] != null 
-          ? DateTime.parse(json['read_date']) 
-          : null,
-      note: json['note'],
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at']) 
+          : DateTime.now(),
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
     );
   }
 
@@ -189,29 +209,73 @@ class Book {
     return {
       'id': id,
       'title': title,
-      'author': author,
-      'cover': cover,
+      'cover_path': coverPath,
+      'authors': jsonEncode(authors),
+      'alternate_titles': jsonEncode(alternateTitles),
+      'publisher': publisher,
+      'genres': jsonEncode(genres),
+      'summary': summary,
       'rating': rating,
       'status': status,
-      'read_date': readDate?.toIso8601String(),
-      'note': note,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
     };
+  }
+  
+  /// 获取封面文件
+  File? get coverFile {
+    if (coverPath == null || coverPath!.isEmpty) return null;
+    return File(coverPath!);
+  }
+
+  /// 复制并修改
+  Book copyWith({
+    String? id,
+    String? title,
+    String? coverPath,
+    List<String>? authors,
+    List<String>? alternateTitles,
+    String? publisher,
+    List<String>? genres,
+    String? summary,
+    double? rating,
+    String? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  }) {
+    return Book(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      coverPath: coverPath ?? this.coverPath,
+      authors: authors ?? this.authors,
+      alternateTitles: alternateTitles ?? this.alternateTitles,
+      publisher: publisher ?? this.publisher,
+      genres: genres ?? this.genres,
+      summary: summary ?? this.summary,
+      rating: rating ?? this.rating,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
   }
 }
 
 /// 笔记模型
 class Note {
   final String id;
-  final String title;
   final String content;
+  final String contentType; // markdown / rich_text
   final List<String> tags;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   Note({
     required this.id,
-    required this.title,
     required this.content,
+    this.contentType = 'markdown',
     this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -219,12 +283,10 @@ class Note {
 
   factory Note.fromJson(Map<String, dynamic> json) {
     return Note(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
+      id: json['id']?.toString() ?? '',
       content: json['content'] ?? '',
-      tags: json['tags'] != null 
-          ? List<String>.from(json['tags']) 
-          : [],
+      contentType: json['content_type'] ?? 'markdown',
+      tags: Movie.parseStringList(json['tags']),
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
@@ -237,12 +299,37 @@ class Note {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'title': title,
       'content': content,
-      'tags': tags,
+      'content_type': contentType,
+      'tags': jsonEncode(tags),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
+  }
+  
+  /// 复制并修改
+  Note copyWith({
+    String? id,
+    String? content,
+    String? contentType,
+    List<String>? tags,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Note(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      contentType: contentType ?? this.contentType,
+      tags: tags ?? this.tags,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+  
+  /// 获取内容摘要（前100字）
+  String get summary {
+    if (content.length <= 100) return content;
+    return '${content.substring(0, 100)}...';
   }
 }
 
