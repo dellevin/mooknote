@@ -13,7 +13,7 @@ class NoteDao {
       'notes',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
@@ -69,7 +69,7 @@ class NoteDao {
       'notes',
       where: 'is_deleted = ?',
       whereArgs: [1],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
@@ -103,7 +103,7 @@ class NoteDao {
       'notes',
       where: '(content LIKE ? OR tags LIKE ?) AND is_deleted = ?',
       whereArgs: ['%$query%', '%$query%', 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
@@ -116,7 +116,7 @@ class NoteDao {
       'notes',
       where: 'tags LIKE ? AND is_deleted = ?',
       whereArgs: ['%$tag%', 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));

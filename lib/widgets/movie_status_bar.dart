@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
-/// 观影状态选择栏 - 极简主义设计
+/// 观影状态选择栏 - 现代胶囊式设计
 class MovieStatusBar extends StatelessWidget {
   const MovieStatusBar({super.key});
 
@@ -11,39 +11,41 @@ class MovieStatusBar extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
               bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
             ),
           ),
-          child: Row(
-            children: [
-              _buildStatusItem(
-                context,
-                '已看',
-                0,
-                provider.movieStatusIndex,
-                () => provider.setMovieStatusIndex(0),
-              ),
-              const SizedBox(width: 16),
-              _buildStatusItem(
-                context,
-                '在看',
-                1,
-                provider.movieStatusIndex,
-                () => provider.setMovieStatusIndex(1),
-              ),
-              const SizedBox(width: 16),
-              _buildStatusItem(
-                context,
-                '想看',
-                2,
-                provider.movieStatusIndex,
-                () => provider.setMovieStatusIndex(2),
-              ),
-            ],
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                _buildStatusItem(
+                  label: '已看',
+                  icon: Icons.check_circle_outline,
+                  isSelected: provider.movieStatusIndex == 0,
+                  onTap: () => provider.setMovieStatusIndex(0),
+                ),
+                _buildStatusItem(
+                  label: '在看',
+                  icon: Icons.play_circle_outline,
+                  isSelected: provider.movieStatusIndex == 1,
+                  onTap: () => provider.setMovieStatusIndex(1),
+                ),
+                _buildStatusItem(
+                  label: '想看',
+                  icon: Icons.bookmark_outline,
+                  isSelected: provider.movieStatusIndex == 2,
+                  onTap: () => provider.setMovieStatusIndex(2),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -51,48 +53,50 @@ class MovieStatusBar extends StatelessWidget {
   }
 
   /// 构建状态项
-  Widget _buildStatusItem(
-    BuildContext context,
-    String label,
-    int index,
-    int currentIndex,
-    VoidCallback onTap,
-  ) {
-    final isSelected = index == currentIndex;
-    
-    Color color;
-    // 0:已看(深色), 1:在看(中灰), 2:想看(浅灰)
-    switch (index) {
-      case 0:
-        color = const Color(0xFF1A1A1A);
-        break;
-      case 1:
-        color = const Color(0xFF666666);
-        break;
-      case 2:
-        color = const Color(0xFF999999);
-        break;
-      default:
-        color = const Color(0xFFCCCCCC);
-    }
-    
+  Widget _buildStatusItem({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? color : Colors.transparent,
-            border: Border.all(color: color),
+            color: isSelected ? const Color(0xFF1A1A1A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-              color: isSelected ? Colors.white : color,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : const Color(0xFF666666),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : const Color(0xFF666666),
+                ),
+              ),
+            ],
           ),
         ),
       ),

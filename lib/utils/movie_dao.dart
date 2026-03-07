@@ -13,7 +13,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
@@ -26,7 +26,7 @@ class MovieDao {
       'movies',
       where: 'status = ? AND is_deleted = ?',
       whereArgs: [status, 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
@@ -39,7 +39,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
@@ -54,7 +54,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
@@ -69,7 +69,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
@@ -84,7 +84,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]))
@@ -99,7 +99,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     
     final lowerKeyword = keyword.toLowerCase();
@@ -187,7 +187,7 @@ class MovieDao {
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [1],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));

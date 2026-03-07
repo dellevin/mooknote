@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
-/// 自定义底部导航栏
+/// 自定义底部导航栏 - 极简主义设计
 class CustomBottomNavBar extends StatelessWidget {
   const CustomBottomNavBar({super.key});
 
@@ -10,37 +10,84 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        return BottomNavigationBar(
-          currentIndex: provider.bottomNavIndex,
-          onTap: (index) {
-            if (index == 1) {
-              // 新增按钮 - 显示选择对话框
-              _showAddDialog(context, provider);
-            } else {
-              // 切换主页/我的页面
-              provider.setBottomNavIndex(index);
-            }
-          },
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: '主页',
+        return Container(
+          height: 48,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              activeIcon: Icon(Icons.add_circle),
-              label: '新增',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: '我的',
-            ),
-          ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // 主页按钮
+              _buildNavItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home,
+                isActive: provider.bottomNavIndex == 0,
+                onTap: () => provider.setBottomNavIndex(0),
+              ),
+              
+              // 中间新增按钮
+              _buildAddButton(context, provider),
+              
+              // 我的按钮
+              _buildNavItem(
+                icon: Icons.person_outline,
+                activeIcon: Icons.person,
+                isActive: provider.bottomNavIndex == 2,
+                onTap: () => provider.setBottomNavIndex(2),
+              ),
+            ],
+          ),
         );
       },
+    );
+  }
+  
+  /// 构建导航项
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// 构建中间新增按钮
+  Widget _buildAddButton(BuildContext context, AppProvider provider) {
+    return InkWell(
+      onTap: () => _showAddDialog(context, provider),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
     );
   }
 

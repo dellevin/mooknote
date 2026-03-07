@@ -13,7 +13,7 @@ class BookDao {
       'books',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -26,7 +26,7 @@ class BookDao {
       'books',
       where: 'status = ? AND is_deleted = ?',
       whereArgs: [status, 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -93,7 +93,7 @@ class BookDao {
       'books',
       where: '(title LIKE ? OR alternate_titles LIKE ?) AND is_deleted = ?',
       whereArgs: ['%$query%', '%$query%', 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -106,7 +106,7 @@ class BookDao {
       'books',
       where: 'authors LIKE ? AND is_deleted = ?',
       whereArgs: ['%$author%', 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -119,7 +119,7 @@ class BookDao {
       'books',
       where: 'genres LIKE ? AND is_deleted = ?',
       whereArgs: ['%$genre%', 0],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -134,7 +134,7 @@ class BookDao {
       'books',
       where: 'is_deleted = ?',
       whereArgs: [1],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
 
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));

@@ -10,6 +10,7 @@ import '../utils/toast_util.dart';
 import 'recycle_bin_page.dart';
 import 'backup_page.dart';
 import 'statistics_page.dart';
+import 'cloud_sync_page.dart';
 
 /// 个人中心页面 - 极简主义设计
 class ProfilePage extends StatefulWidget {
@@ -99,7 +100,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 // 版本信息
                 const Center(
                   child: Text(
-                    'MookNote v1.0.0',
+                    'MookNote v0.1.5',
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF999999),
@@ -393,19 +394,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
         
-
-        _buildMenuItem(
-          icon: Icons.delete_outline,
-          title: '回收站',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const RecycleBinPage()),
-            );
-          },
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
         _buildMenuItem(
           icon: Icons.backup_outlined,
           title: '数据备份',
@@ -413,6 +401,30 @@ class _ProfilePageState extends State<ProfilePage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const BackupPage()),
+            );
+          },
+        ),
+        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
+        
+        _buildMenuItem(
+          icon: Icons.cloud_sync_outlined,
+          title: '云同步',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CloudSyncPage()),
+            );
+          },
+        ),
+        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
+        
+        _buildMenuItem(
+          icon: Icons.delete_outline,
+          title: '回收站',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const RecycleBinPage()),
             );
           },
         ),

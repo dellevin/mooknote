@@ -30,7 +30,7 @@ class _BackupPageState extends State<BackupPage> {
           // 导出数据
           _buildSection(
             title: '导出数据',
-            description: '将所有数据导出为 JSON 文件，可用于备份或迁移到其他设备',
+            description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备',
             icon: Icons.upload_outlined,
             buttonText: '导出',
             isLoading: _isExporting,

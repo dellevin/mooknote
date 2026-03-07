@@ -32,7 +32,7 @@ class CustomDrawer extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             child: const Text(
-              'MookNote v1.0.0',
+              'MookNote v0.1.5',
               style: TextStyle(
                 fontSize: 12,
                 color: Color(0xFF999999),

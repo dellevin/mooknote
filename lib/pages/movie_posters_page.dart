@@ -9,6 +9,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../utils/toast_util.dart';
+import 'poster_gallery_page.dart';
 
 /// 影视海报墙页面
 class MoviePostersPage extends StatefulWidget {
@@ -116,6 +117,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
     
     return GestureDetector(
       onTap: () => _showPosterDetail(poster),
+      onLongPress: () => _showDeleteDialog(poster),
       child: Container(
         height: height,
         decoration: BoxDecoration(
@@ -163,26 +165,6 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
                   ),
                 ),
               ),
-              // 删除按钮
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => _showDeleteDialog(poster),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      size: 16,
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -191,21 +173,15 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   }
 
   void _showPosterDetail(MoviePoster poster) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: InteractiveViewer(
-            minScale: 0.5,
-            maxScale: 3.0,
-            child: Image.file(
-              File(poster.posterPath),
-              fit: BoxFit.contain,
-            ),
-          ),
+    // 找到当前海报的索引
+    final initialIndex = _posters.indexWhere((p) => p.id == poster.id);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PosterGalleryPage(
+          posters: _posters,
+          initialIndex: initialIndex >= 0 ? initialIndex : 0,
         ),
       ),
     );
