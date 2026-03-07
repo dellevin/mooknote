@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
+// import 'package:url_launcher/url_launcher.dart'; // 改为应用内打开
+import 'package:webview_flutter/webview_flutter.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../utils/toast_util.dart';
@@ -593,6 +595,176 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// 显示设置
   void _showSettings(BuildContext context) {
-    _showToast('设置功能开发中');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SettingsPage(),
+      ),
+    );
+  }
+}
+
+/// 设置页面
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('设置'),
+      ),
+      body: ListView(
+        children: [
+          // 使用说明
+          _buildLinkItem(
+            context: context,
+            icon: Icons.help_outline,
+            title: '使用说明',
+            subtitle: '查看应用使用指南',
+            url: 'https://www.iletter.top/',
+          ),
+          
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          
+          // 关于作者
+          _buildLinkItem(
+            context: context,
+            icon: Icons.person_outline,
+            title: '关于作者',
+            subtitle: '了解更多信息',
+            url: 'https://www.iletter.top/',
+          ),
+          
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+        ],
+      ),
+    );
+  }
+
+  /// 构建链接项
+  Widget _buildLinkItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String url,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: const Color(0xFF666666),
+          size: 20,
+        ),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          color: Color(0xFF1A1A1A),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF999999),
+        ),
+      ),
+      trailing: const Icon(
+        Icons.open_in_new,
+        color: Color(0xFFCCCCCC),
+        size: 18,
+      ),
+      onTap: () => _launchUrl(context, url),
+    );
+  }
+
+  /// 打开链接（应用内打开）
+  void _launchUrl(BuildContext context, String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WebViewPage(url: url),
+      ),
+    );
+  }
+}
+
+/// WebView 页面
+class WebViewPage extends StatefulWidget {
+  final String url;
+
+  const WebViewPage({super.key, required this.url});
+
+  @override
+  State<WebViewPage> createState() => _WebViewPageState();
+}
+
+class _WebViewPageState extends State<WebViewPage> {
+  late final WebViewController _controller;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              _isLoading = true;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              _isLoading = false;
+            });
+          },
+          onWebResourceError: (WebResourceError error) {
+            setState(() {
+              _isLoading = false;
+            });
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(''),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _controller.reload(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF999999),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

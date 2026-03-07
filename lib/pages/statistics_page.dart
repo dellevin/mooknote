@@ -270,11 +270,11 @@ class _StatisticsPageState extends State<StatisticsPage> with SingleTickerProvid
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildLegendItem('影视', const Color(0xFF1A1A1A)),
+            _buildLegendItem('影视', const Color(0xFFE53935)),
             const SizedBox(width: 24),
-            _buildLegendItem('书籍', const Color(0xFF666666)),
+            _buildLegendItem('书籍', const Color(0xFF1E88E5)),
             const SizedBox(width: 24),
-            _buildLegendItem('笔记', const Color(0xFF999999)),
+            _buildLegendItem('笔记', const Color(0xFF43A047)),
           ],
         ),
         const SizedBox(height: 32),
@@ -590,35 +590,44 @@ class _StatisticsPageState extends State<StatisticsPage> with SingleTickerProvid
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
-          // 影视折线
+          // 影视折线 - 红色
           LineChartBarData(
             spots: spotsMovie,
             isCurved: true,
-            color: const Color(0xFF1A1A1A),
-            barWidth: 2,
+            color: const Color(0xFFE53935),
+            barWidth: 2.5,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: const Color(0xFFE53935).withOpacity(0.1),
+            ),
           ),
-          // 书籍折线
+          // 书籍折线 - 蓝色
           LineChartBarData(
             spots: spotsBook,
             isCurved: true,
-            color: const Color(0xFF666666),
-            barWidth: 2,
+            color: const Color(0xFF1E88E5),
+            barWidth: 2.5,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: const Color(0xFF1E88E5).withOpacity(0.1),
+            ),
           ),
-          // 笔记折线
+          // 笔记折线 - 绿色
           LineChartBarData(
             spots: spotsNote,
             isCurved: true,
-            color: const Color(0xFF999999),
-            barWidth: 2,
+            color: const Color(0xFF43A047),
+            barWidth: 2.5,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: const Color(0xFF43A047).withOpacity(0.1),
+            ),
           ),
         ],
       ),
@@ -654,11 +663,11 @@ class _StatisticsPageState extends State<StatisticsPage> with SingleTickerProvid
       ),
       child: Column(
         children: [
-          _buildWeeklyRow('影视新增', totalMovies, const Color(0xFF1A1A1A)),
+          _buildWeeklyRow('影视新增', totalMovies, const Color(0xFFE53935)),
           const Divider(height: 24),
-          _buildWeeklyRow('书籍新增', totalBooks, const Color(0xFF666666)),
+          _buildWeeklyRow('书籍新增', totalBooks, const Color(0xFF1E88E5)),
           const Divider(height: 24),
-          _buildWeeklyRow('笔记新增', totalNotes, const Color(0xFF999999)),
+          _buildWeeklyRow('笔记新增', totalNotes, const Color(0xFF43A047)),
           const Divider(height: 24),
           _buildWeeklyRow('总计', totalMovies + totalBooks + totalNotes, const Color(0xFF1A1A1A), isTotal: true),
         ],

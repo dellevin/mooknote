@@ -127,7 +127,7 @@ class WebDAVService {
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
       var davUrl = '$baseUrl$path';
       
-      print('WebDAV: Testing connection to $davUrl');
+      // print('WebDAV: Testing connection to $davUrl');
       
       final client = http.Client();
       try {
@@ -142,7 +142,7 @@ class WebDAVService {
 </D:propfind>''';
         
         var propfindResponse = await client.send(propfindRequest);
-        print('WebDAV: PROPFIND status ${propfindResponse.statusCode}');
+        // print('WebDAV: PROPFIND status ${propfindResponse.statusCode}');
         
         if (propfindResponse.statusCode == 301 || 
             propfindResponse.statusCode == 302 ||
@@ -169,12 +169,12 @@ class WebDAVService {
         } else if (propfindResponse.statusCode == 401) {
           return {'success': false, 'message': '认证失败，请检查用户名和密码'};
         } else if (propfindResponse.statusCode == 404) {
-          print('WebDAV: Directory not found, trying to create...');
+          // print('WebDAV: Directory not found, trying to create...');
         } else {
           return {'success': false, 'message': '服务器返回错误: ${propfindResponse.statusCode}'};
         }
       } catch (e) {
-        print('WebDAV: PROPFIND error: $e');
+        // print('WebDAV: PROPFIND error: $e');
       }
       
       try {
@@ -182,7 +182,7 @@ class WebDAVService {
         mkcolRequest.headers['Authorization'] = _basicAuth(username, password);
         
         final mkcolResponse = await client.send(mkcolRequest);
-        print('WebDAV: MKCOL status ${mkcolResponse.statusCode}');
+        // print('WebDAV: MKCOL status ${mkcolResponse.statusCode}');
         
         if (mkcolResponse.statusCode == 201) {
           return {'success': true, 'message': '连接成功，已创建目录'};
@@ -196,18 +196,18 @@ class WebDAVService {
           return {'success': false, 'message': '创建目录失败: ${mkcolResponse.statusCode}'};
         }
       } catch (e) {
-        print('WebDAV: MKCOL error: $e');
+        // print('WebDAV: MKCOL error: $e');
         return {'success': false, 'message': '连接失败: $e'};
       } finally {
         client.close();
       }
     } catch (e) {
-      print('WebDAV test connection error: $e');
+      // print('WebDAV test connection error: $e');
       return {'success': false, 'message': '连接失败: $e'};
     }
   }
   
-  /// 同步数据（保留原有方法用于手动同步）
+  /// 同步数据（使用 ZIP 格式，类似自动备份）
   Future<SyncResult> syncData({SyncDirection direction = SyncDirection.bidirectional}) async {
     final config = await getConfig();
     if (config == null) {
@@ -228,8 +228,7 @@ class WebDAVService {
       }
       
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      var davUrl = '$baseUrl$path/mooknote.db';
-      final davImagesUrl = '$baseUrl$path/images';
+      final zipUrl = '$baseUrl$path/mooknote_backup.zip';
       
       final client = http.Client();
       int uploadedFiles = 0;
@@ -238,79 +237,91 @@ class WebDAVService {
       int downloadedImages = 0;
       
       try {
-        final remoteDbInfo = await _getRemoteFileInfo(client, davUrl, username, password);
-        
         if (direction == SyncDirection.upload) {
-          print('WebDAV: Upload only mode');
-          final result = await _uploadFile(client, davUrl, username, password, dbFile);
+          // print('WebDAV: Upload ZIP mode');
+          // 创建 ZIP 备份
+          final zipBytes = await _createFullBackupZip(dbFile);
+          if (zipBytes == null) {
+            return SyncResult(success: false, message: '创建备份 ZIP 失败');
+          }
+          
+          // 上传 ZIP 文件
+          final result = await _uploadBytes(client, zipUrl, username, password, zipBytes);
           if (result) {
-            uploadedFiles++;
-            final imageResult = await _syncImages(client, davImagesUrl, username, password, SyncDirection.upload);
-            uploadedImages = imageResult.uploaded;
+            uploadedFiles = 1;
+            // 统计图片数量
+            final appDir = await getApplicationDocumentsDirectory();
+            final imagesDir = Directory('${appDir.path}/images');
+            if (await imagesDir.exists()) {
+              uploadedImages = await _countImagesInDir(imagesDir);
+            }
+            // print('WebDAV: ZIP uploaded successfully, images: $uploadedImages');
+          } else {
+            return SyncResult(success: false, message: '上传 ZIP 失败');
           }
         } else if (direction == SyncDirection.download) {
-          print('WebDAV: Download only mode');
-          if (remoteDbInfo != null) {
-            final result = await _downloadFile(client, davUrl, username, password, dbFile);
-            if (result) {
-              downloadedFiles++;
-              // 重新打开数据库以应用新数据
+          // print('WebDAV: Download ZIP mode');
+          // 下载 ZIP 文件
+          final zipFile = File('${dbFile.parent.path}/mooknote_backup_download.zip');
+          final result = await _downloadFile(client, zipUrl, username, password, zipFile);
+          
+          if (result && await zipFile.exists()) {
+            downloadedFiles = 1;
+            // 解压 ZIP 文件
+            final extractResult = await _extractBackupZip(zipFile, dbFile);
+            if (extractResult) {
+              // 重新打开数据库
               await DatabaseHelper.instance.reopenDatabase();
-              final imageResult = await _syncImages(client, davImagesUrl, username, password, SyncDirection.download);
-              downloadedImages = imageResult.downloaded;
+              // 统计下载的图片数量
+              final appDir = await getApplicationDocumentsDirectory();
+              final imagesDir = Directory('${appDir.path}/images');
+              if (await imagesDir.exists()) {
+                downloadedImages = await _countImagesInDir(imagesDir);
+              }
+              // print('WebDAV: ZIP downloaded and extracted successfully, images: $downloadedImages');
+            } else {
+              return SyncResult(success: false, message: '解压 ZIP 失败');
             }
+            // 删除临时 ZIP 文件
+            await zipFile.delete();
           } else {
-            return SyncResult(success: false, message: '远程数据库不存在');
+            return SyncResult(success: false, message: '远程备份不存在或下载失败');
           }
         } else if (direction == SyncDirection.bidirectional) {
           // 双向同步：比较时间戳决定上传还是下载
-          print('WebDAV: Bidirectional sync mode');
+          // print('WebDAV: Bidirectional sync mode (ZIP)');
+          final remoteZipInfo = await _getRemoteFileInfo(client, zipUrl, username, password);
           
-          if (remoteDbInfo == null) {
+          if (remoteZipInfo == null) {
             // 远程不存在，直接上传
-            print('WebDAV: Remote DB not found, uploading...');
-            final result = await _uploadFile(client, davUrl, username, password, dbFile);
-            if (result) {
-              uploadedFiles++;
-              final imageResult = await _syncImages(client, davImagesUrl, username, password, SyncDirection.upload);
-              uploadedImages = imageResult.uploaded;
-            }
+            // print('WebDAV: Remote ZIP not found, uploading...');
+            return await syncData(direction: SyncDirection.upload);
           } else {
             // 远程存在，比较修改时间
             final localModified = await dbFile.lastModified();
-            final remoteModified = remoteDbInfo['modified'] as DateTime;
+            final remoteModified = remoteZipInfo['modified'] as DateTime;
             
-            print('WebDAV: Local modified: $localModified');
-            print('WebDAV: Remote modified: $remoteModified');
+            // print('WebDAV: Local modified: $localModified');
+            // print('WebDAV: Remote modified: $remoteModified');
             
             final timeDiff = localModified.difference(remoteModified).inSeconds;
             
             if (timeDiff > 10) {
               // 本地较新，上传
-              print('WebDAV: Local is newer, uploading...');
-              final result = await _uploadFile(client, davUrl, username, password, dbFile);
-              if (result) {
-                uploadedFiles++;
-                final imageResult = await _syncImages(client, davImagesUrl, username, password, SyncDirection.upload);
-                uploadedImages = imageResult.uploaded;
-              }
+              // print('WebDAV: Local is newer, uploading...');
+              return await syncData(direction: SyncDirection.upload);
             } else if (timeDiff < -10) {
               // 远程较新，下载
-              print('WebDAV: Remote is newer, downloading...');
-              final result = await _downloadFile(client, davUrl, username, password, dbFile);
-              if (result) {
-                downloadedFiles++;
-                // 重新打开数据库以应用新数据
-                await DatabaseHelper.instance.reopenDatabase();
-                final imageResult = await _syncImages(client, davImagesUrl, username, password, SyncDirection.download);
-                downloadedImages = imageResult.downloaded;
-              }
+              // print('WebDAV: Remote is newer, downloading...');
+              return await syncData(direction: SyncDirection.download);
             } else {
-              // 时间相近，仅同步图片
-              print('WebDAV: Local and remote are similar, syncing images only...');
-              final imageResult = await _syncImages(client, davImagesUrl, username, password, SyncDirection.bidirectional);
-              uploadedImages = imageResult.uploaded;
-              downloadedImages = imageResult.downloaded;
+              // 时间相近，无需同步
+              // print('WebDAV: Local and remote are similar, no sync needed');
+              return SyncResult(
+                success: true,
+                message: '本地和远程数据相同，无需同步',
+                lastSyncTime: DateTime.now(),
+              );
             }
           }
         }
@@ -334,8 +345,59 @@ class WebDAVService {
         client.close();
       }
     } catch (e) {
-      print('WebDAV sync error: $e');
+      // print('WebDAV sync error: $e');
       return SyncResult(success: false, message: '同步失败: $e');
+    }
+  }
+  
+  /// 统计目录中的图片数量
+  Future<int> _countImagesInDir(Directory dir) async {
+    int count = 0;
+    await for (final entity in dir.list(recursive: true)) {
+      if (entity is File) {
+        count++;
+      }
+    }
+    return count;
+  }
+  
+  /// 解压备份 ZIP 文件
+  Future<bool> _extractBackupZip(File zipFile, File dbFile) async {
+    try {
+      final bytes = await zipFile.readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes);
+      
+      // 解压数据库文件
+      final dbArchiveFile = archive.findFile('mooknote.db');
+      if (dbArchiveFile != null) {
+        await dbFile.writeAsBytes(dbArchiveFile.content as List<int>);
+        // print('WebDAV: Extracted database file');
+      }
+      
+      // 解压图片文件
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory('${appDir.path}/images');
+      
+      int imageCount = 0;
+      for (final archiveFile in archive) {
+        if (archiveFile.name.startsWith('images/')) {
+          final relativePath = archiveFile.name.substring(7); // 去掉 'images/' 前缀
+          final localFile = File('${imagesDir.path}/$relativePath');
+          
+          // 确保父目录存在
+          await localFile.parent.create(recursive: true);
+          
+          // 写入文件
+          await localFile.writeAsBytes(archiveFile.content as List<int>);
+          imageCount++;
+        }
+      }
+      // print('WebDAV: Extracted $imageCount images');
+      
+      return true;
+    } catch (e) {
+      // print('WebDAV: Extract ZIP error: $e');
+      return false;
     }
   }
   
@@ -378,7 +440,7 @@ class WebDAVService {
       }
       return null;
     } catch (e) {
-      print('WebDAV: Get remote file info error: $e');
+      // print('WebDAV: Get remote file info error: $e');
       return null;
     }
   }
@@ -403,7 +465,7 @@ class WebDAVService {
       }
     });
     
-    print('WebDAV: 自动备份已启动，每5分钟执行一次');
+    // print('WebDAV: 自动备份已启动，每5分钟执行一次');
   }
   
   /// 停止自动同步
@@ -415,7 +477,7 @@ class WebDAVService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_autoSyncKey, false);
     
-    print('WebDAV: 自动备份已停止');
+    // print('WebDAV: 自动备份已停止');
   }
   
   /// 检查自动同步状态
@@ -456,7 +518,7 @@ class WebDAVService {
       final davUrl = '$baseUrl$basePath/$backupFileName';
       final davImagesUrl = '$baseUrl$basePath/images';
       
-      print('WebDAV: 开始定时备份到 $davUrl');
+      // print('WebDAV: 开始定时备份到 $davUrl');
       
       final client = http.Client();
       int uploadedImages = 0;
@@ -485,7 +547,7 @@ class WebDAVService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
         
-        print('WebDAV: 定时备份完成 - $backupFileName');
+        // print('WebDAV: 定时备份完成 - $backupFileName');
         
         return SyncResult(
           success: true,
@@ -499,7 +561,7 @@ class WebDAVService {
         client.close();
       }
     } catch (e) {
-      print('WebDAV: 定时备份错误: $e');
+      // print('WebDAV: 定时备份错误: $e');
       return SyncResult(success: false, message: '备份失败: $e');
     }
   }
@@ -538,7 +600,7 @@ class WebDAVService {
       final zipEncoder = ZipEncoder();
       return zipEncoder.encode(archive);
     } catch (e) {
-      print('WebDAV: 创建备份 ZIP 失败: $e');
+      // print('WebDAV: 创建备份 ZIP 失败: $e');
       return null;
     }
   }
@@ -586,15 +648,15 @@ class WebDAVService {
         final oldBackup = backupList.removeAt(0);
         final deleteUrl = '$baseUrl$basePath/$oldBackup';
         await _deleteFile(client, deleteUrl, username, password);
-        print('WebDAV: 删除旧备份 $oldBackup');
+        // print('WebDAV: 删除旧备份 $oldBackup');
       }
       
       // 保存更新后的列表
       await prefs.setString(_backupListKey, jsonEncode(backupList));
       
-      print('WebDAV: 备份列表已更新，当前 ${backupList.length} 个备份');
+      // print('WebDAV: 备份列表已更新，当前 ${backupList.length} 个备份');
     } catch (e) {
-      print('WebDAV: 更新备份列表失败: $e');
+      // print('WebDAV: 更新备份列表失败: $e');
     }
   }
   
@@ -622,7 +684,7 @@ class WebDAVService {
         }
       }
     } catch (e) {
-      print('WebDAV: 删除文件失败: $e');
+      // print('WebDAV: 删除文件失败: $e');
     }
   }
   
@@ -657,7 +719,7 @@ class WebDAVService {
       
       return response.statusCode == 201 || response.statusCode == 204;
     } catch (e) {
-      print('WebDAV: 上传失败: $e');
+      // print('WebDAV: 上传失败: $e');
       return false;
     }
   }
@@ -696,17 +758,20 @@ class WebDAVService {
       final localImages = <String, File>{}; // 相对路径 -> 文件
       await _collectLocalImages(localImagesDir, localImages, '');
       
-      print('WebDAV: Local images: ${localImages.length}');
+      // print('WebDAV: Local images: ${localImages.length}');
       
       // 递归获取远程所有图片文件
       final remoteImages = await _listRemoteImagesRecursive(client, imagesUrl, username, password, '');
-      print('WebDAV: Remote images: ${remoteImages.length}');
+      // print('WebDAV: Remote images: ${remoteImages.length}');
       
       if (direction == SyncDirection.upload) {
         // 仅上传：上传所有本地图片
+        // print('WebDAV: Starting upload of ${localImages.length} images...');
         for (final entry in localImages.entries) {
           final relativePath = entry.key;
           final remoteUrl = '$imagesUrl/$relativePath';
+          
+          // print('WebDAV: Uploading $relativePath...');
           
           // 确保远程父目录存在
           final parentPath = p.dirname(relativePath);
@@ -716,21 +781,33 @@ class WebDAVService {
           }
           
           final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
-          if (success) uploaded++;
+          if (success) {
+            uploaded++;
+            // print('WebDAV: Uploaded $relativePath ($uploaded/${localImages.length})');
+          }
         }
+        // print('WebDAV: Upload complete - $uploaded/${localImages.length} images uploaded');
       } else if (direction == SyncDirection.download) {
         // 仅下载：下载所有远程图片
+        // print('WebDAV: Starting download of ${remoteImages.length} images...');
         for (final relativePath in remoteImages) {
           final remoteUrl = '$imagesUrl/$relativePath';
           final localFile = File('${localImagesDir.path}/$relativePath');
+          
+          // print('WebDAV: Downloading $relativePath...');
+          
           // 确保父目录存在
           await localFile.parent.create(recursive: true);
           final success = await _downloadFile(client, remoteUrl, username, password, localFile);
-          if (success) downloaded++;
+          if (success) {
+            downloaded++;
+            // print('WebDAV: Downloaded $relativePath ($downloaded/${remoteImages.length})');
+          }
         }
+        // print('WebDAV: Download complete - $downloaded/${remoteImages.length} images downloaded');
       }
     } catch (e) {
-      print('WebDAV: Sync images error: $e');
+      // print('WebDAV: Sync images error: $e');
     }
     
     return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
@@ -790,9 +867,14 @@ class WebDAVService {
       
       if (response.statusCode == 207) {
         final body = await response.stream.bytesToString();
+        // print('WebDAV: PROPFIND response for $relativePath: ${body.length} bytes');
+        // print('WebDAV: Response body: $body');
+        
         // 解析响应，提取文件和目录
         final hrefMatches = RegExp(r'<d:href>([^<]+)</d:href>', caseSensitive: false)
             .allMatches(body);
+        
+        // print('WebDAV: Found ${hrefMatches.length} href entries');
         
         for (final match in hrefMatches) {
           final href = match.group(1)!;
@@ -802,11 +884,23 @@ class WebDAVService {
           if (name.isEmpty) continue;
           if (relativePath.isEmpty && name == 'images') continue;
           
-          // 检查是文件还是目录
-          final isDirectory = body.substring(
-            match.start,
-            match.end + 200 < body.length ? match.end + 200 : body.length,
-          ).contains('<d:collection');
+          // 检查是文件还是目录 - 查找这个 href 对应的 <D:response> 部分（Apache 使用大写 D）
+          final responseStart = body.lastIndexOf('<D:response>', match.start);
+          final responseEnd = body.indexOf('</D:response>', match.start);
+          bool isDirectory = false;
+          
+          if (responseStart != -1 && responseEnd != -1 && responseStart < responseEnd) {
+            final responseSection = body.substring(responseStart, responseEnd);
+            // print('WebDAV: Checking $name in section: ${responseSection.substring(0, responseSection.length > 300 ? 300 : responseSection.length)}');
+            // 检查是否包含 <D:collection/> 或 <d:collection/> 标签（Apache WebDAV 使用大写 D）
+            isDirectory = responseSection.contains('<D:collection/>') || 
+                         responseSection.contains('<d:collection/>') ||
+                         responseSection.contains('<D:collection />') ||
+                         responseSection.contains('<d:collection />');
+            // print('WebDAV: $name contains <D:collection/>: ${responseSection.contains('<D:collection/>')}');
+          }
+          
+          // print('WebDAV: Found $name - isDirectory: $isDirectory');
           
           if (isDirectory) {
             // 递归获取子目录中的图片
@@ -818,12 +912,15 @@ class WebDAVService {
           } else {
             // 是文件，添加到列表
             final filePath = relativePath.isEmpty ? name : '$relativePath/$name';
+            // print('WebDAV: Adding file to list: $filePath');
             images.add(filePath);
           }
         }
+      } else {
+        // print('WebDAV: PROPFIND failed with status ${response.statusCode} for $relativePath');
       }
     } catch (e) {
-      print('WebDAV: List remote images error: $e');
+      // print('WebDAV: List remote images error: $e');
     }
     
     return images;
@@ -866,7 +963,7 @@ class WebDAVService {
         }
       }
     } catch (e) {
-      print('WebDAV: 创建目录失败: $e');
+      // print('WebDAV: 创建目录失败: $e');
     }
   }
   
@@ -903,7 +1000,7 @@ class WebDAVService {
       
       return response.statusCode == 201 || response.statusCode == 204;
     } catch (e) {
-      print('WebDAV: Upload error: $e');
+      // print('WebDAV: Upload error: $e');
       return false;
     }
   }
@@ -917,6 +1014,8 @@ class WebDAVService {
     File localFile,
   ) async {
     try {
+      // print('WebDAV: Downloading from $url to ${localFile.path}');
+      
       var request = http.Request('GET', Uri.parse(url));
       request.headers['Authorization'] = _basicAuth(username, password);
       
@@ -927,20 +1026,26 @@ class WebDAVService {
           response.statusCode == 307 || response.statusCode == 308) {
         final location = response.headers['location'];
         if (location != null) {
+          // print('WebDAV: Following redirect to $location');
           request = http.Request('GET', Uri.parse(location));
           request.headers['Authorization'] = _basicAuth(username, password);
           response = await client.send(request);
         }
       }
       
+      // print('WebDAV: Download response status: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final bytes = await response.stream.toBytes();
         await localFile.writeAsBytes(bytes);
+        // print('WebDAV: Downloaded ${bytes.length} bytes to ${localFile.path}');
         return true;
+      } else {
+        // print('WebDAV: Download failed with status ${response.statusCode}');
       }
       return false;
     } catch (e) {
-      print('WebDAV: Download error: $e');
+      // print('WebDAV: Download error: $e');
       return false;
     }
   }
