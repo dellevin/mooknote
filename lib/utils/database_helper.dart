@@ -8,6 +8,17 @@ class DatabaseHelper {
 
   DatabaseHelper._init();
 
+  /// 重新打开数据库（用于 WebDAV 同步后）
+  Future<void> reopenDatabase() async {
+    // 关闭现有连接
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+    // 重新初始化
+    _database = await _initDB('mooknote.db');
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB('mooknote.db');
@@ -20,7 +31,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -58,6 +69,21 @@ class DatabaseHelper {
       // 确保书评表和摘抄表存在（兼容之前版本未成功创建的情况）
       await _createBookReviewsTable(db);
       await _createBookExcerptsTable(db);
+    }
+    if (oldVersion < 9) {
+      // 为笔记表添加图片字段
+      await _upgradeNotesTableV9(db);
+    }
+  }
+  
+  /// 升级notes表到V9（添加图片字段）
+  Future<void> _upgradeNotesTableV9(Database db) async {
+    // 检查是否存在 images 列
+    final columns = await db.rawQuery('PRAGMA table_info(notes)');
+    final hasImages = columns.any((col) => col['name'] == 'images');
+    
+    if (!hasImages) {
+      await db.execute('ALTER TABLE notes ADD COLUMN images TEXT');
     }
   }
   
@@ -344,6 +370,7 @@ class DatabaseHelper {
         content TEXT NOT NULL,
         content_type TEXT DEFAULT 'markdown',
         tags TEXT,
+        images TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0

@@ -7,7 +7,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import 'database_helper.dart';
 
 /// 数据备份服务 - 支持导出和导入数据（包含图片）
@@ -55,6 +54,23 @@ class BackupService {
         }
       }
       
+      // 收集笔记图片
+      for (final note in notes) {
+        final imagesJson = note['images'] as String?;
+        if (imagesJson != null && imagesJson.isNotEmpty) {
+          try {
+            final images = jsonDecode(imagesJson) as List<dynamic>;
+            for (final imagePath in images) {
+              if (imagePath is String && imagePath.isNotEmpty) {
+                imagePaths.add(imagePath);
+              }
+            }
+          } catch (e) {
+            // 解析失败，跳过
+          }
+        }
+      }
+      
       // 构建备份数据
       final backupData = {
         'version': 2,
@@ -78,15 +94,24 @@ class BackupService {
       final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
       archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
       
-      // 添加图片文件
+      // 添加图片文件，保持目录结构
       int imageCount = 0;
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesRoot = path.join(appDir.path, 'images');
+      
       for (final imagePath in imagePaths) {
         final file = File(imagePath);
         if (await file.exists()) {
           final bytes = await file.readAsBytes();
-          final fileName = path.basename(imagePath);
-          // 使用相对路径存储图片
-          archive.addFile(ArchiveFile('images/$fileName', bytes.length, bytes));
+          // 计算相对路径（如 movies/1/poster.jpg）
+          String relativePath;
+          if (imagePath.startsWith(imagesRoot)) {
+            relativePath = imagePath.substring(imagesRoot.length + 1); // +1 去掉开头的 /
+          } else {
+            relativePath = path.basename(imagePath);
+          }
+          // 使用相对路径存储图片，保持目录结构
+          archive.addFile(ArchiveFile('images/$relativePath', bytes.length, bytes));
           imageCount++;
         }
       }
@@ -198,7 +223,7 @@ class BackupService {
         final jsonString = utf8.decode(dataFile.content as List<int>);
         backupData = jsonDecode(jsonString) as Map<String, dynamic>;
         
-        // 解压图片到应用目录
+        // 解压图片到应用目录，保持目录结构
         final appDir = await getApplicationDocumentsDirectory();
         final imagesDir = Directory(path.join(appDir.path, 'images'));
         if (!await imagesDir.exists()) {
@@ -207,9 +232,20 @@ class BackupService {
         
         for (final archiveFile in archive) {
           if (archiveFile.name.startsWith('images/')) {
-            final fileName = path.basename(archiveFile.name);
-            final outputFile = File(path.join(imagesDir.path, fileName));
+            // 获取相对路径（如 movies/1/poster.jpg）
+            final relativePath = archiveFile.name.substring(7); // 去掉 'images/' 前缀
+            final outputFile = File(path.join(imagesDir.path, relativePath));
+            
+            // 确保父目录存在
+            final parentDir = outputFile.parent;
+            if (!await parentDir.exists()) {
+              await parentDir.create(recursive: true);
+            }
+            
             await outputFile.writeAsBytes(archiveFile.content as List<int>);
+            
+            // 记录文件名到新路径的映射（用于更新数据库中的路径）
+            final fileName = path.basename(archiveFile.name);
             imagePathMap[fileName] = outputFile.path;
             imageCount++;
           }
@@ -258,11 +294,13 @@ class BackupService {
           }
         }
         
-        // 导入笔记数据
+        // 导入笔记数据（更新图片路径）
         if (data.containsKey('notes')) {
           final notes = data['notes'] as List<dynamic>;
           for (final note in notes) {
-            await txn.insert('notes', _convertToDbMap(note));
+            final noteMap = _convertToDbMap(note);
+            final updatedMap = _updateNoteImagesPath(noteMap, imagePathMap);
+            await txn.insert('notes', updatedMap);
           }
         }
         
@@ -327,6 +365,7 @@ class BackupService {
   }
   
   /// 更新图片路径为新的路径
+  /// 支持新的存储结构：images/movies/{id}/、images/books/{id}/、images/notes/{id}/
   Map<String, dynamic> _updateImagePath(
     Map<String, dynamic> item,
     String pathField,
@@ -340,6 +379,61 @@ class BackupService {
       // 如果图片在映射中，更新路径
       if (imagePathMap.containsKey(fileName)) {
         newItem[pathField] = imagePathMap[fileName];
+      } else {
+        // 尝试从旧版备份中恢复（旧版只保存了文件名）
+        // 检查是否有匹配的文件名（不区分目录结构）
+        for (final entry in imagePathMap.entries) {
+          if (path.basename(entry.key) == fileName) {
+            newItem[pathField] = entry.value;
+            break;
+          }
+        }
+      }
+    }
+    
+    return newItem;
+  }
+  
+  /// 更新笔记图片路径为新的路径
+  /// 支持新的存储结构：images/notes/{id}/
+  Map<String, dynamic> _updateNoteImagesPath(
+    Map<String, dynamic> item,
+    Map<String, String> imagePathMap,
+  ) {
+    final newItem = Map<String, dynamic>.from(item);
+    final imagesJson = item['images'] as String?;
+    
+    if (imagesJson != null && imagesJson.isNotEmpty) {
+      try {
+        final images = jsonDecode(imagesJson) as List<dynamic>;
+        final updatedImages = <String>[];
+        
+        for (final imagePath in images) {
+          if (imagePath is String && imagePath.isNotEmpty) {
+            final fileName = path.basename(imagePath);
+            // 如果图片在映射中，更新路径
+            if (imagePathMap.containsKey(fileName)) {
+              updatedImages.add(imagePathMap[fileName]!);
+            } else {
+              // 尝试从旧版备份中恢复（旧版只保存了文件名）
+              bool found = false;
+              for (final entry in imagePathMap.entries) {
+                if (path.basename(entry.key) == fileName) {
+                  updatedImages.add(entry.value);
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                updatedImages.add(imagePath);
+              }
+            }
+          }
+        }
+        
+        newItem['images'] = jsonEncode(updatedImages);
+      } catch (e) {
+        // 解析失败，保持原样
       }
     }
     

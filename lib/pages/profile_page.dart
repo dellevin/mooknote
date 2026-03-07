@@ -396,7 +396,7 @@ class _ProfilePageState extends State<ProfilePage> {
         
         _buildMenuItem(
           icon: Icons.backup_outlined,
-          title: '数据备份',
+          title: '本地备份',
           onTap: () {
             Navigator.push(
               context,
@@ -408,7 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
         
         _buildMenuItem(
           icon: Icons.cloud_sync_outlined,
-          title: '云同步',
+          title: '云备份',
           onTap: () {
             Navigator.push(
               context,

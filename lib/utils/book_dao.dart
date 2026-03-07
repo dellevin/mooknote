@@ -62,8 +62,8 @@ class BookDao {
     );
   }
 
-  // 软删除书籍记录
-  Future<int> softDeleteBook(String id) async {
+  // 软删除书籍记录（移入回收站）
+  Future<int> deleteBook(String id) async {
     final db = await _dbHelper.database;
     return await db.update(
       'books',
@@ -71,16 +71,6 @@ class BookDao {
         'is_deleted': 1,
         'updated_at': DateTime.now().toIso8601String(),
       },
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // 彻底删除书籍记录
-  Future<int> deleteBook(String id) async {
-    final db = await _dbHelper.database;
-    return await db.delete(
-      'books',
       where: 'id = ?',
       whereArgs: [id],
     );

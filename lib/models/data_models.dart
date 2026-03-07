@@ -273,8 +273,9 @@ class Book {
 class Note {
   final String id;
   final String content;
-  final String contentType; // markdown / rich_text
+  final String contentType; // markdown / plain_text
   final List<String> tags;
+  final List<String> images; // 图片路径列表
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -284,6 +285,7 @@ class Note {
     required this.content,
     this.contentType = 'markdown',
     this.tags = const [],
+    this.images = const [],
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -295,6 +297,7 @@ class Note {
       content: json['content'] ?? '',
       contentType: json['content_type'] ?? 'markdown',
       tags: Movie.parseStringList(json['tags']),
+      images: Movie.parseStringList(json['images']),
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
@@ -311,6 +314,7 @@ class Note {
       'content': content,
       'content_type': contentType,
       'tags': jsonEncode(tags),
+      'images': jsonEncode(images),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -323,6 +327,7 @@ class Note {
     String? content,
     String? contentType,
     List<String>? tags,
+    List<String>? images,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -332,6 +337,7 @@ class Note {
       content: content ?? this.content,
       contentType: contentType ?? this.contentType,
       tags: tags ?? this.tags,
+      images: images ?? this.images,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,

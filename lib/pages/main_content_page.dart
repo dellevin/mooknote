@@ -7,12 +7,12 @@ import 'note_tab_page.dart';
 import 'search_page.dart';
 import 'webdav_sync_page.dart';
 import '../utils/webdav_service.dart';
+import '../utils/toast_util.dart';
 
-/// 云同步模式
+/// 云备份模式
 enum SyncMode {
-  bidirectional, // 双向同步
-  uploadOnly, // 仅上传
-  downloadOnly, // 仅下载
+  uploadOnly, // 上传
+  downloadOnly, // 下载
 }
 
 /// 主内容页 - 观影/阅读/笔记标签页
@@ -44,11 +44,11 @@ class MainContentPage extends StatelessWidget {
         return AppBar(
           title: Text(_getAppBarTitle(provider)),
           actions: [
-            // 云同步按钮
+            // 云备份按钮
             IconButton(
               icon: const Icon(Icons.cloud_sync_outlined),
               onPressed: () => _showCloudSyncDialog(context, provider),
-              tooltip: '云同步',
+              tooltip: '云备份',
             ),
             // 搜索按钮
             IconButton(
@@ -248,7 +248,7 @@ class MainContentPage extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    '云同步',
+                    '云备份',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
@@ -262,25 +262,17 @@ class MainContentPage extends StatelessWidget {
                   children: [
                     _buildSyncOption(
                       context,
-                      icon: Icons.sync,
-                      iconColor: const Color(0xFF1A1A1A),
-                      title: '双向同步',
-                      subtitle: '本地和云端数据合并，冲突时以最新为准',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _navigateToSync(context, SyncMode.bidirectional);
-                      },
-                    ),
-                    const Divider(height: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-                    _buildSyncOption(
-                      context,
                       icon: Icons.cloud_upload,
                       iconColor: const Color(0xFF1A1A1A),
-                      title: '仅上传',
-                      subtitle: '将本地数据上传到云端，覆盖云端数据',
-                      onTap: () {
+                      title: '上传',
+                      subtitle: '将本地数据备份到云端',
+                      onTap: () async {
                         Navigator.pop(context);
-                        _navigateToSync(context, SyncMode.uploadOnly);
+                        // 等待对话框关闭
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        if (context.mounted) {
+                          _navigateToSync(context, SyncMode.uploadOnly);
+                        }
                       },
                     ),
                     const Divider(height: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
@@ -288,11 +280,15 @@ class MainContentPage extends StatelessWidget {
                       context,
                       icon: Icons.cloud_download,
                       iconColor: const Color(0xFF1A1A1A),
-                      title: '仅下载',
-                      subtitle: '从云端下载数据到本地，覆盖本地数据',
-                      onTap: () {
+                      title: '下载',
+                      subtitle: '从云端恢复数据到本地',
+                      onTap: () async {
                         Navigator.pop(context);
-                        _navigateToSync(context, SyncMode.downloadOnly);
+                        // 等待对话框关闭
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        if (context.mounted) {
+                          _navigateToSync(context, SyncMode.downloadOnly);
+                        }
                       },
                     ),
                   ],
@@ -395,30 +391,35 @@ class MainContentPage extends StatelessWidget {
     );
   }
 
-  /// 导航到同步页面
-  void _navigateToSync(BuildContext context, SyncMode mode) {
-    // TODO: 打开 WebDAV 同步页面并传递同步模式
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => WebDAVSyncPage(syncMode: mode),
-    //   ),
-    // );
+  /// 执行云备份操作
+  Future<void> _navigateToSync(BuildContext context, SyncMode mode) async {
+    // 执行同步
+    final direction = mode == SyncMode.uploadOnly 
+        ? SyncDirection.upload 
+        : SyncDirection.download;
     
-    // 暂时显示提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('即将开始${_getSyncModeText(mode)}...'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    final result = await WebDAVService.instance.syncData(direction: direction);
+    
+    if (!context.mounted) return;
+    
+    if (result.success) {
+      // 如果需要重新加载数据（下载模式）
+      if (result.needReload) {
+        final provider = context.read<AppProvider>();
+        await provider.loadMovies();
+        await provider.loadBooks();
+        await provider.loadNotes();
+      }
+      
+      ToastUtil.show(context, '${_getSyncModeText(mode)}成功');
+    } else {
+      ToastUtil.show(context, '${_getSyncModeText(mode)}失败: ${result.message}');
+    }
   }
 
   /// 获取同步模式文本
   String _getSyncModeText(SyncMode mode) {
     switch (mode) {
-      case SyncMode.bidirectional:
-        return '双向同步';
       case SyncMode.uploadOnly:
         return '上传';
       case SyncMode.downloadOnly:

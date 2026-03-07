@@ -7,6 +7,7 @@ import '../utils/movie_review_dao.dart';
 import '../utils/movie_poster_dao.dart';
 import '../utils/book_review_dao.dart';
 import '../utils/book_excerpt_dao.dart';
+import '../utils/image_path_helper.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -127,7 +128,8 @@ class AppProvider extends ChangeNotifier {
     await loadMovies();
   }
   
-  // 删除影视记录
+  // 删除影视记录（软删除，移入回收站）
+  // 注意：软删除时不删除图片文件，恢复时文件仍然存在
   Future<void> removeMovie(String id) async {
     await _movieDao.deleteMovie(id);
     await loadMovies();
@@ -145,7 +147,8 @@ class AppProvider extends ChangeNotifier {
     await loadBooks();
   }
   
-  // 删除书籍记录
+  // 删除书籍记录（软删除，移入回收站）
+  // 注意：软删除时不删除图片文件，恢复时文件仍然存在
   Future<void> removeBook(String id) async {
     await _bookDao.deleteBook(id);
     await loadBooks();
@@ -163,7 +166,8 @@ class AppProvider extends ChangeNotifier {
     await loadNotes();
   }
   
-  // 删除笔记
+  // 删除笔记（软删除，移入回收站）
+  // 注意：软删除时不删除图片文件，恢复时文件仍然存在
   Future<void> removeNote(String id) async {
     await _noteDao.deleteNote(id);
     await loadNotes();
@@ -210,6 +214,13 @@ class AppProvider extends ChangeNotifier {
   
   /// 删除海报
   Future<void> removeMoviePoster(String id) async {
+    // 先获取海报信息，以便删除文件
+    final poster = await _posterDao.getPosterById(id);
+    if (poster != null) {
+      // 删除海报文件
+      await ImagePathHelper.instance.deleteFile(poster.posterPath);
+    }
+    
     await _posterDao.deletePoster(id);
   }
   
@@ -287,6 +298,9 @@ class AppProvider extends ChangeNotifier {
   
   /// 彻底删除影视
   Future<void> permanentDeleteMovie(String id) async {
+    // 删除影视对应的图片目录（包括海报和海报墙）
+    await ImagePathHelper.instance.deleteMovieImages(id);
+    
     await _movieDao.permanentDeleteMovie(id);
   }
   
@@ -303,6 +317,9 @@ class AppProvider extends ChangeNotifier {
   
   /// 彻底删除书籍
   Future<void> permanentDeleteBook(String id) async {
+    // 删除书籍对应的图片目录
+    await ImagePathHelper.instance.deleteBookImages(id);
+    
     await _bookDao.permanentDeleteBook(id);
   }
   
@@ -319,6 +336,9 @@ class AppProvider extends ChangeNotifier {
   
   /// 彻底删除笔记
   Future<void> permanentDeleteNote(String id) async {
+    // 删除笔记对应的图片目录
+    await ImagePathHelper.instance.deleteNoteImages(id);
+    
     await _noteDao.permanentDeleteNote(id);
   }
   
@@ -329,12 +349,18 @@ class AppProvider extends ChangeNotifier {
     final deletedNotes = await _noteDao.getDeletedNotes();
     
     for (final movie in deletedMovies) {
+      // 删除影视对应的图片目录（包括海报和海报墙）
+      await ImagePathHelper.instance.deleteMovieImages(movie.id);
       await _movieDao.permanentDeleteMovie(movie.id);
     }
     for (final book in deletedBooks) {
+      // 删除书籍对应的图片目录
+      await ImagePathHelper.instance.deleteBookImages(book.id);
       await _bookDao.permanentDeleteBook(book.id);
     }
     for (final note in deletedNotes) {
+      // 删除笔记对应的图片目录
+      await ImagePathHelper.instance.deleteNoteImages(note.id);
       await _noteDao.permanentDeleteNote(note.id);
     }
     

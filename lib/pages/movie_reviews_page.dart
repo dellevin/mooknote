@@ -101,108 +101,111 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
   }
 
   Widget _buildReviewItem(MovieReview review) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 头部：类型标签 + 操作按钮
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: review.reviewType == 1
-                      ? const Color(0xFFF5F5F5)
-                      : const Color(0xFF1A1A1A),
-                ),
-                child: Text(
-                  review.typeText,
-                  style: TextStyle(
-                    fontSize: 11,
+    return InkWell(
+      onLongPress: () => _showDeleteDialog(review),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 头部：类型标签 + 操作按钮
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
                     color: review.reviewType == 1
-                        ? const Color(0xFF666666)
-                        : Colors.white,
+                        ? const Color(0xFFF5F5F5)
+                        : const Color(0xFF1A1A1A),
+                  ),
+                  child: Text(
+                    review.typeText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: review.reviewType == 1
+                          ? const Color(0xFF666666)
+                          : Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              const Spacer(),
-              // 编辑按钮
-              GestureDetector(
-                onTap: () => _navigateToEditReview(review),
-                child: const Icon(
-                  Icons.edit_outlined,
-                  size: 18,
-                  color: Color(0xFF999999),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 删除按钮
-              GestureDetector(
-                onTap: () => _showDeleteDialog(review),
-                child: const Icon(
-                  Icons.delete_outline,
-                  size: 18,
-                  color: Colors.red,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // 评论内容
-          Text(
-            review.content,
-            maxLines: review.reviewType == 1 ? 3 : 5,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF1A1A1A),
-              height: 1.6,
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // 底部信息
-          Row(
-            children: [
-              if (review.reviewer.isNotEmpty) ...[
-                Text(
-                  review.reviewer,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF666666),
+                const Spacer(),
+                // 编辑按钮
+                GestureDetector(
+                  onTap: () => _navigateToEditReview(review),
+                  child: const Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: Color(0xFF999999),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
+                // 删除按钮
+                GestureDetector(
+                  onTap: () => _showDeleteDialog(review),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Colors.red,
+                  ),
+                ),
               ],
-              if (review.source.isNotEmpty) ...[
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // 评论内容
+            Text(
+              review.content,
+              maxLines: review.reviewType == 1 ? 3 : 5,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.6,
+              ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // 底部信息
+            Row(
+              children: [
+                if (review.reviewer.isNotEmpty) ...[
+                  Text(
+                    review.reviewer,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                if (review.source.isNotEmpty) ...[
+                  Text(
+                    '来源：${review.source}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                const Spacer(),
                 Text(
-                  '来源：${review.source}',
+                  _formatDate(review.createdAt),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF999999),
                   ),
                 ),
-                const SizedBox(width: 8),
               ],
-              const Spacer(),
-              Text(
-                _formatDate(review.createdAt),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF999999),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

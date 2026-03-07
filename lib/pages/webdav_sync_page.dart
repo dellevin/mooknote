@@ -4,7 +4,7 @@ import '../utils/toast_util.dart';
 import '../utils/webdav_service.dart';
 import '../providers/app_provider.dart';
 
-/// WebDAV 同步页面
+/// WebDAV 备份页面
 class WebDAVSyncPage extends StatefulWidget {
   const WebDAVSyncPage({super.key});
 
@@ -21,13 +21,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   bool _isLoading = false;
   bool _isConfigured = false;
   bool _obscurePassword = true;
-  SyncDirection _syncDirection = SyncDirection.bidirectional;
-  SyncResult? _lastSyncResult;
+  bool _isAutoSyncEnabled = false;
+  SyncDirection _syncDirection = SyncDirection.upload;
   
   @override
   void initState() {
     super.initState();
     _loadConfig();
+    _loadAutoSyncStatus();
   }
   
   @override
@@ -37,6 +38,33 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     _passwordController.dispose();
     _pathController.dispose();
     super.dispose();
+  }
+  
+  /// 加载自动同步状态
+  Future<void> _loadAutoSyncStatus() async {
+    final enabled = await WebDAVService.instance.isAutoSyncEnabled();
+    setState(() => _isAutoSyncEnabled = enabled);
+  }
+  
+  /// 切换自动同步
+  Future<void> _toggleAutoSync(bool value) async {
+    setState(() => _isLoading = true);
+    
+    try {
+      if (value) {
+        await WebDAVService.instance.startAutoSync();
+        ToastUtil.show(context, '自动备份已开启，每2分钟执行一次');
+      } else {
+        await WebDAVService.instance.stopAutoSync();
+        ToastUtil.show(context, '自动备份已关闭');
+      }
+      
+      setState(() => _isAutoSyncEnabled = value);
+    } catch (e) {
+      ToastUtil.show(context, '操作失败: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
   
   /// 加载已保存的配置
@@ -98,13 +126,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         setState(() => _isConfigured = true);
         ToastUtil.show(context, result['message'] ?? '连接成功，配置已保存');
         
-        // 延迟一下再返回，确保 Toast 显示出来
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // 如果是首次配置成功，返回 true 给调用方
-        if (mounted) {
-          Navigator.maybePop(context, true);
-        }
+        // 连接成功后停留在当前页面，不返回上级
       } else {
         ToastUtil.show(context, result['message'] ?? '连接失败，请检查配置');
       }
@@ -127,8 +149,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       final result = await WebDAVService.instance.syncData(direction: _syncDirection);
       
       if (!mounted) return;
-      
-      setState(() => _lastSyncResult = result);
       
       if (result.success) {
         final details = '上传: ${result.uploadedFiles} 文件, ${result.uploadedImages} 图片\n'
@@ -228,7 +248,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('WebDAV 同步'),
+        title: const Text('WebDAV 备份'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.maybePop(context),
@@ -337,6 +357,56 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   if (_isConfigured) ...[
                     const SizedBox(height: 24),
                     
+                    // 自动备份开关
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        border: Border.all(color: const Color(0xFFE5E5E5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.schedule,
+                            size: 20,
+                            color: Color(0xFF666666),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '自动备份',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF1A1A1A),
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  '每2分钟自动备份一次，保留最近10个备份',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF999999),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _isAutoSyncEnabled,
+                            onChanged: _isLoading ? null : _toggleAutoSync,
+                            activeColor: const Color(0xFF1A1A1A),
+                            inactiveThumbColor: const Color(0xFF999999),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
                     // 同步方向选择
                     const Text(
                       '同步方向',
@@ -351,15 +421,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                       children: [
                         Expanded(
                           child: _buildDirectionButton(
-                            '双向同步',
-                            SyncDirection.bidirectional,
-                            Icons.sync,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildDirectionButton(
-                            '仅上传',
+                            '上传',
                             SyncDirection.upload,
                             Icons.upload,
                           ),
@@ -367,7 +429,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildDirectionButton(
-                            '仅下载',
+                            '下载',
                             SyncDirection.download,
                             Icons.download,
                           ),

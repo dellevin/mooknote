@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'webdav_sync_page.dart';
 
-/// 云同步主页面 - 选择同步方式
+/// 云备份主页面 - 选择备份方式
 class CloudSyncPage extends StatelessWidget {
   const CloudSyncPage({super.key});
 
@@ -10,17 +10,17 @@ class CloudSyncPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('云同步'),
+        title: const Text('云备份'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // WebDAV 同步选项
+          // WebDAV 备份选项
           _buildSyncOption(
             context,
             icon: Icons.storage_outlined,
-            title: 'WebDAV 同步',
-            subtitle: '通过 WebDAV 协议同步到个人云盘（如坚果云、Nextcloud 等）',
+            title: 'WebDAV 备份',
+            subtitle: '通过 WebDAV 协议备份到个人云盘（如坚果云、Nextcloud 等）',
             onTap: () {
               Navigator.push(
                 context,
@@ -56,7 +56,7 @@ class CloudSyncPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '关于云同步',
+                  '关于云备份',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -65,10 +65,10 @@ class CloudSyncPage extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '• 云同步可以将您的数据备份到远程服务器\n'
-                  '• 支持多台设备之间的数据同步\n'
-                  '• 建议定期进行云同步以确保数据安全\n'
-                  '• 首次同步可能需要较长时间，请保持网络连接',
+                  '• 云备份可以将您的数据备份到远程服务器\n'
+                  '• 支持多台设备之间的数据恢复\n'
+                  '• 建议定期进行云备份以确保数据安全\n'
+                  '• 首次备份可能需要较长时间，请保持网络连接',
                   style: TextStyle(
                     fontSize: 13,
                     color: Color(0xFF666666),

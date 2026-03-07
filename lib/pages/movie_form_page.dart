@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../utils/toast_util.dart';
+import '../utils/image_path_helper.dart';
 
 /// 添加/编辑影视页面 - 紧凑双行布局设计
 class MovieFormPage extends StatefulWidget {
@@ -691,18 +692,22 @@ class _MovieFormPageState extends State<MovieFormPage> {
       );
       
       if (pickedFile != null) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final fileName = 'movie_poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedPath = path.join(appDir.path, 'movie_posters', fileName);
+        // 生成文件名
+        final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
         
-        final posterDir = Directory(path.join(appDir.path, 'movie_posters'));
-        if (!await posterDir.exists()) {
-          await posterDir.create(recursive: true);
-        }
+        // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID（保存时会替换）
+        final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
         
-        await File(pickedFile.path).copy(savedPath);
+        // 保存到新的路径结构: images/movies/{movieId}/{fileName}
+        final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
+          movieId, 
+          fileName
+        );
+        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         
-        setState(() => _posterPath = savedPath);
+        await File(pickedFile.path).copy(targetPath);
+        
+        setState(() => _posterPath = targetPath);
       }
     } catch (e) {
       if (mounted) {
@@ -748,10 +753,19 @@ class _MovieFormPageState extends State<MovieFormPage> {
     final now = DateTime.now();
     
     if (widget.movie == null) {
+      // 生成新的影视ID
+      final newMovieId = now.millisecondsSinceEpoch.toString();
+      
+      // 如果有海报，需要移动到正确的ID目录
+      String? finalPosterPath;
+      if (_posterPath != null && _posterPath!.isNotEmpty) {
+        finalPosterPath = await _movePosterToNewId(_posterPath!, newMovieId);
+      }
+      
       final newMovie = Movie(
-        id: now.millisecondsSinceEpoch.toString(),
+        id: newMovieId,
         title: _titleController.text.trim(),
-        posterPath: _posterPath,
+        posterPath: finalPosterPath,
         releaseDate: _releaseDate,
         directors: _directors,
         writers: _writers,
@@ -790,5 +804,46 @@ class _MovieFormPageState extends State<MovieFormPage> {
     ToastUtil.show(context, widget.movie == null ? '添加成功' : '更新成功');
     
     Navigator.pop(context);
+  }
+  
+  /// 将海报从临时ID目录移动到新的影视ID目录
+  Future<String?> _movePosterToNewId(String currentPath, String newMovieId) async {
+    // 检查是否已经在正确的目录中（兼容 Windows 路径分隔符）
+    final normalizedPath = currentPath.replaceAll('\\', '/');
+    if (normalizedPath.contains('/movies/$newMovieId/')) {
+      return currentPath;
+    }
+    
+    // 提取文件名
+    final fileName = p.basename(currentPath);
+    
+    // 获取新路径
+    final newPath = await ImagePathHelper.instance.getMoviePosterPath(
+      newMovieId, 
+      fileName
+    );
+    
+    // 确保目标目录存在
+    await ImagePathHelper.instance.ensureDirExists(p.dirname(newPath));
+    
+    // 移动文件
+    final currentFile = File(currentPath);
+    if (await currentFile.exists()) {
+      await currentFile.rename(newPath);
+      
+      // 删除空的临时目录
+      final tempDir = Directory(p.dirname(currentPath));
+      if (await tempDir.exists()) {
+        try {
+          await tempDir.delete(recursive: true);
+        } catch (e) {
+          // 忽略删除目录失败的情况
+        }
+      }
+      
+      return newPath;
+    }
+    
+    return null;
   }
 }

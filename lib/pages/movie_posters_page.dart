@@ -3,12 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../utils/toast_util.dart';
+import '../utils/image_path_helper.dart';
 import 'poster_gallery_page.dart';
 
 /// 影视海报墙页面
@@ -197,21 +198,22 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       );
 
       if (pickedFile != null) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final fileName = 'movie_poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedPath = path.join(appDir.path, 'movie_posters', fileName);
+        // 生成文件名
+        final fileName = 'posterimg_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        
+        // 保存到 posterimgs 子目录: images/movies/{movieId}/posterimgs/{fileName}
+        final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
+          widget.movie.id, 
+          fileName
+        );
+        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
 
-        final posterDir = Directory(path.join(appDir.path, 'movie_posters'));
-        if (!await posterDir.exists()) {
-          await posterDir.create(recursive: true);
-        }
-
-        await File(pickedFile.path).copy(savedPath);
+        await File(pickedFile.path).copy(targetPath);
 
         final newPoster = MoviePoster(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           movieId: widget.movie.id,
-          posterPath: savedPath,
+          posterPath: targetPath,
           createdAt: DateTime.now(),
         );
 

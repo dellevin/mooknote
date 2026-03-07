@@ -32,6 +32,8 @@ class NoteTabPage extends StatelessWidget {
         
         return RefreshIndicator(
           onRefresh: () async => await provider.loadNotes(),
+          color: const Color(0xFF1A1A1A),
+          backgroundColor: Colors.white,
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: notes.length,
@@ -50,25 +52,45 @@ class NoteTabPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.note_outlined,
-            size: 80,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '暂无笔记',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.note_outlined,
+              size: 40,
+              color: Color(0xFFCCCCCC),
             ),
           ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.add),
-            label: const Text('添加笔记'),
-            onPressed: () {
+          const SizedBox(height: 24),
+          const Text(
+            '暂无笔记',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF999999),
+            ),
+          ),
+          const SizedBox(height: 24),
+          InkWell(
+            onTap: () {
               Navigator.pushNamed(context, '/note-form');
             },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+              ),
+              child: const Text(
+                '添加笔记',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
         ],
       ),

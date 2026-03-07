@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/data_models.dart';
+import '../providers/app_provider.dart';
+import '../utils/toast_util.dart';
 
 /// 书籍列表项组件 - 网格布局设计
 class BookListItem extends StatelessWidget {
@@ -14,6 +17,7 @@ class BookListItem extends StatelessWidget {
       onTap: () {
         Navigator.pushNamed(context, '/book-detail', arguments: book);
       },
+      onLongPress: () => _showDeleteDialog(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -91,6 +95,34 @@ class BookListItem extends StatelessWidget {
         Icons.menu_book_outlined,
         size: 32,
         color: Color(0xFFCCCCCC),
+      ),
+    );
+  }
+
+  /// 显示删除确认对话框
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('确认删除'),
+        content: Text('确定要删除《${book.title}》吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () async {
+              await context.read<AppProvider>().removeBook(book.id);
+              Navigator.pop(context);
+              ToastUtil.show(context, '已删除');
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

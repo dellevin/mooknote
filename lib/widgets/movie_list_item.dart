@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/data_models.dart';
+import '../providers/app_provider.dart';
+import '../utils/toast_util.dart';
 
 /// 观影列表项组件 - 网格布局设计
 class MovieListItem extends StatelessWidget {
@@ -14,6 +17,7 @@ class MovieListItem extends StatelessWidget {
       onTap: () {
         Navigator.pushNamed(context, '/movie-detail', arguments: movie);
       },
+      onLongPress: () => _showDeleteDialog(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -94,5 +98,32 @@ class MovieListItem extends StatelessWidget {
       ),
     );
   }
-  
+
+  /// 显示删除确认对话框
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('确认删除'),
+        content: Text('确定要删除《${movie.title}》吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () async {
+              await context.read<AppProvider>().removeMovie(movie.id);
+              Navigator.pop(context);
+              ToastUtil.show(context, '已删除');
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
 }

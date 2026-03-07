@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../utils/toast_util.dart';
+import '../utils/image_path_helper.dart';
 
 /// 添加/编辑书籍页面 - 紧凑双行布局设计
 class BookFormPage extends StatefulWidget {
@@ -649,18 +650,22 @@ class _BookFormPageState extends State<BookFormPage> {
       );
       
       if (pickedFile != null) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final fileName = 'book_cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedPath = path.join(appDir.path, 'book_covers', fileName);
+        // 生成文件名
+        final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
         
-        final coverDir = Directory(path.join(appDir.path, 'book_covers'));
-        if (!await coverDir.exists()) {
-          await coverDir.create(recursive: true);
-        }
+        // 如果是编辑模式，使用现有书籍ID；如果是新建模式，使用临时ID（保存时会替换）
+        final bookId = widget.book?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
         
-        await File(pickedFile.path).copy(savedPath);
+        // 保存到新的路径结构: images/books/{bookId}/{fileName}
+        final targetPath = await ImagePathHelper.instance.getBookCoverPath(
+          bookId, 
+          fileName
+        );
+        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         
-        setState(() => _coverPath = savedPath);
+        await File(pickedFile.path).copy(targetPath);
+        
+        setState(() => _coverPath = targetPath);
       }
     } catch (e) {
       if (mounted) {
@@ -682,10 +687,19 @@ class _BookFormPageState extends State<BookFormPage> {
     final now = DateTime.now();
     
     if (widget.book == null) {
+      // 生成新的书籍ID
+      final newBookId = now.millisecondsSinceEpoch.toString();
+      
+      // 如果有封面，需要移动到正确的ID目录
+      String? finalCoverPath;
+      if (_coverPath != null && _coverPath!.isNotEmpty) {
+        finalCoverPath = await _moveCoverToNewId(_coverPath!, newBookId);
+      }
+      
       final newBook = Book(
-        id: now.millisecondsSinceEpoch.toString(),
+        id: newBookId,
         title: _titleController.text.trim(),
-        coverPath: _coverPath,
+        coverPath: finalCoverPath,
         authors: _authors,
         alternateTitles: _alternateTitles,
         publisher: _publisherController.text.trim(),
@@ -720,5 +734,46 @@ class _BookFormPageState extends State<BookFormPage> {
     ToastUtil.show(context, widget.book == null ? '添加成功' : '更新成功');
     
     Navigator.pop(context);
+  }
+  
+  /// 将封面从临时ID目录移动到新的书籍ID目录
+  Future<String?> _moveCoverToNewId(String currentPath, String newBookId) async {
+    // 检查是否已经在正确的目录中（兼容 Windows 路径分隔符）
+    final normalizedPath = currentPath.replaceAll('\\', '/');
+    if (normalizedPath.contains('/books/$newBookId/')) {
+      return currentPath;
+    }
+    
+    // 提取文件名
+    final fileName = p.basename(currentPath);
+    
+    // 获取新路径
+    final newPath = await ImagePathHelper.instance.getBookCoverPath(
+      newBookId, 
+      fileName
+    );
+    
+    // 确保目标目录存在
+    await ImagePathHelper.instance.ensureDirExists(p.dirname(newPath));
+    
+    // 移动文件
+    final currentFile = File(currentPath);
+    if (await currentFile.exists()) {
+      await currentFile.rename(newPath);
+      
+      // 删除空的临时目录
+      final tempDir = Directory(p.dirname(currentPath));
+      if (await tempDir.exists()) {
+        try {
+          await tempDir.delete(recursive: true);
+        } catch (e) {
+          // 忽略删除目录失败的情况
+        }
+      }
+      
+      return newPath;
+    }
+    
+    return null;
   }
 }

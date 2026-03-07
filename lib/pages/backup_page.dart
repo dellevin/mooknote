@@ -5,7 +5,7 @@ import '../providers/app_provider.dart';
 import '../utils/backup_service.dart';
 import '../utils/toast_util.dart';
 
-/// 数据备份页面
+/// 本地备份页面
 class BackupPage extends StatefulWidget {
   const BackupPage({super.key});
 
@@ -22,7 +22,7 @@ class _BackupPageState extends State<BackupPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('数据备份'),
+        title: const Text('本地备份'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),

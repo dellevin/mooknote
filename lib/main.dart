@@ -4,6 +4,7 @@ import 'pages/home_page.dart';
 import 'utils/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
+import 'utils/webdav_service.dart';
 import 'providers/app_provider.dart';
 
 void main() async {
@@ -17,7 +18,22 @@ void main() async {
   final appProvider = AppProvider();
   await appProvider.initDatabase();
   
+  // 检查并恢复自动备份
+  await _initAutoBackup();
+  
   runApp(MyApp(appProvider: appProvider));
+}
+
+/// 初始化自动备份
+Future<void> _initAutoBackup() async {
+  try {
+    final isEnabled = await WebDAVService.instance.isAutoSyncEnabled();
+    if (isEnabled) {
+      await WebDAVService.instance.startAutoSync();
+    }
+  } catch (e) {
+    print('初始化自动备份失败: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

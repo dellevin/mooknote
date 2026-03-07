@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 笔记列表项组件 - 极简主义设计
 class NoteListItem extends StatelessWidget {
@@ -15,21 +17,22 @@ class NoteListItem extends StatelessWidget {
       onTap: () {
         Navigator.pushNamed(context, '/note-detail', arguments: note);
       },
+      onLongPress: () => _showDeleteDialog(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-          ),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE5E5E5)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 内容摘要
+            // 内容摘要（去除首尾空格）
             Text(
-              note.summary,
+              note.summary.trim(),
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 color: Color(0xFF1A1A1A),
                 height: 1.5,
               ),
@@ -37,28 +40,54 @@ class NoteListItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             
-            const SizedBox(height: 12),
+            // 图片预览区域（显示前2张图片）
+            if (note.images.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 60,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: note.images.length > 2 ? 2 : note.images.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      width: 60,
+                      height: 60,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE5E5E5)),
+                      ),
+                      child: Image.file(
+                        File(note.images[index]),
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
             
-            // 底部信息：标签 + 时间 + 操作
+            const SizedBox(height: 10),
+            
+            // 底部信息：标签 + 时间
             Row(
               children: [
                 // 标签
                 if (note.tags.isNotEmpty) ...[
                   Expanded(
                     child: Wrap(
-                      spacing: 8,
+                      spacing: 4,
                       runSpacing: 4,
-                      children: note.tags.take(3).map((tag) {
+                      children: note.tags.take(2).map((tag) {
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF5F5F5),
-                            border: Border.all(color: const Color(0xFFE5E5E5)),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                           child: Text(
                             tag,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               color: Color(0xFF666666),
                             ),
                           ),
@@ -69,13 +98,40 @@ class NoteListItem extends StatelessWidget {
                 ] else
                   const Spacer(),
                 
-                // 时间
-                Text(
-                  _formatDate(note.updatedAt),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF999999),
-                  ),
+                // 时间和图片数量
+                Row(
+                  children: [
+                    // 图片数量（如果有图片）
+                    if (note.images.isNotEmpty) ...[
+                      const Icon(
+                        Icons.image_outlined,
+                        size: 11,
+                        color: Color(0xFF999999),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${note.images.length}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF999999),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    const Icon(
+                      Icons.access_time,
+                      size: 11,
+                      color: Color(0xFF999999),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      _formatDate(note.updatedAt),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF999999),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -103,5 +159,33 @@ class NoteListItem extends StatelessWidget {
     } else {
       return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     }
+  }
+
+  /// 显示删除确认对话框
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('确认删除'),
+        content: const Text('确定要删除这条笔记吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () async {
+              await context.read<AppProvider>().removeNote(note.id);
+              Navigator.pop(context);
+              ToastUtil.show(context, '已删除');
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 }
