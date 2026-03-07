@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 添加/编辑影视记录页面（Typecho 风格）
 class MovieFormPage extends StatefulWidget {
@@ -527,23 +528,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.movie == null ? '添加成功' : '更新成功'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ToastUtil.show(context, widget.movie == null ? '添加成功' : '更新成功');
 
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('保存失败：$e'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ),
-      );
+      ToastUtil.show(context, '保存失败：$e');
     } finally {
       if (mounted) {
         setState(() {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 import 'package:uuid/uuid.dart';
 
 /// 添加/编辑书评页面 - 极简设计
@@ -253,12 +254,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(widget.review == null ? '添加成功' : '更新成功'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ToastUtil.show(context, widget.review == null ? '添加成功' : '更新成功');
 
     Navigator.pop(context);
   }

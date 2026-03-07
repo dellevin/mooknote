@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
@@ -331,9 +332,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     final content = _contentController.text.trim();
     
     if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('笔记内容不能为空')),
-      );
+      ToastUtil.show(context, '笔记内容不能为空');
       return;
     }
 
@@ -363,12 +362,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isEditing ? '保存成功' : '添加成功'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ToastUtil.show(context, _isEditing ? '保存成功' : '添加成功');
 
     Navigator.pop(context);
   }

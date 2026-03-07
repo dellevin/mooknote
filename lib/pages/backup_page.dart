@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/backup_service.dart';
+import '../utils/toast_util.dart';
 
 /// 数据备份页面
 class BackupPage extends StatefulWidget {
@@ -185,9 +186,7 @@ class _BackupPageState extends State<BackupPage> {
       if (!mounted) return;
       
       if (result.cancelled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已取消导出')),
-        );
+        ToastUtil.show(context, '已取消导出');
       } else if (result.success) {
         // 显示导出成功信息
         showDialog(
@@ -214,15 +213,11 @@ class _BackupPageState extends State<BackupPage> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.errorMessage ?? '导出失败')),
-        );
+        ToastUtil.show(context, result.errorMessage ?? '导出失败');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
+        ToastUtil.show(context, '导出失败: $e');
       }
     } finally {
       if (mounted) {
@@ -267,9 +262,7 @@ class _BackupPageState extends State<BackupPage> {
       if (!mounted) return;
 
       if (result.cancelled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已取消导入')),
-        );
+        ToastUtil.show(context, '已取消导入');
       } else if (result.success) {
         // 刷新数据
         await context.read<AppProvider>().loadMovies();
@@ -293,15 +286,11 @@ class _BackupPageState extends State<BackupPage> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.errorMessage ?? '导入失败')),
-        );
+        ToastUtil.show(context, result.errorMessage ?? '导入失败');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导入失败: $e')),
-        );
+        ToastUtil.show(context, '导入失败: $e');
       }
     } finally {
       if (mounted) {

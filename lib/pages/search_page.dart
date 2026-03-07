@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 import 'movie_detail_page.dart';
 import 'book_detail_page.dart';
 import 'note_detail_page.dart';
@@ -65,9 +66,7 @@ class _SearchPageState extends State<SearchPage> {
       });
     } catch (e) {
       setState(() => _isSearching = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('搜索失败: $e')),
-      );
+      ToastUtil.show(context, '搜索失败: $e');
     }
   }
 

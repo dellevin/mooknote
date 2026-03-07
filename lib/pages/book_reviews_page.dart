@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 
 /// 书籍书评列表页面
@@ -34,9 +35,7 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载失败: $e')),
-      );
+      ToastUtil.show(context, '加载失败: $e');
     }
   }
 
@@ -257,9 +256,7 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
               await context.read<AppProvider>().removeBookReview(review.id);
               Navigator.pop(context);
               _loadReviews();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已删除')),
-              );
+              ToastUtil.show(context, '已删除');
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),

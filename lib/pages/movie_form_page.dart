@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 添加/编辑影视页面 - 紧凑双行布局设计
 class MovieFormPage extends StatefulWidget {
@@ -705,9 +706,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('选择海报失败: $e')),
-        );
+        ToastUtil.show(context, '选择海报失败: $e');
       }
     }
   }
@@ -788,12 +787,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     
     if (!mounted) return;
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(widget.movie == null ? '添加成功' : '更新成功'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ToastUtil.show(context, widget.movie == null ? '添加成功' : '更新成功');
     
     Navigator.pop(context);
   }

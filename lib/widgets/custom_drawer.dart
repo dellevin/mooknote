@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../utils/toast_util.dart';
 
 /// 自定义左侧弹出菜单 - 极简主义设计
 class CustomDrawer extends StatelessWidget {
@@ -188,12 +189,6 @@ class CustomDrawer extends StatelessWidget {
 
   /// 显示提示
   void _showToast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ToastUtil.show(context, message);
   }
 }

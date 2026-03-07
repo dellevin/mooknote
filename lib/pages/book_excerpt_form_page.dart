@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 import 'package:uuid/uuid.dart';
 
 /// 摘抄表单页面 - 新增/编辑摘抄
@@ -171,15 +172,11 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isEditing ? '摘抄已更新' : '摘抄已添加')),
-        );
+        ToastUtil.show(context, _isEditing ? '摘抄已更新' : '摘抄已添加');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ToastUtil.show(context, '保存失败: $e');
       }
     } finally {
       if (mounted) {

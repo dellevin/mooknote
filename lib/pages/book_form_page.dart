@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 添加/编辑书籍页面 - 紧凑双行布局设计
 class BookFormPage extends StatefulWidget {
@@ -663,9 +664,7 @@ class _BookFormPageState extends State<BookFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('选择封面失败: $e')),
-        );
+        ToastUtil.show(context, '选择封面失败: $e');
       }
     }
   }
@@ -718,12 +717,7 @@ class _BookFormPageState extends State<BookFormPage> {
     
     if (!mounted) return;
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(widget.book == null ? '添加成功' : '更新成功'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ToastUtil.show(context, widget.book == null ? '添加成功' : '更新成功');
     
     Navigator.pop(context);
   }

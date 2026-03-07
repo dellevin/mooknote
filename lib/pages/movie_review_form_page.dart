@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 添加/编辑影评页面 - 极简设计
 class MovieReviewFormPage extends StatefulWidget {
@@ -251,12 +252,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(widget.review == null ? '添加成功' : '更新成功'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ToastUtil.show(context, widget.review == null ? '添加成功' : '更新成功');
 
     Navigator.pop(context);
   }

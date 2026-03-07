@@ -8,6 +8,7 @@ import 'package:cross_file/cross_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 
@@ -212,9 +213,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               );
               await context.read<AppProvider>().updateMovie(updatedMovie);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('海报已清空')),
-                );
+                ToastUtil.show(context, '海报已清空');
               }
             },
             child: const Text('清空', style: TextStyle(color: Colors.red)),
@@ -768,9 +767,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               if (!mounted) return;
               Navigator.pop(context);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已删除')),
-              );
+              ToastUtil.show(context, '已删除');
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
@@ -782,18 +779,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   /// 下载海报到本地
   Future<void> _downloadPoster(Movie movie) async {
     if (movie.posterPath == null || movie.posterPath!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('没有可下载的海报')),
-      );
+      ToastUtil.show(context, '没有可下载的海报');
       return;
     }
     
     try {
       final sourceFile = File(movie.posterPath!);
       if (!await sourceFile.exists()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('海报文件不存在')),
-        );
+        ToastUtil.show(context, '海报文件不存在');
         return;
       }
       
@@ -813,9 +806,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         text: '下载自 MookNote',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('下载失败: $e')),
-      );
+      ToastUtil.show(context, '下载失败: $e');
     }
   }
   

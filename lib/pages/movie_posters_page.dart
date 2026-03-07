@@ -248,9 +248,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('添加海报失败: $e')),
-        );
+        ToastUtil.show(context, '添加海报失败: $e');
       }
     }
   }

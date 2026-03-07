@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 笔记详情页 - 极简主义设计
 class NoteDetailPage extends StatefulWidget {
@@ -255,9 +256,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               if (!mounted) return;
               Navigator.pop(context);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已删除')),
-              );
+              ToastUtil.show(context, '已删除');
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),

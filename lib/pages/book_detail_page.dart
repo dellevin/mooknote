@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 
@@ -657,9 +658,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               if (!mounted) return;
               Navigator.pop(context);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已删除')),
-              );
+              ToastUtil.show(context, '已删除');
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
@@ -692,9 +691,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               );
               await context.read<AppProvider>().updateBook(updatedBook);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('封面已清空')),
-                );
+                ToastUtil.show(context, '封面已清空');
               }
             },
             child: const Text('清空', style: TextStyle(color: Colors.red)),
@@ -707,18 +704,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
   /// 下载封面到本地
   Future<void> _downloadCover(Book book) async {
     if (book.coverPath == null || book.coverPath!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('没有可下载的封面')),
-      );
+      ToastUtil.show(context, '没有可下载的封面');
       return;
     }
 
     try {
       final sourceFile = File(book.coverPath!);
       if (!await sourceFile.exists()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('封面文件不存在')),
-        );
+        ToastUtil.show(context, '封面文件不存在');
         return;
       }
 
@@ -738,9 +731,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         text: '下载自 MookNote',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('下载失败: $e')),
-      );
+      ToastUtil.show(context, '下载失败: $e');
     }
   }
 }

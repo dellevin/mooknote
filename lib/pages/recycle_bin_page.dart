@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../utils/toast_util.dart';
 
 /// 回收站页面
 class RecycleBinPage extends StatefulWidget {
@@ -246,9 +247,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     await context.read<AppProvider>().restoreMovie(movie.id);
     _loadDeletedItems();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('影视已恢复')),
-      );
+      ToastUtil.show(context, '影视已恢复');
     }
   }
 
@@ -259,9 +258,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       await context.read<AppProvider>().permanentDeleteMovie(movie.id);
       _loadDeletedItems();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已彻底删除')),
-        );
+        ToastUtil.show(context, '已彻底删除');
       }
     }
   }
@@ -271,9 +268,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     await context.read<AppProvider>().restoreBook(book.id);
     _loadDeletedItems();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('书籍已恢复')),
-      );
+      ToastUtil.show(context, '书籍已恢复');
     }
   }
 
@@ -284,9 +279,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       await context.read<AppProvider>().permanentDeleteBook(book.id);
       _loadDeletedItems();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已彻底删除')),
-        );
+        ToastUtil.show(context, '已彻底删除');
       }
     }
   }
@@ -296,9 +289,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     await context.read<AppProvider>().restoreNote(note.id);
     _loadDeletedItems();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('笔记已恢复')),
-      );
+      ToastUtil.show(context, '笔记已恢复');
     }
   }
 
@@ -309,9 +300,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       await context.read<AppProvider>().permanentDeleteNote(note.id);
       _loadDeletedItems();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已彻底删除')),
-        );
+        ToastUtil.show(context, '已彻底删除');
       }
     }
   }
@@ -362,9 +351,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
               await context.read<AppProvider>().clearRecycleBin();
               _loadDeletedItems();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('回收站已清空')),
-                );
+                ToastUtil.show(context, '回收站已清空');
               }
             },
             child: const Text('清空', style: TextStyle(color: Colors.red)),

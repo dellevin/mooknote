@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../utils/toast_util.dart';
 import 'recycle_bin_page.dart';
 import 'backup_page.dart';
 import 'statistics_page.dart';
@@ -446,13 +447,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// 显示提示
   void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ToastUtil.show(context, message);
   }
 
   /// 选择头像
