@@ -60,7 +60,7 @@ class WebDAVService {
   static const String _backupListKey = 'webdav_backup_list';
   
   static const int _maxBackupCount = 10; // 保留最近10条备份
-  static const Duration _autoSyncInterval = Duration(minutes: 2); // 每2分钟自动备份
+  static const Duration _autoSyncInterval = Duration(minutes: 5); // 每5分钟自动备份
   
   Map<String, String>? _cachedConfig;
   Timer? _autoSyncTimer;
@@ -403,7 +403,7 @@ class WebDAVService {
       }
     });
     
-    print('WebDAV: 自动备份已启动，每2分钟执行一次');
+    print('WebDAV: 自动备份已启动，每5分钟执行一次');
   }
   
   /// 停止自动同步
@@ -551,7 +551,7 @@ class WebDAVService {
         final bytes = await entity.readAsBytes();
         final archivePath = '$relativePath/$fileName';
         archive.addFile(ArchiveFile(archivePath, bytes.length, bytes));
-        print('WebDAV: 添加文件到备份 - $archivePath');
+        // print('WebDAV: 添加文件到备份 - $archivePath');
       } else if (entity is Directory) {
         final dirName = p.basename(entity.path);
         await _addImagesToArchive(archive, entity, '$relativePath/$dirName');

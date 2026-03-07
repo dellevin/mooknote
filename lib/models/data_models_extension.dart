@@ -9,22 +9,36 @@ extension MovieExtension on Movie {
   Movie copyWith({
     String? id,
     String? title,
-    String? poster,
+    String? posterPath,
+    DateTime? releaseDate,
+    List<String>? directors,
+    List<String>? writers,
+    List<String>? actors,
+    List<String>? genres,
+    List<String>? alternateTitles,
+    String? summary,
     double? rating,
-    int? year,
     String? status,
-    DateTime? watchDate,
-    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
   }) {
     return Movie(
       id: id ?? this.id,
       title: title ?? this.title,
-      poster: poster ?? this.poster,
+      posterPath: posterPath ?? this.posterPath,
+      releaseDate: releaseDate ?? this.releaseDate,
+      directors: directors ?? this.directors,
+      writers: writers ?? this.writers,
+      actors: actors ?? this.actors,
+      genres: genres ?? this.genres,
+      alternateTitles: alternateTitles ?? this.alternateTitles,
+      summary: summary ?? this.summary,
       rating: rating ?? this.rating,
-      year: year ?? this.year,
       status: status ?? this.status,
-      watchDate: watchDate ?? this.watchDate,
-      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }
@@ -35,22 +49,32 @@ extension BookExtension on Book {
   Book copyWith({
     String? id,
     String? title,
-    String? author,
-    String? cover,
+    String? coverPath,
+    List<String>? authors,
+    List<String>? alternateTitles,
+    String? publisher,
+    List<String>? genres,
+    String? summary,
     double? rating,
     String? status,
-    DateTime? readDate,
-    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
   }) {
     return Book(
       id: id ?? this.id,
       title: title ?? this.title,
-      author: author ?? this.author,
-      cover: cover ?? this.cover,
+      coverPath: coverPath ?? this.coverPath,
+      authors: authors ?? this.authors,
+      alternateTitles: alternateTitles ?? this.alternateTitles,
+      publisher: publisher ?? this.publisher,
+      genres: genres ?? this.genres,
+      summary: summary ?? this.summary,
       rating: rating ?? this.rating,
       status: status ?? this.status,
-      readDate: readDate ?? this.readDate,
-      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }
@@ -60,19 +84,23 @@ extension NoteExtension on Note {
   /// 创建副本并允许修改部分属性
   Note copyWith({
     String? id,
-    String? title,
     String? content,
+    String? contentType,
     List<String>? tags,
+    List<String>? images,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isDeleted,
   }) {
     return Note(
       id: id ?? this.id,
-      title: title ?? this.title,
       content: content ?? this.content,
+      contentType: contentType ?? this.contentType,
       tags: tags ?? this.tags,
+      images: images ?? this.images,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 }

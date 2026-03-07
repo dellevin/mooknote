@@ -410,6 +410,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void _showAddTagDialog() {
     final controller = TextEditingController();
     
+    // 获取所有已有标签（从所有笔记中收集）
+    final provider = context.read<AppProvider>();
+    final allTags = _getAllExistingTags(provider);
+    // 过滤掉已添加的标签
+    final availableTags = allTags.where((tag) => !_tags.contains(tag)).toList();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -423,17 +429,67 @@ class _NoteFormPageState extends State<NoteFormPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: '输入标签名称',
-            border: UnderlineInputBorder(),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 输入框
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: '输入新标签名称',
+                  border: UnderlineInputBorder(),
+                ),
+                onSubmitted: (value) {
+                  _addTag(value);
+                  Navigator.pop(context);
+                },
+              ),
+              
+              // 已有标签列表
+              if (availableTags.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  '或选择已有标签：',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: availableTags.map((tag) {
+                    return GestureDetector(
+                      onTap: () {
+                        _addTag(tag);
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          tag,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
           ),
-          onSubmitted: (value) {
-            _addTag(value);
-            Navigator.pop(context);
-          },
         ),
         actions: [
           TextButton(
@@ -450,6 +506,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
         ],
       ),
     );
+  }
+  
+  /// 获取所有已有标签（从所有笔记中收集）
+  List<String> _getAllExistingTags(AppProvider provider) {
+    final allTags = <String>{};
+    for (final note in provider.notes) {
+      allTags.addAll(note.tags);
+    }
+    return allTags.toList()..sort();
   }
 
   /// 添加标签

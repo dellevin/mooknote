@@ -53,7 +53,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     try {
       if (value) {
         await WebDAVService.instance.startAutoSync();
-        ToastUtil.show(context, '自动备份已开启，每2分钟执行一次');
+        ToastUtil.show(context, '自动备份已开启，每5分钟执行一次');
       } else {
         await WebDAVService.instance.stopAutoSync();
         ToastUtil.show(context, '自动备份已关闭');
@@ -386,7 +386,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  '每2分钟自动备份一次，保留最近10个备份',
+                                  '每5分钟自动备份一次，保留最近10个备份',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF999999),
