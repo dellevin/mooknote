@@ -119,33 +119,60 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           // 图片区域（仅在纯文本模式下显示）
           if (note.contentType == 'plain_text' && note.images.isNotEmpty)
             Container(
-              height: 120,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               decoration: const BoxDecoration(
                 border: Border(
                   top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
                 ),
               ),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: note.images.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () => _showImagePreview(context, note.images, index),
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE5E5E5)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 图片标题
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.image_outlined,
+                        size: 14,
+                        color: Color(0xFF999999),
                       ),
-                      child: Image.file(
-                        File(note.images[index]),
-                        fit: BoxFit.cover,
+                      const SizedBox(width: 6),
+                      Text(
+                        '图片 (${note.images.length})',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF999999),
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // 图片列表
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: note.images.length,
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () => _showImagePreview(context, note.images, index),
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: const Color(0xFFE5E5E5)),
+                            ),
+                            child: Image.file(
+                              File(note.images[index]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
 
@@ -282,16 +309,17 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   /// 构建纯文本内容
   Widget _buildPlainTextContent(Note note) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: SizedBox(
         width: double.infinity,
-        child: Text(
+        child: SelectableText(
           note.content,
           textAlign: TextAlign.left,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             color: Color(0xFF1A1A1A),
-            height: 1.8,
+            height: 1.9,
+            letterSpacing: 0.2,
           ),
         ),
       ),
@@ -316,7 +344,12 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   /// 跳转到编辑页面
   void _navigateToEdit(BuildContext context) {
-    Navigator.pushNamed(context, '/note-form', arguments: widget.note).then((_) {
+    // 从 Provider 获取最新的笔记数据，确保图片等字段是最新的
+    final currentNote = context.read<AppProvider>().notes.firstWhere(
+      (n) => n.id == widget.note.id,
+      orElse: () => widget.note,
+    );
+    Navigator.pushNamed(context, '/note-form', arguments: currentNote).then((_) {
       context.read<AppProvider>().loadNotes();
     });
   }

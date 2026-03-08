@@ -5,6 +5,7 @@ import 'utils/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'utils/webdav_service.dart';
+import 'utils/auto_backup_service.dart';
 import 'providers/app_provider.dart';
 
 void main() async {
@@ -27,9 +28,16 @@ void main() async {
 /// 初始化自动备份
 Future<void> _initAutoBackup() async {
   try {
-    final isEnabled = await WebDAVService.instance.isAutoSyncEnabled();
-    if (isEnabled) {
+    // 初始化 WebDAV 自动同步
+    final isWebDAVEnabled = await WebDAVService.instance.isAutoSyncEnabled();
+    if (isWebDAVEnabled) {
       await WebDAVService.instance.startAutoSync();
+    }
+    
+    // 初始化本地自动备份
+    final isLocalAutoBackupEnabled = await AutoBackupService.instance.getEnabled();
+    if (isLocalAutoBackupEnabled) {
+      await AutoBackupService.instance.start();
     }
   } catch (e) {
     print('初始化自动备份失败: $e');

@@ -13,6 +13,8 @@ class NoteListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPlainText = note.contentType == 'plain_text';
+    
     return InkWell(
       onTap: () {
         Navigator.pushNamed(context, '/note-detail', arguments: note);
@@ -28,15 +30,65 @@ class NoteListItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 顶部：格式标记 + 时间
+            Row(
+              children: [
+                // 格式标记
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    border: Border.all(color: const Color(0xFFE5E5E5)),
+                  ),
+                  child: Text(
+                    isPlainText ? 'TXT' : 'MD',
+                    style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 时间
+                Text(
+                  _formatDate(note.updatedAt),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+                const Spacer(),
+                // 图片数量（如果有图片）
+                if (note.images.isNotEmpty) ...[
+                  const Icon(
+                    Icons.image_outlined,
+                    size: 11,
+                    color: Color(0xFF999999),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    '${note.images.length}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
             // 内容摘要（去除首尾空格）
             Text(
               note.summary.trim(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF1A1A1A),
-                height: 1.5,
+                color: const Color(0xFF1A1A1A),
+                height: isPlainText ? 1.6 : 1.5,
               ),
-              maxLines: 3,
+              maxLines: isPlainText ? 4 : 3,
               overflow: TextOverflow.ellipsis,
             ),
             
@@ -66,75 +118,30 @@ class NoteListItem extends StatelessWidget {
               ),
             ],
             
-            const SizedBox(height: 10),
-            
-            // 底部信息：标签 + 时间
-            Row(
-              children: [
-                // 标签
-                if (note.tags.isNotEmpty) ...[
-                  Expanded(
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: note.tags.take(2).map((tag) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                          child: Text(
-                            tag,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF666666),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+            // 底部标签
+            if (note.tags.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: note.tags.take(3).map((tag) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      border: Border.all(color: const Color(0xFFE5E5E5)),
                     ),
-                  ),
-                ] else
-                  const Spacer(),
-                
-                // 时间和图片数量
-                Row(
-                  children: [
-                    // 图片数量（如果有图片）
-                    if (note.images.isNotEmpty) ...[
-                      const Icon(
-                        Icons.image_outlined,
-                        size: 11,
-                        color: Color(0xFF999999),
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${note.images.length}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF999999),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                    const Icon(
-                      Icons.access_time,
-                      size: 11,
-                      color: Color(0xFF999999),
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      _formatDate(note.updatedAt),
+                    child: Text(
+                      tag,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF999999),
+                        color: Color(0xFF666666),
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
         ),
       ),

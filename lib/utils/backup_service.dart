@@ -182,6 +182,126 @@ class BackupService {
     );
   }
   
+  /// 导出数据用于自动备份（返回字节数据而不是保存到文件）
+  Future<AutoBackupExportResult> exportDataForAutoBackup() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      
+      // 导出所有表的数据
+      final movies = await db.query('movies');
+      final books = await db.query('books');
+      final notes = await db.query('notes');
+      final movieReviews = await db.query('movie_reviews');
+      final moviePosters = await db.query('movie_posters');
+      
+      // 收集所有图片路径
+      final imagePaths = <String>{};
+      
+      // 收集影视海报
+      for (final movie in movies) {
+        final posterPath = movie['poster_path'] as String?;
+        if (posterPath != null && posterPath.isNotEmpty) {
+          imagePaths.add(posterPath);
+        }
+      }
+      
+      // 收集书籍封面
+      for (final book in books) {
+        final coverPath = book['cover_path'] as String?;
+        if (coverPath != null && coverPath.isNotEmpty) {
+          imagePaths.add(coverPath);
+        }
+      }
+      
+      // 收集海报墙图片
+      for (final poster in moviePosters) {
+        final posterPath = poster['poster_path'] as String?;
+        if (posterPath != null && posterPath.isNotEmpty) {
+          imagePaths.add(posterPath);
+        }
+      }
+      
+      // 收集笔记图片
+      for (final note in notes) {
+        final imagesJson = note['images'] as String?;
+        if (imagesJson != null && imagesJson.isNotEmpty) {
+          try {
+            final images = jsonDecode(imagesJson) as List<dynamic>;
+            for (final imagePath in images) {
+              if (imagePath is String && imagePath.isNotEmpty) {
+                imagePaths.add(imagePath);
+              }
+            }
+          } catch (e) {
+            // 解析失败，跳过
+          }
+        }
+      }
+      
+      // 构建备份数据
+      final backupData = {
+        'version': 2,
+        'exportTime': DateTime.now().toIso8601String(),
+        'appName': 'MookNote',
+        'hasImages': true,
+        'data': {
+          'movies': movies,
+          'books': books,
+          'notes': notes,
+          'movie_reviews': movieReviews,
+          'movie_posters': moviePosters,
+        },
+      };
+      
+      // 创建 ZIP 文件
+      final archive = Archive();
+      
+      // 添加 JSON 数据
+      final jsonString = const JsonEncoder.withIndent('  ').convert(backupData);
+      final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
+      archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
+      
+      // 添加图片文件，保持目录结构
+      int imageCount = 0;
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesRoot = path.join(appDir.path, 'images');
+      
+      for (final imagePath in imagePaths) {
+        final file = File(imagePath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          // 计算相对路径（如 movies/1/poster.jpg）
+          String relativePath;
+          if (imagePath.startsWith(imagesRoot)) {
+            relativePath = imagePath.substring(imagesRoot.length + 1);
+          } else {
+            relativePath = path.basename(imagePath);
+          }
+          // 使用相对路径存储图片，保持目录结构
+          archive.addFile(ArchiveFile('images/$relativePath', bytes.length, bytes));
+          imageCount++;
+        }
+      }
+      
+      // 压缩 ZIP
+      final zipEncoder = ZipEncoder();
+      final zipBytes = zipEncoder.encode(archive);
+      if (zipBytes == null) {
+        return AutoBackupExportResult.error('压缩备份文件失败');
+      }
+      
+      return AutoBackupExportResult.success(
+        zipBytes: Uint8List.fromList(zipBytes),
+        movieCount: movies.length,
+        bookCount: books.length,
+        noteCount: notes.length,
+        imageCount: imageCount,
+      );
+    } catch (e) {
+      return AutoBackupExportResult.error('导出失败: $e');
+    }
+  }
+  
   /// 选择并导入备份文件（支持 ZIP 格式）
   Future<ImportResult> importData() async {
     try {
@@ -447,6 +567,48 @@ class BackupService {
   
   String _pad(int number) {
     return number.toString().padLeft(2, '0');
+  }
+}
+
+/// 自动备份导出结果
+class AutoBackupExportResult {
+  final bool success;
+  final String? errorMessage;
+  final Uint8List? zipBytes;
+  final int movieCount;
+  final int bookCount;
+  final int noteCount;
+  final int imageCount;
+  
+  AutoBackupExportResult._({
+    required this.success,
+    this.errorMessage,
+    this.zipBytes,
+    this.movieCount = 0,
+    this.bookCount = 0,
+    this.noteCount = 0,
+    this.imageCount = 0,
+  });
+  
+  factory AutoBackupExportResult.success({
+    required Uint8List zipBytes,
+    required int movieCount,
+    required int bookCount,
+    required int noteCount,
+    required int imageCount,
+  }) {
+    return AutoBackupExportResult._(
+      success: true,
+      zipBytes: zipBytes,
+      movieCount: movieCount,
+      bookCount: bookCount,
+      noteCount: noteCount,
+      imageCount: imageCount,
+    );
+  }
+  
+  factory AutoBackupExportResult.error(String message) {
+    return AutoBackupExportResult._(success: false, errorMessage: message);
   }
 }
 

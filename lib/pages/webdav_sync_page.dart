@@ -21,14 +21,12 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   bool _isLoading = false;
   bool _isConfigured = false;
   bool _obscurePassword = true;
-  bool _isAutoSyncEnabled = false;
   SyncDirection _syncDirection = SyncDirection.upload;
   
   @override
   void initState() {
     super.initState();
     _loadConfig();
-    _loadAutoSyncStatus();
   }
   
   @override
@@ -38,33 +36,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     _passwordController.dispose();
     _pathController.dispose();
     super.dispose();
-  }
-  
-  /// 加载自动同步状态
-  Future<void> _loadAutoSyncStatus() async {
-    final enabled = await WebDAVService.instance.isAutoSyncEnabled();
-    setState(() => _isAutoSyncEnabled = enabled);
-  }
-  
-  /// 切换自动同步
-  Future<void> _toggleAutoSync(bool value) async {
-    setState(() => _isLoading = true);
-    
-    try {
-      if (value) {
-        await WebDAVService.instance.startAutoSync();
-        ToastUtil.show(context, '自动备份已开启，每5分钟执行一次');
-      } else {
-        await WebDAVService.instance.stopAutoSync();
-        ToastUtil.show(context, '自动备份已关闭');
-      }
-      
-      setState(() => _isAutoSyncEnabled = value);
-    } catch (e) {
-      ToastUtil.show(context, '操作失败: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
   
   /// 加载已保存的配置
@@ -355,56 +326,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   ),
                   
                   if (_isConfigured) ...[
-                    const SizedBox(height: 24),
-                    
-                    // 自动备份开关
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        border: Border.all(color: const Color(0xFFE5E5E5)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.schedule,
-                            size: 20,
-                            color: Color(0xFF666666),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '自动备份',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF1A1A1A),
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  '每5分钟自动备份一次，保留最近10个备份',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF999999),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: _isAutoSyncEnabled,
-                            onChanged: _isLoading ? null : _toggleAutoSync,
-                            activeColor: const Color(0xFF1A1A1A),
-                            inactiveThumbColor: const Color(0xFF999999),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
                     const SizedBox(height: 24),
                     
                     // 同步方向选择
