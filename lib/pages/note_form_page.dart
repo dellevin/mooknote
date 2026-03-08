@@ -662,6 +662,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   /// 构建图片项
   Widget _buildImageItem(int index) {
     return InkWell(
+      onTap: () => _showImagePreview(index),
       onLongPress: () => _showDeleteImageDialog(index),
       child: Container(
         decoration: BoxDecoration(
@@ -670,6 +671,32 @@ class _NoteFormPageState extends State<NoteFormPage> {
         child: Image.file(
           File(_images[index]),
           fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  /// 显示图片预览
+  void _showImagePreview(int index) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black.withOpacity(0.9),
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.file(
+                File(_images[index]),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -130,16 +130,19 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 scrollDirection: Axis.horizontal,
                 itemCount: note.images.length,
                 itemBuilder: (context, index) {
-                  return Container(
-                    width: 100,
-                    height: 100,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE5E5E5)),
-                    ),
-                    child: Image.file(
-                      File(note.images[index]),
-                      fit: BoxFit.cover,
+                  return GestureDetector(
+                    onTap: () => _showImagePreview(context, note.images, index),
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE5E5E5)),
+                      ),
+                      child: Image.file(
+                        File(note.images[index]),
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   );
                 },
@@ -316,6 +319,32 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     Navigator.pushNamed(context, '/note-form', arguments: widget.note).then((_) {
       context.read<AppProvider>().loadNotes();
     });
+  }
+
+  /// 显示图片预览
+  void _showImagePreview(BuildContext context, List<String> images, int initialIndex) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black.withOpacity(0.9),
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.file(
+                File(images[initialIndex]),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// 显示删除对话框

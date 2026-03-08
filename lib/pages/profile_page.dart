@@ -618,15 +618,14 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         children: [
           // 使用说明
-          _buildLinkItem(
-            context: context,
-            icon: Icons.help_outline,
-            title: '使用说明',
-            subtitle: '查看应用使用指南',
-            url: 'https://www.iletter.top/',
-          ),
-          
-          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          // _buildLinkItem(
+          //   context: context,
+          //   icon: Icons.help_outline,
+          //   title: '使用说明',
+          //   subtitle: '查看应用使用指南',
+          //   url: 'https://www.iletter.top/',
+          // ),
+          // const Divider(height: 0.5, indent: 24, endIndent: 24),
           
           // 关于作者
           _buildLinkItem(
