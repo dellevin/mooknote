@@ -20,7 +20,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       // 左侧弹出菜单（仅在主页显示）
       drawer: context.watch<AppProvider>().bottomNavIndex == 0 
-          ? const CustomDrawer() 
+          ? CustomDrawer() 
           : null,
       
       // 主体内容 - 根据底部导航切换

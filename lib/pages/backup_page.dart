@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -19,7 +18,6 @@ class _BackupPageState extends State<BackupPage> {
   bool _isImporting = false;
   bool _autoBackupEnabled = false;
   bool _isLoading = true;
-  List<File> _autoBackupFiles = [];
   String? _backupDirPath;
 
   @override
@@ -30,12 +28,10 @@ class _BackupPageState extends State<BackupPage> {
 
   Future<void> _loadAutoBackupStatus() async {
     final enabled = await AutoBackupService.instance.getEnabled();
-    final files = await AutoBackupService.instance.getBackupFiles();
     final dirPath = await AutoBackupService.instance.getBackupDirectoryPath();
     if (mounted) {
       setState(() {
         _autoBackupEnabled = enabled;
-        _autoBackupFiles = files;
         _backupDirPath = dirPath;
         _isLoading = false;
       });
@@ -58,12 +54,6 @@ class _BackupPageState extends State<BackupPage> {
           _buildAutoBackupSection(),
           
           const SizedBox(height: 32),
-          
-          // 自动备份文件列表
-          if (_autoBackupFiles.isNotEmpty) ...[
-            _buildBackupFilesSection(),
-            const SizedBox(height: 32),
-          ],
           
           // 导出数据
           _buildSection(
@@ -406,119 +396,4 @@ class _BackupPageState extends State<BackupPage> {
     );
   }
 
-  /// 构建备份文件列表区域
-  Widget _buildBackupFilesSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.folder_outlined,
-                size: 24,
-                color: Color(0xFF1A1A1A),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '自动备份文件 (${_autoBackupFiles.length}/10)',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ..._autoBackupFiles.asMap().entries.map((entry) {
-            final index = entry.key;
-            final file = entry.value;
-            final fileName = file.path.split('/').last;
-            final stat = file.statSync();
-            final size = _formatFileSize(stat.size);
-            final modified = _formatDateTime(stat.modified);
-            
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: index < _autoBackupFiles.length - 1
-                      ? const BorderSide(color: Color(0xFFE5E5E5))
-                      : BorderSide.none,
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.backup,
-                    size: 18,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          fileName,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$modified · $size',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF999999),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (index == 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        border: Border.all(color: const Color(0xFFE5E5E5)),
-                      ),
-                      child: const Text(
-                        '最新',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF666666),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// 格式化文件大小
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
-  /// 格式化日期时间
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.month}/${dateTime.day} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-  }
 }

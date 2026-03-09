@@ -5,14 +5,86 @@ import '../models/data_models.dart';
 import '../widgets/note_list_item.dart';
 
 /// 笔记标签页
-class NoteTabPage extends StatelessWidget {
+class NoteTabPage extends StatefulWidget {
   const NoteTabPage({super.key});
+
+  @override
+  State<NoteTabPage> createState() => _NoteTabPageState();
+}
+
+class _NoteTabPageState extends State<NoteTabPage> {
+  // 使用分页加载
+  static const int _pageSize = 50;
+  final List<Note> _displayedNotes = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    // 延迟加载初始数据，避免阻塞UI
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMoreNotes();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreNotes();
+    }
+  }
+
+  Future<void> _loadMoreNotes() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() => _isLoading = true);
+
+    // 使用微任务延迟加载，避免阻塞UI
+    await Future.microtask(() {
+      final provider = context.read<AppProvider>();
+      final allNotes = provider.notes;
+      
+      final startIndex = _displayedNotes.length;
+      final endIndex = (startIndex + _pageSize).clamp(0, allNotes.length);
+      
+      if (startIndex >= allNotes.length) {
+        _hasMore = false;
+      } else {
+        final newNotes = allNotes.sublist(startIndex, endIndex);
+        _displayedNotes.addAll(newNotes);
+        _hasMore = endIndex < allNotes.length;
+      }
+    });
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _refresh() async {
+    final provider = context.read<AppProvider>();
+    await provider.loadNotes();
+    setState(() {
+      _displayedNotes.clear();
+      _hasMore = true;
+    });
+    await _loadMoreNotes();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 笔记列表（无状态筛选，显示所有笔记）
+        // 笔记列表（分页加载）
         Expanded(
           child: _buildNoteList(context),
         ),
@@ -24,21 +96,38 @@ class NoteTabPage extends StatelessWidget {
   Widget _buildNoteList(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        final notes = provider.notes;
+        final allNotes = provider.notes;
         
-        if (notes.isEmpty) {
+        if (allNotes.isEmpty && _displayedNotes.isEmpty) {
           return _buildEmptyState(context);
         }
         
         return RefreshIndicator(
-          onRefresh: () async => await provider.loadNotes(),
+          onRefresh: _refresh,
           color: const Color(0xFF1A1A1A),
           backgroundColor: Colors.white,
           child: ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
-            itemCount: notes.length,
+            itemCount: _displayedNotes.length + (_hasMore ? 1 : 0),
             itemBuilder: (context, index) {
-              return NoteListItem(note: notes[index]);
+              if (index >= _displayedNotes.length) {
+                // 底部加载指示器
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return NoteListItem(note: _displayedNotes[index]);
             },
           ),
         );

@@ -9,7 +9,7 @@ import '../models/data_models.dart';
 
 /// 自定义左侧弹出菜单 - 极简主义设计
 class CustomDrawer extends StatelessWidget {
-  const CustomDrawer({super.key});
+  CustomDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +24,11 @@ class CustomDrawer extends StatelessWidget {
           
           // 回顾功能区域
           _buildMemorySection(context),
+          
+          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+          
+          // 日历热力图区域
+          _buildCalendarSection(context),
           
           const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
           
@@ -411,6 +416,197 @@ class CustomDrawer extends StatelessWidget {
   void _showToast(BuildContext context, String message) {
     ToastUtil.show(context, message);
   }
+
+  /// 构建日历热力图区域
+  Widget _buildCalendarSection(BuildContext context) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Consumer<AppProvider>(
+          builder: (context, provider, child) {
+            // 使用 StatefulBuilder 的状态来管理选中的月份
+            final selectedMonth = _calendarSelectedMonth ?? DateTime.now();
+            
+            // 合并所有数据按日期
+            final Map<DateTime, _DailyData> dailyData = {};
+            
+            for (final movie in provider.movies.where((m) => !m.isDeleted)) {
+              final date = DateTime(movie.createdAt.year, movie.createdAt.month, movie.createdAt.day);
+              dailyData.putIfAbsent(date, () => _DailyData()).movies++;
+            }
+            
+            for (final book in provider.books.where((b) => !b.isDeleted)) {
+              final date = DateTime(book.createdAt.year, book.createdAt.month, book.createdAt.day);
+              dailyData.putIfAbsent(date, () => _DailyData()).books++;
+            }
+            
+            for (final note in provider.notes.where((n) => !n.isDeleted)) {
+              final date = DateTime(note.createdAt.year, note.createdAt.month, note.createdAt.day);
+              dailyData.putIfAbsent(date, () => _DailyData()).notes++;
+            }
+
+            // 计算最大数量用于颜色强度
+            int maxCount = 0;
+            for (final data in dailyData.values) {
+              final count = data.total;
+              if (count > maxCount) maxCount = count;
+            }
+            if (maxCount == 0) maxCount = 1;
+
+            final year = selectedMonth.year;
+            final month = selectedMonth.month;
+            final daysInMonth = DateTime(year, month + 1, 0).day;
+            final firstWeekday = DateTime(year, month, 1).weekday % 7;
+
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 标题和月份切换
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Color(0xFF666666),
+                      ),
+                      const SizedBox(width: 8),
+                      // 上个月按钮
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _calendarSelectedMonth = DateTime(year, month - 1);
+                          });
+                        },
+                        child: const Icon(
+                          Icons.chevron_left,
+                          size: 20,
+                          color: Color(0xFF666666),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$year年$month月',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF666666),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // 下个月按钮
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _calendarSelectedMonth = DateTime(year, month + 1);
+                          });
+                        },
+                        child: const Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: Color(0xFF666666),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+              
+              // 星期标题 - 使用与日期相同的Wrap布局
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: const ['日', '一', '二', '三', '四', '五', '六']
+                    .map((d) => SizedBox(
+                          width: 32,
+                          height: 20,
+                          child: Text(
+                            d,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF999999)),
+                          ),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 4),
+              
+              // 日历网格
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  // 空白填充
+                  ...List.generate(firstWeekday, (_) => const SizedBox(width: 32, height: 28)),
+                  
+                  // 日期
+                  ...List.generate(daysInMonth, (index) {
+                    final day = index + 1;
+                    final date = DateTime(year, month, day);
+                    final data = dailyData[date];
+                    final count = data?.total ?? 0;
+                    
+                    // 计算颜色强度
+                    double opacity = 0.1;
+                    if (count > 0) {
+                      opacity = 0.3 + (count / maxCount * 0.7);
+                      opacity = opacity.clamp(0.3, 1.0);
+                    }
+                    
+                    return Container(
+                      width: 32,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: count > 0 
+                            ? const Color(0xFF1A1A1A).withOpacity(opacity)
+                            : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Center(
+                        child: Text(
+                          day.toString(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: count > 0 ? Colors.white : const Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+              
+              // 图例
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Text('少', style: TextStyle(fontSize: 10, color: Color(0xFF999999))),
+                  const SizedBox(width: 4),
+                  ...List.generate(4, (index) {
+                    final opacity = 0.2 + (index * 0.2);
+                    return Container(
+                      width: 10,
+                      height: 10,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A).withOpacity(opacity),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    );
+                  }),
+                  const SizedBox(width: 4),
+                  const Text('多', style: TextStyle(fontSize: 10, color: Color(0xFF999999))),
+                ],
+              ),
+            ],
+          ),
+        );
+      });
+    });
+  }
+
+  // 日历选中的月份状态（用于 StatefulBuilder）
+  static DateTime? _calendarSelectedMonth;
 }
 
 /// 回顾项数据类
@@ -426,4 +622,13 @@ class _MemoryItem {
     required this.date,
     this.imagePath,
   });
+}
+
+/// 每日数据
+class _DailyData {
+  int movies = 0;
+  int books = 0;
+  int notes = 0;
+  
+  int get total => movies + books + notes;
 }

@@ -21,6 +21,7 @@ class _SearchPageState extends State<SearchPage> {
   int _selectedType = 0; // 0: 影视, 1: 书籍, 2: 笔记
   List<dynamic> _results = [];
   bool _isSearching = false;
+  String? _selectedTag; // 选中的标签
 
   final List<String> _typeLabels = ['影视', '书籍', '笔记'];
 
@@ -32,7 +33,8 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _performSearch() async {
     final keyword = _searchController.text.trim();
-    if (keyword.isEmpty) return;
+    // 笔记搜索允许空关键词（用于标签筛选）
+    if (keyword.isEmpty && _selectedType != 2 && _selectedTag == null) return;
 
     setState(() => _isSearching = true);
 
@@ -85,7 +87,86 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   bool _matchNote(Note note, String keyword) {
+    // 如果有选中的标签，先按标签筛选
+    if (_selectedTag != null) {
+      if (!note.tags.contains(_selectedTag)) {
+        return false;
+      }
+    }
+    // 关键词为空时，只按标签筛选
+    if (keyword.isEmpty) {
+      return true;
+    }
+    // 按内容搜索
     return note.content.toLowerCase().contains(keyword.toLowerCase());
+  }
+
+  /// 构建标签筛选区域
+  Widget _buildTagFilter() {
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        // 获取所有笔记的标签
+        final allTags = <String>{};
+        for (final note in provider.notes.where((n) => !n.isDeleted)) {
+          allTags.addAll(note.tags);
+        }
+        
+        if (allTags.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        final tags = allTags.toList()..sort();
+        
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.start,
+                children: tags.map((tag) => GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      // 再次点击同一标签则取消筛选
+                      if (_selectedTag == tag) {
+                        _selectedTag = null;
+                      } else {
+                        _selectedTag = tag;
+                      }
+                      _performSearch();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _selectedTag == tag 
+                          ? const Color(0xFF1A1A1A) 
+                          : const Color(0xFFF5F5F5),
+                      border: Border.all(
+                        color: _selectedTag == tag 
+                            ? const Color(0xFF1A1A1A) 
+                            : const Color(0xFFE5E5E5),
+                      ),
+                    ),
+                    child: Text(
+                      tag,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _selectedTag == tag 
+                            ? Colors.white 
+                            : const Color(0xFF666666),
+                      ),
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -113,10 +194,9 @@ class _SearchPageState extends State<SearchPage> {
                     setState(() {
                       _selectedType = index;
                       _results = [];
+                      _selectedTag = null; // 切换类型时重置标签
                     });
-                    if (_searchController.text.isNotEmpty) {
-                      _performSearch();
-                    }
+                    _searchController.clear();
                   },
                   child: Container(
                     margin: const EdgeInsets.only(right: 12),
@@ -172,6 +252,9 @@ class _SearchPageState extends State<SearchPage> {
               onChanged: (_) => setState(() {}),
             ),
           ),
+
+          // 笔记标签筛选（仅在笔记搜索时显示）
+          if (_selectedType == 2) _buildTagFilter(),
 
           // 搜索结果
           Expanded(
