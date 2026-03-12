@@ -31,7 +31,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 11,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -73,6 +73,40 @@ class DatabaseHelper {
     if (oldVersion < 9) {
       // 为笔记表添加图片字段
       await _upgradeNotesTableV9(db);
+    }
+    if (oldVersion < 10) {
+      // 为影视表添加观看日期字段
+      await _upgradeMoviesTableV10(db);
+    }
+    if (oldVersion < 11) {
+      // 为书籍表添加ISBN和出版时间字段
+      await _upgradeBooksTableV11(db);
+    }
+  }
+
+  /// 升级books表到V11（添加ISBN和出版时间字段）
+  Future<void> _upgradeBooksTableV11(Database db) async {
+    // 检查是否存在 isbn 列
+    final columns = await db.rawQuery('PRAGMA table_info(books)');
+    final hasIsbn = columns.any((col) => col['name'] == 'isbn');
+    final hasPublishDate = columns.any((col) => col['name'] == 'publish_date');
+
+    if (!hasIsbn) {
+      await db.execute('ALTER TABLE books ADD COLUMN isbn TEXT');
+    }
+    if (!hasPublishDate) {
+      await db.execute('ALTER TABLE books ADD COLUMN publish_date TEXT');
+    }
+  }
+
+  /// 升级movies表到V10（添加观看日期字段）
+  Future<void> _upgradeMoviesTableV10(Database db) async {
+    // 检查是否存在 watch_date 列
+    final columns = await db.rawQuery('PRAGMA table_info(movies)');
+    final hasWatchDate = columns.any((col) => col['name'] == 'watch_date');
+
+    if (!hasWatchDate) {
+      await db.execute('ALTER TABLE movies ADD COLUMN watch_date TEXT');
     }
   }
   
@@ -338,6 +372,7 @@ class DatabaseHelper {
         summary TEXT,
         rating REAL,
         status TEXT NOT NULL,
+        watch_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0
@@ -357,6 +392,8 @@ class DatabaseHelper {
         summary TEXT,
         rating REAL,
         status TEXT NOT NULL,
+        isbn TEXT,
+        publish_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0

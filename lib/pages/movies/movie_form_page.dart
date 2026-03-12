@@ -41,6 +41,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
   String? _posterPath;
   String _status = 'want_to_watch';
   DateTime? _releaseDate;
+  DateTime? _watchDate;
   
   @override
   void initState() {
@@ -74,6 +75,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       _posterPath = movie.posterPath;
       _status = movie.status;
       _releaseDate = movie.releaseDate;
+      _watchDate = movie.watchDate;
     } else if (widget.initialStatus != null) {
       // 添加模式：使用传入的默认状态
       _status = widget.initialStatus!;
@@ -92,7 +94,38 @@ class _MovieFormPageState extends State<MovieFormPage> {
   TextEditingController _getTagController(String key) {
     return _tagControllers.putIfAbsent(key, () => TextEditingController());
   }
-  
+
+  /// 构建右上角操作按钮
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    Color color = const Color(0xFF1A1A1A),
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              color: color,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.movie != null;
@@ -102,15 +135,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
       appBar: AppBar(
         title: Text(isEdit ? '编辑影视' : '添加影视'),
         actions: [
-          TextButton(
+          // 保存按钮
+          _buildActionButton(
+            icon: Icons.save_outlined,
             onPressed: _saveMovie,
-            child: const Text(
-              '保存',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            tooltip: '保存',
           ),
           const SizedBox(width: 8),
         ],
@@ -135,9 +164,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
             
             const SizedBox(height: 32),
             
-            // 基本信息区域
-            _buildFormItem(
-              label: '影视名称 *',
+            // 影视名称
+            _buildHorizontalFormItem(
+              label: '名称',
+              required: true,
               child: TextFormField(
                 controller: _titleController,
                 style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
@@ -155,11 +185,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 },
               ),
             ),
-            
-            _buildDivider(),
-            
+
+            const SizedBox(height: 16),
+
             // 别名
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '别名',
               values: _alternateTitles,
               hint: '输入别名',
@@ -167,43 +197,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
               onAdd: (v) => setState(() => _alternateTitles.add(v)),
               onRemove: (i) => setState(() => _alternateTitles.removeAt(i)),
             ),
-            
-            _buildDivider(),
-            
-            // 上映日期
-            _buildFormItem(
-              label: '上映日期',
-              child: GestureDetector(
-                onTap: _selectReleaseDate,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _releaseDate != null
-                            ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
-                            : '选择日期',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: _releaseDate != null
-                              ? const Color(0xFF1A1A1A)
-                              : const Color(0xFFCCCCCC),
-                        ),
-                      ),
-                    ),
-                    if (_releaseDate != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _releaseDate = null),
-                        child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            
-            _buildDivider(),
-            
+
+            const SizedBox(height: 16),
+
             // 导演
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '导演',
               values: _directors,
               hint: '输入导演姓名',
@@ -211,11 +209,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
               onAdd: (v) => setState(() => _directors.add(v)),
               onRemove: (i) => setState(() => _directors.removeAt(i)),
             ),
-            
-            _buildDivider(),
-            
+
+            const SizedBox(height: 16),
+
             // 编剧
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '编剧',
               values: _writers,
               hint: '输入编剧姓名',
@@ -223,11 +221,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
               onAdd: (v) => setState(() => _writers.add(v)),
               onRemove: (i) => setState(() => _writers.removeAt(i)),
             ),
-            
-            _buildDivider(),
-            
+
+            const SizedBox(height: 16),
+
             // 主演
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '主演',
               values: _actors,
               hint: '输入主演姓名',
@@ -235,20 +233,40 @@ class _MovieFormPageState extends State<MovieFormPage> {
               onAdd: (v) => setState(() => _actors.add(v)),
               onRemove: (i) => setState(() => _actors.removeAt(i)),
             ),
-            
-            _buildDivider(),
-            
-            // 类型
-            _buildMultiValueItem(
+
+            const SizedBox(height: 16),
+
+            // 类型（自定义填写，带示例）
+            _buildHorizontalMultiValueItem(
               label: '类型',
               values: _genres,
-              hint: '如：剧情、科幻',
+              hint: '如：剧情、科幻、悬疑',
               controllerKey: 'genres',
               onAdd: (v) => setState(() => _genres.add(v)),
               onRemove: (i) => setState(() => _genres.removeAt(i)),
             ),
-            
-            _buildDivider(),
+
+            const SizedBox(height: 16),
+
+            // 上映日期
+            _buildVerticalDateItem(
+              label: '上映日期',
+              date: _releaseDate,
+              onTap: _selectReleaseDate,
+              onClear: () => setState(() => _releaseDate = null),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 观看日期
+            _buildVerticalDateItem(
+              label: '观看日期',
+              date: _watchDate,
+              onTap: _selectWatchDate,
+              onClear: () => setState(() => _watchDate = null),
+            ),
+
+            const SizedBox(height: 16),
             
             // 剧情简介
             _buildFormItem(
@@ -273,25 +291,174 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
-  /// 构建表单条目（标签 + 内容）
+  /// 构建纵向日期条目（标签在上，日期在下）
+  Widget _buildVerticalDateItem({
+    required String label,
+    required DateTime? date,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  date != null
+                      ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}'
+                      : '选择日期',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: date != null
+                        ? const Color(0xFF1A1A1A)
+                        : const Color(0xFFCCCCCC),
+                  ),
+                ),
+              ),
+              if (date != null)
+                GestureDetector(
+                  onTap: onClear,
+                  child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建表单条目（标签 + 内容）- 剧情简介使用
   Widget _buildFormItem({required String label, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
-            color: label.contains('*') ? const Color(0xFF1A1A1A) : const Color(0xFF666666),
-            fontWeight: label.contains('*') ? FontWeight.w500 : FontWeight.normal,
-          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
         ),
         const SizedBox(height: 8),
         child,
       ],
     );
   }
-  
+
+  /// 构建横向表单条目（标签在左，内容在右）
+  Widget _buildHorizontalFormItem({
+    required String label,
+    required Widget child,
+    bool required = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 48,
+          child: Text(
+            required ? '$label *' : label,
+            style: TextStyle(
+              fontSize: 13,
+              color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+              fontWeight: required ? FontWeight.w500 : FontWeight.normal,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: child),
+      ],
+    );
+  }
+
+  /// 构建横向多值条目（标签在左，内容在右）
+  Widget _buildHorizontalMultiValueItem({
+    required String label,
+    required List<String> values,
+    required String hint,
+    required String controllerKey,
+    required Function(String) onAdd,
+    required Function(int) onRemove,
+  }) {
+    final controller = _getTagController(controllerKey);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 48,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ...values.asMap().entries.map((entry) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        entry.value,
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => onRemove(entry.key),
+                        child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              // 输入框
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 80, maxWidth: 120),
+                child: TextField(
+                  controller: controller,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                  decoration: InputDecoration(
+                    hintText: values.isEmpty ? hint : '',
+                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCCCC)),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                  ),
+                  onSubmitted: (value) {
+                    final trimmed = value.trim();
+                    if (trimmed.isNotEmpty && !values.contains(trimmed)) {
+                      onAdd(trimmed);
+                      controller.clear();
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   /// 构建多值条目
   Widget _buildMultiValueItem({
     required String label,
@@ -415,15 +582,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
           ],
         ),
       ],
-    );
-  }
-  
-  /// 构建分隔线
-  Widget _buildDivider() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      height: 0.5,
-      color: const Color(0xFFE5E5E5),
     );
   }
   
@@ -716,7 +874,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     }
   }
   
-  /// 选择日期
+  /// 选择上映日期
   Future<void> _selectReleaseDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -737,6 +895,30 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
     if (picked != null) {
       setState(() => _releaseDate = picked);
+    }
+  }
+
+  /// 选择观看日期
+  Future<void> _selectWatchDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _watchDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1A1A1A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _watchDate = picked);
     }
   }
   
@@ -775,6 +957,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         summary: _summaryController.text.trim(),
         rating: rating,
         status: _status,
+        watchDate: _watchDate,
         createdAt: now,
         updatedAt: now,
       );
@@ -793,6 +976,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         summary: _summaryController.text.trim(),
         rating: rating,
         status: _status,
+        watchDate: _watchDate,
         updatedAt: now,
       );
       

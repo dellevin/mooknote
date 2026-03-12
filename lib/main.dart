@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
@@ -11,6 +12,15 @@ import 'package:flutter/widget_previews.dart';
 void main() async {
   // 确保 Flutter 绑定初始化完成
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 设置系统导航栏颜色（与App主题一致）
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+  
   // 初始化用户偏好设置
   await UserPrefs.init();
   // 初始化数据库
@@ -59,7 +69,8 @@ class MyApp extends StatelessWidget {
 }
 
 /// 用于预览 MyApp 的 Widget
-@Preview(name: "MookNote App Preview") // 添加 @Preview 注解
+/// 添加 @Preview 注解
+@Preview(name: "MookNote App Preview")
 Widget previewMyApp() {
   final appProvider = AppProvider(); 
 

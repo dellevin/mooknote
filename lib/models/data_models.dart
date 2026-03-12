@@ -21,6 +21,7 @@ class Movie {
   final String? summary; // 剧情简介
   final double? rating; // 评分 1-10
   final String status; // watched/want_to_watch/watching
+  final DateTime? watchDate; // 观看日期
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -38,6 +39,7 @@ class Movie {
     this.summary,
     this.rating,
     required this.status,
+    this.watchDate,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -59,6 +61,9 @@ class Movie {
       summary: json['summary'],
       rating: json['rating']?.toDouble(),
       status: json['status'] ?? 'want_to_watch',
+      watchDate: json['watch_date'] != null
+          ? DateTime.parse(json['watch_date'])
+          : null,
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
@@ -83,6 +88,7 @@ class Movie {
       'summary': summary,
       'rating': rating,
       'status': status,
+      'watch_date': watchDate?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -133,6 +139,7 @@ class Movie {
     Object? summary = _copyWithNull,
     double? rating,
     String? status,
+    DateTime? watchDate,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -150,6 +157,7 @@ class Movie {
       summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
       rating: rating ?? this.rating,
       status: status ?? this.status,
+      watchDate: watchDate ?? this.watchDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -169,6 +177,8 @@ class Book {
   final String? summary; // 书籍简介
   final double? rating; // 评分 1-10
   final String status; // read/reading/want_to_read
+  final String? isbn; // ISBN编号
+  final DateTime? publishDate; // 出版时间
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -184,6 +194,8 @@ class Book {
     this.summary,
     this.rating,
     required this.status,
+    this.isbn,
+    this.publishDate,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -201,6 +213,10 @@ class Book {
       summary: json['summary'],
       rating: json['rating']?.toDouble(),
       status: json['status'] ?? 'want_to_read',
+      isbn: json['isbn'],
+      publishDate: json['publish_date'] != null
+          ? DateTime.parse(json['publish_date'])
+          : null,
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
@@ -223,6 +239,8 @@ class Book {
       'summary': summary,
       'rating': rating,
       'status': status,
+      'isbn': isbn,
+      'publish_date': publishDate?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -247,6 +265,8 @@ class Book {
     Object? summary = _copyWithNull,
     double? rating,
     String? status,
+    Object? isbn = _copyWithNull,
+    DateTime? publishDate,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -262,6 +282,8 @@ class Book {
       summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
       rating: rating ?? this.rating,
       status: status ?? this.status,
+      isbn: isbn is _CopyWithNullSentinel ? this.isbn : (isbn as String?),
+      publishDate: publishDate ?? this.publishDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,

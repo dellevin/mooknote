@@ -30,6 +30,31 @@ class _NoteTabPageState extends State<NoteTabPage> {
     });
   }
 
+  // 用于检测Provider数据变化
+  int _lastNotesCount = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 使用watch监听Provider数据变化
+    final provider = context.watch<AppProvider>();
+    final allNotes = provider.notes;
+    
+    // 如果Provider中的笔记数量发生变化且本地列表已加载过数据
+    if (allNotes.length != _lastNotesCount && _displayedNotes.isNotEmpty) {
+      _lastNotesCount = allNotes.length;
+      // 清空本地列表并重新加载
+      setState(() {
+        _displayedNotes.clear();
+        _hasMore = true;
+      });
+      // 延迟加载避免setState冲突
+      Future.microtask(() => _loadMoreNotes());
+    } else {
+      _lastNotesCount = allNotes.length;
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -98,6 +123,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
       builder: (context, provider, child) {
         final allNotes = provider.notes;
         
+        // 当Provider数据变化时，同步更新本地显示列表
+        // 过滤掉已删除的笔记，保持顺序
+        _syncDisplayedNotes(allNotes);
+        
         if (allNotes.isEmpty && _displayedNotes.isEmpty) {
           return _buildEmptyState(context);
         }
@@ -135,6 +164,28 @@ class _NoteTabPageState extends State<NoteTabPage> {
     );
   }
 
+  /// 同步显示列表与Provider数据
+  void _syncDisplayedNotes(List<Note> allNotes) {
+    // 获取当前所有有效笔记的ID集合
+    final validNoteIds = allNotes.map((n) => n.id).toSet();
+    
+    // 移除已删除的笔记（不在Provider中的）
+    final initialLength = _displayedNotes.length;
+    _displayedNotes.removeWhere((note) => !validNoteIds.contains(note.id));
+    
+    // 检查是否有新增笔记（Provider中有但本地列表中没有的）
+    final displayedIds = _displayedNotes.map((n) => n.id).toSet();
+    final hasNewNotes = allNotes.any((note) => !displayedIds.contains(note.id));
+    
+    // 如果有笔记被移除或有新增，更新列表
+    if (_displayedNotes.length < initialLength || hasNewNotes) {
+      // 清空并重新加载所有数据
+      _displayedNotes.clear();
+      _displayedNotes.addAll(allNotes);
+      _hasMore = false; // 已经有全部数据了
+    }
+  }
+
   /// 构建空状态提示
   Widget _buildEmptyState(BuildContext context) {
     return Center(
@@ -146,7 +197,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
             height: 80,
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
               Icons.note_outlined,
@@ -154,12 +205,20 @@ class _NoteTabPageState extends State<NoteTabPage> {
               color: Color(0xFFCCCCCC),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const Text(
             '暂无笔记',
             style: TextStyle(
               fontSize: 16,
               color: Color(0xFF999999),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '记录你的想法和灵感',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFFBBBBBB),
             ),
           ),
           const SizedBox(height: 24),
@@ -171,11 +230,13 @@ class _NoteTabPageState extends State<NoteTabPage> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
                 '添加笔记',
                 style: TextStyle(
                   fontSize: 14,
+                  fontWeight: FontWeight.w500,
                   color: Colors.white,
                 ),
               ),

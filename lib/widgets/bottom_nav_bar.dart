@@ -11,7 +11,7 @@ class CustomBottomNavBar extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
-          height: 48,
+          height: 64,
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
@@ -58,12 +58,19 @@ class CustomBottomNavBar extends StatelessWidget {
         onTap: onTap,
         child: Container(
           color: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Center(
-            child: Icon(
-              isActive ? activeIcon : icon,
-              color: isActive ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
-              size: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: isActive ? const Color(0xFF1A1A1A) : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isActive ? activeIcon : icon,
+                color: isActive ? Colors.white : const Color(0xFF999999),
+                size: 22,
+              ),
             ),
           ),
         ),
@@ -73,14 +80,15 @@ class CustomBottomNavBar extends StatelessWidget {
   
   /// 构建中间新增按钮
   Widget _buildAddButton(BuildContext context, AppProvider provider) {
-    return InkWell(
+    return GestureDetector(
       onTap: () => _showAddDialog(context, provider),
+      onLongPress: () => _showQuickAddDialog(context, provider),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(
           Icons.add,
@@ -91,68 +99,202 @@ class CustomBottomNavBar extends StatelessWidget {
     );
   }
 
+  /// 长按快速添加 - 根据当前界面直接跳转到对应添加界面
+  void _showQuickAddDialog(BuildContext context, AppProvider provider) {
+    // 根据当前主标签页决定跳转到哪个添加界面
+    final currentTab = provider.mainTabIndex;
+    
+    switch (currentTab) {
+      case 0: // 观影标签页
+        final statusMap = {
+          0: 'watched',
+          1: 'watching',
+          2: 'want_to_watch',
+        };
+        final currentStatus = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
+        Navigator.pushNamed(
+          context,
+          '/movie-form',
+          arguments: {'initialStatus': currentStatus},
+        );
+        break;
+      case 1: // 阅读标签页
+        final statusMap = {
+          0: 'read',
+          1: 'reading',
+          2: 'want_to_read',
+        };
+        final currentStatus = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
+        Navigator.pushNamed(
+          context,
+          '/book-form',
+          arguments: {'initialStatus': currentStatus},
+        );
+        break;
+      case 2: // 笔记标签页
+        Navigator.pushNamed(context, '/note-form');
+        break;
+      default:
+        _showAddDialog(context, provider);
+    }
+  }
+
   /// 显示新增对话框
   void _showAddDialog(BuildContext context, AppProvider provider) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (BuildContext context) {
         return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.movie, color: Colors.green),
-                title: const Text('添加观影'),
-                subtitle: const Text('记录你看过的电影'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // 根据当前影视标签页的选中状态设置默认值
-                  final statusMap = {
-                    0: 'watched',
-                    1: 'watching',
-                    2: 'want_to_watch',
-                  };
-                  final currentStatus = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
-                  Navigator.pushNamed(
-                    context,
-                    '/movie-form',
-                    arguments: {'initialStatus': currentStatus},
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.menu_book, color: Colors.orange),
-                title: const Text('添加阅读'),
-                subtitle: const Text('记录你读过的书'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // 根据当前阅读标签页的选中状态设置默认值
-                  final statusMap = {
-                    0: 'read',
-                    1: 'reading',
-                    2: 'want_to_read',
-                  };
-                  final currentStatus = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
-                  Navigator.pushNamed(
-                    context,
-                    '/book-form',
-                    arguments: {'initialStatus': currentStatus},
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.note, color: Colors.blue),
-                title: const Text('添加笔记'),
-                subtitle: const Text('记录你的想法和笔记'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // 直接打开添加笔记表单
-                  Navigator.pushNamed(context, '/note-form');
-                },
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 顶部指示条
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // 标题
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Text(
+                        '新增记录',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // 选项列表
+                _buildAddOption(
+                  icon: Icons.movie_outlined,
+                  title: '添加观影',
+                  subtitle: '记录你看过的电影',
+                  onTap: () {
+                    Navigator.pop(context);
+                    final statusMap = {
+                      0: 'watched',
+                      1: 'watching',
+                      2: 'want_to_watch',
+                    };
+                    final currentStatus = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
+                    Navigator.pushNamed(
+                      context,
+                      '/movie-form',
+                      arguments: {'initialStatus': currentStatus},
+                    );
+                  },
+                ),
+                _buildAddOption(
+                  icon: Icons.menu_book_outlined,
+                  title: '添加阅读',
+                  subtitle: '记录你读过的书',
+                  onTap: () {
+                    Navigator.pop(context);
+                    final statusMap = {
+                      0: 'read',
+                      1: 'reading',
+                      2: 'want_to_read',
+                    };
+                    final currentStatus = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
+                    Navigator.pushNamed(
+                      context,
+                      '/book-form',
+                      arguments: {'initialStatus': currentStatus},
+                    );
+                  },
+                ),
+                _buildAddOption(
+                  icon: Icons.note_outlined,
+                  title: '添加笔记',
+                  subtitle: '记录你的想法和笔记',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/note-form');
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  /// 构建新增选项
+  Widget _buildAddOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFCCCCCC),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

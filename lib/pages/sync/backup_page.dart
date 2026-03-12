@@ -50,13 +50,12 @@ class _BackupPageState extends State<BackupPage> {
           : ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          // 自动备份开关
-          _buildAutoBackupSection(),
-          
-          const SizedBox(height: 32),
+          // 数据操作区域
+          _buildSectionTitle('手动备份'),
+          const SizedBox(height: 16),
           
           // 导出数据
-          _buildSection(
+          _buildActionCard(
             title: '导出数据',
             description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备',
             icon: Icons.upload_outlined,
@@ -65,10 +64,10 @@ class _BackupPageState extends State<BackupPage> {
             onTap: _exportData,
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           
           // 导入数据
-          _buildSection(
+          _buildActionCard(
             title: '导入数据',
             description: '从备份文件导入数据，将覆盖当前所有数据',
             icon: Icons.download_outlined,
@@ -78,57 +77,47 @@ class _BackupPageState extends State<BackupPage> {
             isDestructive: true,
           ),
           
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
           
-          // 说明
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              border: Border.all(color: const Color(0xFFE5E5E5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: const Color(0xFF666666),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '使用说明',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF666666),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '1. 导出数据会生成一个 .zip 文件，包含所有数据和图片\n'
-                  '2. 选择保存路径后，可以通过微信、邮件等方式发送备份文件\n'
-                  '3. 在新设备上选择导入数据，选择备份文件即可恢复\n'
-                  '4. 导入数据会完全覆盖当前设备的数据，请谨慎操作',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: const Color(0xFF999999),
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // 自动备份开关
+          _buildAutoBackupSection(),
+          
+          const SizedBox(height: 32),
+          
+          // 使用说明
+          _buildInfoSection(),
         ],
       ),
     );
   }
 
-  Widget _buildSection({
+  /// 构建区块标题
+  Widget _buildSectionTitle(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建操作卡片
+  Widget _buildActionCard({
     required String title,
     required String description,
     required IconData icon,
@@ -138,69 +127,187 @@ class _BackupPageState extends State<BackupPage> {
     bool isDestructive = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isDestructive ? Colors.red : const Color(0xFF1A1A1A),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDestructive 
+                        ? Colors.red.withOpacity(0.3) 
+                        : const Color(0xFFE8E8E8),
+                    width: 0.5,
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: isDestructive ? Colors.red : const Color(0xFF666666),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF666666),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isLoading ? null : onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDestructive 
+                    ? Colors.red 
+                    : const Color(0xFF1A1A1A),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      buttonText,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建信息说明区域
+  Widget _buildInfoSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                ),
+                child: const Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: Color(0xFF666666),
+                ),
               ),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+              const Text(
+                '使用说明',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                   color: Color(0xFF1A1A1A),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          _buildInfoItem('1', '导出数据会生成一个 .zip 文件，包含所有数据和图片'),
           const SizedBox(height: 12),
-          Text(
-            description,
+          _buildInfoItem('2', '选择保存路径后，可以通过微信、邮件等方式发送备份文件'),
+          const SizedBox(height: 12),
+          _buildInfoItem('3', '在新设备上选择导入数据，选择备份文件即可恢复'),
+          const SizedBox(height: 12),
+          _buildInfoItem('4', '导入数据会完全覆盖当前设备的数据，请谨慎操作'),
+        ],
+      ),
+    );
+  }
+
+  /// 构建信息项
+  Widget _buildInfoItem(String number, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8E8E8),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF666666),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: Color(0xFF666666),
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: isLoading ? null : onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isDestructive ? Colors.red : const Color(0xFF1A1A1A),
-                side: BorderSide(
-                  color: isDestructive ? Colors.red : const Color(0xFF1A1A1A),
-                ),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(
-                          isDestructive ? Colors.red : const Color(0xFF1A1A1A),
-                        ),
-                      ),
-                    )
-                  : Text(buttonText),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -332,27 +439,51 @@ class _BackupPageState extends State<BackupPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.schedule,
-                size: 24,
-                color: Color(0xFF1A1A1A),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                ),
+                child: const Icon(
+                  Icons.schedule,
+                  size: 22,
+                  color: Color(0xFF666666),
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               const Expanded(
-                child: Text(
-                  '自动本地备份',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1A1A1A),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '自动本地备份',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '每2分钟自动备份，保留最近10个备份',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Switch(
@@ -361,33 +492,48 @@ class _BackupPageState extends State<BackupPage> {
                   setState(() => _autoBackupEnabled = value);
                   await AutoBackupService.instance.setEnabled(value);
                   if (value) {
-                    ToastUtil.show(context, '自动备份已开启，每2分钟备份一次');
+                    ToastUtil.show(context, '自动备份已开启');
                   } else {
                     ToastUtil.show(context, '自动备份已关闭');
                   }
-                  // 刷新文件列表
                   await _loadAutoBackupStatus();
                 },
                 activeColor: const Color(0xFF1A1A1A),
+                activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3),
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: const Color(0xFFE5E5E5),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '每隔2分钟自动备份到下载目录/mooknote文件夹，最多保留10个备份文件',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF666666),
-              height: 1.5,
-            ),
-          ),
-          if (_backupDirPath != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              '备份位置: $_backupDirPath',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF999999),
+          if (_backupDirPath != null && _autoBackupEnabled) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.folder_outlined,
+                    size: 16,
+                    color: Color(0xFF999999),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _backupDirPath!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF666666),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

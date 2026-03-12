@@ -105,7 +105,6 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildTagFilter() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        // 获取所有笔记的标签
         final allTags = <String>{};
         for (final note in provider.notes.where((n) => !n.isDeleted)) {
           allTags.addAll(note.tags);
@@ -118,18 +117,37 @@ class _SearchPageState extends State<SearchPage> {
         final tags = allTags.toList()..sort();
         
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.label_outline,
+                      size: 16,
+                      color: Color(0xFF999999),
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      '按标签筛选',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF999999),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 10,
+                runSpacing: 10,
                 alignment: WrapAlignment.start,
                 children: tags.map((tag) => GestureDetector(
                   onTap: () {
                     setState(() {
-                      // 再次点击同一标签则取消筛选
                       if (_selectedTag == tag) {
                         _selectedTag = null;
                       } else {
@@ -139,21 +157,24 @@ class _SearchPageState extends State<SearchPage> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: _selectedTag == tag 
                           ? const Color(0xFF1A1A1A) 
-                          : const Color(0xFFF5F5F5),
+                          : const Color(0xFFFAFAFA),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: _selectedTag == tag 
                             ? const Color(0xFF1A1A1A) 
-                            : const Color(0xFFE5E5E5),
+                            : const Color(0xFFE8E8E8),
+                        width: 0.5,
                       ),
                     ),
                     child: Text(
                       tag,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
+                        fontWeight: _selectedTag == tag ? FontWeight.w600 : FontWeight.w500,
                         color: _selectedTag == tag 
                             ? Colors.white 
                             : const Color(0xFF666666),
@@ -175,15 +196,22 @@ class _SearchPageState extends State<SearchPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('搜索'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _performSearch,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
           // 搜索类型选择
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
               ),
             ),
             child: Row(
@@ -194,23 +222,26 @@ class _SearchPageState extends State<SearchPage> {
                     setState(() {
                       _selectedType = index;
                       _results = [];
-                      _selectedTag = null; // 切换类型时重置标签
+                      _selectedTag = null;
                     });
                     _searchController.clear();
                   },
                   child: Container(
                     margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+                      color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFE5E5E5),
+                        color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFE8E8E8),
+                        width: 0.5,
                       ),
                     ),
                     child: Text(
                       _typeLabels[index],
                       style: TextStyle(
                         fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                         color: isSelected ? Colors.white : const Color(0xFF666666),
                       ),
                     ),
@@ -222,14 +253,28 @@ class _SearchPageState extends State<SearchPage> {
 
           // 搜索输入框
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: TextField(
               controller: _searchController,
               autofocus: true,
               decoration: InputDecoration(
                 hintText: _getSearchHint(),
-                hintStyle: const TextStyle(color: Color(0xFF999999)),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF999999)),
+                hintStyle: const TextStyle(
+                  color: Color(0xFF999999),
+                  fontSize: 14,
+                ),
+                prefixIcon: Container(
+                  margin: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.search, color: Color(0xFF666666), size: 20),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 48,
+                  minHeight: 48,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, color: Color(0xFF999999)),
@@ -239,14 +284,21 @@ class _SearchPageState extends State<SearchPage> {
                         },
                       )
                     : null,
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: Color(0xFFE5E5E5)),
+                filled: true,
+                fillColor: const Color(0xFFFAFAFA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               onSubmitted: (_) => _performSearch(),
               onChanged: (_) => setState(() {}),
@@ -283,23 +335,68 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildEmptyState() {
-    if (_searchController.text.isEmpty) {
-      return const Center(
-        child: Text(
-          '输入关键词开始搜索',
-          style: TextStyle(color: Color(0xFF999999)),
+    if (_searchController.text.isEmpty && _selectedTag == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.search,
+                size: 40,
+                color: Color(0xFFCCCCCC),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '输入关键词开始搜索',
+              style: TextStyle(
+                fontSize: 15,
+                color: Color(0xFF999999),
+              ),
+            ),
+          ],
         ),
       );
     }
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 64, color: Color(0xFFCCCCCC)),
-          SizedBox(height: 16),
-          Text(
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.search_off,
+              size: 40,
+              color: Color(0xFFCCCCCC),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
             '未找到相关内容',
-            style: TextStyle(color: Color(0xFF999999)),
+            style: TextStyle(
+              fontSize: 15,
+              color: Color(0xFF999999),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '尝试更换关键词或标签',
+            style: TextStyle(
+              fontSize: 13,
+              color: const Color(0xFFBBBBBB),
+            ),
           ),
         ],
       ),
@@ -308,7 +405,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildResultList() {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: _results.length,
       itemBuilder: (context, index) {
         final item = _results[index];
@@ -336,9 +433,11 @@ class _SearchPageState extends State<SearchPage> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
         child: Row(
           children: [
@@ -346,7 +445,11 @@ class _SearchPageState extends State<SearchPage> {
             Container(
               width: 60,
               height: 80,
-              color: const Color(0xFFF5F5F5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: movie.posterPath != null
                   ? Image.file(
                       File(movie.posterPath!),
@@ -355,7 +458,7 @@ class _SearchPageState extends State<SearchPage> {
                     )
                   : const Icon(Icons.movie, color: Color(0xFFCCCCCC)),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             // 信息
             Expanded(
               child: Column(
@@ -366,23 +469,24 @@ class _SearchPageState extends State<SearchPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
                   if (movie.alternateTitles.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       movie.alternateTitles.join(' / '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: Color(0xFF999999),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 10),
                   _buildStatusTag(movie.status),
                 ],
               ),
@@ -405,9 +509,11 @@ class _SearchPageState extends State<SearchPage> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
         child: Row(
           children: [
@@ -415,7 +521,11 @@ class _SearchPageState extends State<SearchPage> {
             Container(
               width: 60,
               height: 80,
-              color: const Color(0xFFF5F5F5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: book.coverPath != null
                   ? Image.file(
                       File(book.coverPath!),
@@ -424,7 +534,7 @@ class _SearchPageState extends State<SearchPage> {
                     )
                   : const Icon(Icons.book, color: Color(0xFFCCCCCC)),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             // 信息
             Expanded(
               child: Column(
@@ -435,23 +545,24 @@ class _SearchPageState extends State<SearchPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
                   if (book.alternateTitles.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       book.alternateTitles.join(' / '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: Color(0xFF999999),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 10),
                   _buildBookStatusTag(book.status),
                 ],
               ),
@@ -463,6 +574,8 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildNoteItem(Note note) {
+    final isPlainText = note.contentType == 'plain_text';
+    
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -474,30 +587,98 @@ class _SearchPageState extends State<SearchPage> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 顶部：格式标记 + 时间
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  child: Text(
+                    isPlainText ? 'TXT' : 'MD',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${note.createdAt.year}.${note.createdAt.month.toString().padLeft(2, '0')}.${note.createdAt.day.toString().padLeft(2, '0')}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+                const Spacer(),
+                // 图片数量（如果有图片）
+                if (note.images.isNotEmpty) ...[
+                  const Icon(
+                    Icons.image_outlined,
+                    size: 14,
+                    color: Color(0xFF999999),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${note.images.length}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 内容
             Text(
-              note.content,
+              note.summary.trim(),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.6,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${note.createdAt.year}.${note.createdAt.month.toString().padLeft(2, '0')}.${note.createdAt.day.toString().padLeft(2, '0')}',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF999999),
+            // 标签
+            if (note.tags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: note.tags.take(3).map((tag) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                    ),
+                    child: Text(
+                      tag,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -506,60 +687,84 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildStatusTag(String status) {
     String label;
-    Color color;
+    Color bgColor;
+    Color textColor;
     switch (status) {
       case 'watched':
         label = '已看';
-        color = const Color(0xFF1A1A1A);
+        bgColor = const Color(0xFF1A1A1A);
+        textColor = Colors.white;
         break;
       case 'watching':
         label = '在看';
-        color = const Color(0xFF666666);
+        bgColor = const Color(0xFFF0F0F0);
+        textColor = const Color(0xFF666666);
         break;
       case 'want_to_watch':
         label = '想看';
-        color = const Color(0xFF999999);
+        bgColor = const Color(0xFFF5F5F5);
+        textColor = const Color(0xFF999999);
         break;
       default:
         label = '未知';
-        color = const Color(0xFFCCCCCC);
+        bgColor = const Color(0xFFEEEEEE);
+        textColor = const Color(0xFFCCCCCC);
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: color),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 11, color: Colors.white),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
       ),
     );
   }
 
   Widget _buildBookStatusTag(String status) {
     String label;
-    Color color;
+    Color bgColor;
+    Color textColor;
     switch (status) {
       case 'read':
         label = '已读';
-        color = const Color(0xFF1A1A1A);
+        bgColor = const Color(0xFF1A1A1A);
+        textColor = Colors.white;
         break;
       case 'reading':
         label = '在读';
-        color = const Color(0xFF666666);
+        bgColor = const Color(0xFFF0F0F0);
+        textColor = const Color(0xFF666666);
         break;
       case 'want_to_read':
         label = '想读';
-        color = const Color(0xFF999999);
+        bgColor = const Color(0xFFF5F5F5);
+        textColor = const Color(0xFF999999);
         break;
       default:
         label = '未知';
-        color = const Color(0xFFCCCCCC);
+        bgColor = const Color(0xFFEEEEEE);
+        textColor = const Color(0xFFCCCCCC);
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: color),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 11, color: Colors.white),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
       ),
     );
   }

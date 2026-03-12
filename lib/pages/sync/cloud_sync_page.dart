@@ -13,8 +13,12 @@ class CloudSyncPage extends StatelessWidget {
         title: const Text('云备份'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
+          // 备份方式标题
+          _buildSectionTitle('选择备份方式'),
+          const SizedBox(height: 16),
+          
           // WebDAV 备份选项
           _buildSyncOption(
             context,
@@ -46,40 +50,114 @@ class CloudSyncPage extends StatelessWidget {
           const SizedBox(height: 32),
           
           // 说明文字
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              border: Border.all(color: const Color(0xFFE5E5E5)),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '关于云备份',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '• 云备份可以将您的数据备份到远程服务器\n'
-                  '• 支持多台设备之间的数据恢复\n'
-                  '• 建议定期进行云备份以确保数据安全\n'
-                  '• 首次备份可能需要较长时间，请保持网络连接',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF666666),
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildInfoSection(),
         ],
       ),
+    );
+  }
+
+  /// 构建区块标题
+  Widget _buildSectionTitle(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建信息说明区域
+  Widget _buildInfoSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                ),
+                child: const Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: Color(0xFF666666),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '关于云备份',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem('云备份可以将您的数据备份到远程服务器'),
+          const SizedBox(height: 10),
+          _buildInfoItem('支持多台设备之间的数据恢复'),
+          const SizedBox(height: 10),
+          _buildInfoItem('建议定期进行云备份以确保数据安全'),
+          const SizedBox(height: 10),
+          _buildInfoItem('首次备份可能需要较长时间，请保持网络连接'),
+        ],
+      ),
+    );
+  }
+
+  /// 构建信息项
+  Widget _buildInfoItem(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.only(top: 7),
+          decoration: BoxDecoration(
+            color: const Color(0xFF999999),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF666666),
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -94,12 +172,14 @@ class CloudSyncPage extends StatelessWidget {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFFAFAFA) : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: enabled ? const Color(0xFFE5E5E5) : const Color(0xFFEEEEEE),
+            color: enabled ? const Color(0xFFE8E8E8) : const Color(0xFFEEEEEE),
+            width: 0.5,
           ),
-          color: enabled ? Colors.white : const Color(0xFFF5F5F5),
         ),
         child: Row(
           children: [
@@ -107,16 +187,19 @@ class CloudSyncPage extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: enabled 
-                    ? const Color(0xFFF5F5F5) 
-                    : const Color(0xFFEEEEEE),
+                color: enabled ? Colors.white : const Color(0xFFEEEEEE),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: enabled ? const Color(0xFFE8E8E8) : const Color(0xFFEEEEEE),
+                  width: 0.5,
+                ),
               ),
               child: Icon(
                 icon,
                 color: enabled 
-                    ? const Color(0xFF1A1A1A) 
+                    ? const Color(0xFF666666) 
                     : const Color(0xFF999999),
-                size: 24,
+                size: 22,
               ),
             ),
             const SizedBox(width: 16),
@@ -128,7 +211,7 @@ class CloudSyncPage extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       color: enabled 
                           ? const Color(0xFF1A1A1A) 
                           : const Color(0xFF999999),
@@ -142,6 +225,7 @@ class CloudSyncPage extends StatelessWidget {
                       color: enabled 
                           ? const Color(0xFF666666) 
                           : const Color(0xFF999999),
+                      height: 1.4,
                     ),
                   ),
                 ],
@@ -150,8 +234,8 @@ class CloudSyncPage extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               color: enabled 
-                  ? const Color(0xFF999999) 
-                  : const Color(0xFFCCCCCC),
+                  ? const Color(0xFFCCCCCC) 
+                  : const Color(0xFFE5E5E5),
             ),
           ],
         ),

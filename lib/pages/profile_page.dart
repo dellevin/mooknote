@@ -98,30 +98,38 @@ class _ProfilePageState extends State<ProfilePage> {
                 // 顶部用户信息
                 _buildUserHeader(),
                 
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                const SizedBox(height: 8),
                 
                 // 数据统计
                 _buildStatsSection(),
                 
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                const SizedBox(height: 8),
                 
                 // 功能菜单
                 _buildMenuSection(),
                 
-                const SizedBox(height: 48),
+                const SizedBox(height: 40),
                 
                 // 版本信息
                 Center(
-                  child: Text(
-                    'MookNote v$_version',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'MookNote v$_version',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF666666),
+                      ),
                     ),
                   ),
                 ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -135,8 +143,9 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 头像
+          // 左侧头像
           GestureDetector(
             onTap: _pickAvatar,
             child: Container(
@@ -161,35 +170,28 @@ class _ProfilePageState extends State<ProfilePage> {
           
           const SizedBox(width: 20),
           
-          // 昵称和座右铭
+          // 右侧信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // 昵称
                 GestureDetector(
                   onTap: () => _editNickname(context),
-                  child: Row(
-                    children: [
-                      Text(
-                        _nickname,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.edit_outlined,
-                        size: 16,
-                        color: Color(0xFF999999),
-                      ),
-                    ],
+                  child: Text(
+                    _nickname,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
                   ),
                 ),
                 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 
+                // 座右铭
                 GestureDetector(
                   onTap: () => _editMotto(context),
                   child: Text(
@@ -198,6 +200,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontSize: 14,
                       color: Color(0xFF666666),
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -253,56 +257,49 @@ class _ProfilePageState extends State<ProfilePage> {
             : 0.0;
         
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+              // 主统计卡片
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F8F8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildMainStat('观影', movieCount, '场'),
-                    const SizedBox(width: 32),
-                    _buildMainStat('阅读', bookCount, '本'),
-                    const SizedBox(width: 32),
-                    _buildMainStat('笔记', noteCount, '条'),
+                    _buildStatCard('观影', movieCount, '场', Icons.movie_outlined),
+                    _buildStatCard('阅读', bookCount, '本', Icons.menu_book_outlined),
+                    _buildStatCard('笔记', noteCount, '条', Icons.note_outlined),
                   ],
                 ),
               ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle('观影详情'),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _buildDetailStat('已看', watchedCount),
-                        _buildDetailStat('在看', watchingCount),
-                        _buildDetailStat('想看', wantToWatchCount),
-                        _buildDetailStat('均分', avgMovieRating.toStringAsFixed(1)),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    _buildSectionTitle('阅读详情'),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _buildDetailStat('已读', readCount),
-                        _buildDetailStat('在读', readingCount),
-                        _buildDetailStat('想读', wantToReadCount),
-                        _buildDetailStat('均分', avgBookRating.toStringAsFixed(1)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              // 详情统计
+              _buildSectionTitle('观影详情'),
+              const SizedBox(height: 12),
+              _buildDetailGrid([
+                _buildDetailItem('已看', watchedCount, Icons.check_circle_outline),
+                _buildDetailItem('在看', watchingCount, Icons.play_circle_outline),
+                _buildDetailItem('想看', wantToWatchCount, Icons.bookmark_border),
+                _buildDetailItem('均分', avgMovieRating > 0 ? avgMovieRating.toStringAsFixed(1) : '-', Icons.star_outline),
+              ]),
+              
+              const SizedBox(height: 20),
+              
+              _buildSectionTitle('阅读详情'),
+              const SizedBox(height: 12),
+              _buildDetailGrid([
+                _buildDetailItem('已读', readCount, Icons.check_circle_outline),
+                _buildDetailItem('在读', readingCount, Icons.play_circle_outline),
+                _buildDetailItem('想读', wantToReadCount, Icons.bookmark_border),
+                _buildDetailItem('均分', avgBookRating > 0 ? avgBookRating.toStringAsFixed(1) : '-', Icons.star_outline),
+              ]),
             ],
           ),
         );
@@ -310,138 +307,166 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// 主统计项
-  Widget _buildMainStat(String label, int count, String unit) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF999999),
+  /// 统计卡片
+  Widget _buildStatCard(String label, int count, String unit, IconData icon) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 24,
+          color: const Color(0xFF666666),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1A1A),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '$count',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
-                ),
+            const SizedBox(width: 2),
+            Text(
+              unit,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF666666),
               ),
-              const SizedBox(width: 4),
-              Text(
-                unit,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF666666),
-                ),
-              ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF999999),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  /// 详情网格
+  Widget _buildDetailGrid(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: children,
       ),
     );
   }
 
-  /// 详细统计项
-  Widget _buildDetailStat(String label, dynamic value) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF999999),
-            ),
+  /// 详情项
+  Widget _buildDetailItem(String label, dynamic value, IconData icon) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: const Color(0xFF999999),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '$value',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '$value',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF1A1A1A),
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF999999),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   /// 区块标题
   Widget _buildSectionTitle(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: FontWeight.w500,
         color: Color(0xFF999999),
-        letterSpacing: 1,
       ),
     );
   }
 
   /// 功能菜单
   Widget _buildMenuSection() {
-    return Column(
-      children: [
-        _buildMenuItem(
-          icon: Icons.analytics_outlined,
-          title: '数据统计',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const StatisticsPage()),
-            );
-          },
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
-        _buildMenuItem(
-          icon: Icons.backup_outlined,
-          title: '本地备份',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const BackupPage()),
-            );
-          },
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
-        _buildMenuItem(
-          icon: Icons.cloud_sync_outlined,
-          title: '云备份',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CloudSyncPage()),
-            );
-          },
-        ),
-        const Divider(height: 0.5, thickness: 0.5, indent: 56, color: Color(0xFFE5E5E5)),
-        
-        _buildMenuItem(
-          icon: Icons.delete_outline,
-          title: '回收站',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const RecycleBinPage()),
-            );
-          },
-        ),
-      ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          _buildMenuItem(
+            icon: Icons.analytics_outlined,
+            title: '数据统计',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StatisticsPage()),
+              );
+            },
+          ),
+          const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
+          
+          _buildMenuItem(
+            icon: Icons.backup_outlined,
+            title: '本地备份',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BackupPage()),
+              );
+            },
+          ),
+          const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
+          
+          _buildMenuItem(
+            icon: Icons.cloud_sync_outlined,
+            title: '云备份',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CloudSyncPage()),
+              );
+            },
+          ),
+          const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
+          
+          _buildMenuItem(
+            icon: Icons.delete_outline,
+            title: '回收站',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RecycleBinPage()),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -451,22 +476,49 @@ class _ProfilePageState extends State<ProfilePage> {
     required String title,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-      leading: Icon(icon, size: 22, color: const Color(0xFF666666)),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          color: Color(0xFF1A1A1A),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            // 图标背景
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 标题
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ),
+            // 箭头
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: Color(0xFFCCCCCC),
+            ),
+          ],
         ),
       ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        size: 20,
-        color: Color(0xFFCCCCCC),
-      ),
-      onTap: onTap,
     );
   }
 
@@ -674,14 +726,13 @@ class SettingsPage extends StatelessWidget {
   /// 构建区块标题
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF999999),
-          letterSpacing: 1,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A),
         ),
       ),
     );
@@ -694,41 +745,60 @@ class SettingsPage extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: const Color(0xFF666666),
-          size: 20,
-        ),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          color: Color(0xFF1A1A1A),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Color(0xFF999999),
-        ),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Color(0xFFCCCCCC),
-        size: 20,
-      ),
+    return InkWell(
       onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            // 图标背景
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF666666),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 文字内容
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 箭头
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFCCCCCC),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -740,41 +810,60 @@ class SettingsPage extends StatelessWidget {
     required String subtitle,
     required String url,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: const Color(0xFF666666),
-          size: 20,
-        ),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          color: Color(0xFF1A1A1A),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Color(0xFF999999),
-        ),
-      ),
-      trailing: const Icon(
-        Icons.open_in_new,
-        color: Color(0xFFCCCCCC),
-        size: 18,
-      ),
+    return InkWell(
       onTap: () => _launchUrl(context, url),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            // 图标背景
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF666666),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 文字内容
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 外部链接图标
+            const Icon(
+              Icons.open_in_new,
+              color: Color(0xFFCCCCCC),
+              size: 18,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -57,6 +57,15 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
           labelColor: const Color(0xFF1A1A1A),
           unselectedLabelColor: const Color(0xFF999999),
           indicatorColor: const Color(0xFF1A1A1A),
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           tabs: [
             Tab(text: '影视 (${_deletedMovies.length})'),
             Tab(text: '书籍 (${_deletedBooks.length})'),
@@ -65,9 +74,10 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
         ),
         actions: [
           // 清空全部
-          TextButton(
+          TextButton.icon(
             onPressed: _showClearAllDialog,
-            child: const Text(
+            icon: const Icon(Icons.delete_sweep, size: 18, color: Colors.red),
+            label: const Text(
               '清空',
               style: TextStyle(color: Colors.red),
             ),
@@ -94,7 +104,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       return _buildEmptyState('暂无删除的影视');
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 8),
       itemCount: _deletedMovies.length,
       itemBuilder: (context, index) {
         final movie = _deletedMovies[index];
@@ -114,7 +124,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       return _buildEmptyState('暂无删除的书籍');
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 8),
       itemCount: _deletedBooks.length,
       itemBuilder: (context, index) {
         final book = _deletedBooks[index];
@@ -134,7 +144,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       return _buildEmptyState('暂无删除的笔记');
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 8),
       itemCount: _deletedNotes.length,
       itemBuilder: (context, index) {
         final note = _deletedNotes[index];
@@ -148,7 +158,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     );
   }
 
-  /// 构建已删除项卡片
+  /// 构建已删除项卡片 - 紧凑列表布局
   Widget _buildDeletedItemCard({
     required String title,
     required String subtitle,
@@ -156,61 +166,114 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     required VoidCallback onDelete,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF1A1A1A),
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF999999),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // 恢复按钮
-              OutlinedButton(
-                onPressed: onRestore,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1A1A1A),
-                  side: const BorderSide(color: Color(0xFF1A1A1A)),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: const Text('恢复'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            // 左侧图标
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
               ),
-              const SizedBox(width: 12),
-              // 彻底删除按钮
-              OutlinedButton(
-                onPressed: onDelete,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: const Text('彻底删除'),
+              child: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFF999999),
+                size: 20,
               ),
-            ],
+            ),
+            const SizedBox(width: 12),
+            // 中间内容区域
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 右侧操作按钮
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 恢复按钮
+                _buildActionButton(
+                  icon: Icons.restore,
+                  color: const Color(0xFF1A1A1A),
+                  tooltip: '恢复',
+                  onTap: onRestore,
+                ),
+                const SizedBox(width: 8),
+                // 彻底删除按钮
+                _buildActionButton(
+                  icon: Icons.delete_forever,
+                  color: Colors.red,
+                  tooltip: '彻底删除',
+                  onTap: onDelete,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建操作按钮
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -220,17 +283,33 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.delete_outline,
-            size: 64,
-            color: Color(0xFFCCCCCC),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.delete_outline,
+              size: 40,
+              color: Color(0xFFCCCCCC),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             message,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               color: Color(0xFF999999),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '删除的项目将显示在这里',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFFBBBBBB),
             ),
           ),
         ],
@@ -312,19 +391,46 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: Text(message),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
     return result ?? false;
@@ -337,15 +443,38 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('清空回收站'),
-        content: const Text('确定要清空回收站吗？所有项目将被彻底删除，此操作不可恢复。'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber, color: Colors.red, size: 24),
+            SizedBox(width: 8),
+            Text(
+              '清空回收站',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '确定要清空回收站吗？所有项目将被彻底删除，此操作不可恢复。',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               await context.read<AppProvider>().clearRecycleBin();
@@ -354,9 +483,19 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
                 ToastUtil.show(context, '回收站已清空');
               }
             },
-            child: const Text('清空', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('清空'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

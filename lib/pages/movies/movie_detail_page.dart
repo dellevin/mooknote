@@ -94,11 +94,41 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         ],
       ),
       
-      // 底部操作栏
-      bottomNavigationBar: _buildBottomBar(),
+      // 底部无操作栏，编辑和删除在右上角
     );
   }
   
+  /// 构建右上角操作按钮
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    Color color = const Color(0xFF666666),
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              color: color,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 构建顶部 AppBar
   Widget _buildSliverAppBar(Movie movie) {
     final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
@@ -113,40 +143,30 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       actions: [
         // 下载海报按钮（仅当有海报时显示）
         if (hasPoster)
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.download_outlined, color: Color(0xFF666666)),
-              onPressed: () => _downloadPoster(movie),
-              tooltip: '下载海报',
-            ),
+          _buildActionButton(
+            icon: Icons.download_outlined,
+            onPressed: () => _downloadPoster(movie),
+            tooltip: '下载海报',
           ),
         // 清空海报按钮（仅当有海报时显示）
         if (hasPoster)
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.hide_image_outlined, color: Color(0xFF666666)),
-              onPressed: () => _showClearPosterDialog(movie),
-              tooltip: '清空海报',
-            ),
+          _buildActionButton(
+            icon: Icons.hide_image_outlined,
+            onPressed: () => _showClearPosterDialog(movie),
+            tooltip: '清空海报',
           ),
         // 编辑按钮
-        Container(
-          margin: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A1A1A)),
-            onPressed: () => _navigateToEdit(context),
-          ),
+        _buildActionButton(
+          icon: Icons.edit_outlined,
+          onPressed: () => _navigateToEdit(context),
+          tooltip: '编辑',
+        ),
+        // 删除按钮
+        _buildActionButton(
+          icon: Icons.delete_outline,
+          color: Colors.red,
+          onPressed: () => _showDeleteDialog(context),
+          tooltip: '删除',
         ),
         const SizedBox(width: 8),
       ],
@@ -196,15 +216,32 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('清空海报'),
-        content: const Text('确定要清空海报吗？清空后将使用默认占位图。'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '清空海报',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '确定要清空海报吗？清空后将使用默认占位图。',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               final updatedMovie = movie.copyWith(
@@ -216,9 +253,19 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 ToastUtil.show(context, '海报已清空');
               }
             },
-            child: const Text('清空', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('清空'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -285,23 +332,24 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           // 上映日期
           if (movie.releaseDate != null)
             Text(
-              '${movie.releaseDate!.year}年上映',
+              '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF999999),
               ),
             ),
-          
+
           const SizedBox(height: 8),
-          
-          // 时间信息
-          Text(
-            '添加于 ${_formatDate(movie.createdAt)}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF999999),
+
+          // 观看日期
+          if (movie.watchDate != null)
+            Text(
+              '观看于 ${_formatDate(movie.watchDate!)}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF999999),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -310,36 +358,42 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   /// 构建状态标签
   Widget _buildStatusTag(Movie movie) {
     String label;
-    Color color;
+    Color bgColor;
+    Color textColor;
     switch (movie.status) {
       case 'watched':
         label = '已看';
-        color = const Color(0xFF1A1A1A);
+        bgColor = const Color(0xFF1A1A1A);
+        textColor = Colors.white;
         break;
       case 'watching':
         label = '在看';
-        color = const Color(0xFF666666);
+        bgColor = const Color(0xFFF0F0F0);
+        textColor = const Color(0xFF666666);
         break;
       case 'want_to_watch':
         label = '想看';
-        color = const Color(0xFF999999);
+        bgColor = const Color(0xFFF5F5F5);
+        textColor = const Color(0xFF999999);
         break;
       default:
         label = '未知';
-        color = const Color(0xFFCCCCCC);
+        bgColor = const Color(0xFFEEEEEE);
+        textColor = const Color(0xFFCCCCCC);
     }
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color,
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
+          color: textColor,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -348,164 +402,137 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   /// 构建导演区域
   Widget _buildDirectorsSection(Movie movie) {
     return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '导演',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 48,
+            child: Text(
+              '导演',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: movie.directors.map((director) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Text(
-                  director,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-              );
-            }).toList(),
+          Expanded(
+            child: Text(
+              movie.directors.join('，'),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-  
+
   /// 构建编剧区域
   Widget _buildWritersSection(Movie movie) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '编剧',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 48,
+            child: Text(
+              '编剧',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: movie.writers.map((writer) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Text(
-                  writer,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-              );
-            }).toList(),
+          Expanded(
+            child: Text(
+              movie.writers.join('，'),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-  
+
   /// 构建主演区域
   Widget _buildActorsSection(Movie movie) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '主演',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 48,
+            child: Text(
+              '主演',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: movie.actors.map((actor) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Text(
-                  actor,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-              );
-            }).toList(),
+          Expanded(
+            child: Text(
+              movie.actors.join('，'),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-  
+
   /// 构建类型区域
   Widget _buildGenresSection(Movie movie) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '类型',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 48,
+            child: Text(
+              '类型',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: movie.genres.map((genre) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Text(
-                  genre,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF666666),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: movie.genres.map((genre) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                ),
-              );
-            }).toList(),
+                  child: Text(
+                    genre,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -519,22 +546,41 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '简介',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '简介',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            movie.summary!,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF1A1A1A),
-              height: 1.6,
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              movie.summary!,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.8,
+              ),
             ),
           ),
         ],
@@ -549,124 +595,122 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '更多',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '更多',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           // 影评入口
-          GestureDetector(
+          _buildExtraSectionItem(
+            icon: Icons.rate_review_outlined,
+            title: '影评',
+            subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
+            emptyText: '暂无影评',
+            unit: '条影评',
             onTap: () => _navigateToReviews(movie),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE5E5E5)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.rate_review_outlined,
-                    size: 24,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '影评',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FutureBuilder<int>(
-                          future: context.read<AppProvider>().getMovieReviewCount(movie.id),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data ?? 0;
-                            return Text(
-                              count > 0 ? '$count 条影评' : '暂无影评',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF999999),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF999999),
-                  ),
-                ],
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           // 海报墙入口
-          GestureDetector(
+          _buildExtraSectionItem(
+            icon: Icons.photo_library_outlined,
+            title: '海报墙',
+            subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
+            emptyText: '暂无海报',
+            unit: '张海报',
             onTap: () => _navigateToPosters(movie),
-            child: Container(
-              padding: const EdgeInsets.all(16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建更多区域项
+  Widget _buildExtraSectionItem({
+    required IconData icon,
+    required String title,
+    required Future<int> subtitleFuture,
+    required String emptyText,
+    required String unit,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE5E5E5)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
               ),
-              child: Row(
+              child: Icon(
+                icon,
+                size: 20,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.photo_library_outlined,
-                    size: 24,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '海报墙',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FutureBuilder<int>(
-                          future: context.read<AppProvider>().getMoviePosterCount(movie.id),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data ?? 0;
-                            return Text(
-                              count > 0 ? '$count 张海报' : '暂无海报',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF999999),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF999999),
+                  const SizedBox(height: 4),
+                  FutureBuilder<int>(
+                    future: subtitleFuture,
+                    builder: (context, snapshot) {
+                      final count = snapshot.data ?? 0;
+                      return Text(
+                        count > 0 ? '$count $unit' : emptyText,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF999999),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFCCCCCC),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -685,51 +729,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       context,
       MaterialPageRoute(
         builder: (context) => MoviePostersPage(movie: movie),
-      ),
-    );
-  }
-  
-  /// 构建底部操作栏
-  Widget _buildBottomBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _navigateToEdit(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1A1A1A),
-                    side: const BorderSide(color: Color(0xFF1A1A1A)),
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('编辑'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _showDeleteDialog(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('删除'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -753,15 +752,32 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: Text('确定要删除"${widget.movie.title}"吗？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          '确定要删除"${widget.movie.title}"吗？删除后可在回收站恢复。',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeMovie(widget.movie.id);
               if (!mounted) return;
@@ -769,9 +785,19 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               Navigator.pop(context);
               ToastUtil.show(context, '已删除');
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

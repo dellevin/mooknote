@@ -77,28 +77,29 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           // 标签区域
           if (note.tags.isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: const BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                  bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
                 ),
               ),
               child: Row(
                 children: [
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: note.tags.map((tag) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                         ),
                         child: Text(
                           tag,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: Color(0xFF666666),
                           ),
                         ),
@@ -119,10 +120,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           // 图片区域（仅在纯文本模式下显示）
           if (note.contentType == 'plain_text' && note.images.isNotEmpty)
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               decoration: const BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                  top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
                 ),
               ),
               child: Column(
@@ -131,25 +132,35 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                   // 图片标题
                   Row(
                     children: [
-                      const Icon(
-                        Icons.image_outlined,
-                        size: 14,
-                        color: Color(0xFF999999),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                        ),
+                        child: const Icon(
+                          Icons.image_outlined,
+                          size: 18,
+                          color: Color(0xFF666666),
+                        ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 12),
                       Text(
                         '图片 (${note.images.length})',
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF999999),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   // 图片列表
                   SizedBox(
-                    height: 100,
+                    height: 110,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: note.images.length,
@@ -157,12 +168,14 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                         return GestureDetector(
                           onTap: () => _showImagePreview(context, note.images, index),
                           child: Container(
-                            width: 100,
-                            height: 100,
+                            width: 110,
+                            height: 110,
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
-                              border: Border.all(color: const Color(0xFFE5E5E5)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                             ),
+                            clipBehavior: Clip.antiAlias,
                             child: Image.file(
                               File(note.images[index]),
                               fit: BoxFit.cover,
@@ -180,58 +193,51 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           Container(
             decoration: const BoxDecoration(
               border: Border(
-                top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
               ),
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
                   children: [
-                    // 创建时间和更新时间
+                    // 时间信息
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '创建 ${_formatDateTime(note.createdAt)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF999999),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '更新 ${_formatDateTime(note.updatedAt)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF999999),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 操作按钮
                     Row(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '创建时间：${_formatDateTime(note.createdAt)}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF999999),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '更新时间：${_formatDateTime(note.updatedAt)}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF999999),
-                                ),
-                              ),
-                            ],
-                          ),
+                        _buildActionButton(
+                          icon: Icons.edit_outlined,
+                          color: const Color(0xFF666666),
+                          onTap: () => _navigateToEdit(context),
                         ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined, size: 20),
-                              color: const Color(0xFF666666),
-                              onPressed: () => _navigateToEdit(context),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                            const SizedBox(width: 16),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 20),
-                              color: Colors.red,
-                              onPressed: () => _showDeleteDialog(context),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
+                        const SizedBox(width: 12),
+                        _buildActionButton(
+                          icon: Icons.delete_outline,
+                          color: Colors.red,
+                          onTap: () => _showDeleteDialog(context),
                         ),
                       ],
                     ),
@@ -349,8 +355,9 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       (n) => n.id == widget.note.id,
       orElse: () => widget.note,
     );
-    Navigator.pushNamed(context, '/note-form', arguments: currentNote).then((_) {
-      context.read<AppProvider>().loadNotes();
+    Navigator.pushNamed(context, '/note-form', arguments: currentNote).then((_) async {
+      // 返回时刷新笔记列表
+      await context.read<AppProvider>().loadNotes();
     });
   }
 
@@ -380,6 +387,35 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     );
   }
 
+  /// 构建操作按钮
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 显示删除对话框
   void _showDeleteDialog(BuildContext context) {
     showDialog(
@@ -387,25 +423,54 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这条笔记吗？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '确定要删除这条笔记吗？删除后可在回收站恢复。',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeNote(widget.note.id);
+              // 刷新笔记列表
+              await context.read<AppProvider>().loadNotes();
               if (!mounted) return;
               Navigator.pop(context);
               Navigator.pop(context);
               ToastUtil.show(context, '已删除');
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

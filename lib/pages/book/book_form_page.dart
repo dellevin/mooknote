@@ -29,6 +29,7 @@ class _BookFormPageState extends State<BookFormPage> {
   late TextEditingController _publisherController;
   late TextEditingController _summaryController;
   late TextEditingController _ratingController;
+  late TextEditingController _isbnController;
   
   // 多值字段的临时输入控制器
   final Map<String, TextEditingController> _tagControllers = {};
@@ -39,6 +40,7 @@ class _BookFormPageState extends State<BookFormPage> {
   List<String> _genres = [];
   String? _coverPath;
   String _status = 'want_to_read';
+  DateTime? _publishDate;
   
   @override
   void initState() {
@@ -63,6 +65,7 @@ class _BookFormPageState extends State<BookFormPage> {
     _publisherController = TextEditingController(text: book?.publisher ?? '');
     _summaryController = TextEditingController(text: book?.summary ?? '');
     _ratingController = TextEditingController(text: book?.rating?.toString() ?? '');
+    _isbnController = TextEditingController(text: book?.isbn ?? '');
 
     if (book != null) {
       _authors = List.from(book.authors);
@@ -70,6 +73,7 @@ class _BookFormPageState extends State<BookFormPage> {
       _genres = List.from(book.genres);
       _coverPath = book.coverPath;
       _status = book.status;
+      _publishDate = book.publishDate;
     } else if (widget.initialStatus != null) {
       // 添加模式：使用传入的默认状态
       _status = widget.initialStatus!;
@@ -82,6 +86,7 @@ class _BookFormPageState extends State<BookFormPage> {
     _publisherController.dispose();
     _summaryController.dispose();
     _ratingController.dispose();
+    _isbnController.dispose();
     _tagControllers.values.forEach((c) => c.dispose());
     super.dispose();
   }
@@ -90,24 +95,51 @@ class _BookFormPageState extends State<BookFormPage> {
     return _tagControllers.putIfAbsent(key, () => TextEditingController());
   }
   
+  /// 构建右上角操作按钮
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    Color color = const Color(0xFF1A1A1A),
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              color: color,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.book != null;
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(isEdit ? '编辑书籍' : '添加书籍'),
         actions: [
-          TextButton(
+          // 保存按钮
+          _buildActionButton(
+            icon: Icons.save_outlined,
             onPressed: _saveBook,
-            child: const Text(
-              '保存',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            tooltip: '保存',
           ),
           const SizedBox(width: 8),
         ],
@@ -132,9 +164,10 @@ class _BookFormPageState extends State<BookFormPage> {
 
             const SizedBox(height: 32),
 
-            // 基本信息区域
-            _buildFormItem(
-              label: '书名 *',
+            // 书名
+            _buildHorizontalFormItem(
+              label: '书名',
+              required: true,
               child: TextFormField(
                 controller: _titleController,
                 style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
@@ -153,10 +186,10 @@ class _BookFormPageState extends State<BookFormPage> {
               ),
             ),
 
-            _buildDivider(),
+            const SizedBox(height: 16),
 
             // 别名
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '别名',
               values: _alternateTitles,
               hint: '输入别名',
@@ -165,10 +198,10 @@ class _BookFormPageState extends State<BookFormPage> {
               onRemove: (i) => setState(() => _alternateTitles.removeAt(i)),
             ),
 
-            _buildDivider(),
+            const SizedBox(height: 16),
 
             // 作者
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '作者',
               values: _authors,
               hint: '输入作者姓名',
@@ -177,10 +210,10 @@ class _BookFormPageState extends State<BookFormPage> {
               onRemove: (i) => setState(() => _authors.removeAt(i)),
             ),
 
-            _buildDivider(),
+            const SizedBox(height: 16),
 
             // 出版社
-            _buildFormItem(
+            _buildHorizontalFormItem(
               label: '出版社',
               child: TextFormField(
                 controller: _publisherController,
@@ -194,19 +227,63 @@ class _BookFormPageState extends State<BookFormPage> {
               ),
             ),
 
-            _buildDivider(),
+            const SizedBox(height: 16),
 
             // 类型
-            _buildMultiValueItem(
+            _buildHorizontalMultiValueItem(
               label: '类型',
               values: _genres,
-              hint: '如：小说、历史',
+              hint: '如：小说、历史、传记',
               controllerKey: 'genres',
               onAdd: (v) => setState(() => _genres.add(v)),
               onRemove: (i) => setState(() => _genres.removeAt(i)),
             ),
 
-            _buildDivider(),
+            const SizedBox(height: 16),
+
+            // ISBN
+            _buildHorizontalFormItem(
+              label: 'ISBN',
+              child: TextFormField(
+                controller: _isbnController,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                decoration: const InputDecoration(
+                  hintText: '请输入ISBN编号',
+                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 出版社
+            _buildHorizontalFormItem(
+              label: '出版社',
+              child: TextFormField(
+                controller: _publisherController,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                decoration: const InputDecoration(
+                  hintText: '请输入出版社名称',
+                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 出版时间
+            _buildVerticalDateItem(
+              label: '出版时间',
+              date: _publishDate,
+              onTap: _selectPublishDate,
+              onClear: () => setState(() => _publishDate = null),
+            ),
+
+            const SizedBox(height: 16),
 
             // 书籍简介
             _buildFormItem(
@@ -231,21 +308,126 @@ class _BookFormPageState extends State<BookFormPage> {
     );
   }
   
-  /// 构建表单条目（标签 + 内容）
+  /// 构建表单条目（标签 + 内容）- 书籍简介使用
   Widget _buildFormItem({required String label, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
-            color: label.contains('*') ? const Color(0xFF1A1A1A) : const Color(0xFF666666),
-            fontWeight: label.contains('*') ? FontWeight.w500 : FontWeight.normal,
-          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
         ),
         const SizedBox(height: 8),
         child,
+      ],
+    );
+  }
+
+  /// 构建横向表单条目（标签在左，内容在右）
+  Widget _buildHorizontalFormItem({
+    required String label,
+    required Widget child,
+    bool required = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 48,
+          child: Text(
+            required ? '$label *' : label,
+            style: TextStyle(
+              fontSize: 13,
+              color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+              fontWeight: required ? FontWeight.w500 : FontWeight.normal,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: child),
+      ],
+    );
+  }
+
+  /// 构建横向多值条目（标签在左，内容在右）
+  Widget _buildHorizontalMultiValueItem({
+    required String label,
+    required List<String> values,
+    required String hint,
+    required String controllerKey,
+    required Function(String) onAdd,
+    required Function(int) onRemove,
+  }) {
+    final controller = _getTagController(controllerKey);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 48,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ...values.asMap().entries.map((entry) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        entry.value,
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => onRemove(entry.key),
+                        child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              // 输入框
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 80, maxWidth: 120),
+                child: TextField(
+                  controller: controller,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                  decoration: InputDecoration(
+                    hintText: values.isEmpty ? hint : '',
+                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCCCC)),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                  ),
+                  onSubmitted: (value) {
+                    final trimmed = value.trim();
+                    if (trimmed.isNotEmpty && !values.contains(trimmed)) {
+                      onAdd(trimmed);
+                      controller.clear();
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -376,15 +558,7 @@ class _BookFormPageState extends State<BookFormPage> {
     );
   }
   
-  /// 构建分隔线
-  Widget _buildDivider() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      height: 0.5,
-      color: const Color(0xFFE5E5E5),
-    );
-  }
-  
+
   /// 构建状态选择器（靠左显示，带标签）
   Widget _buildStatusSelector() {
     return Row(
@@ -522,6 +696,74 @@ class _BookFormPageState extends State<BookFormPage> {
         },
       ),
     );
+  }
+
+  /// 构建纵向日期条目（标签在上，日期在下）
+  Widget _buildVerticalDateItem({
+    required String label,
+    required DateTime? date,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  date != null
+                      ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}'
+                      : '选择日期',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: date != null
+                        ? const Color(0xFF1A1A1A)
+                        : const Color(0xFFCCCCCC),
+                  ),
+                ),
+              ),
+              if (date != null)
+                GestureDetector(
+                  onTap: onClear,
+                  child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 选择出版时间
+  Future<void> _selectPublishDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _publishDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1A1A1A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _publishDate = picked);
+    }
   }
 
   /// 构建状态选项
@@ -707,6 +949,8 @@ class _BookFormPageState extends State<BookFormPage> {
         summary: _summaryController.text.trim(),
         rating: rating,
         status: _status,
+        isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
+        publishDate: _publishDate,
         createdAt: now,
         updatedAt: now,
       );
@@ -723,6 +967,8 @@ class _BookFormPageState extends State<BookFormPage> {
         summary: _summaryController.text.trim(),
         rating: rating,
         status: _status,
+        isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
+        publishDate: _publishDate,
         updatedAt: now,
       );
       

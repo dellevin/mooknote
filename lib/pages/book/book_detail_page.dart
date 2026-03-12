@@ -60,13 +60,21 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 // 作者信息
                 _buildAuthorsSection(book),
 
+                // 类型
+                if (book.genres.isNotEmpty)
+                  _buildGenresSection(book),
+
+                // ISBN
+                if (book.isbn != null && book.isbn!.isNotEmpty)
+                  _buildIsbnSection(book),
+
                 // 出版社
                 if (book.publisher != null && book.publisher!.isNotEmpty)
                   _buildPublisherSection(book),
 
-                // 类型
-                if (book.genres.isNotEmpty)
-                  _buildGenresSection(book),
+                // 出版时间
+                if (book.publishDate != null)
+                  _buildPublishDateSection(book),
                 
                 const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
                 
@@ -86,11 +94,41 @@ class _BookDetailPageState extends State<BookDetailPage> {
         ],
       ),
       
-      // 底部操作栏
-      bottomNavigationBar: _buildBottomBar(),
+      // 底部无操作栏，编辑和删除在右上角
     );
   }
   
+  /// 构建右上角操作按钮
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    Color color = const Color(0xFF666666),
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              color: color,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 构建顶部 AppBar
   Widget _buildSliverAppBar(Book book) {
     final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
@@ -105,40 +143,30 @@ class _BookDetailPageState extends State<BookDetailPage> {
       actions: [
         // 下载封面按钮（仅当有封面时显示）
         if (hasCover)
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.download_outlined, color: Color(0xFF666666)),
-              onPressed: () => _downloadCover(book),
-              tooltip: '下载封面',
-            ),
+          _buildActionButton(
+            icon: Icons.download_outlined,
+            onPressed: () => _downloadCover(book),
+            tooltip: '下载封面',
           ),
         // 清空封面按钮（仅当有封面时显示）
         if (hasCover)
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.hide_image_outlined, color: Color(0xFF666666)),
-              onPressed: () => _showClearCoverDialog(book),
-              tooltip: '清空封面',
-            ),
+          _buildActionButton(
+            icon: Icons.hide_image_outlined,
+            onPressed: () => _showClearCoverDialog(book),
+            tooltip: '清空封面',
           ),
         // 编辑按钮
-        Container(
-          margin: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A1A1A)),
-            onPressed: () => _navigateToEdit(context),
-          ),
+        _buildActionButton(
+          icon: Icons.edit_outlined,
+          onPressed: () => _navigateToEdit(context),
+          tooltip: '编辑',
+        ),
+        // 删除按钮
+        _buildActionButton(
+          icon: Icons.delete_outline,
+          color: Colors.red,
+          onPressed: () => _showDeleteDialog(context),
+          tooltip: '删除',
         ),
         const SizedBox(width: 8),
       ],
@@ -256,36 +284,42 @@ class _BookDetailPageState extends State<BookDetailPage> {
   /// 构建状态标签
   Widget _buildStatusTag(Book book) {
     String label;
-    Color color;
+    Color bgColor;
+    Color textColor;
     switch (book.status) {
       case 'read':
         label = '已读';
-        color = const Color(0xFF1A1A1A);
+        bgColor = const Color(0xFF1A1A1A);
+        textColor = Colors.white;
         break;
       case 'reading':
         label = '在读';
-        color = const Color(0xFF666666);
+        bgColor = const Color(0xFFF0F0F0);
+        textColor = const Color(0xFF666666);
         break;
       case 'want_to_read':
         label = '想读';
-        color = const Color(0xFF999999);
+        bgColor = const Color(0xFFF5F5F5);
+        textColor = const Color(0xFF999999);
         break;
       default:
         label = '未知';
-        color = const Color(0xFFCCCCCC);
+        bgColor = const Color(0xFFEEEEEE);
+        textColor = const Color(0xFFCCCCCC);
     }
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color,
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
+          color: textColor,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -294,109 +328,169 @@ class _BookDetailPageState extends State<BookDetailPage> {
   /// 构建作者区域
   Widget _buildAuthorsSection(Book book) {
     return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '作者',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 64,
+            child: Text(
+              '作者',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: book.authors.map((author) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Text(
-                  author,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-              );
-            }).toList(),
+          Expanded(
+            child: Text(
+              book.authors.join('，'),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-  
+
+  /// 构建ISBN区域
+  Widget _buildIsbnSection(Book book) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(
+            width: 64,
+            child: Text(
+              'ISBN',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              book.isbn!,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建出版社区域
   Widget _buildPublisherSection(Book book) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '出版社',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 64,
+            child: Text(
+              '出版社',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            book.publisher!,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF1A1A1A),
+          Expanded(
+            child: Text(
+              book.publisher!,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-  
+
+  /// 构建出版时间区域
+  Widget _buildPublishDateSection(Book book) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(
+            width: 64,
+            child: Text(
+              '出版时间',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              '${book.publishDate!.year}年${book.publishDate!.month.toString().padLeft(2, '0')}月',
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建类型区域
   Widget _buildGenresSection(Book book) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '类型',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
+          const SizedBox(
+            width: 64,
+            child: Text(
+              '类型',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF999999),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: book.genres.map((genre) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: Text(
-                  genre,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF666666),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: book.genres.map((genre) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                ),
-              );
-            }).toList(),
+                  child: Text(
+                    genre,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -410,22 +504,41 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '简介',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '简介',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            book.summary!,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF1A1A1A),
-              height: 1.6,
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              book.summary!,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A1A),
+                height: 1.8,
+              ),
             ),
           ),
         ],
@@ -440,124 +553,122 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '更多',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF999999),
-              letterSpacing: 1,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '更多',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           // 书评入口
-          GestureDetector(
+          _buildExtraSectionItem(
+            icon: Icons.rate_review_outlined,
+            title: '书评',
+            subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
+            emptyText: '暂无书评',
+            unit: '条书评',
             onTap: () => _navigateToReviews(book),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE5E5E5)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.rate_review_outlined,
-                    size: 24,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '书评',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FutureBuilder<int>(
-                          future: context.read<AppProvider>().getBookReviewCount(book.id),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data ?? 0;
-                            return Text(
-                              count > 0 ? '$count 条书评' : '暂无书评',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF999999),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF999999),
-                  ),
-                ],
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           // 摘抄入口
-          GestureDetector(
+          _buildExtraSectionItem(
+            icon: Icons.format_quote_outlined,
+            title: '摘抄',
+            subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
+            emptyText: '暂无摘抄',
+            unit: '条摘抄',
             onTap: () => _navigateToExcerpts(book),
-            child: Container(
-              padding: const EdgeInsets.all(16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建更多区域项
+  Widget _buildExtraSectionItem({
+    required IconData icon,
+    required String title,
+    required Future<int> subtitleFuture,
+    required String emptyText,
+    required String unit,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE5E5E5)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
               ),
-              child: Row(
+              child: Icon(
+                icon,
+                size: 20,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.format_quote_outlined,
-                    size: 24,
-                    color: Color(0xFF666666),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '摘抄',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FutureBuilder<int>(
-                          future: context.read<AppProvider>().getBookExcerptCount(book.id),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data ?? 0;
-                            return Text(
-                              count > 0 ? '$count 条摘抄' : '暂无摘抄',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF999999),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF999999),
+                  const SizedBox(height: 4),
+                  FutureBuilder<int>(
+                    future: subtitleFuture,
+                    builder: (context, snapshot) {
+                      final count = snapshot.data ?? 0;
+                      return Text(
+                        count > 0 ? '$count $unit' : emptyText,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF999999),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFCCCCCC),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -580,51 +691,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  /// 构建底部操作栏
-  Widget _buildBottomBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _navigateToEdit(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1A1A1A),
-                    side: const BorderSide(color: Color(0xFF1A1A1A)),
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('编辑'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _showDeleteDialog(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('删除'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
+
   /// 格式化日期
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -644,15 +711,32 @@ class _BookDetailPageState extends State<BookDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: Text('确定要删除"${widget.book.title}"吗？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          '确定要删除"${widget.book.title}"吗？删除后可在回收站恢复。',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeBook(widget.book.id);
               if (!mounted) return;
@@ -660,9 +744,19 @@ class _BookDetailPageState extends State<BookDetailPage> {
               Navigator.pop(context);
               ToastUtil.show(context, '已删除');
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -674,15 +768,32 @@ class _BookDetailPageState extends State<BookDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('清空封面'),
-        content: const Text('确定要清空封面吗？清空后将使用默认占位图。'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '清空封面',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '确定要清空封面吗？清空后将使用默认占位图。',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               final updatedBook = book.copyWith(
@@ -694,9 +805,19 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 ToastUtil.show(context, '封面已清空');
               }
             },
-            child: const Text('清空', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('清空'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

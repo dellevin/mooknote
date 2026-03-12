@@ -53,15 +53,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
       appBar: AppBar(
         title: Text(_isEditing ? '编辑笔记' : '新建笔记'),
         actions: [
-          TextButton(
+          IconButton(
             onPressed: _saveNote,
-            child: const Text(
-              '保存',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            icon: const Icon(Icons.save_outlined),
+            tooltip: '保存',
           ),
           const SizedBox(width: 8),
         ],
@@ -70,10 +65,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
         children: [
           // 顶部信息栏：创建时间 + 格式选择 + 标签
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
               ),
             ),
             child: Column(
@@ -82,11 +77,19 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 Row(
                   children: [
                     // 创建时间
-                    Text(
-                      _formatDateTime(_createdAt),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF999999),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAFA),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                      ),
+                      child: Text(
+                        _formatDateTime(_createdAt),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF666666),
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -94,7 +97,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                     _buildFormatSelector(),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 // 标签
                 _buildTagSelector(),
               ],
@@ -155,18 +158,33 @@ class _NoteFormPageState extends State<NoteFormPage> {
             // 图片网格区域
             Expanded(
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 标题栏
                     Row(
                       children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFAFAFA),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                          ),
+                          child: const Icon(
+                            Icons.image_outlined,
+                            size: 18,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         const Text(
                           '图片',
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
                             color: Color(0xFF1A1A1A),
                           ),
                         ),
@@ -174,7 +192,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                         Text(
                           '${_images.length}',
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: Color(0xFF999999),
                           ),
                         ),
@@ -183,24 +201,25 @@ class _NoteFormPageState extends State<NoteFormPage> {
                         InkWell(
                           onTap: _pickImage,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: const Color(0xFF1A1A1A),
-                              borderRadius: BorderRadius.circular(2),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.add,
-                                  size: 16,
+                                  size: 18,
                                   color: Colors.white,
                                 ),
-                                SizedBox(width: 4),
+                                SizedBox(width: 6),
                                 Text(
                                   '添加',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -211,7 +230,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                       ],
                     ),
                     
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     
                     // 图片网格（4列，正方形铺满）
                     Expanded(
@@ -220,17 +239,33 @@ class _NoteFormPageState extends State<NoteFormPage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.image_outlined,
-                                    size: 48,
-                                    color: const Color(0xFFCCCCCC),
+                                  Container(
+                                    width: 80,
+                                    height: 80,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAFAFA),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Icon(
+                                      Icons.image_outlined,
+                                      size: 40,
+                                      color: Color(0xFFCCCCCC),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    '暂无图片',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Color(0xFF999999),
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   const Text(
-                                    '点击添加按钮添加图片',
+                                    '点击右上角添加按钮添加图片',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Color(0xFF999999),
+                                      color: Color(0xFFBBBBBB),
                                     ),
                                   ),
                                 ],
@@ -239,8 +274,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
                           : GridView.builder(
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 4,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
                                 childAspectRatio: 1.0,
                               ),
                               itemCount: _images.length,
@@ -264,30 +299,33 @@ class _NoteFormPageState extends State<NoteFormPage> {
     return GestureDetector(
       onTap: () => _showFormatSelector(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               _contentType == 'markdown' ? Icons.code : Icons.text_fields,
-              size: 14,
+              size: 16,
               color: const Color(0xFF666666),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               _contentType == 'markdown' ? 'Markdown' : '纯文本',
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
                 color: Color(0xFF666666),
               ),
             ),
             const SizedBox(width: 4),
             const Icon(
               Icons.arrow_drop_down,
-              size: 16,
+              size: 18,
               color: Color(0xFF999999),
             ),
           ],
@@ -301,36 +339,132 @@ class _NoteFormPageState extends State<NoteFormPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.code, size: 20),
-              title: const Text('Markdown'),
-              subtitle: const Text('支持 Markdown 语法'),
-              trailing: _contentType == 'markdown' 
-                  ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
-                  : null,
+            // 顶部指示条
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // 标题
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    '选择格式',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildFormatOption(
+              icon: Icons.code,
+              title: 'Markdown',
+              subtitle: '支持 Markdown 语法',
+              isSelected: _contentType == 'markdown',
               onTap: () {
                 setState(() => _contentType = 'markdown');
                 Navigator.pop(context);
               },
             ),
-            const Divider(height: 0.5, indent: 56),
-            ListTile(
-              leading: const Icon(Icons.text_fields, size: 20),
-              title: const Text('纯文本'),
-              subtitle: const Text('普通文本格式，支持图片'),
-              trailing: _contentType == 'plain_text'
-                  ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
-                  : null,
+            _buildFormatOption(
+              icon: Icons.text_fields,
+              title: '纯文本',
+              subtitle: '普通文本格式，支持图片',
+              isSelected: _contentType == 'plain_text',
               onTap: () {
                 setState(() => _contentType = 'plain_text');
                 Navigator.pop(context);
               },
             ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建格式选项
+  Widget _buildFormatOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
           ],
         ),
       ),
@@ -340,16 +474,17 @@ class _NoteFormPageState extends State<NoteFormPage> {
   /// 构建标签选择器
   Widget _buildTagSelector() {
     return Wrap(
-      spacing: 8,
-      runSpacing: 4,
+      spacing: 10,
+      runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         ..._tags.asMap().entries.map((entry) {
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              border: Border.all(color: const Color(0xFFE5E5E5)),
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -357,17 +492,24 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 Text(
                   entry.value,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: Color(0xFF666666),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 GestureDetector(
                   onTap: () => setState(() => _tags.removeAt(entry.key)),
-                  child: const Icon(
-                    Icons.close,
-                    size: 12,
-                    color: Color(0xFF999999),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 10,
+                      color: Color(0xFF999999),
+                    ),
                   ),
                 ),
               ],
@@ -378,23 +520,25 @@ class _NoteFormPageState extends State<NoteFormPage> {
         GestureDetector(
           onTap: () => _showAddTagDialog(),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E5E5)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.add,
-                  size: 12,
+                  size: 14,
                   color: Color(0xFF999999),
                 ),
-                SizedBox(width: 2),
+                SizedBox(width: 4),
                 Text(
                   '标签',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: Color(0xFF999999),
                   ),
                 ),
@@ -421,11 +565,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
           '添加标签',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -439,9 +583,27 @@ class _NoteFormPageState extends State<NoteFormPage> {
               TextField(
                 controller: controller,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: '输入新标签名称',
-                  border: UnderlineInputBorder(),
+                  hintStyle: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF999999),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFFAFAFA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
                 onSubmitted: (value) {
                   _addTag(value);
@@ -451,18 +613,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
               
               // 已有标签列表
               if (availableTags.isNotEmpty) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 const Text(
                   '或选择已有标签：',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: Color(0xFF999999),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 10,
                   children: availableTags.map((tag) {
                     return GestureDetector(
                       onTap: () {
@@ -470,16 +632,16 @@ class _NoteFormPageState extends State<NoteFormPage> {
                         Navigator.pop(context);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
-                          borderRadius: BorderRadius.circular(4),
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                         ),
                         child: Text(
                           tag,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             color: Color(0xFF666666),
                           ),
                         ),
@@ -494,16 +656,30 @@ class _NoteFormPageState extends State<NoteFormPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               _addTag(controller.text);
               Navigator.pop(context);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A1A1A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
             child: const Text('添加'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -580,6 +756,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     ToastUtil.show(context, _isEditing ? '保存成功' : '添加成功');
 
+    // 刷新笔记列表
+    await context.read<AppProvider>().loadNotes();
+    
+    if (!mounted) return;
     Navigator.pop(context);
   }
   
@@ -666,8 +846,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
       onLongPress: () => _showDeleteImageDialog(index),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Image.file(
           File(_images[index]),
           fit: BoxFit.cover,
@@ -709,22 +891,49 @@ class _NoteFormPageState extends State<NoteFormPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这张图片吗？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '确定要删除这张图片吗？此操作不可恢复。',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               setState(() => _images.removeAt(index));
               Navigator.pop(context);
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
           ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
