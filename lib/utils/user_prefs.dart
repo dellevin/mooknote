@@ -45,4 +45,18 @@ class UserPrefs {
   /// 是否首次启动
   bool get isFirstLaunch => prefs.getBool('isFirstLaunch') ?? true;
   Future<bool> setFirstLaunch(bool value) => prefs.setBool('isFirstLaunch', value);
+
+  // ========== 主界面显示设置 ==========
+
+  /// 是否显示观影标签
+  bool get showMovieTab => prefs.getBool('showMovieTab') ?? true;
+  Future<bool> setShowMovieTab(bool value) => prefs.setBool('showMovieTab', value);
+
+  /// 是否显示阅读标签
+  bool get showBookTab => prefs.getBool('showBookTab') ?? true;
+  Future<bool> setShowBookTab(bool value) => prefs.setBool('showBookTab', value);
+
+  /// 是否显示笔记标签
+  bool get showNoteTab => prefs.getBool('showNoteTab') ?? true;
+  Future<bool> setShowNoteTab(bool value) => prefs.setBool('showNoteTab', value);
 }

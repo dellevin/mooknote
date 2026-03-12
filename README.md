@@ -121,3 +121,7 @@ flutter run
 - 目前图片同步是基于文件存在性判断，不是基于修改时间
 - 下载新数据库后，应用会自动重新加载数据（调用 Provider 的 load 方法）
 - 首次同步会创建远程目录结构
+
+## 开源协议
+
+本项目采用 [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) 开源协议。

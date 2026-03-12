@@ -7,6 +7,7 @@ import 'utils/user_prefs.dart';
 import 'utils/sync/webdav_service.dart';
 import 'utils/sync/auto_backup_service.dart';
 import 'providers/app_provider.dart';
+import 'package:flutter/widget_previews.dart';
 
 void main() async {
   // 确保 Flutter 绑定初始化完成
@@ -66,4 +67,17 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 用于预览 MyApp 的 Widget
+@Preview(name: "MookNote App Preview") // 添加 @Preview 注解
+Widget previewMyApp() {
+  final appProvider = AppProvider(); 
+
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: appProvider),
+    ],
+    child: MyApp(appProvider: appProvider),
+  );
 }

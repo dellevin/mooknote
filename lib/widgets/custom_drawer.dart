@@ -2,14 +2,36 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../utils/toast_util.dart';
 import '../models/data_models.dart';
 
 /// 自定义左侧弹出菜单 - 极简主义设计
-class CustomDrawer extends StatelessWidget {
-  CustomDrawer({super.key});
+class CustomDrawer extends StatefulWidget {
+  const CustomDrawer({super.key});
+
+  @override
+  State<CustomDrawer> createState() => _CustomDrawerState();
+}
+
+class _CustomDrawerState extends State<CustomDrawer> {
+  String _version = '0.1.5';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersionInfo();
+  }
+
+  /// 加载版本信息
+  Future<void> _loadVersionInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +65,9 @@ class CustomDrawer extends StatelessWidget {
           // 底部版本信息
           Container(
             padding: const EdgeInsets.all(24),
-            child: const Text(
-              'MookNote v0.1.5',
-              style: TextStyle(
+            child: Text(
+              'MookNote v$_version',
+              style: const TextStyle(
                 fontSize: 12,
                 color: Color(0xFF999999),
               ),

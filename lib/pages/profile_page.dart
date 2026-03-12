@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 // import 'package:url_launcher/url_launcher.dart'; // 改为应用内打开
 import 'package:webview_flutter/webview_flutter.dart';
 import '../providers/app_provider.dart';
@@ -25,17 +26,27 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker _picker = ImagePicker();
   final UserPrefs _userPrefs = UserPrefs();
-  
+
   // 用户数据
   String _nickname = 'Mook';
   String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
+  String _version = '0.1.5';
   bool _isLoading = true;
-  
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadVersionInfo();
+  }
+
+  /// 加载版本信息
+  Future<void> _loadVersionInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version;
+    });
   }
   
   /// 加载用户数据
@@ -100,10 +111,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 48),
                 
                 // 版本信息
-                const Center(
+                Center(
                   child: Text(
-                    'MookNote v0.1.5',
-                    style: TextStyle(
+                    'MookNote v$_version',
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF999999),
                     ),
@@ -617,7 +628,25 @@ class SettingsPage extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          // 主界面功能显示入口
+          _buildSectionHeader('主界面显示'),
+          _buildNavigationItem(
+            icon: Icons.view_list_outlined,
+            title: '主界面功能显示',
+            subtitle: '控制观影、阅读、笔记的显示',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainContentSettingsPage(),
+                ),
+              );
+            },
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+
           // 使用说明
+          _buildSectionHeader('帮助'),
           _buildLinkItem(
             context: context,
             icon: Icons.help_outline,
@@ -626,7 +655,7 @@ class SettingsPage extends StatelessWidget {
             url: 'https://mooknote.iletter.top/#/guide',
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          
+
           // 关于作者
           _buildLinkItem(
             context: context,
@@ -635,10 +664,71 @@ class SettingsPage extends StatelessWidget {
             subtitle: '了解更多信息',
             url: 'https://www.iletter.top/',
           ),
-          
+
           const Divider(height: 0.5, indent: 24, endIndent: 24),
         ],
       ),
+    );
+  }
+
+  /// 构建区块标题
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF999999),
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  /// 构建导航项
+  Widget _buildNavigationItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: const Color(0xFF666666),
+          size: 20,
+        ),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          color: Color(0xFF1A1A1A),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF999999),
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: Color(0xFFCCCCCC),
+        size: 20,
+      ),
+      onTap: onTap,
     );
   }
 
@@ -694,6 +784,183 @@ class SettingsPage extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => WebViewPage(url: url),
+      ),
+    );
+  }
+}
+
+/// 主界面功能显示设置页面
+class MainContentSettingsPage extends StatefulWidget {
+  const MainContentSettingsPage({super.key});
+
+  @override
+  State<MainContentSettingsPage> createState() => _MainContentSettingsPageState();
+}
+
+class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
+  final UserPrefs _userPrefs = UserPrefs();
+
+  bool _showMovieTab = true;
+  bool _showBookTab = true;
+  bool _showNoteTab = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  /// 加载设置
+  void _loadSettings() {
+    setState(() {
+      _showMovieTab = _userPrefs.showMovieTab;
+      _showBookTab = _userPrefs.showBookTab;
+      _showNoteTab = _userPrefs.showNoteTab;
+    });
+  }
+
+  /// 获取已启用的标签数量
+  int get _enabledTabCount {
+    int count = 0;
+    if (_showMovieTab) count++;
+    if (_showBookTab) count++;
+    if (_showNoteTab) count++;
+    return count;
+  }
+
+  /// 切换观影标签显示
+  Future<void> _toggleMovieTab(bool value) async {
+    if (!value && _enabledTabCount <= 1) {
+      _showToast('至少保留一个标签页');
+      return;
+    }
+    await _userPrefs.setShowMovieTab(value);
+    setState(() => _showMovieTab = value);
+  }
+
+  /// 切换阅读标签显示
+  Future<void> _toggleBookTab(bool value) async {
+    if (!value && _enabledTabCount <= 1) {
+      _showToast('至少保留一个标签页');
+      return;
+    }
+    await _userPrefs.setShowBookTab(value);
+    setState(() => _showBookTab = value);
+  }
+
+  /// 切换笔记标签显示
+  Future<void> _toggleNoteTab(bool value) async {
+    if (!value && _enabledTabCount <= 1) {
+      _showToast('至少保留一个标签页');
+      return;
+    }
+    await _userPrefs.setShowNoteTab(value);
+    setState(() => _showNoteTab = value);
+  }
+
+  /// 显示提示
+  void _showToast(String message) {
+    ToastUtil.show(context, message);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('主界面功能显示'),
+      ),
+      body: ListView(
+        children: [
+          // 说明文字
+          Container(
+            padding: const EdgeInsets.all(24),
+            child: const Text(
+              '选择要在主界面显示的功能模块，至少保留一个。',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF666666),
+              ),
+            ),
+          ),
+          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+          // 观影开关
+          _buildSwitchItem(
+            icon: Icons.movie_outlined,
+            title: '观影',
+            subtitle: '记录和管理观影记录',
+            value: _showMovieTab,
+            onChanged: _toggleMovieTab,
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          // 阅读开关
+          _buildSwitchItem(
+            icon: Icons.menu_book_outlined,
+            title: '阅读',
+            subtitle: '记录和管理阅读记录',
+            value: _showBookTab,
+            onChanged: _toggleBookTab,
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          // 笔记开关
+          _buildSwitchItem(
+            icon: Icons.note_outlined,
+            title: '笔记',
+            subtitle: '记录和管理笔记',
+            value: _showNoteTab,
+            onChanged: _toggleNoteTab,
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+        ],
+      ),
+    );
+  }
+
+  /// 构建开关项
+  Widget _buildSwitchItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: const Color(0xFF666666),
+          size: 24,
+        ),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF1A1A1A),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(
+          fontSize: 13,
+          color: Color(0xFF999999),
+        ),
+      ),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+        activeColor: const Color(0xFF1A1A1A),
+        activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3),
+        inactiveThumbColor: Colors.white,
+        inactiveTrackColor: const Color(0xFFE5E5E5),
       ),
     );
   }

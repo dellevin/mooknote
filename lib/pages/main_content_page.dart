@@ -1,14 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../utils/user_prefs.dart';
 import 'movies/movie_tab_page.dart';
 import 'book/book_tab_page.dart';
 import 'note/note_tab_page.dart';
 import 'search_page.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页
-class MainContentPage extends StatelessWidget {
+class MainContentPage extends StatefulWidget {
   const MainContentPage({super.key});
+
+  @override
+  State<MainContentPage> createState() => _MainContentPageState();
+}
+
+class _MainContentPageState extends State<MainContentPage> {
+  final UserPrefs _userPrefs = UserPrefs();
+
+  bool _showMovieTab = true;
+  bool _showBookTab = true;
+  bool _showNoteTab = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTabSettings();
+  }
+
+  /// 加载标签显示设置
+  void _loadTabSettings() {
+    setState(() {
+      _showMovieTab = _userPrefs.showMovieTab;
+      _showBookTab = _userPrefs.showBookTab;
+      _showNoteTab = _userPrefs.showNoteTab;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 当页面重新获得焦点时刷新设置
+    _loadTabSettings();
+  }
+
+  /// 获取启用的标签列表
+  List<_TabItem> get _enabledTabs {
+    final tabs = <_TabItem>[];
+    if (_showMovieTab) tabs.add(_TabItem('观影', 0));
+    if (_showBookTab) tabs.add(_TabItem('阅读', 1));
+    if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
+    return tabs;
+  }
+
+  /// 将原始索引映射到启用标签的索引
+  int _mapToEnabledTabIndex(int originalIndex) {
+    final tabs = _enabledTabs;
+    for (int i = 0; i < tabs.length; i++) {
+      if (tabs[i].originalIndex == originalIndex) return i;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +123,11 @@ class MainContentPage extends StatelessWidget {
   Widget _buildTabBar(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        final tabs = _enabledTabs;
+        // 如果当前选中的标签被禁用了，切换到第一个启用的标签
+        final currentEnabledIndex = _mapToEnabledTabIndex(provider.mainTabIndex);
+        final safeIndex = currentEnabledIndex < tabs.length ? currentEnabledIndex : 0;
+
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -79,29 +136,17 @@ class MainContentPage extends StatelessWidget {
             ),
           ),
           child: Row(
-            children: [
-              _buildTabItem(
+            children: tabs.asMap().entries.map((entry) {
+              final index = entry.key;
+              final tab = entry.value;
+              return _buildTabItem(
                 context,
-                '观影',
-                0,
-                provider.mainTabIndex,
-                () => provider.setMainTabIndex(0),
-              ),
-              _buildTabItem(
-                context,
-                '阅读',
-                1,
-                provider.mainTabIndex,
-                () => provider.setMainTabIndex(1),
-              ),
-              _buildTabItem(
-                context,
-                '笔记',
-                2,
-                provider.mainTabIndex,
-                () => provider.setMainTabIndex(2),
-              ),
-            ],
+                tab.label,
+                index,
+                safeIndex,
+                () => provider.setMainTabIndex(tab.originalIndex),
+              );
+            }).toList(),
           ),
         );
       },
@@ -154,7 +199,29 @@ class MainContentPage extends StatelessWidget {
   Widget _buildTabContent() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        switch (provider.mainTabIndex) {
+        final tabs = _enabledTabs;
+        // 找到当前应该显示的标签
+        _TabItem? currentTab;
+        for (final tab in tabs) {
+          if (tab.originalIndex == provider.mainTabIndex) {
+            currentTab = tab;
+            break;
+          }
+        }
+        // 如果当前标签被禁用了，显示第一个启用的标签
+        if (currentTab == null && tabs.isNotEmpty) {
+          currentTab = tabs.first;
+          // 更新 provider 的索引
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            provider.setMainTabIndex(currentTab!.originalIndex);
+          });
+        }
+
+        if (currentTab == null) {
+          return const Center(child: Text('请至少启用一个标签页'));
+        }
+
+        switch (currentTab.originalIndex) {
           case 0:
             return const MovieTabPage();
           case 1:
@@ -232,4 +299,12 @@ class MainContentPage extends StatelessWidget {
       },
     );
   }
+}
+
+/// 标签项数据类
+class _TabItem {
+  final String label;
+  final int originalIndex;
+
+  _TabItem(this.label, this.originalIndex);
 }

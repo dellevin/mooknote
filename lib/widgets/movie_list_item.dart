@@ -42,26 +42,9 @@ class MovieListItem extends StatelessWidget {
 
           const SizedBox(height: 4),
 
-          // 评分
+          // 评分 - 5星显示
           if (movie.rating != null)
-            Row(
-              children: [
-                const Icon(
-                  Icons.star,
-                  size: 12,
-                  color: Color(0xFFFFB800),
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  movie.rating!.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF666666),
-                  ),
-                ),
-              ],
-            )
+            _buildStarRating(movie.rating!)
           else
             const SizedBox(height: 16),
         ],
@@ -96,6 +79,50 @@ class MovieListItem extends StatelessWidget {
         size: 24,
         color: Color(0xFFCCCCCC),
       ),
+    );
+  }
+
+  /// 构建5星评分显示（评分范围1-10，每星2分）
+  Widget _buildStarRating(double rating) {
+    // 将10分制转换为5星制
+    final starValue = rating / 2;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 5个星星
+        ...List.generate(5, (index) {
+          final starIndex = index + 1;
+          IconData iconData;
+
+          if (starValue >= starIndex) {
+            // 满星
+            iconData = Icons.star;
+          } else if (starValue >= starIndex - 0.5) {
+            // 半星
+            iconData = Icons.star_half;
+          } else {
+            // 空星
+            iconData = Icons.star_border;
+          }
+
+          return Icon(
+            iconData,
+            size: 12,
+            color: const Color(0xFFFFB800),
+          );
+        }),
+        const SizedBox(width: 4),
+        // 评分数字
+        Text(
+          rating.toStringAsFixed(1),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF666666),
+          ),
+        ),
+      ],
     );
   }
 
