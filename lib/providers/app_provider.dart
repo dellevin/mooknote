@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
-import '../utils/movie_dao.dart';
-import '../utils/book_dao.dart';
-import '../utils/note_dao.dart';
-import '../utils/movie_review_dao.dart';
-import '../utils/movie_poster_dao.dart';
-import '../utils/book_review_dao.dart';
-import '../utils/book_excerpt_dao.dart';
+import '../utils/movie/movie_dao.dart';
+import '../utils/book/book_dao.dart';
+import '../utils/note/note_dao.dart';
+import '../utils/movie/movie_review_dao.dart';
+import '../utils/movie/movie_poster_dao.dart';
+import '../utils/book/book_review_dao.dart';
+import '../utils/book/book_excerpt_dao.dart';
 import '../utils/image_path_helper.dart';
 
 /// 应用全局状态管理

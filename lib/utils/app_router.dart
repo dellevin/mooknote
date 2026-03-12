@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
-import '../pages/movie_form_page.dart';
-import '../pages/book_form_page.dart';
-import '../pages/note_form_page.dart';
-import '../pages/movie_detail_page.dart';
-import '../pages/book_detail_page.dart';
-import '../pages/note_detail_page.dart';
+import '../pages/movies/movie_form_page.dart';
+import '../pages/book/book_form_page.dart';
+import '../pages/note/note_form_page.dart';
+import '../pages/movies/movie_detail_page.dart';
+import '../pages/book/book_detail_page.dart';
+import '../pages/note/note_detail_page.dart';
 
 /// 路由生成器
 class AppRouter {

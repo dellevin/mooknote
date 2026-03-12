@@ -1,4 +1,4 @@
-# MookNote - Flutter 观影阅读笔记应用
+# MookNote - 极简风格的观影阅读笔记应用
 
 ## 项目简介
 MookNote 是一款用于记录观影、阅读和笔记的 Android 软件，基于 Flutter 框架开发。
@@ -82,6 +82,7 @@ cd mooknote
 ### 2. 安装依赖
 
 ```bash
+flutter clean 
 flutter pub get
 # 如果失败可以先添加代理再进行get
 $env:HTTP_PROXY="http://127.0.0.1:10808"

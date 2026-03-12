@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'pages/home_page.dart';
-import 'utils/app_theme.dart';
+import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
-import 'utils/webdav_service.dart';
-import 'utils/auto_backup_service.dart';
+import 'utils/sync/webdav_service.dart';
+import 'utils/sync/auto_backup_service.dart';
 import 'providers/app_provider.dart';
 
 void main() async {

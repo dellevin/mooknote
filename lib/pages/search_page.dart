@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../utils/toast_util.dart';
-import 'movie_detail_page.dart';
-import 'book_detail_page.dart';
-import 'note_detail_page.dart';
+import 'movies/movie_detail_page.dart';
+import 'book/book_detail_page.dart';
+import 'note/note_detail_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {

@@ -10,9 +10,9 @@ import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../utils/toast_util.dart';
 import 'recycle_bin_page.dart';
-import 'backup_page.dart';
+import 'sync/backup_page.dart';
 import 'statistics_page.dart';
-import 'cloud_sync_page.dart';
+import 'sync/cloud_sync_page.dart';
 
 /// 个人中心页面 - 极简主义设计
 class ProfilePage extends StatefulWidget {
