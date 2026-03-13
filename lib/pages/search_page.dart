@@ -87,15 +87,19 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   bool _matchNote(Note note, String keyword) {
+    // 搜索框为空且不选标签时，不显示任何笔记
+    if (keyword.isEmpty && _selectedTag == null) {
+      return false;
+    }
     // 如果有选中的标签，先按标签筛选
     if (_selectedTag != null) {
       if (!note.tags.contains(_selectedTag)) {
         return false;
       }
-    }
-    // 关键词为空时，只按标签筛选
-    if (keyword.isEmpty) {
-      return true;
+      // 有标签但关键词为空时，只按标签筛选
+      if (keyword.isEmpty) {
+        return true;
+      }
     }
     // 按内容搜索
     return note.content.toLowerCase().contains(keyword.toLowerCase());
