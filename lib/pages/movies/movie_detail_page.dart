@@ -129,6 +129,32 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     );
   }
 
+  /// 构建带背景的返回按钮
+  Widget _buildBackButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.pop(context),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 构建顶部 AppBar
   Widget _buildSliverAppBar(Movie movie) {
     final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
@@ -137,6 +163,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       expandedHeight: 320,
       pinned: true,
       backgroundColor: const Color(0xFFF5F5F5),
+      leading: _buildBackButton(),
       flexibleSpace: FlexibleSpaceBar(
         background: _buildPosterSection(movie),
       ),

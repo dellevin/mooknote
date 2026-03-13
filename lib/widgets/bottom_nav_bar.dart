@@ -60,17 +60,10 @@ class CustomBottomNavBar extends StatelessWidget {
           color: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? const Color(0xFF1A1A1A) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isActive ? activeIcon : icon,
-                color: isActive ? Colors.white : const Color(0xFF999999),
-                size: 22,
-              ),
+            child: Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+              size: 28,
             ),
           ),
         ),

@@ -116,12 +116,20 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.rate_review_outlined,
-            size: 64,
-            color: Color(0xFFCCCCCC),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.rate_review_outlined,
+              size: 40,
+              color: Color(0xFFCCCCCC),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           const Text(
             '暂无书评',
             style: TextStyle(
@@ -130,14 +138,23 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
             ),
           ),
           const SizedBox(height: 24),
-          OutlinedButton(
-            onPressed: () => _navigateToAddReview(),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1A1A1A),
-              side: const BorderSide(color: Color(0xFF1A1A1A)),
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          InkWell(
+            onTap: () => _navigateToAddReview(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '添加记录',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
             ),
-            child: const Text('写书评'),
           ),
         ],
       ),
