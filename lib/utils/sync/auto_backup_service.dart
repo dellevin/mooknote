@@ -16,8 +16,8 @@ class AutoBackupService {
   
   static const String _prefsKey = 'auto_backup_enabled';
   static const String _backupDirName = 'mooknote';
-  static const int _maxBackups = 10;
-  static const Duration _backupInterval = Duration(minutes: 2);
+  static const int _maxBackups = 5;
+  static const Duration _backupInterval = Duration(minutes: 5);
   
   /// 是否正在运行
   bool get isRunning => _isRunning;

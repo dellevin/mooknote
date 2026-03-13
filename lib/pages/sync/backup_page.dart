@@ -477,7 +477,7 @@ class _BackupPageState extends State<BackupPage> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      '每2分钟自动备份，保留最近10个备份',
+                      '每2分钟自动备份，保留最近5个备份',
                       style: TextStyle(
                         fontSize: 13,
                         color: Color(0xFF666666),

@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 import '../database_helper.dart';
+import '../user_prefs.dart';
 
 /// 数据备份服务 - 支持导出和导入数据（包含图片）
 class BackupService {
@@ -71,12 +72,27 @@ class BackupService {
         }
       }
       
+      // 获取用户个人信息
+      final userPrefs = UserPrefs();
+      final userInfo = {
+        'nickname': userPrefs.nickname,
+        'motto': userPrefs.motto,
+        'avatarPath': userPrefs.avatarPath,
+      };
+      
+      // 如果有头像，添加到图片路径
+      final avatarPath = userPrefs.avatarPath;
+      if (avatarPath != null && avatarPath.isNotEmpty) {
+        imagePaths.add(avatarPath);
+      }
+      
       // 构建备份数据
       final backupData = {
         'version': 2,
         'exportTime': DateTime.now().toIso8601String(),
         'appName': 'MookNote',
         'hasImages': true,
+        'userInfo': userInfo,
         'data': {
           'movies': movies,
           'books': books,
@@ -238,12 +254,27 @@ class BackupService {
         }
       }
       
+      // 获取用户个人信息
+      final userPrefs = UserPrefs();
+      final userInfo = {
+        'nickname': userPrefs.nickname,
+        'motto': userPrefs.motto,
+        'avatarPath': userPrefs.avatarPath,
+      };
+      
+      // 如果有头像，添加到图片路径
+      final avatarPath = userPrefs.avatarPath;
+      if (avatarPath != null && avatarPath.isNotEmpty) {
+        imagePaths.add(avatarPath);
+      }
+      
       // 构建备份数据
       final backupData = {
         'version': 2,
         'exportTime': DateTime.now().toIso8601String(),
         'appName': 'MookNote',
         'hasImages': true,
+        'userInfo': userInfo,
         'data': {
           'movies': movies,
           'books': books,
@@ -442,6 +473,29 @@ class BackupService {
           }
         }
       });
+      
+      // 恢复用户个人信息
+      if (backupData.containsKey('userInfo')) {
+        final userInfo = backupData['userInfo'] as Map<String, dynamic>;
+        final userPrefs = UserPrefs();
+        
+        if (userInfo.containsKey('nickname')) {
+          await userPrefs.setNickname(userInfo['nickname'] as String);
+        }
+        if (userInfo.containsKey('motto')) {
+          await userPrefs.setMotto(userInfo['motto'] as String);
+        }
+        if (userInfo.containsKey('avatarPath')) {
+          final avatarPath = userInfo['avatarPath'] as String?;
+          if (avatarPath != null && avatarPath.isNotEmpty) {
+            // 更新头像路径为新的路径
+            final fileName = path.basename(avatarPath);
+            if (imagePathMap.containsKey(fileName)) {
+              await userPrefs.setAvatarPath(imagePathMap[fileName]!);
+            }
+          }
+        }
+      }
       
       // 统计导入数量
       final stats = <String, int>{};

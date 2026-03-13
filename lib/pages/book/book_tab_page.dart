@@ -65,29 +65,36 @@ class BookTabPage extends StatelessWidget {
 
   /// 构建空状态提示
   Widget _buildEmptyState(BuildContext context, int statusIndex) {
-    final statusText = ['读完', '在读', '准备读'][statusIndex];
+    final statusText = ['已读', '在读', '想读'][statusIndex];
     
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.menu_book_outlined,
-            size: 80,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '暂无$statusText的书籍',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.menu_book_outlined,
+              size: 40,
+              color: Color(0xFFCCCCCC),
             ),
           ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.add),
-            label: const Text('添加记录'),
-            onPressed: () {
+          const SizedBox(height: 20),
+          Text(
+            '暂无$statusText的书籍',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF999999),
+            ),
+          ),
+          const SizedBox(height: 24),
+          InkWell(
+            onTap: () {
               final statusMap = {
                 0: 'read',
                 1: 'reading',
@@ -100,6 +107,21 @@ class BookTabPage extends StatelessWidget {
                 arguments: {'initialStatus': currentStatus},
               );
             },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '添加记录',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
         ],
       ),

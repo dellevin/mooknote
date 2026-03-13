@@ -438,7 +438,10 @@ class _ProfilePageState extends State<ProfilePage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BackupPage()),
-              );
+              ).then((_) {
+                // 返回时刷新用户数据
+                _loadUserData();
+              });
             },
           ),
           const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),

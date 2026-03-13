@@ -71,22 +71,30 @@ class MovieTabPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.movie_outlined,
-            size: 48,
-            color: Color(0xFFCCCCCC),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.movie_outlined,
+              size: 40,
+              color: Color(0xFFCCCCCC),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             '暂无$statusText的影片',
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               color: Color(0xFF999999),
             ),
           ),
           const SizedBox(height: 24),
-          TextButton(
-            onPressed: () {
+          InkWell(
+            onTap: () {
               final statusMap = {
                 0: 'watched',
                 1: 'watching',
@@ -99,7 +107,21 @@ class MovieTabPage extends StatelessWidget {
                 arguments: {'initialStatus': currentStatus},
               );
             },
-            child: const Text('添加记录'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '添加记录',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
         ],
       ),

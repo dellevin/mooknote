@@ -213,14 +213,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
               color: Color(0xFF999999),
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            '记录你的想法和灵感',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFFBBBBBB),
-            ),
-          ),
           const SizedBox(height: 24),
           InkWell(
             onTap: () {
@@ -233,7 +225,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                '添加笔记',
+                '添加记录',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
