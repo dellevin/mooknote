@@ -70,7 +70,8 @@ flutter pub get
 $env:HTTP_PROXY="http://127.0.0.1:10808"
 $env:HTTPS_PROXY="http://127.0.0.1:10808"
 flutter pub get
-
+# 运行
+flutter run
 # 构建 APK
 flutter build apk --release
 # 或构建 App Bundle（推荐用于 Google Play）

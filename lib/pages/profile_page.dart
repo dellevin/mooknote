@@ -712,15 +712,14 @@ class SettingsPage extends StatelessWidget {
           const Divider(height: 0.5, indent: 24, endIndent: 24),
 
           // 关于作者
-          _buildLinkItem(
-            context: context,
-            icon: Icons.person_outline,
-            title: '关于作者',
-            subtitle: '了解更多信息',
-            url: 'https://www.iletter.top/',
-          ),
-
-          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          // _buildLinkItem(
+          //   context: context,
+          //   icon: Icons.person_outline,
+          //   title: '关于作者',
+          //   subtitle: '了解更多信息',
+          //   url: 'https://www.iletter.top/',
+          // ),
+          // const Divider(height: 0.5, indent: 24, endIndent: 24),
         ],
       ),
     );
