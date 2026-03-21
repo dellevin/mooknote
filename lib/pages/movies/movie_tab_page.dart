@@ -46,7 +46,7 @@ class MovieTabPage extends StatelessWidget {
           color: const Color(0xFF1A1A1A),
           backgroundColor: Colors.white,
           child: GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               childAspectRatio: 0.55,

@@ -6,6 +6,7 @@ import '../pages/note/note_form_page.dart';
 import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
 import '../pages/note/note_detail_page.dart';
+import '../pages/movies/douban_webview_page.dart';
 
 /// 路由生成器
 class AppRouter {
@@ -71,6 +72,12 @@ class AppRouter {
         final note = settings.arguments as Note;
         return MaterialPageRoute(
           builder: (_) => NoteDetailPage(note: note),
+        );
+      
+      case '/douban-webview':
+        final url = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (_) => DoubanWebViewPage(url: url),
         );
       
       default:

@@ -2,43 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
-/// 自定义底部导航栏 - 极简主义设计
+/// 自定义底部导航栏 - Dock栏悬浮设计
 class CustomBottomNavBar extends StatelessWidget {
   const CustomBottomNavBar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 获取底部安全区域高度
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
-          height: 64,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          // 高度：导航栏本身高度 + 底部安全距离 + 上下边距
+          height: 64 + bottomPadding + 16,
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // 主页按钮
-              _buildNavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                isActive: provider.bottomNavIndex == 0,
-                onTap: () => provider.setBottomNavIndex(0),
+              // Dock栏主体 - 悬浮效果
+              Container(
+                height: 56,
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                      spreadRadius: -2,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // 主页按钮
+                    _buildNavItem(
+                      icon: Icons.home_outlined,
+                      activeIcon: Icons.home,
+                      isActive: provider.bottomNavIndex == 0,
+                      onTap: () => provider.setBottomNavIndex(0),
+                    ),
+                    
+                    // 中间新增按钮
+                    _buildAddButton(context, provider),
+                    
+                    // 我的按钮
+                    _buildNavItem(
+                      icon: Icons.person_outline,
+                      activeIcon: Icons.person,
+                      isActive: provider.bottomNavIndex == 2,
+                      onTap: () => provider.setBottomNavIndex(2),
+                    ),
+                  ],
+                ),
               ),
-              
-              // 中间新增按钮
-              _buildAddButton(context, provider),
-              
-              // 我的按钮
-              _buildNavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                isActive: provider.bottomNavIndex == 2,
-                onTap: () => provider.setBottomNavIndex(2),
-              ),
+              // 底部安全距离占位
+              SizedBox(height: bottomPadding + 8),
             ],
           ),
         );
@@ -53,18 +82,18 @@ class CustomBottomNavBar extends StatelessWidget {
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Center(
-            child: Icon(
-              isActive ? activeIcon : icon,
-              color: isActive ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
-              size: 28,
-            ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: 56,
+        height: 56,
+        color: Colors.transparent,
+        child: Center(
+          child: Icon(
+            isActive ? activeIcon : icon,
+            color: isActive ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+            size: 26,
           ),
         ),
       ),

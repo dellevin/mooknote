@@ -168,13 +168,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         background: _buildPosterSection(movie),
       ),
       actions: [
-        // 下载海报按钮（仅当有海报时显示）
-        if (hasPoster)
-          _buildActionButton(
-            icon: Icons.download_outlined,
-            onPressed: () => _downloadPoster(movie),
-            tooltip: '下载海报',
-          ),
         // 清空海报按钮（仅当有海报时显示）
         if (hasPoster)
           _buildActionButton(
@@ -827,40 +820,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
-  }
-  
-  /// 下载海报到本地
-  Future<void> _downloadPoster(Movie movie) async {
-    if (movie.posterPath == null || movie.posterPath!.isEmpty) {
-      ToastUtil.show(context, '没有可下载的海报');
-      return;
-    }
-    
-    try {
-      final sourceFile = File(movie.posterPath!);
-      if (!await sourceFile.exists()) {
-        ToastUtil.show(context, '海报文件不存在');
-        return;
-      }
-      
-      // 生成文件名：影视名称_时间戳_海报.扩展名
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '${movie.title}_${timestamp}_海报${path.extension(movie.posterPath!)}';
-      
-      // 复制到临时目录
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File(path.join(tempDir.path, fileName));
-      await sourceFile.copy(tempFile.path);
-      
-      // 使用分享功能让用户选择保存位置
-      await Share.shareXFiles(
-        [XFile(tempFile.path)],
-        subject: '${movie.title} 海报',
-        text: '下载自 MookNote',
-      );
-    } catch (e) {
-      ToastUtil.show(context, '下载失败: $e');
-    }
   }
   
   /// 请求存储权限

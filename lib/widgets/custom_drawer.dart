@@ -37,43 +37,51 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: Colors.white,
-      child: Column(
-        children: [
-          // 顶部用户信息区域
-          _buildHeader(context),
-          
-          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-          
-          // 回顾功能区域
-          _buildMemorySection(context),
-          
-          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-          
-          // 日历热力图区域
-          _buildCalendarSection(context),
-          
-          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-          
-          // 菜单项列表
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [],
-            ),
-          ),
-          
-          // 底部版本信息
-          Container(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'MookNote v$_version',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF999999),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // 顶部用户信息区域
+            _buildHeader(context),
+            
+            const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+            
+            // 可滚动区域 - 包含回顾、日历和菜单
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 回顾功能区域
+                    _buildMemorySection(context),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 日历热力图区域
+                    _buildCalendarSection(context),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 底部留白，避免内容被遮挡
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            
+            // 底部版本信息 - 固定在底部
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'MookNote v$_version',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF999999),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

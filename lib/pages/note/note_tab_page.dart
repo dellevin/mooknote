@@ -137,7 +137,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
           backgroundColor: Colors.white,
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             itemCount: _displayedNotes.length + (_hasMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= _displayedNotes.length) {

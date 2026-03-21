@@ -84,10 +84,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
   
   @override
   void dispose() {
+    // 先 dispose controllers
     _titleController.dispose();
     _summaryController.dispose();
     _ratingController.dispose();
     _tagControllers.values.forEach((c) => c.dispose());
+    // 最后调用 super.dispose
     super.dispose();
   }
   
@@ -126,6 +128,195 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
 
+  /// 显示快捷添加对话框
+  void _showQuickAddDialog() {
+    final textController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '快捷添加',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '请输入豆瓣影视链接：',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'https://m.douban.com/subject/...',
+                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              onSubmitted: (url) async {
+                if (url.trim().isNotEmpty) {
+                  // 先移除焦点
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  await Future.delayed(const Duration(milliseconds: 50));
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop(url);
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              // 先移除焦点，等待一帧确保焦点已释放
+              FocusManager.instance.primaryFocus?.unfocus();
+              await Future.delayed(const Duration(milliseconds: 50));
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop(null);
+              }
+            },
+            child: const Text(
+              '取消',
+              style: TextStyle(color: Color(0xFF999999)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final url = textController.text.trim();
+              if (url.isNotEmpty) {
+                // 先移除焦点
+                FocusManager.instance.primaryFocus?.unfocus();
+                await Future.delayed(const Duration(milliseconds: 50));
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(url);
+                }
+              }
+            },
+            child: const Text(
+              '确定',
+              style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    ).then((result) {
+      // 延迟 dispose，确保 widget tree 已释放 controller
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        textController.dispose();
+      });
+      // 处理结果
+      if (result != null && result is String && result.isNotEmpty) {
+        _openDoubanWebView(result);
+      }
+    });
+  }
+
+  /// 打开豆瓣WebView页面
+  Future<void> _openDoubanWebView(String url) async {
+    // 导航到WebView页面并等待返回结果
+    final result = await Navigator.pushNamed(
+      context,
+      '/douban-webview',
+      arguments: url,
+    );
+    
+    // 处理返回的影视信息
+    if (result != null && result is Map<String, dynamic>) {
+      _fillMovieInfo(result);
+    }
+  }
+  
+  /// 填充影视信息到表单
+  void _fillMovieInfo(Map<String, dynamic> info) {
+    setState(() {
+      // 填充标题
+      if (info['title'] != null && info['title'].toString().isNotEmpty) {
+        _titleController.text = info['title'].toString();
+      }
+      
+      // 填充评分
+      if (info['rating'] != null && info['rating'].toString().isNotEmpty) {
+        _ratingController.text = info['rating'].toString();
+      }
+      
+      // 填充导演
+      if (info['director'] != null && info['director'].toString().isNotEmpty) {
+        _directors = [info['director'].toString()];
+      }
+      
+      // 填充编剧
+      if (info['writers'] != null && info['writers'] is List) {
+        _writers = (info['writers'] as List).map((w) => w.toString()).toList();
+      }
+      
+      // 填充演员
+      if (info['actors'] != null && info['actors'] is List) {
+        _actors = (info['actors'] as List).map((a) => a.toString()).toList();
+      }
+      
+      // 填充类型
+      if (info['genres'] != null && info['genres'].toString().isNotEmpty) {
+        _genres = info['genres'].toString().split(',').map((g) => g.trim()).toList();
+      }
+      
+      // 填充别名
+      if (info['alternateTitles'] != null && info['alternateTitles'] is List) {
+        _alternateTitles = (info['alternateTitles'] as List).map((t) => t.toString()).toList();
+      }
+      
+      // 填充简介
+      if (info['summary'] != null && info['summary'].toString().isNotEmpty) {
+        _summaryController.text = info['summary'].toString();
+      }
+      
+      // 填充上映日期
+      if (info['releaseDate'] != null && info['releaseDate'].toString().isNotEmpty) {
+        final dateStr = info['releaseDate'].toString();
+        // 尝试解析日期
+        try {
+          // 处理格式如 "2023-01-01(中国大陆)"
+          final cleanDate = dateStr.split('(')[0].trim();
+          _releaseDate = DateTime.parse(cleanDate);
+        } catch (e) {
+          // 解析失败则忽略
+        }
+      }
+      
+    });
+    
+    // 显示成功提示
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已自动填充影视信息')),
+      );
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.movie != null;
@@ -135,6 +326,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
       appBar: AppBar(
         title: Text(isEdit ? '编辑影视' : '添加影视'),
         actions: [
+          // 快捷添加按钮（仅添加模式显示）
+          if (!isEdit)
+            _buildActionButton(
+              icon: Icons.auto_fix_high_outlined,
+              onPressed: _showQuickAddDialog,
+              tooltip: '快捷添加',
+            ),
           // 保存按钮
           _buildActionButton(
             icon: Icons.save_outlined,
@@ -765,7 +963,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     return Column(
       children: [
         GestureDetector(
-          onTap: _pickCover,
+          onTap: _showCoverOptions,
           child: Container(
             width: 140,
             height: 200,
@@ -815,6 +1013,107 @@ class _MovieFormPageState extends State<MovieFormPage> {
             ),
           ),
       ],
+    );
+  }
+  
+  /// 显示封面选择选项
+  void _showCoverOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 顶部指示条
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 标题
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '添加海报',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 本地图片选项
+              _buildCoverOption(
+                icon: Icons.photo_library_outlined,
+                title: '从相册选择',
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickCover();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// 构建封面选项
+  Widget _buildCoverOption({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFCCCCCC),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
   

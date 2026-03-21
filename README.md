@@ -76,6 +76,12 @@ flutter run
 flutter build apk --release
 # 或构建 App Bundle（推荐用于 Google Play）
 flutter build appbundle --release
+
+# 使用国内镜像构建运行
+$env:PUB_HOSTED_URL="https://pub.flutter-io.cn"
+$env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
+flutter pub get
+flutter run
 ```
 
 ### 3. 连接设备或启动模拟器

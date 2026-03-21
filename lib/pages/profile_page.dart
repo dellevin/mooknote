@@ -129,7 +129,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 
-                const SizedBox(height: 32),
+                // 底部留白，避免被 dock 栏遮挡
+                const SizedBox(height: 100),
               ],
             ),
           ),

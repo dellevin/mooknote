@@ -23,11 +23,21 @@ class _HomePageState extends State<HomePage> {
           ? CustomDrawer() 
           : null,
       
-      // 主体内容 - 根据底部导航切换
-      body: _buildBody(),
-      
-      // 底部导航栏
-      bottomNavigationBar: const CustomBottomNavBar(),
+      // 主体内容 - 使用 Stack 让 dock 栏悬浮在内容上方
+      body: Stack(
+        children: [
+          // 底层：主体内容
+          _buildBody(),
+          
+          // 顶层：悬浮 dock 栏
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: CustomBottomNavBar(),
+          ),
+        ],
+      ),
     );
   }
 
