@@ -172,8 +172,6 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoRow('标题', movieInfo['title']?.toString() ?? '未提取到'),
-                _buildInfoRow('年份', movieInfo['year']?.toString() ?? '未提取到'),
-                _buildInfoRow('评分', movieInfo['rating']?.toString() ?? '未提取到'),
                 _buildInfoRow('导演', movieInfo['director']?.toString() ?? '未提取到'),
                 _buildInfoRow('类型', movieInfo['genres']?.toString() ?? '未提取到'),
                 _buildInfoRow('上映日期', movieInfo['releaseDate']?.toString() ?? '未提取到'),
@@ -273,7 +271,19 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
             info.year = '';
           }
           
-
+          // 获取封面图 - 从 sub-cover 中的 img 标签获取
+          const coverEl = document.querySelector('.sub-cover img');
+          if (coverEl) {
+            let coverUrl = coverEl.src;
+            // 将 webp 转换为 jpg 格式，提高兼容性
+            if (coverUrl && coverUrl.includes('.webp')) {
+              coverUrl = coverUrl.replace('.webp', '.jpg');
+            }
+            info.coverUrl = coverUrl;
+          } else {
+            info.coverUrl = '';
+          }
+          
           // 获取评分 - 移动版可能在 mark-item 中
           const ratingEl = document.querySelector('.rating-num') || document.querySelector('.score');
           info.rating = ratingEl ? ratingEl.textContent.trim() : '';

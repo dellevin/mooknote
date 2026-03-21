@@ -684,6 +684,16 @@ class SettingsPage extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          // 数据管理
+          _buildSectionHeader('数据管理'),
+          _buildActionItem(
+            icon: Icons.cleaning_services_outlined,
+            title: '清除缓存数据',
+            subtitle: '清理未在数据库中引用的图片文件',
+            onTap: () => _showClearCacheDialog(context),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+
           // 主界面功能显示入口
           _buildSectionHeader('主界面显示'),
           _buildNavigationItem(
@@ -868,6 +878,208 @@ class SettingsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// 构建操作项（无箭头）
+  Widget _buildActionItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            // 图标背景
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF666666),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 文字内容
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 显示清除缓存对话框
+  void _showClearCacheDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('清除缓存数据'),
+        content: const Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _clearCacheData(context);
+            },
+            child: const Text('确定', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 清除缓存数据
+  Future<void> _clearCacheData(BuildContext context) async {
+    try {
+      // 显示进度提示
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // 获取所有数据库中的图片路径
+      final appProvider = context.read<AppProvider>();
+      final dbImagePaths = await _getAllDbImagePaths(appProvider);
+
+      // 清理图片目录
+      final deletedCount = await _cleanImageDirectory(dbImagePaths);
+
+      // 关闭进度提示
+      Navigator.pop(context);
+
+      // 显示结果
+      if (context.mounted) {
+        ToastUtil.show(context, '已清理 $deletedCount 个缓存文件');
+      }
+    } catch (e) {
+      // 关闭进度提示
+      Navigator.pop(context);
+      if (context.mounted) {
+        ToastUtil.show(context, '清理失败: $e');
+      }
+    }
+  }
+
+  /// 获取数据库中所有图片路径
+  Future<Set<String>> _getAllDbImagePaths(AppProvider provider) async {
+    final paths = <String>{};
+
+    // 获取所有影视的封面路径
+    final movies = provider.movies;
+    for (final movie in movies) {
+      final posterPath = movie.posterPath;
+      if (posterPath != null && posterPath.isNotEmpty) {
+        paths.add(posterPath);
+      }
+    }
+
+    // 获取所有书籍的封面路径
+    final books = provider.books;
+    for (final book in books) {
+      final coverPath = book.coverPath;
+      if (coverPath != null && coverPath.isNotEmpty) {
+        paths.add(coverPath);
+      }
+    }
+
+    // 获取所有笔记中的图片路径
+    final notes = provider.notes;
+    for (final note in notes) {
+      for (final imagePath in note.images) {
+        if (imagePath.isNotEmpty) {
+          paths.add(imagePath);
+        }
+      }
+    }
+
+    // 获取所有海报墙图片路径
+    final movieIds = movies.map((m) => m.id).toList();
+    for (final movieId in movieIds) {
+      final posters = await provider.getMoviePosters(movieId);
+      for (final poster in posters) {
+        final posterPath = poster.posterPath;
+        if (posterPath.isNotEmpty) {
+          paths.add(posterPath);
+        }
+      }
+    }
+
+    return paths;
+  }
+
+  /// 清理图片目录
+  Future<int> _cleanImageDirectory(Set<String> dbImagePaths) async {
+    int deletedCount = 0;
+
+    try {
+      // 获取应用文档目录
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory('${appDir.path}/images');
+
+      if (!await imagesDir.exists()) {
+        return 0;
+      }
+
+      // 递归遍历所有文件
+      await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          final filePath = entity.path;
+          // 如果文件不在数据库中，删除它
+          if (!dbImagePaths.contains(filePath)) {
+            try {
+              await entity.delete();
+              deletedCount++;
+            } catch (e) {
+              // 忽略单个文件删除错误
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('清理图片目录失败: $e');
+    }
+
+    return deletedCount;
   }
 
   /// 打开链接（应用内打开）

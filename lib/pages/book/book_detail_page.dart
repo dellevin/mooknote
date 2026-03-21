@@ -168,13 +168,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
         background: _buildCoverSection(book),
       ),
       actions: [
-        // 下载封面按钮（仅当有封面时显示）
-        if (hasCover)
-          _buildActionButton(
-            icon: Icons.download_outlined,
-            onPressed: () => _downloadCover(book),
-            tooltip: '下载封面',
-          ),
         // 清空封面按钮（仅当有封面时显示）
         if (hasCover)
           _buildActionButton(

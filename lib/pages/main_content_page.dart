@@ -50,7 +50,7 @@ class _MainContentPageState extends State<MainContentPage> {
   /// 获取启用的标签列表
   List<_TabItem> get _enabledTabs {
     final tabs = <_TabItem>[];
-    if (_showMovieTab) tabs.add(_TabItem('观影', 0));
+    if (_showMovieTab) tabs.add(_TabItem('影视', 0));
     if (_showBookTab) tabs.add(_TabItem('阅读', 1));
     if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
     return tabs;
@@ -409,7 +409,7 @@ class _MainContentPageState extends State<MainContentPage> {
   String _getAppBarTitle(AppProvider provider) {
     switch (provider.mainTabIndex) {
       case 0:
-        return '观影';
+        return '影视';
       case 1:
         return '阅读';
       case 2:

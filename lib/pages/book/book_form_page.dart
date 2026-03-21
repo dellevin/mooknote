@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -883,6 +884,78 @@ class _BookFormPageState extends State<BookFormPage> {
   
   /// 选择封面
   Future<void> _pickCover() async {
+    // 显示选择对话框
+    final result = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 顶部指示条
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 标题
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '添加封面',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 本地图片选项
+              _buildCoverOption(
+                icon: Icons.photo_library_outlined,
+                title: '从相册选择',
+                onTap: () {
+                  Navigator.pop(context, 0);
+                },
+              ),
+              // 网络链接选项
+              _buildCoverOption(
+                icon: Icons.link_outlined,
+                title: '网络链接',
+                onTap: () {
+                  Navigator.pop(context, 1);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    if (result == 0) {
+      await _pickCoverFromGallery();
+    } else if (result == 1) {
+      await _pickCoverFromUrl();
+    }
+  }
+
+  /// 从相册选择封面
+  Future<void> _pickCoverFromGallery() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -914,6 +987,167 @@ class _BookFormPageState extends State<BookFormPage> {
         ToastUtil.show(context, '选择封面失败: $e');
       }
     }
+  }
+
+  /// 从网络链接选择封面
+  Future<void> _pickCoverFromUrl() async {
+    final urlController = TextEditingController();
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('添加网络图片'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '请输入图片链接地址',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                hintText: 'https://book.doban.com/image.jpg',
+                hintStyle: TextStyle(color: Color(0xFFCCCCCC)),
+                border: UnderlineInputBorder(),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color.fromARGB(255, 58, 49, 49)),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
+                ),
+              ),
+              style: const TextStyle(fontSize: 14),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确定', style: TextStyle(color: Color(0xFF1A1A1A))),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final url = urlController.text.trim();
+    if (url.isEmpty) {
+      ToastUtil.show(context, '请输入图片链接');
+      return;
+    }
+
+    try {
+      // 下载网络图片
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Referer': 'https://book.douban.com/',
+        },
+      );
+      
+      if (response.statusCode != 200) {
+        throw Exception('下载失败: HTTP ${response.statusCode}');
+      }
+
+      // 检查内容类型
+      final contentType = response.headers['content-type'];
+      if (contentType != null && !contentType.startsWith('image/')) {
+        throw Exception('链接返回的不是图片');
+      }
+
+      // 检查文件大小（最大 10MB）
+      if (response.bodyBytes.length > 10 * 1024 * 1024) {
+        throw Exception('图片太大');
+      }
+
+      // 生成文件名
+      final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      // 如果是编辑模式，使用现有书籍ID；如果是新建模式，使用临时ID
+      final bookId = widget.book?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // 保存到新的路径结构
+      final targetPath = await ImagePathHelper.instance.getBookCoverPath(
+        bookId, 
+        fileName
+      );
+      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+
+      // 写入文件
+      await File(targetPath).writeAsBytes(response.bodyBytes);
+
+      setState(() => _coverPath = targetPath);
+      
+      if (mounted) {
+        ToastUtil.show(context, '添加成功');
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastUtil.show(context, '添加失败: $e');
+      }
+    }
+  }
+
+  /// 构建封面选项
+  Widget _buildCoverOption({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFCCCCCC),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
   }
   
   /// 保存书籍

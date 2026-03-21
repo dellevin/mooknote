@@ -23,7 +23,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   late DateTime _createdAt;
   List<String> _tags = [];
   List<String> _images = []; // 图片路径列表
-  String _contentType = 'markdown'; // markdown / plain_text
+  String _contentType = 'plain_text'; // markdown / plain_text
   bool _isEditing = false;
   final ImagePicker _picker = ImagePicker();
   String? _tempNoteId; // 新建模式时使用的临时笔记ID
@@ -36,7 +36,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     _createdAt = note?.createdAt ?? DateTime.now();
     _tags = note != null ? List.from(note.tags) : [];
     _images = note != null ? List.from(note.images) : [];
-    _contentType = note?.contentType ?? 'markdown';
+    _contentType = note?.contentType ?? 'plain_text';
     _isEditing = note != null;
   }
 
@@ -104,191 +104,125 @@ class _NoteFormPageState extends State<NoteFormPage> {
             ),
           ),
           
-          // 书写区域（纯文本模式下占据35%高度，Markdown模式下占据全部）
-          if (_contentType == 'plain_text')
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.35,
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                style: const TextStyle(
+          // 书写区域
+          Expanded(
+            child: TextField(
+              controller: _contentController,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF1A1A1A),
+                height: 1.6,
+              ),
+              decoration: InputDecoration(
+                hintText: _contentType == 'markdown' 
+                    ? '使用 Markdown 格式书写...' 
+                    : '开始书写...',
+                hintStyle: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF1A1A1A),
-                  height: 1.6,
+                  color: Color(0xFFCCCCCC),
                 ),
-                decoration: const InputDecoration(
-                  hintText: '开始书写...',
-                  hintStyle: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFFCCCCCC),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
+          ),
+          
+          // 图片区域（放在内容下方）
+          if (_contentType == 'plain_text' && _images.isNotEmpty)
+            Container(
+              height: 100,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
                 ),
               ),
-            )
-          else
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF1A1A1A),
-                  height: 1.6,
-                ),
-                decoration: const InputDecoration(
-                  hintText: '使用 Markdown 格式书写...',
-                  hintStyle: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFFCCCCCC),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _images.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  return _buildHorizontalImageItem(index);
+                },
               ),
             ),
           
-          // 纯文本模式下的图片区域
-          if (_contentType == 'plain_text') ...[
-            // 图片网格区域
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 标题栏
-                    Row(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAFA),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-                          ),
-                          child: const Icon(
-                            Icons.image_outlined,
-                            size: 18,
-                            color: Color(0xFF666666),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          '图片',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A1A1A),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_images.length}',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFF999999),
-                          ),
-                        ),
-                        const Spacer(),
-                        // 添加图片按钮
-                        InkWell(
-                          onTap: _pickImage,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.add,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  '添加',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // 图片网格（4列，正方形铺满）
-                    Expanded(
-                      child: _images.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFAFAFA),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Icon(
-                                      Icons.image_outlined,
-                                      size: 40,
-                                      color: Color(0xFFCCCCCC),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    '暂无图片',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Color(0xFF999999),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    '点击右上角添加按钮添加图片',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFFBBBBBB),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : GridView.builder(
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 1.0,
-                              ),
-                              itemCount: _images.length,
-                              itemBuilder: (context, index) {
-                                return _buildImageItem(index);
-                              },
-                            ),
-                    ),
-                  ],
+          // 底部工具栏（纯文本模式下显示添加图片按钮）
+          if (_contentType == 'plain_text')
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
                 ),
               ),
+              child: Row(
+                children: [
+                  // 图片数量
+                  if (_images.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAFA),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.image_outlined,
+                            size: 14,
+                            color: Color(0xFF666666),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${_images.length}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF666666),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Spacer(),
+                  // 添加图片按钮
+                  InkWell(
+                    onTap: _pickImage,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            '添加图片',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
         ],
       ),
     );
@@ -847,6 +781,27 @@ class _NoteFormPageState extends State<NoteFormPage> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.file(
+          File(_images[index]),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  /// 构建横向图片项（用于底部图片栏）
+  Widget _buildHorizontalImageItem(int index) {
+    return InkWell(
+      onTap: () => _showImagePreview(index),
+      onLongPress: () => _showDeleteImageDialog(index),
+      child: Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
         clipBehavior: Clip.antiAlias,

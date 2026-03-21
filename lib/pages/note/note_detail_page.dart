@@ -28,7 +28,11 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_getTitle(note.content)),
+        title: Text(
+          _getTitle(note.content),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
         actions: [
           // 格式指示器 - 纯文本标记
           if (note.contentType == 'markdown')
@@ -337,15 +341,13 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  /// 获取标题（内容前5个字）
+  /// 获取标题（内容第一行，去除换行）
   String _getTitle(String content) {
     if (content.isEmpty) return '无标题';
     // 移除换行符和多余空格
     final trimmed = content.replaceAll('\n', ' ').trim();
     if (trimmed.isEmpty) return '无标题';
-    // 取前5个字
-    if (trimmed.length <= 5) return trimmed;
-    return '${trimmed.substring(0, 5)}...';
+    return trimmed;
   }
 
   /// 跳转到编辑页面

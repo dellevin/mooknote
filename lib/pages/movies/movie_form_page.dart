@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -150,7 +151,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '请输入豆瓣影视链接：',
+              '请输入分享的豆瓣影视链接：',
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF666666),
@@ -307,6 +308,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
         }
       }
       
+      // 下载封面图
+      if (info['coverUrl'] != null && info['coverUrl'].toString().isNotEmpty) {
+        _downloadCoverFromUrl(info['coverUrl'].toString());
+      }
+      
     });
     
     // 显示成功提示
@@ -314,6 +320,57 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('已自动填充影视信息')),
       );
+    }
+  }
+  
+  /// 从URL下载封面图
+  Future<void> _downloadCoverFromUrl(String url) async {
+    try {
+      // 下载网络图片，添加请求头模拟浏览器
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Referer': 'https://movie.douban.com/',
+        },
+      );
+      
+      if (response.statusCode != 200) {
+        throw Exception('下载失败: HTTP ${response.statusCode}');
+      }
+
+      // 检查内容类型
+      final contentType = response.headers['content-type'];
+      if (contentType != null && !contentType.startsWith('image/')) {
+        throw Exception('链接返回的不是图片');
+      }
+
+      // 检查文件大小（最大 10MB）
+      if (response.bodyBytes.length > 10 * 1024 * 1024) {
+        throw Exception('图片太大');
+      }
+
+      // 生成文件名
+      final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID
+      final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // 保存到新的路径结构
+      final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
+        movieId, 
+        fileName
+      );
+      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+
+      // 写入文件
+      await File(targetPath).writeAsBytes(response.bodyBytes);
+
+      setState(() => _posterPath = targetPath);
+    } catch (e) {
+      // 封面下载失败不影响其他信息填充
+      debugPrint('封面下载失败: $e');
     }
   }
   
@@ -1065,6 +1122,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   _pickCover();
                 },
               ),
+              // 网络链接选项
+              _buildCoverOption(
+                icon: Icons.link_outlined,
+                title: '网络链接',
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickCoverFromUrl();
+                },
+              ),
             ],
           ),
         ),
@@ -1169,6 +1235,122 @@ class _MovieFormPageState extends State<MovieFormPage> {
     } catch (e) {
       if (mounted) {
         ToastUtil.show(context, '选择海报失败: $e');
+      }
+    }
+  }
+  
+  /// 从网络链接选择封面
+  Future<void> _pickCoverFromUrl() async {
+    final urlController = TextEditingController();
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('添加网络图片'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '请输入图片链接地址',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                hintText: 'https://movie.douban.com/image.jpg',
+                hintStyle: TextStyle(color: Color(0xFFCCCCCC)),
+                border: UnderlineInputBorder(),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
+                ),
+              ),
+              style: const TextStyle(fontSize: 14),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确定', style: TextStyle(color: Color(0xFF1A1A1A))),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final url = urlController.text.trim();
+    if (url.isEmpty) {
+      ToastUtil.show(context, '请输入图片链接');
+      return;
+    }
+
+    try {
+      // 下载网络图片，添加请求头模拟浏览器
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Referer': Uri.parse(url).replace(path: '/').toString(),
+        },
+      );
+      
+      if (response.statusCode != 200) {
+        throw Exception('下载失败: HTTP ${response.statusCode}');
+      }
+
+      // 检查内容类型
+      final contentType = response.headers['content-type'];
+      if (contentType != null && !contentType.startsWith('image/')) {
+        throw Exception('链接返回的不是图片，可能是网页或需要登录');
+      }
+
+      // 检查文件大小（最大 10MB）
+      if (response.bodyBytes.length > 10 * 1024 * 1024) {
+        throw Exception('图片太大，请使用小于 10MB 的图片');
+      }
+
+      // 生成文件名
+      final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID
+      final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // 保存到新的路径结构
+      final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
+        movieId, 
+        fileName
+      );
+      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+
+      // 写入文件
+      await File(targetPath).writeAsBytes(response.bodyBytes);
+
+      setState(() => _posterPath = targetPath);
+      
+      if (mounted) {
+        ToastUtil.show(context, '添加成功');
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastUtil.show(context, '添加失败: $e');
       }
     }
   }
