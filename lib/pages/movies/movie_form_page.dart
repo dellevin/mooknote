@@ -402,7 +402,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
             // 封面选择 - 居中显示
             Center(child: _buildCoverPicker()),
@@ -419,124 +419,163 @@ class _MovieFormPageState extends State<MovieFormPage> {
             
             const SizedBox(height: 32),
             
-            // 影视名称
-            _buildHorizontalFormItem(
-              label: '名称',
-              required: true,
-              child: TextFormField(
-                controller: _titleController,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                decoration: const InputDecoration(
-                  hintText: '请输入影视名称',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+            // 信息卡片网格
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                // 第一行：名称 + 别名
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '名称',
+                    value: _titleController.text,
+                    required: true,
+                    icon: Icons.movie_outlined,
+                    onTap: () => _showTextInputDialog(
+                      title: '影视名称',
+                      initialValue: _titleController.text,
+                      hint: '请输入影视名称',
+                      onConfirm: (value) => setState(() => _titleController.text = value),
+                    ),
+                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入影视名称';
-                  }
-                  return null;
-                },
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 别名
-            _buildHorizontalMultiValueItem(
-              label: '别名',
-              values: _alternateTitles,
-              hint: '输入别名',
-              controllerKey: 'alternateTitles',
-              onAdd: (v) => setState(() => _alternateTitles.add(v)),
-              onRemove: (i) => setState(() => _alternateTitles.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 导演
-            _buildHorizontalMultiValueItem(
-              label: '导演',
-              values: _directors,
-              hint: '输入导演姓名',
-              controllerKey: 'directors',
-              onAdd: (v) => setState(() => _directors.add(v)),
-              onRemove: (i) => setState(() => _directors.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 编剧
-            _buildHorizontalMultiValueItem(
-              label: '编剧',
-              values: _writers,
-              hint: '输入编剧姓名',
-              controllerKey: 'writers',
-              onAdd: (v) => setState(() => _writers.add(v)),
-              onRemove: (i) => setState(() => _writers.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 主演
-            _buildHorizontalMultiValueItem(
-              label: '主演',
-              values: _actors,
-              hint: '输入主演姓名',
-              controllerKey: 'actors',
-              onAdd: (v) => setState(() => _actors.add(v)),
-              onRemove: (i) => setState(() => _actors.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 类型（自定义填写，带示例）
-            _buildHorizontalMultiValueItem(
-              label: '类型',
-              values: _genres,
-              hint: '如：剧情、科幻、悬疑',
-              controllerKey: 'genres',
-              onAdd: (v) => setState(() => _genres.add(v)),
-              onRemove: (i) => setState(() => _genres.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 上映日期
-            _buildVerticalDateItem(
-              label: '上映日期',
-              date: _releaseDate,
-              onTap: _selectReleaseDate,
-              onClear: () => setState(() => _releaseDate = null),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 观看日期
-            _buildVerticalDateItem(
-              label: '观看日期',
-              date: _watchDate,
-              onTap: _selectWatchDate,
-              onClear: () => setState(() => _watchDate = null),
-            ),
-
-            const SizedBox(height: 16),
-            
-            // 剧情简介
-            _buildFormItem(
-              label: '剧情简介',
-              child: TextFormField(
-                controller: _summaryController,
-                maxLines: 4,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A), height: 1.5),
-                decoration: const InputDecoration(
-                  hintText: '写下剧情简介...',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '别名',
+                    value: _alternateTitles.isEmpty 
+                        ? '' 
+                        : '${_alternateTitles.length}个：${_alternateTitles.join('、')}',
+                    icon: Icons.alternate_email_outlined,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加别名',
+                      initialValues: _alternateTitles,
+                      hint: '输入别名',
+                      onConfirm: (values) => setState(() => _alternateTitles = values),
+                    ),
+                  ),
                 ),
-              ),
+                
+                // 第二行：导演 + 编剧
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '导演',
+                    value: _directors.isEmpty 
+                        ? '' 
+                        : '${_directors.length}人：${_directors.join('、')}',
+                    icon: Icons.videocam_outlined,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加导演',
+                      initialValues: _directors,
+                      hint: '输入导演姓名',
+                      onConfirm: (values) => setState(() => _directors = values),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '编剧',
+                    value: _writers.isEmpty 
+                        ? '' 
+                        : '${_writers.length}人：${_writers.join('、')}',
+                    icon: Icons.edit_note_outlined,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加编剧',
+                      initialValues: _writers,
+                      hint: '输入编剧姓名',
+                      onConfirm: (values) => setState(() => _writers = values),
+                    ),
+                  ),
+                ),
+                
+                // 第三行：主演 + 类型
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '主演',
+                    value: _actors.isEmpty 
+                        ? '' 
+                        : '${_actors.length}人：${_actors.join('、')}',
+                    icon: Icons.people_outline,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加主演',
+                      initialValues: _actors,
+                      hint: '输入主演姓名',
+                      onConfirm: (values) => setState(() => _actors = values),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '类型',
+                    value: _genres.isEmpty 
+                        ? '' 
+                        : '${_genres.length}个：${_genres.join('、')}',
+                    icon: Icons.category_outlined,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加类型',
+                      initialValues: _genres,
+                      hint: '如：剧情、科幻、悬疑',
+                      onConfirm: (values) => setState(() => _genres = values),
+                    ),
+                  ),
+                ),
+                
+                // 第四行：上映日期 + 观看日期
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '上映日期',
+                    value: _releaseDate != null 
+                        ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}' 
+                        : '',
+                    icon: Icons.theaters_outlined,
+                    onTap: () => _selectReleaseDate(),
+                  ),
+                ),
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '观看日期',
+                    value: _watchDate != null 
+                        ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}' 
+                        : '',
+                    icon: Icons.visibility_outlined,
+                    onTap: () => _selectWatchDate(),
+                  ),
+                ),
+                
+                // 第五行：剧情简介（独占一行）
+                SizedBox(
+                  width: double.infinity,
+                  child: _buildInfoCard(
+                    label: '剧情简介',
+                    value: _summaryController.text,
+                    icon: Icons.description_outlined,
+                    height: 120,
+                    scrollable: true,
+                    onTap: () => _showTextInputDialog(
+                      title: '剧情简介',
+                      initialValue: _summaryController.text,
+                      hint: '写下剧情简介...',
+                      maxLines: 8,
+                      onConfirm: (value) => setState(() => _summaryController.text = value),
+                    ),
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: 48),
@@ -546,6 +585,141 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
+  /// 构建信息卡片（用于网格布局）
+  Widget _buildInfoCard({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+    bool required = false,
+    IconData? icon,
+    double? height,
+    bool scrollable = false,
+  }) {
+    final hasValue = value.isNotEmpty;
+    
+    // 构建值显示部分
+    Widget buildContent() {
+      if (scrollable && height != null) {
+        // 可滚动模式（仅剧情简介使用）
+        return Flexible(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Text(
+              hasValue ? value : '点击填写',
+              style: TextStyle(
+                fontSize: 15,
+                color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      } else {
+        // 普通模式：只显示一行
+        return Text(
+          hasValue ? value : '点击填写',
+          style: TextStyle(
+            fontSize: 15,
+            color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+            fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      }
+    }
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8E8E8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: height != null ? MainAxisSize.max : MainAxisSize.min,
+          children: [
+            // 标签行
+            Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 14, color: const Color(0xFF999999)),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  required ? '$label *' : label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+                    fontWeight: required ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 值显示
+            buildContent(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 显示文本输入对话框
+  Future<void> _showTextInputDialog({
+    required String title,
+    required String initialValue,
+    required Function(String) onConfirm,
+    int maxLines = 1,
+    String hint = '',
+  }) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => _TextInputDialog(
+        title: title,
+        initialValue: initialValue,
+        hint: hint,
+        maxLines: maxLines,
+      ),
+    );
+    
+    if (result != null) {
+      onConfirm(result);
+    }
+  }
+
+  /// 显示多值输入对话框
+  Future<void> _showMultiValueDialog({
+    required String title,
+    required List<String> initialValues,
+    required Function(List<String>) onConfirm,
+    String hint = '',
+  }) async {
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => _MultiValueDialog(
+        title: title,
+        initialValues: initialValues,
+        hint: hint,
+      ),
+    );
+    
+    if (result != null) {
+      onConfirm(result);
+    }
+  }
+
   /// 构建纵向日期条目（标签在上，日期在下）
   Widget _buildVerticalDateItem({
     required String label,
@@ -584,6 +758,102 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
                 ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建卡片式表单条目（带边框背景）
+  Widget _buildCardFormItem({
+    required String label,
+    required Widget child,
+    bool required = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          required ? '$label *' : label,
+          style: TextStyle(
+            fontSize: 13,
+            color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+            fontWeight: required ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFD0D0D0)),
+          ),
+          child: child,
+        ),
+      ],
+    );
+  }
+
+  /// 构建卡片式日期选择项
+  Widget _buildCardDateItem({
+    required String label,
+    required DateTime? date,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFD0D0D0)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 18,
+                  color: date != null ? const Color(0xFF1A1A1A) : const Color(0xFFAAAAAA),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    date != null
+                        ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}'
+                        : '选择日期',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: date != null
+                          ? const Color(0xFF1A1A1A)
+                          : const Color(0xFFAAAAAA),
+                    ),
+                  ),
+                ),
+                if (date != null)
+                  GestureDetector(
+                    onTap: onClear,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEEEEE),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
@@ -631,7 +901,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
 
-  /// 构建横向多值条目（标签在左，内容在右）
+  /// 构建纵向多值条目（标签在上，输入框在下，带添加按钮）
   Widget _buildHorizontalMultiValueItem({
     required String label,
     required List<String> values,
@@ -642,72 +912,116 @@ class _MovieFormPageState extends State<MovieFormPage> {
   }) {
     final controller = _getTagController(controllerKey);
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 48,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
+        // 标签行：标签 + 添加按钮
+        Row(
+          children: [
+            Text(
               label,
               style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
             ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ...values.asMap().entries.map((entry) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        entry.value,
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                      ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => onRemove(entry.key),
-                        child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
-                      ),
-                    ],
+            const Spacer(),
+            // 添加按钮
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, child) {
+                final hasText = value.text.trim().isNotEmpty;
+                return GestureDetector(
+                  onTap: hasText
+                      ? () {
+                          final text = controller.text.trim();
+                          if (text.isNotEmpty && !values.contains(text)) {
+                            onAdd(text);
+                            controller.clear();
+                          }
+                        }
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add,
+                          size: 14,
+                          color: hasText ? Colors.white : const Color(0xFFCCCCCC),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '添加',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: hasText ? Colors.white : const Color(0xFFCCCCCC),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
-              }),
-              // 输入框
-              ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 80, maxWidth: 120),
-                child: TextField(
-                  controller: controller,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                  decoration: InputDecoration(
-                    hintText: values.isEmpty ? hint : '',
-                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCCCC)),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 6),
-                  ),
-                  onSubmitted: (value) {
-                    final trimmed = value.trim();
-                    if (trimmed.isNotEmpty && !values.contains(trimmed)) {
-                      onAdd(trimmed);
-                      controller.clear();
-                    }
-                  },
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // 已选标签
+        if (values.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: values.asMap().entries.map((entry) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ),
-            ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      entry.value,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => onRemove(entry.key),
+                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        if (values.isNotEmpty) const SizedBox(height: 8),
+        // 输入框（带边框背景）
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFD0D0D0)),
+          ),
+          child: TextField(
+            controller: controller,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+            onSubmitted: (value) {
+              final trimmed = value.trim();
+              if (trimmed.isNotEmpty && !values.contains(trimmed)) {
+                onAdd(trimmed);
+                controller.clear();
+              }
+            },
           ),
         ),
       ],
@@ -840,20 +1154,20 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
-  /// 构建状态选择器（靠左显示，带标签）
+  /// 构建状态选择器（简洁风格）
   Widget _buildStatusSelector() {
     return Row(
       children: [
         const Text(
           '状态',
-          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
         ),
         const SizedBox(width: 16),
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFFF0F0F0),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -868,13 +1182,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
-  /// 构建星星评分（5星制，每星2分，支持手动输入）
+  /// 构建星星评分（支持手动输入）
   Widget _buildStarRating() {
     return Row(
       children: [
         const Text(
           '评分',
-          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
         ),
         const SizedBox(width: 16),
         // 星星选择
@@ -928,52 +1242,42 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
   
-  /// 构建评分输入框
+  /// 构建评分输入框（支持0-10，保留1位小数）
   Widget _buildRatingInputField() {
     return Container(
       width: 56,
-      height: 36,
+      height: 32,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: TextFormField(
         controller: _ratingController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
         style: const TextStyle(
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
           color: Color(0xFF1A1A1A),
         ),
         decoration: const InputDecoration(
           hintText: '-',
-          hintStyle: TextStyle(fontSize: 15, color: Color(0xFFCCCCCC)),
+          hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         ),
-        validator: (value) {
-          if (value != null && value.isNotEmpty) {
-            final rating = double.tryParse(value);
-            if (rating == null || rating < 0 || rating > 10) {
-              return '0-10';
-            }
-          }
-          return null;
-        },
         onChanged: (value) {
-          // 限制输入范围
           if (value.isNotEmpty) {
             final rating = double.tryParse(value);
             if (rating != null) {
               if (rating > 10) {
-                _ratingController.text = '10';
+                _ratingController.text = '10.0';
               } else if (rating < 0) {
-                _ratingController.text = '0';
+                _ratingController.text = '0.0';
               }
             }
           }
-          setState(() {}); // 更新星星显示
+          setState(() {});
         },
       ),
     );
@@ -1018,16 +1322,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
     final hasPoster = _posterPath != null && _posterPath!.isNotEmpty;
     
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: _showCoverOptions,
           child: Container(
-            width: 140,
-            height: 200,
+            width: 120,
+            height: 170,
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
-              border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
+              borderRadius: BorderRadius.circular(8),
             ),
+            clipBehavior: Clip.antiAlias,
             child: hasPoster
                 ? Image.file(
                     File(_posterPath!),
@@ -1040,28 +1346,29 @@ class _MovieFormPageState extends State<MovieFormPage> {
         // 清空海报按钮（仅当有海报时显示）
         if (hasPoster)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: 10),
             child: GestureDetector(
               onTap: () => setState(() => _posterPath = null),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.hide_image_outlined,
-                      size: 16,
-                      color: Color(0xFF666666),
+                      Icons.delete_outline,
+                      size: 14,
+                      color: Colors.grey[600],
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      '清空海报',
+                      '移除海报',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF666666),
+                        fontSize: 12,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
@@ -1188,16 +1495,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          Icons.add_photo_alternate_outlined,
-          size: 40,
-          color: Color(0xFF999999),
+          Icons.image_outlined,
+          size: 32,
+          color: Color(0xFFCCCCCC),
         ),
-        SizedBox(height: 12),
+        SizedBox(height: 8),
         Text(
-          '点击添加海报',
+          '海报',
           style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF999999),
+            fontSize: 12,
+            color: Color(0xFFAAAAAA),
           ),
         ),
       ],
@@ -1403,11 +1710,67 @@ class _MovieFormPageState extends State<MovieFormPage> {
     }
   }
   
+  /// 收集所有多值字段输入框中的未提交内容
+  void _collectUnsubmittedValues() {
+    // 别名
+    final alternateTitlesController = _tagControllers['alternateTitles'];
+    if (alternateTitlesController != null) {
+      final value = alternateTitlesController.text.trim();
+      if (value.isNotEmpty && !_alternateTitles.contains(value)) {
+        _alternateTitles.add(value);
+        alternateTitlesController.clear();
+      }
+    }
+    
+    // 导演
+    final directorsController = _tagControllers['directors'];
+    if (directorsController != null) {
+      final value = directorsController.text.trim();
+      if (value.isNotEmpty && !_directors.contains(value)) {
+        _directors.add(value);
+        directorsController.clear();
+      }
+    }
+    
+    // 编剧
+    final writersController = _tagControllers['writers'];
+    if (writersController != null) {
+      final value = writersController.text.trim();
+      if (value.isNotEmpty && !_writers.contains(value)) {
+        _writers.add(value);
+        writersController.clear();
+      }
+    }
+    
+    // 主演
+    final actorsController = _tagControllers['actors'];
+    if (actorsController != null) {
+      final value = actorsController.text.trim();
+      if (value.isNotEmpty && !_actors.contains(value)) {
+        _actors.add(value);
+        actorsController.clear();
+      }
+    }
+    
+    // 类型
+    final genresController = _tagControllers['genres'];
+    if (genresController != null) {
+      final value = genresController.text.trim();
+      if (value.isNotEmpty && !_genres.contains(value)) {
+        _genres.add(value);
+        genresController.clear();
+      }
+    }
+  }
+
   /// 保存影视
   Future<void> _saveMovie() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    
+    // 收集所有多值字段输入框中的未提交内容
+    _collectUnsubmittedValues();
     
     final rating = _ratingController.text.isNotEmpty 
         ? double.tryParse(_ratingController.text) 
@@ -1510,5 +1873,250 @@ class _MovieFormPageState extends State<MovieFormPage> {
     }
     
     return null;
+  }
+}
+
+/// 多值输入对话框组件
+class _MultiValueDialog extends StatefulWidget {
+  final String title;
+  final List<String> initialValues;
+  final String hint;
+
+  const _MultiValueDialog({
+    required this.title,
+    required this.initialValues,
+    required this.hint,
+  });
+
+  @override
+  State<_MultiValueDialog> createState() => _MultiValueDialogState();
+}
+
+class _MultiValueDialogState extends State<_MultiValueDialog> {
+  late List<String> values;
+  final controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    values = List<String>.from(widget.initialValues);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  void _addValue(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isNotEmpty && !values.contains(trimmed)) {
+      setState(() {
+        values.add(trimmed);
+      });
+      controller.clear();
+    }
+  }
+
+  void _removeValue(int index) {
+    setState(() {
+      values.removeAt(index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Text(
+        widget.title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 已添加的值列表
+            if (values.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: values.asMap().entries.map((entry) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          entry.value,
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _removeValue(entry.key),
+                          child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            if (values.isNotEmpty) const SizedBox(height: 16),
+            // 输入框
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                    decoration: InputDecoration(
+                      hintText: widget.hint,
+                      hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    onSubmitted: _addValue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _addValue(controller.text),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.add, size: 20, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // 如果输入框还有内容，先添加
+            _addValue(controller.text);
+            Navigator.pop(context, values);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A1A1A),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('确定'),
+        ),
+      ],
+    );
+  }
+}
+
+/// 文本输入对话框组件
+class _TextInputDialog extends StatefulWidget {
+  final String title;
+  final String initialValue;
+  final String hint;
+  final int maxLines;
+
+  const _TextInputDialog({
+    required this.title,
+    required this.initialValue,
+    required this.hint,
+    required this.maxLines,
+  });
+
+  @override
+  State<_TextInputDialog> createState() => _TextInputDialogState();
+}
+
+class _TextInputDialogState extends State<_TextInputDialog> {
+  late final TextEditingController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Text(
+        widget.title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      content: TextField(
+        controller: controller,
+        maxLines: widget.maxLines,
+        autofocus: true,
+        style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, controller.text.trim()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A1A1A),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('确定'),
+        ),
+      ],
+    );
   }
 }

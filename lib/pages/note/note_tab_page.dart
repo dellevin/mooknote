@@ -177,8 +177,19 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final displayedIds = _displayedNotes.map((n) => n.id).toSet();
     final hasNewNotes = allNotes.any((note) => !displayedIds.contains(note.id));
     
-    // 如果有笔记被移除或有新增，更新列表
-    if (_displayedNotes.length < initialLength || hasNewNotes) {
+    // 检查已存在的笔记是否有更新（通过比较updatedAt）
+    bool hasUpdates = false;
+    for (int i = 0; i < _displayedNotes.length; i++) {
+      final localNote = _displayedNotes[i];
+      final providerNote = allNotes.firstWhere((n) => n.id == localNote.id);
+      if (localNote.updatedAt != providerNote.updatedAt) {
+        hasUpdates = true;
+        break;
+      }
+    }
+    
+    // 如果有笔记被移除、有新增、或有更新，更新列表
+    if (_displayedNotes.length < initialLength || hasNewNotes || hasUpdates) {
       // 清空并重新加载所有数据
       _displayedNotes.clear();
       _displayedNotes.addAll(allNotes);

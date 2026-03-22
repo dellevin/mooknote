@@ -148,160 +148,166 @@ class _BookFormPageState extends State<BookFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
             // 封面选择 - 居中显示
             Center(child: _buildCoverPicker()),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            // 状态选择（靠左显示）
+            // 状态选择（简洁风格）
             _buildStatusSelector(),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // 评分 - 星星选择（靠左显示）
+            // 评分 - 星星选择（简洁风格）
             _buildStarRating(),
 
             const SizedBox(height: 32),
 
-            // 书名
-            _buildHorizontalFormItem(
-              label: '书名',
-              required: true,
-              child: TextFormField(
-                controller: _titleController,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                decoration: const InputDecoration(
-                  hintText: '请输入书名',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+            // 信息卡片网格
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                // 第一行：书名 + 别名
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '书名',
+                    value: _titleController.text,
+                    required: true,
+                    icon: Icons.book_outlined,
+                    onTap: () => _showTextInputDialog(
+                      title: '书名',
+                      initialValue: _titleController.text,
+                      hint: '请输入书名',
+                      onConfirm: (value) => setState(() => _titleController.text = value),
+                    ),
+                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入书名';
-                  }
-                  return null;
-                },
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 别名
-            _buildHorizontalMultiValueItem(
-              label: '别名',
-              values: _alternateTitles,
-              hint: '输入别名',
-              controllerKey: 'alternateTitles',
-              onAdd: (v) => setState(() => _alternateTitles.add(v)),
-              onRemove: (i) => setState(() => _alternateTitles.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 作者
-            _buildHorizontalMultiValueItem(
-              label: '作者',
-              values: _authors,
-              hint: '输入作者姓名',
-              controllerKey: 'authors',
-              onAdd: (v) => setState(() => _authors.add(v)),
-              onRemove: (i) => setState(() => _authors.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 出版社
-            _buildHorizontalFormItem(
-              label: '出版社',
-              child: TextFormField(
-                controller: _publisherController,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                decoration: const InputDecoration(
-                  hintText: '请输入出版社',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '别名',
+                    value: _alternateTitles.isEmpty 
+                        ? '' 
+                        : '${_alternateTitles.length}个：${_alternateTitles.join('、')}',
+                    icon: Icons.alternate_email_outlined,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加别名',
+                      initialValues: _alternateTitles,
+                      hint: '输入别名',
+                      onConfirm: (values) => setState(() => _alternateTitles = values),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 类型
-            _buildHorizontalMultiValueItem(
-              label: '类型',
-              values: _genres,
-              hint: '如：小说、历史、传记',
-              controllerKey: 'genres',
-              onAdd: (v) => setState(() => _genres.add(v)),
-              onRemove: (i) => setState(() => _genres.removeAt(i)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ISBN
-            _buildHorizontalFormItem(
-              label: 'ISBN',
-              child: TextFormField(
-                controller: _isbnController,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                decoration: const InputDecoration(
-                  hintText: '请输入ISBN编号',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                
+                // 第二行：作者 + 出版社
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '作者',
+                    value: _authors.isEmpty 
+                        ? '' 
+                        : '${_authors.length}人：${_authors.join('、')}',
+                    icon: Icons.person_outline,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加作者',
+                      initialValues: _authors,
+                      hint: '输入作者姓名',
+                      onConfirm: (values) => setState(() => _authors = values),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 出版社
-            _buildHorizontalFormItem(
-              label: '出版社',
-              child: TextFormField(
-                controller: _publisherController,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                decoration: const InputDecoration(
-                  hintText: '请输入出版社名称',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '出版社',
+                    value: _publisherController.text,
+                    icon: Icons.business_outlined,
+                    onTap: () => _showTextInputDialog(
+                      title: '出版社',
+                      initialValue: _publisherController.text,
+                      hint: '请输入出版社',
+                      onConfirm: (value) => setState(() => _publisherController.text = value),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 出版时间
-            _buildVerticalDateItem(
-              label: '出版时间',
-              date: _publishDate,
-              onTap: _selectPublishDate,
-              onClear: () => setState(() => _publishDate = null),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 书籍简介
-            _buildFormItem(
-              label: '书籍简介',
-              child: TextFormField(
-                controller: _summaryController,
-                maxLines: 4,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A), height: 1.5),
-                decoration: const InputDecoration(
-                  hintText: '写下书籍简介...',
-                  hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                
+                // 第三行：类型 + ISBN
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '类型',
+                    value: _genres.isEmpty 
+                        ? '' 
+                        : '${_genres.length}个：${_genres.join('、')}',
+                    icon: Icons.category_outlined,
+                    onTap: () => _showMultiValueDialog(
+                      title: '添加类型',
+                      initialValues: _genres,
+                      hint: '如：小说、历史、传记',
+                      onConfirm: (values) => setState(() => _genres = values),
+                    ),
+                  ),
                 ),
-              ),
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: 'ISBN',
+                    value: _isbnController.text,
+                    icon: Icons.qr_code_outlined,
+                    onTap: () => _showTextInputDialog(
+                      title: 'ISBN',
+                      initialValue: _isbnController.text,
+                      hint: '请输入ISBN编号',
+                      onConfirm: (value) => setState(() => _isbnController.text = value),
+                    ),
+                  ),
+                ),
+                
+                // 第四行：出版时间（独占一行）
+                SizedBox(
+                  width: double.infinity,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '出版时间',
+                    value: _publishDate != null 
+                        ? '${_publishDate!.year}.${_publishDate!.month.toString().padLeft(2, '0')}.${_publishDate!.day.toString().padLeft(2, '0')}' 
+                        : '',
+                    icon: Icons.date_range_outlined,
+                    onTap: () => _selectPublishDate(),
+                  ),
+                ),
+                
+                // 第五行：书籍简介（独占一行）
+                SizedBox(
+                  width: double.infinity,
+                  child: _buildInfoCard(
+                    label: '书籍简介',
+                    value: _summaryController.text,
+                    icon: Icons.description_outlined,
+                    height: 120,
+                    scrollable: true,
+                    onTap: () => _showTextInputDialog(
+                      title: '书籍简介',
+                      initialValue: _summaryController.text,
+                      hint: '写下书籍简介...',
+                      maxLines: 8,
+                      onConfirm: (value) => setState(() => _summaryController.text = value),
+                    ),
+                  ),
+                ),
+              ],
             ),
-
+            
             const SizedBox(height: 48),
           ],
         ),
@@ -560,20 +566,111 @@ class _BookFormPageState extends State<BookFormPage> {
   }
   
 
-  /// 构建状态选择器（靠左显示，带标签）
+  /// 构建信息卡片（用于网格布局）
+  Widget _buildInfoCard({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+    bool required = false,
+    IconData? icon,
+    double? height,
+    bool scrollable = false,
+  }) {
+    final hasValue = value.isNotEmpty;
+      
+    // 构建值显示部分
+    Widget buildContent() {
+      if (scrollable && height != null) {
+        // 可滚动模式（仅书籍简介使用）
+        return Flexible(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Text(
+              hasValue ? value : '点击填写',
+              style: TextStyle(
+                fontSize: 15,
+                color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      } else {
+        // 普通模式：只显示一行
+        return Text(
+          hasValue ? value : '点击填写',
+          style: TextStyle(
+            fontSize: 15,
+            color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+            fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      }
+    }
+      
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8E8E8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: height != null ? MainAxisSize.max : MainAxisSize.min,
+          children: [
+            // 标签行
+            Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 14, color: const Color(0xFF999999)),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  required ? '$label *' : label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+                    fontWeight: required ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 值显示
+            buildContent(),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// 构建状态选择器（简洁风格）
   Widget _buildStatusSelector() {
     return Row(
       children: [
         const Text(
           '状态',
-          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
         ),
         const SizedBox(width: 16),
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFFF0F0F0),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -588,13 +685,13 @@ class _BookFormPageState extends State<BookFormPage> {
     );
   }
 
-  /// 构建星星评分（5星制，每星2分，支持手动输入）
+  /// 构建星星评分（支持手动输入）
   Widget _buildStarRating() {
     return Row(
       children: [
         const Text(
           '评分',
-          style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
         ),
         const SizedBox(width: 16),
         // 星星选择
@@ -648,52 +745,42 @@ class _BookFormPageState extends State<BookFormPage> {
     );
   }
 
-  /// 构建评分输入框
+  /// 构建评分输入框（支持0-10，保留1位小数）
   Widget _buildRatingInputField() {
     return Container(
       width: 56,
-      height: 36,
+      height: 32,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: TextFormField(
         controller: _ratingController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
         style: const TextStyle(
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
           color: Color(0xFF1A1A1A),
         ),
         decoration: const InputDecoration(
           hintText: '-',
-          hintStyle: TextStyle(fontSize: 15, color: Color(0xFFCCCCCC)),
+          hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         ),
-        validator: (value) {
-          if (value != null && value.isNotEmpty) {
-            final rating = double.tryParse(value);
-            if (rating == null || rating < 0 || rating > 10) {
-              return '0-10';
-            }
-          }
-          return null;
-        },
         onChanged: (value) {
-          // 限制输入范围
           if (value.isNotEmpty) {
             final rating = double.tryParse(value);
             if (rating != null) {
               if (rating > 10) {
-                _ratingController.text = '10';
+                _ratingController.text = '10.0';
               } else if (rating < 0) {
-                _ratingController.text = '0';
+                _ratingController.text = '0.0';
               }
             }
           }
-          setState(() {}); // 更新星星显示
+          setState(() {});
         },
       ),
     );
@@ -806,16 +893,18 @@ class _BookFormPageState extends State<BookFormPage> {
     final hasCover = _coverPath != null && _coverPath!.isNotEmpty;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: _pickCover,
           child: Container(
-            width: 140,
-            height: 200,
+            width: 120,
+            height: 170,
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
-              border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
+              borderRadius: BorderRadius.circular(8),
             ),
+            clipBehavior: Clip.antiAlias,
             child: hasCover
                 ? Image.file(
                     File(_coverPath!),
@@ -828,28 +917,29 @@ class _BookFormPageState extends State<BookFormPage> {
         // 清空封面按钮（仅当有封面时显示）
         if (hasCover)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: 10),
             child: GestureDetector(
               onTap: () => setState(() => _coverPath = null),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.hide_image_outlined,
-                      size: 16,
-                      color: Color(0xFF666666),
+                      Icons.delete_outline,
+                      size: 14,
+                      color: Colors.grey[600],
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      '清空封面',
+                      '移除封面',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF666666),
+                        fontSize: 12,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
@@ -866,16 +956,16 @@ class _BookFormPageState extends State<BookFormPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          Icons.add_photo_alternate_outlined,
-          size: 40,
-          color: Color(0xFF999999),
+          Icons.image_outlined,
+          size: 32,
+          color: Color(0xFFCCCCCC),
         ),
-        SizedBox(height: 12),
+        SizedBox(height: 8),
         Text(
-          '点击添加封面',
+          '封面',
           style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF999999),
+            fontSize: 12,
+            color: Color(0xFFAAAAAA),
           ),
         ),
       ],
@@ -1255,5 +1345,294 @@ class _BookFormPageState extends State<BookFormPage> {
     }
     
     return null;
+  }
+
+  /// 显示文本输入对话框
+  Future<void> _showTextInputDialog({
+    required String title,
+    required String initialValue,
+    required Function(String) onConfirm,
+    int maxLines = 1,
+    String hint = '',
+  }) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => _TextInputDialog(
+        title: title,
+        initialValue: initialValue,
+        hint: hint,
+        maxLines: maxLines,
+      ),
+    );
+    
+    if (result != null) {
+      onConfirm(result);
+    }
+  }
+
+  /// 显示多值输入对话框
+  Future<void> _showMultiValueDialog({
+    required String title,
+    required List<String> initialValues,
+    required String hint,
+    required Function(List<String>) onConfirm,
+  }) async {
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => _MultiValueDialog(
+        title: title,
+        initialValues: initialValues,
+        hint: hint,
+      ),
+    );
+    
+    if (result != null) {
+      onConfirm(result);
+    }
+  }
+}
+
+/// 文本输入对话框组件
+class _TextInputDialog extends StatefulWidget {
+  final String title;
+  final String initialValue;
+  final String hint;
+  final int maxLines;
+
+  const _TextInputDialog({
+    required this.title,
+    required this.initialValue,
+    required this.hint,
+    required this.maxLines,
+  });
+
+  @override
+  State<_TextInputDialog> createState() => _TextInputDialogState();
+}
+
+class _TextInputDialogState extends State<_TextInputDialog> {
+  late final TextEditingController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Text(
+        widget.title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      content: TextField(
+        controller: controller,
+        maxLines: widget.maxLines,
+        autofocus: true,
+        style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, controller.text.trim()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A1A1A),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('确定'),
+        ),
+      ],
+    );
+  }
+}
+
+/// 多值输入对话框组件
+class _MultiValueDialog extends StatefulWidget {
+  final String title;
+  final List<String> initialValues;
+  final String hint;
+
+  const _MultiValueDialog({
+    required this.title,
+    required this.initialValues,
+    required this.hint,
+  });
+
+  @override
+  State<_MultiValueDialog> createState() => _MultiValueDialogState();
+}
+
+class _MultiValueDialogState extends State<_MultiValueDialog> {
+  late List<String> values;
+  final controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    values = List<String>.from(widget.initialValues);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  void _addValue(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isNotEmpty && !values.contains(trimmed)) {
+      setState(() {
+        values.add(trimmed);
+      });
+      controller.clear();
+    }
+  }
+
+  void _removeValue(int index) {
+    setState(() {
+      values.removeAt(index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Text(
+        widget.title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 已添加的值列表
+            if (values.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: values.asMap().entries.map((entry) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          entry.value,
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _removeValue(entry.key),
+                          child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            if (values.isNotEmpty) const SizedBox(height: 16),
+            // 输入框
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                    decoration: InputDecoration(
+                      hintText: widget.hint,
+                      hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    onSubmitted: _addValue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _addValue(controller.text),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.add, size: 20, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // 如果输入框还有内容，先添加
+            _addValue(controller.text);
+            Navigator.pop(context, values);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A1A1A),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('确定'),
+        ),
+      ],
+    );
   }
 }

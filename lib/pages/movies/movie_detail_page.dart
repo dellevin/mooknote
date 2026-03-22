@@ -11,6 +11,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
+import 'movie_share_page.dart';
 
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
@@ -45,87 +46,125 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          // 顶部海报区域
-          _buildSliverAppBar(movie),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              // 顶部海报区域
+              _buildSliverAppBar(movie),
+              
+              // 内容区域
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 基本信息
+                    _buildBasicInfo(movie),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 导演
+                    if (movie.directors.isNotEmpty)
+                      _buildDirectorsSection(movie),
+                    
+                    // 编剧
+                    if (movie.writers.isNotEmpty)
+                      _buildWritersSection(movie),
+                    
+                    // 主演
+                    if (movie.actors.isNotEmpty)
+                      _buildActorsSection(movie),
+                    
+                    // 类型
+                    if (movie.genres.isNotEmpty)
+                      _buildGenresSection(movie),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 简介
+                    if (movie.summary != null && movie.summary!.isNotEmpty)
+                      _buildSummarySection(movie),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 影评和海报墙入口
+                    _buildExtraSections(movie),
+                    
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
+            ],
+          ),
           
-          // 内容区域
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 基本信息
-                _buildBasicInfo(movie),
-                
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-                
-                // 导演
-                if (movie.directors.isNotEmpty)
-                  _buildDirectorsSection(movie),
-                
-                // 编剧
-                if (movie.writers.isNotEmpty)
-                  _buildWritersSection(movie),
-                
-                // 主演
-                if (movie.actors.isNotEmpty)
-                  _buildActorsSection(movie),
-                
-                // 类型
-                if (movie.genres.isNotEmpty)
-                  _buildGenresSection(movie),
-                
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-                
-                // 简介
-                if (movie.summary != null && movie.summary!.isNotEmpty)
-                  _buildSummarySection(movie),
-                
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-                
-                // 影评和海报墙入口
-                _buildExtraSections(movie),
-                
-                const SizedBox(height: 48),
-              ],
-            ),
+          // 右下角悬浮按钮组
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: _buildFloatingActionButtons(movie),
           ),
         ],
       ),
-      
-      // 底部无操作栏，编辑和删除在右上角
     );
   }
   
-  /// 构建右上角操作按钮
-  Widget _buildActionButton({
+  /// 构建右下角悬浮按钮组
+  Widget _buildFloatingActionButtons(Movie movie) {
+    final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 删除按钮
+        _buildFloatingButton(
+          icon: Icons.delete_outline,
+          onPressed: () => _showDeleteDialog(context),
+          tooltip: '删除',
+          backgroundColor: Colors.red,
+        ),
+        const SizedBox(height: 12),
+        // 清空海报按钮（仅当有海报时显示）
+        if (hasPoster) ...[
+          _buildFloatingButton(
+            icon: Icons.hide_image_outlined,
+            onPressed: () => _showClearPosterDialog(movie),
+            tooltip: '清空海报',
+          ),
+          const SizedBox(height: 12),
+        ],
+        // 编辑按钮
+        _buildFloatingButton(
+          icon: Icons.edit_outlined,
+          onPressed: () => _navigateToEdit(context),
+          tooltip: '编辑',
+        ),
+        const SizedBox(height: 12),
+        // 分享按钮
+        _buildFloatingButton(
+          icon: Icons.share_outlined,
+          onPressed: () => _showSharePoster(movie),
+          tooltip: '分享海报',
+          backgroundColor: const Color(0xFF4CAF50),
+        ),
+      ],
+    );
+  }
+
+  /// 构建单个悬浮按钮
+  Widget _buildFloatingButton({
     required IconData icon,
     required VoidCallback onPressed,
     required String tooltip,
-    Color color = const Color(0xFF666666),
+    Color backgroundColor = const Color(0xFF1A1A1A),
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: Icon(
-              icon,
-              color: color,
-              size: 22,
-            ),
-          ),
-        ),
-      ),
+    return FloatingActionButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      backgroundColor: backgroundColor,
+      foregroundColor: Colors.white,
+      mini: true,
+      elevation: 4,
+      child: Icon(icon, size: 20),
     );
   }
 
@@ -157,8 +196,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   /// 构建顶部 AppBar
   Widget _buildSliverAppBar(Movie movie) {
-    final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
-    
     return SliverAppBar(
       expandedHeight: 320,
       pinned: true,
@@ -167,29 +204,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       flexibleSpace: FlexibleSpaceBar(
         background: _buildPosterSection(movie),
       ),
-      actions: [
-        // 清空海报按钮（仅当有海报时显示）
-        if (hasPoster)
-          _buildActionButton(
-            icon: Icons.hide_image_outlined,
-            onPressed: () => _showClearPosterDialog(movie),
-            tooltip: '清空海报',
-          ),
-        // 编辑按钮
-        _buildActionButton(
-          icon: Icons.edit_outlined,
-          onPressed: () => _navigateToEdit(context),
-          tooltip: '编辑',
-        ),
-        // 删除按钮
-        _buildActionButton(
-          icon: Icons.delete_outline,
-          color: Colors.red,
-          onPressed: () => _showDeleteDialog(context),
-          tooltip: '删除',
-        ),
-        const SizedBox(width: 8),
-      ],
+      // 右上角按钮已移到右下角悬浮按钮
     );
   }
   
@@ -849,5 +864,15 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     // 简化处理，实际可以通过 platform channel 获取
     // 这里默认返回较低版本，使用传统存储权限
     return 30;
+  }
+
+  /// 显示分享海报页面
+  void _showSharePoster(Movie movie) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovieSharePage(movie: movie),
+      ),
+    );
   }
 }

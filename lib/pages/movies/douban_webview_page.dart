@@ -318,6 +318,8 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
             if (roleEl && (
             roleEl.textContent.includes('配音') || 
             roleEl.textContent.includes('主演') || 
+            roleEl.textContent.includes('演员') ||
+            roleEl.textContent.includes('参演') ||  
             roleEl.textContent.includes('饰')
             )) {
               const nameEl = el.querySelector('.name');

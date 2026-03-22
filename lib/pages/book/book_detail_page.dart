@@ -8,6 +8,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
+import 'book_share_page.dart';
 
 /// 书籍详情页 - 极简主义设计
 class BookDetailPage extends StatefulWidget {
@@ -42,90 +43,128 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          // 顶部封面区域
-          _buildSliverAppBar(book),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              // 顶部封面区域
+              _buildSliverAppBar(book),
 
-          // 内容区域
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 基本信息
-                _buildBasicInfo(book),
-                
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-                
-                // 作者信息
-                _buildAuthorsSection(book),
+              // 内容区域
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 基本信息
+                    _buildBasicInfo(book),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 作者信息
+                    _buildAuthorsSection(book),
 
-                // 类型
-                if (book.genres.isNotEmpty)
-                  _buildGenresSection(book),
+                    // 类型
+                    if (book.genres.isNotEmpty)
+                      _buildGenresSection(book),
 
-                // ISBN
-                if (book.isbn != null && book.isbn!.isNotEmpty)
-                  _buildIsbnSection(book),
+                    // ISBN
+                    if (book.isbn != null && book.isbn!.isNotEmpty)
+                      _buildIsbnSection(book),
 
-                // 出版社
-                if (book.publisher != null && book.publisher!.isNotEmpty)
-                  _buildPublisherSection(book),
+                    // 出版社
+                    if (book.publisher != null && book.publisher!.isNotEmpty)
+                      _buildPublisherSection(book),
 
-                // 出版时间
-                if (book.publishDate != null)
-                  _buildPublishDateSection(book),
-                
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-                
-                // 简介
-                if (book.summary != null && book.summary!.isNotEmpty)
-                  _buildSummarySection(book),
+                    // 出版时间
+                    if (book.publishDate != null)
+                      _buildPublishDateSection(book),
+                    
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    
+                    // 简介
+                    if (book.summary != null && book.summary!.isNotEmpty)
+                      _buildSummarySection(book),
 
-                const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+                    const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
 
-                // 书评和摘抄入口
-                _buildExtraSections(book),
+                    // 书评和摘抄入口
+                    _buildExtraSections(book),
 
-                const SizedBox(height: 48),
-              ],
-            ),
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          // 右下角悬浮按钮组
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: _buildFloatingActionButtons(book),
           ),
         ],
       ),
-      
-      // 底部无操作栏，编辑和删除在右上角
     );
   }
   
-  /// 构建右上角操作按钮
-  Widget _buildActionButton({
+  /// 构建右下角悬浮按钮组
+  Widget _buildFloatingActionButtons(Book book) {
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 删除按钮
+        _buildFloatingButton(
+          icon: Icons.delete_outline,
+          onPressed: () => _showDeleteDialog(context),
+          tooltip: '删除',
+          backgroundColor: Colors.red,
+        ),
+        const SizedBox(height: 12),
+        // 清空封面按钮（仅当有封面时显示）
+        if (hasCover) ...[
+          _buildFloatingButton(
+            icon: Icons.hide_image_outlined,
+            onPressed: () => _showClearCoverDialog(book),
+            tooltip: '清空封面',
+          ),
+          const SizedBox(height: 12),
+        ],
+        // 编辑按钮
+        _buildFloatingButton(
+          icon: Icons.edit_outlined,
+          onPressed: () => _navigateToEdit(context),
+          tooltip: '编辑',
+        ),
+        const SizedBox(height: 12),
+        // 分享按钮
+        _buildFloatingButton(
+          icon: Icons.share_outlined,
+          onPressed: () => _showSharePoster(book),
+          tooltip: '分享海报',
+          backgroundColor: const Color(0xFF4CAF50),
+        ),
+      ],
+    );
+  }
+
+  /// 构建单个悬浮按钮
+  Widget _buildFloatingButton({
     required IconData icon,
     required VoidCallback onPressed,
     required String tooltip,
-    Color color = const Color(0xFF666666),
+    Color backgroundColor = const Color(0xFF1A1A1A),
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: Icon(
-              icon,
-              color: color,
-              size: 22,
-            ),
-          ),
-        ),
-      ),
+    return FloatingActionButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      backgroundColor: backgroundColor,
+      foregroundColor: Colors.white,
+      mini: true,
+      elevation: 4,
+      child: Icon(icon, size: 20),
     );
   }
 
@@ -157,8 +196,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   /// 构建顶部 AppBar
   Widget _buildSliverAppBar(Book book) {
-    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
-
     return SliverAppBar(
       expandedHeight: 320,
       pinned: true,
@@ -167,29 +204,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       flexibleSpace: FlexibleSpaceBar(
         background: _buildCoverSection(book),
       ),
-      actions: [
-        // 清空封面按钮（仅当有封面时显示）
-        if (hasCover)
-          _buildActionButton(
-            icon: Icons.hide_image_outlined,
-            onPressed: () => _showClearCoverDialog(book),
-            tooltip: '清空封面',
-          ),
-        // 编辑按钮
-        _buildActionButton(
-          icon: Icons.edit_outlined,
-          onPressed: () => _navigateToEdit(context),
-          tooltip: '编辑',
-        ),
-        // 删除按钮
-        _buildActionButton(
-          icon: Icons.delete_outline,
-          color: Colors.red,
-          onPressed: () => _showDeleteDialog(context),
-          tooltip: '删除',
-        ),
-        const SizedBox(width: 8),
-      ],
+      // 右上角按钮已移到右下角悬浮按钮
     );
   }
 
@@ -874,5 +889,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } catch (e) {
       ToastUtil.show(context, '下载失败: $e');
     }
+  }
+
+  /// 显示分享海报页面
+  void _showSharePoster(Book book) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookSharePage(book: book),
+      ),
+    );
   }
 }
