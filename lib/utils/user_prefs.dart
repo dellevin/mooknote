@@ -59,4 +59,10 @@ class UserPrefs {
   /// 是否显示笔记标签
   bool get showNoteTab => prefs.getBool('showNoteTab') ?? true;
   Future<bool> setShowNoteTab(bool value) => prefs.setBool('showNoteTab', value);
+
+  // ========== 应用图标设置 ==========
+
+  /// 当前选中的应用图标名称（对应 assets/icon/ 下的文件名，不含扩展名）
+  String get appIconName => prefs.getString('appIconName') ?? 'app_icon';
+  Future<bool> setAppIconName(String value) => prefs.setString('appIconName', value);
 }

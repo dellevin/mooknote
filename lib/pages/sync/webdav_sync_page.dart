@@ -21,6 +21,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   bool _isLoading = false;
   bool _isConfigured = false;
   bool _obscurePassword = true;
+  bool _isAutoSyncEnabled = false;
+  int _autoSyncInterval = 5; // 默认5分钟
   SyncDirection _syncDirection = SyncDirection.upload;
   
   @override
@@ -50,6 +52,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         _isConfigured = true;
       });
     }
+    
+    // 加载自动同步设置
+    final autoSyncEnabled = await WebDAVService.instance.isAutoSyncEnabled();
+    final autoSyncInterval = await WebDAVService.instance.getAutoSyncInterval();
+    setState(() {
+      _isAutoSyncEnabled = autoSyncEnabled;
+      _autoSyncInterval = autoSyncInterval;
+    });
   }
   
   /// 保存配置
@@ -109,6 +119,13 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+  
+  /// 安全显示 Toast
+  void _safeShowToast(String message) {
+    if (mounted) {
+      ToastUtil.show(context, message);
     }
   }
   
@@ -174,6 +191,94 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         ],
       ),
     );
+  }
+  
+  /// 切换自动同步
+  Future<void> _toggleAutoSync(bool value) async {
+    setState(() => _isLoading = true);
+    
+    try {
+      if (value) {
+        await WebDAVService.instance.startAutoSync();
+        if (mounted) {
+          ToastUtil.show(context, '自动同步已开启，每 $_autoSyncInterval 分钟同步一次');
+        }
+      } else {
+        await WebDAVService.instance.stopAutoSync();
+        if (mounted) {
+          ToastUtil.show(context, '自动同步已关闭');
+        }
+      }
+      
+      setState(() => _isAutoSyncEnabled = value);
+    } catch (e) {
+      if (mounted) {
+        ToastUtil.show(context, '设置失败: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+  
+  /// 显示间隔选择器
+  Future<void> _showIntervalPicker() async {
+    final intervals = [1, 3, 5, 10, 15, 30, 60];
+    
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('选择同步间隔'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: intervals.length,
+            itemBuilder: (context, index) {
+              final interval = intervals[index];
+              return ListTile(
+                title: Text('$interval 分钟'),
+                trailing: _autoSyncInterval == interval
+                    ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
+                    : null,
+                onTap: () => Navigator.pop(context, interval),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
+          ),
+        ],
+      ),
+    );
+    
+    if (selected != null && selected != _autoSyncInterval) {
+      setState(() => _isLoading = true);
+      
+      try {
+        await WebDAVService.instance.setAutoSyncInterval(selected);
+        setState(() => _autoSyncInterval = selected);
+        
+        if (mounted) {
+          ToastUtil.show(context, '同步间隔已设置为 $selected 分钟');
+        }
+      } catch (e) {
+        if (mounted) {
+          ToastUtil.show(context, '设置失败: $e');
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
   }
   
   /// 清除配置
@@ -374,8 +479,109 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   if (_isConfigured) ...[
                     const SizedBox(height: 32),
                     
+                    // 自动同步设置
+                    _buildSectionTitle('自动同步'),
+                    const SizedBox(height: 16),
+                    
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAFA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      '启用自动同步',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF1A1A1A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '修改后自动上传，每 $_autoSyncInterval 分钟同步一次',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF666666),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: _isAutoSyncEnabled,
+                                onChanged: _isLoading ? null : _toggleAutoSync,
+                                activeTrackColor: const Color(0xFF1A1A1A),
+                              ),
+                            ],
+                          ),
+                          
+                          if (_isAutoSyncEnabled) ...[
+                            const SizedBox(height: 16),
+                            const Divider(height: 1, color: Color(0xFFE8E8E8)),
+                            const SizedBox(height: 16),
+                            
+                            Row(
+                              children: [
+                                const Text(
+                                  '同步间隔',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF1A1A1A),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _isLoading ? null : _showIntervalPicker,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFFE8E8E8)),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '$_autoSyncInterval 分钟',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF1A1A1A),
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.arrow_forward_ios,
+                                            size: 14,
+                                            color: Color(0xFF999999),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
                     // 同步操作区域
-                    _buildSectionTitle('数据同步'),
+                    _buildSectionTitle('手动同步'),
                     const SizedBox(height: 16),
                     
                     Container(
@@ -550,9 +756,9 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           const SizedBox(height: 10),
           _buildInfoItem('服务器地址需包含协议（http:// 或 https://）'),
           const SizedBox(height: 10),
-          _buildInfoItem('同步前请确保服务器可用且空间充足'),
+          _buildInfoItem('数据文件和图片分开存储，支持多设备同步'),
           const SizedBox(height: 10),
-          _buildInfoItem('首次同步将上传所有数据，后续只同步变更'),
+          _buildInfoItem('开启自动同步后，修改将自动上传云端'),
         ],
       ),
     );

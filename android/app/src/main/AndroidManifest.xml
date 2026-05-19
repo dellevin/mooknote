@@ -17,11 +17,38 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+        </activity>
+        
+        <!-- 图标1: 默认图标 -->
+        <activity-alias
+            android:name=".MainActivityIcon1"
+            android:targetActivity=".MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:label="MookNote">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
+        </activity-alias>
+        
+        <!-- 图标2: 风格二 -->
+        <activity-alias
+            android:name=".MainActivityIcon2"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher2"
+            android:roundIcon="@mipmap/ic_launcher2"
+            android:label="MookNote">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

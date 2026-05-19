@@ -14,6 +14,7 @@ import 'recycle_bin_page.dart';
 import 'sync/backup_page.dart';
 import 'statistics_page.dart';
 import 'sync/cloud_sync_page.dart';
+import 'app_icon_picker_page.dart';
 
 /// 个人中心页面 - 极简主义设计
 class ProfilePage extends StatefulWidget {
@@ -695,7 +696,21 @@ class SettingsPage extends StatelessWidget {
           const Divider(height: 0.5, indent: 24, endIndent: 24),
 
           // 主界面功能显示入口
-          _buildSectionHeader('主界面显示'),
+          _buildSectionHeader('个性化设置'),
+          _buildNavigationItem(
+            icon: Icons.apps_outlined,
+            title: '应用图标',
+            subtitle: '更换桌面应用图标',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AppIconPickerPage(),
+                ),
+              );
+            },
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
           _buildNavigationItem(
             icon: Icons.view_list_outlined,
             title: '主界面功能显示',
