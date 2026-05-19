@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import '../database_helper.dart';
+import '../user_prefs.dart';
 
 /// WebDAV 同步结果
 class SyncResult {
@@ -237,6 +238,8 @@ class WebDAVService {
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
       final dbUrl = '$baseUrl$path/mooknote.db';
       final imagesUrl = '$baseUrl$path/images';
+      final avatarsUrl = '$baseUrl$path/avatars';
+      final userConfigUrl = '$baseUrl$path/user_config.json';
       
       final client = http.Client();
       int uploadedFiles = 0;
@@ -257,6 +260,13 @@ class WebDAVService {
           final imageResult = await _syncImages(client, imagesUrl, username, password, SyncDirection.upload);
           uploadedImages = imageResult.uploaded;
           
+          // 上传头像
+          final avatarResult = await _syncAvatars(client, avatarsUrl, username, password, SyncDirection.upload);
+          uploadedImages += avatarResult.uploaded;
+          
+          // 上传用户配置
+          await _uploadUserConfig(client, userConfigUrl, username, password);
+          
         } else if (direction == SyncDirection.download) {
           // 下载数据库文件
           final tempDbFile = File('${dbFile.parent.path}/mooknote_download.db');
@@ -275,6 +285,13 @@ class WebDAVService {
           final imageResult = await _syncImages(client, imagesUrl, username, password, SyncDirection.download);
           downloadedImages = imageResult.downloaded;
           
+          // 下载头像
+          final avatarResult = await _syncAvatars(client, avatarsUrl, username, password, SyncDirection.download);
+          downloadedImages += avatarResult.downloaded;
+          
+          // 下载并恢复用户配置
+          await _downloadUserConfig(client, userConfigUrl, username, password);
+          
         } else if (direction == SyncDirection.bidirectional) {
           // 双向同步：分别同步数据库和图片
           final dbResult = await _syncDatabaseFile(client, dbUrl, username, password, dbFile);
@@ -288,6 +305,15 @@ class WebDAVService {
           final imageResult = await _syncImagesBidirectional(client, imagesUrl, username, password);
           uploadedImages = imageResult.uploaded;
           downloadedImages = imageResult.downloaded;
+          
+          // 双向同步头像
+          final avatarResult = await _syncAvatarsBidirectional(client, avatarsUrl, username, password);
+          uploadedImages += avatarResult.uploaded;
+          downloadedImages += avatarResult.downloaded;
+          
+          // 双向同步用户配置：先下载远程，再上传本地
+          await _downloadUserConfig(client, userConfigUrl, username, password);
+          await _uploadUserConfig(client, userConfigUrl, username, password);
         }
         
         final prefs = await SharedPreferences.getInstance();
@@ -410,7 +436,177 @@ class WebDAVService {
     return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
   }
   
-
+  /// 同步头像目录
+  Future<_ImageSyncResult> _syncAvatars(
+    http.Client client,
+    String avatarsUrl,
+    String username,
+    String password,
+    SyncDirection direction,
+  ) async {
+    int uploaded = 0;
+    int downloaded = 0;
+    
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final localAvatarsDir = Directory('${appDir.path}/avatars');
+      
+      if (!await localAvatarsDir.exists()) {
+        if (direction == SyncDirection.download) {
+          await localAvatarsDir.create(recursive: true);
+        } else {
+          return _ImageSyncResult(uploaded: 0, downloaded: 0);
+        }
+      }
+      
+      final localAvatars = <String, File>{};
+      await _collectLocalImages(localAvatarsDir, localAvatars, '');
+      
+      final remoteAvatars = await _listRemoteImagesRecursive(client, avatarsUrl, username, password, '');
+      
+      if (direction == SyncDirection.upload) {
+        for (final entry in localAvatars.entries) {
+          final remoteUrl = '$avatarsUrl/${entry.key}';
+          final parentPath = p.dirname(entry.key);
+          if (parentPath != '.' && parentPath.isNotEmpty) {
+            await _ensureRemoteDir(client, '$avatarsUrl/$parentPath', username, password);
+          }
+          final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
+          if (success) uploaded++;
+        }
+      } else if (direction == SyncDirection.download) {
+        for (final relativePath in remoteAvatars) {
+          final remoteUrl = '$avatarsUrl/$relativePath';
+          final localFile = File('${localAvatarsDir.path}/$relativePath');
+          await localFile.parent.create(recursive: true);
+          final success = await _downloadFile(client, remoteUrl, username, password, localFile);
+          if (success) downloaded++;
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    
+    return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
+  }
+  
+  /// 双向同步头像目录
+  Future<_ImageSyncResult> _syncAvatarsBidirectional(
+    http.Client client,
+    String avatarsUrl,
+    String username,
+    String password,
+  ) async {
+    int uploaded = 0;
+    int downloaded = 0;
+    
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final localAvatarsDir = Directory('${appDir.path}/avatars');
+      
+      if (!await localAvatarsDir.exists()) {
+        await localAvatarsDir.create(recursive: true);
+      }
+      
+      final localAvatars = <String, File>{};
+      await _collectLocalImages(localAvatarsDir, localAvatars, '');
+      
+      final remoteAvatars = await _listRemoteImagesRecursive(client, avatarsUrl, username, password, '');
+      
+      for (final entry in localAvatars.entries) {
+        if (!remoteAvatars.contains(entry.key)) {
+          final remoteUrl = '$avatarsUrl/${entry.key}';
+          final parentPath = p.dirname(entry.key);
+          if (parentPath != '.' && parentPath.isNotEmpty) {
+            await _ensureRemoteDir(client, '$avatarsUrl/$parentPath', username, password);
+          }
+          final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
+          if (success) uploaded++;
+        }
+      }
+      
+      for (final relativePath in remoteAvatars) {
+        if (!localAvatars.containsKey(relativePath)) {
+          final remoteUrl = '$avatarsUrl/$relativePath';
+          final localFile = File('${localAvatarsDir.path}/$relativePath');
+          await localFile.parent.create(recursive: true);
+          final success = await _downloadFile(client, remoteUrl, username, password, localFile);
+          if (success) downloaded++;
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    
+    return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
+  }
+  
+  /// 上传用户配置
+  Future<void> _uploadUserConfig(
+    http.Client client,
+    String userConfigUrl,
+    String username,
+    String password,
+  ) async {
+    try {
+      final userPrefs = UserPrefs();
+      final config = {
+        'nickname': userPrefs.nickname,
+        'motto': userPrefs.motto,
+        'avatarPath': userPrefs.avatarPath,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      
+      final request = http.Request('PUT', Uri.parse(userConfigUrl));
+      request.headers['Authorization'] = _basicAuth(username, password);
+      request.headers['Content-Type'] = 'application/json';
+      request.body = jsonEncode(config);
+      
+      await client.send(request);
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+  
+  /// 下载并恢复用户配置
+  Future<void> _downloadUserConfig(
+    http.Client client,
+    String userConfigUrl,
+    String username,
+    String password,
+  ) async {
+    try {
+      final request = http.Request('GET', Uri.parse(userConfigUrl));
+      request.headers['Authorization'] = _basicAuth(username, password);
+      
+      final response = await client.send(request);
+      if (response.statusCode == 200) {
+        final body = await response.stream.bytesToString();
+        final config = jsonDecode(body) as Map<String, dynamic>;
+        
+        final userPrefs = UserPrefs();
+        if (config.containsKey('nickname')) {
+          await userPrefs.setNickname(config['nickname'] as String);
+        }
+        if (config.containsKey('motto')) {
+          await userPrefs.setMotto(config['motto'] as String);
+        }
+        if (config.containsKey('avatarPath')) {
+          final avatarPath = config['avatarPath'] as String?;
+          if (avatarPath != null && avatarPath.isNotEmpty) {
+            final fileName = p.basename(avatarPath);
+            final appDir = await getApplicationDocumentsDirectory();
+            final newAvatarPath = p.join(appDir.path, 'avatars', fileName);
+            if (await File(newAvatarPath).exists()) {
+              await userPrefs.setAvatarPath(newAvatarPath);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+  }
   
   /// 获取远程文件信息
   Future<Map<String, dynamic>?> _getRemoteFileInfo(
@@ -639,9 +835,12 @@ class WebDAVService {
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
       final dbUrl = '$baseUrl$path/mooknote.db';
       final imagesUrl = '$baseUrl$path/images';
+      final avatarsUrl = '$baseUrl$path/avatars';
+      final userConfigUrl = '$baseUrl$path/user_config.json';
       
       final client = http.Client();
       int uploadedImages = 0;
+      int downloadedImages = 0;
       bool dbUploaded = false;
       
       try {
@@ -670,6 +869,16 @@ class WebDAVService {
         // 同步图片（双向）
         final imageResult = await _syncImagesBidirectional(client, imagesUrl, username, password);
         uploadedImages = imageResult.uploaded;
+        downloadedImages = imageResult.downloaded;
+        
+        // 同步头像（双向）
+        final avatarResult = await _syncAvatarsBidirectional(client, avatarsUrl, username, password);
+        uploadedImages += avatarResult.uploaded;
+        downloadedImages += avatarResult.downloaded;
+        
+        // 同步用户配置：下载远程并上传本地
+        await _downloadUserConfig(client, userConfigUrl, username, password);
+        await _uploadUserConfig(client, userConfigUrl, username, password);
         
         await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
         
@@ -679,6 +888,7 @@ class WebDAVService {
           lastSyncTime: DateTime.now(),
           uploadedFiles: dbUploaded ? 1 : 0,
           uploadedImages: uploadedImages,
+          downloadedImages: downloadedImages,
         );
       } finally {
         client.close();

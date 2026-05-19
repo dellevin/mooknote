@@ -39,42 +39,43 @@ class _NoteListItemContent extends StatelessWidget {
       },
       onLongPress: () => _showDeleteDialog(context),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         decoration: BoxDecoration(
           color: const Color(0xFFFAFAFA),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 顶部：格式标记 + 时间
+            // 顶部：格式标记 + 时间 + 图片数
             Row(
               children: [
                 // 格式标记
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(3),
                     border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                   ),
                   child: Text(
                     isPlainText ? 'TXT' : 'MD',
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF999999),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 // 时间 - 使用缓存的格式化结果
                 Text(
                   _formatDateCached(note.updatedAt),
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: Color(0xFF999999),
                   ),
                 ),
@@ -83,40 +84,40 @@ class _NoteListItemContent extends StatelessWidget {
                 if (note.images.isNotEmpty) ...[
                   const Icon(
                     Icons.image_outlined,
-                    size: 14,
+                    size: 12,
                     color: Color(0xFF999999),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 3),
                   Text(
                     '${note.images.length}',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: Color(0xFF999999),
                     ),
                   ),
                 ],
               ],
             ),
-            
-            const SizedBox(height: 12),
-            
+
+            const SizedBox(height: 8),
+
             // 内容摘要（去除首尾空格）
             Text(
               note.summary.trim(),
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 color: const Color(0xFF1A1A1A),
-                height: isPlainText ? 1.7 : 1.6,
+                height: isPlainText ? 1.5 : 1.45,
               ),
-              maxLines: isPlainText ? 4 : 3,
+              maxLines: isPlainText ? 3 : 2,
               overflow: TextOverflow.ellipsis,
             ),
-            
+
             // 图片预览区域（显示前4张图片）
             if (note.images.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               SizedBox(
-                height: 70,
+                height: 52,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: note.images.length > 4 ? 4 : note.images.length,
@@ -132,25 +133,25 @@ class _NoteListItemContent extends StatelessWidget {
                 ),
               ),
             ],
-            
+
             // 底部标签
             if (note.tags.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 6,
+                runSpacing: 4,
                 children: note.tags.take(3).map((tag) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                     ),
                     child: Text(
                       tag,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: Color(0xFF666666),
                       ),
                     ),
@@ -237,11 +238,11 @@ class _NoteImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 70,
-      height: 70,
-      margin: EdgeInsets.only(right: index < 3 ? 10 : 0),
+      width: 52,
+      height: 52,
+      margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
@@ -252,7 +253,7 @@ class _NoteImage extends StatelessWidget {
                 child: Text(
                   '+${totalCount - 4}',
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF666666),
                   ),
@@ -262,11 +263,11 @@ class _NoteImage extends StatelessWidget {
           : Image.file(
               File(imagePath),
               fit: BoxFit.cover,
-              cacheWidth: 140,
-              cacheHeight: 140,
+              cacheWidth: 104,
+              cacheHeight: 104,
               errorBuilder: (_, __, ___) => const Icon(
                 Icons.broken_image,
-                size: 28,
+                size: 20,
                 color: Color(0xFFCCCCCC),
               ),
             ),
