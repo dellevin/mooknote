@@ -33,20 +33,6 @@ class CloudSyncPage extends StatelessWidget {
             },
           ),
           
-          const SizedBox(height: 16),
-          
-          // 服务器同步选项（暂未开放）
-          _buildSyncOption(
-            context,
-            icon: Icons.cloud_outlined,
-            title: '服务器同步',
-            subtitle: '通过自建服务器同步数据（开发中）',
-            enabled: false,
-            onTap: () {
-              // 暂未开放
-            },
-          ),
-          
           const SizedBox(height: 32),
           
           // 说明文字
