@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -27,6 +28,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   bool _isEditing = false;
   final ImagePicker _picker = ImagePicker();
   String? _tempNoteId; // 新建模式时使用的临时笔记ID
+  String _editorMode = 'split'; // 'edit' | 'split' | 'preview'
 
   @override
   void initState() {
@@ -103,31 +105,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
               ],
             ),
           ),
-          
-          // 书写区域
+
+          // 编辑 / 预览区域
           Expanded(
-            child: TextField(
-              controller: _contentController,
-              maxLines: null,
-              expands: true,
-              textAlignVertical: TextAlignVertical.top,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF1A1A1A),
-                height: 1.6,
-              ),
-              decoration: InputDecoration(
-                hintText: _contentType == 'markdown' 
-                    ? '使用 Markdown 格式书写...' 
-                    : '开始书写...',
-                hintStyle: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFFCCCCCC),
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.all(16),
-              ),
-            ),
+            child: _contentType == 'markdown'
+                ? _buildContentArea()
+                : _buildEditor(),
           ),
           
           // 图片区域（放在内容下方）
@@ -149,82 +132,380 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 },
               ),
             ),
-          
-          // 底部工具栏（纯文本模式下显示添加图片按钮）
-          if (_contentType == 'plain_text')
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
-                ),
-              ),
+
+          // 底部区域：Markdown 浮动工具栏 或 纯文本图片工具栏
+          if (_contentType == 'markdown')
+            _buildFloatingToolbar()
+          else
+            _buildPlainTextBottom(),
+        ],
+      ),
+    );
+  }
+
+  /// 在光标处插入 Markdown 语法，光标自动放到正确位置
+  void _insertMarkdown(String left, String right) {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    final start = selection.start;
+    final end = selection.end;
+
+    String selectedText = '';
+    if (end > start) {
+      selectedText = text.substring(start, end);
+    }
+
+    final insertion = '$left$selectedText$right';
+    // 原子更新：一次性设置 text 和 selection，避免分步操作导致光标跳动
+    _contentController.value = TextEditingValue(
+      text: text.substring(0, start) + insertion + text.substring(end),
+      selection: TextSelection.collapsed(
+        offset: selectedText.isEmpty
+            ? start + left.length
+            : start + left.length + selectedText.length + right.length,
+      ),
+    );
+  }
+
+  /// 现代极简底部工具栏
+  Widget _buildFloatingToolbar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEAEAEA), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // 格式按钮组
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  // 图片数量
-                  if (_images.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFA),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.image_outlined,
-                            size: 14,
-                            color: Color(0xFF666666),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${_images.length}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF666666),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const Spacer(),
-                  // 添加图片按钮
-                  InkWell(
-                    onTap: _pickImage,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add_photo_alternate_outlined,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            '添加图片',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _toolBtn(Icons.title, '标题', _insertHeading),
+                  _toolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
+                  _toolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
+                  _toolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
+                  _toolGap(),
+                  _toolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
+                  _toolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
+                  _toolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
+                  _toolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
+                  _toolGap(),
+                  _toolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
+                  _toolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
+                  _toolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
                 ],
               ),
             ),
+          ),
+          // 视图模式切换
+          const SizedBox(width: 8),
+          Container(
+            width: 1, height: 20, color: const Color(0xFFE5E5E5),
+          ),
+          const SizedBox(width: 8),
+          _modeSwitch(Icons.edit, 'edit'),
+          _modeSwitch(Icons.vertical_split, 'split'),
+          _modeSwitch(Icons.visibility, 'preview'),
         ],
       ),
+    );
+  }
+
+  Widget _toolBtn(IconData icon, String tooltip, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Tooltip(
+          message: tooltip,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+            child: Icon(icon, size: 21, color: const Color(0xFF555555)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _toolGap() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 6),
+      child: SizedBox(
+        height: 18,
+        child: VerticalDivider(width: 0, thickness: 0.5, color: Color(0xFFE0E0E0)),
+      ),
+    );
+  }
+
+  Widget _modeSwitch(IconData icon, String mode) {
+    final active = _editorMode == mode;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _editorMode = mode),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFF1A1A1A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: active ? Colors.white : const Color(0xFFAAAAAA),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 插入标题（在当前行首插入 # ，如果已有则升级 ## → ### → ####）
+  void _insertHeading() {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    final start = selection.start;
+
+    // 找到当前行起始位置
+    int lineStart = start;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    // 计算当前行的 # 前缀
+    int hashCount = 0;
+    int pos = lineStart;
+    while (pos < text.length && text[pos] == '#') {
+      hashCount++;
+      pos++;
+    }
+    // 跳过 # 后的空格
+    if (pos < text.length && text[pos] == ' ') pos++;
+
+    String newPrefix;
+    int cursorOffset;
+    if (hashCount > 0 && hashCount < 6) {
+      // 升级标题级别
+      hashCount++;
+      newPrefix = '${'#' * hashCount} ';
+      cursorOffset = newPrefix.length;
+      // 替换旧前缀
+      _contentController.value = TextEditingValue(
+        text: text.substring(0, lineStart) + newPrefix + text.substring(pos),
+        selection: TextSelection.collapsed(offset: lineStart + cursorOffset),
+      );
+    } else if (hashCount >= 6) {
+      // 已经是 H6，重置为普通文本
+      _contentController.value = TextEditingValue(
+        text: text.substring(0, lineStart) + text.substring(pos),
+        selection: TextSelection.collapsed(offset: lineStart),
+      );
+    } else {
+      // 没有 # 前缀，添加 H1
+      newPrefix = '# ';
+      _contentController.value = TextEditingValue(
+        text: text.substring(0, lineStart) + newPrefix + text.substring(lineStart),
+        selection: TextSelection.collapsed(offset: lineStart + 2),
+      );
+    }
+  }
+
+  /// 纯文本模式底部栏
+  Widget _buildPlainTextBottom() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          if (_images.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.image_outlined, size: 14, color: Color(0xFF666666)),
+                  const SizedBox(width: 4),
+                  Text('${_images.length}', style: const TextStyle(fontSize: 12, color: Color(0xFF666666))),
+                ],
+              ),
+            ),
+          const Spacer(),
+          InkWell(
+            onTap: _pickImage,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_photo_alternate_outlined, size: 18, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text('添加图片', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 根据 _editorMode 构建内容区域
+  Widget _buildContentArea() {
+    switch (_editorMode) {
+      case 'edit':
+        return _buildEditor();
+      case 'preview':
+        return _buildPreview();
+      case 'split':
+      default:
+        return Column(
+          children: [
+            Expanded(flex: 1, child: _buildEditor()),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _editorMode = 'preview'),
+              child: Container(
+                height: 4,
+                color: const Color(0xFFF5F5F5),
+                child: Center(
+                  child: Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD0D0D0),
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(flex: 1, child: _buildPreview()),
+          ],
+        );
+    }
+  }
+
+  /// 编辑器
+  Widget _buildEditor() {
+    return TextField(
+      controller: _contentController,
+      maxLines: null,
+      expands: true,
+      textAlignVertical: TextAlignVertical.top,
+      strutStyle: const StrutStyle(
+        forceStrutHeight: true,
+        height: 1.6,
+        fontSize: 16,
+      ),
+      style: const TextStyle(
+        fontSize: 16,
+        color: Color(0xFF1A1A1A),
+        height: 1.6,
+      ),
+      decoration: InputDecoration(
+        hintText: _contentType == 'markdown'
+            ? '使用 Markdown 格式书写...'
+            : '开始书写...',
+        hintStyle: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFFCCCCCC),
+          height: 1.6,
+        ),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  /// 实时 Markdown 预览
+  Widget _buildPreview() {
+    final text = _contentController.text;
+    return Container(
+      color: const Color(0xFFFAFAFA),
+      child: text.isEmpty
+          ? const Center(
+              child: Text(
+                '预览区域',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFFCCCCCC),
+                ),
+              ),
+            )
+          : Markdown(
+              data: text,
+              selectable: true,
+              padding: const EdgeInsets.all(16),
+              styleSheet: MarkdownStyleSheet(
+                h1: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                h2: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                h3: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                p: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF333333),
+                  height: 1.7,
+                ),
+                code: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF1A1A1A),
+                  backgroundColor: Color(0xFFF0F0F0),
+                ),
+                codeblockDecoration: BoxDecoration(
+                  color: const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                blockquote: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF666666),
+                ),
+                blockquoteDecoration: const BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Color(0xFFCCCCCC), width: 3),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
