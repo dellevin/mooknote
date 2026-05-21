@@ -673,8 +673,22 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 /// 设置页面
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final UserPrefs _userPrefs = UserPrefs();
+  bool _hideBottomNavOnScroll = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _hideBottomNavOnScroll = _userPrefs.hideBottomNavOnScroll;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -697,6 +711,14 @@ class SettingsPage extends StatelessWidget {
 
           // 主界面功能显示入口
           _buildSectionHeader('个性化设置'),
+          _buildSwitchItem(
+            icon: Icons.swipe_vertical_outlined,
+            title: '底部导航栏滚动隐藏',
+            subtitle: '下滑时自动隐藏底部导航栏',
+            value: _hideBottomNavOnScroll,
+            onChanged: _toggleHideBottomNavOnScroll,
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
           _buildNavigationItem(
             icon: Icons.apps_outlined,
             title: '应用图标',
@@ -747,6 +769,77 @@ class SettingsPage extends StatelessWidget {
           // ),
           // const Divider(height: 0.5, indent: 24, endIndent: 24),
         ],
+      ),
+    );
+  }
+
+  /// 切换底部导航栏滚动隐藏
+  Future<void> _toggleHideBottomNavOnScroll(bool value) async {
+    await _userPrefs.setHideBottomNavOnScroll(value);
+    setState(() => _hideBottomNavOnScroll = value);
+  }
+
+  /// 构建开关项
+  Widget _buildSwitchItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF666666),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: const Color(0xFF1A1A1A),
+              activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3),
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: const Color(0xFFE5E5E5),
+            ),
+          ],
+        ),
       ),
     );
   }

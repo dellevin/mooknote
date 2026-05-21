@@ -30,6 +30,9 @@ class AppProvider extends ChangeNotifier {
   
   // 当前底部导航选中的索引 (0: 主页，1: 新增，2: 我的)
   int _bottomNavIndex = 0;
+
+  // 底部导航栏是否可见
+  bool _bottomNavVisible = true;
   
   // 观影选中的状态 (0: 已看，1: 想看，2: 在看)
   int _movieStatusIndex = 0;
@@ -71,6 +74,7 @@ class AppProvider extends ChangeNotifier {
   int get movieStatusIndex => _movieStatusIndex;
   int get bookStatusIndex => _bookStatusIndex;
   bool get drawerOpen => _drawerOpen;
+  bool get bottomNavVisible => _bottomNavVisible;
   List<Movie> get movies => _movies;
   List<Book> get books => _books;
   List<Note> get notes => _notes;
@@ -93,7 +97,15 @@ class AppProvider extends ChangeNotifier {
 
   void setBottomNavIndex(int index) {
     _bottomNavIndex = index;
+    _bottomNavVisible = true; // 切换页面时自动显示导航栏
     notifyListeners();
+  }
+
+  void setBottomNavVisible(bool visible) {
+    if (_bottomNavVisible != visible) {
+      _bottomNavVisible = visible;
+      notifyListeners();
+    }
   }
 
   void setMovieStatusIndex(int index) {

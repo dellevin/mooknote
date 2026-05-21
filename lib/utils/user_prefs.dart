@@ -48,6 +48,10 @@ class UserPrefs {
 
   // ========== 主界面显示设置 ==========
 
+  /// 是否启用底部导航栏滚动隐藏（默认开启）
+  bool get hideBottomNavOnScroll => prefs.getBool('hideBottomNavOnScroll') ?? true;
+  Future<bool> setHideBottomNavOnScroll(bool value) => prefs.setBool('hideBottomNavOnScroll', value);
+
   /// 是否显示观影标签
   bool get showMovieTab => prefs.getBool('showMovieTab') ?? true;
   Future<bool> setShowMovieTab(bool value) => prefs.setBool('showMovieTab', value);

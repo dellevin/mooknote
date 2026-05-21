@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -28,8 +27,6 @@ class _NoteListItemContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPlainText = note.contentType == 'plain_text';
-    
     return InkWell(
       onTap: () {
         Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) async {
@@ -50,28 +47,10 @@ class _NoteListItemContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 顶部：格式标记 + 时间 + 图片数
+            // 顶部：时间 + MD标记
             Row(
               children: [
-                // 格式标记
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3),
-                    border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-                  ),
-                  child: Text(
-                    isPlainText ? 'TXT' : 'MD',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // 时间 - 使用缓存的格式化结果
+                // 时间
                 Text(
                   _formatDateCached(note.updatedAt),
                   style: const TextStyle(
@@ -79,64 +58,60 @@ class _NoteListItemContent extends StatelessWidget {
                     color: Color(0xFF999999),
                   ),
                 ),
-                const Spacer(),
-                // 图片数量（如果有图片）
-                if (note.images.isNotEmpty) ...[
-                  const Icon(
-                    Icons.image_outlined,
-                    size: 12,
-                    color: Color(0xFF999999),
+                const SizedBox(width: 8),
+                // MD标记
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                   ),
-                  const SizedBox(width: 3),
-                  Text(
-                    '${note.images.length}',
-                    style: const TextStyle(
-                      fontSize: 11,
+                  child: const Text(
+                    'MD',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
                       color: Color(0xFF999999),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
-            // 内容摘要（去除首尾空格）
-            Text(
-              note.summary.trim(),
-              style: TextStyle(
-                fontSize: 14,
-                color: const Color(0xFF1A1A1A),
-                height: isPlainText ? 1.5 : 1.45,
+            // 标题
+            if (note.title.isNotEmpty) ...[
+              Text(
+                note.title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: isPlainText ? 3 : 2,
+              const SizedBox(height: 4),
+            ],
+
+            // 内容摘要（去除Markdown标记）
+            Text(
+              _cleanMarkdown(note.content).trim(),
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF666666),
+                height: 1.5,
+              ),
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
 
-            // 图片预览区域（显示前4张图片）
-            if (note.images.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 52,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: note.images.length > 4 ? 4 : note.images.length,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    return _NoteImage(
-                      imagePath: note.images[index],
-                      index: index,
-                      totalCount: note.images.length,
-                      showMore: index == 3 && note.images.length > 4,
-                    );
-                  },
-                ),
-              ),
-            ],
-
             // 底部标签
             if (note.tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
@@ -163,6 +138,20 @@ class _NoteListItemContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// 清理 Markdown 标记，提取纯文本
+  String _cleanMarkdown(String text) {
+    return text
+        .replaceAll(RegExp(r'^#+\s+', multiLine: true), '') // 标题
+        .replaceAll(RegExp(r'\*\*(.+?)\*\*'), r'$1') // 粗体
+        .replaceAll(RegExp(r'\*(.+?)\*'), r'$1') // 斜体
+        .replaceAll(RegExp(r'`(.+?)`'), r'$1') // 行内代码
+        .replaceAll(RegExp(r'^\s*[-*+]\s', multiLine: true), '') // 列表
+        .replaceAll(RegExp(r'^\s*>\s', multiLine: true), '') // 引用
+        .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1') // 链接
+        .replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]+\)'), '') // 图片
+        .trim();
   }
 
   /// 显示删除确认对话框
@@ -217,60 +206,6 @@ class _NoteListItemContent extends StatelessWidget {
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
-    );
-  }
-}
-
-/// 笔记图片组件 - 独立出来便于优化
-class _NoteImage extends StatelessWidget {
-  final String imagePath;
-  final int index;
-  final int totalCount;
-  final bool showMore;
-
-  const _NoteImage({
-    required this.imagePath,
-    required this.index,
-    this.totalCount = 0,
-    this.showMore = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 52,
-      height: 52,
-      margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: showMore
-          ? Container(
-              color: const Color(0xFFF5F5F5),
-              child: Center(
-                child: Text(
-                  '+${totalCount - 4}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF666666),
-                  ),
-                ),
-              ),
-            )
-          : Image.file(
-              File(imagePath),
-              fit: BoxFit.cover,
-              cacheWidth: 104,
-              cacheHeight: 104,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.broken_image,
-                size: 20,
-                color: Color(0xFFCCCCCC),
-              ),
-            ),
     );
   }
 }

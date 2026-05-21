@@ -31,7 +31,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 11,
+      version: 12,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -82,6 +82,10 @@ class DatabaseHelper {
       // 为书籍表添加ISBN和出版时间字段
       await _upgradeBooksTableV11(db);
     }
+    if (oldVersion < 12) {
+      // 确保notes表有title列
+      await _upgradeNotesTableV12(db);
+    }
   }
 
   /// 升级books表到V11（添加ISBN和出版时间字段）
@@ -110,6 +114,17 @@ class DatabaseHelper {
     }
   }
   
+  /// 升级notes表到V12（确保title列存在）
+  Future<void> _upgradeNotesTableV12(Database db) async {
+    // 检查是否存在 title 列
+    final columns = await db.rawQuery('PRAGMA table_info(notes)');
+    final hasTitle = columns.any((col) => col['name'] == 'title');
+    
+    if (!hasTitle) {
+      await db.execute('ALTER TABLE notes ADD COLUMN title TEXT DEFAULT \'\'');
+    }
+  }
+
   /// 升级notes表到V9（添加图片字段）
   Future<void> _upgradeNotesTableV9(Database db) async {
     // 检查是否存在 images 列
@@ -211,6 +226,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE notes (
         id TEXT PRIMARY KEY,
+        title TEXT DEFAULT '',
         content TEXT NOT NULL,
         content_type TEXT DEFAULT 'markdown',
         tags TEXT,
@@ -219,19 +235,17 @@ class DatabaseHelper {
       )
     ''');
     
-    // 迁移旧数据（将title合并到content中）
+    // 迁移旧数据（将title字段恢复）
     for (final row in oldData) {
       try {
         final now = DateTime.now().toIso8601String();
         final title = row['title']?.toString() ?? '';
         final content = row['content']?.toString() ?? '';
-        final combinedContent = title.isNotEmpty 
-            ? '# $title\n\n$content'
-            : content;
         
         await db.insert('notes', {
           'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          'content': combinedContent,
+          'title': title,
+          'content': content,
           'content_type': 'markdown',
           'tags': row['tags'] ?? '',
           'created_at': row['created_at']?.toString() ?? now,
@@ -404,6 +418,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE notes (
         id TEXT PRIMARY KEY,
+        title TEXT DEFAULT '',
         content TEXT NOT NULL,
         content_type TEXT DEFAULT 'markdown',
         tags TEXT,

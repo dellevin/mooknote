@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
   fl_chart: ^0.69.0
@@ -28,6 +30,8 @@ dependencies:
   url_launcher: ^6.2.5
   webview_flutter: ^4.8.0
   package_info_plus: ^8.0.0
+  flutter_markdown_plus: ^1.0.7
+  extended_text_field: ^16.0.2
 
 dev_dependencies:
   flutter_test:

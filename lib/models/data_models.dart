@@ -294,6 +294,7 @@ class Book {
 /// 笔记模型
 class Note {
   final String id;
+  final String title;
   final String content;
   final String contentType; // markdown / plain_text
   final List<String> tags;
@@ -304,6 +305,7 @@ class Note {
 
   Note({
     required this.id,
+    required this.title,
     required this.content,
     this.contentType = 'markdown',
     this.tags = const [],
@@ -316,6 +318,7 @@ class Note {
   factory Note.fromJson(Map<String, dynamic> json) {
     return Note(
       id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
       content: json['content'] ?? '',
       contentType: json['content_type'] ?? 'markdown',
       tags: Movie.parseStringList(json['tags']),
@@ -333,6 +336,7 @@ class Note {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'title': title,
       'content': content,
       'content_type': contentType,
       'tags': jsonEncode(tags),
@@ -346,6 +350,7 @@ class Note {
   /// 复制并修改
   Note copyWith({
     String? id,
+    String? title,
     String? content,
     String? contentType,
     List<String>? tags,
@@ -356,6 +361,7 @@ class Note {
   }) {
     return Note(
       id: id ?? this.id,
+      title: title ?? this.title,
       content: content ?? this.content,
       contentType: contentType ?? this.contentType,
       tags: tags ?? this.tags,

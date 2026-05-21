@@ -257,6 +257,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     return [
       Note(
         id: '1',
+        title: '学习 Flutter 笔记',
         content: '今天开始学习 Flutter 框架，感觉和 Vue 有很多相似之处，都是声明式 UI，组件化开发。Widget 的概念很有趣，一切皆 Widget。',
         tags: ['学习', 'Flutter', '编程'],
         createdAt: now.subtract(const Duration(days: 2)),
@@ -264,6 +265,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
       ),
       Note(
         id: '2',
+        title: '《活着》读后感',
         content: '余华的《活着》真的是一部让人深思的作品。福贵的一生经历了太多的苦难，但他依然坚强地活着。生命的意义或许就在于活着本身。',
         tags: ['阅读', '感悟', '书籍'],
         createdAt: now.subtract(const Duration(days: 5)),
@@ -271,6 +273,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
       ),
       Note(
         id: '3',
+        title: '诺兰电影观后感',
         content: '诺兰的电影总是充满想象力。《星际穿越》将科幻与亲情完美结合，五维空间的呈现方式令人震撼。配乐也是一绝。',
         tags: ['观影', '科幻', '电影'],
         createdAt: now.subtract(const Duration(days: 10)),
@@ -278,6 +281,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
       ),
       Note(
         id: '4',
+        title: 'Pandas 学习笔记',
         content: 'Pandas 库的 DataFrame 操作非常强大，可以方便地进行数据清洗和分析。需要多练习熟练掌握常用操作。',
         tags: ['Python', '数据分析', '技术'],
         createdAt: now.subtract(const Duration(days: 30)),
@@ -285,6 +289,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
       ),
       Note(
         id: '5',
+        title: '春日随笔',
         content: '春天来了，天气渐暖。周末去公园散步，看到花开得很好。生活中的小确幸值得记录。',
         tags: ['生活', '随笔'],
         createdAt: now.subtract(const Duration(hours: 5)),

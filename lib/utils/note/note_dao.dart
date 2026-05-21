@@ -101,8 +101,8 @@ class NoteDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
-      where: '(content LIKE ? OR tags LIKE ?) AND is_deleted = ?',
-      whereArgs: ['%$query%', '%$query%', 0],
+      where: '(title LIKE ? OR content LIKE ? OR tags LIKE ?) AND is_deleted = ?',
+      whereArgs: ['%$query%', '%$query%', '%$query%', 0],
       orderBy: 'created_at DESC',
     );
 

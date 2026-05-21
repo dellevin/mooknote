@@ -84,6 +84,7 @@ extension NoteExtension on Note {
   /// 创建副本并允许修改部分属性
   Note copyWith({
     String? id,
+    String? title,
     String? content,
     String? contentType,
     List<String>? tags,
@@ -94,6 +95,7 @@ extension NoteExtension on Note {
   }) {
     return Note(
       id: id ?? this.id,
+      title: title ?? this.title,
       content: content ?? this.content,
       contentType: contentType ?? this.contentType,
       tags: tags ?? this.tags,
