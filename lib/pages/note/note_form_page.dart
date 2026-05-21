@@ -1,17 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
-import '../../widgets/markdown_editing_controller.dart';
 
-/// Typora 风格 Markdown 编辑器
-/// 所见即所得，输入 # 标题自动渲染，**粗体** 自动加粗等
+/// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
   final Note? note;
 
@@ -22,35 +20,31 @@ class NoteFormPage extends StatefulWidget {
 }
 
 class _NoteFormPageState extends State<NoteFormPage> {
-  late MarkdownEditingController _contentController;
-  late TextEditingController _titleController;
+  late TextEditingController _contentController;
   late DateTime _createdAt;
-  List<String> _images = [];
+  List<String> _tags = [];
+  List<String> _images = []; // 图片路径列表
+  String _contentType = 'plain_text'; // markdown / plain_text
+  bool _isEditing = false;
   final ImagePicker _picker = ImagePicker();
-  bool _isPreviewMode = false;
-  late final ScrollController _scrollController;
-  late final FocusNode _contentFocusNode;
-
-  bool get _isNewNote => widget.note == null;
+  String? _tempNoteId; // 新建模式时使用的临时笔记ID
+  String _editorMode = 'split'; // 'edit' | 'split' | 'preview'
 
   @override
   void initState() {
     super.initState();
     final note = widget.note;
+    _contentController = TextEditingController(text: note?.content ?? '');
     _createdAt = note?.createdAt ?? DateTime.now();
+    _tags = note != null ? List.from(note.tags) : [];
     _images = note != null ? List.from(note.images) : [];
-    _titleController = TextEditingController(text: note?.title ?? '');
-    _contentController = MarkdownEditingController(text: note?.content ?? '');
-    _scrollController = ScrollController();
-    _contentFocusNode = FocusNode();
+    _contentType = note?.contentType ?? 'plain_text';
+    _isEditing = note != null;
   }
 
   @override
   void dispose() {
     _contentController.dispose();
-    _titleController.dispose();
-    _scrollController.dispose();
-    _contentFocusNode.dispose();
     super.dispose();
   }
 
@@ -58,360 +52,712 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF333333)),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: Text(_isEditing ? '编辑笔记' : '新建笔记'),
         actions: [
-          // 预览/编辑切换
           IconButton(
-            icon: Icon(
-              _isPreviewMode ? Icons.edit_outlined : Icons.visibility_outlined,
-              color: const Color(0xFF333333),
-            ),
-            onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
-          ),
-          // 保存
-          IconButton(
-            icon: const Icon(Icons.check, color: Color(0xFF333333)),
             onPressed: _saveNote,
+            icon: const Icon(Icons.save_outlined),
+            tooltip: '保存',
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          // 标题输入
-          _buildTitleField(),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
-          // 内容区域
-          Expanded(
-            child: _isPreviewMode ? _buildPreview() : _buildEditor(),
+          // 顶部信息栏：创建时间 + 格式选择 + 标签
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // 创建时间
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAFA),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                      ),
+                      child: Text(
+                        _formatDateTime(_createdAt),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF666666),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    // 格式选择
+                    _buildFormatSelector(),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // 标签
+                _buildTagSelector(),
+              ],
+            ),
           ),
 
-          // 图片区域
-          if (_images.isNotEmpty) _buildImageSection(),
+          // 编辑 / 预览区域
+          Expanded(
+            child: _contentType == 'markdown'
+                ? _buildContentArea()
+                : _buildEditor(),
+          ),
+          
+          // 图片区域（放在内容下方）
+          if (_contentType == 'plain_text' && _images.isNotEmpty)
+            Container(
+              height: 100,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                ),
+              ),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _images.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  return _buildHorizontalImageItem(index);
+                },
+              ),
+            ),
 
-          // 底部工具栏 - 键盘弹出时自动上移
-          if (!_isPreviewMode) _buildMarkdownToolbarContent(),
+          // 底部区域：Markdown 浮动工具栏 或 纯文本图片工具栏
+          if (_contentType == 'markdown')
+            _buildFloatingToolbar()
+          else
+            _buildPlainTextBottom(),
         ],
       ),
     );
   }
 
-  // ==================== 标题输入 ====================
+  /// 在光标处插入 Markdown 语法，光标自动放到正确位置
+  void _insertMarkdown(String left, String right) {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    final start = selection.start;
+    final end = selection.end;
 
-  /// 构建标题输入框
-  Widget _buildTitleField() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: TextField(
-        controller: _titleController,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
-          height: 1.4,
-        ),
-        decoration: const InputDecoration(
-          hintText: '笔记标题',
-          hintStyle: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFFCCCCCC),
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-        ),
-        maxLines: 1,
+    String selectedText = '';
+    if (end > start) {
+      selectedText = text.substring(start, end);
+    }
+
+    final insertion = '$left$selectedText$right';
+    // 原子更新：一次性设置 text 和 selection，避免分步操作导致光标跳动
+    _contentController.value = TextEditingValue(
+      text: text.substring(0, start) + insertion + text.substring(end),
+      selection: TextSelection.collapsed(
+        offset: selectedText.isEmpty
+            ? start + left.length
+            : start + left.length + selectedText.length + right.length,
       ),
     );
   }
 
-  // ==================== Markdown 快捷工具栏 ====================
-
-  /// 构建 Markdown 快捷工具栏
-  Widget _buildMarkdownToolbarContent() {
+  /// 现代极简底部工具栏
+  Widget _buildFloatingToolbar() {
     return Container(
-      height: 48,
-      color: const Color(0xFFF5F5F5),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 文本格式
-              _buildToolbarButton(Icons.format_bold, '粗体', _insertBold),
-              _buildToolbarButton(Icons.format_italic, '斜体', _insertItalic),
-              _buildToolbarButton(Icons.format_strikethrough, '删除线', _insertStrikethrough),
-              _buildToolbarDivider(),
-              // 段落
-              _buildToolbarButton(Icons.title, '标题', () => _insertHeader(1)),
-              _buildToolbarButton(Icons.format_quote, '引用', _insertQuote),
-              _buildToolbarButton(Icons.code, '代码块', _insertCodeBlock),
-              _buildToolbarButton(Icons.horizontal_rule, '分割线', _insertDivider),
-              _buildToolbarDivider(),
-              // 列表
-              _buildToolbarButton(Icons.format_list_bulleted, '无序列表', _insertUnorderedList),
-              _buildToolbarButton(Icons.format_list_numbered, '有序列表', _insertOrderedList),
-              _buildToolbarDivider(),
-              // 插入
-              _buildToolbarButton(Icons.link, '链接', _insertLink),
-              _buildToolbarButton(Icons.image, '图片', _pickImage),
-              _buildToolbarButton(Icons.calendar_today, '日期', _insertDate),
-              _buildToolbarButton(Icons.access_time, '时间', _insertTime),
-            ],
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEAEAEA), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  /// 构建工具栏分隔线
-  Widget _buildToolbarDivider() {
-    return Container(
-      width: 1,
-      height: 20,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      color: const Color(0xFFDCDCDC),
-    );
-  }
-
-  /// 构建工具栏按钮
-  Widget _buildToolbarButton(IconData icon, String tooltip, VoidCallback onPressed) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(4),
-          splashColor: const Color(0x1F000000),
-          child: Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 20,
-              color: const Color(0xFF666666),
+      child: Row(
+        children: [
+          // 格式按钮组
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _toolBtn(Icons.title, '标题', _insertHeading),
+                  _toolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
+                  _toolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
+                  _toolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
+                  _toolGap(),
+                  _toolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
+                  _toolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
+                  _toolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
+                  _toolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
+                  _toolGap(),
+                  _toolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
+                  _toolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
+                  _toolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
+                ],
+              ),
             ),
           ),
+          // 视图模式切换
+          const SizedBox(width: 8),
+          Container(
+            width: 1, height: 20, color: const Color(0xFFE5E5E5),
+          ),
+          const SizedBox(width: 8),
+          _modeSwitch(Icons.edit, 'edit'),
+          _modeSwitch(Icons.vertical_split, 'split'),
+          _modeSwitch(Icons.visibility, 'preview'),
+        ],
+      ),
+    );
+  }
+
+  Widget _toolBtn(IconData icon, String tooltip, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Tooltip(
+          message: tooltip,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+            child: Icon(icon, size: 21, color: const Color(0xFF555555)),
+          ),
         ),
       ),
     );
   }
 
-  // ==================== 编辑器主体 ====================
-
-  /// 构建编辑器主体 - 使用 MarkdownEditingController 实现所见即所得
-  Widget _buildEditor() {
-    return TextField(
-      controller: _contentController,
-      scrollController: _scrollController,
-      focusNode: _contentFocusNode,
-      style: const TextStyle(
-        fontSize: 16,
-        color: Color(0xFF333333),
-        height: 1.8,
+  Widget _toolGap() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 6),
+      child: SizedBox(
+        height: 18,
+        child: VerticalDivider(width: 0, thickness: 0.5, color: Color(0xFFE0E0E0)),
       ),
-      decoration: const InputDecoration(
-        hintText: '开始书写 Markdown...\n'
-            '支持 # 标题、**粗体**、*斜体*、\`代码\` 等',
-        hintStyle: TextStyle(
-          fontSize: 16,
-          color: Color(0xFFCCCCCC),
-          height: 1.8,
+    );
+  }
+
+  Widget _modeSwitch(IconData icon, String mode) {
+    final active = _editorMode == mode;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _editorMode = mode),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFF1A1A1A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: active ? Colors.white : const Color(0xFFAAAAAA),
+          ),
         ),
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.all(16),
-      ),
-      maxLines: null,
-      expands: true,
-      textAlignVertical: TextAlignVertical.top,
-      keyboardType: TextInputType.multiline,
-    );
-  }
-
-  // ==================== 预览区域 ====================
-
-  /// 构建预览区域
-  Widget _buildPreview() {
-    return SingleChildScrollView(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      child: MarkdownBody(
-        data: _contentController.text.isEmpty
-            ? '*预览区域 - 开始输入 Markdown 内容...*'
-            : _contentController.text,
-        styleSheet: _buildMarkdownStyleSheet(),
       ),
     );
   }
 
-  /// 构建 Markdown 样式表
-  MarkdownStyleSheet _buildMarkdownStyleSheet() {
-    return MarkdownStyleSheet(
-      h1: const TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1A1A1A),
-        height: 1.4,
-      ),
-      h2: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1A1A1A),
-        height: 1.4,
-      ),
-      h3: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1A1A1A),
-        height: 1.4,
-      ),
-      h4: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1A1A1A),
-        height: 1.4,
-      ),
-      p: const TextStyle(
-        fontSize: 15,
-        color: Color(0xFF333333),
-        height: 1.8,
-      ),
-      code: const TextStyle(
-        fontSize: 14,
-        color: Color(0xFF1A1A1A),
-        backgroundColor: Color(0xFFF5F5F5),
-        fontFamily: 'monospace',
-      ),
-      codeblockDecoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      codeblockPadding: const EdgeInsets.all(12),
-      blockquote: const TextStyle(
-        fontSize: 15,
-        color: Color(0xFF666666),
-        fontStyle: FontStyle.italic,
-        height: 1.8,
-      ),
-      blockquoteDecoration: const BoxDecoration(
-        border: Border(left: BorderSide(color: Color(0xFF999999), width: 4)),
-      ),
-      blockquotePadding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
-      listBullet: const TextStyle(
-        fontSize: 15,
-        color: Color(0xFF1A1A1A),
-      ),
-      listIndent: 24,
-      a: const TextStyle(
-        fontSize: 15,
-        color: Color(0xFF4A90D9),
-        decoration: TextDecoration.underline,
-      ),
-      tableHead: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1A1A1A),
-      ),
-      tableBody: const TextStyle(
-        fontSize: 14,
-        color: Color(0xFF333333),
-      ),
-      tableBorder: TableBorder.all(
-        color: const Color(0xFFE5E5E5),
-        width: 0.5,
-      ),
-      tableColumnWidth: const FlexColumnWidth(),
-      tableCellsDecoration: const BoxDecoration(
-        color: Colors.white,
-      ),
-      tablePadding: const EdgeInsets.all(8),
-      strong: const TextStyle(
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF1A1A1A),
-      ),
-      em: const TextStyle(
-        fontStyle: FontStyle.italic,
-        color: Color(0xFF333333),
-      ),
-      del: const TextStyle(
-        decoration: TextDecoration.lineThrough,
-        color: Color(0xFF999999),
-      ),
-    );
+  /// 插入标题（在当前行首插入 # ，如果已有则升级 ## → ### → ####）
+  void _insertHeading() {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    final start = selection.start;
+
+    // 找到当前行起始位置
+    int lineStart = start;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    // 计算当前行的 # 前缀
+    int hashCount = 0;
+    int pos = lineStart;
+    while (pos < text.length && text[pos] == '#') {
+      hashCount++;
+      pos++;
+    }
+    // 跳过 # 后的空格
+    if (pos < text.length && text[pos] == ' ') pos++;
+
+    String newPrefix;
+    int cursorOffset;
+    if (hashCount > 0 && hashCount < 6) {
+      // 升级标题级别
+      hashCount++;
+      newPrefix = '${'#' * hashCount} ';
+      cursorOffset = newPrefix.length;
+      // 替换旧前缀
+      _contentController.value = TextEditingValue(
+        text: text.substring(0, lineStart) + newPrefix + text.substring(pos),
+        selection: TextSelection.collapsed(offset: lineStart + cursorOffset),
+      );
+    } else if (hashCount >= 6) {
+      // 已经是 H6，重置为普通文本
+      _contentController.value = TextEditingValue(
+        text: text.substring(0, lineStart) + text.substring(pos),
+        selection: TextSelection.collapsed(offset: lineStart),
+      );
+    } else {
+      // 没有 # 前缀，添加 H1
+      newPrefix = '# ';
+      _contentController.value = TextEditingValue(
+        text: text.substring(0, lineStart) + newPrefix + text.substring(lineStart),
+        selection: TextSelection.collapsed(offset: lineStart + 2),
+      );
+    }
   }
 
-  // ==================== 图片区域 ====================
-
-  /// 构建图片区域
-  Widget _buildImageSection() {
+  /// 纯文本模式底部栏
+  Widget _buildPlainTextBottom() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
-        color: Color(0xFFFAFAFA),
         border: Border(
           top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text(
-            '附件图片',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF666666)),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _images.map((path) => _buildImageItem(path)).toList(),
+          if (_images.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.image_outlined, size: 14, color: Color(0xFF666666)),
+                  const SizedBox(width: 4),
+                  Text('${_images.length}', style: const TextStyle(fontSize: 12, color: Color(0xFF666666))),
+                ],
+              ),
+            ),
+          const Spacer(),
+          InkWell(
+            onTap: _pickImage,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_photo_alternate_outlined, size: 18, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text('添加图片', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 构建单个图片项
-  Widget _buildImageItem(String imagePath) {
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.file(
-            File(imagePath),
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: 80,
-                height: 80,
+  /// 根据 _editorMode 构建内容区域
+  Widget _buildContentArea() {
+    switch (_editorMode) {
+      case 'edit':
+        return _buildEditor();
+      case 'preview':
+        return _buildPreview();
+      case 'split':
+      default:
+        return Column(
+          children: [
+            Expanded(flex: 1, child: _buildEditor()),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _editorMode = 'preview'),
+              child: Container(
+                height: 4,
                 color: const Color(0xFFF5F5F5),
-                child: const Icon(Icons.broken_image, size: 24, color: Color(0xFFCCCCCC)),
-              );
-            },
-          ),
+                child: Center(
+                  child: Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD0D0D0),
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(flex: 1, child: _buildPreview()),
+          ],
+        );
+    }
+  }
+
+  /// 编辑器
+  Widget _buildEditor() {
+    return TextField(
+      controller: _contentController,
+      maxLines: null,
+      expands: true,
+      textAlignVertical: TextAlignVertical.top,
+      strutStyle: const StrutStyle(
+        forceStrutHeight: true,
+        height: 1.6,
+        fontSize: 16,
+      ),
+      style: const TextStyle(
+        fontSize: 16,
+        color: Color(0xFF1A1A1A),
+        height: 1.6,
+      ),
+      decoration: InputDecoration(
+        hintText: _contentType == 'markdown'
+            ? '使用 Markdown 格式书写...'
+            : '开始书写...',
+        hintStyle: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFFCCCCCC),
+          height: 1.6,
         ),
-        Positioned(
-          top: 2,
-          right: 2,
-          child: GestureDetector(
-            onTap: () => setState(() => _images.remove(imagePath)),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-              child: const Icon(Icons.close, size: 12, color: Colors.white),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  /// 实时 Markdown 预览
+  Widget _buildPreview() {
+    final text = _contentController.text;
+    return Container(
+      color: const Color(0xFFFAFAFA),
+      child: text.isEmpty
+          ? const Center(
+              child: Text(
+                '预览区域',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFFCCCCCC),
+                ),
+              ),
+            )
+          : Markdown(
+              data: text,
+              selectable: true,
+              padding: const EdgeInsets.all(16),
+              styleSheet: MarkdownStyleSheet(
+                h1: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                h2: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                h3: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.4,
+                ),
+                p: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF333333),
+                  height: 1.7,
+                ),
+                code: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF1A1A1A),
+                  backgroundColor: Color(0xFFF0F0F0),
+                ),
+                codeblockDecoration: BoxDecoration(
+                  color: const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                blockquote: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF666666),
+                ),
+                blockquoteDecoration: const BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Color(0xFFCCCCCC), width: 3),
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  /// 构建格式选择器
+  Widget _buildFormatSelector() {
+    return GestureDetector(
+      onTap: () => _showFormatSelector(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _contentType == 'markdown' ? Icons.code : Icons.text_fields,
+              size: 16,
+              color: const Color(0xFF666666),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _contentType == 'markdown' ? 'Markdown' : '纯文本',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_drop_down,
+              size: 18,
+              color: Color(0xFF999999),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 显示格式选择对话框
+  void _showFormatSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 顶部指示条
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // 标题
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    '选择格式',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildFormatOption(
+              icon: Icons.code,
+              title: 'Markdown',
+              subtitle: '支持 Markdown 语法',
+              isSelected: _contentType == 'markdown',
+              onTap: () {
+                setState(() => _contentType = 'markdown');
+                Navigator.pop(context);
+              },
+            ),
+            _buildFormatOption(
+              icon: Icons.text_fields,
+              title: '纯文本',
+              subtitle: '普通文本格式，支持图片',
+              isSelected: _contentType == 'plain_text',
+              onTap: () {
+                setState(() => _contentType = 'plain_text');
+                Navigator.pop(context);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建格式选项
+  Widget _buildFormatOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: const Color(0xFF666666),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建标签选择器
+  Widget _buildTagSelector() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ..._tags.asMap().entries.map((entry) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  entry.value,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF666666),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => setState(() => _tags.removeAt(entry.key)),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 10,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        // 添加标签按钮
+        GestureDetector(
+          onTap: () => _showAddTagDialog(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add,
+                  size: 14,
+                  color: Color(0xFF999999),
+                ),
+                SizedBox(width: 4),
+                Text(
+                  '标签',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -419,219 +765,202 @@ class _NoteFormPageState extends State<NoteFormPage> {
     );
   }
 
-  /// 构建添加图片的浮动按钮
-
-  // ==================== 图片选择 ====================
-
-  /// 选择图片
-  Future<void> _pickImage() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
-
-      if (pickedFile != null) {
-        final fileName = 'note_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final noteId = widget.note?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-
-        final targetPath = await ImagePathHelper.instance.getNoteImagePath(noteId, fileName);
-        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-
-        await File(pickedFile.path).copy(targetPath);
-
-        setState(() => _images.add(targetPath));
-
-        // 在 Markdown 内容中插入图片链接
-        _insertImageLink(targetPath, fileName);
-      }
-    } catch (e) {
-      if (mounted) {
-        ToastUtil.show(context, '选择图片失败: $e');
-      }
-    }
-  }
-
-  // ==================== Markdown 快捷插入 ====================
-
-  /// 在光标位置插入文本
-  void _insertText(String text, {String? wrapPrefix, String? wrapSuffix}) {
-    final currentText = _contentController.text;
-    final selection = _contentController.selection;
-    final start = selection.start;
-    final end = selection.end;
-
-    if (start < 0 || end < 0) {
-      // 没有焦点，直接追加到末尾
-      if (wrapPrefix != null) {
-        final suffix = wrapSuffix ?? wrapPrefix;
-        final newText = '$wrapPrefix$text$suffix';
-        _contentController.text = currentText + newText;
-        _contentController.selection = TextSelection.collapsed(offset: _contentController.text.length);
-      } else {
-        _contentController.text = currentText + text;
-        _contentController.selection = TextSelection.collapsed(offset: _contentController.text.length);
-      }
-      _contentFocusNode.requestFocus();
-      return;
-    }
-
-    final before = currentText.substring(0, start);
-    final selected = start < end ? currentText.substring(start, end) : null;
-    final after = currentText.substring(end);
-
-    if (wrapPrefix != null) {
-      final suffix = wrapSuffix ?? wrapPrefix;
-      final content = selected ?? text;
-      final newText = '$before$wrapPrefix$content$suffix$after';
-      _contentController.text = newText;
-      final cursorOffset = before.length + wrapPrefix.length + content.length + suffix.length;
-      _contentController.selection = TextSelection.collapsed(offset: cursorOffset);
-    } else {
-      _contentController.text = '$before$text$after';
-      _contentController.selection = TextSelection.collapsed(offset: before.length + text.length);
-    }
-    // 重新请求焦点，确保键盘弹出且光标位置正确
-    _contentFocusNode.requestFocus();
-  }
-
-  /// 插入粗体
-  void _insertBold() {
-    _insertText('粗体', wrapPrefix: '**', wrapSuffix: '**');
-  }
-
-  /// 插入斜体
-  void _insertItalic() {
-    _insertText('斜体', wrapPrefix: '*', wrapSuffix: '*');
-  }
-
-  /// 插入删除线
-  void _insertStrikethrough() {
-    _insertText('删除线', wrapPrefix: '~~', wrapSuffix: '~~');
-  }
-
-  /// 插入标题
-  void _insertHeader(int level) {
-    final prefix = '#' * level + ' ';
-    _insertText('$prefix标题\n', wrapPrefix: null);
-  }
-
-  /// 插入引用
-  void _insertQuote() {
-    _insertText('> 引用内容\n', wrapPrefix: null);
-  }
-
-  /// 插入日期
-  void _insertDate() {
-    final now = DateTime.now();
-    final date = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    _insertText(date);
-  }
-
-  /// 插入时间
-  void _insertTime() {
-    final now = DateTime.now();
-    final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    _insertText(time);
-  }
-
-  /// 插入无序列表
-  void _insertUnorderedList() {
-    _insertText('- 列表项\n', wrapPrefix: null);
-  }
-
-  /// 插入有序列表
-  void _insertOrderedList() {
-    _insertText('1. 列表项\n', wrapPrefix: null);
-  }
-
-  /// 插入行内代码
-  void _insertInlineCode() {
-    _insertText('code', wrapPrefix: '`', wrapSuffix: '`');
-  }
-
-  /// 插入代码块
-  void _insertCodeBlock() {
-    final currentText = _contentController.text;
-    final selection = _contentController.selection;
-    final start = selection.start;
-    final before = start < 0 ? currentText : currentText.substring(0, start);
-    final after = start < 0 ? '' : currentText.substring(start);
-
-    const codeBlock = '\n```\n// 代码块\n```\n';
-    _contentController.text = '$before$codeBlock$after';
-    _contentController.selection = TextSelection.collapsed(
-      offset: before.length + codeBlock.length - 5,
+  /// 显示添加标签对话框
+  void _showAddTagDialog() {
+    final controller = TextEditingController();
+    
+    // 获取所有已有标签（从所有笔记中收集）
+    final provider = context.read<AppProvider>();
+    final allTags = _getAllExistingTags(provider);
+    // 过滤掉已添加的标签
+    final availableTags = allTags.where((tag) => !_tags.contains(tag)).toList();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '添加标签',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 输入框
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '输入新标签名称',
+                  hintStyle: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF999999),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFFAFAFA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                onSubmitted: (value) {
+                  _addTag(value);
+                  Navigator.pop(context);
+                },
+              ),
+              
+              // 已有标签列表
+              if (availableTags.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  '或选择已有标签：',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: availableTags.map((tag) {
+                    return GestureDetector(
+                      onTap: () {
+                        _addTag(tag);
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                        ),
+                        child: Text(
+                          tag,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF666666),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _addTag(controller.text);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A1A1A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('添加'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
     );
   }
-
-  /// 插入链接
-  void _insertLink() {
-    _insertText('[链接文本](https://example.com)', wrapPrefix: null);
+  
+  /// 获取所有已有标签（从所有笔记中收集）
+  List<String> _getAllExistingTags(AppProvider provider) {
+    final allTags = <String>{};
+    for (final note in provider.notes) {
+      allTags.addAll(note.tags);
+    }
+    return allTags.toList()..sort();
   }
 
-  /// 插入分割线
-  void _insertDivider() {
-    _insertText('\n---\n', wrapPrefix: null);
-  }
-
-  /// 插入图片链接
-  void _insertImageLink(String path, String fileName) {
-    final imageMarkdown = '![$fileName]($path)\n';
-    final currentText = _contentController.text;
-    final selection = _contentController.selection;
-    final start = selection.start;
-
-    if (start >= 0) {
-      final before = currentText.substring(0, start);
-      final after = currentText.substring(start);
-      _contentController.text = '$before\n$imageMarkdown$after';
-      _contentController.selection = TextSelection.collapsed(
-        offset: before.length + imageMarkdown.length + 1,
-      );
-    } else {
-      _contentController.text = '$currentText\n$imageMarkdown';
+  /// 添加标签
+  void _addTag(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isNotEmpty && !_tags.contains(trimmed)) {
+      setState(() => _tags.add(trimmed));
     }
   }
 
-  // ==================== 保存笔记 ====================
+  /// 格式化日期时间
+  String _formatDateTime(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
 
   /// 保存笔记
   Future<void> _saveNote() async {
-    final title = _titleController.text.trim();
     final content = _contentController.text.trim();
-
-    if (content.isEmpty && title.isEmpty) {
+    
+    if (content.isEmpty) {
       ToastUtil.show(context, '笔记内容不能为空');
       return;
     }
 
-    // 自动提取标签
-    final tags = _extractTags('$title\n$content');
-
     final now = DateTime.now();
 
-    if (!_isNewNote) {
+    if (_isEditing) {
+      // 更新现有笔记
       final updatedNote = widget.note!.copyWith(
-        title: title.isEmpty ? widget.note!.title : title,
         content: content,
-        contentType: 'markdown',
-        tags: tags.isEmpty ? widget.note!.tags : tags,
+        contentType: _contentType,
+        tags: _tags,
         images: _images,
         updatedAt: now,
       );
       await context.read<AppProvider>().updateNote(updatedNote);
     } else {
+      // 添加新笔记 - 先创建笔记获取ID
       final noteId = now.millisecondsSinceEpoch.toString();
+      
+      // 如果有图片，需要移动到正确的ID目录
+      List<String> finalImages = [];
+      if (_images.isNotEmpty) {
+        // 使用保存的临时ID，如果没有则使用当前noteId（理论上不会走到这里）
+        final oldNoteId = _tempNoteId ?? noteId;
+        final newNoteId = noteId;
+        finalImages = await _moveImagesToNewId(oldNoteId, newNoteId);
+      }
+      
       final newNote = Note(
         id: noteId,
-        title: title.isEmpty ? '无标题笔记' : title,
         content: content,
-        contentType: 'markdown',
-        tags: tags,
-        images: _images,
+        contentType: _contentType,
+        tags: _tags,
+        images: finalImages.isNotEmpty ? finalImages : _images,
         createdAt: _createdAt,
         updatedAt: now,
       );
@@ -640,26 +969,208 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     if (!mounted) return;
 
-    ToastUtil.show(context, _isNewNote ? '添加成功' : '保存成功');
-    await context.read<AppProvider>().loadNotes();
+    ToastUtil.show(context, _isEditing ? '保存成功' : '添加成功');
 
+    // 刷新笔记列表
+    await context.read<AppProvider>().loadNotes();
+    
     if (!mounted) return;
     Navigator.pop(context);
   }
-
-  /// 从内容中提取标签
-  List<String> _extractTags(String content) {
-    final tags = <String>{};
-    final regex = RegExp(r'#(\w+)');
-    final matches = regex.allMatches(content);
-
-    for (final match in matches) {
-      final tag = match.group(1);
-      if (tag != null && tag.isNotEmpty) {
-        tags.add(tag);
+  
+  /// 将图片从临时ID目录移动到新ID目录
+  Future<List<String>> _moveImagesToNewId(String oldNoteId, String newNoteId) async {
+    final List<String> newPaths = [];
+    
+    final newDir = await ImagePathHelper.instance.getNoteImagesDir(newNoteId);
+    
+    for (final imagePath in _images) {
+      // 使用路径分隔符检查，兼容 Windows 和 Unix
+      final normalizedPath = imagePath.replaceAll('\\', '/');
+      if (normalizedPath.contains('/notes/$oldNoteId/')) {
+        // 需要移动的文件
+        final fileName = p.basename(imagePath);
+        final newPath = p.join(newDir, fileName);
+        
+        await ImagePathHelper.instance.ensureDirExists(newDir);
+        
+        // 检查源文件是否存在
+        final sourceFile = File(imagePath);
+        if (await sourceFile.exists()) {
+          await sourceFile.rename(newPath);
+          newPaths.add(newPath);
+        }
+      } else {
+        // 已经在正确位置的文件
+        newPaths.add(imagePath);
       }
     }
+    
+    // 删除旧目录
+    try {
+      await ImagePathHelper.instance.deleteNoteImages(oldNoteId);
+    } catch (e) {
+      // 忽略删除失败
+    }
+    
+    return newPaths;
+  }
 
-    return tags.toList();
+  /// 选择图片
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        // 生成唯一的文件名
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        
+        // 如果是编辑模式，使用现有笔记ID；如果是新建模式，使用临时ID（保存时会替换）
+        String noteId;
+        if (_isEditing) {
+          noteId = widget.note!.id;
+        } else {
+          // 新建模式：使用已存在的临时ID或生成新的
+          noteId = _tempNoteId ?? DateTime.now().millisecondsSinceEpoch.toString();
+          _tempNoteId = noteId;
+        }
+        
+        // 复制图片到应用目录: images/notes/{noteId}/{fileName}
+        final targetDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
+        await ImagePathHelper.instance.ensureDirExists(targetDir);
+        final targetPath = p.join(targetDir, fileName);
+        
+        await File(image.path).copy(targetPath);
+        
+        setState(() => _images.add(targetPath));
+      }
+    } catch (e) {
+      ToastUtil.show(context, '选择图片失败: $e');
+    }
+  }
+
+  /// 构建图片项
+  Widget _buildImageItem(int index) {
+    return InkWell(
+      onTap: () => _showImagePreview(index),
+      onLongPress: () => _showDeleteImageDialog(index),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.file(
+          File(_images[index]),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  /// 构建横向图片项（用于底部图片栏）
+  Widget _buildHorizontalImageItem(int index) {
+    return InkWell(
+      onTap: () => _showImagePreview(index),
+      onLongPress: () => _showDeleteImageDialog(index),
+      child: Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.file(
+          File(_images[index]),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  /// 显示图片预览
+  void _showImagePreview(int index) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black.withOpacity(0.9),
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.file(
+                File(_images[index]),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 显示删除图片确认对话框
+  void _showDeleteImageDialog(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '确定要删除这张图片吗？此操作不可恢复。',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF666666),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF666666),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _images.removeAt(index));
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
   }
 }
