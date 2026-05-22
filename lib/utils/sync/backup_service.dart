@@ -524,6 +524,144 @@ class BackupService {
     }
   }
   
+  /// 从 ZIP 字节数据恢复（供 WebDAV 同步等场景使用）
+  Future<ImportResult> restoreFromZipBytes(Uint8List zipBytes) async {
+    try {
+      final archive = ZipDecoder().decodeBytes(zipBytes);
+
+      // 查找 data.json
+      final dataFile = archive.findFile('data.json');
+      if (dataFile == null) {
+        return ImportResult.error('备份文件中没有找到数据文件');
+      }
+
+      final jsonString = utf8.decode(dataFile.content as List<int>);
+      final backupData = jsonDecode(jsonString) as Map<String, dynamic>;
+
+      // 记录图片文件名到新路径的映射
+      final imagePathMap = <String, String>{};
+      int imageCount = 0;
+
+      // 解压图片到应用目录，保持目录结构
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory(path.join(appDir.path, 'images'));
+      if (!await imagesDir.exists()) {
+        await imagesDir.create(recursive: true);
+      }
+
+      for (final archiveFile in archive) {
+        if (archiveFile.name.startsWith('images/')) {
+          final relativePath = archiveFile.name.substring(7); // 去掉 'images/' 前缀
+          final outputFile = File(path.join(imagesDir.path, relativePath));
+          final parentDir = outputFile.parent;
+          if (!await parentDir.exists()) {
+            await parentDir.create(recursive: true);
+          }
+          await outputFile.writeAsBytes(archiveFile.content as List<int>);
+          final fileName = path.basename(archiveFile.name);
+          imagePathMap[fileName] = outputFile.path;
+          imageCount++;
+        }
+      }
+
+      // 验证备份格式
+      if (!backupData.containsKey('data')) {
+        return ImportResult.error('无效的备份文件格式');
+      }
+
+      // 导入数据
+      final data = backupData['data'] as Map<String, dynamic>;
+      final db = await DatabaseHelper.instance.database;
+
+      await db.transaction((txn) async {
+        // 清空现有数据
+        await txn.delete('movie_reviews');
+        await txn.delete('movie_posters');
+        await txn.delete('movies');
+        await txn.delete('books');
+        await txn.delete('notes');
+
+        if (data.containsKey('movies')) {
+          final movies = data['movies'] as List<dynamic>;
+          for (final movie in movies) {
+            final movieMap = _convertToDbMap(movie);
+            final updatedMap = _updateImagePath(movieMap, 'poster_path', imagePathMap);
+            await txn.insert('movies', updatedMap);
+          }
+        }
+
+        if (data.containsKey('books')) {
+          final books = data['books'] as List<dynamic>;
+          for (final book in books) {
+            final bookMap = _convertToDbMap(book);
+            final updatedMap = _updateImagePath(bookMap, 'cover_path', imagePathMap);
+            await txn.insert('books', updatedMap);
+          }
+        }
+
+        if (data.containsKey('notes')) {
+          final notes = data['notes'] as List<dynamic>;
+          for (final note in notes) {
+            final noteMap = _convertToDbMap(note);
+            final updatedMap = _updateNoteImagesPath(noteMap, imagePathMap);
+            await txn.insert('notes', updatedMap);
+          }
+        }
+
+        if (data.containsKey('movie_reviews')) {
+          final reviews = data['movie_reviews'] as List<dynamic>;
+          for (final review in reviews) {
+            await txn.insert('movie_reviews', _convertToDbMap(review));
+          }
+        }
+
+        if (data.containsKey('movie_posters')) {
+          final posters = data['movie_posters'] as List<dynamic>;
+          for (final poster in posters) {
+            final posterMap = _convertToDbMap(poster);
+            final updatedMap = _updateImagePath(posterMap, 'poster_path', imagePathMap);
+            await txn.insert('movie_posters', updatedMap);
+          }
+        }
+      });
+
+      // 恢复用户个人信息
+      if (backupData.containsKey('userInfo')) {
+        final userInfo = backupData['userInfo'] as Map<String, dynamic>;
+        final userPrefs = UserPrefs();
+
+        if (userInfo.containsKey('nickname')) {
+          await userPrefs.setNickname(userInfo['nickname'] as String);
+        }
+        if (userInfo.containsKey('motto')) {
+          await userPrefs.setMotto(userInfo['motto'] as String);
+        }
+        if (userInfo.containsKey('avatarPath')) {
+          final avatarPath = userInfo['avatarPath'] as String?;
+          if (avatarPath != null && avatarPath.isNotEmpty) {
+            final fileName = path.basename(avatarPath);
+            if (imagePathMap.containsKey(fileName)) {
+              await userPrefs.setAvatarPath(imagePathMap[fileName]!);
+            }
+          }
+        }
+      }
+
+      // 统计导入数量
+      final stats = <String, int>{};
+      if (data.containsKey('movies')) stats['影视'] = (data['movies'] as List).length;
+      if (data.containsKey('books')) stats['书籍'] = (data['books'] as List).length;
+      if (data.containsKey('notes')) stats['笔记'] = (data['notes'] as List).length;
+      if (data.containsKey('movie_reviews')) stats['影评'] = (data['movie_reviews'] as List).length;
+      if (data.containsKey('movie_posters')) stats['海报'] = (data['movie_posters'] as List).length;
+      if (imageCount > 0) stats['图片'] = imageCount;
+
+      return ImportResult.success(stats);
+    } catch (e) {
+      return ImportResult.error('恢复失败: $e');
+    }
+  }
+
   /// 将动态类型转换为数据库可用的 Map
   Map<String, dynamic> _convertToDbMap(dynamic item) {
     if (item is Map<String, dynamic>) {

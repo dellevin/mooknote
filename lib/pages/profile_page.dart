@@ -233,76 +233,25 @@ class _ProfilePageState extends State<ProfilePage> {
         final notes = provider.notes;
         
         final movieCount = movies.where((m) => !m.isDeleted).length;
-        final watchedCount = movies.where((m) => m.status == 'watched' && !m.isDeleted).length;
-        final watchingCount = movies.where((m) => m.status == 'watching' && !m.isDeleted).length;
-        final wantToWatchCount = movies.where((m) => m.status == 'want_to_watch' && !m.isDeleted).length;
-        
         final bookCount = books.length;
-        final readCount = books.where((b) => b.status == 'read').length;
-        final readingCount = books.where((b) => b.status == 'reading').length;
-        final wantToReadCount = books.where((b) => b.status == 'want_to_read').length;
-        
         final noteCount = notes.length;
-        
-        final movieRatings = movies
-            .where((m) => m.rating != null && !m.isDeleted)
-            .map((m) => m.rating!);
-        final avgMovieRating = movieRatings.isNotEmpty
-            ? movieRatings.reduce((a, b) => a + b) / movieRatings.length
-            : 0.0;
-        
-        final bookRatings = books
-            .where((b) => b.rating != null)
-            .map((b) => b.rating!);
-        final avgBookRating = bookRatings.isNotEmpty
-            ? bookRatings.reduce((a, b) => a + b) / bookRatings.length
-            : 0.0;
-        
+
         return Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 主统计卡片
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F8F8),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatCard('观影', movieCount, '场', Icons.movie_outlined),
-                    _buildStatCard('阅读', bookCount, '本', Icons.menu_book_outlined),
-                    _buildStatCard('笔记', noteCount, '条', Icons.note_outlined),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // 详情统计
-              _buildSectionTitle('观影详情'),
-              const SizedBox(height: 12),
-              _buildDetailGrid([
-                _buildDetailItem('已看', watchedCount, Icons.check_circle_outline),
-                _buildDetailItem('在看', watchingCount, Icons.play_circle_outline),
-                _buildDetailItem('想看', wantToWatchCount, Icons.bookmark_border),
-                _buildDetailItem('均分', avgMovieRating > 0 ? avgMovieRating.toStringAsFixed(1) : '-', Icons.star_outline),
-              ]),
-              
-              const SizedBox(height: 20),
-              
-              _buildSectionTitle('阅读详情'),
-              const SizedBox(height: 12),
-              _buildDetailGrid([
-                _buildDetailItem('已读', readCount, Icons.check_circle_outline),
-                _buildDetailItem('在读', readingCount, Icons.play_circle_outline),
-                _buildDetailItem('想读', wantToReadCount, Icons.bookmark_border),
-                _buildDetailItem('均分', avgBookRating > 0 ? avgBookRating.toStringAsFixed(1) : '-', Icons.star_outline),
-              ]),
-            ],
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatCard('观影', movieCount, '场', Icons.movie_outlined),
+                _buildStatCard('阅读', bookCount, '本', Icons.menu_book_outlined),
+                _buildStatCard('笔记', noteCount, '条', Icons.note_outlined),
+              ],
+            ),
           ),
         );
       },
@@ -351,63 +300,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ],
-    );
-  }
-
-  /// 详情网格
-  Widget _buildDetailGrid(List<Widget> children) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: children,
-      ),
-    );
-  }
-
-  /// 详情项
-  Widget _buildDetailItem(String label, dynamic value, IconData icon) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: const Color(0xFF999999),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          '$value',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Color(0xFF999999),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 区块标题
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: Color(0xFF999999),
-      ),
     );
   }
 

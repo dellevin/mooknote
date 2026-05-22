@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'package:archive/archive_io.dart';
-import '../database_helper.dart';
-import '../user_prefs.dart';
+import 'backup_service.dart';
 
 /// WebDAV 同步结果
 class SyncResult {
@@ -20,7 +18,7 @@ class SyncResult {
   final int uploadedImages;
   final int downloadedImages;
   final bool needReload;
-  
+
   SyncResult({
     required this.success,
     required this.message,
@@ -40,46 +38,32 @@ enum SyncDirection {
   bidirectional, // 双向同步
 }
 
-/// 图片同步结果
-class _ImageSyncResult {
-  final int uploaded;
-  final int downloaded;
-  _ImageSyncResult({required this.uploaded, required this.downloaded});
-}
-
-/// WebDAV 服务类 - 支持实时同步（数据+图片分离存储）
+/// WebDAV 服务类 - 完整备份 zip 同步
 class WebDAVService {
   static final WebDAVService _instance = WebDAVService._internal();
   static WebDAVService get instance => _instance;
-  
+
   WebDAVService._internal();
-  
+
   static const String _configKey = 'webdav_config';
   static const String _lastSyncKey = 'webdav_last_sync';
   static const String _autoSyncKey = 'webdav_auto_sync';
   static const String _autoSyncIntervalKey = 'webdav_auto_sync_interval';
-  static const String _lastDbModifiedKey = 'webdav_last_db_modified';
-  
+
   // 默认自动同步间隔（分钟）
   static const int _defaultAutoSyncInterval = 5;
-  
+
   Map<String, String>? _cachedConfig;
   Timer? _autoSyncTimer;
   bool _isAutoSyncEnabled = false;
   int _autoSyncIntervalMinutes = _defaultAutoSyncInterval;
-  
-  // 文件系统监听
-  StreamSubscription<FileSystemEvent>? _imagesDirWatcher;
-  final Set<String> _pendingImageUploads = {};
-  Timer? _debounceTimer;
-  static const Duration _debounceDelay = Duration(seconds: 3);
-  
+
   /// 获取配置
   Future<Map<String, String>?> getConfig() async {
     if (_cachedConfig != null) {
       return _cachedConfig;
     }
-    
+
     final prefs = await SharedPreferences.getInstance();
     final configJson = prefs.getString(_configKey);
     if (configJson != null) {
@@ -93,7 +77,7 @@ class WebDAVService {
     }
     return null;
   }
-  
+
   /// 保存配置
   Future<void> saveConfig({
     required String url,
@@ -107,12 +91,12 @@ class WebDAVService {
       'password': password,
       'path': path,
     };
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_configKey, jsonEncode(config));
     _cachedConfig = config;
   }
-  
+
   /// 清除配置
   Future<void> clearConfig() async {
     final prefs = await SharedPreferences.getInstance();
@@ -120,11 +104,10 @@ class WebDAVService {
     await prefs.remove(_lastSyncKey);
     await prefs.remove(_autoSyncKey);
     await prefs.remove(_autoSyncIntervalKey);
-    await prefs.remove(_lastDbModifiedKey);
     _cachedConfig = null;
     stopAutoSync();
   }
-  
+
   /// 测试连接
   Future<Map<String, dynamic>> testConnection({
     required String url,
@@ -135,9 +118,7 @@ class WebDAVService {
     try {
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
       var davUrl = '$baseUrl$path';
-      
-      // print('WebDAV: Testing connection to $davUrl');
-      
+
       final client = http.Client();
       try {
         var propfindRequest = http.Request('PROPFIND', Uri.parse(davUrl));
@@ -149,11 +130,10 @@ class WebDAVService {
     <D:resourcetype/>
   </D:prop>
 </D:propfind>''';
-        
+
         var propfindResponse = await client.send(propfindRequest);
-        // print('WebDAV: PROPFIND status ${propfindResponse.statusCode}');
-        
-        if (propfindResponse.statusCode == 301 || 
+
+        if (propfindResponse.statusCode == 301 ||
             propfindResponse.statusCode == 302 ||
             propfindResponse.statusCode == 307 ||
             propfindResponse.statusCode == 308) {
@@ -172,27 +152,26 @@ class WebDAVService {
             propfindResponse = await client.send(propfindRequest);
           }
         }
-        
+
         if (propfindResponse.statusCode == 207) {
           return {'success': true, 'message': '连接成功'};
         } else if (propfindResponse.statusCode == 401) {
           return {'success': false, 'message': '认证失败，请检查用户名和密码'};
         } else if (propfindResponse.statusCode == 404) {
-          // print('WebDAV: Directory not found, trying to create...');
+          // 目录不存在，尝试创建
         } else {
           return {'success': false, 'message': '服务器返回错误: ${propfindResponse.statusCode}'};
         }
       } catch (e) {
-        // print('WebDAV: PROPFIND error: $e');
+        // ignore
       }
-      
+
       try {
         final mkcolRequest = http.Request('MKCOL', Uri.parse(davUrl));
         mkcolRequest.headers['Authorization'] = _basicAuth(username, password);
-        
+
         final mkcolResponse = await client.send(mkcolRequest);
-        // print('WebDAV: MKCOL status ${mkcolResponse.statusCode}');
-        
+
         if (mkcolResponse.statusCode == 201) {
           return {'success': true, 'message': '连接成功，已创建目录'};
         } else if (mkcolResponse.statusCode == 405) {
@@ -205,121 +184,112 @@ class WebDAVService {
           return {'success': false, 'message': '创建目录失败: ${mkcolResponse.statusCode}'};
         }
       } catch (e) {
-        // print('WebDAV: MKCOL error: $e');
         return {'success': false, 'message': '连接失败: $e'};
       } finally {
         client.close();
       }
     } catch (e) {
-      // print('WebDAV test connection error: $e');
       return {'success': false, 'message': '连接失败: $e'};
     }
   }
-  
-  /// 同步数据（数据+图片分离存储，非压缩包方式）
+
+  /// 同步数据 — 完整备份 zip 格式，与本地备份完全一致
   Future<SyncResult> syncData({SyncDirection direction = SyncDirection.bidirectional}) async {
     final config = await getConfig();
     if (config == null) {
       return SyncResult(success: false, message: '未配置 WebDAV');
     }
-    
+
     try {
       final url = config['url']!;
       final username = config['username']!;
       final password = config['password']!;
       final path = config['path']!;
-      
-      final dbPath = await getDatabasesPath();
-      final dbFile = File(p.join(dbPath, 'mooknote.db'));
-      
-      if (!await dbFile.exists()) {
-        return SyncResult(success: false, message: '本地数据库不存在');
-      }
-      
+
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      final dbUrl = '$baseUrl$path/mooknote.db';
-      final imagesUrl = '$baseUrl$path/images';
-      final avatarsUrl = '$baseUrl$path/avatars';
-      final userConfigUrl = '$baseUrl$path/user_config.json';
-      
+      final zipUrl = '$baseUrl$path/mooknote_backup.zip';
+
       final client = http.Client();
       int uploadedFiles = 0;
       int downloadedFiles = 0;
       int uploadedImages = 0;
       int downloadedImages = 0;
       bool needReload = false;
-      
+
       try {
         if (direction == SyncDirection.upload) {
-          // 上传数据库文件
-          final dbSuccess = await _uploadFile(client, dbUrl, username, password, dbFile);
-          if (dbSuccess) {
+          final exportResult = await BackupService.instance.exportDataForAutoBackup();
+          if (!exportResult.success || exportResult.zipBytes == null) {
+            return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败');
+          }
+
+          final success = await _uploadBytes(client, zipUrl, username, password, exportResult.zipBytes!);
+          if (success) {
             uploadedFiles = 1;
+            uploadedImages = exportResult.imageCount;
+            print('[WebDAV] 备份上传成功 (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+          } else {
+            return SyncResult(success: false, message: '上传备份文件失败');
           }
-          
-          // 上传所有图片
-          final imageResult = await _syncImages(client, imagesUrl, username, password, SyncDirection.upload);
-          uploadedImages = imageResult.uploaded;
-          
-          // 上传头像
-          final avatarResult = await _syncAvatars(client, avatarsUrl, username, password, SyncDirection.upload);
-          uploadedImages += avatarResult.uploaded;
-          
-          // 上传用户配置
-          await _uploadUserConfig(client, userConfigUrl, username, password);
-          
+
         } else if (direction == SyncDirection.download) {
-          // 下载数据库文件
-          final tempDbFile = File('${dbFile.parent.path}/mooknote_download.db');
-          final dbSuccess = await _downloadFile(client, dbUrl, username, password, tempDbFile);
-          
-          if (dbSuccess && await tempDbFile.exists()) {
-            // 替换本地数据库
-            await tempDbFile.copy(dbFile.path);
-            await tempDbFile.delete();
-            await DatabaseHelper.instance.reopenDatabase();
-            downloadedFiles = 1;
-            needReload = true;
+          final tempDir = await getTemporaryDirectory();
+          final tempZip = File(p.join(tempDir.path, 'mooknote_download.zip'));
+          final success = await _downloadFile(client, zipUrl, username, password, tempZip);
+
+          if (success && await tempZip.exists()) {
+            final bytes = await tempZip.readAsBytes();
+            final importResult = await BackupService.instance.restoreFromZipBytes(bytes);
+            await tempZip.delete();
+
+            if (importResult.success) {
+              downloadedFiles = 1;
+              downloadedImages = importResult.stats?['图片'] ?? 0;
+              needReload = true;
+              print('[WebDAV] 备份恢复成功: ${importResult.statsText}');
+            } else {
+              return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败');
+            }
+          } else {
+            return SyncResult(success: false, message: '服务器上没有备份文件，请先从其他设备上传');
           }
-          
-          // 下载所有图片
-          final imageResult = await _syncImages(client, imagesUrl, username, password, SyncDirection.download);
-          downloadedImages = imageResult.downloaded;
-          
-          // 下载头像
-          final avatarResult = await _syncAvatars(client, avatarsUrl, username, password, SyncDirection.download);
-          downloadedImages += avatarResult.downloaded;
-          
-          // 下载并恢复用户配置
-          await _downloadUserConfig(client, userConfigUrl, username, password);
-          
+
         } else if (direction == SyncDirection.bidirectional) {
-          // 双向同步：分别同步数据库和图片
-          final dbResult = await _syncDatabaseFile(client, dbUrl, username, password, dbFile);
-          if (dbResult['uploaded'] == true) uploadedFiles = 1;
-          if (dbResult['downloaded'] == true) {
-            downloadedFiles = 1;
-            needReload = true;
+          final tempDir = await getTemporaryDirectory();
+          final tempZip = File(p.join(tempDir.path, 'mooknote_bidir.zip'));
+
+          final downloadSuccess = await _downloadFile(client, zipUrl, username, password, tempZip);
+          if (downloadSuccess && await tempZip.exists()) {
+            final bytes = await tempZip.readAsBytes();
+            final importResult = await BackupService.instance.restoreFromZipBytes(bytes);
+            await tempZip.delete();
+
+            if (importResult.success) {
+              downloadedFiles = 1;
+              downloadedImages = importResult.stats?['图片'] ?? 0;
+              needReload = true;
+              print('[WebDAV] 远程备份已恢复: ${importResult.statsText}');
+            }
+          } else {
+            try { await tempZip.delete(); } catch (_) {}
+            print('[WebDAV] 服务器无备份，仅上传本地数据');
           }
-          
-          // 双向同步图片
-          final imageResult = await _syncImagesBidirectional(client, imagesUrl, username, password);
-          uploadedImages = imageResult.uploaded;
-          downloadedImages = imageResult.downloaded;
-          
-          // 双向同步头像
-          final avatarResult = await _syncAvatarsBidirectional(client, avatarsUrl, username, password);
-          uploadedImages += avatarResult.uploaded;
-          downloadedImages += avatarResult.downloaded;
-          
-          // 双向同步用户配置：先下载远程，再上传本地
-          await _downloadUserConfig(client, userConfigUrl, username, password);
-          await _uploadUserConfig(client, userConfigUrl, username, password);
+
+          // 始终上传本地，确保远程是最新的
+          final exportResult = await BackupService.instance.exportDataForAutoBackup();
+          if (exportResult.success && exportResult.zipBytes != null) {
+            final uploadSuccess = await _uploadBytes(client, zipUrl, username, password, exportResult.zipBytes!);
+            if (uploadSuccess) {
+              uploadedFiles = 1;
+              uploadedImages = exportResult.imageCount;
+              print('[WebDAV] 本地备份已上传 (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+            }
+          }
         }
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
-        
+
         return SyncResult(
           success: true,
           message: '同步完成',
@@ -337,659 +307,93 @@ class WebDAVService {
       return SyncResult(success: false, message: '同步失败: $e');
     }
   }
-  
-  /// 同步数据库文件（双向）
-  Future<Map<String, bool>> _syncDatabaseFile(
-    http.Client client,
-    String dbUrl,
-    String username,
-    String password,
-    File localDbFile,
-  ) async {
-    final result = <String, bool>{};
-    
-    try {
-      final remoteInfo = await _getRemoteFileInfo(client, dbUrl, username, password);
-      final localModified = await localDbFile.lastModified();
-      
-      if (remoteInfo == null) {
-        // 远程不存在，上传本地
-        result['uploaded'] = await _uploadFile(client, dbUrl, username, password, localDbFile);
-      } else {
-        final remoteModified = remoteInfo['modified'] as DateTime;
-        final timeDiff = localModified.difference(remoteModified).inSeconds;
-        
-        if (timeDiff > 10) {
-          // 本地较新，上传
-          result['uploaded'] = await _uploadFile(client, dbUrl, username, password, localDbFile);
-        } else if (timeDiff < -10) {
-          // 远程较新，下载
-          final tempFile = File('${localDbFile.parent.path}/mooknote_temp.db');
-          final success = await _downloadFile(client, dbUrl, username, password, tempFile);
-          if (success) {
-            await tempFile.copy(localDbFile.path);
-            await tempFile.delete();
-            await DatabaseHelper.instance.reopenDatabase();
-            result['downloaded'] = true;
-          }
-        }
-      }
-    } catch (e) {
-      // 忽略错误
-    }
-    
-    return result;
-  }
-  
-  /// 双向同步图片（下载远程 zip 合并 -> 打包上传本地）
-  Future<_ImageSyncResult> _syncImagesBidirectional(
-    http.Client client,
-    String imagesUrl,
-    String username,
-    String password,
-  ) async {
-    int uploaded = 0;
-    int downloaded = 0;
 
-    try {
-      final zipUrl = '${imagesUrl.substring(0, imagesUrl.lastIndexOf('/'))}/images.zip';
-      final tempDir = await getTemporaryDirectory();
-      final tempZip = File(p.join(tempDir.path, 'images_bidir.zip'));
-
-      final downloadSuccess = await _downloadFile(client, zipUrl, username, password, tempZip);
-      if (downloadSuccess) {
-        await _extractImagesZip(tempZip);
-        downloaded = 1;
-        try { await tempZip.delete(); } catch (_) {}
-      }
-
-      final zipFile = await _createImagesZip();
-      if (await zipFile.exists()) {
-        final uploadSuccess = await _uploadFile(client, zipUrl, username, password, zipFile);
-        if (uploadSuccess) uploaded = 1;
-      }
-      try { await zipFile.delete(); } catch (_) {}
-    } catch (e) {
-      // ignore
-    }
-
-    return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
-  }
-
-  
-  /// 同步头像目录（zip 打包传输）
-  Future<_ImageSyncResult> _syncAvatars(
-    http.Client client,
-    String avatarsUrl,
-    String username,
-    String password,
-    SyncDirection direction,
-  ) async {
-    int uploaded = 0;
-    int downloaded = 0;
-
-    try {
-      final zipUrl = '${avatarsUrl.substring(0, avatarsUrl.lastIndexOf('/'))}/avatars.zip';
-
-      if (direction == SyncDirection.upload) {
-        final zipFile = await _createAvatarsZip();
-        if (await zipFile.exists()) {
-          final success = await _uploadFile(client, zipUrl, username, password, zipFile);
-          if (success) uploaded = 1;
-        }
-        try { await zipFile.delete(); } catch (_) {}
-      } else if (direction == SyncDirection.download) {
-        final tempDir = await getTemporaryDirectory();
-        final tempZip = File(p.join(tempDir.path, 'avatars_dl.zip'));
-        final success = await _downloadFile(client, zipUrl, username, password, tempZip);
-        if (success) {
-          await _extractAvatarsZip(tempZip);
-          downloaded = 1;
-        }
-        try { await tempZip.delete(); } catch (_) {}
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
-  }
-
-  
-  /// 双向同步头像目录（下载远程 zip 合并 -> 打包上传本地）
-  Future<_ImageSyncResult> _syncAvatarsBidirectional(
-    http.Client client,
-    String avatarsUrl,
-    String username,
-    String password,
-  ) async {
-    int uploaded = 0;
-    int downloaded = 0;
-
-    try {
-      final zipUrl = '${avatarsUrl.substring(0, avatarsUrl.lastIndexOf('/'))}/avatars.zip';
-      final tempDir = await getTemporaryDirectory();
-      final tempZip = File(p.join(tempDir.path, 'avatars_bidir.zip'));
-
-      final downloadSuccess = await _downloadFile(client, zipUrl, username, password, tempZip);
-      if (downloadSuccess) {
-        await _extractAvatarsZip(tempZip);
-        downloaded = 1;
-        try { await tempZip.delete(); } catch (_) {}
-      }
-
-      final zipFile = await _createAvatarsZip();
-      if (await zipFile.exists()) {
-        final uploadSuccess = await _uploadFile(client, zipUrl, username, password, zipFile);
-        if (uploadSuccess) uploaded = 1;
-      }
-      try { await zipFile.delete(); } catch (_) {}
-    } catch (e) {
-      // ignore
-    }
-
-    return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
-  }
-
-  
-  /// 上传用户配置
-  Future<void> _uploadUserConfig(
-    http.Client client,
-    String userConfigUrl,
-    String username,
-    String password,
-  ) async {
-    try {
-      final userPrefs = UserPrefs();
-      final config = {
-        'nickname': userPrefs.nickname,
-        'motto': userPrefs.motto,
-        'avatarPath': userPrefs.avatarPath,
-        'updatedAt': DateTime.now().toIso8601String(),
-      };
-      
-      final request = http.Request('PUT', Uri.parse(userConfigUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      request.headers['Content-Type'] = 'application/json';
-      request.body = jsonEncode(config);
-      
-      await client.send(request);
-    } catch (e) {
-      // 忽略错误
-    }
-  }
-  
-  /// 下载并恢复用户配置
-  Future<void> _downloadUserConfig(
-    http.Client client,
-    String userConfigUrl,
-    String username,
-    String password,
-  ) async {
-    try {
-      final request = http.Request('GET', Uri.parse(userConfigUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      
-      final response = await client.send(request);
-      if (response.statusCode == 200) {
-        final body = await response.stream.bytesToString();
-        final config = jsonDecode(body) as Map<String, dynamic>;
-        
-        final userPrefs = UserPrefs();
-        if (config.containsKey('nickname')) {
-          await userPrefs.setNickname(config['nickname'] as String);
-        }
-        if (config.containsKey('motto')) {
-          await userPrefs.setMotto(config['motto'] as String);
-        }
-        if (config.containsKey('avatarPath')) {
-          final avatarPath = config['avatarPath'] as String?;
-          if (avatarPath != null && avatarPath.isNotEmpty) {
-            final fileName = p.basename(avatarPath);
-            final appDir = await getApplicationDocumentsDirectory();
-            final newAvatarPath = p.join(appDir.path, 'avatars', fileName);
-            if (await File(newAvatarPath).exists()) {
-              await userPrefs.setAvatarPath(newAvatarPath);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      // 忽略错误
-    }
-  }
-  
-  /// 获取远程文件信息
-  Future<Map<String, dynamic>?> _getRemoteFileInfo(
-    http.Client client,
-    String url,
-    String username,
-    String password,
-  ) async {
-    try {
-      var request = http.Request('PROPFIND', Uri.parse(url));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      request.headers['Depth'] = '0';
-      
-      var response = await client.send(request);
-      
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        if (location != null) {
-          url = location;
-          request = http.Request('PROPFIND', Uri.parse(url));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          request.headers['Depth'] = '0';
-          response = await client.send(request);
-        }
-      }
-      
-      if (response.statusCode == 207) {
-        final body = await response.stream.bytesToString();
-        final modifiedMatch = RegExp(r'<d:getlastmodified>([^<]+)</d:getlastmodified>', caseSensitive: false)
-            .firstMatch(body);
-        if (modifiedMatch != null) {
-          final modifiedStr = modifiedMatch.group(1)!;
-          final modified = HttpDate.parse(modifiedStr);
-          return {'modified': modified, 'url': url};
-        }
-        return {'modified': DateTime.now(), 'url': url};
-      }
-      return null;
-    } catch (e) {
-      // print('WebDAV: Get remote file info error: $e');
-      return null;
-    }
-  }
-  
   /// 获取自动同步间隔（分钟）
   Future<int> getAutoSyncInterval() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_autoSyncIntervalKey) ?? _defaultAutoSyncInterval;
   }
-  
+
   /// 设置自动同步间隔（分钟）
   Future<void> setAutoSyncInterval(int minutes) async {
     if (minutes < 1) minutes = 1;
     if (minutes > 60) minutes = 60;
-    
+
     _autoSyncIntervalMinutes = minutes;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_autoSyncIntervalKey, minutes);
-    
-    // 如果正在自动同步，重启以应用新间隔
+
     if (_isAutoSyncEnabled) {
       await startAutoSync();
     }
   }
-  
-  /// 启动自动同步（带文件监听）
+
+  /// 启动自动同步
   Future<void> startAutoSync() async {
-    // 停止现有的定时器和监听
     await stopAutoSync();
-    
+
     final prefs = await SharedPreferences.getInstance();
     _isAutoSyncEnabled = true;
     _autoSyncIntervalMinutes = await getAutoSyncInterval();
     await prefs.setBool(_autoSyncKey, true);
-    
+
     // 立即执行一次同步
-    await _performIncrementalSync();
-    
-    // 设置定时器进行定期同步
+    print('[WebDAV] 自动同步已启动，间隔 $_autoSyncIntervalMinutes 分钟');
+    await syncData(direction: SyncDirection.bidirectional);
+
+    // 设置定时器
     _autoSyncTimer = Timer.periodic(
       Duration(minutes: _autoSyncIntervalMinutes),
       (timer) async {
         if (_isAutoSyncEnabled) {
-          await _performIncrementalSync();
+          await syncData(direction: SyncDirection.bidirectional);
         }
       },
     );
-    
-    // 启动文件系统监听
-    await _startFileWatcher();
   }
-  
+
   /// 停止自动同步
   Future<void> stopAutoSync() async {
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
     _isAutoSyncEnabled = false;
-    
-    // 停止文件监听
-    await _imagesDirWatcher?.cancel();
-    _imagesDirWatcher = null;
-    _debounceTimer?.cancel();
-    _pendingImageUploads.clear();
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_autoSyncKey, false);
   }
-  
+
   /// 检查自动同步状态
   Future<bool> isAutoSyncEnabled() async {
     if (_autoSyncTimer != null) {
       return _isAutoSyncEnabled;
     }
-    
+
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_autoSyncKey) ?? false;
   }
-  
-  /// 启动文件系统监听
-  Future<void> _startFileWatcher() async {
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
-      
-      if (!await imagesDir.exists()) {
-        await imagesDir.create(recursive: true);
-      }
-      
-      // 监听图片目录的变化
-      _imagesDirWatcher = imagesDir.watch(recursive: true).listen((event) {
-        if (event is FileSystemCreateEvent || event is FileSystemModifyEvent) {
-          final path = event.path;
-          if (_isImageFile(path)) {
-            _pendingImageUploads.add(path);
-            _debounceUpload();
-          }
-        }
-      });
-    } catch (e) {
-      // 文件监听可能不支持某些平台，忽略错误
-    }
-  }
-  
-  /// 检查是否是图片文件
-  bool _isImageFile(String path) {
-    final ext = p.extension(path).toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].contains(ext);
-  }
-  
-  /// 防抖上传
-  void _debounceUpload() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(_debounceDelay, () async {
-      if (_pendingImageUploads.isNotEmpty && _isAutoSyncEnabled) {
-        await _uploadPendingImages();
-      }
-    });
-  }
-  
-  /// 上传待处理的图片（重新打包 zip 上传）
-  Future<void> _uploadPendingImages() async {
-    final config = await getConfig();
-    if (config == null) return;
 
-    try {
-      final url = config['url']!;
-      final username = config['username']!;
-      final password = config['password']!;
-      final path = config['path']!;
-
-      final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      final zipUrl = '$baseUrl$path/images.zip';
-
-      _pendingImageUploads.clear();
-
-      final client = http.Client();
-      try {
-        final zipFile = await _createImagesZip();
-        if (await zipFile.exists()) {
-          await _uploadFile(client, zipUrl, username, password, zipFile);
-        }
-        try { await zipFile.delete(); } catch (_) {}
-      } finally {
-        client.close();
-      }
-    } catch (e) {
-      // 忽略错误
-    }
-  }
-  
-  /// 执行增量同步（检查变更并上传）
-  Future<SyncResult> _performIncrementalSync() async {
-    final config = await getConfig();
-    if (config == null) {
-      return SyncResult(success: false, message: '未配置 WebDAV');
-    }
-    
-    try {
-      final url = config['url']!;
-      final username = config['username']!;
-      final password = config['password']!;
-      final path = config['path']!;
-      
-      final dbPath = await getDatabasesPath();
-      final dbFile = File(p.join(dbPath, 'mooknote.db'));
-      
-      if (!await dbFile.exists()) {
-        return SyncResult(success: false, message: '本地数据库不存在');
-      }
-      
-      final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      final dbUrl = '$baseUrl$path/mooknote.db';
-      final imagesUrl = '$baseUrl$path/images';
-      final avatarsUrl = '$baseUrl$path/avatars';
-      final userConfigUrl = '$baseUrl$path/user_config.json';
-      
-      final client = http.Client();
-      int uploadedImages = 0;
-      int downloadedImages = 0;
-      bool dbUploaded = false;
-      
-      try {
-        // 检查数据库是否需要同步
-        final prefs = await SharedPreferences.getInstance();
-        final lastDbModifiedStr = prefs.getString(_lastDbModifiedKey);
-        final currentDbModified = await dbFile.lastModified();
-        
-        bool needDbSync = true;
-        if (lastDbModifiedStr != null) {
-          final lastDbModified = DateTime.parse(lastDbModifiedStr);
-          // 如果数据库修改时间在3秒内，认为没有变化
-          if (currentDbModified.difference(lastDbModified).inSeconds.abs() < 3) {
-            needDbSync = false;
-          }
-        }
-        
-        if (needDbSync) {
-          // 上传数据库
-          dbUploaded = await _uploadFile(client, dbUrl, username, password, dbFile);
-          if (dbUploaded) {
-            await prefs.setString(_lastDbModifiedKey, currentDbModified.toIso8601String());
-          }
-        }
-        
-        // 同步图片（双向）
-        final imageResult = await _syncImagesBidirectional(client, imagesUrl, username, password);
-        uploadedImages = imageResult.uploaded;
-        downloadedImages = imageResult.downloaded;
-        
-        // 同步头像（双向）
-        final avatarResult = await _syncAvatarsBidirectional(client, avatarsUrl, username, password);
-        uploadedImages += avatarResult.uploaded;
-        downloadedImages += avatarResult.downloaded;
-        
-        // 同步用户配置：下载远程并上传本地
-        await _downloadUserConfig(client, userConfigUrl, username, password);
-        await _uploadUserConfig(client, userConfigUrl, username, password);
-        
-        await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
-        
-        return SyncResult(
-          success: true,
-          message: '自动同步完成',
-          lastSyncTime: DateTime.now(),
-          uploadedFiles: dbUploaded ? 1 : 0,
-          uploadedImages: uploadedImages,
-          downloadedImages: downloadedImages,
-        );
-      } finally {
-        client.close();
-      }
-    } catch (e) {
-      return SyncResult(success: false, message: '自动同步失败: $e');
-    }
-  }
-  
-
-  
-  /// 将本地 images 目录打包为 zip 文件，返回临时文件
-  Future<File> _createImagesZip() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final imagesDir = Directory(p.join(appDir.path, 'images'));
-    final tempDir = await getTemporaryDirectory();
-    final zipFile = File(p.join(tempDir.path, 'images.zip'));
-
-    final archive = Archive();
-    if (await imagesDir.exists()) {
-      await for (final entity in imagesDir.list(recursive: true)) {
-        if (entity is File) {
-          final bytes = await entity.readAsBytes();
-          final relativePath = p.relative(entity.path, from: imagesDir.path);
-          archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
-        }
-      }
-    }
-
-    final zipBytes = ZipEncoder().encode(archive)!;
-    await zipFile.writeAsBytes(zipBytes);
-    return zipFile;
+  /// 获取上次同步时间
+  Future<String?> getLastSyncTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastSyncKey);
   }
 
-  /// 解压 images.zip 到本地 images 目录（合并模式）
-  Future<void> _extractImagesZip(File zipFile) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final imagesDir = Directory(p.join(appDir.path, 'images'));
-
-    final inputStream = InputFileStream(zipFile.path);
-    final archive = ZipDecoder().decodeBuffer(inputStream);
-    await inputStream.close();
-
-    for (final file in archive) {
-      if (file.isFile) {
-        final targetFile = File(p.join(imagesDir.path, file.name));
-        await targetFile.parent.create(recursive: true);
-        await targetFile.writeAsBytes(file.content!);
-      }
-    }
-  }
-
-  /// 将本地 avatars 目录打包为 zip 文件
-  Future<File> _createAvatarsZip() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final avatarsDir = Directory(p.join(appDir.path, 'avatars'));
-    final tempDir = await getTemporaryDirectory();
-    final zipFile = File(p.join(tempDir.path, 'avatars.zip'));
-
-    final archive = Archive();
-    if (await avatarsDir.exists()) {
-      await for (final entity in avatarsDir.list(recursive: true)) {
-        if (entity is File) {
-          final bytes = await entity.readAsBytes();
-          final relativePath = p.relative(entity.path, from: avatarsDir.path);
-          archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
-        }
-      }
-    }
-
-    final zipBytes = ZipEncoder().encode(archive)!;
-    await zipFile.writeAsBytes(zipBytes);
-    return zipFile;
-  }
-
-  /// 解压 avatars.zip 到本地 avatars 目录（合并模式）
-  Future<void> _extractAvatarsZip(File zipFile) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final avatarsDir = Directory(p.join(appDir.path, 'avatars'));
-
-    final inputStream = InputFileStream(zipFile.path);
-    final archive = ZipDecoder().decodeBuffer(inputStream);
-    await inputStream.close();
-
-    for (final file in archive) {
-      if (file.isFile) {
-        final targetFile = File(p.join(avatarsDir.path, file.name));
-        await targetFile.parent.create(recursive: true);
-        await targetFile.writeAsBytes(file.content!);
-      }
-    }
-  }
-
-  /// 同步图片（zip 打包传输，一次请求完成）
-  Future<_ImageSyncResult> _syncImages(
-    http.Client client,
-    String imagesUrl,
-    String username,
-    String password,
-    SyncDirection direction,
-  ) async {
-    int uploaded = 0;
-    int downloaded = 0;
-
-    try {
-      final zipUrl = '${imagesUrl.substring(0, imagesUrl.lastIndexOf('/'))}/images.zip';
-
-      if (direction == SyncDirection.upload) {
-        final zipFile = await _createImagesZip();
-        if (await zipFile.exists()) {
-          final success = await _uploadFile(client, zipUrl, username, password, zipFile);
-          if (success) uploaded = 1;
-        }
-        try { await zipFile.delete(); } catch (_) {}
-      } else if (direction == SyncDirection.download) {
-        final tempDir = await getTemporaryDirectory();
-        final tempZip = File(p.join(tempDir.path, 'images_dl.zip'));
-        final success = await _downloadFile(client, zipUrl, username, password, tempZip);
-        if (success) {
-          await _extractImagesZip(tempZip);
-          downloaded = 1;
-        }
-        try { await tempZip.delete(); } catch (_) {}
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
-  }
-
-  
-
-  
-
-  
-
-  
-  /// 上传文件（数据库文件上传前自动 VACUUM 压缩）
-  Future<bool> _uploadFile(
+  /// 上传字节数据到 WebDAV
+  Future<bool> _uploadBytes(
     http.Client client,
     String url,
     String username,
     String password,
-    File file,
+    Uint8List bytes,
   ) async {
     try {
-      // 数据库文件：上传前 VACUUM 压缩
-      if (p.basename(url).endsWith('.db')) {
-        try {
-          final db = await DatabaseHelper.instance.database;
-          await db.execute('VACUUM');
-        } catch (_) {}
-      }
-
-      final fileBytes = await file.readAsBytes();
-      
       var request = http.Request('PUT', Uri.parse(url));
       request.headers['Authorization'] = _basicAuth(username, password);
-      request.headers['Content-Type'] = 'application/octet-stream';
-      request.bodyBytes = fileBytes;
-      
+      request.headers['Content-Type'] = 'application/zip';
+      request.bodyBytes = bytes;
+
       var response = await client.send(request);
-      
+
       // 处理重定向
       if (response.statusCode == 301 || response.statusCode == 302 ||
           response.statusCode == 307 || response.statusCode == 308) {
@@ -997,20 +401,21 @@ class WebDAVService {
         if (location != null) {
           request = http.Request('PUT', Uri.parse(location));
           request.headers['Authorization'] = _basicAuth(username, password);
-          request.headers['Content-Type'] = 'application/octet-stream';
-          request.bodyBytes = fileBytes;
+          request.headers['Content-Type'] = 'application/zip';
+          request.bodyBytes = bytes;
           response = await client.send(request);
         }
       }
-      
-      return response.statusCode == 201 || response.statusCode == 204;
+
+      print('[WebDAV] PUT $url -> ${response.statusCode}');
+      return response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204;
     } catch (e) {
-      // print('WebDAV: Upload error: $e');
+      print('[WebDAV] _uploadBytes error: $e');
       return false;
     }
   }
-  
-  /// 下载文件
+
+  /// 下载文件到本地
   Future<bool> _downloadFile(
     http.Client client,
     String url,
@@ -1019,42 +424,38 @@ class WebDAVService {
     File localFile,
   ) async {
     try {
-      // print('WebDAV: Downloading from $url to ${localFile.path}');
-      
       var request = http.Request('GET', Uri.parse(url));
       request.headers['Authorization'] = _basicAuth(username, password);
-      
+
       var response = await client.send(request);
-      
+
       // 处理重定向
       if (response.statusCode == 301 || response.statusCode == 302 ||
           response.statusCode == 307 || response.statusCode == 308) {
         final location = response.headers['location'];
         if (location != null) {
-          // print('WebDAV: Following redirect to $location');
           request = http.Request('GET', Uri.parse(location));
           request.headers['Authorization'] = _basicAuth(username, password);
           response = await client.send(request);
         }
       }
-      
-      // print('WebDAV: Download response status: ${response.statusCode}');
-      
+
+      print('[WebDAV] GET $url -> ${response.statusCode}');
+
       if (response.statusCode == 200) {
+        await localFile.parent.create(recursive: true);
         final bytes = await response.stream.toBytes();
         await localFile.writeAsBytes(bytes);
-        // print('WebDAV: Downloaded ${bytes.length} bytes to ${localFile.path}');
+        print('[WebDAV] Downloaded ${bytes.length} bytes');
         return true;
-      } else {
-        // print('WebDAV: Download failed with status ${response.statusCode}');
       }
       return false;
     } catch (e) {
-      // print('WebDAV: Download error: $e');
+      // ignore
       return false;
     }
   }
-  
+
   /// Basic Auth 编码
   String _basicAuth(String username, String password) {
     final credentials = base64Encode(utf8.encode('$username:$password'));

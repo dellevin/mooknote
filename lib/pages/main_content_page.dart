@@ -264,6 +264,14 @@ class _MainContentPageState extends State<MainContentPage> {
       Navigator.pop(context);
     }
 
+    // 下载了数据则刷新界面
+    if (result.success && result.needReload && context.mounted) {
+      final provider = context.read<AppProvider>();
+      await provider.loadMovies();
+      await provider.loadBooks();
+      await provider.loadNotes();
+    }
+
     // 显示结果
     if (context.mounted) {
       final isSuccess = result.success;

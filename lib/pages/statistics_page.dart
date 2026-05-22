@@ -96,6 +96,16 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final readingBooks = books.where((b) => b.status == 'reading').length;
     final wantToReadBooks = books.where((b) => b.status == 'want_to_read').length;
 
+    final movieRatings = movies.where((m) => m.rating != null && !m.isDeleted).map((m) => m.rating!);
+    final avgMovieRating = movieRatings.isNotEmpty
+        ? movieRatings.reduce((a, b) => a + b) / movieRatings.length
+        : null;
+
+    final bookRatings = books.where((b) => b.rating != null).map((b) => b.rating!);
+    final avgBookRating = bookRatings.isNotEmpty
+        ? bookRatings.reduce((a, b) => a + b) / bookRatings.length
+        : null;
+
     final children = <Widget>[];
 
     // 数据总览
@@ -106,25 +116,25 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     // 影视状态分布
     if (_showMovies) {
-      children.add(_buildSectionTitle('影视状态分布'));
+      children.add(_buildSectionTitle('影视'));
       children.add(const SizedBox(height: 16));
       children.add(_buildStatusDistribution([
         _StatusData('已看', watchedMovies, const Color(0xFF1A1A1A)),
         _StatusData('在看', watchingMovies, const Color(0xFF666666)),
         _StatusData('想看', wantToWatchMovies, const Color(0xFF999999)),
-      ]));
+      ], avgRating: avgMovieRating));
       children.add(const SizedBox(height: 32));
     }
 
     // 书籍状态分布
     if (_showBooks) {
-      children.add(_buildSectionTitle('书籍状态分布'));
+      children.add(_buildSectionTitle('书籍'));
       children.add(const SizedBox(height: 16));
       children.add(_buildStatusDistribution([
         _StatusData('已读', readBooks, const Color(0xFF1A1A1A)),
         _StatusData('在读', readingBooks, const Color(0xFF666666)),
         _StatusData('想读', wantToReadBooks, const Color(0xFF999999)),
-      ]));
+      ], avgRating: avgBookRating));
       children.add(const SizedBox(height: 32));
     }
 
@@ -295,7 +305,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  Widget _buildStatusDistribution(List<_StatusData> data) {
+  Widget _buildStatusDistribution(List<_StatusData> data, {double? avgRating}) {
     final total = data.fold(0, (sum, item) => sum + item.count);
 
     return Container(
@@ -305,26 +315,41 @@ class _StatisticsPageState extends State<StatisticsPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        children: data.map((item) {
-          final percentage = total > 0 ? (item.count / total * 100).toStringAsFixed(1) : '0';
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
+        children: [
+          ...data.map((item) {
+            final percentage = total > 0 ? (item.count / total * 100).toStringAsFixed(1) : '0';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(item.label, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
+                  const Spacer(),
+                  Text('${item.count}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                  const SizedBox(width: 8),
+                  Text('($percentage%)', style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                ],
+              ),
+            );
+          }),
+          if (avgRating != null) ...[
+            const Divider(height: 1, color: Color(0xFFE8E8E8)),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Container(
-                  width: 10, height: 10,
-                  decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
-                ),
-                const SizedBox(width: 12),
-                Text(item.label, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
+                const Icon(Icons.star, size: 16, color: Color(0xFF999999)),
+                const SizedBox(width: 10),
+                const Text('平均评分', style: TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
                 const Spacer(),
-                Text('${item.count}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-                const SizedBox(width: 8),
-                Text('($percentage%)', style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                Text(avgRating.toStringAsFixed(1), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
               ],
             ),
-          );
-        }).toList(),
+          ],
+        ],
       ),
     );
   }
