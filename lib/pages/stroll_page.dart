@@ -58,6 +58,7 @@ class _StrollPageState extends State<StrollPage> {
           imagePath: m.posterPath,
           icon: Icons.movie_outlined,
           label: '影视',
+          createdAt: m.createdAt,
         );
         break;
       case 'book':
@@ -70,6 +71,7 @@ class _StrollPageState extends State<StrollPage> {
           imagePath: b.coverPath,
           icon: Icons.menu_book_outlined,
           label: '书籍',
+          createdAt: b.createdAt,
         );
         break;
       case 'note':
@@ -82,6 +84,7 @@ class _StrollPageState extends State<StrollPage> {
           imagePath: n.images.isNotEmpty ? n.images.first : null,
           icon: Icons.note_outlined,
           label: '笔记',
+          createdAt: n.createdAt,
         );
         break;
       default:
@@ -108,6 +111,29 @@ class _StrollPageState extends State<StrollPage> {
     if (b.status == 'read') parts.add('已读');
     if (b.status == 'reading') parts.add('在读');
     return parts.join(' · ');
+  }
+
+  String _getTimeAgoText(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays >= 365) return '1年前';
+    if (diff.inDays >= 180) return '6个月前';
+    if (diff.inDays >= 90) return '3个月前';
+    if (diff.inDays >= 30) return '1个月前';
+    return '${diff.inDays}天前';
+  }
+
+  String _getActionTimeAgo(_StrollItem item) {
+    final timeAgo = _getTimeAgoText(item.createdAt);
+    switch (item.type) {
+      case 'movie':
+        return '${timeAgo}看过';
+      case 'book':
+        return '${timeAgo}读过';
+      case 'note':
+        return '${timeAgo}写下';
+      default:
+        return timeAgo;
+    }
   }
 
   @override
@@ -226,6 +252,13 @@ class _StrollPageState extends State<StrollPage> {
                           ),
                         ],
 
+                        // 时间
+                        const SizedBox(height: 10),
+                        Text(
+                          _getActionTimeAgo(item),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFCCCCCC)),
+                        ),
+
                         const SizedBox(height: 40),
                       ],
                     ),
@@ -309,6 +342,11 @@ class _StrollPageState extends State<StrollPage> {
                           '${item.detail.length} 字',
                           style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
                         ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _getActionTimeAgo(item),
+                          style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+                        ),
                         const Spacer(),
                         const Text(
                           'Mooknote',
@@ -350,6 +388,7 @@ class _StrollItem {
   final String? imagePath;
   final IconData icon;
   final String label;
+  final DateTime createdAt;
 
   _StrollItem({
     required this.type,
@@ -359,5 +398,6 @@ class _StrollItem {
     this.imagePath,
     required this.icon,
     required this.label,
+    required this.createdAt,
   });
 }

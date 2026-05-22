@@ -435,31 +435,11 @@ class _ProfilePageState extends State<ProfilePage> {
           
           _buildMenuItem(
             icon: Icons.backup_outlined,
-            title: '本地备份',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const BackupPage()),
-              ).then((_) {
-                // 返回时刷新用户数据
-                _loadUserData();
-              });
-            },
+            title: '备份',
+            onTap: () => _showBackupOptions(context),
           ),
           const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
-          
-          _buildMenuItem(
-            icon: Icons.cloud_sync_outlined,
-            title: '云备份',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CloudSyncPage()),
-              );
-            },
-          ),
-          const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
-          
+
           _buildMenuItem(
             icon: Icons.delete_outline,
             title: '回收站',
@@ -527,6 +507,82 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  /// 显示备份选项
+  void _showBackupOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDDDDDD),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('选择备份方式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.folder_outlined, color: Color(0xFF666666)),
+              ),
+              title: const Text('本地备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+              subtitle: const Text('备份到本地文件夹，支持恢复', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC)),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BackupPage()),
+                ).then((_) => _loadUserData());
+              },
+            ),
+            const Divider(height: 0.5, color: Color(0xFFF0F0F0)),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.cloud_outlined, color: Color(0xFF666666)),
+              ),
+              title: const Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+              subtitle: const Text('通过 WebDAV 同步到云端', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC)),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CloudSyncPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 显示提示
   void _showToast(String message) {
     ToastUtil.show(context, message);
@@ -541,22 +597,22 @@ class _ProfilePageState extends State<ProfilePage> {
         maxHeight: 400,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         final appDir = await getApplicationDocumentsDirectory();
         final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final savedPath = path.join(appDir.path, 'avatars', fileName);
-        
+
         final avatarDir = Directory(path.join(appDir.path, 'avatars'));
         if (!await avatarDir.exists()) {
           await avatarDir.create(recursive: true);
         }
-        
+
         await File(pickedFile.path).copy(savedPath);
-        
+
         // 保存到本地存储
         await _userPrefs.setAvatarPath(savedPath);
-        
+
         setState(() => _avatarPath = savedPath);
       }
     } catch (e) {
@@ -565,8 +621,6 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
-
-  /// 编辑昵称
   void _editNickname(BuildContext context) {
     final controller = TextEditingController(text: _nickname);
     

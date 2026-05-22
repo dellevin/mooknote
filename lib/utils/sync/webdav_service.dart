@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
+import 'package:archive/archive_io.dart';
 import '../database_helper.dart';
 import '../user_prefs.dart';
 
@@ -380,7 +381,7 @@ class WebDAVService {
     return result;
   }
   
-  /// 双向同步图片（基于文件存在性和修改时间）
+  /// 双向同步图片（下载远程 zip 合并 -> 打包上传本地）
   Future<_ImageSyncResult> _syncImagesBidirectional(
     http.Client client,
     String imagesUrl,
@@ -389,54 +390,34 @@ class WebDAVService {
   ) async {
     int uploaded = 0;
     int downloaded = 0;
-    
+
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final localImagesDir = Directory('${appDir.path}/images');
-      
-      if (!await localImagesDir.exists()) {
-        await localImagesDir.create(recursive: true);
+      final zipUrl = '${imagesUrl.substring(0, imagesUrl.lastIndexOf('/'))}/images.zip';
+      final tempDir = await getTemporaryDirectory();
+      final tempZip = File(p.join(tempDir.path, 'images_bidir.zip'));
+
+      final downloadSuccess = await _downloadFile(client, zipUrl, username, password, tempZip);
+      if (downloadSuccess) {
+        await _extractImagesZip(tempZip);
+        downloaded = 1;
+        try { await tempZip.delete(); } catch (_) {}
       }
-      
-      // 获取本地所有图片
-      final localImages = <String, File>{};
-      await _collectLocalImages(localImagesDir, localImages, '');
-      
-      // 获取远程所有图片
-      final remoteImages = await _listRemoteImagesRecursive(client, imagesUrl, username, password, '');
-      
-      // 上传本地有但远程没有的
-      for (final entry in localImages.entries) {
-        final relativePath = entry.key;
-        if (!remoteImages.contains(relativePath)) {
-          final remoteUrl = '$imagesUrl/$relativePath';
-          final parentPath = p.dirname(relativePath);
-          if (parentPath != '.' && parentPath.isNotEmpty) {
-            await _ensureRemoteDir(client, '$imagesUrl/$parentPath', username, password);
-          }
-          final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
-          if (success) uploaded++;
-        }
+
+      final zipFile = await _createImagesZip();
+      if (await zipFile.exists()) {
+        final uploadSuccess = await _uploadFile(client, zipUrl, username, password, zipFile);
+        if (uploadSuccess) uploaded = 1;
       }
-      
-      // 下载远程有但本地没有的
-      for (final relativePath in remoteImages) {
-        if (!localImages.containsKey(relativePath)) {
-          final remoteUrl = '$imagesUrl/$relativePath';
-          final localFile = File('${localImagesDir.path}/$relativePath');
-          await localFile.parent.create(recursive: true);
-          final success = await _downloadFile(client, remoteUrl, username, password, localFile);
-          if (success) downloaded++;
-        }
-      }
+      try { await zipFile.delete(); } catch (_) {}
     } catch (e) {
-      // 忽略错误
+      // ignore
     }
-    
+
     return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
   }
+
   
-  /// 同步头像目录
+  /// 同步头像目录（zip 打包传输）
   Future<_ImageSyncResult> _syncAvatars(
     http.Client client,
     String avatarsUrl,
@@ -446,51 +427,36 @@ class WebDAVService {
   ) async {
     int uploaded = 0;
     int downloaded = 0;
-    
+
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final localAvatarsDir = Directory('${appDir.path}/avatars');
-      
-      if (!await localAvatarsDir.exists()) {
-        if (direction == SyncDirection.download) {
-          await localAvatarsDir.create(recursive: true);
-        } else {
-          return _ImageSyncResult(uploaded: 0, downloaded: 0);
-        }
-      }
-      
-      final localAvatars = <String, File>{};
-      await _collectLocalImages(localAvatarsDir, localAvatars, '');
-      
-      final remoteAvatars = await _listRemoteImagesRecursive(client, avatarsUrl, username, password, '');
-      
+      final zipUrl = '${avatarsUrl.substring(0, avatarsUrl.lastIndexOf('/'))}/avatars.zip';
+
       if (direction == SyncDirection.upload) {
-        for (final entry in localAvatars.entries) {
-          final remoteUrl = '$avatarsUrl/${entry.key}';
-          final parentPath = p.dirname(entry.key);
-          if (parentPath != '.' && parentPath.isNotEmpty) {
-            await _ensureRemoteDir(client, '$avatarsUrl/$parentPath', username, password);
-          }
-          final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
-          if (success) uploaded++;
+        final zipFile = await _createAvatarsZip();
+        if (await zipFile.exists()) {
+          final success = await _uploadFile(client, zipUrl, username, password, zipFile);
+          if (success) uploaded = 1;
         }
+        try { await zipFile.delete(); } catch (_) {}
       } else if (direction == SyncDirection.download) {
-        for (final relativePath in remoteAvatars) {
-          final remoteUrl = '$avatarsUrl/$relativePath';
-          final localFile = File('${localAvatarsDir.path}/$relativePath');
-          await localFile.parent.create(recursive: true);
-          final success = await _downloadFile(client, remoteUrl, username, password, localFile);
-          if (success) downloaded++;
+        final tempDir = await getTemporaryDirectory();
+        final tempZip = File(p.join(tempDir.path, 'avatars_dl.zip'));
+        final success = await _downloadFile(client, zipUrl, username, password, tempZip);
+        if (success) {
+          await _extractAvatarsZip(tempZip);
+          downloaded = 1;
         }
+        try { await tempZip.delete(); } catch (_) {}
       }
     } catch (e) {
-      // 忽略错误
+      // ignore
     }
-    
+
     return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
   }
+
   
-  /// 双向同步头像目录
+  /// 双向同步头像目录（下载远程 zip 合并 -> 打包上传本地）
   Future<_ImageSyncResult> _syncAvatarsBidirectional(
     http.Client client,
     String avatarsUrl,
@@ -499,47 +465,32 @@ class WebDAVService {
   ) async {
     int uploaded = 0;
     int downloaded = 0;
-    
+
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final localAvatarsDir = Directory('${appDir.path}/avatars');
-      
-      if (!await localAvatarsDir.exists()) {
-        await localAvatarsDir.create(recursive: true);
+      final zipUrl = '${avatarsUrl.substring(0, avatarsUrl.lastIndexOf('/'))}/avatars.zip';
+      final tempDir = await getTemporaryDirectory();
+      final tempZip = File(p.join(tempDir.path, 'avatars_bidir.zip'));
+
+      final downloadSuccess = await _downloadFile(client, zipUrl, username, password, tempZip);
+      if (downloadSuccess) {
+        await _extractAvatarsZip(tempZip);
+        downloaded = 1;
+        try { await tempZip.delete(); } catch (_) {}
       }
-      
-      final localAvatars = <String, File>{};
-      await _collectLocalImages(localAvatarsDir, localAvatars, '');
-      
-      final remoteAvatars = await _listRemoteImagesRecursive(client, avatarsUrl, username, password, '');
-      
-      for (final entry in localAvatars.entries) {
-        if (!remoteAvatars.contains(entry.key)) {
-          final remoteUrl = '$avatarsUrl/${entry.key}';
-          final parentPath = p.dirname(entry.key);
-          if (parentPath != '.' && parentPath.isNotEmpty) {
-            await _ensureRemoteDir(client, '$avatarsUrl/$parentPath', username, password);
-          }
-          final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
-          if (success) uploaded++;
-        }
+
+      final zipFile = await _createAvatarsZip();
+      if (await zipFile.exists()) {
+        final uploadSuccess = await _uploadFile(client, zipUrl, username, password, zipFile);
+        if (uploadSuccess) uploaded = 1;
       }
-      
-      for (final relativePath in remoteAvatars) {
-        if (!localAvatars.containsKey(relativePath)) {
-          final remoteUrl = '$avatarsUrl/$relativePath';
-          final localFile = File('${localAvatarsDir.path}/$relativePath');
-          await localFile.parent.create(recursive: true);
-          final success = await _downloadFile(client, remoteUrl, username, password, localFile);
-          if (success) downloaded++;
-        }
-      }
+      try { await zipFile.delete(); } catch (_) {}
     } catch (e) {
-      // 忽略错误
+      // ignore
     }
-    
+
     return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
   }
+
   
   /// 上传用户配置
   Future<void> _uploadUserConfig(
@@ -767,43 +718,29 @@ class WebDAVService {
     });
   }
   
-  /// 上传待处理的图片
+  /// 上传待处理的图片（重新打包 zip 上传）
   Future<void> _uploadPendingImages() async {
     final config = await getConfig();
     if (config == null) return;
-    
+
     try {
       final url = config['url']!;
       final username = config['username']!;
       final password = config['password']!;
       final path = config['path']!;
-      
+
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      final imagesUrl = '$baseUrl$path/images';
-      
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
-      
+      final zipUrl = '$baseUrl$path/images.zip';
+
+      _pendingImageUploads.clear();
+
       final client = http.Client();
       try {
-        final uploads = _pendingImageUploads.toList();
-        _pendingImageUploads.clear();
-        
-        for (final localPath in uploads) {
-          final file = File(localPath);
-          if (await file.exists()) {
-            final relativePath = p.relative(localPath, from: imagesDir.path);
-            final remoteUrl = '$imagesUrl/$relativePath';
-            
-            // 确保父目录存在
-            final parentPath = p.dirname(relativePath);
-            if (parentPath != '.' && parentPath.isNotEmpty) {
-              await _ensureRemoteDir(client, '$imagesUrl/$parentPath', username, password);
-            }
-            
-            await _uploadFile(client, remoteUrl, username, password, file);
-          }
+        final zipFile = await _createImagesZip();
+        if (await zipFile.exists()) {
+          await _uploadFile(client, zipUrl, username, password, zipFile);
         }
+        try { await zipFile.delete(); } catch (_) {}
       } finally {
         client.close();
       }
@@ -900,8 +837,89 @@ class WebDAVService {
   
 
   
-  /// 同步图片（支持新的目录结构）
-  /// 同步 images/movies/{id}/、images/books/{id}/、images/notes/{id}/ 下的所有图片
+  /// 将本地 images 目录打包为 zip 文件，返回临时文件
+  Future<File> _createImagesZip() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final imagesDir = Directory(p.join(appDir.path, 'images'));
+    final tempDir = await getTemporaryDirectory();
+    final zipFile = File(p.join(tempDir.path, 'images.zip'));
+
+    final archive = Archive();
+    if (await imagesDir.exists()) {
+      await for (final entity in imagesDir.list(recursive: true)) {
+        if (entity is File) {
+          final bytes = await entity.readAsBytes();
+          final relativePath = p.relative(entity.path, from: imagesDir.path);
+          archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
+        }
+      }
+    }
+
+    final zipBytes = ZipEncoder().encode(archive)!;
+    await zipFile.writeAsBytes(zipBytes);
+    return zipFile;
+  }
+
+  /// 解压 images.zip 到本地 images 目录（合并模式）
+  Future<void> _extractImagesZip(File zipFile) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final imagesDir = Directory(p.join(appDir.path, 'images'));
+
+    final inputStream = InputFileStream(zipFile.path);
+    final archive = ZipDecoder().decodeBuffer(inputStream);
+    await inputStream.close();
+
+    for (final file in archive) {
+      if (file.isFile) {
+        final targetFile = File(p.join(imagesDir.path, file.name));
+        await targetFile.parent.create(recursive: true);
+        await targetFile.writeAsBytes(file.content!);
+      }
+    }
+  }
+
+  /// 将本地 avatars 目录打包为 zip 文件
+  Future<File> _createAvatarsZip() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final avatarsDir = Directory(p.join(appDir.path, 'avatars'));
+    final tempDir = await getTemporaryDirectory();
+    final zipFile = File(p.join(tempDir.path, 'avatars.zip'));
+
+    final archive = Archive();
+    if (await avatarsDir.exists()) {
+      await for (final entity in avatarsDir.list(recursive: true)) {
+        if (entity is File) {
+          final bytes = await entity.readAsBytes();
+          final relativePath = p.relative(entity.path, from: avatarsDir.path);
+          archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
+        }
+      }
+    }
+
+    final zipBytes = ZipEncoder().encode(archive)!;
+    await zipFile.writeAsBytes(zipBytes);
+    return zipFile;
+  }
+
+  /// 解压 avatars.zip 到本地 avatars 目录（合并模式）
+  Future<void> _extractAvatarsZip(File zipFile) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final avatarsDir = Directory(p.join(appDir.path, 'avatars'));
+
+    final inputStream = InputFileStream(zipFile.path);
+    final archive = ZipDecoder().decodeBuffer(inputStream);
+    await inputStream.close();
+
+    for (final file in archive) {
+      if (file.isFile) {
+        final targetFile = File(p.join(avatarsDir.path, file.name));
+        await targetFile.parent.create(recursive: true);
+        await targetFile.writeAsBytes(file.content!);
+      }
+    }
+  }
+
+  /// 同步图片（zip 打包传输，一次请求完成）
   Future<_ImageSyncResult> _syncImages(
     http.Client client,
     String imagesUrl,
@@ -911,248 +929,42 @@ class WebDAVService {
   ) async {
     int uploaded = 0;
     int downloaded = 0;
-    
+
     try {
-      // 获取本地图片目录
-      final appDir = await getApplicationDocumentsDirectory();
-      final localImagesDir = Directory('${appDir.path}/images');
-      
-      if (!await localImagesDir.exists()) {
-        await localImagesDir.create(recursive: true);
-      }
-      
-      // 递归获取本地所有图片文件（包含子目录）
-      final localImages = <String, File>{}; // 相对路径 -> 文件
-      await _collectLocalImages(localImagesDir, localImages, '');
-      
-      // print('WebDAV: Local images: ${localImages.length}');
-      
-      // 递归获取远程所有图片文件
-      final remoteImages = await _listRemoteImagesRecursive(client, imagesUrl, username, password, '');
-      // print('WebDAV: Remote images: ${remoteImages.length}');
-      
+      final zipUrl = '${imagesUrl.substring(0, imagesUrl.lastIndexOf('/'))}/images.zip';
+
       if (direction == SyncDirection.upload) {
-        // 仅上传：上传所有本地图片
-        // print('WebDAV: Starting upload of ${localImages.length} images...');
-        for (final entry in localImages.entries) {
-          final relativePath = entry.key;
-          final remoteUrl = '$imagesUrl/$relativePath';
-          
-          // print('WebDAV: Uploading $relativePath...');
-          
-          // 确保远程父目录存在
-          final parentPath = p.dirname(relativePath);
-          if (parentPath != '.' && parentPath.isNotEmpty) {
-            final parentUrl = '$imagesUrl/$parentPath';
-            await _ensureRemoteDir(client, parentUrl, username, password);
-          }
-          
-          final success = await _uploadFile(client, remoteUrl, username, password, entry.value);
-          if (success) {
-            uploaded++;
-            // print('WebDAV: Uploaded $relativePath ($uploaded/${localImages.length})');
-          }
+        final zipFile = await _createImagesZip();
+        if (await zipFile.exists()) {
+          final success = await _uploadFile(client, zipUrl, username, password, zipFile);
+          if (success) uploaded = 1;
         }
-        // print('WebDAV: Upload complete - $uploaded/${localImages.length} images uploaded');
+        try { await zipFile.delete(); } catch (_) {}
       } else if (direction == SyncDirection.download) {
-        // 仅下载：下载所有远程图片
-        // print('WebDAV: Starting download of ${remoteImages.length} images...');
-        for (final relativePath in remoteImages) {
-          final remoteUrl = '$imagesUrl/$relativePath';
-          final localFile = File('${localImagesDir.path}/$relativePath');
-          
-          // print('WebDAV: Downloading $relativePath...');
-          
-          // 确保父目录存在
-          await localFile.parent.create(recursive: true);
-          final success = await _downloadFile(client, remoteUrl, username, password, localFile);
-          if (success) {
-            downloaded++;
-            // print('WebDAV: Downloaded $relativePath ($downloaded/${remoteImages.length})');
-          }
+        final tempDir = await getTemporaryDirectory();
+        final tempZip = File(p.join(tempDir.path, 'images_dl.zip'));
+        final success = await _downloadFile(client, zipUrl, username, password, tempZip);
+        if (success) {
+          await _extractImagesZip(tempZip);
+          downloaded = 1;
         }
-        // print('WebDAV: Download complete - $downloaded/${remoteImages.length} images downloaded');
+        try { await tempZip.delete(); } catch (_) {}
       }
     } catch (e) {
-      // print('WebDAV: Sync images error: $e');
+      // ignore
     }
-    
+
     return _ImageSyncResult(uploaded: uploaded, downloaded: downloaded);
   }
+
   
-  /// 递归收集本地图片文件
-  Future<void> _collectLocalImages(Directory dir, Map<String, File> result, String relativePath) async {
-    await for (final entity in dir.list()) {
-      if (entity is File) {
-        final fileName = p.basename(entity.path);
-        final path = relativePath.isEmpty ? fileName : '$relativePath/$fileName';
-        result[path] = entity;
-      } else if (entity is Directory) {
-        final dirName = p.basename(entity.path);
-        final newRelativePath = relativePath.isEmpty ? dirName : '$relativePath/$dirName';
-        await _collectLocalImages(entity, result, newRelativePath);
-      }
-    }
-  }
+
   
-  /// 获取远程图片列表（递归获取所有子目录中的图片）
-  Future<List<String>> _listRemoteImagesRecursive(
-    http.Client client,
-    String imagesUrl,
-    String username,
-    String password,
-    String relativePath,
-  ) async {
-    final images = <String>[];
-    final currentUrl = relativePath.isEmpty ? imagesUrl : '$imagesUrl/$relativePath';
-    
-    try {
-      // 创建图片目录（如果不存在）
-      final mkcolRequest = http.Request('MKCOL', Uri.parse(currentUrl));
-      mkcolRequest.headers['Authorization'] = _basicAuth(username, password);
-      await client.send(mkcolRequest);
-      
-      // 列出目录内容
-      var request = http.Request('PROPFIND', Uri.parse(currentUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      request.headers['Depth'] = '1';
-      
-      var response = await client.send(request);
-      
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        if (location != null) {
-          final newUrl = location;
-          request = http.Request('PROPFIND', Uri.parse(newUrl));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          request.headers['Depth'] = '1';
-          response = await client.send(request);
-        }
-      }
-      
-      if (response.statusCode == 207) {
-        final body = await response.stream.bytesToString();
-        // print('WebDAV: PROPFIND response for $relativePath: ${body.length} bytes');
-        // print('WebDAV: Response body: $body');
-        
-        // 解析响应，提取文件和目录
-        final hrefMatches = RegExp(r'<d:href>([^<]+)</d:href>', caseSensitive: false)
-            .allMatches(body);
-        
-        // print('WebDAV: Found ${hrefMatches.length} href entries');
-        
-        for (final match in hrefMatches) {
-          final href = match.group(1)!;
-          final name = p.basename(href);
-          
-          // 跳过当前目录自身（WebDAV PROPFIND 结果中第一个或某个 entry 是当前目录）
-          if (name.isEmpty) continue;
-          final currentUrlPath = Uri.parse(currentUrl).path;
-          final currentDirName = p.basename(currentUrlPath);
-          if (name == currentDirName) continue;
-          
-          // 检查是文件还是目录 - 查找这个 href 对应的 <D:response> 或 <d:response> 部分
-          // 使用正则匹配，因为标签可能有属性（如 <D:response xmlns:D="DAV:">）
-          int responseStart = -1;
-          int responseEnd = -1;
-          
-          // 查找包含当前 href 的 response 块（向前找最近的 response 开始标签）
-          final responseStartPattern = RegExp(r'<[Dd]:response\b', caseSensitive: false);
-          final responseEndPattern = RegExp(r'</[Dd]:response>', caseSensitive: false);
-          
-          // 从 match.start 向前找最后一个 response 开始标签
-          final allStarts = responseStartPattern.allMatches(body.substring(0, match.start)).toList();
-          if (allStarts.isNotEmpty) {
-            responseStart = allStarts.last.start;
-          }
-          
-          // 从 match.start 向后找第一个 response 结束标签
-          final endMatch = responseEndPattern.firstMatch(body.substring(match.start));
-          if (endMatch != null) {
-            responseEnd = match.start + endMatch.end;
-          }
-          
-          bool isDirectory = false;
-          
-          if (responseStart != -1 && responseEnd != -1 && responseStart < responseEnd) {
-            final responseSection = body.substring(responseStart, responseEnd);
-            // 检查是否包含 <D:collection/> 或 <d:collection/> 标签
-            isDirectory = responseSection.contains('<D:collection/>') || 
-                         responseSection.contains('<d:collection/>') ||
-                         responseSection.contains('<D:collection />') ||
-                         responseSection.contains('<d:collection />');
-          }
-          
-          // print('WebDAV: Found $name - isDirectory: $isDirectory');
-          
-          if (isDirectory) {
-            // 递归获取子目录中的图片
-            final newRelativePath = relativePath.isEmpty ? name : '$relativePath/$name';
-            final subImages = await _listRemoteImagesRecursive(
-              client, imagesUrl, username, password, newRelativePath,
-            );
-            images.addAll(subImages);
-          } else {
-            // 是文件，添加到列表
-            final filePath = relativePath.isEmpty ? name : '$relativePath/$name';
-            // print('WebDAV: Adding file to list: $filePath');
-            images.add(filePath);
-          }
-        }
-      } else {
-        // print('WebDAV: PROPFIND failed with status ${response.statusCode} for $relativePath');
-      }
-    } catch (e) {
-      // print('WebDAV: List remote images error: $e');
-    }
-    
-    return images;
-  }
+
   
-  /// 确保远程目录存在
-  Future<void> _ensureRemoteDir(
-    http.Client client,
-    String dirUrl,
-    String username,
-    String password,
-  ) async {
-    try {
-      var request = http.Request('MKCOL', Uri.parse(dirUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      
-      var response = await client.send(request);
-      
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        if (location != null) {
-          request = http.Request('MKCOL', Uri.parse(location));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request);
-        }
-      }
-      
-      // 201 = 创建成功, 405 = 目录已存在, 409 = 父目录不存在需要先创建
-      if (response.statusCode == 409) {
-        // 需要创建父目录
-        final parentPath = p.dirname(dirUrl);
-        if (parentPath != dirUrl) {
-          await _ensureRemoteDir(client, parentPath, username, password);
-          // 再次尝试创建当前目录
-          request = http.Request('MKCOL', Uri.parse(dirUrl));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          await client.send(request);
-        }
-      }
-    } catch (e) {
-      // print('WebDAV: 创建目录失败: $e');
-    }
-  }
+
   
-  /// 上传文件
+  /// 上传文件（数据库文件上传前自动 VACUUM 压缩）
   Future<bool> _uploadFile(
     http.Client client,
     String url,
@@ -1161,6 +973,14 @@ class WebDAVService {
     File file,
   ) async {
     try {
+      // 数据库文件：上传前 VACUUM 压缩
+      if (p.basename(url).endsWith('.db')) {
+        try {
+          final db = await DatabaseHelper.instance.database;
+          await db.execute('VACUUM');
+        } catch (_) {}
+      }
+
       final fileBytes = await file.readAsBytes();
       
       var request = http.Request('PUT', Uri.parse(url));

@@ -18,13 +18,13 @@ class CloudSyncPage extends StatelessWidget {
           // 备份方式标题
           _buildSectionTitle('选择备份方式'),
           const SizedBox(height: 16),
-          
+
           // WebDAV 备份选项
           _buildSyncOption(
             context,
             icon: Icons.storage_outlined,
             title: 'WebDAV 备份',
-            subtitle: '通过 WebDAV 协议备份到个人云盘（如坚果云、Nextcloud 等）',
+            subtitle: '通过 WebDAV 协议备份到个人云盘',
             onTap: () {
               Navigator.push(
                 context,
@@ -32,9 +32,9 @@ class CloudSyncPage extends StatelessWidget {
               );
             },
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // 说明文字
           _buildInfoSection(),
         ],
@@ -86,7 +86,8 @@ class CloudSyncPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                  border:
+                      Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                 ),
                 child: const Icon(
                   Icons.info_outline,
@@ -176,15 +177,16 @@ class CloudSyncPage extends StatelessWidget {
                 color: enabled ? Colors.white : const Color(0xFFEEEEEE),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: enabled ? const Color(0xFFE8E8E8) : const Color(0xFFEEEEEE),
+                  color: enabled
+                      ? const Color(0xFFE8E8E8)
+                      : const Color(0xFFEEEEEE),
                   width: 0.5,
                 ),
               ),
               child: Icon(
                 icon,
-                color: enabled 
-                    ? const Color(0xFF666666) 
-                    : const Color(0xFF999999),
+                color:
+                    enabled ? const Color(0xFF666666) : const Color(0xFF999999),
                 size: 22,
               ),
             ),
@@ -198,8 +200,8 @@ class CloudSyncPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: enabled 
-                          ? const Color(0xFF1A1A1A) 
+                      color: enabled
+                          ? const Color(0xFF1A1A1A)
                           : const Color(0xFF999999),
                     ),
                   ),
@@ -208,8 +210,8 @@ class CloudSyncPage extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 13,
-                      color: enabled 
-                          ? const Color(0xFF666666) 
+                      color: enabled
+                          ? const Color(0xFF666666)
                           : const Color(0xFF999999),
                       height: 1.4,
                     ),
@@ -219,9 +221,8 @@ class CloudSyncPage extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: enabled 
-                  ? const Color(0xFFCCCCCC) 
-                  : const Color(0xFFE5E5E5),
+              color:
+                  enabled ? const Color(0xFFCCCCCC) : const Color(0xFFE5E5E5),
             ),
           ],
         ),

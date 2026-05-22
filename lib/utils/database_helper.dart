@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import '../models/data_models.dart';
 
 /// 数据库帮助类 - 管理数据库的创建和版本控制
 class DatabaseHelper {
@@ -31,7 +32,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -86,6 +87,9 @@ class DatabaseHelper {
       // 确保notes表有title列
       await _upgradeNotesTableV12(db);
     }
+    if (oldVersion < 13) {
+      await _upgradeToV13(db);
+    }
   }
 
   /// 升级books表到V11（添加ISBN和出版时间字段）
@@ -119,9 +123,69 @@ class DatabaseHelper {
     // 检查是否存在 title 列
     final columns = await db.rawQuery('PRAGMA table_info(notes)');
     final hasTitle = columns.any((col) => col['name'] == 'title');
-    
+
     if (!hasTitle) {
       await db.execute('ALTER TABLE notes ADD COLUMN title TEXT DEFAULT \'\'');
+    }
+  }
+
+  /// 升级到V13：创建标签表并回填已有数据
+  Future<void> _upgradeToV13(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(name, type)
+      )
+    ''');
+    await _backfillTags(db);
+  }
+
+  Future<void> _backfillTags(Database db) async {
+    final now = DateTime.now().toIso8601String();
+    int counter = 0;
+
+    Future<void> insertTag(String name, String type) async {
+      try {
+        await db.insert('tags', {
+          'id': 'tag_${DateTime.now().millisecondsSinceEpoch}_${counter++}',
+          'name': name,
+          'type': type,
+          'created_at': now,
+        });
+      } catch (_) {
+        // 忽略 UNIQUE 约束冲突
+      }
+    }
+
+    // 回填影视类型
+    final movies = await db.query('movies',
+        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+    for (final row in movies) {
+      for (final genre in Movie.parseStringList(row['genres'])) {
+        await insertTag(genre, 'movie_genre');
+      }
+    }
+
+    // 回填书籍类型
+    final books = await db.query('books',
+        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+    for (final row in books) {
+      for (final genre in Movie.parseStringList(row['genres'])) {
+        await insertTag(genre, 'book_genre');
+      }
+    }
+
+    // 回填笔记标签
+    final notes = await db.query('notes',
+        where: 'tags IS NOT NULL AND tags != ? AND tags != ?',
+        whereArgs: ['[]', '']);
+    for (final row in notes) {
+      for (final tag in Movie.parseStringList(row['tags'])) {
+        await insertTag(tag, 'note_tag');
+      }
     }
   }
 
@@ -485,6 +549,17 @@ class DatabaseHelper {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (book_id) REFERENCES books (id)
+      )
+    ''');
+
+    // 标签表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(name, type)
       )
     ''');
   }

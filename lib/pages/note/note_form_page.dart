@@ -59,11 +59,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: GestureDetector(
           onLongPress: _showTitleDialog,
@@ -92,7 +90,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         children: [
           // 主内容区域 — 图片网格固定在内容下方
           Padding(
-            padding: EdgeInsets.only(bottom: 56 + bottomInset),
+            padding: const EdgeInsets.only(bottom: 56),
             child: Column(
               children: [
                 // 顶部信息栏
@@ -176,7 +174,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: bottomInset,
+            bottom: 0,
             child: _buildFloatingToolbar(),
           ),
         ],
@@ -391,15 +389,16 @@ class _NoteFormPageState extends State<NoteFormPage> {
         color: Color(0xFF1A1A1A),
         height: 1.6,
       ),
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         hintText: '使用 Markdown 格式书写...',
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 16,
           color: Color(0xFFCCCCCC),
           height: 1.6,
         ),
         border: InputBorder.none,
-        contentPadding: const EdgeInsets.all(16),
+        focusedBorder: InputBorder.none,
+        contentPadding: EdgeInsets.all(16),
       ),
     );
   }

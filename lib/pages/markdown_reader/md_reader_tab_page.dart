@@ -322,22 +322,22 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          if (_canGoBack)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: _goBack,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-                  ),
-                  child: const Text('返回上级', style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
-                ),
-              ),
-            ),
+          // if (_canGoBack)
+          //   Padding(
+          //     padding: const EdgeInsets.only(right: 8),
+          //     child: GestureDetector(
+          //       onTap: _goBack,
+          //       child: Container(
+          //         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          //         decoration: BoxDecoration(
+          //           color: const Color(0xFFF5F5F5),
+          //           borderRadius: BorderRadius.circular(14),
+          //           border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+          //         ),
+          //         child: const Text('返回上级', style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
+          //       ),
+          //     ),
+          //   ),
           if (_currentPath != null)
             Padding(
               padding: const EdgeInsets.only(right: 4),

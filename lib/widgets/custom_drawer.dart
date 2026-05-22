@@ -8,6 +8,7 @@ import '../utils/user_prefs.dart';
 import '../models/data_models.dart';
 import '../pages/stroll_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
+import '../pages/tag_management_page.dart';
 
 /// 自定义左侧弹出菜单 - 极简主义设计
 class CustomDrawer extends StatefulWidget {
@@ -272,8 +273,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   MaterialPageRoute(builder: (_) => const MdReaderTabPage()),
                 );
               },
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(10)),
+              borderRadius: BorderRadius.zero,
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 13, horizontal: 16),
                 child: Row(
@@ -292,6 +292,49 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     ),
                     Text(
                       '浏览本地 md 文件',
+                      style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(Icons.chevron_right,
+                        size: 16, color: Color(0xFFCCCCCC)),
+                  ],
+                ),
+              ),
+            ),
+
+            // 分隔线
+            const Divider(
+                height: 0.5, thickness: 0.5, color: Color(0xFFEEEEEE)),
+
+            // 标签管理
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TagManagementPage()),
+                );
+              },
+              borderRadius:
+                  const BorderRadius.vertical(bottom: Radius.circular(10)),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 13, horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.label_outline,
+                        size: 18, color: Color(0xFF666666)),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '标签管理',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1A1A1A)),
+                      ),
+                    ),
+                    Text(
+                      '管理标签',
                       style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
                     ),
                     SizedBox(width: 6),

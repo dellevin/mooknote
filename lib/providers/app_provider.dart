@@ -7,6 +7,7 @@ import '../utils/movie/movie_review_dao.dart';
 import '../utils/movie/movie_poster_dao.dart';
 import '../utils/book/book_review_dao.dart';
 import '../utils/book/book_excerpt_dao.dart';
+import '../utils/tag/tag_dao.dart';
 import '../utils/image_path_helper.dart';
 
 /// 应用全局状态管理
@@ -19,6 +20,7 @@ class AppProvider extends ChangeNotifier {
   final MoviePosterDao _posterDao = MoviePosterDao();
   final BookReviewDao _bookReviewDao = BookReviewDao();
   final BookExcerptDao _bookExcerptDao = BookExcerptDao();
+  final TagDao _tagDao = TagDao();
   
   // 数据列表
   List<Movie> _movies = [];
@@ -379,5 +381,42 @@ class AppProvider extends ChangeNotifier {
     await loadMovies();
     await loadBooks();
     await loadNotes();
+  }
+
+  // ========== 标签管理方法 ==========
+
+  Future<List<Map<String, dynamic>>> getTags(String type) async {
+    return await _tagDao.getTagsByType(type);
+  }
+
+  Future<String> addTag(String name, String type) async {
+    final id = await _tagDao.addTag(name, type);
+    await _reloadByTagType(type);
+    return id;
+  }
+
+  Future<bool> renameTag(String tagId, String newName, String type) async {
+    final result = await _tagDao.renameTag(tagId, newName);
+    if (result) {
+      await _reloadByTagType(type);
+    }
+    return result;
+  }
+
+  Future<void> deleteTag(String tagId, String type,
+      {String? replacementName}) async {
+    await _tagDao.deleteTag(tagId, replacementName: replacementName);
+    await _reloadByTagType(type);
+  }
+
+  Future<void> _reloadByTagType(String type) async {
+    switch (type) {
+      case 'movie_genre':
+        await loadMovies();
+      case 'book_genre':
+        await loadBooks();
+      case 'note_tag':
+        await loadNotes();
+    }
   }
 }
