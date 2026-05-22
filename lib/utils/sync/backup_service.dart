@@ -27,6 +27,7 @@ class BackupService {
       final notes = await db.query('notes');
       final movieReviews = await db.query('movie_reviews');
       final moviePosters = await db.query('movie_posters');
+      final tags = await db.query('tags');
       
       // 收集所有图片路径
       final imagePaths = <String>{};
@@ -99,6 +100,7 @@ class BackupService {
           'notes': notes,
           'movie_reviews': movieReviews,
           'movie_posters': moviePosters,
+          'tags': tags,
         },
       };
       
@@ -209,6 +211,7 @@ class BackupService {
       final notes = await db.query('notes');
       final movieReviews = await db.query('movie_reviews');
       final moviePosters = await db.query('movie_posters');
+      final tags = await db.query('tags');
       
       // 收集所有图片路径
       final imagePaths = <String>{};
@@ -281,6 +284,7 @@ class BackupService {
           'notes': notes,
           'movie_reviews': movieReviews,
           'movie_posters': moviePosters,
+          'tags': tags,
         },
       };
       
@@ -424,6 +428,7 @@ class BackupService {
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
+        await txn.delete('tags');
         
         // 导入影视数据（更新图片路径）
         if (data.containsKey('movies')) {
@@ -472,6 +477,14 @@ class BackupService {
             await txn.insert('movie_posters', updatedMap);
           }
         }
+
+        // 导入标签数据
+        if (data.containsKey('tags')) {
+          final tags = data['tags'] as List<dynamic>;
+          for (final tag in tags) {
+            await txn.insert('tags', _convertToDbMap(tag));
+          }
+        }
       });
       
       // 恢复用户个人信息
@@ -513,6 +526,9 @@ class BackupService {
       }
       if (data.containsKey('movie_posters')) {
         stats['海报'] = (data['movie_posters'] as List).length;
+      }
+      if (data.containsKey('tags')) {
+        stats['标签'] = (data['tags'] as List).length;
       }
       if (imageCount > 0) {
         stats['图片'] = imageCount;
@@ -621,6 +637,14 @@ class BackupService {
             final posterMap = _convertToDbMap(poster);
             final updatedMap = _updateImagePath(posterMap, 'poster_path', imagePathMap);
             await txn.insert('movie_posters', updatedMap);
+          }
+        }
+
+        // 导入标签数据
+        if (data.containsKey('tags')) {
+          final tags = data['tags'] as List<dynamic>;
+          for (final tag in tags) {
+            await txn.insert('tags', _convertToDbMap(tag));
           }
         }
       });

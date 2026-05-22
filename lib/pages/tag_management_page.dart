@@ -12,6 +12,7 @@ class TagManagementPage extends StatefulWidget {
 
 class _TagManagementPageState extends State<TagManagementPage> {
   int _currentIndex = 0;
+  bool _isSyncing = false;
 
   static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag'];
   static const _typeLabels = ['影视类型', '书籍类型', '笔记标签'];
@@ -32,6 +33,20 @@ class _TagManagementPageState extends State<TagManagementPage> {
     }
   }
 
+  Future<void> _syncTags() async {
+    setState(() => _isSyncing = true);
+    try {
+      final provider = context.read<AppProvider>();
+      final count = await provider.syncTagsFromData();
+      if (mounted) {
+        ToastUtil.show(context, count > 0 ? '已同步 $count 个新标签' : '标签已是最新');
+        await _loadTags(_currentType);
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
   String get _currentType => _tabTypes[_currentIndex];
 
   @override
@@ -40,6 +55,25 @@ class _TagManagementPageState extends State<TagManagementPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('标签管理'),
+        actions: [
+          _isSyncing
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.sync, size: 20),
+                  tooltip: '从数据中同步标签',
+                  onPressed: _syncTags,
+                ),
+        ],
       ),
       body: Column(
         children: [
@@ -477,6 +511,15 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   groupValue: selectedAction,
                   onChanged: (v) => setDialogState(() => selectedAction = v),
                   title: '从所有条目中移除该标签',
+                  subtitle: '标签将从影视/书籍/笔记中清除',
+                ),
+                const SizedBox(height: 4),
+                _buildDeleteOption(
+                  value: 'deleteOnly',
+                  groupValue: selectedAction,
+                  onChanged: (v) => setDialogState(() => selectedAction = v),
+                  title: '仅删除标签',
+                  subtitle: '保留已有条目上的标签名',
                 ),
                 const SizedBox(height: 4),
                 _buildDeleteOption(
@@ -573,6 +616,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                       if (replacement == null) return;
                     }
                     Navigator.pop(ctx, {
+                      'action': selectedAction,
                       'replacement': replacement,
                     });
                   },
@@ -595,11 +639,18 @@ class _TagManagementPageState extends State<TagManagementPage> {
       ),
     ).then((result) async {
       if (result == null) return;
+      final action = result['action'] as String;
       final replacement = result['replacement'] as String?;
 
-      await context
-          .read<AppProvider>()
-          .deleteTag(tagId, type, replacementName: replacement);
+      if (action == 'deleteOnly') {
+        await context
+            .read<AppProvider>()
+            .deleteTagOnly(tagId, type);
+      } else {
+        await context
+            .read<AppProvider>()
+            .deleteTag(tagId, type, replacementName: replacement);
+      }
       if (mounted) {
         ToastUtil.show(context, '删除成功');
       }
@@ -612,6 +663,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     required String? groupValue,
     required ValueChanged<String?> onChanged,
     required String title,
+    String? subtitle,
   }) {
     final selected = value == groupValue;
     return GestureDetector(
@@ -642,13 +694,32 @@ class _TagManagementPageState extends State<TagManagementPage> {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
-                color:
-                    selected ? const Color(0xFF1A1A1A) : const Color(0xFF666666),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
+                      color:
+                          selected ? const Color(0xFF1A1A1A) : const Color(0xFF666666),
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFFAAAAAA),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],

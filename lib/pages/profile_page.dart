@@ -49,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _version = packageInfo.version;
     });
   }
-  
+
   /// 加载用户数据
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
@@ -103,9 +103,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 // 数据统计
                 _buildStatsSection(),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // 功能菜单
                 _buildMenuSection(),
                 
@@ -692,8 +692,6 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             },
           ),
-          const Divider(height: 0.5, indent: 24, endIndent: 24),
-
           // 使用说明
           _buildSectionHeader('帮助'),
           _buildLinkItem(

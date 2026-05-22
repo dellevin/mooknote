@@ -8,6 +8,7 @@ import '../utils/movie/movie_poster_dao.dart';
 import '../utils/book/book_review_dao.dart';
 import '../utils/book/book_excerpt_dao.dart';
 import '../utils/tag/tag_dao.dart';
+import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
 
 /// 应用全局状态管理
@@ -407,6 +408,64 @@ class AppProvider extends ChangeNotifier {
       {String? replacementName}) async {
     await _tagDao.deleteTag(tagId, replacementName: replacementName);
     await _reloadByTagType(type);
+  }
+
+  /// 仅删除标签本身，不级联影响已有条目
+  Future<void> deleteTagOnly(String tagId, String type) async {
+    await _tagDao.deleteTagOnly(tagId);
+    await _reloadByTagType(type);
+  }
+
+  /// 从影视/书籍/笔记数据中解析标签，同步到 tags 表
+  Future<int> syncTagsFromData() async {
+    final db = await DatabaseHelper.instance.database;
+    final now = DateTime.now().toIso8601String();
+    int counter = 0;
+    int added = 0;
+
+    Future<void> insertTag(String name, String type) async {
+      try {
+        await db.insert('tags', {
+          'id': 'tag_${DateTime.now().millisecondsSinceEpoch}_${counter++}',
+          'name': name,
+          'type': type,
+          'created_at': now,
+        });
+        added++;
+      } catch (_) {
+        // 忽略 UNIQUE 约束冲突（标签已存在）
+      }
+    }
+
+    // 影视类型
+    final movies = await db.query('movies',
+        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+    for (final row in movies) {
+      for (final genre in Movie.parseStringList(row['genres'])) {
+        await insertTag(genre, 'movie_genre');
+      }
+    }
+
+    // 书籍类型
+    final books = await db.query('books',
+        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+    for (final row in books) {
+      for (final genre in Movie.parseStringList(row['genres'])) {
+        await insertTag(genre, 'book_genre');
+      }
+    }
+
+    // 笔记标签
+    final notes = await db.query('notes',
+        where: 'tags IS NOT NULL AND tags != ? AND tags != ?',
+        whereArgs: ['[]', '']);
+    for (final row in notes) {
+      for (final tag in Movie.parseStringList(row['tags'])) {
+        await insertTag(tag, 'note_tag');
+      }
+    }
+
+    return added;
   }
 
   Future<void> _reloadByTagType(String type) async {

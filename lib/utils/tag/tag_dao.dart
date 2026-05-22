@@ -102,6 +102,12 @@ class TagDao {
     await db.delete('tags', where: 'id = ?', whereArgs: [tagId]);
   }
 
+  /// 仅删除标签本身，不级联影响已有条目（标签名保留在条目上）
+  Future<void> deleteTagOnly(String tagId) async {
+    final db = await _dbHelper.database;
+    await db.delete('tags', where: 'id = ?', whereArgs: [tagId]);
+  }
+
   /// 确保标签存在（用于替换操作）
   Future<void> _ensureTagExists(String name, String type) async {
     final db = await _dbHelper.database;

@@ -83,4 +83,10 @@ class UserPrefs {
   /// 当前选中的应用图标名称（对应 assets/icon/ 下的文件名，不含扩展名）
   String get appIconName => prefs.getString('appIconName') ?? 'app_icon';
   Future<bool> setAppIconName(String value) => prefs.setString('appIconName', value);
+
+  // ========== 用户统计设置 ==========
+
+  /// 匿名设备标识（首次启动自动生成）
+  String get deviceId => prefs.getString('deviceId') ?? '';
+  Future<bool> setDeviceId(String value) => prefs.setString('deviceId', value);
 }

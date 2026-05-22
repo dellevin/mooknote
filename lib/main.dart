@@ -8,6 +8,7 @@ import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'utils/sync/auto_backup_service.dart';
+import 'utils/usage_stats_service.dart';
 import 'providers/app_provider.dart';
 import 'package:flutter/widget_previews.dart';
 
@@ -30,6 +31,8 @@ void main() async {
   await appProvider.initDatabase();
   // 检查并恢复本地自动备份
   await _initAutoBackup();
+  // 启动匿名用户统计（需配置服务器地址后生效）
+  await _initUsageStats();
   runApp(MyApp(appProvider: appProvider));
 }
 
@@ -43,6 +46,15 @@ Future<void> _initAutoBackup() async {
     }
   } catch (e) {
     print('初始化自动备份失败: $e');
+  }
+}
+
+/// 初始化匿名用户统计
+Future<void> _initUsageStats() async {
+  try {
+    await UsageStatsService.instance.start();
+  } catch (e) {
+    print('初始化用户统计失败: $e');
   }
 }
 
