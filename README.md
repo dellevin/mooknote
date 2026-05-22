@@ -108,6 +108,13 @@ flutter pub get
 flutter run
 ```
 
+## 用户统计
+```
+/// usage_stats_service.dart文件
+/// 统计服务器地址，发布前替换为实际地址，置空则禁用
+static String serverUrl = 'http://192.168.31.48:5000';
+```
+
 ## 技术栈
 
 - **Flutter**: 跨平台移动应用框架
