@@ -16,8 +16,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  /// 当前正在滑动的页面索引（用于PageView）
   final PageController _pageController = PageController();
+  bool _isSwitchingPage = false;
 
   @override
   void dispose() {
@@ -28,33 +28,36 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 左侧弹出菜单（仅在主页显示）
       drawer: context.watch<AppProvider>().bottomNavIndex == 0
           ? CustomDrawer()
           : null,
 
-      // 主体内容
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
-          // 同步底部导航栏和 PageView 的页面
           final currentPage = provider.bottomNavIndex == 0 ? 0 : 1;
           if (_pageController.hasClients && _pageController.page?.round() != currentPage) {
+            _isSwitchingPage = true;
             _pageController.jumpToPage(currentPage);
+            // 切换完成后重置标记，确保导航栏显示
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) {
+                _isSwitchingPage = false;
+                provider.setBottomNavVisible(true);
+              }
+            });
           }
 
           return NotificationListener<ScrollNotification>(
             onNotification: (notification) {
+              if (_isSwitchingPage) return false;
               if (notification is ScrollUpdateNotification) {
                 final delta = notification.scrollDelta;
                 if (delta != null && delta.abs() > 2) {
-                  // 根据用户设置决定是否启用滚动隐藏
                   final userPrefs = UserPrefs();
                   if (!userPrefs.hideBottomNavOnScroll) return false;
                   if (delta < 0) {
-                    // 下拉（内容向下滚动）- 显示导航栏
                     provider.setBottomNavVisible(true);
                   } else {
-                    // 上滑（内容向上滚动）- 隐藏导航栏
                     provider.setBottomNavVisible(false);
                   }
                 }
@@ -63,10 +66,8 @@ class _HomePageState extends State<HomePage> {
             },
             child: Stack(
               children: [
-                // 底层：主体内容（支持左右滑动切换）
                 _buildPageView(provider),
 
-                // 底部导航栏（带动画）
                 Positioned(
                   left: 0,
                   right: 0,
@@ -79,7 +80,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // 导航栏隐藏时的展开按钮
                 if (!provider.bottomNavVisible)
                   Positioned(
                     left: 0,
@@ -126,11 +126,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// 构建主体内容（使用 PageView 支持左右滑动切换）
   Widget _buildPageView(AppProvider provider) {
     return PageView(
       controller: _pageController,
-      physics: const BouncingScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       onPageChanged: (index) {
         if (index == 0) {
           provider.setBottomNavIndex(0);

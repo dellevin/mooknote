@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -97,17 +98,18 @@ class _NoteListItemContent extends StatelessWidget {
               const SizedBox(height: 4),
             ],
 
-            // 内容摘要（去除Markdown标记）
-            Text(
-              _cleanMarkdown(note.content).trim(),
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF666666),
-                height: 1.5,
+            // 内容摘要（去除Markdown标记），内容为空则不显示
+            if (_cleanMarkdown(note.content).trim().isNotEmpty)
+              Text(
+                _cleanMarkdown(note.content).trim(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF666666),
+                  height: 1.5,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
 
             // 底部标签
             if (note.tags.isNotEmpty) ...[
@@ -115,7 +117,7 @@ class _NoteListItemContent extends StatelessWidget {
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: note.tags.take(3).map((tag) {
+                children: note.tags.map((tag) {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
@@ -134,9 +136,58 @@ class _NoteListItemContent extends StatelessWidget {
                 }).toList(),
               ),
             ],
+
+            // 图片预览
+            if (note.images.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildImagePreviewRow(),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  /// 图片预览行
+  Widget _buildImagePreviewRow() {
+    final images = note.images;
+    final count = images.length.clamp(0, 3);
+    return Row(
+      children: [
+        for (int i = 0; i < count; i++)
+          Container(
+            width: 48,
+            height: 48,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Image.file(
+              File(images[i]),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: const Color(0xFFF5F5F5),
+              ),
+            ),
+          ),
+        if (images.length > 3)
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Center(
+              child: Text(
+                '+${images.length - 3}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF999999), fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

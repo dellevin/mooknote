@@ -12,24 +12,53 @@ class RecycleBinPage extends StatefulWidget {
   State<RecycleBinPage> createState() => _RecycleBinPageState();
 }
 
-class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  List<Movie> _deletedMovies = [];
-  List<Book> _deletedBooks = [];
-  List<Note> _deletedNotes = [];
+enum _ItemType { movie, book, note }
+
+class _DeletedItem {
+  final _ItemType type;
+  final String id;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String typeLabel;
+
+  _DeletedItem.movie(Movie m)
+      : type = _ItemType.movie,
+        id = m.id,
+        title = m.title,
+        subtitle = '删除于 ${m.updatedAt.year}.${m.updatedAt.month.toString().padLeft(2, '0')}.${m.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.movie_outlined,
+        typeLabel = '影视';
+
+  _DeletedItem.book(Book b)
+      : type = _ItemType.book,
+        id = b.id,
+        title = b.title,
+        subtitle = '删除于 ${b.updatedAt.year}.${b.updatedAt.month.toString().padLeft(2, '0')}.${b.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.menu_book_outlined,
+        typeLabel = '书籍';
+
+  _DeletedItem.note(Note n)
+      : type = _ItemType.note,
+        id = n.id,
+        title = n.title.isNotEmpty ? n.title : n.summary,
+        subtitle = '删除于 ${n.updatedAt.year}.${n.updatedAt.month.toString().padLeft(2, '0')}.${n.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.description_outlined,
+        typeLabel = '笔记';
+}
+
+class _RecycleBinPageState extends State<RecycleBinPage> {
+  List<_DeletedItem> _allItems = [];
+  _ItemType? _filterType; // null = 全部
   bool _isLoading = true;
+
+  List<_DeletedItem> get _filteredItems =>
+      _filterType == null ? _allItems : _allItems.where((i) => i.type == _filterType).toList();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadDeletedItems();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadDeletedItems() async {
@@ -38,10 +67,13 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     final movies = await provider.getDeletedMovies();
     final books = await provider.getDeletedBooks();
     final notes = await provider.getDeletedNotes();
+    if (!mounted) return;
     setState(() {
-      _deletedMovies = movies;
-      _deletedBooks = books;
-      _deletedNotes = notes;
+      _allItems = [
+        for (final m in movies) _DeletedItem.movie(m),
+        for (final b in books) _DeletedItem.book(b),
+        for (final n in notes) _DeletedItem.note(n),
+      ];
       _isLoading = false;
     });
   }
@@ -52,380 +84,287 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('回收站'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: const Color(0xFF1A1A1A),
-          unselectedLabelColor: const Color(0xFF999999),
-          indicatorColor: const Color(0xFF1A1A1A),
-          indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          tabs: [
-            Tab(text: '影视 (${_deletedMovies.length})'),
-            Tab(text: '书籍 (${_deletedBooks.length})'),
-            Tab(text: '笔记 (${_deletedNotes.length})'),
-          ],
-        ),
         actions: [
-          // 清空全部
-          TextButton.icon(
-            onPressed: _showClearAllDialog,
-            icon: const Icon(Icons.delete_sweep, size: 18, color: Colors.red),
-            label: const Text(
-              '清空',
-              style: TextStyle(color: Colors.red),
+          if (_allItems.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: TextButton(
+                onPressed: _showClearAllDialog,
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: const BorderSide(color: Color(0xFFFFDDDD), width: 0.5),
+                  ),
+                  minimumSize: Size.zero,
+                ),
+                child: const Text('清空', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1A1A)))
+          : Column(
               children: [
-                _buildMovieList(),
-                _buildBookList(),
-                _buildNoteList(),
+                // 筛选标签行
+                if (_allItems.isNotEmpty) _buildFilterRow(),
+                // 列表
+                Expanded(
+                  child: _filteredItems.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          onRefresh: _loadDeletedItems,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _filteredItems.length,
+                            itemBuilder: (_, i) => _buildCard(_filteredItems[i]),
+                          ),
+                        ),
+                ),
               ],
             ),
     );
   }
 
-  /// 影视列表
-  Widget _buildMovieList() {
-    if (_deletedMovies.isEmpty) {
-      return _buildEmptyState('暂无删除的影视');
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8),
-      itemCount: _deletedMovies.length,
-      itemBuilder: (context, index) {
-        final movie = _deletedMovies[index];
-        return _buildDeletedItemCard(
-          title: movie.title,
-          subtitle: '删除于 ${_formatDate(movie.updatedAt)}',
-          onRestore: () => _restoreMovie(movie),
-          onDelete: () => _permanentDeleteMovie(movie),
-        );
-      },
-    );
-  }
-
-  /// 书籍列表
-  Widget _buildBookList() {
-    if (_deletedBooks.isEmpty) {
-      return _buildEmptyState('暂无删除的书籍');
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8),
-      itemCount: _deletedBooks.length,
-      itemBuilder: (context, index) {
-        final book = _deletedBooks[index];
-        return _buildDeletedItemCard(
-          title: book.title,
-          subtitle: '删除于 ${_formatDate(book.updatedAt)}',
-          onRestore: () => _restoreBook(book),
-          onDelete: () => _permanentDeleteBook(book),
-        );
-      },
-    );
-  }
-
-  /// 笔记列表
-  Widget _buildNoteList() {
-    if (_deletedNotes.isEmpty) {
-      return _buildEmptyState('暂无删除的笔记');
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8),
-      itemCount: _deletedNotes.length,
-      itemBuilder: (context, index) {
-        final note = _deletedNotes[index];
-        return _buildDeletedItemCard(
-          title: note.summary,
-          subtitle: '删除于 ${_formatDate(note.updatedAt)}',
-          onRestore: () => _restoreNote(note),
-          onDelete: () => _permanentDeleteNote(note),
-        );
-      },
-    );
-  }
-
-  /// 构建已删除项卡片 - 紧凑列表布局
-  Widget _buildDeletedItemCard({
-    required String title,
-    required String subtitle,
-    required VoidCallback onRestore,
-    required VoidCallback onDelete,
-  }) {
+  Widget _buildFilterRow() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE), width: 0.5)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            // 左侧图标
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-              ),
-              child: const Icon(
-                Icons.delete_outline,
-                color: Color(0xFF999999),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            // 中间内容区域
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // 右侧操作按钮
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 恢复按钮
-                _buildActionButton(
-                  icon: Icons.restore,
-                  color: const Color(0xFF1A1A1A),
-                  tooltip: '恢复',
-                  onTap: onRestore,
-                ),
-                const SizedBox(width: 8),
-                // 彻底删除按钮
-                _buildActionButton(
-                  icon: Icons.delete_forever,
-                  color: Colors.red,
-                  tooltip: '彻底删除',
-                  onTap: onDelete,
-                ),
-              ],
-            ),
-          ],
-        ),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          _filterChip('全部', null),
+          _filterChip('影视', _ItemType.movie),
+          _filterChip('书籍', _ItemType.book),
+          _filterChip('笔记', _ItemType.note),
+        ],
       ),
     );
   }
 
-  /// 构建操作按钮
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
-    return Tooltip(
-      message: tooltip,
+  Widget _filterChip(String label, _ItemType? type) {
+    final active = _filterType == type;
+    final count = type == null ? _allItems.length : _allItems.where((i) => i.type == type).length;
+    return GestureDetector(
+      onTap: () => setState(() => _filterType = type),
       child: Container(
-        width: 36,
-        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+          color: active ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Icon(
-              icon,
-              color: color,
-              size: 18,
-            ),
+        child: Text(
+          '$label · $count',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: active ? Colors.white : const Color(0xFF888888),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildCard(_DeletedItem item) {
+    return Dismissible(
+      key: Key('${item.type.name}_${item.id}'),
+      direction: DismissDirection.endToStart,
+      background: _buildDismissBackground(),
+      confirmDismiss: (_) async => _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。'),
+      onDismissed: (_) => _permanentDelete(item),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFEEEEEE), width: 0.5),
+                ),
+                child: Icon(item.icon, size: 20, color: const Color(0xFF888888)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A), height: 1.3),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(3),
+                            border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                          ),
+                          child: Text(
+                            item.typeLabel,
+                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Color(0xFF999999)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      item.subtitle,
+                      style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _actionBtn(Icons.restore, '恢复', const Color(0xFF1A1A1A), () => _restore(item)),
+              const SizedBox(width: 6),
+              _actionBtn(Icons.delete_outline, '删除', Colors.red, () => _permanentDelete(item)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDismissBackground() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 24),
+      child: const Icon(Icons.delete_forever, color: Colors.white, size: 22),
+    );
+  }
+
+  Widget _actionBtn(IconData icon, String tooltip, Color color, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Tooltip(
+          message: tooltip,
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFEEEEEE), width: 0.5),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(
-              Icons.delete_outline,
-              size: 40,
-              color: Color(0xFFCCCCCC),
-            ),
+            child: const Icon(Icons.delete_outline, size: 32, color: Color(0xFFD5D5D5)),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text(
-            message,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF999999),
-            ),
+            _filterType == null ? '回收站是空的' : '没有删除的项目',
+            style: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            '删除的项目将显示在这里',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFFBBBBBB),
-            ),
-          ),
+          const SizedBox(height: 4),
+          const Text('删除的项目会显示在这里', style: TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
         ],
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
-  }
-
-  /// 恢复影视
-  Future<void> _restoreMovie(Movie movie) async {
-    await context.read<AppProvider>().restoreMovie(movie.id);
+  Future<void> _restore(_DeletedItem item) async {
+    final provider = context.read<AppProvider>();
+    switch (item.type) {
+      case _ItemType.movie:
+        await provider.restoreMovie(item.id);
+        if (mounted) ToastUtil.show(context, '影视已恢复');
+      case _ItemType.book:
+        await provider.restoreBook(item.id);
+        if (mounted) ToastUtil.show(context, '书籍已恢复');
+      case _ItemType.note:
+        await provider.restoreNote(item.id);
+        if (mounted) ToastUtil.show(context, '笔记已恢复');
+    }
     _loadDeletedItems();
-    if (mounted) {
-      ToastUtil.show(context, '影视已恢复');
-    }
   }
 
-  /// 彻底删除影视
-  Future<void> _permanentDeleteMovie(Movie movie) async {
-    final confirmed = await _showConfirmDialog('确定要彻底删除这部影视吗？此操作不可恢复。');
-    if (confirmed) {
-      await context.read<AppProvider>().permanentDeleteMovie(movie.id);
-      _loadDeletedItems();
-      if (mounted) {
-        ToastUtil.show(context, '已彻底删除');
-      }
+  Future<void> _permanentDelete(_DeletedItem item) async {
+    final confirmed = await _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。');
+    if (!confirmed) return;
+    final provider = context.read<AppProvider>();
+    switch (item.type) {
+      case _ItemType.movie:
+        await provider.permanentDeleteMovie(item.id);
+      case _ItemType.book:
+        await provider.permanentDeleteBook(item.id);
+      case _ItemType.note:
+        await provider.permanentDeleteNote(item.id);
     }
-  }
-
-  /// 恢复书籍
-  Future<void> _restoreBook(Book book) async {
-    await context.read<AppProvider>().restoreBook(book.id);
     _loadDeletedItems();
-    if (mounted) {
-      ToastUtil.show(context, '书籍已恢复');
-    }
+    if (mounted) ToastUtil.show(context, '已彻底删除');
   }
 
-  /// 彻底删除书籍
-  Future<void> _permanentDeleteBook(Book book) async {
-    final confirmed = await _showConfirmDialog('确定要彻底删除这本书籍吗？此操作不可恢复。');
-    if (confirmed) {
-      await context.read<AppProvider>().permanentDeleteBook(book.id);
-      _loadDeletedItems();
-      if (mounted) {
-        ToastUtil.show(context, '已彻底删除');
-      }
-    }
-  }
-
-  /// 恢复笔记
-  Future<void> _restoreNote(Note note) async {
-    await context.read<AppProvider>().restoreNote(note.id);
-    _loadDeletedItems();
-    if (mounted) {
-      ToastUtil.show(context, '笔记已恢复');
-    }
-  }
-
-  /// 彻底删除笔记
-  Future<void> _permanentDeleteNote(Note note) async {
-    final confirmed = await _showConfirmDialog('确定要彻底删除这条笔记吗？此操作不可恢复。');
-    if (confirmed) {
-      await context.read<AppProvider>().permanentDeleteNote(note.id);
-      _loadDeletedItems();
-      if (mounted) {
-        ToastUtil.show(context, '已彻底删除');
-      }
-    }
-  }
-
-  /// 显示确认对话框
   Future<bool> _showConfirmDialog(String message) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          '确认删除',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          message,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF666666),
-            height: 1.5,
-          ),
-        ),
+        title: const Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        content: Text(message, style: const TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF666666)),
             child: const Text('取消'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('删除'),
           ),
@@ -436,61 +375,43 @@ class _RecycleBinPageState extends State<RecycleBinPage> with SingleTickerProvid
     return result ?? false;
   }
 
-  /// 显示清空全部对话框
   void _showClearAllDialog() {
+    final pageContext = context;
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: pageContext,
+      builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber, color: Colors.red, size: 24),
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
             SizedBox(width: 8),
-            Text(
-              '清空回收站',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text('清空回收站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           ],
         ),
         content: const Text(
           '确定要清空回收站吗？所有项目将被彻底删除，此操作不可恢复。',
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF666666),
-            height: 1.5,
-          ),
+          style: TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF666666)),
             child: const Text('取消'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await context.read<AppProvider>().clearRecycleBin();
+              Navigator.pop(ctx);
+              await pageContext.read<AppProvider>().clearRecycleBin();
               _loadDeletedItems();
-              if (mounted) {
-                ToastUtil.show(context, '回收站已清空');
-              }
+              if (mounted) ToastUtil.show(pageContext, '回收站已清空');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('清空'),
           ),

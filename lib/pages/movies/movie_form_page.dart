@@ -446,10 +446,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   height: 90,
                   child: _buildInfoCard(
                     label: '别名',
-                    value: _alternateTitles.isEmpty 
-                        ? '' 
+                    value: _alternateTitles.isEmpty
+                        ? ''
                         : '${_alternateTitles.length}个：${_alternateTitles.join('、')}',
                     icon: Icons.alternate_email_outlined,
+                    scrollHorizontal: true,
                     onTap: () => _showMultiValueDialog(
                       title: '添加别名',
                       initialValues: _alternateTitles,
@@ -594,9 +595,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
     IconData? icon,
     double? height,
     bool scrollable = false,
+    bool scrollHorizontal = false,
   }) {
     final hasValue = value.isNotEmpty;
-    
+
     // 构建值显示部分
     Widget buildContent() {
       if (scrollable && height != null) {
@@ -611,6 +613,20 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
                 fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
               ),
+            ),
+          ),
+        );
+      } else if (scrollHorizontal) {
+        // 水平可滚动模式（别名等长文本使用）
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Text(
+            hasValue ? value : '点击填写',
+            style: TextStyle(
+              fontSize: 15,
+              color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+              fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
         );

@@ -578,8 +578,6 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildNoteItem(Note note) {
-    final isPlainText = note.contentType == 'plain_text';
-    
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -611,7 +609,7 @@ class _SearchPageState extends State<SearchPage> {
                     border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
                   ),
                   child: Text(
-                    isPlainText ? 'TXT' : 'MD',
+                    'MD',
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,

@@ -296,7 +296,7 @@ class Note {
   final String id;
   final String title;
   final String content;
-  final String contentType; // markdown / plain_text
+  final String contentType; // 内容类型（markdown）
   final List<String> tags;
   final List<String> images; // 图片路径列表
   final DateTime createdAt;

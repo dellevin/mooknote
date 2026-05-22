@@ -1047,10 +1047,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   /// 显示清除缓存对话框
-  void _showClearCacheDialog(BuildContext context) {
+  void _showClearCacheDialog(BuildContext pageContext) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: pageContext,
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -1058,13 +1058,13 @@ class _SettingsPageState extends State<SettingsPage> {
         content: const Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await _clearCacheData(context);
+              Navigator.pop(dialogContext);
+              await _clearCacheData(pageContext);
             },
             child: const Text('确定', style: TextStyle(color: Colors.red)),
           ),

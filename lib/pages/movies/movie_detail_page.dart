@@ -110,12 +110,15 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   
   /// 构建右下角悬浮按钮组
   Widget _buildFloatingActionButtons(Movie movie) {
-    final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
-    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 删除按钮
+        _buildFloatingButton(
+          icon: Icons.edit_outlined,
+          onPressed: () => _navigateToEdit(context),
+          tooltip: '编辑',
+        ),
+        const SizedBox(height: 12),
         _buildFloatingButton(
           icon: Icons.delete_outline,
           onPressed: () => _showDeleteDialog(context),
@@ -123,23 +126,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           backgroundColor: Colors.red,
         ),
         const SizedBox(height: 12),
-        // 清空海报按钮（仅当有海报时显示）
-        if (hasPoster) ...[
-          _buildFloatingButton(
-            icon: Icons.hide_image_outlined,
-            onPressed: () => _showClearPosterDialog(movie),
-            tooltip: '清空海报',
-          ),
-          const SizedBox(height: 12),
-        ],
-        // 编辑按钮
-        _buildFloatingButton(
-          icon: Icons.edit_outlined,
-          onPressed: () => _navigateToEdit(context),
-          tooltip: '编辑',
-        ),
-        const SizedBox(height: 12),
-        // 分享按钮
         _buildFloatingButton(
           icon: Icons.share_outlined,
           onPressed: () => _showSharePoster(movie),
@@ -240,67 +226,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-  
-  /// 显示清空海报对话框
-  void _showClearPosterDialog(Movie movie) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          '清空海报',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          '确定要清空海报吗？清空后将使用默认占位图。',
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF666666),
-            height: 1.5,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final updatedMovie = movie.copyWith(
-                posterPath: null,
-                updatedAt: DateTime.now(),
-              );
-              await context.read<AppProvider>().updateMovie(updatedMovie);
-              if (mounted) {
-                ToastUtil.show(context, '海报已清空');
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: const Text('清空'),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
