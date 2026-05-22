@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 /// Markdown 文件查看页面
 class MdViewerPage extends StatefulWidget {
@@ -132,7 +132,8 @@ class _MdViewerPageState extends State<MdViewerPage> {
           decoration: TextDecoration.underline,
         ),
       ),
-      sizedImageBuilder: (config) => _buildImage(config.uri.toString(), config.alt),
+      // ignore: deprecated_member_use
+      imageBuilder: (uri, title, alt) => _buildImage(uri.toString(), alt),
     );
   }
 

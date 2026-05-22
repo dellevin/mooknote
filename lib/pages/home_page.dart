@@ -36,13 +36,16 @@ class _HomePageState extends State<HomePage> {
         builder: (context, provider, child) {
           final currentPage = provider.bottomNavIndex == 0 ? 0 : 1;
           if (_pageController.hasClients && _pageController.page?.round() != currentPage) {
-            _isSwitchingPage = true;
-            _pageController.jumpToPage(currentPage);
-            // 切换完成后重置标记，确保导航栏显示
-            Future.delayed(const Duration(milliseconds: 300), () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                _isSwitchingPage = false;
-                provider.setBottomNavVisible(true);
+                _isSwitchingPage = true;
+                _pageController.jumpToPage(currentPage);
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    _isSwitchingPage = false;
+                    provider.setBottomNavVisible(true);
+                  }
+                });
               }
             });
           }

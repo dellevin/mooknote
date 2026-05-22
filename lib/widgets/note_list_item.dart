@@ -99,9 +99,9 @@ class _NoteListItemContent extends StatelessWidget {
             ],
 
             // 内容摘要（去除Markdown标记），内容为空则不显示
-            if (_cleanMarkdown(note.content).trim().isNotEmpty)
+            if (_collapseBlankLines(_cleanMarkdown(note.content).trim()).isNotEmpty)
               Text(
-                _cleanMarkdown(note.content).trim(),
+                _collapseBlankLines(_cleanMarkdown(note.content).trim()),
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF666666),
@@ -203,6 +203,11 @@ class _NoteListItemContent extends StatelessWidget {
         .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1') // 链接
         .replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]+\)'), '') // 图片
         .trim();
+  }
+
+  /// 合并连续空行为单行
+  String _collapseBlankLines(String text) {
+    return text.replaceAll(RegExp(r'\n\s*\n+'), '\n');
   }
 
   /// 显示删除确认对话框

@@ -119,6 +119,7 @@ flutter run
 **5. 图片文件存储路径：**
 
 - 数据库：`/mooknote/mooknote.db`
+- 
 - 图片：`/mooknote/images/类别（影视/图书/笔记）/类别下的条目id/图片文件名`
 
 **注意：**

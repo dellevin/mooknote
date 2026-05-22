@@ -542,26 +542,30 @@ class _NoteFormPageState extends State<NoteFormPage> {
   /// 显示添加标签对话框
   void _showAddTagDialog() {
     final controller = TextEditingController();
-    
+
     // 获取所有已有标签（从所有笔记中收集）
     final provider = context.read<AppProvider>();
     final allTags = _getAllExistingTags(provider);
     // 过滤掉已添加的标签
     final availableTags = allTags.where((tag) => !_tags.contains(tag)).toList();
-    
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
         backgroundColor: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
         title: const Text(
           '添加标签',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1A1A),
           ),
         ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
@@ -572,100 +576,126 @@ class _NoteFormPageState extends State<NoteFormPage> {
               TextField(
                 controller: controller,
                 autofocus: true,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                cursorColor: const Color(0xFF1A1A1A),
                 decoration: InputDecoration(
                   hintText: '输入新标签名称',
-                  hintStyle: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF999999),
-                  ),
+                  hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFBBBBBB)),
                   filled: true,
-                  fillColor: const Color(0xFFFAFAFA),
+                  fillColor: const Color(0xFFF8F8F8),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  suffixIcon: controller.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 16, color: Color(0xFFAAAAAA)),
+                          onPressed: () => controller.clear(),
+                        )
+                      : null,
                 ),
+                onChanged: (_) => setDialogState(() {}),
                 onSubmitted: (value) {
                   _addTag(value);
-                  Navigator.pop(context);
+                  controller.clear();
+                  setDialogState(() {});
                 },
               ),
-              
+
               // 已有标签列表
               if (availableTags.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 const Text(
-                  '或选择已有标签：',
+                  '或选择已有标签',
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF999999),
+                    fontSize: 12,
+                    color: Color(0xFFAAAAAA),
                   ),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: availableTags.map((tag) {
-                      return InkWell(
-                        onTap: () {
-                          _addTag(tag);
-                          Navigator.pop(context);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Text(
-                            tag,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF555555),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: availableTags.map((tag) {
+                        return InkWell(
+                          onTap: () {
+                            _addTag(tag);
+                            Navigator.pop(ctx);
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                            ),
+                            child: Text(
+                              tag,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF555555),
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ],
+
+              if (availableTags.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, bottom: 8),
+                  child: Center(
+                    child: Text(
+                      '暂无已有标签',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
+              foregroundColor: const Color(0xFF999999),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('取消'),
+            child: const Text('取消', style: TextStyle(fontSize: 14)),
           ),
           ElevatedButton(
             onPressed: () {
               _addTag(controller.text);
-              Navigator.pop(context);
+              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1A1A1A),
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             ),
-            child: const Text('添加'),
+            child: const Text('添加', style: TextStyle(fontSize: 14)),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        ),
       ),
     );
   }

@@ -66,6 +66,20 @@ class UserPrefs {
 
   // ========== 应用图标设置 ==========
 
+  /// Markdown 阅读器最近选择的目录
+  String? get lastMdFolder => prefs.getString('lastMdFolder');
+  Future<bool> setLastMdFolder(String value) => prefs.setString('lastMdFolder', value);
+
+  /// 是否显示空目录（无 Markdown 文件的目录）
+  bool get showEmptyDirs => prefs.getBool('showEmptyDirs') ?? true;
+  Future<bool> setShowEmptyDirs(bool value) => prefs.setBool('showEmptyDirs', value);
+
+  /// 是否显示纯图片目录（只有图片、无 Markdown 文件的目录）
+  bool get showImageOnlyDirs => prefs.getBool('showImageOnlyDirs') ?? true;
+  Future<bool> setShowImageOnlyDirs(bool value) => prefs.setBool('showImageOnlyDirs', value);
+
+  // ========== 应用图标设置 ==========
+
   /// 当前选中的应用图标名称（对应 assets/icon/ 下的文件名，不含扩展名）
   String get appIconName => prefs.getString('appIconName') ?? 'app_icon';
   Future<bool> setAppIconName(String value) => prefs.setString('appIconName', value);

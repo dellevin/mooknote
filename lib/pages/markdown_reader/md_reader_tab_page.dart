@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:permission_handler/permission_handler.dart';
+import '../../utils/user_prefs.dart';
 import 'md_viewer_page.dart';
 
-/// Markdown 阅读器 Tab 页 - 文件浏览器
+/// Markdown 阅读器 - 文件浏览器
 class MdReaderTabPage extends StatefulWidget {
   const MdReaderTabPage({super.key});
 
@@ -12,342 +15,543 @@ class MdReaderTabPage extends StatefulWidget {
 }
 
 class _MdReaderTabPageState extends State<MdReaderTabPage> {
-  static const String _basePath = '/storage/emulated/0/Documents/mooknote/markdown';
-  String _currentPath = _basePath;
-  List<FileSystemEntity> _items = [];
-  bool _isLoading = true;
+  String? _rootPath;
+  String? _currentPath;
+  List<_FileEntry> _entries = [];
+  bool _isLoading = false;
   String? _error;
+
+  bool _showEmptyDirs = true;
+  bool _showImageOnlyDirs = true;
 
   @override
   void initState() {
     super.initState();
-    _loadDirectory();
+    _loadSettings();
+    _init();
   }
 
-  /// 加载当前目录内容
-  Future<void> _loadDirectory() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  void _loadSettings() {
+    final prefs = UserPrefs();
+    _showEmptyDirs = prefs.showEmptyDirs;
+    _showImageOnlyDirs = prefs.showImageOnlyDirs;
+  }
 
-    try {
-      final dir = Directory(_currentPath);
-      if (!await dir.exists()) {
-        setState(() {
-          _error = '目录不存在\n请将 Markdown 文件放到：\n$_basePath';
-          _items = [];
-          _isLoading = false;
-        });
+  Future<void> _init() async {
+    final saved = UserPrefs().lastMdFolder;
+    if (saved != null && saved.isNotEmpty) {
+      final dir = Directory(saved);
+      if (await dir.exists()) {
+        _rootPath = saved;
+        _currentPath = saved;
+        await _loadDirectory();
         return;
       }
-
-      final entities = await dir.list().toList();
-      // 排序：文件夹在前，文件在后，按名称排序
-      entities.sort((a, b) {
-        final aIsDir = a is Directory;
-        final bIsDir = b is Directory;
-        if (aIsDir != bIsDir) {
-          return aIsDir ? -1 : 1;
-        }
-        return p.basename(a.path).toLowerCase().compareTo(
-              p.basename(b.path).toLowerCase());
-      });
-
-      setState(() {
-        _items = entities;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = '读取目录失败: $e';
-        _items = [];
-        _isLoading = false;
-      });
     }
+    if (mounted) setState(() {});
   }
 
-  /// 进入子目录
-  void _enterDirectory(String path) {
-    setState(() {
-      _currentPath = path;
-    });
-    _loadDirectory();
+  /// 请求存储权限（Android 11+ 需要 MANAGE_EXTERNAL_STORAGE）
+  Future<bool> _requestStoragePermission() async {
+    if (!Platform.isAndroid) return true;
+
+    var status = await Permission.manageExternalStorage.status;
+    if (status.isGranted) return true;
+
+    status = await Permission.manageExternalStorage.request();
+    if (status.isGranted) return true;
+
+    status = await Permission.storage.status;
+    if (status.isGranted) return true;
+
+    status = await Permission.storage.request();
+    return status.isGranted;
   }
 
-  /// 返回上级目录
-  void _goBack() {
-    final parent = Directory(_currentPath).parent.path;
-    if (parent == _currentPath) return;
-    _enterDirectory(parent);
+  Future<void> _pickDirectory() async {
+    final hasPermission = await _requestStoragePermission();
+    if (!hasPermission) {
+      if (mounted) {
+        _showPermissionDeniedDialog();
+      }
+      return;
+    }
+
+    final result = await FilePicker.platform.getDirectoryPath();
+    if (result == null) return;
+
+    UserPrefs().setLastMdFolder(result);
+    _rootPath = result;
+    _currentPath = result;
+    _error = null;
+    await _loadDirectory();
   }
 
-  /// 打开 Markdown 文件
-  void _openFile(String path) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MdViewerPage(filePath: path),
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('需要存储权限', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        content: const Text(
+          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能读取目录中的 Markdown 文件。\n\n是否前往设置？',
+          style: TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              openAppSettings();
+            },
+            child: const Text('前往设置', style: TextStyle(color: Color(0xFF1A1A1A))),
+          ),
+        ],
       ),
     );
   }
 
-  /// 判断是否可以返回上级
-  bool get _canGoBack => _currentPath != _basePath;
-
-  /// 获取当前显示路径（相对路径）
-  String get _displayPath {
-    if (_currentPath == _basePath) return 'markdown';
-    return _currentPath.substring(_basePath.length + 1);
+  /// 递归检查目录（含子目录）是否包含 Markdown 文件
+  bool _hasMarkdownFiles(String dirPath) {
+    try {
+      final dir = Directory(dirPath);
+      if (!dir.existsSync()) return false;
+      for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          final lower = p.basename(entity.path).toLowerCase();
+          if (lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.mdown') || lower.endsWith('.txt')) {
+            return true;
+          }
+        }
+      }
+    } catch (_) {}
+    return false;
   }
+
+  /// 递归检查目录是否只有图片文件（无 markdown、无非图片文件）
+  bool _isImageOnlyDir(String dirPath) {
+    try {
+      final dir = Directory(dirPath);
+      if (!dir.existsSync()) return false;
+      const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico', '.tiff', '.heic', '.webm'];
+      bool hasAnyFile = false;
+      for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          hasAnyFile = true;
+          final lower = p.basename(entity.path).toLowerCase();
+          if (lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.mdown') || lower.endsWith('.txt')) {
+            return false;
+          }
+          if (!imageExts.any((ext) => lower.endsWith(ext))) {
+            return false;
+          }
+        }
+      }
+      return hasAnyFile;
+    } catch (_) {}
+    return false;
+  }
+
+  /// 判断目录是否应该被过滤掉
+  bool _shouldFilterDir(String dirPath) {
+    if (!_showEmptyDirs && !_hasMarkdownFiles(dirPath)) return true;
+    if (!_showImageOnlyDirs && _isImageOnlyDir(dirPath)) return true;
+    return false;
+  }
+
+  Future<void> _loadDirectory() async {
+    if (_currentPath == null) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _entries = [];
+    });
+
+    try {
+      final dir = Directory(_currentPath!);
+      final exists = await dir.exists();
+      if (!exists) {
+        if (mounted) {
+          setState(() {
+            _error = '目录不存在: $_currentPath';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final list = dir.listSync(recursive: false, followLinks: false);
+
+      final entries = <_FileEntry>[];
+      for (final entity in list) {
+        final name = p.basename(entity.path);
+        if (entity is Directory) {
+          if (!_shouldFilterDir(entity.path)) {
+            entries.add(_FileEntry(name: name, path: entity.path, isDir: true));
+          }
+        } else if (entity is File) {
+          final lower = name.toLowerCase();
+          if (lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.mdown') || lower.endsWith('.txt')) {
+            final stat = entity.statSync();
+            entries.add(_FileEntry(name: name, path: entity.path, isDir: false, size: stat.size));
+          }
+        }
+      }
+
+      entries.sort((a, b) {
+        if (a.isDir != b.isDir) return a.isDir ? -1 : 1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+      if (mounted) {
+        setState(() {
+          _entries = entries;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = '读取失败: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _enterDirectory(String path) {
+    _currentPath = path;
+    _loadDirectory();
+  }
+
+  void _goBack() {
+    if (_currentPath == null || _rootPath == null || _currentPath == _rootPath) return;
+    final parent = Directory(_currentPath!).parent.path;
+    if (parent == _currentPath!) return;
+    if (!parent.startsWith(_rootPath!)) return;
+    _currentPath = parent;
+    _loadDirectory();
+  }
+
+  void _openFile(_FileEntry entry) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (context) => MdViewerPage(filePath: entry.path),
+    ));
+  }
+
+  void _showSettingsSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocalState) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDDDDD),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('目录显示设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('显示空目录', style: TextStyle(fontSize: 14, color: Color(0xFF333333))),
+                  subtitle: const Text('关闭后隐藏无 Markdown 文件的目录', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                  value: _showEmptyDirs,
+                  activeColor: const Color(0xFF1A1A1A),
+                  onChanged: (val) {
+                    setLocalState(() => _showEmptyDirs = val);
+                    UserPrefs().setShowEmptyDirs(val);
+                    setState(() {});
+                    _loadDirectory();
+                  },
+                ),
+                const Divider(height: 0.5, color: Color(0xFFF0F0F0)),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('显示纯图片目录', style: TextStyle(fontSize: 14, color: Color(0xFF333333))),
+                  subtitle: const Text('关闭后隐藏只含图片、无 Markdown 的目录', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                  value: _showImageOnlyDirs,
+                  activeColor: const Color(0xFF1A1A1A),
+                  onChanged: (val) {
+                    setLocalState(() => _showImageOnlyDirs = val);
+                    UserPrefs().setShowImageOnlyDirs(val);
+                    setState(() {});
+                    _loadDirectory();
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  bool get _canGoBack => _currentPath != null && _rootPath != null && _currentPath != _rootPath;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // 紧凑顶部栏
-          _buildHeader(),
-          // 内容区域
-          Expanded(
-            child: _buildBody(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 构建紧凑顶部栏
-  Widget _buildHeader() {
-    final topPadding = MediaQuery.of(context).padding.top;
-    return Container(
-      padding: EdgeInsets.only(top: topPadding, left: 12, right: 12, bottom: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFF0F0F0), width: 0.5),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          _currentPath != null ? p.basename(_currentPath!) : 'Markdown 阅读',
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
         ),
-      ),
-      child: Row(
-        children: [
-          // 返回按钮
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
           if (_canGoBack)
-            IconButton(
-              icon: const Icon(Icons.arrow_back, size: 20),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              onPressed: _goBack,
-            )
-          else
-            const SizedBox(width: 8),
-          // 路径标题
-          Expanded(
-            child: Text(
-              _canGoBack ? _displayPath : '文件列表',
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1A1A1A),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: _goBack,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  child: const Text('返回上级', style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
+          if (_currentPath != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: GestureDetector(
+                onTap: _pickDirectory,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                  ),
+                  child: const Text('更换目录', style: TextStyle(fontSize: 12, color: Color(0xFF888888))),
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.tune, size: 20, color: Color(0xFF888888)),
+            onPressed: _showSettingsSheet,
           ),
+          const SizedBox(width: 4),
         ],
       ),
+      body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
+    if (_currentPath == null) {
+      return _buildWelcome();
+    }
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF1A1A1A)));
     }
 
     if (_error != null) {
-      return _buildErrorState();
-    }
-
-    if (_items.isEmpty) {
-      return _buildEmptyState();
+      return _buildError();
     }
 
     return RefreshIndicator(
       onRefresh: _loadDirectory,
       color: const Color(0xFF1A1A1A),
       backgroundColor: Colors.white,
-      child: ListView.builder(
+      child: _entries.isEmpty ? _buildEmpty() : ListView.separated(
         padding: EdgeInsets.zero,
-        itemCount: _items.length,
+        itemCount: (_canGoBack ? 1 : 0) + _entries.length,
+        separatorBuilder: (_, __) => const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFF0F0F0)),
         itemBuilder: (context, index) {
-          final item = _items[index];
-          final isDirectory = item is Directory;
-          final name = p.basename(item.path);
-          final isMdFile = !isDirectory && name.toLowerCase().endsWith('.md');
-
-          // 跳过非 md 文件和非目录项
-          if (!isDirectory && !isMdFile) {
-            return const SizedBox.shrink();
+          if (_canGoBack && index == 0) {
+            return ListTile(
+              leading: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.arrow_upward, size: 18, color: Color(0xFF888888)),
+              ),
+              title: const Text('..', style: TextStyle(fontSize: 14, color: Color(0xFF888888))),
+              onTap: _goBack,
+            );
           }
-
-          return _buildListItem(item, isDirectory, name);
+          final entry = _entries[_canGoBack ? index - 1 : index];
+          return ListTile(
+            leading: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: entry.isDir ? const Color(0xFFF0F7FF) : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                entry.isDir ? Icons.folder_outlined : Icons.description_outlined,
+                size: 18,
+                color: entry.isDir ? const Color(0xFF4A90D9) : const Color(0xFF666666),
+              ),
+            ),
+            title: Text(entry.name, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)), maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: entry.isDir ? null : Text(_formatSize(entry.size), style: const TextStyle(fontSize: 11, color: Color(0xFF999999))),
+            trailing: Icon(entry.isDir ? Icons.chevron_right : Icons.open_in_new_outlined, size: 16, color: const Color(0xFFCCCCCC)),
+            onTap: () => entry.isDir ? _enterDirectory(entry.path) : _openFile(entry),
+          );
         },
       ),
     );
   }
 
-  Widget _buildListItem(FileSystemEntity item, bool isDirectory, String name) {
-    return InkWell(
-      onTap: () {
-        if (isDirectory) {
-          _enterDirectory(item.path);
-        } else {
-          _openFile(item.path);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Color(0xFFF0F0F0), width: 0.5),
-          ),
-        ),
-        child: Row(
+  Widget _buildWelcome() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 80, height: 80,
               decoration: BoxDecoration(
-                color: isDirectory ? const Color(0xFFF0F7FF) : const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                isDirectory ? Icons.folder_outlined : Icons.description_outlined,
-                color: isDirectory ? const Color(0xFF4A90D9) : const Color(0xFF666666),
-                size: 18,
+              child: const Icon(Icons.folder_open_outlined, size: 40, color: Color(0xFFCCCCCC)),
+            ),
+            const SizedBox(height: 24),
+            const Text('Markdown 阅读', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+            const SizedBox(height: 8),
+            const Text('选择一个包含 .md 文件的文件夹', style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
+            const SizedBox(height: 32),
+            GestureDetector(
+              onTap: _pickDirectory,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Text('选择目录', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w500)),
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (!isDirectory)
-                    Text(
-                      _formatFileSize(item),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF999999),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (isDirectory)
-              const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 18)
-            else
-              const Icon(Icons.open_in_new_outlined, color: Color(0xFFCCCCCC), size: 16),
           ],
         ),
       ),
     );
   }
 
-  /// 格式化文件大小
-  String _formatFileSize(FileSystemEntity entity) {
-    try {
-      if (entity is File) {
-        final stat = entity.statSync();
-        final size = stat.size;
-        if (size < 1024) return '$size B';
-        if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(1)} KB';
-        return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-      }
-    } catch (_) {}
-    return '';
-  }
-
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_open_outlined,
-            size: 64,
-            color: Color(0xFFE0E0E0),
-          ),
-          SizedBox(height: 20),
-          Text(
-            '暂无 Markdown 文件',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF999999),
-            ),
-          ),
-          SizedBox(height: 8),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              '请在 /Documents/mooknote/markdown 目录下放置 .md 文件',
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFFCCCCCC),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
+  Widget _buildEmpty() {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Color(0xFFCCCCCC),
-          ),
+          const Icon(Icons.folder_open_outlined, size: 64, color: Color(0xFFE0E0E0)),
           const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF999999),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
+          const Text('此目录下没有 Markdown 文件', style: TextStyle(fontSize: 15, color: Color(0xFF999999))),
+          const SizedBox(height: 4),
+          Text(_currentPath ?? '', style: const TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
           const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _loadDirectory,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1A),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          GestureDetector(
+            onTap: _canGoBack ? _goBack : () => _pickDirectory(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFDDDDDD)),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                _canGoBack ? '返回上级目录' : '换一个目录',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF888888)),
+              ),
             ),
-            child: const Text('重试'),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Color(0xFFCCCCCC)),
+            const SizedBox(height: 16),
+            Text(_error!, style: const TextStyle(fontSize: 14, color: Color(0xFF999999)), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text('路径: ${_currentPath ?? ""}', style: const TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: _loadDirectory,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text('重试', style: TextStyle(fontSize: 13, color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _pickDirectory,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFDDDDDD)),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text('更换目录', style: TextStyle(fontSize: 13, color: Color(0xFF888888))),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatSize(int? bytes) {
+    if (bytes == null) return '';
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+class _FileEntry {
+  final String name;
+  final String path;
+  final bool isDir;
+  final int? size;
+
+  _FileEntry({required this.name, required this.path, required this.isDir, this.size});
 }
