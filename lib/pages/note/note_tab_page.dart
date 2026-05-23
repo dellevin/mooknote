@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/note_list_item.dart';
+import '../../widgets/shimmer_skeleton.dart';
 
 /// 笔记标签页
 class NoteTabPage extends StatefulWidget {
@@ -21,7 +22,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
 
-  int _layoutStyle = 0; // 0: 列表, 1: 瀑布流
+  int _layoutStyle = 0; // 0: 列表, 1: 瀑布流, 2: 时间线
+  bool _firstLoad = true;
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     _layoutStyle = UserPrefs().noteLayoutStyle;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMoreNotes();
+      if (mounted) setState(() => _firstLoad = false);
     });
   }
 
@@ -113,6 +116,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
               final allNotes = provider.notes;
               _syncDisplayedNotes(allNotes);
 
+              if (_firstLoad) {
+                return _buildSkeleton();
+              }
+
               if (allNotes.isEmpty && _displayedNotes.isEmpty) {
                 return _buildEmptyState(context);
               }
@@ -120,11 +127,67 @@ class _NoteTabPageState extends State<NoteTabPage> {
               if (_layoutStyle == 1) {
                 return _buildWaterfallView();
               }
+              if (_layoutStyle == 2) {
+                return _buildTimelineView();
+              }
               return _buildListView();
             },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSkeleton() {
+    switch (_layoutStyle) {
+      case 1:
+        return _buildWaterfallSkeleton();
+      case 2:
+        return const NoteSkeletonList();
+      default:
+        return const NoteSkeletonList();
+    }
+  }
+
+  Widget _buildWaterfallSkeleton() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(2, (_) => Expanded(
+          child: Column(
+            children: List.generate(4, (_) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ShimmerSkeleton(width: double.infinity, height: 140, borderRadius: 10),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const ShimmerSkeleton(width: double.infinity, height: 14),
+                        const SizedBox(height: 6),
+                        const ShimmerSkeleton(width: double.infinity, height: 12),
+                        const SizedBox(height: 6),
+                        const ShimmerSkeleton(width: 60, height: 10),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ),
+        )),
+      ),
     );
   }
 
@@ -155,6 +218,141 @@ class _NoteTabPageState extends State<NoteTabPage> {
         },
       ),
     );
+  }
+
+  // ─── 时间线视图 ──────────────────────────────────────────────────────
+
+  Widget _buildTimelineView() {
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      color: const Color(0xFF1A1A1A),
+      backgroundColor: Colors.white,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+        itemCount: _displayedNotes.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _displayedNotes.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1A1A))),
+              ),
+            );
+          }
+          return _buildTimelineItem(_displayedNotes[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimelineItem(Note note) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) async {
+          await context.read<AppProvider>().loadNotes();
+        });
+      },
+      onLongPress: () => _showDeleteDialog(context, note),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 左侧时间线
+            SizedBox(
+              width: 40,
+              child: Column(
+                children: [
+                  // 圆点
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                  // 连线
+                  Expanded(
+                    child: Container(
+                      width: 1,
+                      color: const Color(0xFFE5E5E5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 右侧内容
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 时间
+                    Text(
+                      _formatFullDate(note.updatedAt),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF999999)),
+                    ),
+
+                    // 标题
+                    if (note.title.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        note.title,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+
+                    // 内容预览
+                    const SizedBox(height: 6),
+                    Text(
+                      _getPreviewText(note),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF888888), height: 1.5),
+                    ),
+
+                    // 标签
+                    if (note.tags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: note.tags.map((tag) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(tag, style: const TextStyle(fontSize: 10, color: Color(0xFF999999))),
+                        )).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatFullDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   // ─── 瀑布流视图 ──────────────────────────────────────────────────────

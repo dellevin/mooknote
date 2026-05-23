@@ -68,9 +68,17 @@ class UserPrefs {
   int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? 0;
   Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);
 
-  /// 笔记布局样式 (0: 列表, 1: 瀑布流)
+  /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
   Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);
+
+  /// 影视布局样式 (0: 海报网格, 1: 列表)
+  int get movieLayoutStyle => prefs.getInt('movieLayoutStyle') ?? 0;
+  Future<bool> setMovieLayoutStyle(int value) => prefs.setInt('movieLayoutStyle', value);
+
+  /// 阅读布局样式 (0: 封面网格, 1: 列表)
+  int get bookLayoutStyle => prefs.getInt('bookLayoutStyle') ?? 0;
+  Future<bool> setBookLayoutStyle(int value) => prefs.setInt('bookLayoutStyle', value);
 
   // ========== 应用图标设置 ==========
 

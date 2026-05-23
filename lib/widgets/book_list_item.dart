@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
+import '../widgets/fade_in_local_image.dart';
+import '../widgets/animated_star_rating.dart';
 import '../utils/toast_util.dart';
 
 /// 书籍列表项组件 - 网格布局设计
@@ -42,9 +44,9 @@ class BookListItem extends StatelessWidget {
 
           const SizedBox(height: 4),
 
-          // 评分 - 5星显示
+          // 评分
           if (book.rating != null)
-            _buildStarRating(book.rating!)
+            AnimatedStarRating(rating: book.rating!, starSize: 12, showNumber: true)
           else
             const SizedBox(height: 16),
         ],
@@ -57,72 +59,16 @@ class BookListItem extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
-      child: book.coverPath != null && book.coverPath!.isNotEmpty
-          ? Image.file(
-              File(book.coverPath!),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
-            )
-          : _buildCoverPlaceholder(),
-    );
-  }
-
-  Widget _buildCoverPlaceholder() {
-    return const Center(
-      child: Icon(
-        Icons.menu_book_outlined,
-        size: 32,
-        color: Color(0xFFCCCCCC),
+      child: FadeInLocalImage(
+        path: book.coverPath,
+        fit: BoxFit.cover,
+        placeholder: const Center(child: Icon(Icons.menu_book_outlined, size: 32, color: Color(0xFFCCCCCC))),
+        errorWidget: const Center(child: Icon(Icons.menu_book_outlined, size: 32, color: Color(0xFFCCCCCC))),
       ),
-    );
-  }
-
-  /// 构建5星评分显示（评分范围1-10，每星2分）
-  Widget _buildStarRating(double rating) {
-    // 将10分制转换为5星制
-    final starValue = rating / 2;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // 5个星星
-        ...List.generate(5, (index) {
-          final starIndex = index + 1;
-          IconData iconData;
-
-          if (starValue >= starIndex) {
-            // 满星
-            iconData = Icons.star;
-          } else if (starValue >= starIndex - 0.5) {
-            // 半星
-            iconData = Icons.star_half;
-          } else {
-            // 空星
-            iconData = Icons.star_border;
-          }
-
-          return Icon(
-            iconData,
-            size: 12,
-            color: const Color(0xFFFFB800),
-          );
-        }),
-        const SizedBox(width: 4),
-        // 评分数字
-        Text(
-          rating.toStringAsFixed(1),
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF666666),
-          ),
-        ),
-      ],
     );
   }
 

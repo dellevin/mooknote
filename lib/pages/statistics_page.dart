@@ -13,8 +13,6 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  int _selectedTab = 0;
-
   bool get _showMovies => UserPrefs().showMovieTab;
   bool get _showBooks => UserPrefs().showBookTab;
   bool get _showNotes => UserPrefs().showNoteTab;
@@ -23,23 +21,38 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('数据统计'),
-      ),
+      appBar: AppBar(title: const Text('数据统计')),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
-          final movies = provider.movies;
+          final movies = provider.movies.where((m) => !m.isDeleted).toList();
           final books = provider.books;
           final notes = provider.notes;
 
-          return Column(
+          return ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              _buildTabBar(),
-              Expanded(
-                child: _selectedTab == 0
-                    ? _buildOverviewTab(movies, books, notes)
-                    : _buildTrendTab(movies, books, notes),
-              ),
+              _buildTotalCards(movies, books, notes),
+              const SizedBox(height: 28),
+              if (_showMovies) ...[
+                _buildStatusSection('影视状态分布', movies, (m) => m.status, {'已看': 'watched', '在看': 'watching', '想看': 'want_to_watch'}),
+                const SizedBox(height: 28),
+                _buildGenreDistribution('影视类型分布', movies),
+                const SizedBox(height: 28),
+              ],
+              if (_showBooks) ...[
+                _buildStatusSection('阅读状态分布', books, (b) => b.status, {'已读': 'read', '在读': 'reading', '想读': 'want_to_read'}),
+                const SizedBox(height: 28),
+                _buildGenreDistribution('书籍类型分布', books),
+                const SizedBox(height: 28),
+              ],
+              if (_showNotes) ...[
+                _buildNoteTagDistribution('笔记标签分布', notes),
+                const SizedBox(height: 28),
+              ],
+              _buildRatingDistribution('评分分布', movies, books),
+              const SizedBox(height: 28),
+              _buildMonthlyTrend(movies, books, notes),
+              const SizedBox(height: 80),
             ],
           );
         },
@@ -47,384 +60,368 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(child: _buildTabItem('概览', 0)),
-          const SizedBox(width: 12),
-          Expanded(child: _buildTabItem('趋势', 1)),
-        ],
-      ),
-    );
-  }
+  // ─── 总览卡片 ────────────────────────────────────────────────────────
 
-  Widget _buildTabItem(String label, int index) {
-    final isSelected = _selectedTab == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTab = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF666666),
+  Widget _buildTotalCards(List<Movie> movies, List<Book> books, List<Note> notes) {
+    final items = <_CardData>[];
+    if (_showMovies) items.add(_CardData('影视', movies.length, Icons.movie_outlined, const Color(0xFF4A90D9)));
+    if (_showBooks) items.add(_CardData('书籍', books.length, Icons.menu_book_outlined, const Color(0xFF7E57C2)));
+    if (_showNotes) items.add(_CardData('笔记', notes.length, Icons.note_outlined, const Color(0xFF66BB6A)));
+
+    return Row(
+      children: items.map((d) => Expanded(
+        child: Container(
+          margin: EdgeInsets.only(right: d == items.last ? 0 : 10),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: d.color.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            children: [
+              Icon(d.icon, size: 26, color: d.color),
+              const SizedBox(height: 10),
+              Text('${d.count}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: d.color)),
+              const SizedBox(height: 2),
+              Text(d.label, style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
+            ],
           ),
         ),
-      ),
+      )).toList(),
     );
   }
 
-  Widget _buildOverviewTab(List<Movie> movies, List<Book> books, List<Note> notes) {
-    final totalMovies = movies.where((m) => !m.isDeleted).length;
-    final totalBooks = books.length;
-    final totalNotes = notes.length;
+  // ─── 状态分布 ────────────────────────────────────────────────────────
 
-    final watchedMovies = movies.where((m) => m.status == 'watched' && !m.isDeleted).length;
-    final watchingMovies = movies.where((m) => m.status == 'watching' && !m.isDeleted).length;
-    final wantToWatchMovies = movies.where((m) => m.status == 'want_to_watch' && !m.isDeleted).length;
+  Widget _buildStatusSection(String title, List items, String Function(dynamic) getStatus, Map<String, String> labels) {
+    final active = items.where((i) => !(i is Movie) || !i.isDeleted).toList();
+    final total = active.length;
 
-    final readBooks = books.where((b) => b.status == 'read').length;
-    final readingBooks = books.where((b) => b.status == 'reading').length;
-    final wantToReadBooks = books.where((b) => b.status == 'want_to_read').length;
-
-    final movieRatings = movies.where((m) => m.rating != null && !m.isDeleted).map((m) => m.rating!);
-    final avgMovieRating = movieRatings.isNotEmpty
-        ? movieRatings.reduce((a, b) => a + b) / movieRatings.length
-        : null;
-
-    final bookRatings = books.where((b) => b.rating != null).map((b) => b.rating!);
-    final avgBookRating = bookRatings.isNotEmpty
-        ? bookRatings.reduce((a, b) => a + b) / bookRatings.length
-        : null;
-
-    final children = <Widget>[];
-
-    // 数据总览
-    children.add(_buildSectionTitle('数据总览'));
-    children.add(const SizedBox(height: 16));
-    children.add(_buildTotalOverview(totalMovies, totalBooks, totalNotes));
-    children.add(const SizedBox(height: 32));
-
-    // 影视状态分布
-    if (_showMovies) {
-      children.add(_buildSectionTitle('影视'));
-      children.add(const SizedBox(height: 16));
-      children.add(_buildStatusDistribution([
-        _StatusData('已看', watchedMovies, const Color(0xFF1A1A1A)),
-        _StatusData('在看', watchingMovies, const Color(0xFF666666)),
-        _StatusData('想看', wantToWatchMovies, const Color(0xFF999999)),
-      ], avgRating: avgMovieRating));
-      children.add(const SizedBox(height: 32));
-    }
-
-    // 书籍状态分布
-    if (_showBooks) {
-      children.add(_buildSectionTitle('书籍'));
-      children.add(const SizedBox(height: 16));
-      children.add(_buildStatusDistribution([
-        _StatusData('已读', readBooks, const Color(0xFF1A1A1A)),
-        _StatusData('在读', readingBooks, const Color(0xFF666666)),
-        _StatusData('想读', wantToReadBooks, const Color(0xFF999999)),
-      ], avgRating: avgBookRating));
-      children.add(const SizedBox(height: 32));
-    }
-
-    // 最近活动
-    children.add(_buildSectionTitle('最近7天活动'));
-    children.add(const SizedBox(height: 16));
-    children.add(_buildRecentActivity(movies, books, notes));
-
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: children,
-    );
-  }
-
-  Widget _buildTotalOverview(int totalMovies, int totalBooks, int totalNotes) {
-    final items = <Widget>[];
-    if (_showMovies) items.add(Expanded(child: _buildStatItem('影视', totalMovies, Icons.movie_outlined)));
-    if (_showBooks) items.add(Expanded(child: _buildStatItem('书籍', totalBooks, Icons.menu_book_outlined)));
-    if (_showNotes) items.add(Expanded(child: _buildStatItem('笔记', totalNotes, Icons.note_outlined)));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(children: items),
-    );
-  }
-
-  Widget _buildTrendTab(List<Movie> movies, List<Book> books, List<Note> notes) {
-    final now = DateTime.now();
-
-    final dates = List.generate(30, (index) => now.subtract(Duration(days: 29 - index)));
-
-    final movieTrend = dates.map((date) {
-      return movies.where((m) {
-        final created = m.createdAt;
-        return created.year == date.year && created.month == date.month && created.day == date.day && !m.isDeleted;
-      }).length;
-    }).toList();
-
-    final bookTrend = dates.map((date) {
-      return books.where((b) {
-        final created = b.createdAt;
-        return created.year == date.year && created.month == date.month && created.day == date.day;
-      }).length;
-    }).toList();
-
-    final noteTrend = dates.map((date) {
-      return notes.where((n) {
-        final created = n.createdAt;
-        return created.year == date.year && created.month == date.month && created.day == date.day;
-      }).length;
-    }).toList();
-
-    final totalMovies = movieTrend.fold(0, (a, b) => a + b);
-    final totalBooks = bookTrend.fold(0, (a, b) => a + b);
-    final totalNotes = noteTrend.fold(0, (a, b) => a + b);
-
-    final children = <Widget>[];
-
-    children.add(_buildSectionTitle('近30天新增'));
-    children.add(const SizedBox(height: 16));
-    children.add(_buildTrendSummaryRow(totalMovies, totalBooks, totalNotes));
-    children.add(const SizedBox(height: 32));
-    children.add(_buildSectionTitle('数据趋势'));
-    children.add(const SizedBox(height: 16));
-    children.add(_buildTrendChart(movieTrend, bookTrend, noteTrend));
-
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: children,
-    );
-  }
-
-  Widget _buildTrendSummaryRow(int totalMovies, int totalBooks, int totalNotes) {
-    final items = <Widget>[];
-    if (_showMovies) items.add(Expanded(child: _buildTrendSummary('影视', totalMovies)));
-    if (_showBooks) items.add(Expanded(child: _buildTrendSummary('书籍', totalBooks)));
-    if (_showNotes) items.add(Expanded(child: _buildTrendSummary('笔记', totalNotes)));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(children: items),
-    );
-  }
-
-  Widget _buildTrendChart(List<int> movieTrend, List<int> bookTrend, List<int> noteTrend) {
-    final rows = <Widget>[];
-    if (_showMovies) {
-      rows.add(_buildTrendRow('影视', movieTrend, const Color(0xFF1A1A1A)));
-    }
-    if (_showBooks) {
-      if (rows.isNotEmpty) rows.add(const SizedBox(height: 16));
-      rows.add(_buildTrendRow('书籍', bookTrend, const Color(0xFF666666)));
-    }
-    if (_showNotes) {
-      if (rows.isNotEmpty) rows.add(const SizedBox(height: 16));
-      rows.add(_buildTrendRow('笔记', noteTrend, const Color(0xFF999999)));
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(children: rows),
-    );
-  }
-
-  Widget _buildTrendSummary(String label, int count) {
-    return Column(
-      children: [
-        Text(count.toString(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
-      ],
-    );
-  }
-
-  Widget _buildTrendRow(String label, List<int> data, Color color) {
-    final maxValue = data.isEmpty ? 1 : data.reduce((a, b) => a > b ? a : b);
-    final safeMax = maxValue == 0 ? 1 : maxValue;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color)),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 40,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: data.map((value) {
-              final height = value / safeMax * 40;
-              return Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 1),
-                  height: height < 2 ? 2 : height,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(value == 0 ? 0.1 : 0.6),
-                    borderRadius: BorderRadius.circular(2),
+    return _buildCard(
+      title: title,
+      child: Column(
+        children: labels.entries.map((e) {
+          final count = active.where((i) => getStatus(i) == e.value).length;
+          final pct = total > 0 ? count / total : 0.0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(e.key, style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
+                    const Spacer(),
+                    Text('$count', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                    const SizedBox(width: 4),
+                    Text('${(pct * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    backgroundColor: const Color(0xFFF0F0F0),
+                    color: const Color(0xFF1A1A1A),
+                    minHeight: 6,
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(String title, int count, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, size: 24, color: const Color(0xFF666666)),
-        const SizedBox(height: 8),
-        Text(count.toString(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
-        const SizedBox(height: 4),
-        Text(title, style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
-      ],
-    );
-  }
-
-  Widget _buildStatusDistribution(List<_StatusData> data, {double? avgRating}) {
-    final total = data.fold(0, (sum, item) => sum + item.count);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          ...data.map((item) {
-            final percentage = total > 0 ? (item.count / total * 100).toStringAsFixed(1) : '0';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 10, height: 10,
-                    decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(item.label, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
-                  const Spacer(),
-                  Text('${item.count}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-                  const SizedBox(width: 8),
-                  Text('($percentage%)', style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
-                ],
-              ),
-            );
-          }),
-          if (avgRating != null) ...[
-            const Divider(height: 1, color: Color(0xFFE8E8E8)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.star, size: 16, color: Color(0xFF999999)),
-                const SizedBox(width: 10),
-                const Text('平均评分', style: TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
-                const Spacer(),
-                Text(avgRating.toStringAsFixed(1), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
               ],
             ),
-          ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ─── 类型/标签分布 ───────────────────────────────────────────────────
+
+  Widget _buildGenreDistribution(String title, List items) {
+    final genreCounts = <String, int>{};
+    for (final item in items) {
+      for (final genre in (item.genres as List<String>)) {
+        genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+      }
+    }
+    final sorted = genreCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top = sorted.take(8).toList();
+    if (top.isEmpty) return const SizedBox.shrink();
+    final maxCount = top.first.value;
+
+    return _buildCard(
+      title: title,
+      child: Column(
+        children: top.map((e) {
+          final pct = maxCount > 0 ? e.value / maxCount : 0.0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 60,
+                  child: Text(e.key, style: const TextStyle(fontSize: 12, color: Color(0xFF666666)), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(value: pct, backgroundColor: const Color(0xFFF0F0F0), color: const Color(0xFF1A1A1A), minHeight: 4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${e.value}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildNoteTagDistribution(String title, List<Note> notes) {
+    final tagCounts = <String, int>{};
+    for (final note in notes) {
+      for (final tag in note.tags) {
+        tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
+      }
+    }
+    final sorted = tagCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top = sorted.take(8).toList();
+    if (top.isEmpty) return const SizedBox.shrink();
+    final maxCount = top.first.value;
+
+    return _buildCard(
+      title: title,
+      child: Column(
+        children: top.map((e) {
+          final pct = maxCount > 0 ? e.value / maxCount : 0.0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 60,
+                  child: Text(e.key, style: const TextStyle(fontSize: 12, color: Color(0xFF666666)), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(value: pct, backgroundColor: const Color(0xFFF0F0F0), color: const Color(0xFF1A1A1A), minHeight: 4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${e.value}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ─── 评分分布 ────────────────────────────────────────────────────────
+
+  Widget _buildRatingDistribution(String title, List<Movie> movies, List<Book> books) {
+    final allRatings = <double>[];
+    for (final m in movies) {
+      if (m.rating != null) allRatings.add(m.rating!);
+    }
+    for (final b in books) {
+      if (b.rating != null) allRatings.add(b.rating!);
+    }
+    if (allRatings.isEmpty) return const SizedBox.shrink();
+
+    final avg = allRatings.reduce((a, b) => a + b) / allRatings.length;
+
+    // 按区间统计 (0-2, 2-4, 4-6, 6-8, 8-10)
+    final ranges = ['0-2', '2-4', '4-6', '6-8', '8-10'];
+    final counts = [0, 0, 0, 0, 0];
+    for (final r in allRatings) {
+      if (r < 2) counts[0]++;
+      else if (r < 4) counts[1]++;
+      else if (r < 6) counts[2]++;
+      else if (r < 8) counts[3]++;
+      else counts[4]++;
+    }
+    final maxCount = counts.isEmpty ? 1 : counts.reduce((a, b) => a > b ? a : b);
+
+    return _buildCard(
+      title: title,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Text('平均评分', style: TextStyle(fontSize: 13, color: Color(0xFF666666))),
+              const Spacer(),
+              Text(avg.toStringAsFixed(1), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
+              const Text(' / 10', style: TextStyle(fontSize: 13, color: Color(0xFFBBBBBB))),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...List.generate(5, (i) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Text(ranges[i], style: const TextStyle(fontSize: 11, color: Color(0xFF999999))),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: maxCount > 0 ? counts[i] / maxCount : 0.0,
+                      backgroundColor: const Color(0xFFF0F0F0),
+                      color: const Color(0xFF1A1A1A),
+                      minHeight: 6,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${counts[i]}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              ],
+            ),
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildRecentActivity(List<Movie> movies, List<Book> books, List<Note> notes) {
+  // ─── 月度趋势 ────────────────────────────────────────────────────────
+
+  Widget _buildMonthlyTrend(List<Movie> movies, List<Book> books, List<Note> notes) {
     final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    final months = List.generate(6, (i) {
+      final d = DateTime(now.year, now.month - (5 - i), 1);
+      return '${d.month}月';
+    });
 
-    final recentMovies = movies.where((m) => m.createdAt.isAfter(sevenDaysAgo) && !m.isDeleted).length;
-    final recentBooks = books.where((b) => b.createdAt.isAfter(sevenDaysAgo)).length;
-    final recentNotes = notes.where((n) => n.createdAt.isAfter(sevenDaysAgo)).length;
+    final counts = <String, List<int>>{};
+    if (_showMovies) counts['影视'] = List.filled(6, 0);
+    if (_showBooks) counts['书籍'] = List.filled(6, 0);
+    if (_showNotes) counts['笔记'] = List.filled(6, 0);
 
-    final items = <Widget>[];
-    if (_showMovies) {
-      items.add(_buildActivityRow('新增影视', recentMovies, Icons.movie_outlined));
+    for (final m in movies) {
+      final idx = _monthIndex(m.createdAt, now);
+      if (idx >= 0 && idx < 6) counts['影视']?[idx] = (counts['影视']?[idx] ?? 0) + 1;
     }
-    if (_showBooks) {
-      if (items.isNotEmpty) items.add(const Divider(height: 20, color: Color(0xFFE8E8E8)));
-      items.add(_buildActivityRow('新增书籍', recentBooks, Icons.menu_book_outlined));
+    for (final b in books) {
+      final idx = _monthIndex(b.createdAt, now);
+      if (idx >= 0 && idx < 6) counts['书籍']?[idx] = (counts['书籍']?[idx] ?? 0) + 1;
     }
-    if (_showNotes) {
-      if (items.isNotEmpty) items.add(const Divider(height: 20, color: Color(0xFFE8E8E8)));
-      items.add(_buildActivityRow('新增笔记', recentNotes, Icons.note_outlined));
+    for (final n in notes) {
+      final idx = _monthIndex(n.createdAt, now);
+      if (idx >= 0 && idx < 6) counts['笔记']?[idx] = (counts['笔记']?[idx] ?? 0) + 1;
     }
 
+    final allValues = counts.values.expand((l) => l);
+    final maxVal = allValues.isEmpty ? 1 : allValues.reduce((a, b) => a > b ? a : b);
+    final safeMax = maxVal == 0 ? 1 : maxVal;
+
+    final colors = { '影视': const Color(0xFF4A90D9), '书籍': const Color(0xFF7E57C2), '笔记': const Color(0xFF66BB6A) };
+
+    return _buildCard(
+      title: '近6月趋势',
+      child: Column(
+        children: [
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(6, (i) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ...counts.entries.map((e) {
+                        final h = (e.value[i] / safeMax * 80).clamp(0, 80).toDouble();
+                        return Container(
+                          height: h < 2 && e.value[i] > 0 ? 2 : h,
+                          margin: const EdgeInsets.only(top: 1),
+                          decoration: BoxDecoration(
+                            color: colors[e.key]!.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              )),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          const SizedBox(height: 8),
+          // 月份标签
+          Row(
+            children: months.map((m) => Expanded(
+              child: Text(m, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
+            )).toList(),
+          ),
+          const SizedBox(height: 12),
+          // 图例
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: counts.keys.map((k) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: colors[k], borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 4),
+                  Text(k, style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
+                ],
+              ),
+            )).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _monthIndex(DateTime date, DateTime now) {
+    final diff = (now.year - date.year) * 12 + (now.month - date.month);
+    return 5 - diff; // index 0..5 where 0=5 months ago, 5=current month
+  }
+
+  // ─── 通用卡片 ────────────────────────────────────────────────────────
+
+  Widget _buildCard({required String title, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(children: items),
-    );
-  }
-
-  Widget _buildActivityRow(String label, int count, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 3, height: 14, decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+            ],
           ),
-          child: Icon(icon, size: 18, color: const Color(0xFF666666)),
-        ),
-        const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
-        const Spacer(),
-        Text('$count', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-        const SizedBox(width: 4),
-        const Text('个', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Row(
-      children: [
-        Container(
-          width: 4, height: 16,
-          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(2)),
-        ),
-        const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-      ],
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
     );
   }
 }
 
-class _StatusData {
+class _CardData {
   final String label;
   final int count;
+  final IconData icon;
   final Color color;
-
-  _StatusData(this.label, this.count, this.color);
+  _CardData(this.label, this.count, this.icon, this.color);
 }

@@ -143,14 +143,28 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     required String tooltip,
     Color backgroundColor = const Color(0xFF1A1A1A),
   }) {
-    return FloatingActionButton(
-      onPressed: onPressed,
-      tooltip: tooltip,
-      backgroundColor: backgroundColor,
-      foregroundColor: Colors.white,
-      mini: true,
-      elevation: 4,
-      child: Icon(icon, size: 20),
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: backgroundColor.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: IconButton(
+          icon: Icon(icon, size: 18, color: Colors.white),
+          onPressed: onPressed,
+          tooltip: tooltip,
+        ),
+      ),
     );
   }
 

@@ -610,13 +610,11 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   bool _hideBottomNavOnScroll = true;
-  int _noteLayoutStyle = 0;
 
   @override
   void initState() {
     super.initState();
     _hideBottomNavOnScroll = _userPrefs.hideBottomNavOnScroll;
-    _noteLayoutStyle = _userPrefs.noteLayoutStyle;
   }
 
   @override
@@ -664,8 +662,8 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(height: 0.5, indent: 24, endIndent: 24),
           _buildNavigationItem(
             icon: Icons.view_list_outlined,
-            title: '主界面功能显示',
-            subtitle: '控制观影、阅读、笔记的显示',
+            title: '主界面设置',
+            subtitle: '启动标签、模块显示开关',
             onTap: () {
               Navigator.push(
                 context,
@@ -676,13 +674,22 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildSwitchItem(
-            icon: Icons.grid_view_outlined,
-            title: '笔记瀑布流布局',
-            subtitle: '使用双列瀑布流样式展示笔记',
-            value: _noteLayoutStyle == 1,
-            onChanged: _toggleNoteLayoutStyle,
+
+          // 布局设置
+          _buildSectionHeader('布局设置'),
+          _buildNavigationItem(
+            icon: Icons.dashboard_outlined,
+            title: '布局设置',
+            subtitle: '笔记、影视、阅读的展示样式',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LayoutSettingsPage()),
+              );
+            },
           ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+
           // 使用说明
           _buildSectionHeader('帮助'),
           _buildLinkItem(
@@ -712,12 +719,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleHideBottomNavOnScroll(bool value) async {
     await _userPrefs.setHideBottomNavOnScroll(value);
     setState(() => _hideBottomNavOnScroll = value);
-  }
-
-  Future<void> _toggleNoteLayoutStyle(bool value) async {
-    final v = value ? 1 : 0;
-    await _userPrefs.setNoteLayoutStyle(v);
-    setState(() => _noteLayoutStyle = v);
   }
 
   /// 构建开关项
@@ -1223,23 +1224,17 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('主界面功能显示'),
+        title: const Text('主界面设置'),
       ),
       body: ListView(
         children: [
-          // 说明文字
-          Container(
-            padding: const EdgeInsets.all(24),
-            child: const Text(
-              '选择要在主界面显示的功能模块，至少保留一个。',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-              ),
-            ),
-          ),
-          const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
-          // 观影开关
+          // 启动设置
+          _buildSectionHeader('启动设置'),
+          _buildDefaultTabSelector(),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+
+          // 模块开关
+          _buildSectionHeader('模块开关'),
           _buildSwitchItem(
             icon: Icons.movie_outlined,
             title: '观影',
@@ -1248,7 +1243,6 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
             onChanged: _toggleMovieTab,
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          // 阅读开关
           _buildSwitchItem(
             icon: Icons.menu_book_outlined,
             title: '阅读',
@@ -1257,7 +1251,6 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
             onChanged: _toggleBookTab,
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          // 笔记开关
           _buildSwitchItem(
             icon: Icons.note_outlined,
             title: '笔记',
@@ -1266,95 +1259,118 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
             onChanged: _toggleNoteTab,
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 默认启动标签
-          _buildDefaultTabSelector(),
-          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            child: const Text(
+              '至少保留一个模块，关闭后对应标签页将不再显示。',
+              style: TextStyle(fontSize: 12, color: Color(0xFFBBBBBB)),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  /// 构建区块标题
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A),
+        ),
       ),
     );
   }
 
   /// 构建默认启动标签选择器
   Widget _buildDefaultTabSelector() {
-    final options = [
-      {'label': '影视', 'icon': Icons.movie_outlined, 'value': 0},
-      {'label': '阅读', 'icon': Icons.menu_book_outlined, 'value': 1},
-      {'label': '笔记', 'icon': Icons.note_outlined, 'value': 2},
-    ];
+    final labels = ['影视', '阅读', '笔记'];
+    final icons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined];
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
       leading: Container(
-        width: 48,
-        height: 48,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(
-          Icons.home_outlined,
-          color: Color(0xFF666666),
-          size: 24,
-        ),
+        child: const Icon(Icons.home_outlined, color: Color(0xFF666666), size: 22),
       ),
       title: const Text(
         '默认启动标签',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF1A1A1A),
-        ),
+        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)),
       ),
       subtitle: const Text(
         '打开应用时默认显示的页面',
-        style: TextStyle(
-          fontSize: 13,
-          color: Color(0xFF999999),
-        ),
+        style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
       ),
-      trailing: SizedBox(
-        width: 80,
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<int>(
-            value: _defaultTabIndex,
-            isDense: true,
-            icon: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC)),
-            selectedItemBuilder: (context) {
-              return options.map<Widget>((opt) {
-                return Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    opt['label'] as String,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                );
-              }).toList();
-            },
-            items: options.map((opt) {
-              return DropdownMenuItem<int>(
-                value: opt['value'] as int,
-                child: Row(
-                  children: [
-                    Icon(opt['icon'] as IconData, size: 20, color: const Color(0xFF666666)),
-                    const SizedBox(width: 8),
-                    Text(opt['label'] as String),
-                  ],
-                ),
-              );
-            }).toList(),
-            onChanged: (int? value) async {
-              if (value != null) {
-                await _userPrefs.setDefaultMainTabIndex(value);
-                setState(() => _defaultTabIndex = value);
-              }
-            },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            labels[_defaultTabIndex],
+            style: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
           ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
+        ],
+      ),
+      onTap: () => _showDefaultTabPicker(labels, icons),
+    );
+  }
+
+  void _showDefaultTabPicker(List<String> labels, List<IconData> icons) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFFDDDDDD), borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 20),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Text('默认启动标签', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              ),
+            ),
+            const SizedBox(height: 16),
+            for (int i = 0; i < labels.length; i++)
+              ListTile(
+                leading: Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icons[i], color: const Color(0xFF666666)),
+                ),
+                title: Text(labels[i], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+                trailing: _defaultTabIndex == i ? const Icon(Icons.check, color: Color(0xFF1A1A1A), size: 20) : null,
+                onTap: () async {
+                  await _userPrefs.setDefaultMainTabIndex(i);
+                  setState(() => _defaultTabIndex = i);
+                  Navigator.pop(ctx);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
@@ -1406,6 +1422,176 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
         inactiveThumbColor: Colors.white,
         inactiveTrackColor: const Color(0xFFE5E5E5),
       ),
+    );
+  }
+}
+
+/// 布局设置页面
+class LayoutSettingsPage extends StatefulWidget {
+  const LayoutSettingsPage({super.key});
+
+  @override
+  State<LayoutSettingsPage> createState() => _LayoutSettingsPageState();
+}
+
+class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
+  final UserPrefs _userPrefs = UserPrefs();
+  int _noteLayout = 0;
+  int _movieLayout = 0;
+  int _bookLayout = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _noteLayout = _userPrefs.noteLayoutStyle;
+    _movieLayout = _userPrefs.movieLayoutStyle;
+    _bookLayout = _userPrefs.bookLayoutStyle;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('布局设置'),
+      ),
+      body: ListView(
+        children: [
+          // 笔记布局
+          _buildSectionHeader('笔记布局'),
+          _buildLayoutOption(
+            icon: Icons.view_list_outlined,
+            title: '列表布局',
+            subtitle: '单列列表，简洁清晰',
+            value: 0,
+            groupValue: _noteLayout,
+            onTap: () => _setLayout('note', 0),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          _buildLayoutOption(
+            icon: Icons.grid_view_outlined,
+            title: '瀑布流布局',
+            subtitle: '双列卡片，图文并茂',
+            value: 1,
+            groupValue: _noteLayout,
+            onTap: () => _setLayout('note', 1),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          _buildLayoutOption(
+            icon: Icons.timeline_outlined,
+            title: '时间线布局',
+            subtitle: '按时间排列，纵览全局',
+            value: 2,
+            groupValue: _noteLayout,
+            onTap: () => _setLayout('note', 2),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+
+          // 影视布局
+          _buildSectionHeader('影视布局'),
+          _buildLayoutOption(
+            icon: Icons.grid_view_outlined,
+            title: '海报网格',
+            subtitle: '三列海报，赏心悦目',
+            value: 0,
+            groupValue: _movieLayout,
+            onTap: () => _setLayout('movie', 0),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          _buildLayoutOption(
+            icon: Icons.view_list_outlined,
+            title: '列表布局',
+            subtitle: '单列卡片，信息一览',
+            value: 1,
+            groupValue: _movieLayout,
+            onTap: () => _setLayout('movie', 1),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+
+          // 阅读布局
+          _buildSectionHeader('阅读布局'),
+          _buildLayoutOption(
+            icon: Icons.grid_view_outlined,
+            title: '封面网格',
+            subtitle: '三列封面，清新雅致',
+            value: 0,
+            groupValue: _bookLayout,
+            onTap: () => _setLayout('book', 0),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          _buildLayoutOption(
+            icon: Icons.view_list_outlined,
+            title: '列表布局',
+            subtitle: '单列卡片，信息一览',
+            value: 1,
+            groupValue: _bookLayout,
+            onTap: () => _setLayout('book', 1),
+          ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+        ],
+      ),
+    );
+  }
+
+  void _setLayout(String type, int value) async {
+    switch (type) {
+      case 'note':
+        await _userPrefs.setNoteLayoutStyle(value);
+        setState(() => _noteLayout = value);
+        break;
+      case 'movie':
+        await _userPrefs.setMovieLayoutStyle(value);
+        setState(() => _movieLayout = value);
+        break;
+      case 'book':
+        await _userPrefs.setBookLayoutStyle(value);
+        setState(() => _bookLayout = value);
+        break;
+    }
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
+      ),
+    );
+  }
+
+  Widget _buildLayoutOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required int value,
+    required int groupValue,
+    required VoidCallback onTap,
+  }) {
+    final selected = value == groupValue;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: const Color(0xFF666666), size: 22),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
+      ),
+      trailing: selected
+          ? const Icon(Icons.check_circle, color: Color(0xFF1A1A1A), size: 20)
+          : const Icon(Icons.circle_outlined, color: Color(0xFFDDDDDD), size: 20),
+      onTap: onTap,
     );
   }
 }
