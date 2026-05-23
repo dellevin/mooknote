@@ -1,14 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
-import '../utils/toast_util.dart';
 import 'movies/movie_detail_page.dart';
 import 'book/book_detail_page.dart';
 import 'note/note_detail_page.dart';
 
-/// 搜索页面 - 统一搜索影视/书籍/笔记，标签区分
+/// 搜索页面 - 统一搜索影视/书籍/笔记
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -20,20 +20,18 @@ class _SearchPageState extends State<SearchPage> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
 
-  // 类型筛选：默认全部选中
   bool _showMovies = true;
   bool _showBooks = true;
   bool _showNotes = true;
 
-  String? _selectedTag;
-
   List<_SearchResult> _results = [];
-  bool _isSearching = false;
+  bool _hasSearched = false;
+
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    // 自动聚焦，弹出键盘
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -43,44 +41,52 @@ class _SearchPageState extends State<SearchPage> {
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _scheduleSearch() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), _performSearch);
   }
 
   void _performSearch() {
     final keyword = _searchController.text.trim();
-    if (keyword.isEmpty && _selectedTag == null) {
-      setState(() => _results = []);
+    if (keyword.isEmpty) {
+      setState(() {
+        _results = [];
+        _hasSearched = false;
+      });
       return;
     }
-
-    setState(() => _isSearching = true);
 
     final provider = context.read<AppProvider>();
     final lowerKeyword = keyword.toLowerCase();
     final results = <_SearchResult>[];
 
-    // 影视
     if (_showMovies) {
       for (final movie in provider.movies.where((m) => !m.isDeleted)) {
-        if (_matchMovie(movie, lowerKeyword)) {
+        if (movie.title.toLowerCase().contains(lowerKeyword) ||
+            movie.alternateTitles.any((t) => t.toLowerCase().contains(lowerKeyword)) ||
+            (movie.summary?.toLowerCase().contains(lowerKeyword) ?? false)) {
           results.add(_SearchResult(type: 'movie', data: movie));
         }
       }
     }
 
-    // 书籍
     if (_showBooks) {
       for (final book in provider.books.where((b) => !b.isDeleted)) {
-        if (_matchBook(book, lowerKeyword)) {
+        if (book.title.toLowerCase().contains(lowerKeyword) ||
+            book.alternateTitles.any((t) => t.toLowerCase().contains(lowerKeyword)) ||
+            (book.summary?.toLowerCase().contains(lowerKeyword) ?? false)) {
           results.add(_SearchResult(type: 'book', data: book));
         }
       }
     }
 
-    // 笔记
     if (_showNotes) {
       for (final note in provider.notes.where((n) => !n.isDeleted)) {
-        if (_matchNote(note, lowerKeyword)) {
+        if (note.content.toLowerCase().contains(lowerKeyword)) {
           results.add(_SearchResult(type: 'note', data: note));
         }
       }
@@ -88,28 +94,8 @@ class _SearchPageState extends State<SearchPage> {
 
     setState(() {
       _results = results;
-      _isSearching = false;
+      _hasSearched = true;
     });
-  }
-
-  bool _matchMovie(Movie movie, String lowerKeyword) {
-    if (lowerKeyword.isEmpty) return true;
-    return movie.title.toLowerCase().contains(lowerKeyword) ||
-        movie.alternateTitles.any((t) => t.toLowerCase().contains(lowerKeyword)) ||
-        (movie.summary?.toLowerCase().contains(lowerKeyword) ?? false);
-  }
-
-  bool _matchBook(Book book, String lowerKeyword) {
-    if (lowerKeyword.isEmpty) return true;
-    return book.title.toLowerCase().contains(lowerKeyword) ||
-        book.alternateTitles.any((t) => t.toLowerCase().contains(lowerKeyword)) ||
-        (book.summary?.toLowerCase().contains(lowerKeyword) ?? false);
-  }
-
-  bool _matchNote(Note note, String lowerKeyword) {
-    if (_selectedTag != null && !note.tags.contains(_selectedTag)) return false;
-    if (lowerKeyword.isEmpty) return _selectedTag != null;
-    return note.content.toLowerCase().contains(lowerKeyword);
   }
 
   @override
@@ -122,21 +108,12 @@ class _SearchPageState extends State<SearchPage> {
       ),
       body: Column(
         children: [
-          // 搜索输入框
           _buildSearchBar(),
-
-          // 类型筛选 & 标签筛选
           _buildFilterRow(),
-
-          // 结果
           Expanded(
-            child: _isSearching
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF1A1A1A)))
-                : _results.isEmpty && _searchController.text.isEmpty && _selectedTag == null
-                    ? _buildInitialState()
-                    : _results.isEmpty
-                        ? _buildEmptyState()
-                        : _buildResultList(),
+            child: _hasSearched
+                ? _results.isEmpty ? _buildEmptyState() : _buildResultList()
+                : _buildInitialState(),
           ),
         ],
       ),
@@ -145,167 +122,108 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: TextField(
         controller: _searchController,
         focusNode: _focusNode,
+        style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
         decoration: InputDecoration(
-          hintText: '搜索影视、书籍、笔记...',
-          hintStyle: const TextStyle(color: Color(0xFF999999), fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: Color(0xFF666666), size: 20),
+          hintText: '搜索标题、别名、内容...',
+          hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
+          prefixIcon: const Padding(
+            padding: EdgeInsets.only(left: 12, right: 8),
+            child: Icon(Icons.search, color: Color(0xFF1A1A1A), size: 22),
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
           suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, color: Color(0xFF999999), size: 20),
-                  onPressed: () {
+              ? GestureDetector(
+                  onTap: () {
                     _searchController.clear();
-                    _performSearch();
+                    _scheduleSearch();
+                    _focusNode.requestFocus();
                   },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E5E5),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.close, color: Color(0xFF666666), size: 16),
+                  ),
                 )
               : null,
           filled: true,
-          fillColor: const Color(0xFFFAFAFA),
+          fillColor: const Color(0xFFF8F8F8),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        onSubmitted: (_) => _performSearch(),
-        onChanged: (_) {
+        onSubmitted: (_) {
+          _debounce?.cancel();
           _performSearch();
+        },
+        onChanged: (_) {
+          _debounce?.cancel();
+          setState(() {});
+          _scheduleSearch();
         },
       ),
     );
   }
 
   Widget _buildFilterRow() {
-    return Consumer<AppProvider>(
-      builder: (context, provider, child) {
-        // 收集所有笔记标签
-        final allTags = <String>{};
-        for (final note in provider.notes.where((n) => !n.isDeleted)) {
-          allTags.addAll(note.tags);
-        }
-        final tags = allTags.toList()..sort();
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 类型筛选行
-              Row(
-                children: [
-                  const Text('类型', style: TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
-                  const SizedBox(width: 10),
-                  _buildTypeChip('影视', _showMovies, (v) {
-                    setState(() { _showMovies = v; _performSearch(); });
-                  }),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('书籍', _showBooks, (v) {
-                    setState(() { _showBooks = v; _performSearch(); });
-                  }),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('笔记', _showNotes, (v) {
-                    setState(() { _showNotes = v; _performSearch(); });
-                  }),
-                ],
-              ),
-
-              // 笔记标签筛选
-              if (tags.isNotEmpty && _showNotes) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 32,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: tags.length + (_selectedTag != null ? 1 : 0),
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      // 第一个始终是"全部标签"清除按钮
-                      if (_selectedTag != null && index == 0) {
-                        return _buildTagChip('全部标签', true, () {
-                          setState(() { _selectedTag = null; _performSearch(); });
-                        });
-                      }
-                      final tagIndex = _selectedTag != null ? index - 1 : index;
-                      final tag = tags[tagIndex];
-                      final isSelected = _selectedTag == tag;
-                      return _buildTagChip(tag, isSelected, () {
-                        setState(() {
-                          _selectedTag = isSelected ? null : tag;
-                          _performSearch();
-                        });
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTypeChip(String label, bool selected, ValueChanged<bool> onChanged) {
-    return GestureDetector(
-      onTap: () => onChanged(!selected),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFE8E8E8),
-            width: 0.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            color: selected ? Colors.white : const Color(0xFF888888),
-          ),
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+      child: Row(
+        children: [
+          _buildTypeChip('影视', Icons.movie_outlined, _showMovies, (v) {
+            setState(() { _showMovies = v; _performSearch(); });
+          }),
+          const SizedBox(width: 8),
+          _buildTypeChip('书籍', Icons.menu_book_outlined, _showBooks, (v) {
+            setState(() { _showBooks = v; _performSearch(); });
+          }),
+          const SizedBox(width: 8),
+          _buildTypeChip('笔记', Icons.note_outlined, _showNotes, (v) {
+            setState(() { _showNotes = v; _performSearch(); });
+          }),
+        ],
       ),
     );
   }
 
-  Widget _buildTagChip(String label, bool selected, VoidCallback onTap) {
+  Widget _buildTypeChip(String label, IconData icon, bool selected, ValueChanged<bool> onChanged) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      onTap: () => onChanged(!selected),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFE8E8E8),
-            width: 0.5,
-          ),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (selected)
-              const Icon(Icons.close, size: 12, color: Colors.white70),
-            if (selected) const SizedBox(width: 4),
+            Icon(icon, size: 14, color: selected ? Colors.white : const Color(0xFF888888)),
+            const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
                 color: selected ? Colors.white : const Color(0xFF888888),
               ),
             ),
@@ -321,17 +239,18 @@ class _SearchPageState extends State<SearchPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80, height: 80,
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.search, size: 40, color: Color(0xFFCCCCCC)),
+            child: const Icon(Icons.search_rounded, size: 44, color: Color(0xFFD0D0D0)),
           ),
-          const SizedBox(height: 20),
-          const Text('输入关键词搜索影视、书籍、笔记', style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
-          const SizedBox(height: 4),
-          const Text('可同时筛选多个类型', style: TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
+          const SizedBox(height: 24),
+          const Text('输入关键词搜索', style: TextStyle(fontSize: 15, color: Color(0xFF999999))),
+          const SizedBox(height: 6),
+          const Text('可同时筛选影视、书籍、笔记', style: TextStyle(fontSize: 13, color: Color(0xFFCCCCCC))),
         ],
       ),
     );
@@ -343,17 +262,18 @@ class _SearchPageState extends State<SearchPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80, height: 80,
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.search_off, size: 40, color: Color(0xFFCCCCCC)),
+            child: const Icon(Icons.search_off_rounded, size: 44, color: Color(0xFFD0D0D0)),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           const Text('未找到相关内容', style: TextStyle(fontSize: 15, color: Color(0xFF999999))),
-          const SizedBox(height: 8),
-          const Text('尝试更换关键词或筛选条件', style: TextStyle(fontSize: 13, color: Color(0xFFCCCCCC))),
+          const SizedBox(height: 6),
+          const Text('换个关键词试试', style: TextStyle(fontSize: 13, color: Color(0xFFCCCCCC))),
         ],
       ),
     );
@@ -379,206 +299,210 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildItemWrapper({
-    required Widget child,
-    required String typeLabel,
-    required IconData typeIcon,
-    required Color typeColor,
-    required VoidCallback onTap,
-  }) {
+  // ─── 影视结果项 ──────────────────────────────────────────────────────
+
+  Widget _buildMovieItem(Movie movie) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: movie))),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: const Color(0xFFFAFAFA),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            _buildPosterThumb(movie.posterPath, Icons.movie_outlined),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _typeBadge('影视', const Color(0xFF4A90D9)),
+                      const Spacer(),
+                      _statusBadge(movie.status),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                  if (movie.alternateTitles.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(movie.alternateTitles.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── 书籍结果项 ──────────────────────────────────────────────────────
+
+  Widget _buildBookItem(Book book) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: book))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            _buildPosterThumb(book.coverPath, Icons.menu_book_outlined),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _typeBadge('书籍', const Color(0xFF7E57C2)),
+                      const Spacer(),
+                      _bookStatusBadge(book.status),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                  if (book.authors.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(book.authors.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── 笔记结果项 ──────────────────────────────────────────────────────
+
+  Widget _buildNoteItem(Note note) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: note))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 类型标签
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: typeColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(typeIcon, size: 10, color: typeColor),
-                      const SizedBox(width: 3),
-                      Text(typeLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: typeColor)),
-                    ],
-                  ),
-                ),
+                _typeBadge('笔记', const Color(0xFF66BB6A)),
+                const Spacer(),
+                const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0), size: 20),
               ],
             ),
             const SizedBox(height: 10),
-            child,
+            Text(
+              note.summary.trim().isEmpty ? '(无内容)' : note.summary.trim(),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF333333), height: 1.6),
+            ),
+            if (note.tags.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: note.tags.map((tag) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(tag, style: const TextStyle(fontSize: 11, color: Color(0xFF888888))),
+                )).toList(),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMovieItem(Movie movie) {
-    return _buildItemWrapper(
-      typeLabel: '影视',
-      typeIcon: Icons.movie_outlined,
-      typeColor: const Color(0xFF4A90D9),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: movie))),
-      child: Row(
-        children: [
-          Container(
-            width: 52, height: 70,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: movie.posterPath != null && movie.posterPath!.isNotEmpty
-                ? Image.file(File(movie.posterPath!), fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.movie, size: 22, color: Color(0xFFCCCCCC)))
-                : const Icon(Icons.movie, size: 22, color: Color(0xFFCCCCCC)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-                if (movie.alternateTitles.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(movie.alternateTitles.take(2).join(' / '), maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                ],
-                const SizedBox(height: 6),
-                _statusTag(movie.status),
-              ],
-            ),
-          ),
-        ],
+  // ─── 通用组件 ────────────────────────────────────────────────────────
+
+  Widget _buildPosterThumb(String? path, IconData fallback) {
+    return Container(
+      width: 48,
+      height: 64,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(8),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: path != null && path.isNotEmpty
+          ? Image.file(File(path), fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Icon(fallback, size: 22, color: const Color(0xFFCCCCCC)))
+          : Icon(fallback, size: 22, color: const Color(0xFFCCCCCC)),
     );
   }
 
-  Widget _buildBookItem(Book book) {
-    return _buildItemWrapper(
-      typeLabel: '书籍',
-      typeIcon: Icons.menu_book_outlined,
-      typeColor: const Color(0xFF7E57C2),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: book))),
-      child: Row(
-        children: [
-          Container(
-            width: 52, height: 70,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: book.coverPath != null && book.coverPath!.isNotEmpty
-                ? Image.file(File(book.coverPath!), fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.book, size: 22, color: Color(0xFFCCCCCC)))
-                : const Icon(Icons.book, size: 22, color: Color(0xFFCCCCCC)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-                if (book.authors.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(book.authors.take(2).join(' / '), maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                ],
-                const SizedBox(height: 6),
-                _bookStatusTag(book.status),
-              ],
-            ),
-          ),
-        ],
+  Widget _typeBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(5),
       ),
+      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
     );
   }
 
-  Widget _buildNoteItem(Note note) {
-    return _buildItemWrapper(
-      typeLabel: '笔记',
-      typeIcon: Icons.note_outlined,
-      typeColor: const Color(0xFF66BB6A),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: note))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            note.summary.trim(),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF333333), height: 1.7),
-          ),
-          if (note.tags.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: note.tags.map((tag) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-                ),
-                child: Text(tag, style: const TextStyle(fontSize: 10, color: Color(0xFF999999))),
-              )).toList(),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _statusTag(String status) {
+  Widget _statusBadge(String status) {
     final (label, bg, fg) = switch (status) {
       'watched' => ('已看', const Color(0xFF1A1A1A), Colors.white),
       'watching' => ('在看', const Color(0xFFF0F0F0), const Color(0xFF666666)),
       'want_to_watch' => ('想看', const Color(0xFFF5F5F5), const Color(0xFF999999)),
-      _ => ('未标记', const Color(0xFFF5F5F5), const Color(0xFFBBBBBB)),
+      _ => ('', const Color(0xFFF5F5F5), const Color(0xFFBBBBBB)),
     };
+    if (label.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
       child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 
-  Widget _bookStatusTag(String status) {
+  Widget _bookStatusBadge(String status) {
     final (label, bg, fg) = switch (status) {
       'read' => ('已读', const Color(0xFF1A1A1A), Colors.white),
       'reading' => ('在读', const Color(0xFFF0F0F0), const Color(0xFF666666)),
       'want_to_read' => ('想读', const Color(0xFFF5F5F5), const Color(0xFF999999)),
-      _ => ('未标记', const Color(0xFFF5F5F5), const Color(0xFFBBBBBB)),
+      _ => ('', const Color(0xFFF5F5F5), const Color(0xFFBBBBBB)),
     };
+    if (label.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
       child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 }
 
 class _SearchResult {
-  final String type; // movie, book, note
+  final String type;
   final dynamic data;
-
   _SearchResult({required this.type, required this.data});
 }

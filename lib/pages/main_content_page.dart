@@ -427,79 +427,108 @@ class _MainContentPageState extends State<MainContentPage> {
     }
   }
 
+  IconData _getTabIcon(String label) {
+    switch (label) {
+      case '影视':
+        return Icons.movie_outlined;
+      case '阅读':
+        return Icons.menu_book_outlined;
+      case '笔记':
+        return Icons.notes;
+      default:
+        return Icons.circle;
+    }
+  }
+
   /// 构建标签栏
   Widget _buildTabBar(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final tabs = _enabledTabs;
-        // 如果当前选中的标签被禁用了，切换到第一个启用的标签
         final currentEnabledIndex = _mapToEnabledTabIndex(provider.mainTabIndex);
         final safeIndex = currentEnabledIndex < tabs.length ? currentEnabledIndex : 0;
 
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-            ),
           ),
-          child: Row(
-            children: tabs.asMap().entries.map((entry) {
-              final index = entry.key;
-              final tab = entry.value;
-              return _buildTabItem(
-                context,
-                tab.label,
-                index,
-                safeIndex,
-                () => provider.setMainTabIndex(tab.originalIndex),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  /// 构建单个标签项
-  Widget _buildTabItem(
-    BuildContext context,
-    String label,
-    int index,
-    int currentIndex,
-    VoidCallback onTap,
-  ) {
-    final isSelected = index == currentIndex;
-    
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected 
-                      ? const Color(0xFF1A1A1A) 
-                      : const Color(0xFF999999),
+              Padding(
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 14),
+                child: Row(
+                  children: tabs.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final tab = entry.value;
+                    final isSelected = index == safeIndex;
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => provider.setMainTabIndex(tab.originalIndex),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _getTabIcon(tab.label),
+                                size: 22,
+                                color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFB0B0B0),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                tab.label,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                  color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFB0B0B0),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-              if (isSelected)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  width: 20,
-                  height: 2,
-                  color: const Color(0xFF1A1A1A),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final indicatorWidth = 24.0;
+                    final tabWidth = constraints.maxWidth / tabs.length;
+                    final indicatorLeft = safeIndex * tabWidth + (tabWidth - indicatorWidth) / 2;
+                    return SizedBox(
+                      height: 3,
+                      child: Stack(
+                        children: [
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeInOut,
+                            left: indicatorLeft,
+                            top: 0,
+                            child: Container(
+                              width: indicatorWidth,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1A1A),
+                                borderRadius: BorderRadius.circular(1.5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
+              ),
+              const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

@@ -10,6 +10,7 @@ import '../utils/book/book_excerpt_dao.dart';
 import '../utils/tag/tag_dao.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
+import '../utils/user_prefs.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -48,9 +49,39 @@ class AppProvider extends ChangeNotifier {
   
   // 初始化数据库
   Future<void> initDatabase() async {
-    await loadMovies();
-    await loadBooks();
-    await loadNotes();
+    final results = await Future.wait([
+      _movieDao.getAllMovies(),
+      _bookDao.getAllBooks(),
+      _noteDao.getAllNotes(),
+    ]);
+    _movies = results[0] as List<Movie>;
+    _books = results[1] as List<Book>;
+    _notes = results[2] as List<Note>;
+    notifyListeners();
+  }
+
+  // 从用户偏好恢复默认启动标签
+  void initMainTabIndex() {
+    final userPrefs = UserPrefs();
+    final defaultIndex = userPrefs.defaultMainTabIndex;
+    // 确保选中的标签是启用的
+    final showMovie = userPrefs.showMovieTab;
+    final showBook = userPrefs.showBookTab;
+    final showNote = userPrefs.showNoteTab;
+    final enabled = [showMovie, showBook, showNote];
+    if (enabled[defaultIndex]) {
+      _mainTabIndex = defaultIndex;
+    } else {
+      // 回退到第一个启用的标签
+      if (showMovie) {
+        _mainTabIndex = 0;
+      } else if (showBook) {
+        _mainTabIndex = 1;
+      } else {
+        _mainTabIndex = 2;
+      }
+    }
+    notifyListeners();
   }
   
   // 加载影视数据

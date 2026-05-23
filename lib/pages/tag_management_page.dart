@@ -120,55 +120,83 @@ class _TagManagementPageState extends State<TagManagementPage> {
     );
   }
 
-  /// 胶囊式 Tab 选择器
+  /// 胶囊式 Tab 选择器（水滴滑动动画）
   Widget _buildTabSelector() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
-        borderRadius: BorderRadius.circular(22),
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Row(
-        children: List.generate(3, (i) {
-          final selected = _currentIndex == i;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _currentIndex = i);
-                _loadTags(_tabTypes[i]);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                decoration: BoxDecoration(
-                  color: selected ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: selected
-                      ? [
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tabWidth = constraints.maxWidth / 3;
+          return SizedBox(
+            height: 42,
+            child: Stack(
+              children: [
+                // 水滴指示器
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.elasticOut,
+                  left: _currentIndex * tabWidth,
+                  top: 0,
+                  bottom: 0,
+                  width: tabWidth,
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 6,
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  _typeLabels[i],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                    color: selected
-                        ? const Color(0xFF1A1A1A)
-                        : const Color(0xFF888888),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                // 标签文字
+                Row(
+                  children: List.generate(3, (i) {
+                    final selected = _currentIndex == i;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() => _currentIndex = i);
+                          _loadTags(_tabTypes[i]);
+                        },
+                        child: Center(
+                          child: Text(
+                            _typeLabels[i],
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  selected ? FontWeight.w600 : FontWeight.w500,
+                              color: selected
+                                  ? const Color(0xFF1A1A1A)
+                                  : const Color(0xFF999999),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
             ),
           );
-        }),
+        },
       ),
     );
   }

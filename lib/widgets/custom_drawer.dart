@@ -264,48 +264,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
             const Divider(
                 height: 0.5, thickness: 0.5, color: Color(0xFFEEEEEE)),
 
-            // Markdown 阅读
-            InkWell(
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MdReaderTabPage()),
-                );
-              },
-              borderRadius: BorderRadius.zero,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 13, horizontal: 16),
-                child: Row(
-                  children: [
-                    Icon(Icons.description_outlined,
-                        size: 18, color: Color(0xFF666666)),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'MD阅读',
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A1A)),
-                      ),
-                    ),
-                    Text(
-                      '浏览本地 md 文件',
-                      style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
-                    ),
-                    SizedBox(width: 6),
-                    Icon(Icons.chevron_right,
-                        size: 16, color: Color(0xFFCCCCCC)),
-                  ],
-                ),
-              ),
-            ),
-
-            // 分隔线
-            const Divider(
-                height: 0.5, thickness: 0.5, color: Color(0xFFEEEEEE)),
-
             // 标签管理
             InkWell(
               onTap: () {
@@ -315,8 +273,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   MaterialPageRoute(builder: (_) => const TagManagementPage()),
                 );
               },
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(10)),
+              borderRadius: BorderRadius.zero,
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 13, horizontal: 16),
                 child: Row(
@@ -335,6 +292,49 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     ),
                     Text(
                       '管理标签',
+                      style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(Icons.chevron_right,
+                        size: 16, color: Color(0xFFCCCCCC)),
+                  ],
+                ),
+              ),
+            ),
+
+            // 分隔线
+            const Divider(
+                height: 0.5, thickness: 0.5, color: Color(0xFFEEEEEE)),
+
+            // Markdown 阅读
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MdReaderTabPage()),
+                );
+              },
+              borderRadius:
+                  const BorderRadius.vertical(bottom: Radius.circular(10)),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 13, horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined,
+                        size: 18, color: Color(0xFF666666)),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'MD阅读',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1A1A1A)),
+                      ),
+                    ),
+                    Text(
+                      '浏览本地 md 文件',
                       style: TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
                     ),
                     SizedBox(width: 6),

@@ -450,7 +450,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         ? ''
                         : '${_alternateTitles.length}个：${_alternateTitles.join('、')}',
                     icon: Icons.alternate_email_outlined,
-                    scrollHorizontal: true,
+                    scrollable: true,
                     onTap: () => _showMultiValueDialog(
                       title: '添加别名',
                       initialValues: _alternateTitles,
@@ -519,16 +519,24 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   height: 90,
                   child: _buildInfoCard(
                     label: '类型',
-                    value: _genres.isEmpty 
-                        ? '' 
+                    value: _genres.isEmpty
+                        ? ''
                         : '${_genres.length}个：${_genres.join('、')}',
                     icon: Icons.category_outlined,
-                    onTap: () => _showMultiValueDialog(
-                      title: '添加类型',
-                      initialValues: _genres,
-                      hint: '如：剧情、科幻、悬疑',
-                      onConfirm: (values) => setState(() => _genres = values),
-                    ),
+                    onTap: () async {
+                      final provider = context.read<AppProvider>();
+                      final tags = await provider.getTags('movie_genre');
+                      final existingNames = tags.map((t) => t['name'] as String).toList();
+                      if (mounted) {
+                        _showMultiValueDialog(
+                          title: '添加类型',
+                          initialValues: _genres,
+                          hint: '如：剧情、科幻、悬疑',
+                          existingTags: existingNames,
+                          onConfirm: (values) => setState(() => _genres = values),
+                        );
+                      }
+                    },
                   ),
                 ),
                 
@@ -721,6 +729,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required List<String> initialValues,
     required Function(List<String>) onConfirm,
     String hint = '',
+    List<String> existingTags = const [],
   }) async {
     final result = await showDialog<List<String>>(
       context: context,
@@ -728,9 +737,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
         title: title,
         initialValues: initialValues,
         hint: hint,
+        existingTags: existingTags,
       ),
     );
-    
+
     if (result != null) {
       onConfirm(result);
     }
@@ -1897,11 +1907,13 @@ class _MultiValueDialog extends StatefulWidget {
   final String title;
   final List<String> initialValues;
   final String hint;
+  final List<String> existingTags;
 
   const _MultiValueDialog({
     required this.title,
     required this.initialValues,
     required this.hint,
+    this.existingTags = const [],
   });
 
   @override
@@ -1940,8 +1952,23 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
     });
   }
 
+  void _toggleExistingTag(String tag) {
+    setState(() {
+      if (values.contains(tag)) {
+        values.remove(tag);
+      } else {
+        values.add(tag);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 未选中的已有标签
+    final availableTags = widget.existingTags
+        .where((t) => !values.contains(t))
+        .toList();
+
     return AlertDialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1951,83 +1978,174 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
       ),
       content: SizedBox(
         width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 已添加的值列表
-            if (values.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: values.asMap().entries.map((entry) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.55,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 可滚动的标签区域
+              if (values.isNotEmpty || availableTags.isNotEmpty)
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          entry.value,
-                          style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                        ),
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () => _removeValue(entry.key),
-                          child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
-                        ),
+                        // 已选择的标签
+                        if (values.isNotEmpty) ...[
+                          const Text(
+                            '已选择',
+                            style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: values.map((v) {
+                              return Container(
+                                padding: const EdgeInsets.only(left: 12, right: 6, top: 7, bottom: 7),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1A1A1A),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      v,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() => values.remove(v));
+                                      },
+                                      child: Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.3),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.close, size: 12, color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          if (availableTags.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            const Divider(height: 0.5, color: Color(0xFFEEEEEE)),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+                        // 已有类型
+                        if (availableTags.isNotEmpty) ...[
+                          const Text(
+                            '已有类型',
+                            style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: availableTags.map((tag) {
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() => values.add(tag));
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F5F5),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: const Color(0xFFE8E8E8),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.add, size: 14, color: Color(0xFF999999)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        tag,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xFF555555),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ],
                     ),
-                  );
-                }).toList(),
-              ),
-            if (values.isNotEmpty) const SizedBox(height: 16),
-            // 输入框
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    autofocus: true,
-                    style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-                    decoration: InputDecoration(
-                      hintText: widget.hint,
-                      hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                    onSubmitted: _addValue,
                   ),
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _addValue(controller.text),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.add, size: 20, color: Colors.white),
-                  ),
-                ),
+              // 固定底部的输入框
+              if (values.isNotEmpty || availableTags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 0.5, color: Color(0xFFEEEEEE)),
+                const SizedBox(height: 12),
               ],
-            ),
-          ],
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      autofocus: true,
+                      style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                      decoration: InputDecoration(
+                        hintText: widget.hint,
+                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      onSubmitted: _addValue,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _addValue(controller.text),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.add, size: 20, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -2037,7 +2155,6 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
         ),
         ElevatedButton(
           onPressed: () {
-            // 如果输入框还有内容，先添加
             _addValue(controller.text);
             Navigator.pop(context, values);
           },

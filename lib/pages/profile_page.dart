@@ -111,25 +111,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 const SizedBox(height: 40),
                 
-                // 版本信息
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'MookNote v$_version',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                  ),
-                ),
-                
                 // 底部留白，避免被 dock 栏遮挡
                 const SizedBox(height: 100),
               ],
@@ -629,11 +610,13 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   bool _hideBottomNavOnScroll = true;
+  int _noteLayoutStyle = 0;
 
   @override
   void initState() {
     super.initState();
     _hideBottomNavOnScroll = _userPrefs.hideBottomNavOnScroll;
+    _noteLayoutStyle = _userPrefs.noteLayoutStyle;
   }
 
   @override
@@ -692,6 +675,14 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             },
           ),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
+          _buildSwitchItem(
+            icon: Icons.grid_view_outlined,
+            title: '笔记瀑布流布局',
+            subtitle: '使用双列瀑布流样式展示笔记',
+            value: _noteLayoutStyle == 1,
+            onChanged: _toggleNoteLayoutStyle,
+          ),
           // 使用说明
           _buildSectionHeader('帮助'),
           _buildLinkItem(
@@ -721,6 +712,12 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleHideBottomNavOnScroll(bool value) async {
     await _userPrefs.setHideBottomNavOnScroll(value);
     setState(() => _hideBottomNavOnScroll = value);
+  }
+
+  Future<void> _toggleNoteLayoutStyle(bool value) async {
+    final v = value ? 1 : 0;
+    await _userPrefs.setNoteLayoutStyle(v);
+    setState(() => _noteLayoutStyle = v);
   }
 
   /// 构建开关项
@@ -1159,6 +1156,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
+  int _defaultTabIndex = 0;
 
   @override
   void initState() {
@@ -1172,6 +1170,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       _showMovieTab = _userPrefs.showMovieTab;
       _showBookTab = _userPrefs.showBookTab;
       _showNoteTab = _userPrefs.showNoteTab;
+      _defaultTabIndex = _userPrefs.defaultMainTabIndex;
     });
   }
 
@@ -1267,7 +1266,96 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
             onChanged: _toggleNoteTab,
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
+
+          // 默认启动标签
+          _buildDefaultTabSelector(),
+          const Divider(height: 0.5, indent: 24, endIndent: 24),
         ],
+      ),
+    );
+  }
+
+  /// 构建默认启动标签选择器
+  Widget _buildDefaultTabSelector() {
+    final options = [
+      {'label': '影视', 'icon': Icons.movie_outlined, 'value': 0},
+      {'label': '阅读', 'icon': Icons.menu_book_outlined, 'value': 1},
+      {'label': '笔记', 'icon': Icons.note_outlined, 'value': 2},
+    ];
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(
+          Icons.home_outlined,
+          color: Color(0xFF666666),
+          size: 24,
+        ),
+      ),
+      title: const Text(
+        '默认启动标签',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF1A1A1A),
+        ),
+      ),
+      subtitle: const Text(
+        '打开应用时默认显示的页面',
+        style: TextStyle(
+          fontSize: 13,
+          color: Color(0xFF999999),
+        ),
+      ),
+      trailing: SizedBox(
+        width: 80,
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<int>(
+            value: _defaultTabIndex,
+            isDense: true,
+            icon: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC)),
+            selectedItemBuilder: (context) {
+              return options.map<Widget>((opt) {
+                return Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    opt['label'] as String,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                );
+              }).toList();
+            },
+            items: options.map((opt) {
+              return DropdownMenuItem<int>(
+                value: opt['value'] as int,
+                child: Row(
+                  children: [
+                    Icon(opt['icon'] as IconData, size: 20, color: const Color(0xFF666666)),
+                    const SizedBox(width: 8),
+                    Text(opt['label'] as String),
+                  ],
+                ),
+              );
+            }).toList(),
+            onChanged: (int? value) async {
+              if (value != null) {
+                await _userPrefs.setDefaultMainTabIndex(value);
+                setState(() => _defaultTabIndex = value);
+              }
+            },
+          ),
+        ),
       ),
     );
   }

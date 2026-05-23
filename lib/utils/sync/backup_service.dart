@@ -482,11 +482,15 @@ class BackupService {
         if (data.containsKey('tags')) {
           final tags = data['tags'] as List<dynamic>;
           for (final tag in tags) {
-            await txn.insert('tags', _convertToDbMap(tag));
+            final map = _convertToDbMap(tag);
+            await txn.rawInsert(
+              'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
+              [map['id'], map['name'], map['type'], map['created_at']],
+            );
           }
         }
       });
-      
+
       // 恢复用户个人信息
       if (backupData.containsKey('userInfo')) {
         final userInfo = backupData['userInfo'] as Map<String, dynamic>;
@@ -644,7 +648,11 @@ class BackupService {
         if (data.containsKey('tags')) {
           final tags = data['tags'] as List<dynamic>;
           for (final tag in tags) {
-            await txn.insert('tags', _convertToDbMap(tag));
+            final map = _convertToDbMap(tag);
+            await txn.rawInsert(
+              'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
+              [map['id'], map['name'], map['type'], map['created_at']],
+            );
           }
         }
       });

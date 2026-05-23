@@ -29,10 +29,10 @@ void main() async {
   // 初始化数据库
   final appProvider = AppProvider();
   await appProvider.initDatabase();
-  // 检查并恢复本地自动备份
-  await _initAutoBackup();
-  // 启动匿名用户统计（需配置服务器地址后生效）
-  await _initUsageStats();
+  appProvider.initMainTabIndex();
+  // 以下初始化不阻塞界面显示
+  unawaited(_initAutoBackup());
+  unawaited(_initUsageStats());
   runApp(MyApp(appProvider: appProvider));
 }
 

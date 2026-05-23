@@ -64,6 +64,14 @@ class UserPrefs {
   bool get showNoteTab => prefs.getBool('showNoteTab') ?? true;
   Future<bool> setShowNoteTab(bool value) => prefs.setBool('showNoteTab', value);
 
+  /// 默认启动标签 (0: 影视, 1: 阅读, 2: 笔记)
+  int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? 0;
+  Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);
+
+  /// 笔记布局样式 (0: 列表, 1: 瀑布流)
+  int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
+  Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);
+
   // ========== 应用图标设置 ==========
 
   /// Markdown 阅读器最近选择的目录
