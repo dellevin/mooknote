@@ -28,8 +28,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: context.watch<AppProvider>().bottomNavIndex == 0
-          ? CustomDrawer()
+      drawer: context.watch<AppProvider>().bottomNavIndex != 1
+          ? const CustomDrawer()
           : null,
 
       body: Consumer<AppProvider>(

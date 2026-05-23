@@ -4,8 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-// import 'package:url_launcher/url_launcher.dart'; // 改为应用内打开
 import 'package:webview_flutter/webview_flutter.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
@@ -15,8 +13,10 @@ import 'sync/backup_page.dart';
 import 'statistics_page.dart';
 import 'sync/cloud_sync_page.dart';
 import 'app_icon_picker_page.dart';
+import 'tag_management_page.dart';
+import 'stroll_page.dart';
 
-/// 个人中心页面 - 极简主义设计
+/// 个人中心页面
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -28,426 +28,365 @@ class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker _picker = ImagePicker();
   final UserPrefs _userPrefs = UserPrefs();
 
-  // 用户数据
   String _nickname = 'Mook';
   String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
-  String _version = '0.1.5';
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _loadVersionInfo();
   }
 
-  /// 加载版本信息
-  Future<void> _loadVersionInfo() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      _version = packageInfo.version;
-    });
-  }
-
-  /// 加载用户数据
   Future<void> _loadUserData() async {
-    setState(() => _isLoading = true);
     try {
       await UserPrefs.init();
       setState(() {
         _nickname = _userPrefs.nickname;
         _motto = _userPrefs.motto;
         _avatarPath = _userPrefs.avatarPath;
-        _isLoading = false;
       });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: Color(0xFF1A1A1A),
-        ),
-      );
-    }
-    
     return Column(
       children: [
-        // 标题栏
         AppBar(
-          title: const Text('我的'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => _showSettings(context),
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Color(0xFF1A1A1A)),
+              onPressed: () => Scaffold.of(context).openDrawer(),
             ),
-          ],
+          ),
+          title: const Text('我的'),
         ),
-        
-        // 内容
         Expanded(
-          child: SingleChildScrollView(
+          child: Container(
+            color: const Color(0xFFF8F8F8),
+            child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 顶部用户信息
-                _buildUserHeader(),
-                
+                _buildUserCard(),
                 const SizedBox(height: 8),
-                
-                // 数据统计
-                _buildStatsSection(),
-
-                const SizedBox(height: 8),
-
-                // 功能菜单
-                _buildMenuSection(),
-                
-                const SizedBox(height: 40),
-                
-                // 底部留白，避免被 dock 栏遮挡
-                const SizedBox(height: 100),
+                _buildExploreRow(),
+                const SizedBox(height: 20),
+                _buildSectionHeader('数据'),
+                _buildMenuGroup([
+                  _MenuEntry(Icons.analytics_outlined, '数据统计', () => _push(context, const StatisticsPage())),
+                  _MenuEntry(Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
+                  _MenuEntry(Icons.delete_outline, '回收站', () => _push(context, const RecycleBinPage())),
+                ]),
+                const SizedBox(height: 80),
               ],
             ),
           ),
         ),
+      ),
       ],
     );
   }
 
-  /// 用户头部信息
-  Widget _buildUserHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // 左侧头像
-          GestureDetector(
-            onTap: _pickAvatar,
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
-                shape: BoxShape.circle,
-              ),
-              child: _avatarPath != null && _avatarPath!.isNotEmpty
-                  ? ClipOval(
-                      child: Image.file(
-                        File(_avatarPath!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(),
-                      ),
-                    )
-                  : _buildAvatarPlaceholder(),
-            ),
-          ),
-          
-          const SizedBox(width: 20),
-          
-          // 右侧信息
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 昵称
-                GestureDetector(
-                  onTap: () => _editNickname(context),
-                  child: Text(
-                    _nickname,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 6),
-                
-                // 座右铭
-                GestureDetector(
-                  onTap: () => _editMotto(context),
-                  child: Text(
-                    _motto,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF666666),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  void _push(BuildContext context, Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
-  Widget _buildAvatarPlaceholder() {
-    return const Center(
-      child: Icon(
-        Icons.person_outline,
-        size: 32,
-        color: Color(0xFFCCCCCC),
-      ),
-    );
-  }
+  // ─── 用户卡片 ────────────────────────────────────────────────────────
 
-  /// 数据统计区域
-  Widget _buildStatsSection() {
+  Widget _buildUserCard() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        final movies = provider.movies;
-        final books = provider.books;
-        final notes = provider.notes;
-        
-        final movieCount = movies.where((m) => !m.isDeleted).length;
-        final bookCount = books.length;
-        final noteCount = notes.length;
+        final movieCount = provider.movies.where((m) => !m.isDeleted).length;
+        final bookCount = provider.books.length;
+        final noteCount = provider.notes.length;
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatCard('观影', movieCount, '场', Icons.movie_outlined),
-                _buildStatCard('阅读', bookCount, '本', Icons.menu_book_outlined),
-                _buildStatCard('笔记', noteCount, '条', Icons.note_outlined),
-              ],
-            ),
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: _pickAvatar,
+                    child: Container(
+                      width: 64, height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFF5F5F5),
+                        border: Border.all(color: const Color(0xFFEEEEEE), width: 0.5),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _avatarPath != null && _avatarPath!.isNotEmpty
+                          ? Image.file(File(_avatarPath!), fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.person_outline, size: 32, color: Color(0xFFCCCCCC)))
+                          : const Icon(Icons.person_outline, size: 32, color: Color(0xFFCCCCCC)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _editNickname(context),
+                          child: Text(_nickname, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                        ),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () => _editMotto(context),
+                          child: Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, color: Color(0xFFAAAAAA))),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: Color(0xFF999999)),
+                    onPressed: () => _showSettings(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: Color(0xFFF0F0F0)),
+              const SizedBox(height: 12),
+              _buildStatRow(Icons.movie_outlined, _formatCount(movieCount), '观影'),
+              const SizedBox(height: 8),
+              _buildStatRow(Icons.menu_book_outlined, _formatCount(bookCount), '阅读'),
+              const SizedBox(height: 8),
+              _buildStatRow(Icons.note_outlined, _formatCount(noteCount), '笔记'),
+            ],
           ),
         );
       },
     );
   }
 
-  /// 统计卡片
-  Widget _buildStatCard(String label, int count, String unit, IconData icon) {
-    return Column(
+  Widget _buildStatRow(IconData icon, String count, String label) {
+    return Row(
       children: [
-        Icon(
-          icon,
-          size: 24,
-          color: const Color(0xFF666666),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              '$count',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(width: 2),
-            Text(
-              unit,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF666666),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF999999),
-          ),
-        ),
+        Icon(icon, size: 14, color: const Color(0xFFBBBBBB)),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+        const Spacer(),
+        Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
       ],
     );
   }
 
-  /// 功能菜单
-  Widget _buildMenuSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _buildMenuItem(
-            icon: Icons.analytics_outlined,
-            title: '数据统计',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const StatisticsPage()),
-              );
-            },
-          ),
-          const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
-          
-          _buildMenuItem(
-            icon: Icons.backup_outlined,
-            title: '备份',
-            onTap: () => _showBackupOptions(context),
-          ),
-          const Divider(height: 1, indent: 72, endIndent: 16, color: Color(0xFFE8E8E8)),
+  String _formatCount(int count) {
+    if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
+    return count.toString();
+  }
 
-          _buildMenuItem(
-            icon: Icons.delete_outline,
-            title: '回收站',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RecycleBinPage()),
-              );
-            },
-          ),
+  // ─── 探索行 ──────────────────────────────────────────────────────────
+
+  Widget _buildExploreRow() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFBBBBBB)),
+          const SizedBox(width: 10),
+          const Text('快捷入口', style: TextStyle(fontSize: 13, color: Color(0xFF888888))),
+          const Spacer(),
+          _buildQuickAction(Icons.explore_outlined, '漫步', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()))),
+          const SizedBox(width: 24),
+          _buildQuickAction(Icons.label_outline, '标签', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage()))),
         ],
       ),
     );
   }
 
-  /// 菜单项
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
+  Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            // 图标背景
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: const Color(0xFF666666),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // 标题
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-            ),
-            // 箭头
-            const Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: Color(0xFFCCCCCC),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF555555)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF999999))),
+        ],
       ),
     );
   }
 
-  /// 显示备份选项
+  // ─── 菜单 ────────────────────────────────────────────────────────────
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+      child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFBBBBBB))),
+    );
+  }
+
+  Widget _buildMenuGroup(List<_MenuEntry> entries) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: entries.asMap().entries.map((e) {
+          final isLast = e.key == entries.length - 1;
+          return Column(
+            children: [
+              InkWell(
+                onTap: e.value.onTap,
+                borderRadius: BorderRadius.only(
+                  topLeft: e.key == 0 ? const Radius.circular(16) : Radius.zero,
+                  topRight: e.key == 0 ? const Radius.circular(16) : Radius.zero,
+                  bottomLeft: isLast ? const Radius.circular(16) : Radius.zero,
+                  bottomRight: isLast ? const Radius.circular(16) : Radius.zero,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(e.value.icon, size: 18, color: const Color(0xFF666666)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(e.value.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)))),
+                      const Icon(Icons.chevron_right, size: 16, color: Color(0xFFD0D0D0)),
+                    ],
+                  ),
+                ),
+              ),
+              if (!isLast) const Divider(height: 1, indent: 68, endIndent: 20, color: Color(0xFFF0F0F0)),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ─── 头像 ────────────────────────────────────────────────────────────
+
+  Future<void> _pickAvatar() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 400, maxHeight: 400, imageQuality: 85);
+      if (pickedFile != null) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savedPath = path.join(appDir.path, 'avatars', fileName);
+        final avatarDir = Directory(path.join(appDir.path, 'avatars'));
+        if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
+        await File(pickedFile.path).copy(savedPath);
+        await _userPrefs.setAvatarPath(savedPath);
+        setState(() => _avatarPath = savedPath);
+      }
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择头像失败');
+    }
+  }
+
+  void _editNickname(BuildContext context) {
+    final controller = TextEditingController(text: _nickname);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white, elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('修改昵称', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+        content: TextField(controller: controller, decoration: const InputDecoration(hintText: '输入昵称', border: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E5E5))))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消', style: TextStyle(color: Color(0xFF666666)))),
+          TextButton(onPressed: () async {
+            final newNickname = controller.text.trim();
+            if (newNickname.isNotEmpty) {
+              await _userPrefs.setNickname(newNickname);
+              setState(() => _nickname = newNickname);
+            }
+            Navigator.pop(context);
+          }, child: const Text('确定')),
+        ],
+      ),
+    );
+  }
+
+  void _editMotto(BuildContext context) {
+    final controller = TextEditingController(text: _motto);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white, elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text('修改座右铭', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+        content: TextField(controller: controller, maxLines: 2, decoration: const InputDecoration(hintText: '输入座右铭', border: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E5E5))))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消', style: TextStyle(color: Color(0xFF666666)))),
+          TextButton(onPressed: () async {
+            final newMotto = controller.text.trim();
+            await _userPrefs.setMotto(newMotto);
+            setState(() => _motto = newMotto);
+            Navigator.pop(context);
+          }, child: const Text('确定')),
+        ],
+      ),
+    );
+  }
+
+  // ─── 备份弹窗 ────────────────────────────────────────────────────────
+
   void _showBackupOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 36, height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFDDDDDD),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFDDDDDD), borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('选择备份方式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-            ),
+            const Align(alignment: Alignment.centerLeft, child: Text('选择备份方式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)))),
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.folder_outlined, color: Color(0xFF666666)),
-              ),
+              leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.folder_outlined, color: Color(0xFF666666))),
               title: const Text('本地备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
               subtitle: const Text('备份到本地文件夹，支持恢复', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
               trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC)),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BackupPage()),
-                ).then((_) => _loadUserData());
-              },
+              onTap: () { Navigator.pop(ctx); _push(context, const BackupPage()); },
             ),
             const Divider(height: 0.5, color: Color(0xFFF0F0F0)),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.cloud_outlined, color: Color(0xFF666666)),
-              ),
+              leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.cloud_outlined, color: Color(0xFF666666))),
               title: const Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
               subtitle: const Text('通过 WebDAV 同步到云端', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
               trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC)),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CloudSyncPage()),
-                );
-              },
+              onTap: () { Navigator.pop(ctx); _push(context, const CloudSyncPage()); },
             ),
             const SizedBox(height: 20),
           ],
@@ -456,150 +395,22 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// 显示提示
-  void _showToast(String message) {
-    ToastUtil.show(context, message);
-  }
-
-  /// 选择头像
-  Future<void> _pickAvatar() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 400,
-        maxHeight: 400,
-        imageQuality: 85,
-      );
-
-      if (pickedFile != null) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedPath = path.join(appDir.path, 'avatars', fileName);
-
-        final avatarDir = Directory(path.join(appDir.path, 'avatars'));
-        if (!await avatarDir.exists()) {
-          await avatarDir.create(recursive: true);
-        }
-
-        await File(pickedFile.path).copy(savedPath);
-
-        // 保存到本地存储
-        await _userPrefs.setAvatarPath(savedPath);
-
-        setState(() => _avatarPath = savedPath);
-      }
-    } catch (e) {
-      if (mounted) {
-        _showToast('选择头像失败: $e');
-      }
-    }
-  }
-  void _editNickname(BuildContext context) {
-    final controller = TextEditingController(text: _nickname);
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text(
-          '修改昵称',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: '输入昵称',
-            border: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newNickname = controller.text.trim();
-              if (newNickname.isNotEmpty) {
-                await _userPrefs.setNickname(newNickname);
-                setState(() => _nickname = newNickname);
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 编辑座右铭
-  void _editMotto(BuildContext context) {
-    final controller = TextEditingController(text: _motto);
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text(
-          '修改座右铭',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            hintText: '输入座右铭',
-            border: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newMotto = controller.text.trim();
-              await _userPrefs.setMotto(newMotto);
-              setState(() => _motto = newMotto);
-              Navigator.pop(context);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 显示设置
   void _showSettings(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SettingsPage(),
-      ),
-    );
+    _push(context, const SettingsPage());
   }
 }
 
-/// 设置页面
+// ─── 数据类 ────────────────────────────────────────────────────────────
+
+class _MenuEntry {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  _MenuEntry(this.icon, this.title, this.onTap);
+}
+
+// ─── 设置页面 ──────────────────────────────────────────────────────────
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -621,12 +432,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('设置'),
-      ),
+      appBar: AppBar(title: const Text('设置')),
       body: ListView(
         children: [
-          // 数据管理
           _buildSectionHeader('数据管理'),
           _buildActionItem(
             icon: Icons.cleaning_services_outlined,
@@ -635,9 +443,6 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _showClearCacheDialog(context),
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 主界面功能显示入口
-          _buildSectionHeader('个性化设置'),
           _buildSwitchItem(
             icon: Icons.swipe_vertical_outlined,
             title: '底部导航栏滚动隐藏',
@@ -650,47 +455,23 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.apps_outlined,
             title: '应用图标',
             subtitle: '更换桌面应用图标',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AppIconPickerPage(),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
           _buildNavigationItem(
             icon: Icons.view_list_outlined,
             title: '主界面设置',
             subtitle: '启动标签、模块显示开关',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MainContentSettingsPage(),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MainContentSettingsPage())),
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 布局设置
-          _buildSectionHeader('布局设置'),
           _buildNavigationItem(
             icon: Icons.dashboard_outlined,
             title: '布局设置',
             subtitle: '笔记、影视、阅读的展示样式',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LayoutSettingsPage()),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 使用说明
           _buildSectionHeader('帮助'),
           _buildLinkItem(
             context: context,
@@ -700,287 +481,107 @@ class _SettingsPageState extends State<SettingsPage> {
             url: 'https://mooknote.iletter.top/#/guide',
           ),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 关于作者
-          // _buildLinkItem(
-          //   context: context,
-          //   icon: Icons.person_outline,
-          //   title: '关于作者',
-          //   subtitle: '了解更多信息',
-          //   url: 'https://www.iletter.top/',
-          // ),
-          // const Divider(height: 0.5, indent: 24, endIndent: 24),
         ],
       ),
     );
   }
 
-  /// 切换底部导航栏滚动隐藏
   Future<void> _toggleHideBottomNavOnScroll(bool value) async {
     await _userPrefs.setHideBottomNavOnScroll(value);
     setState(() => _hideBottomNavOnScroll = value);
   }
 
-  /// 构建开关项
-  Widget _buildSwitchItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
+  Widget _buildSwitchItem({required IconData icon, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
     return InkWell(
       onTap: () => onChanged(!value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF666666),
-                size: 22,
-              ),
-            ),
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: const Color(0xFF666666), size: 22)),
             const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              ]),
             ),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeColor: const Color(0xFF1A1A1A),
-              activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3),
-              inactiveThumbColor: Colors.white,
-              inactiveTrackColor: const Color(0xFFE5E5E5),
-            ),
+            Switch(value: value, onChanged: onChanged, activeColor: const Color(0xFF1A1A1A), activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3), inactiveThumbColor: Colors.white, inactiveTrackColor: const Color(0xFFE5E5E5)),
           ],
         ),
       ),
     );
   }
 
-  /// 构建区块标题
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
-        ),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
     );
   }
 
-  /// 构建导航项
-  Widget _buildNavigationItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildNavigationItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
           children: [
-            // 图标背景
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF666666),
-                size: 22,
-              ),
-            ),
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: const Color(0xFF666666), size: 22)),
             const SizedBox(width: 16),
-            // 文字内容
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              ]),
             ),
-            // 箭头
-            const Icon(
-              Icons.chevron_right,
-              color: Color(0xFFCCCCCC),
-              size: 20,
-            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
           ],
         ),
       ),
     );
   }
 
-  /// 构建链接项
-  Widget _buildLinkItem({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String url,
-  }) {
+  Widget _buildLinkItem({required BuildContext context, required IconData icon, required String title, required String subtitle, required String url}) {
     return InkWell(
       onTap: () => _launchUrl(context, url),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
           children: [
-            // 图标背景
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF666666),
-                size: 22,
-              ),
-            ),
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: const Color(0xFF666666), size: 22)),
             const SizedBox(width: 16),
-            // 文字内容
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              ]),
             ),
-            // 外部链接图标
-            const Icon(
-              Icons.open_in_new,
-              color: Color(0xFFCCCCCC),
-              size: 18,
-            ),
+            const Icon(Icons.open_in_new, color: Color(0xFFCCCCCC), size: 18),
           ],
         ),
       ),
     );
   }
 
-  /// 构建操作项（无箭头）
-  Widget _buildActionItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
           children: [
-            // 图标背景
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF666666),
-                size: 22,
-              ),
-            ),
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: const Color(0xFF666666), size: 22)),
             const SizedBox(width: 16),
-            // 文字内容
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+              ]),
             ),
           ],
         ),
@@ -988,162 +589,72 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// 显示清除缓存对话框
   void _showClearCacheDialog(BuildContext pageContext) {
     showDialog(
       context: pageContext,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: Colors.white, elevation: 0,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text('清除缓存数据'),
         content: const Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await _clearCacheData(pageContext);
-            },
-            child: const Text('确定', style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('取消', style: TextStyle(color: Color(0xFF666666)))),
+          TextButton(onPressed: () async {
+            Navigator.pop(dialogContext);
+            await _clearCacheData(pageContext);
+          }, child: const Text('确定', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
   }
 
-  /// 清除缓存数据
   Future<void> _clearCacheData(BuildContext context) async {
     try {
-      // 显示进度提示
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      // 获取所有数据库中的图片路径
+      showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
       final appProvider = context.read<AppProvider>();
       final dbImagePaths = await _getAllDbImagePaths(appProvider);
-
-      // 清理图片目录
       final deletedCount = await _cleanImageDirectory(dbImagePaths);
-
-      // 关闭进度提示
       Navigator.pop(context);
-
-      // 显示结果
-      if (context.mounted) {
-        ToastUtil.show(context, '已清理 $deletedCount 个缓存文件');
-      }
+      if (context.mounted) ToastUtil.show(context, '已清理 $deletedCount 个缓存文件');
     } catch (e) {
-      // 关闭进度提示
       Navigator.pop(context);
-      if (context.mounted) {
-        ToastUtil.show(context, '清理失败: $e');
-      }
+      if (context.mounted) ToastUtil.show(context, '清理失败: $e');
     }
   }
 
-  /// 获取数据库中所有图片路径
   Future<Set<String>> _getAllDbImagePaths(AppProvider provider) async {
     final paths = <String>{};
-
-    // 获取所有影视的封面路径
-    final movies = provider.movies;
-    for (final movie in movies) {
-      final posterPath = movie.posterPath;
-      if (posterPath != null && posterPath.isNotEmpty) {
-        paths.add(posterPath);
-      }
+    for (final movie in provider.movies) { if (movie.posterPath?.isNotEmpty == true) paths.add(movie.posterPath!); }
+    for (final book in provider.books) { if (book.coverPath?.isNotEmpty == true) paths.add(book.coverPath!); }
+    for (final note in provider.notes) { for (final p in note.images) { if (p.isNotEmpty) paths.add(p); } }
+    for (final movieId in provider.movies.map((m) => m.id)) {
+      for (final poster in await provider.getMoviePosters(movieId)) { if (poster.posterPath.isNotEmpty) paths.add(poster.posterPath); }
     }
-
-    // 获取所有书籍的封面路径
-    final books = provider.books;
-    for (final book in books) {
-      final coverPath = book.coverPath;
-      if (coverPath != null && coverPath.isNotEmpty) {
-        paths.add(coverPath);
-      }
-    }
-
-    // 获取所有笔记中的图片路径
-    final notes = provider.notes;
-    for (final note in notes) {
-      for (final imagePath in note.images) {
-        if (imagePath.isNotEmpty) {
-          paths.add(imagePath);
-        }
-      }
-    }
-
-    // 获取所有海报墙图片路径
-    final movieIds = movies.map((m) => m.id).toList();
-    for (final movieId in movieIds) {
-      final posters = await provider.getMoviePosters(movieId);
-      for (final poster in posters) {
-        final posterPath = poster.posterPath;
-        if (posterPath.isNotEmpty) {
-          paths.add(posterPath);
-        }
-      }
-    }
-
     return paths;
   }
 
-  /// 清理图片目录
   Future<int> _cleanImageDirectory(Set<String> dbImagePaths) async {
     int deletedCount = 0;
-
     try {
-      // 获取应用文档目录
       final appDir = await getApplicationDocumentsDirectory();
       final imagesDir = Directory('${appDir.path}/images');
-
-      if (!await imagesDir.exists()) {
-        return 0;
-      }
-
-      // 递归遍历所有文件
+      if (!await imagesDir.exists()) return 0;
       await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
-        if (entity is File) {
-          final filePath = entity.path;
-          // 如果文件不在数据库中，删除它
-          if (!dbImagePaths.contains(filePath)) {
-            try {
-              await entity.delete();
-              deletedCount++;
-            } catch (e) {
-              // 忽略单个文件删除错误
-            }
-          }
+        if (entity is File && !dbImagePaths.contains(entity.path)) {
+          try { await entity.delete(); deletedCount++; } catch (_) {}
         }
       }
-    } catch (e) {
-      debugPrint('清理图片目录失败: $e');
-    }
-
+    } catch (e) { debugPrint('清理图片目录失败: $e'); }
     return deletedCount;
   }
 
-  /// 打开链接（应用内打开）
   void _launchUrl(BuildContext context, String url) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => WebViewPage(url: url),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => WebViewPage(url: url)));
   }
 }
 
-/// 主界面功能显示设置页面
+// ─── 主界面设置 ────────────────────────────────────────────────────────
+
 class MainContentSettingsPage extends StatefulWidget {
   const MainContentSettingsPage({super.key});
 
@@ -1153,7 +664,6 @@ class MainContentSettingsPage extends StatefulWidget {
 
 class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
-
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
@@ -1165,7 +675,6 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     _loadSettings();
   }
 
-  /// 加载设置
   void _loadSettings() {
     setState(() {
       _showMovieTab = _userPrefs.showMovieTab;
@@ -1175,7 +684,6 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     });
   }
 
-  /// 获取已启用的标签数量
   int get _enabledTabCount {
     int count = 0;
     if (_showMovieTab) count++;
@@ -1184,139 +692,80 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     return count;
   }
 
-  /// 切换观影标签显示
   Future<void> _toggleMovieTab(bool value) async {
-    if (!value && _enabledTabCount <= 1) {
-      _showToast('至少保留一个标签页');
-      return;
-    }
+    if (!value && _enabledTabCount <= 1) { ToastUtil.show(context, '至少保留一个标签页'); return; }
     await _userPrefs.setShowMovieTab(value);
     setState(() => _showMovieTab = value);
   }
 
-  /// 切换阅读标签显示
   Future<void> _toggleBookTab(bool value) async {
-    if (!value && _enabledTabCount <= 1) {
-      _showToast('至少保留一个标签页');
-      return;
-    }
+    if (!value && _enabledTabCount <= 1) { ToastUtil.show(context, '至少保留一个标签页'); return; }
     await _userPrefs.setShowBookTab(value);
     setState(() => _showBookTab = value);
   }
 
-  /// 切换笔记标签显示
   Future<void> _toggleNoteTab(bool value) async {
-    if (!value && _enabledTabCount <= 1) {
-      _showToast('至少保留一个标签页');
-      return;
-    }
+    if (!value && _enabledTabCount <= 1) { ToastUtil.show(context, '至少保留一个标签页'); return; }
     await _userPrefs.setShowNoteTab(value);
     setState(() => _showNoteTab = value);
-  }
-
-  /// 显示提示
-  void _showToast(String message) {
-    ToastUtil.show(context, message);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('主界面设置'),
-      ),
+      appBar: AppBar(title: const Text('主界面设置')),
       body: ListView(
         children: [
-          // 启动设置
           _buildSectionHeader('启动设置'),
           _buildDefaultTabSelector(),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 模块开关
           _buildSectionHeader('模块开关'),
-          _buildSwitchItem(
-            icon: Icons.movie_outlined,
-            title: '观影',
-            subtitle: '记录和管理观影记录',
-            value: _showMovieTab,
-            onChanged: _toggleMovieTab,
-          ),
+          _buildSwitchItem(Icons.movie_outlined, '观影', '记录和管理观影记录', _showMovieTab, _toggleMovieTab),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildSwitchItem(
-            icon: Icons.menu_book_outlined,
-            title: '阅读',
-            subtitle: '记录和管理阅读记录',
-            value: _showBookTab,
-            onChanged: _toggleBookTab,
-          ),
+          _buildSwitchItem(Icons.menu_book_outlined, '阅读', '记录和管理阅读记录', _showBookTab, _toggleBookTab),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildSwitchItem(
-            icon: Icons.note_outlined,
-            title: '笔记',
-            subtitle: '记录和管理笔记',
-            value: _showNoteTab,
-            onChanged: _toggleNoteTab,
-          ),
+          _buildSwitchItem(Icons.note_outlined, '笔记', '记录和管理笔记', _showNoteTab, _toggleNoteTab),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-            child: const Text(
-              '至少保留一个模块，关闭后对应标签页将不再显示。',
-              style: TextStyle(fontSize: 12, color: Color(0xFFBBBBBB)),
-            ),
+            child: const Text('至少保留一个模块，关闭后对应标签页将不再显示。', style: TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
           ),
         ],
       ),
     );
   }
 
-  /// 构建区块标题
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
-        ),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
     );
   }
 
-  /// 构建默认启动标签选择器
+  Widget _buildSwitchItem(IconData icon, String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: const Color(0xFF666666), size: 22)),
+      title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+      trailing: Switch(value: value, onChanged: onChanged, activeColor: const Color(0xFF1A1A1A), activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3), inactiveThumbColor: Colors.white, inactiveTrackColor: const Color(0xFFE5E5E5)),
+    );
+  }
+
   Widget _buildDefaultTabSelector() {
     final labels = ['影视', '阅读', '笔记'];
     final icons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined];
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(Icons.home_outlined, color: Color(0xFF666666), size: 22),
-      ),
-      title: const Text(
-        '默认启动标签',
-        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)),
-      ),
-      subtitle: const Text(
-        '打开应用时默认显示的页面',
-        style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
-      ),
+      leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.home_outlined, color: Color(0xFF666666), size: 22)),
+      title: const Text('默认启动标签', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+      subtitle: const Text('打开应用时默认显示的页面', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            labels[_defaultTabIndex],
-            style: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
-          ),
+          Text(labels[_defaultTabIndex], style: const TextStyle(fontSize: 14, color: Color(0xFF999999))),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
         ],
@@ -1330,44 +779,21 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 36, height: 4,
-              decoration: BoxDecoration(color: const Color(0xFFDDDDDD), borderRadius: BorderRadius.circular(2)),
-            ),
+            Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFDDDDDD), borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Text('默认启动标签', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
-              ),
-            ),
+            const Align(alignment: Alignment.centerLeft, child: Padding(padding: EdgeInsets.symmetric(horizontal: 24), child: Text('默认启动标签', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))))),
             const SizedBox(height: 16),
             for (int i = 0; i < labels.length; i++)
               ListTile(
-                leading: Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icons[i], color: const Color(0xFF666666)),
-                ),
+                leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icons[i], color: const Color(0xFF666666))),
                 title: Text(labels[i], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
                 trailing: _defaultTabIndex == i ? const Icon(Icons.check, color: Color(0xFF1A1A1A), size: 20) : null,
-                onTap: () async {
-                  await _userPrefs.setDefaultMainTabIndex(i);
-                  setState(() => _defaultTabIndex = i);
-                  Navigator.pop(ctx);
-                },
+                onTap: () async { await _userPrefs.setDefaultMainTabIndex(i); setState(() => _defaultTabIndex = i); Navigator.pop(ctx); },
               ),
             const SizedBox(height: 8),
           ],
@@ -1375,58 +801,10 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       ),
     );
   }
-
-  /// 构建开关项
-  Widget _buildSwitchItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: const Color(0xFF666666),
-          size: 24,
-        ),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF1A1A1A),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 13,
-          color: Color(0xFF999999),
-        ),
-      ),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: const Color(0xFF1A1A1A),
-        activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3),
-        inactiveThumbColor: Colors.white,
-        inactiveTrackColor: const Color(0xFFE5E5E5),
-      ),
-    );
-  }
 }
 
-/// 布局设置页面
+// ─── 布局设置 ──────────────────────────────────────────────────────────
+
 class LayoutSettingsPage extends StatefulWidget {
   const LayoutSettingsPage({super.key});
 
@@ -1452,81 +830,25 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('布局设置'),
-      ),
+      appBar: AppBar(title: const Text('布局设置')),
       body: ListView(
         children: [
-          // 笔记布局
           _buildSectionHeader('笔记布局'),
-          _buildLayoutOption(
-            icon: Icons.view_list_outlined,
-            title: '列表布局',
-            subtitle: '单列列表，简洁清晰',
-            value: 0,
-            groupValue: _noteLayout,
-            onTap: () => _setLayout('note', 0),
-          ),
+          _buildLayoutOption(icon: Icons.view_list_outlined, title: '列表布局', subtitle: '单列列表，简洁清晰', value: 0, groupValue: _noteLayout, onTap: () => _setLayout('note', 0)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildLayoutOption(
-            icon: Icons.grid_view_outlined,
-            title: '瀑布流布局',
-            subtitle: '双列卡片，图文并茂',
-            value: 1,
-            groupValue: _noteLayout,
-            onTap: () => _setLayout('note', 1),
-          ),
+          _buildLayoutOption(icon: Icons.grid_view_outlined, title: '瀑布流布局', subtitle: '双列卡片，图文并茂', value: 1, groupValue: _noteLayout, onTap: () => _setLayout('note', 1)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildLayoutOption(
-            icon: Icons.timeline_outlined,
-            title: '时间线布局',
-            subtitle: '按时间排列，纵览全局',
-            value: 2,
-            groupValue: _noteLayout,
-            onTap: () => _setLayout('note', 2),
-          ),
+          _buildLayoutOption(icon: Icons.timeline_outlined, title: '时间线布局', subtitle: '按时间排列，纵览全局', value: 2, groupValue: _noteLayout, onTap: () => _setLayout('note', 2)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 影视布局
           _buildSectionHeader('影视布局'),
-          _buildLayoutOption(
-            icon: Icons.grid_view_outlined,
-            title: '海报网格',
-            subtitle: '三列海报，赏心悦目',
-            value: 0,
-            groupValue: _movieLayout,
-            onTap: () => _setLayout('movie', 0),
-          ),
+          _buildLayoutOption(icon: Icons.grid_view_outlined, title: '海报网格', subtitle: '三列海报，赏心悦目', value: 0, groupValue: _movieLayout, onTap: () => _setLayout('movie', 0)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildLayoutOption(
-            icon: Icons.view_list_outlined,
-            title: '列表布局',
-            subtitle: '单列卡片，信息一览',
-            value: 1,
-            groupValue: _movieLayout,
-            onTap: () => _setLayout('movie', 1),
-          ),
+          _buildLayoutOption(icon: Icons.view_list_outlined, title: '列表布局', subtitle: '单列卡片，信息一览', value: 1, groupValue: _movieLayout, onTap: () => _setLayout('movie', 1)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-
-          // 阅读布局
           _buildSectionHeader('阅读布局'),
-          _buildLayoutOption(
-            icon: Icons.grid_view_outlined,
-            title: '封面网格',
-            subtitle: '三列封面，清新雅致',
-            value: 0,
-            groupValue: _bookLayout,
-            onTap: () => _setLayout('book', 0),
-          ),
+          _buildLayoutOption(icon: Icons.grid_view_outlined, title: '封面网格', subtitle: '三列封面，清新雅致', value: 0, groupValue: _bookLayout, onTap: () => _setLayout('book', 0)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
-          _buildLayoutOption(
-            icon: Icons.view_list_outlined,
-            title: '列表布局',
-            subtitle: '单列卡片，信息一览',
-            value: 1,
-            groupValue: _bookLayout,
-            onTap: () => _setLayout('book', 1),
-          ),
+          _buildLayoutOption(icon: Icons.view_list_outlined, title: '列表布局', subtitle: '单列卡片，信息一览', value: 1, groupValue: _bookLayout, onTap: () => _setLayout('book', 1)),
           const Divider(height: 0.5, indent: 24, endIndent: 24),
         ],
       ),
@@ -1535,62 +857,27 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _setLayout(String type, int value) async {
     switch (type) {
-      case 'note':
-        await _userPrefs.setNoteLayoutStyle(value);
-        setState(() => _noteLayout = value);
-        break;
-      case 'movie':
-        await _userPrefs.setMovieLayoutStyle(value);
-        setState(() => _movieLayout = value);
-        break;
-      case 'book':
-        await _userPrefs.setBookLayoutStyle(value);
-        setState(() => _bookLayout = value);
-        break;
+      case 'note': await _userPrefs.setNoteLayoutStyle(value); setState(() => _noteLayout = value);
+      case 'movie': await _userPrefs.setMovieLayoutStyle(value); setState(() => _movieLayout = value);
+      case 'book': await _userPrefs.setBookLayoutStyle(value); setState(() => _bookLayout = value);
     }
   }
 
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
     );
   }
 
-  Widget _buildLayoutOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required int value,
-    required int groupValue,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildLayoutOption({required IconData icon, required String title, required String subtitle, required int value, required int groupValue, required VoidCallback onTap}) {
     final selected = value == groupValue;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: const Color(0xFF666666), size: 22),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
-      ),
-      trailing: selected
-          ? const Icon(Icons.check_circle, color: Color(0xFF1A1A1A), size: 20)
-          : const Icon(Icons.circle_outlined, color: Color(0xFFDDDDDD), size: 20),
+      leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: const Color(0xFF666666), size: 22)),
+      title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+      trailing: selected ? const Icon(Icons.check_circle, color: Color(0xFF1A1A1A), size: 20) : const Icon(Icons.circle_outlined, color: Color(0xFFDDDDDD), size: 20),
       onTap: onTap,
     );
   }
@@ -1599,7 +886,6 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 /// WebView 页面
 class WebViewPage extends StatefulWidget {
   final String url;
-
   const WebViewPage({super.key, required this.url});
 
   @override
@@ -1615,25 +901,11 @@ class _WebViewPageState extends State<WebViewPage> {
     super.initState();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
-          },
-          onWebResourceError: (WebResourceError error) {
-            setState(() {
-              _isLoading = false;
-            });
-          },
-        ),
-      )
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (_) => setState(() => _isLoading = true),
+        onPageFinished: (_) => setState(() => _isLoading = false),
+        onWebResourceError: (_) => setState(() => _isLoading = false),
+      ))
       ..loadRequest(Uri.parse(widget.url));
   }
 
@@ -1641,26 +913,8 @@ class _WebViewPageState extends State<WebViewPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(''),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.reload(),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF999999),
-              ),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text(''), actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: () => _controller.reload())]),
+      body: Stack(children: [WebViewWidget(controller: _controller), if (_isLoading) const Center(child: CircularProgressIndicator(color: Color(0xFF999999)))]),
     );
   }
 }
