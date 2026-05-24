@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../utils/sync/server_data_service.dart';
 
-/// 带淡入动画的本地图片组件
+/// 带淡入动画的图片组件（支持本地文件 + 服务端 URL 回退）
 class FadeInLocalImage extends StatefulWidget {
   final String? path;
   final double? width;
@@ -32,27 +34,54 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
   late Animation<double> _opacity;
   bool _loaded = false;
   bool _error = false;
+  String? _imageUrl;
+  bool _useNetwork = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _checkFile();
+    _loadImage();
   }
 
-  void _checkFile() {
+  Future<void> _loadImage() async {
     if (widget.path == null || widget.path!.isEmpty) {
       setState(() => _error = true);
       return;
     }
-    final file = File(widget.path!);
-    if (!file.existsSync()) {
-      setState(() => _error = true);
+
+    // 如果是 http 开头，直接当网络图片
+    if (widget.path!.startsWith('http')) {
+      _useNetwork = true;
+      _imageUrl = widget.path;
+      setState(() => _loaded = true);
+      _controller.forward();
       return;
     }
-    setState(() => _loaded = true);
-    _controller.forward();
+
+    // 本地文件存在就直接显示
+    final file = File(widget.path!);
+    if (file.existsSync()) {
+      setState(() => _loaded = true);
+      _controller.forward();
+      return;
+    }
+
+    // 本地不存在，尝试服务端 URL
+    if (ServerDataService.isActive) {
+      try {
+        final url = await ServerDataService.toImageUrl(widget.path!);
+        debugPrint('[Image] 本地不存在，使用服务端: $url');
+        _useNetwork = true;
+        _imageUrl = url;
+        setState(() => _loaded = true);
+        _controller.forward();
+        return;
+      } catch (_) {}
+    }
+
+    setState(() => _error = true);
   }
 
   @override
@@ -61,8 +90,10 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     if (widget.path != oldWidget.path) {
       _error = false;
       _loaded = false;
+      _useNetwork = false;
+      _imageUrl = null;
       _controller.reset();
-      _checkFile();
+      _loadImage();
     }
   }
 
@@ -93,19 +124,36 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     }
     return FadeTransition(
       opacity: _opacity,
-      child: Image.file(
-        File(widget.path!),
-        width: widget.width,
-        height: widget.height,
-        fit: widget.fit,
-        errorBuilder: (_, __, ___) => widget.errorWidget ??
-            Container(
+      child: _useNetwork
+          ? Image.network(
+              _imageUrl!,
               width: widget.width,
               height: widget.height,
-              color: const Color(0xFFF5F5F5),
-              child: const Icon(Icons.broken_image_outlined, size: 24, color: Color(0xFFCCCCCC)),
+              fit: widget.fit,
+              errorBuilder: (_, e, __) {
+                debugPrint('[Image] 网络加载失败: $_imageUrl, 错误: $e');
+                return widget.errorWidget ??
+                    Container(
+                      width: widget.width,
+                      height: widget.height,
+                      color: const Color(0xFFF5F5F5),
+                      child: const Icon(Icons.broken_image_outlined, size: 24, color: Color(0xFFCCCCCC)),
+                    );
+              },
+            )
+          : Image.file(
+              File(widget.path!),
+              width: widget.width,
+              height: widget.height,
+              fit: widget.fit,
+              errorBuilder: (_, __, ___) => widget.errorWidget ??
+                  Container(
+                    width: widget.width,
+                    height: widget.height,
+                    color: const Color(0xFFF5F5F5),
+                    child: const Icon(Icons.broken_image_outlined, size: 24, color: Color(0xFFCCCCCC)),
+                  ),
             ),
-      ),
     );
   }
 }

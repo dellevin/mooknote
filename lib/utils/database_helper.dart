@@ -9,6 +9,12 @@ class DatabaseHelper {
 
   DatabaseHelper._init();
 
+  /// 数据库文件路径
+  Future<String?> get databasePath async {
+    final path = await getDatabasesPath();
+    return join(path, 'mooknote.db');
+  }
+
   /// 重新打开数据库（用于 WebDAV 同步后）
   Future<void> reopenDatabase() async {
     // 关闭现有连接
@@ -566,7 +572,15 @@ class DatabaseHelper {
 
   // 关闭数据库
   Future close() async {
-    final db = await instance.database;
-    db.close();
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+
+  // 重新打开（关闭后重新初始化）
+  Future reopen() async {
+    await close();
+    await database;
   }
 }

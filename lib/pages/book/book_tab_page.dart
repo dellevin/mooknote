@@ -53,7 +53,15 @@ class _BookTabPageState extends State<BookTabPage> {
         }
 
         if (books.isEmpty) {
-          return _buildEmptyState(context, provider.bookStatusIndex);
+          return RefreshIndicator(
+            onRefresh: () async => await provider.loadBooks(),
+            color: const Color(0xFF1A1A1A),
+            backgroundColor: Colors.white,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [_buildEmptyState(context, provider.bookStatusIndex)],
+            ),
+          );
         }
 
         if (_layoutStyle == 1) {

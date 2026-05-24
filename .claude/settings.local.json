@@ -4,7 +4,11 @@
       "Bash(flutter analyze *)",
       "Bash(python _fix_script.py)",
       "Bash(dart analyze *)",
-      "Bash(dart run *)"
+      "Bash(dart run *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app.py', doraise=True\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('server/app.py', doraise=True\\); print\\('Python OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('D:/UserData/Desktop/my_proj/mooknote/server/app.py', doraise=True\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import app; print\\('OK'\\)\")"
     ]
   }
 }

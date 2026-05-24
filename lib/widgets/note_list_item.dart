@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../utils/toast_util.dart';
+import 'fade_in_local_image.dart';
 
 /// 笔记列表项组件 - 极简主义设计
 class NoteListItem extends StatelessWidget {
@@ -164,10 +165,10 @@ class _NoteListItemContent extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
             ),
             clipBehavior: Clip.antiAlias,
-            child: Image.file(
-              File(images[i]),
+            child: FadeInLocalImage(
+              path: images[i],
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorWidget: Container(
                 color: const Color(0xFFF5F5F5),
               ),
             ),

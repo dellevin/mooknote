@@ -57,7 +57,15 @@ class _MovieTabPageState extends State<MovieTabPage> {
         final movies = provider.getMoviesByStatus(currentStatus);
 
         if (movies.isEmpty) {
-          return _buildEmptyState(context, provider.movieStatusIndex);
+          return RefreshIndicator(
+            onRefresh: () async => await provider.loadMovies(),
+            color: const Color(0xFF1A1A1A),
+            backgroundColor: Colors.white,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [_buildEmptyState(context, provider.movieStatusIndex)],
+            ),
+          );
         }
 
         if (_layoutStyle == 1) {

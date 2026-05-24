@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -21,7 +22,7 @@ class UsageStatsService with WidgetsBindingObserver {
   Timer? _heartbeatTimer;
   bool _started = false;
 
-  static const _heartbeatInterval = Duration(minutes: 5);
+  static const _heartbeatInterval = Duration(minutes: 1);
 
   /// 启动统计服务（App 启动时调用一次）
   Future<void> start() async {
@@ -103,7 +104,11 @@ class UsageStatsService with WidgetsBindingObserver {
           .post(
             Uri.parse('$serverUrl/api/heartbeat'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'device_hash': deviceId}),
+            body: jsonEncode({
+              'device_hash': deviceId,
+              'device_type': Platform.operatingSystem,       // android/ios/windows/macos/linux
+              'device_name': '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
+            }),
           )
           .timeout(const Duration(seconds: 5));
     } catch (_) {

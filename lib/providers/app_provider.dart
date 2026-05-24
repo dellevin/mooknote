@@ -11,6 +11,7 @@ import '../utils/tag/tag_dao.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
+import '../utils/sync/server_data_service.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -37,6 +38,15 @@ class AppProvider extends ChangeNotifier {
 
   // 底部导航栏是否可见
   bool _bottomNavVisible = true;
+
+  /// 是否使用远程服务端（同步开关 + 已激活）
+  bool get _useRemote {
+    final prefs = UserPrefs();
+    return prefs.syncEnabled &&
+        prefs.syncServerUrl.isNotEmpty &&
+        prefs.syncActivationCode.isNotEmpty &&
+        ServerDataService.instance.isAvailable;
+  }
   
   // 观影选中的状态 (0: 已看，1: 想看，2: 在看)
   int _movieStatusIndex = 0;
@@ -86,18 +96,33 @@ class AppProvider extends ChangeNotifier {
   
   // 加载影视数据
   Future<void> loadMovies() async {
+    if (_useRemote) {
+      _movies = await ServerDataService.instance.getMovies();
+      notifyListeners();
+      return;
+    }
     _movies = await _movieDao.getAllMovies();
     notifyListeners();
   }
   
   // 加载书籍数据
   Future<void> loadBooks() async {
+    if (_useRemote) {
+      _books = await ServerDataService.instance.getBooks();
+      notifyListeners();
+      return;
+    }
     _books = await _bookDao.getAllBooks();
     notifyListeners();
   }
   
   // 加载笔记数据
   Future<void> loadNotes() async {
+    if (_useRemote) {
+      _notes = await ServerDataService.instance.getNotes();
+      notifyListeners();
+      return;
+    }
     _notes = await _noteDao.getAllNotes();
     notifyListeners();
   }
@@ -162,60 +187,101 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
   
+  // ─── 图片上传辅助 ────────────────────────────────────────────────
+
+  Future<void> _uploadImagesIfRemote(List<String?> paths) async {
+    if (!_useRemote) return;
+    final valid = paths.where((p) => p != null && p!.isNotEmpty).cast<String>().toList();
+    if (valid.isNotEmpty) {
+      await ServerDataService.uploadLocalImages(valid);
+    }
+  }
+
   // 添加影视记录
   Future<void> addMovie(Movie movie) async {
-    await _movieDao.insertMovie(movie);
+    if (_useRemote) {
+      await ServerDataService.instance.saveMovie(movie);
+    } else {
+      await _movieDao.insertMovie(movie);
+    }
+    await _uploadImagesIfRemote([movie.posterPath]);
     await loadMovies();
   }
-  
-  // 更新影视记录
+
   Future<void> updateMovie(Movie movie) async {
-    await _movieDao.updateMovie(movie);
+    if (_useRemote) {
+      await ServerDataService.instance.saveMovie(movie);
+    } else {
+      await _movieDao.updateMovie(movie);
+    }
+    await _uploadImagesIfRemote([movie.posterPath]);
     await loadMovies();
   }
-  
-  // 删除影视记录（软删除，移入回收站）
-  // 注意：软删除时不删除图片文件，恢复时文件仍然存在
+
   Future<void> removeMovie(String id) async {
-    await _movieDao.deleteMovie(id);
+    if (_useRemote) {
+      await ServerDataService.instance.deleteMovie(id);
+    } else {
+      await _movieDao.deleteMovie(id);
+    }
     await loadMovies();
   }
-  
-  // 添加书籍记录
+
   Future<void> addBook(Book book) async {
-    await _bookDao.insertBook(book);
+    if (_useRemote) {
+      await ServerDataService.instance.saveBook(book);
+    } else {
+      await _bookDao.insertBook(book);
+    }
+    await _uploadImagesIfRemote([book.coverPath]);
     await loadBooks();
   }
-  
-  // 更新书籍记录
+
   Future<void> updateBook(Book book) async {
-    await _bookDao.updateBook(book);
+    if (_useRemote) {
+      await ServerDataService.instance.saveBook(book);
+    } else {
+      await _bookDao.updateBook(book);
+    }
+    await _uploadImagesIfRemote([book.coverPath]);
     await loadBooks();
   }
-  
-  // 删除书籍记录（软删除，移入回收站）
-  // 注意：软删除时不删除图片文件，恢复时文件仍然存在
+
   Future<void> removeBook(String id) async {
-    await _bookDao.deleteBook(id);
+    if (_useRemote) {
+      await ServerDataService.instance.deleteBook(id);
+    } else {
+      await _bookDao.deleteBook(id);
+    }
     await loadBooks();
   }
-  
-  // 添加笔记
+
   Future<void> addNote(Note note) async {
-    await _noteDao.insertNote(note);
+    if (_useRemote) {
+      await ServerDataService.instance.saveNote(note);
+    } else {
+      await _noteDao.insertNote(note);
+    }
+    await _uploadImagesIfRemote(note.images);
     await loadNotes();
   }
-  
-  // 更新笔记
+
   Future<void> updateNote(Note note) async {
-    await _noteDao.updateNote(note);
+    if (_useRemote) {
+      await ServerDataService.instance.saveNote(note);
+    } else {
+      await _noteDao.updateNote(note);
+    }
+    await _uploadImagesIfRemote(note.images);
     await loadNotes();
   }
-  
-  // 删除笔记（软删除，移入回收站）
-  // 注意：软删除时不删除图片文件，恢复时文件仍然存在
+
   Future<void> removeNote(String id) async {
-    await _noteDao.deleteNote(id);
+    if (_useRemote) {
+      await ServerDataService.instance.deleteNote(id);
+    } else {
+      await _noteDao.deleteNote(id);
+    }
     await loadNotes();
   }
   

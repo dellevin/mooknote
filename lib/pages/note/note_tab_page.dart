@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/note_list_item.dart';
 import '../../widgets/shimmer_skeleton.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 笔记标签页
 class NoteTabPage extends StatefulWidget {
@@ -121,7 +122,15 @@ class _NoteTabPageState extends State<NoteTabPage> {
               }
 
               if (allNotes.isEmpty && _displayedNotes.isEmpty) {
-                return _buildEmptyState(context);
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  color: const Color(0xFF1A1A1A),
+                  backgroundColor: Colors.white,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [_buildEmptyState(context)],
+                  ),
+                );
               }
 
               if (_layoutStyle == 1) {
@@ -425,11 +434,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                    child: Image.file(
-                      File(images.first),
-                      width: double.infinity,
+                    child: FadeInLocalImage(
+                      path: images.first,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      errorWidget: const SizedBox.shrink(),
                     ),
                   ),
                   if (extraCount > 0)

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import 'note_share_page.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 笔记详情页
 class NoteDetailPage extends StatefulWidget {
@@ -232,12 +233,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
     for (final imgPath in note.images) {
       if (imgPath.contains(path) || path.contains(imgPath)) {
-        if (File(imgPath).existsSync()) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(File(imgPath), fit: BoxFit.cover),
+            child: FadeInLocalImage(path: imgPath, fit: BoxFit.cover),
           );
-        }
       }
     }
 
@@ -265,7 +264,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               boundaryMargin: const EdgeInsets.all(20),
               minScale: 0.5,
               maxScale: 4,
-              child: Image.file(File(images[initialIndex]), fit: BoxFit.contain),
+              child: FadeInLocalImage(path: images[initialIndex], fit: BoxFit.contain),
             ),
           ),
         ),
