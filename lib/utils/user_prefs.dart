@@ -11,6 +11,11 @@ class UserPrefs {
   /// 初始化
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    // 迁移旧版 isDarkMode 布尔值到新版 themeMode 三态值
+    if (_prefs!.containsKey('isDarkMode') && !_prefs!.containsKey('themeMode')) {
+      final oldValue = _prefs!.getBool('isDarkMode') ?? false;
+      await _prefs!.setInt('themeMode', oldValue ? 2 : 0);
+    }
   }
   
   /// 获取实例
@@ -38,9 +43,9 @@ class UserPrefs {
   
   // ========== 应用设置 ==========
   
-  /// 是否暗黑模式
-  bool get isDarkMode => prefs.getBool('isDarkMode') ?? false;
-  Future<bool> setDarkMode(bool value) => prefs.setBool('isDarkMode', value);
+  /// 主题模式: 0=跟随系统, 1=浅色, 2=深色
+  int get themeMode => prefs.getInt('themeMode') ?? 0;
+  Future<bool> setThemeMode(int value) => prefs.setInt('themeMode', value);
   
   /// 是否首次启动
   bool get isFirstLaunch => prefs.getBool('isFirstLaunch') ?? true;

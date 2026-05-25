@@ -22,13 +22,14 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final note = context.watch<AppProvider>().notes.firstWhere(
       (n) => n.id == widget.note.id,
       orElse: () => widget.note,
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(
           note.title.isNotEmpty
@@ -42,22 +43,21 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         children: [
           Column(
             children: [
-              // 日期 + 字数
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                    bottom: BorderSide(color: colors.outlineVariant, width: 0.5),
                   ),
                 ),
                 child: Row(
                   children: [
                     Text(
                       '${note.createdAt.day}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w200,
-                        color: Color(0xFF333333),
+                        color: colors.onSurface.withValues(alpha: 0.75),
                         height: 1.0,
                       ),
                     ),
@@ -68,48 +68,44 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                       children: [
                         Text(
                           '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')} 周${_weekdays[note.createdAt.weekday - 1]}',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF777777)),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.55)),
                         ),
                         const SizedBox(height: 1),
                         Text(
                           '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF999999)),
+                          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)),
                         ),
                       ],
                     ),
                     const Spacer(),
                     Text(
                       '${note.content.length} 字',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
+                      style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
                     ),
                   ],
                 ),
               ),
 
-              // 标签行
               if (note.tags.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: _buildTagRow(note.tags),
                 ),
 
-              // 内容
               Expanded(
                 child: Markdown(
                   data: note.content,
-                  styleSheet: _buildMarkdownStyleSheet(),
+                  styleSheet: _buildMarkdownStyleSheet(colors),
                   padding: const EdgeInsets.all(16),
                   // ignore: deprecated_member_use
                   imageBuilder: (uri, title, alt) => _buildMarkdownImage(uri, note),
                 ),
               ),
 
-              // 图片行
               if (note.images.isNotEmpty) _buildImageRow(note.images),
             ],
           ),
 
-          // 右下角悬浮按钮组
           Positioned(
             right: 16,
             bottom: 24,
@@ -121,6 +117,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   }
 
   Widget _buildTagRow(List<String> tags) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       height: 28,
       margin: const EdgeInsets.only(bottom: 2),
@@ -133,12 +130,12 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               tags[index],
-              style: const TextStyle(fontSize: 11, color: Color(0xFF666666)),
+              style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6)),
             ),
           );
         },
@@ -147,12 +144,13 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   }
 
   Widget _buildImageRow(List<String> images) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       height: 80,
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(
-          top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+        color: colors.surface,
+        border: Border(
+          top: BorderSide(color: colors.outlineVariant, width: 0.5),
         ),
         boxShadow: [
           BoxShadow(
@@ -175,15 +173,15 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               height: 64,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                border: Border.all(color: colors.outlineVariant, width: 0.5),
               ),
               clipBehavior: Clip.antiAlias,
               child: Image.file(
                 File(images[index]),
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFFF5F5F5),
-                  child: const Icon(Icons.broken_image_outlined, size: 20, color: Color(0xFFCCCCCC)),
+                  color: colors.surfaceContainerHighest,
+                  child: Icon(Icons.broken_image_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
                 ),
               ),
             ),
@@ -193,37 +191,37 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     );
   }
 
-  MarkdownStyleSheet _buildMarkdownStyleSheet() {
+  MarkdownStyleSheet _buildMarkdownStyleSheet(ColorScheme colors) {
     return MarkdownStyleSheet(
-      h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A), height: 1.4),
-      h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A), height: 1.4),
-      h3: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A), height: 1.4),
-      h4: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A), height: 1.4),
-      p: const TextStyle(fontSize: 15, color: Color(0xFF333333), height: 1.8),
-      code: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A), backgroundColor: Color(0xFFF5F5F5), fontFamily: 'monospace'),
+      h1: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
+      h2: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
+      h3: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
+      h4: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
+      p: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.75), height: 1.8),
+      code: TextStyle(fontSize: 14, color: colors.onSurface, backgroundColor: colors.surfaceContainerHighest, fontFamily: 'monospace'),
       codeblockDecoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        color: colors.surfaceContainerHigh,
+        border: Border.all(color: colors.outline),
         borderRadius: BorderRadius.circular(6),
       ),
       codeblockPadding: const EdgeInsets.all(12),
-      blockquote: const TextStyle(fontSize: 15, color: Color(0xFF666666), fontStyle: FontStyle.italic, height: 1.8),
-      blockquoteDecoration: const BoxDecoration(
-        border: Border(left: BorderSide(color: Color(0xFF999999), width: 4)),
+      blockquote: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.6), fontStyle: FontStyle.italic, height: 1.8),
+      blockquoteDecoration: BoxDecoration(
+        border: Border(left: BorderSide(color: colors.onSurface.withValues(alpha: 0.4), width: 4)),
       ),
       blockquotePadding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
-      listBullet: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+      listBullet: TextStyle(fontSize: 15, color: colors.onSurface),
       listIndent: 24,
       a: const TextStyle(fontSize: 15, color: Color(0xFF4A90D9), decoration: TextDecoration.underline),
-      tableHead: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
-      tableBody: const TextStyle(fontSize: 14, color: Color(0xFF333333)),
-      tableBorder: TableBorder.all(color: const Color(0xFFE5E5E5), width: 0.5),
+      tableHead: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+      tableBody: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.75)),
+      tableBorder: TableBorder.all(color: colors.outline, width: 0.5),
       tableColumnWidth: const FlexColumnWidth(),
-      tableCellsDecoration: const BoxDecoration(color: Colors.white),
+      tableCellsDecoration: BoxDecoration(color: colors.surface),
       tablePadding: const EdgeInsets.all(8),
-      strong: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
-      em: const TextStyle(fontStyle: FontStyle.italic, color: Color(0xFF333333)),
-      del: const TextStyle(decoration: TextDecoration.lineThrough, color: Color(0xFF999999)),
+      strong: TextStyle(fontWeight: FontWeight.w600, color: colors.onSurface),
+      em: TextStyle(fontStyle: FontStyle.italic, color: colors.onSurface.withValues(alpha: 0.75)),
+      del: TextStyle(decoration: TextDecoration.lineThrough, color: colors.onSurface.withValues(alpha: 0.4)),
     );
   }
 
@@ -272,7 +270,6 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     );
   }
 
-  /// 截取内容前N个字作为标题
   String _truncateContent(String content) {
     final cleaned = content
         .replaceAll(RegExp(r'^#+\s+', multiLine: true), '')
@@ -298,8 +295,8 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     });
   }
 
-  /// 右下角悬浮按钮组
   Widget _buildFloatingActionButtons() {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -307,13 +304,16 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           icon: Icons.edit_outlined,
           onPressed: () => _navigateToEdit(context),
           tooltip: '编辑',
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
         ),
         const SizedBox(height: 12),
         _buildFloatingButton(
           icon: Icons.delete_outline,
           onPressed: () => _showDeleteDialog(context),
           tooltip: '删除',
-          backgroundColor: Colors.red,
+          backgroundColor: colors.error,
+          foregroundColor: colors.onError,
         ),
         const SizedBox(height: 12),
         _buildFloatingButton(
@@ -321,6 +321,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           onPressed: _shareNote,
           tooltip: '分享',
           backgroundColor: const Color(0xFF4CAF50),
+          foregroundColor: Colors.white,
         ),
       ],
     );
@@ -330,7 +331,8 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     required IconData icon,
     required VoidCallback onPressed,
     required String tooltip,
-    Color backgroundColor = const Color(0xFF1A1A1A),
+    required Color backgroundColor,
+    required Color foregroundColor,
   }) {
     return Material(
       color: Colors.transparent,
@@ -349,7 +351,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           ],
         ),
         child: IconButton(
-          icon: Icon(icon, size: 18, color: Colors.white),
+          icon: Icon(icon, size: 18, color: foregroundColor),
           onPressed: onPressed,
           padding: EdgeInsets.zero,
           tooltip: tooltip,
@@ -375,7 +377,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               context.read<AppProvider>().removeNote(widget.note.id);
               Navigator.pop(context);
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text('删除', style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),

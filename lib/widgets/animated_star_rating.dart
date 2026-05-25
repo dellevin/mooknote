@@ -55,6 +55,7 @@ class _AnimatedStarRatingState extends State<AnimatedStarRating>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final starValue = widget.rating / 2;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -84,7 +85,7 @@ class _AnimatedStarRatingState extends State<AnimatedStarRating>
                 style: TextStyle(
                   fontSize: widget.starSize,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF666666),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               );
             },

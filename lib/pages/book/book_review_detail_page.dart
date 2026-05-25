@@ -49,8 +49,9 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('书评详情'),
         actions: [
@@ -70,9 +71,9 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             // 书评内容
             Text(
               _review.content,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF1A1A1A),
+                color: colors.onSurface,
                 height: 1.8,
               ),
             ),
@@ -82,7 +83,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             // 分隔线
             Container(
               height: 0.5,
-              color: const Color(0xFFE5E5E5),
+              color: colors.outline,
             ),
 
             const SizedBox(height: 24),
@@ -92,6 +93,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
               icon: Icons.person_outline,
               label: '书评人：',
               value: _review.reviewer.isNotEmpty ? _review.reviewer : '匿名',
+              colors: colors,
             ),
 
             const SizedBox(height: 16),
@@ -102,6 +104,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
                 icon: Icons.source_outlined,
                 label: '来源：',
                 value: _review.source,
+                colors: colors,
               ),
 
             if (_review.source.isNotEmpty) const SizedBox(height: 16),
@@ -111,6 +114,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
               icon: Icons.category_outlined,
               label: '类型：',
               value: _review.typeText,
+              colors: colors,
             ),
 
             const SizedBox(height: 16),
@@ -120,6 +124,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
               icon: Icons.access_time,
               label: '时间：',
               value: _formatDate(_review.createdAt),
+              colors: colors,
             ),
           ],
         ),
@@ -132,29 +137,30 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
     required IconData icon,
     required String label,
     required String value,
+    required ColorScheme colors,
   }) {
     return Row(
       children: [
         Icon(
           icon,
           size: 20,
-          color: const Color(0xFF999999),
+          color: colors.onSurface.withValues(alpha: 0.4),
         ),
         const SizedBox(width: 12),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF999999),
+            color: colors.onSurface.withValues(alpha: 0.4),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
-              color: Color(0xFF1A1A1A),
+              color: colors.onSurface,
             ),
           ),
         ),

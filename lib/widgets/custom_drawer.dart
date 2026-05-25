@@ -33,36 +33,25 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Drawer(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: colors.surfaceContainerHigh,
       child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 头像 + 统计（独立卡片区域）
               _buildProfileCard(context),
-
               const SizedBox(height: 16),
-
-              // 热力图
               _buildCalendarSection(context),
-
               const SizedBox(height: 16),
-
-              // 最近添加
               _buildRecentSection(context),
-
               const SizedBox(height: 16),
-
-              // 功能入口
               _buildToolsCard(context),
-
-              // 底部版本号
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
                 child: Center(
-                  child: Text('v$_version', style: const TextStyle(fontSize: 11, color: Color(0xFFD0D0D0))),
+                  child: Text('v$_version', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.2))),
                 ),
               ),
             ],
@@ -77,6 +66,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Widget _buildProfileCard(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        final colors = Theme.of(context).colorScheme;
         final userPrefs = UserPrefs();
         final nickname = userPrefs.nickname;
         final motto = userPrefs.motto;
@@ -89,77 +79,69 @@ class _CustomDrawerState extends State<CustomDrawer> {
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 头像 + 名称/座右铭 + 统计
               Row(
                 children: [
-                  // 头像
                   Container(
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFF5F5F5),
-                      border: Border.all(color: const Color(0xFFEEEEEE), width: 0.5),
+                      color: colors.surfaceContainerHighest,
+                      border: Border.all(color: colors.outlineVariant, width: 0.5),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: avatarPath != null && avatarPath.isNotEmpty
                         ? Image.file(File(avatarPath), fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.person_outline, size: 26, color: Color(0xFFBBBBBB)))
-                        : const Icon(Icons.person_outline, size: 26, color: Color(0xFFBBBBBB)),
+                                Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)))
+                        : Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)),
                   ),
                   const SizedBox(width: 14),
-                  // 名称 + 座右铭
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(nickname, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                        Text(nickname, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
                         const SizedBox(height: 2),
                         Text(motto, maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                       ],
                     ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-              const Divider(height: 1, color: Color(0xFFF0F0F0)),
+              Divider(height: 1, color: colors.outlineVariant),
               const SizedBox(height: 14),
-
-              // 统计数字
               _buildProfileStatRow(Icons.movie_outlined, movieCount, '观影'),
               const SizedBox(height: 12),
               _buildProfileStatRow(Icons.menu_book_outlined, bookCount, '阅读'),
               const SizedBox(height: 12),
               _buildProfileStatRow(Icons.note_outlined, noteCount, '笔记'),
-
-              // 设置入口
               const SizedBox(height: 14),
-              const Divider(height: 1, color: Color(0xFFF0F0F0)),
+              Divider(height: 1, color: colors.outlineVariant),
               InkWell(
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
                 },
                 borderRadius: BorderRadius.circular(8),
-                child: const Padding(
-                  padding: EdgeInsets.only(top: 14),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 14),
                   child: Row(
                     children: [
-                      Icon(Icons.settings_outlined, size: 16, color: Color(0xFF999999)),
-                      SizedBox(width: 8),
-                      Text('设置', style: TextStyle(fontSize: 13, color: Color(0xFF888888))),
-                      Spacer(),
-                      Icon(Icons.chevron_right, size: 14, color: Color(0xFFD0D0D0)),
+                      Icon(Icons.settings_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.4)),
+                      const SizedBox(width: 8),
+                      Text('设置', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                      const Spacer(),
+                      Icon(Icons.chevron_right, size: 14, color: colors.onSurface.withValues(alpha: 0.2)),
                     ],
                   ),
                 ),
@@ -172,13 +154,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   Widget _buildProfileStatRow(IconData icon, int count, String label) {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF888888)),
+        Icon(icon, size: 16, color: colors.onSurface.withValues(alpha: 0.5)),
         const SizedBox(width: 10),
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF888888))),
+        Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
         const Spacer(),
-        Text(_formatCount(count), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+        Text(_formatCount(count), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ],
     );
   }
@@ -192,10 +175,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
   // ─── 功能入口卡片 ────────────────────────────────────────────────────
 
   Widget _buildToolsCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -204,12 +188,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()));
           }, topRounded: true),
-          const Divider(height: 1, indent: 52, endIndent: 20, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
           _buildToolItem(Icons.label_outline, '标签管理', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage()));
           }),
-          const Divider(height: 1, indent: 52, endIndent: 20, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
           _buildToolItem(Icons.description_outlined, 'MD阅读', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const MdReaderTabPage()));
@@ -220,6 +204,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   Widget _buildToolItem(IconData icon, String title, VoidCallback onTap, {bool topRounded = false, bool bottomRounded = false}) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.only(
@@ -232,21 +217,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: const Color(0xFF555555)),
+            Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)))),
-            const Icon(Icons.chevron_right, size: 16, color: Color(0xFFD0D0D0)),
+            Expanded(child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface))),
+            Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
           ],
         ),
       ),
     );
   }
 
-  // ─── 热力图（保持现状） ──────────────────────────────────────────────
+  // ─── 热力图 ──────────────────────────────────────────────────────────
 
   Widget _buildCalendarSection(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        final colors = Theme.of(context).colorScheme;
         final Map<DateTime, int> dailyCounts = {};
         for (final movie in provider.movies.where((m) => !m.isDeleted)) {
           final date = DateTime(movie.createdAt.year, movie.createdAt.month, movie.createdAt.day);
@@ -299,15 +285,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Color(0xFF999999)),
-                  SizedBox(width: 8),
-                  Text('热力图', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF666666))),
+                  Icon(Icons.calendar_today, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(width: 8),
+                  Text('热力图', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
                 ],
               ),
               const SizedBox(height: 14),
@@ -324,7 +310,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                           final label = keepWeeks.contains(week) ? monthLabels[week] : null;
                           return SizedBox(
                             width: cellSize + cellGap,
-                            child: label != null ? Text(label, style: const TextStyle(fontSize: 9, color: Color(0xFFBBBBBB))) : null,
+                            child: label != null ? Text(label, style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))) : null,
                           );
                         }),
                       ),
@@ -347,7 +333,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text('少', style: TextStyle(fontSize: 9, color: Color(0xFFBBBBBB))),
+                  Text('少', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
                   const SizedBox(width: 3),
                   _legendCell(const Color(0xFFF0F0F0)),
                   _legendCell(const Color(0xFFC8E6C9)),
@@ -355,7 +341,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _legendCell(const Color(0xFF2E7D32)),
                   _legendCell(const Color(0xFF1B5E20)),
                   const SizedBox(width: 3),
-                  const Text('多', style: TextStyle(fontSize: 9, color: Color(0xFFBBBBBB))),
+                  Text('多', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
                 ],
               ),
             ],
@@ -384,21 +370,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Widget _buildRecentSection(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        final colors = Theme.of(context).colorScheme;
         final recent = _getRecentItems(provider);
         if (recent.isEmpty) return const SizedBox.shrink();
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.schedule, size: 14, color: Color(0xFF999999)),
-                  SizedBox(width: 8),
-                  Text('最近添加', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF666666))),
+                  Icon(Icons.schedule, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(width: 8),
+                  Text('最近添加', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
                 ],
               ),
               const SizedBox(height: 14),
@@ -408,15 +395,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   children: [
                     Icon(
                       item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : Icons.note_outlined,
-                      size: 14, color: const Color(0xFFBBBBBB),
+                      size: 14, color: colors.onSurface.withValues(alpha: 0.3),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF444444))),
+                          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75))),
                     ),
                     const SizedBox(width: 8),
-                    Text(_recentTimeAgo(item.date), style: const TextStyle(fontSize: 10, color: Color(0xFFCCCCCC))),
+                    Text(_recentTimeAgo(item.date), style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
                   ],
                 ),
               )),

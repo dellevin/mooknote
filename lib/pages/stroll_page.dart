@@ -153,8 +153,9 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('漫步'),
         actions: [
@@ -166,15 +167,15 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: colors.primary,
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.casino_outlined, size: 14, color: Colors.white),
-                    SizedBox(width: 5),
-                    Text('随机', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500)),
+                    Icon(Icons.casino_outlined, size: 14, color: colors.onPrimary),
+                    const SizedBox(width: 5),
+                    Text('随机', style: TextStyle(fontSize: 12, color: colors.onPrimary, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -183,8 +184,10 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         ],
       ),
       body: _currentItem == null
-          ? const Center(child: Text('还没有任何内容\n去添加一些吧', textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: Color(0xFFBBBBBB), height: 1.6)))
+          ? Center(
+              child: Text('还没有任何内容\n去添加一些吧',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.3), height: 1.6)))
           : Consumer<AppProvider>(builder: (context, provider, _) {
               final item = _currentItem!;
               final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty && File(item.imagePath!).existsSync();
@@ -216,7 +219,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
                             child: Text(
                               item.title,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A), height: 1.3),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3),
                             ),
                           ),
 
@@ -225,7 +228,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(item.subtitle, textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                                  style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                             ),
                           ],
 
@@ -242,18 +245,18 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAFAFA),
+                                color: colors.surfaceContainerHigh,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(item.detail,
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF777777), height: 1.7)),
+                                  style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.7)),
                             ),
                           ],
                         ],
 
                         // 时间
                         const SizedBox(height: 12),
-                        Text(_actionText(item), style: const TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
+                        Text(_actionText(item), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
 
                         const SizedBox(height: 40),
                       ],
@@ -302,11 +305,12 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   }
 
   Widget _buildNoteCard(_StrollItem item, bool hasImage) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 360),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6)),
@@ -322,12 +326,12 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(item.detail.isEmpty ? '(无内容)' : item.detail,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF444444), height: 1.8)),
+                style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.73), height: 1.8)),
           ),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, color: colors.outlineVariant),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Text('${item.detail.length} 字 · Mooknote', style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
+            child: Text('${item.detail.length} 字 · Mooknote', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
           ),
         ],
       ),
@@ -335,8 +339,9 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   }
 
   Widget _buildPlaceholder(_StrollItem item) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
-      color: const Color(0xFFF8F8F8),
+      color: colors.surfaceContainerHigh,
       child: Center(
         child: Icon(item.icon, size: 48, color: item.color.withValues(alpha: 0.2)),
       ),

@@ -15,10 +15,11 @@ class AppRefreshIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(
       onRefresh: onRefresh,
-      color: const Color(0xFF1A1A1A),
-      backgroundColor: Colors.white,
+      color: colors.primary,
+      backgroundColor: colors.surface,
       strokeWidth: 2.5,
       displacement: 60,
       semanticsLabel: semanticsLabel,

@@ -16,7 +16,7 @@ class BookFormPage extends StatefulWidget {
   final String? initialStatus; // 添加时的默认状态
 
   const BookFormPage({super.key, this.book, this.initialStatus});
-  
+
   @override
   State<BookFormPage> createState() => _BookFormPageState();
 }
@@ -24,17 +24,17 @@ class BookFormPage extends StatefulWidget {
 class _BookFormPageState extends State<BookFormPage> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  
+
   // 输入框控制器
   late TextEditingController _titleController;
   late TextEditingController _publisherController;
   late TextEditingController _summaryController;
   late TextEditingController _ratingController;
   late TextEditingController _isbnController;
-  
+
   // 多值字段的临时输入控制器
   final Map<String, TextEditingController> _tagControllers = {};
-  
+
   // 数据
   List<String> _authors = [];
   List<String> _alternateTitles = [];
@@ -42,7 +42,7 @@ class _BookFormPageState extends State<BookFormPage> {
   String? _coverPath;
   String _status = 'want_to_read';
   DateTime? _publishDate;
-  
+
   @override
   void initState() {
     super.initState();
@@ -80,7 +80,7 @@ class _BookFormPageState extends State<BookFormPage> {
       _status = widget.initialStatus!;
     }
   }
-  
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -91,22 +91,24 @@ class _BookFormPageState extends State<BookFormPage> {
     _tagControllers.values.forEach((c) => c.dispose());
     super.dispose();
   }
-  
+
   TextEditingController _getTagController(String key) {
     return _tagControllers.putIfAbsent(key, () => TextEditingController());
   }
-  
+
   /// 构建右上角操作按钮
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onPressed,
     required String tooltip,
-    Color color = const Color(0xFF1A1A1A),
+    Color? color,
   }) {
+    final colors = Theme.of(context).colorScheme;
+    final iconColor = color ?? colors.onSurface;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: colors.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Material(
@@ -118,7 +120,7 @@ class _BookFormPageState extends State<BookFormPage> {
             padding: const EdgeInsets.all(8),
             child: Icon(
               icon,
-              color: color,
+              color: iconColor,
               size: 22,
             ),
           ),
@@ -129,10 +131,11 @@ class _BookFormPageState extends State<BookFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final isEdit = widget.book != null;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(isEdit ? '编辑书籍' : '添加书籍'),
         actions: [
@@ -205,15 +208,15 @@ class _BookFormPageState extends State<BookFormPage> {
                     ),
                   ),
                 ),
-                
+
                 // 第二行：作者 + 出版社
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
                   child: _buildInfoCard(
                     label: '作者',
-                    value: _authors.isEmpty 
-                        ? '' 
+                    value: _authors.isEmpty
+                        ? ''
                         : '${_authors.length}人：${_authors.join('、')}',
                     icon: Icons.person_outline,
                     onTap: () => _showMultiValueDialog(
@@ -239,7 +242,7 @@ class _BookFormPageState extends State<BookFormPage> {
                     ),
                   ),
                 ),
-                
+
                 // 第三行：类型 + ISBN
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
@@ -281,21 +284,21 @@ class _BookFormPageState extends State<BookFormPage> {
                     ),
                   ),
                 ),
-                
+
                 // 第四行：出版时间（独占一行）
                 SizedBox(
                   width: double.infinity,
                   height: 90,
                   child: _buildInfoCard(
                     label: '出版时间',
-                    value: _publishDate != null 
-                        ? '${_publishDate!.year}.${_publishDate!.month.toString().padLeft(2, '0')}.${_publishDate!.day.toString().padLeft(2, '0')}' 
+                    value: _publishDate != null
+                        ? '${_publishDate!.year}.${_publishDate!.month.toString().padLeft(2, '0')}.${_publishDate!.day.toString().padLeft(2, '0')}'
                         : '',
                     icon: Icons.date_range_outlined,
                     onTap: () => _selectPublishDate(),
                   ),
                 ),
-                
+
                 // 第五行：书籍简介（独占一行）
                 SizedBox(
                   width: double.infinity,
@@ -316,22 +319,23 @@ class _BookFormPageState extends State<BookFormPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 48),
           ],
         ),
       ),
     );
   }
-  
+
   /// 构建表单条目（标签 + 内容）- 书籍简介使用
   Widget _buildFormItem({required String label, required Widget child}) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)),
         ),
         const SizedBox(height: 8),
         child,
@@ -345,6 +349,7 @@ class _BookFormPageState extends State<BookFormPage> {
     required Widget child,
     bool required = false,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -354,7 +359,7 @@ class _BookFormPageState extends State<BookFormPage> {
             required ? '$label *' : label,
             style: TextStyle(
               fontSize: 13,
-              color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+              color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
               fontWeight: required ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -375,6 +380,7 @@ class _BookFormPageState extends State<BookFormPage> {
     required Function(int) onRemove,
   }) {
     final controller = _getTagController(controllerKey);
+    final colors = Theme.of(context).colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +391,7 @@ class _BookFormPageState extends State<BookFormPage> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
             ),
           ),
         ),
@@ -400,7 +406,7 @@ class _BookFormPageState extends State<BookFormPage> {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
+                    color: colors.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
@@ -408,12 +414,12 @@ class _BookFormPageState extends State<BookFormPage> {
                     children: [
                       Text(
                         entry.value,
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                        style: TextStyle(fontSize: 14, color: colors.onSurface),
                       ),
                       const SizedBox(width: 4),
                       GestureDetector(
                         onTap: () => onRemove(entry.key),
-                        child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                        child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                       ),
                     ],
                   ),
@@ -424,10 +430,10 @@ class _BookFormPageState extends State<BookFormPage> {
                 constraints: const BoxConstraints(minWidth: 80, maxWidth: 120),
                 child: TextField(
                   controller: controller,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                  style: TextStyle(fontSize: 14, color: colors.onSurface),
                   decoration: InputDecoration(
                     hintText: values.isEmpty ? hint : '',
-                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCCCC)),
+                    hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25)),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 6),
@@ -447,7 +453,7 @@ class _BookFormPageState extends State<BookFormPage> {
       ],
     );
   }
-  
+
   /// 构建多值条目
   Widget _buildMultiValueItem({
     required String label,
@@ -458,7 +464,8 @@ class _BookFormPageState extends State<BookFormPage> {
     required Function(int) onRemove,
   }) {
     final controller = _getTagController(controllerKey);
-    
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -467,7 +474,7 @@ class _BookFormPageState extends State<BookFormPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)),
             ),
             const Spacer(),
             // 添加按钮（当输入框有内容时显示）
@@ -489,7 +496,7 @@ class _BookFormPageState extends State<BookFormPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFE5E5E5),
+                        color: hasText ? colors.primary : colors.outline,
                       ),
                     ),
                     child: Row(
@@ -498,14 +505,14 @@ class _BookFormPageState extends State<BookFormPage> {
                         Icon(
                           Icons.add,
                           size: 14,
-                          color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                          color: hasText ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
                         ),
                         const SizedBox(width: 2),
                         Text(
                           '添加',
                           style: TextStyle(
                             fontSize: 12,
-                            color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                            color: hasText ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
                           ),
                         ),
                       ],
@@ -527,20 +534,20 @@ class _BookFormPageState extends State<BookFormPage> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
+                  color: colors.surfaceContainerHighest,
+                  border: Border.all(color: colors.outline),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       entry.value,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                      style: TextStyle(fontSize: 14, color: colors.onSurface),
                     ),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: () => onRemove(entry.key),
-                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],
                 ),
@@ -551,10 +558,10 @@ class _BookFormPageState extends State<BookFormPage> {
               constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
               child: TextField(
                 controller: controller,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                style: TextStyle(fontSize: 14, color: colors.onSurface),
                 decoration: InputDecoration(
                   hintText: values.isEmpty ? hint : '',
-                  hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 5),
@@ -573,7 +580,7 @@ class _BookFormPageState extends State<BookFormPage> {
       ],
     );
   }
-  
+
 
   /// 构建信息卡片（用于网格布局）
   Widget _buildInfoCard({
@@ -586,7 +593,8 @@ class _BookFormPageState extends State<BookFormPage> {
     bool scrollable = false,
   }) {
     final hasValue = value.isNotEmpty;
-      
+    final colors = Theme.of(context).colorScheme;
+
     // 构建值显示部分
     Widget buildContent() {
       if (scrollable && height != null) {
@@ -598,7 +606,7 @@ class _BookFormPageState extends State<BookFormPage> {
               hasValue ? value : '点击填写',
               style: TextStyle(
                 fontSize: 15,
-                color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
                 fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -610,7 +618,7 @@ class _BookFormPageState extends State<BookFormPage> {
           hasValue ? value : '点击填写',
           style: TextStyle(
             fontSize: 15,
-            color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+            color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
             fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
           ),
           maxLines: 1,
@@ -618,19 +626,19 @@ class _BookFormPageState extends State<BookFormPage> {
         );
       }
     }
-      
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: height,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8E8E8)),
+          border: Border.all(color: colors.outline),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: colors.onSurface.withValues(alpha: 0.018),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -644,14 +652,14 @@ class _BookFormPageState extends State<BookFormPage> {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: const Color(0xFF999999)),
+                  Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 6),
                 ],
                 Text(
                   required ? '$label *' : label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+                    color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
                     fontWeight: required ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
@@ -665,20 +673,21 @@ class _BookFormPageState extends State<BookFormPage> {
       ),
     );
   }
-  
+
   /// 构建状态选择器（简洁风格）
   Widget _buildStatusSelector() {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       children: [
-        const Text(
+        Text(
           '状态',
-          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(width: 16),
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0),
+            color: colors.outlineVariant,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -696,11 +705,12 @@ class _BookFormPageState extends State<BookFormPage> {
 
   /// 构建星星评分（支持手动输入）
   Widget _buildStarRating() {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       children: [
-        const Text(
+        Text(
           '评分',
-          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(width: 16),
         // 星星选择
@@ -716,6 +726,7 @@ class _BookFormPageState extends State<BookFormPage> {
   Widget _buildStarSelector() {
     final currentRating = double.tryParse(_ratingController.text) ?? 0;
     final starRating = currentRating / 2;
+    final colors = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -745,7 +756,7 @@ class _BookFormPageState extends State<BookFormPage> {
                 size: 24,
                 color: isFilled || isHalf
                     ? const Color(0xFFFFB800)
-                    : const Color(0xFFE5E5E5),
+                    : colors.outline,
               ),
             ),
           );
@@ -756,27 +767,28 @@ class _BookFormPageState extends State<BookFormPage> {
 
   /// 构建评分输入框（支持0-10，保留1位小数）
   Widget _buildRatingInputField() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: 56,
       height: 32,
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
+        color: colors.outlineVariant,
         borderRadius: BorderRadius.circular(6),
       ),
       child: TextFormField(
         controller: _ratingController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
         ),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: '-',
-          hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         ),
         onChanged: (value) {
           if (value.isNotEmpty) {
@@ -802,12 +814,13 @@ class _BookFormPageState extends State<BookFormPage> {
     required VoidCallback onTap,
     required VoidCallback onClear,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -822,15 +835,15 @@ class _BookFormPageState extends State<BookFormPage> {
                   style: TextStyle(
                     fontSize: 15,
                     color: date != null
-                        ? const Color(0xFF1A1A1A)
-                        : const Color(0xFFCCCCCC),
+                        ? colors.onSurface
+                        : colors.onSurface.withValues(alpha: 0.25),
                   ),
                 ),
               ),
               if (date != null)
                 GestureDetector(
                   onTap: onClear,
-                  child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
+                  child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
                 ),
             ],
           ),
@@ -846,16 +859,7 @@ class _BookFormPageState extends State<BookFormPage> {
       initialDate: _publishDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A1A1A),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => child!,
     );
 
     if (picked != null) {
@@ -866,6 +870,7 @@ class _BookFormPageState extends State<BookFormPage> {
   /// 构建状态选项
   Widget _buildStatusOption(String label, String value) {
     final isSelected = _status == value;
+    final colors = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => setState(() => _status = value),
@@ -873,12 +878,12 @@ class _BookFormPageState extends State<BookFormPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
+          color: isSelected ? colors.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: colors.onSurface.withValues(alpha: 0.03),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -890,7 +895,7 @@ class _BookFormPageState extends State<BookFormPage> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-            color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+            color: isSelected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -900,6 +905,7 @@ class _BookFormPageState extends State<BookFormPage> {
   /// 构建封面选择器
   Widget _buildCoverPicker() {
     final hasCover = _coverPath != null && _coverPath!.isNotEmpty;
+    final colors = Theme.of(context).colorScheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -910,7 +916,7 @@ class _BookFormPageState extends State<BookFormPage> {
             width: 120,
             height: 170,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             clipBehavior: Clip.antiAlias,
@@ -932,7 +938,7 @@ class _BookFormPageState extends State<BookFormPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -941,14 +947,14 @@ class _BookFormPageState extends State<BookFormPage> {
                     Icon(
                       Icons.delete_outline,
                       size: 14,
-                      color: Colors.grey[600],
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '移除封面',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: colors.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -959,89 +965,94 @@ class _BookFormPageState extends State<BookFormPage> {
       ],
     );
   }
-  
+
   Widget _buildCoverPlaceholder() {
-    return const Column(
+    final colors = Theme.of(context).colorScheme;
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
           Icons.image_outlined,
           size: 32,
-          color: Color(0xFFCCCCCC),
+          color: colors.onSurface.withValues(alpha: 0.25),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
           '封面',
           style: TextStyle(
             fontSize: 12,
-            color: Color(0xFFAAAAAA),
+            color: colors.onSurface.withValues(alpha: 0.35),
           ),
         ),
       ],
     );
   }
-  
+
   /// 选择封面
   Future<void> _pickCover() async {
+    final colors = Theme.of(context).colorScheme;
     // 显示选择对话框
     final result = await showModalBottomSheet<int>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 顶部指示条
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0E0E0),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 顶部指示条
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              // 标题
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '添加封面',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+                const SizedBox(height: 20),
+                // 标题
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '添加封面',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // 本地图片选项
-              _buildCoverOption(
-                icon: Icons.photo_library_outlined,
-                title: '从相册选择',
-                onTap: () {
-                  Navigator.pop(context, 0);
-                },
-              ),
-              // 网络链接选项
-              _buildCoverOption(
-                icon: Icons.link_outlined,
-                title: '网络链接',
-                onTap: () {
-                  Navigator.pop(context, 1);
-                },
-              ),
-            ],
+                const SizedBox(height: 16),
+                // 本地图片选项
+                _buildCoverOption(
+                  icon: Icons.photo_library_outlined,
+                  title: '从相册选择',
+                  onTap: () {
+                    Navigator.pop(context, 0);
+                  },
+                ),
+                // 网络链接选项
+                _buildCoverOption(
+                  icon: Icons.link_outlined,
+                  title: '网络链接',
+                  onTap: () {
+                    Navigator.pop(context, 1);
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     if (result == null) return;
@@ -1062,23 +1073,23 @@ class _BookFormPageState extends State<BookFormPage> {
         maxHeight: 1200,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         // 生成文件名
         final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        
+
         // 如果是编辑模式，使用现有书籍ID；如果是新建模式，使用临时ID（保存时会替换）
         final bookId = widget.book?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-        
+
         // 保存到新的路径结构: images/books/{bookId}/{fileName}
         final targetPath = await ImagePathHelper.instance.getBookCoverPath(
-          bookId, 
+          bookId,
           fileName
         );
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-        
+
         await File(pickedFile.path).copy(targetPath);
-        
+
         setState(() => _coverPath = targetPath);
       }
     } catch (e) {
@@ -1091,55 +1102,58 @@ class _BookFormPageState extends State<BookFormPage> {
   /// 从网络链接选择封面
   Future<void> _pickCoverFromUrl() async {
     final urlController = TextEditingController();
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('添加网络图片'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '请输入图片链接地址',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('添加网络图片'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '请输入图片链接地址',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  hintText: 'https://book.doban.com/image.jpg',
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                  border: const UnderlineInputBorder(),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: colors.primary, width: 1.5),
+                  ),
+                ),
+                style: const TextStyle(fontSize: 14),
+                keyboardType: TextInputType.url,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                hintText: 'https://book.doban.com/image.jpg',
-                hintStyle: TextStyle(color: Color(0xFFCCCCCC)),
-                border: UnderlineInputBorder(),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color.fromARGB(255, 58, 49, 49)),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
-                ),
-              ),
-              style: const TextStyle(fontSize: 14),
-              keyboardType: TextInputType.url,
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('确定', style: TextStyle(color: colors.onSurface)),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确定', style: TextStyle(color: Color(0xFF1A1A1A))),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed != true) return;
@@ -1160,7 +1174,7 @@ class _BookFormPageState extends State<BookFormPage> {
           'Referer': 'https://book.douban.com/',
         },
       );
-      
+
       if (response.statusCode != 200) {
         throw Exception('下载失败: HTTP ${response.statusCode}');
       }
@@ -1178,13 +1192,13 @@ class _BookFormPageState extends State<BookFormPage> {
 
       // 生成文件名
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
+
       // 如果是编辑模式，使用现有书籍ID；如果是新建模式，使用临时ID
       final bookId = widget.book?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // 保存到新的路径结构
       final targetPath = await ImagePathHelper.instance.getBookCoverPath(
-        bookId, 
+        bookId,
         fileName
       );
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
@@ -1193,7 +1207,7 @@ class _BookFormPageState extends State<BookFormPage> {
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
       setState(() => _coverPath = targetPath);
-      
+
       if (mounted) {
         ToastUtil.show(context, '添加成功');
       }
@@ -1210,6 +1224,7 @@ class _BookFormPageState extends State<BookFormPage> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -1220,27 +1235,27 @@ class _BookFormPageState extends State<BookFormPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 22,
-                color: const Color(0xFF666666),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(width: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF1A1A1A),
+                color: colors.onSurface,
               ),
             ),
             const Spacer(),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: Color(0xFFCCCCCC),
+              color: colors.onSurface.withValues(alpha: 0.25),
               size: 20,
             ),
           ],
@@ -1248,29 +1263,29 @@ class _BookFormPageState extends State<BookFormPage> {
       ),
     );
   }
-  
+
   /// 保存书籍
   Future<void> _saveBook() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
-    final rating = _ratingController.text.isNotEmpty 
-        ? double.tryParse(_ratingController.text) 
+
+    final rating = _ratingController.text.isNotEmpty
+        ? double.tryParse(_ratingController.text)
         : null;
-    
+
     final now = DateTime.now();
-    
+
     if (widget.book == null) {
       // 生成新的书籍ID
       final newBookId = now.millisecondsSinceEpoch.toString();
-      
+
       // 如果有封面，需要移动到正确的ID目录
       String? finalCoverPath;
       if (_coverPath != null && _coverPath!.isNotEmpty) {
         finalCoverPath = await _moveCoverToNewId(_coverPath!, newBookId);
       }
-      
+
       final newBook = Book(
         id: newBookId,
         title: _titleController.text.trim(),
@@ -1287,7 +1302,7 @@ class _BookFormPageState extends State<BookFormPage> {
         createdAt: now,
         updatedAt: now,
       );
-      
+
       await context.read<AppProvider>().addBook(newBook);
     } else {
       final updatedBook = widget.book!.copyWith(
@@ -1304,17 +1319,17 @@ class _BookFormPageState extends State<BookFormPage> {
         publishDate: _publishDate,
         updatedAt: now,
       );
-      
+
       await context.read<AppProvider>().updateBook(updatedBook);
     }
-    
+
     if (!mounted) return;
-    
+
     ToastUtil.show(context, widget.book == null ? '添加成功' : '更新成功');
-    
+
     Navigator.pop(context);
   }
-  
+
   /// 将封面从临时ID目录移动到新的书籍ID目录
   Future<String?> _moveCoverToNewId(String currentPath, String newBookId) async {
     // 检查是否已经在正确的目录中（兼容 Windows 路径分隔符）
@@ -1322,24 +1337,24 @@ class _BookFormPageState extends State<BookFormPage> {
     if (normalizedPath.contains('/books/$newBookId/')) {
       return currentPath;
     }
-    
+
     // 提取文件名
     final fileName = p.basename(currentPath);
-    
+
     // 获取新路径
     final newPath = await ImagePathHelper.instance.getBookCoverPath(
-      newBookId, 
+      newBookId,
       fileName
     );
-    
+
     // 确保目标目录存在
     await ImagePathHelper.instance.ensureDirExists(p.dirname(newPath));
-    
+
     // 移动文件
     final currentFile = File(currentPath);
     if (await currentFile.exists()) {
       await currentFile.rename(newPath);
-      
+
       // 删除空的临时目录
       final tempDir = Directory(p.dirname(currentPath));
       if (await tempDir.exists()) {
@@ -1349,10 +1364,10 @@ class _BookFormPageState extends State<BookFormPage> {
           // 忽略删除目录失败的情况
         }
       }
-      
+
       return newPath;
     }
-    
+
     return null;
   }
 
@@ -1373,7 +1388,7 @@ class _BookFormPageState extends State<BookFormPage> {
         maxLines: maxLines,
       ),
     );
-    
+
     if (result != null) {
       onConfirm(result);
     }
@@ -1438,8 +1453,9 @@ class _TextInputDialogState extends State<_TextInputDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         widget.title,
@@ -1449,21 +1465,21 @@ class _TextInputDialogState extends State<_TextInputDialog> {
         controller: controller,
         maxLines: widget.maxLines,
         autofocus: true,
-        style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+        style: TextStyle(fontSize: 15, color: colors.onSurface),
         decoration: InputDecoration(
           hintText: widget.hint,
-          hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: BorderSide(color: colors.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: BorderSide(color: colors.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+            borderSide: BorderSide(color: colors.primary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
@@ -1471,13 +1487,13 @@ class _TextInputDialogState extends State<_TextInputDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, controller.text.trim()),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1A1A1A),
-            foregroundColor: Colors.white,
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: const Text('确定'),
@@ -1549,12 +1565,13 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final availableTags = widget.existingTags
         .where((t) => !values.contains(t))
         .toList();
 
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         widget.title,
@@ -1580,9 +1597,9 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                       children: [
                         // 已选择的标签
                         if (values.isNotEmpty) ...[
-                          const Text(
+                          Text(
                             '已选择',
-                            style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
                           ),
                           const SizedBox(height: 8),
                           Wrap(
@@ -1592,7 +1609,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                               return Container(
                                 padding: const EdgeInsets.only(left: 12, right: 6, top: 7, bottom: 7),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1A1A1A),
+                                  color: colors.primary,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
@@ -1600,10 +1617,10 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                   children: [
                                     Text(
                                       v,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.white,
+                                        color: colors.onPrimary,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -1615,10 +1632,10 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                         width: 18,
                                         height: 18,
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.3),
+                                          color: colors.onPrimary.withValues(alpha: 0.3),
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.close, size: 12, color: Colors.white),
+                                        child: Icon(Icons.close, size: 12, color: colors.onPrimary),
                                       ),
                                     ),
                                   ],
@@ -1628,15 +1645,15 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                           ),
                           if (availableTags.isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            const Divider(height: 0.5, color: Color(0xFFEEEEEE)),
+                            Divider(height: 0.5, color: colors.outlineVariant),
                             const SizedBox(height: 16),
                           ],
                         ],
                         // 已有类型
                         if (availableTags.isNotEmpty) ...[
-                          const Text(
+                          Text(
                             '已有类型',
-                            style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
                           ),
                           const SizedBox(height: 8),
                           Wrap(
@@ -1650,24 +1667,24 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F5F5),
+                                    color: colors.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: const Color(0xFFE8E8E8),
+                                      color: colors.outline,
                                       width: 0.5,
                                     ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.add, size: 14, color: Color(0xFF999999)),
+                                      Icon(Icons.add, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                                       const SizedBox(width: 4),
                                       Text(
                                         tag,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFF555555),
+                                          color: colors.onSurface.withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ],
@@ -1684,7 +1701,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
               // 分隔线 + 固定底部输入框
               if (values.isNotEmpty || availableTags.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                const Divider(height: 0.5, color: Color(0xFFEEEEEE)),
+                Divider(height: 0.5, color: colors.outlineVariant),
                 const SizedBox(height: 12),
               ],
               Row(
@@ -1693,21 +1710,21 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                     child: TextField(
                       controller: controller,
                       autofocus: true,
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                      style: TextStyle(fontSize: 15, color: colors.onSurface),
                       decoration: InputDecoration(
                         hintText: widget.hint,
-                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+                        hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: BorderSide(color: colors.outline),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: BorderSide(color: colors.outline),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                          borderSide: BorderSide(color: colors.primary, width: 1.5),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
@@ -1720,10 +1737,10 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
+                        color: colors.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add, size: 20, color: Colors.white),
+                      child: Icon(Icons.add, size: 20, color: colors.onPrimary),
                     ),
                   ),
                 ],
@@ -1735,7 +1752,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
         ),
         ElevatedButton(
           onPressed: () {
@@ -1743,8 +1760,8 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
             Navigator.pop(context, values);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1A1A1A),
-            foregroundColor: Colors.white,
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: const Text('确定'),

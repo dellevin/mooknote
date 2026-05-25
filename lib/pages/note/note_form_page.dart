@@ -59,8 +59,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: GestureDetector(
@@ -73,8 +74,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
             child: TextButton(
               onPressed: _saveNote,
               style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF1A1A1A),
-                foregroundColor: Colors.white,
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -96,9 +97,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 // 顶部信息栏
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+                      bottom: BorderSide(color: colors.outline, width: 0.5),
                     ),
                   ),
                   child: Column(
@@ -110,10 +111,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
                           // 大日号
                           Text(
                             '${_createdAt.day}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.w200,
-                              color: Color(0xFF333333),
+                              color: colors.onSurface.withValues(alpha: 0.75),
                               height: 1.0,
                             ),
                           ),
@@ -125,18 +126,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
                             children: [
                               Text(
                                 '${_createdAt.year}/${_createdAt.month.toString().padLeft(2, '0')} 周${_weekdays[_createdAt.weekday - 1]}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF777777),
+                                  color: colors.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 1),
                               Text(
                                 '${_createdAt.hour.toString().padLeft(2, '0')}:${_createdAt.minute.toString().padLeft(2, '0')}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF999999),
+                                  color: colors.onSurface.withValues(alpha: 0.4),
                                 ),
                               ),
                             ],
@@ -145,9 +146,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
                           // 字数统计
                           Text(
                             '$_charCount 字',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFFAAAAAA),
+                              color: colors.onSurface.withValues(alpha: 0.35),
                             ),
                           ),
                         ],
@@ -208,13 +209,14 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 现代极简底部工具栏
   Widget _buildFloatingToolbar() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEAEAEA), width: 0.5),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -251,7 +253,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           // 视图模式切换
           const SizedBox(width: 8),
           Container(
-            width: 1, height: 20, color: const Color(0xFFE5E5E5),
+            width: 1, height: 20, color: colors.outline,
           ),
           const SizedBox(width: 8),
           _modeSwitch(Icons.edit, 'edit'),
@@ -262,6 +264,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Widget _toolBtn(IconData icon, String tooltip, VoidCallback onTap) {
+    final colors = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -271,7 +274,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           message: tooltip,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-            child: Icon(icon, size: 21, color: const Color(0xFF555555)),
+            child: Icon(icon, size: 21, color: colors.onSurface.withValues(alpha: 0.7)),
           ),
         ),
       ),
@@ -279,16 +282,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Widget _toolGap() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6),
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: SizedBox(
         height: 18,
-        child: VerticalDivider(width: 0, thickness: 0.5, color: Color(0xFFE0E0E0)),
+        child: VerticalDivider(width: 0, thickness: 0.5, color: colors.outline),
       ),
     );
   }
 
   Widget _modeSwitch(IconData icon, String mode) {
+    final colors = Theme.of(context).colorScheme;
     final active = _editorMode == mode;
     return Material(
       color: Colors.transparent,
@@ -298,13 +303,13 @@ class _NoteFormPageState extends State<NoteFormPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFF1A1A1A) : Colors.transparent,
+            color: active ? colors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: active ? Colors.white : const Color(0xFFAAAAAA),
+            color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -374,6 +379,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 编辑器
   Widget _buildEditor() {
+    final colors = Theme.of(context).colorScheme;
     return TextField(
       controller: _contentController,
       maxLines: null,
@@ -384,40 +390,41 @@ class _NoteFormPageState extends State<NoteFormPage> {
         height: 1.6,
         fontSize: 16,
       ),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
-        color: Color(0xFF1A1A1A),
+        color: colors.onSurface,
         height: 1.6,
       ),
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: '使用 Markdown 格式书写...',
         hintStyle: TextStyle(
           fontSize: 16,
-          color: Color(0xFFCCCCCC),
+          color: colors.onSurface.withValues(alpha: 0.25),
           height: 1.6,
         ),
         border: InputBorder.none,
         focusedBorder: InputBorder.none,
-        contentPadding: EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.all(16),
       ),
     );
   }
 
   /// 实时 Markdown 预览（点击回到编辑）
   Widget _buildPreview() {
+    final colors = Theme.of(context).colorScheme;
     final text = _contentController.text;
     return GestureDetector(
       onTap: () => setState(() => _editorMode = 'edit'),
       behavior: HitTestBehavior.opaque,
       child: Container(
-      color: const Color(0xFFFAFAFA),
+      color: colors.surfaceContainerHigh,
       child: text.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 '预览区域',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFFCCCCCC),
+                  color: colors.onSurface.withValues(alpha: 0.25),
                 ),
               ),
             )
@@ -426,45 +433,45 @@ class _NoteFormPageState extends State<NoteFormPage> {
               selectable: true,
               padding: const EdgeInsets.all(16),
               styleSheet: MarkdownStyleSheet(
-                h1: const TextStyle(
+                h1: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                   height: 1.4,
                 ),
-                h2: const TextStyle(
+                h2: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                   height: 1.4,
                 ),
-                h3: const TextStyle(
+                h3: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                   height: 1.4,
                 ),
-                p: const TextStyle(
+                p: TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF333333),
+                  color: colors.onSurface.withValues(alpha: 0.75),
                   height: 1.7,
                 ),
-                code: const TextStyle(
+                code: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF1A1A1A),
-                  backgroundColor: Color(0xFFF0F0F0),
+                  color: colors.onSurface,
+                  backgroundColor: colors.outlineVariant,
                 ),
                 codeblockDecoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
+                  color: colors.outlineVariant,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                blockquote: const TextStyle(
+                blockquote: TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF666666),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
-                blockquoteDecoration: const BoxDecoration(
+                blockquoteDecoration: BoxDecoration(
                   border: Border(
-                    left: BorderSide(color: Color(0xFFCCCCCC), width: 3),
+                    left: BorderSide(color: colors.onSurface.withValues(alpha: 0.25), width: 3),
                   ),
                 ),
               ),
@@ -494,10 +501,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Widget _buildTagChip(int index) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -505,12 +513,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
         children: [
           Text(
             _tags[index],
-            style: const TextStyle(fontSize: 11, color: Color(0xFF666666)),
+            style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6)),
           ),
           const SizedBox(width: 3),
           GestureDetector(
             onTap: () => setState(() => _tags.removeAt(index)),
-            child: const Icon(Icons.close, size: 10, color: Color(0xFFBBBBBB)),
+            child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3)),
           ),
         ],
       ),
@@ -518,20 +526,21 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Widget _buildAddTagButton() {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: _showAddTagDialog,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
+          border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, size: 12, color: Color(0xFFAAAAAA)),
-            SizedBox(width: 2),
-            Text('标签', style: TextStyle(fontSize: 11, color: Color(0xFFAAAAAA))),
+            Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+            const SizedBox(width: 2),
+            Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
           ],
         ),
       ),
@@ -550,18 +559,20 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
+      builder: (ctx) {
+        final colors = Theme.of(context).colorScheme;
+        return StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-        title: const Text(
+        title: Text(
           '添加标签',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
+            color: colors.onSurface,
           ),
         ),
         contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -575,13 +586,13 @@ class _NoteFormPageState extends State<NoteFormPage> {
               TextField(
                 controller: controller,
                 autofocus: true,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                cursorColor: const Color(0xFF1A1A1A),
+                style: TextStyle(fontSize: 14, color: colors.onSurface),
+                cursorColor: colors.primary,
                 decoration: InputDecoration(
                   hintText: '输入新标签名称',
-                  hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFBBBBBB)),
+                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                   filled: true,
-                  fillColor: const Color(0xFFF8F8F8),
+                  fillColor: colors.surfaceContainerHigh,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -593,11 +604,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
+                    borderSide: BorderSide(color: colors.primary, width: 1),
                   ),
                   suffixIcon: controller.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 16, color: Color(0xFFAAAAAA)),
+                          icon: Icon(Icons.clear, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
                           onPressed: () => controller.clear(),
                         )
                       : null,
@@ -613,11 +624,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
               // 已有标签列表
               if (availableTags.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   '或选择已有标签',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFFAAAAAA),
+                    color: colors.onSurface.withValues(alpha: 0.35),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -637,15 +648,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
+                              color: colors.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                              border: Border.all(color: colors.outline, width: 0.5),
                             ),
                             child: Text(
                               tag,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFF555555),
+                                color: colors.onSurface.withValues(alpha: 0.7),
                               ),
                             ),
                           ),
@@ -673,7 +684,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF999999),
+              foregroundColor: colors.onSurface.withValues(alpha: 0.4),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: const Text('取消', style: TextStyle(fontSize: 14)),
@@ -684,8 +695,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1A),
-              foregroundColor: Colors.white,
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -695,10 +706,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
         ],
         actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         ),
-      ),
+      );
+      },
     );
   }
-  
+
   /// 获取所有已有标签（从所有笔记中收集）
   List<String> _getAllExistingTags(AppProvider provider) {
     final allTags = <String>{};
@@ -717,6 +729,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Widget _buildAppBarTitle() {
+    final colors = Theme.of(context).colorScheme;
     final base = _isEditing ? '编辑笔记' : '新建笔记';
     final t = _titleController.text.trim();
     if (t.isEmpty) {
@@ -725,7 +738,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         children: [
           Text(base),
           const SizedBox(width: 6),
-          const Icon(Icons.edit, size: 14, color: Color(0xFF999999)),
+          Icon(Icons.edit, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
         ],
       );
     }
@@ -738,8 +751,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
     final controller = TextEditingController(text: _titleController.text);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
@@ -749,23 +764,23 @@ class _NoteFormPageState extends State<NoteFormPage> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(fontSize: 16, color: Color(0xFF1A1A1A)),
+          style: TextStyle(fontSize: 16, color: colors.onSurface),
           decoration: InputDecoration(
             hintText: '输入标题...',
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
             filled: true,
-            fillColor: const Color(0xFFFAFAFA),
+            fillColor: colors.surfaceContainerHigh,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+              borderSide: BorderSide(color: colors.outline, width: 0.5),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+              borderSide: BorderSide(color: colors.outline, width: 0.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1),
+              borderSide: BorderSide(color: colors.primary, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -778,7 +793,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
             ),
             child: const Text('取消'),
           ),
@@ -788,8 +803,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1A),
-              foregroundColor: Colors.white,
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -797,7 +812,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
+      );
+      },
     );
   }
 
@@ -826,7 +842,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     } else {
       // 添加新笔记 - 先创建笔记获取ID
       final noteId = now.millisecondsSinceEpoch.toString();
-      
+
       // 如果有图片，需要移动到正确的ID目录
       List<String> finalImages = [];
       if (_images.isNotEmpty) {
@@ -835,7 +851,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         final newNoteId = noteId;
         finalImages = await _moveImagesToNewId(oldNoteId, newNoteId);
       }
-      
+
       final title = _titleController.text.trim();
 
       final newNote = Note(
@@ -856,17 +872,17 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     // 刷新笔记列表
     await context.read<AppProvider>().loadNotes();
-    
+
     if (!mounted) return;
     Navigator.pop(context);
   }
-  
+
   /// 将图片从临时ID目录移动到新ID目录
   Future<List<String>> _moveImagesToNewId(String oldNoteId, String newNoteId) async {
     final List<String> newPaths = [];
-    
+
     final newDir = await ImagePathHelper.instance.getNoteImagesDir(newNoteId);
-    
+
     for (final imagePath in _images) {
       // 使用路径分隔符检查，兼容 Windows 和 Unix
       final normalizedPath = imagePath.replaceAll('\\', '/');
@@ -874,9 +890,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
         // 需要移动的文件
         final fileName = p.basename(imagePath);
         final newPath = p.join(newDir, fileName);
-        
+
         await ImagePathHelper.instance.ensureDirExists(newDir);
-        
+
         // 检查源文件是否存在
         final sourceFile = File(imagePath);
         if (await sourceFile.exists()) {
@@ -888,14 +904,14 @@ class _NoteFormPageState extends State<NoteFormPage> {
         newPaths.add(imagePath);
       }
     }
-    
+
     // 删除旧目录
     try {
       await ImagePathHelper.instance.deleteNoteImages(oldNoteId);
     } catch (e) {
       // 忽略删除失败
     }
-    
+
     return newPaths;
   }
 
@@ -908,11 +924,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
         maxHeight: 1920,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         // 生成唯一的文件名
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        
+
         // 如果是编辑模式，使用现有笔记ID；如果是新建模式，使用临时ID（保存时会替换）
         String noteId;
         if (_isEditing) {
@@ -922,14 +938,14 @@ class _NoteFormPageState extends State<NoteFormPage> {
           noteId = _tempNoteId ?? DateTime.now().millisecondsSinceEpoch.toString();
           _tempNoteId = noteId;
         }
-        
+
         // 复制图片到应用目录: images/notes/{noteId}/{fileName}
         final targetDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
         await ImagePathHelper.instance.ensureDirExists(targetDir);
         final targetPath = p.join(targetDir, fileName);
-        
+
         await File(image.path).copy(targetPath);
-        
+
         setState(() => _images.add(targetPath));
       }
     } catch (e) {
@@ -939,11 +955,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 构建图片横向滚动行
   Widget _buildImageRow() {
+    final colors = Theme.of(context).colorScheme;
     if (_images.isEmpty) {
       return Container(
         height: 80,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: colors.surface,
         ),
         child: ListView(
           scrollDirection: Axis.horizontal,
@@ -958,7 +975,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     return Container(
       height: 88,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -984,6 +1001,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 添加图片按钮
   Widget _buildAddImageButton() {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: _pickImage,
       borderRadius: BorderRadius.circular(12),
@@ -992,13 +1010,13 @@ class _NoteFormPageState extends State<NoteFormPage> {
         height: 64,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: const Color(0xFFF8F8F8),
-          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+          color: colors.surfaceContainerHigh,
+          border: Border.all(color: colors.outline, width: 0.5),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.add_photo_alternate_outlined,
           size: 24,
-          color: Color(0xFFBBBBBB),
+          color: colors.onSurface.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -1006,6 +1024,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 构建图片项
   Widget _buildImageItem(int index) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => _showImagePreview(index),
       onLongPress: () => _showDeleteImageDialog(index),
@@ -1015,7 +1034,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         height: 64,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+          border: Border.all(color: colors.outline, width: 0.5),
         ),
         clipBehavior: Clip.antiAlias,
         child: Image.file(
@@ -1056,8 +1075,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void _showDeleteImageDialog(int index) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
@@ -1067,11 +1088,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        content: const Text(
+        content: Text(
           '确定要删除这张图片吗？此操作不可恢复。',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF666666),
+            color: colors.onSurface.withValues(alpha: 0.6),
             height: 1.5,
           ),
         ),
@@ -1079,7 +1100,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: const Text('取消'),
@@ -1090,8 +1111,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1102,7 +1123,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
+      );
+      },
     );
   }
 }

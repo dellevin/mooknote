@@ -50,8 +50,9 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(_isEditing ? '编辑摘抄' : '添加摘抄'),
         actions: [
@@ -63,10 +64,10 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
+                : Text(
                     '保存',
                     style: TextStyle(
-                      color: Color(0xFF1A1A1A),
+                      color: colors.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -82,15 +83,15 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
             // 章节
             TextFormField(
               controller: _chapterController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '章节（可选）',
                 hintText: '例如：第一章、第3节等',
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.zero,
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
+                  borderSide: BorderSide(color: colors.primary),
                 ),
               ),
             ),
@@ -101,16 +102,16 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
             TextFormField(
               controller: _contentController,
               maxLines: 8,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '摘抄内容',
                 hintText: '输入你想要摘抄的内容...',
                 alignLabelWithHint: true,
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.zero,
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
+                  borderSide: BorderSide(color: colors.primary),
                 ),
               ),
               validator: (value) {
@@ -127,16 +128,16 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
             TextFormField(
               controller: _commentController,
               maxLines: 5,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '我的感悟（可选）',
                 hintText: '记录你对这段内容的思考和感悟...',
                 alignLabelWithHint: true,
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.zero,
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
+                  borderSide: BorderSide(color: colors.primary),
                 ),
               ),
             ),
@@ -185,4 +186,3 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
     }
   }
 }
-

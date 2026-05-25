@@ -49,7 +49,7 @@ class _DeletedItem {
 
 class _RecycleBinPageState extends State<RecycleBinPage> {
   List<_DeletedItem> _allItems = [];
-  _ItemType? _filterType; // null = 全部
+  _ItemType? _filterType;
   bool _isLoading = true;
 
   List<_DeletedItem> get _filteredItems =>
@@ -80,8 +80,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('回收站'),
         actions: [
@@ -91,12 +92,12 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
               child: TextButton(
                 onPressed: _showClearAllDialog,
                 style: TextButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: colors.surface,
                   foregroundColor: Colors.red,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: const BorderSide(color: Color(0xFFFFDDDD), width: 0.5),
+                    side: BorderSide(color: colors.error.withValues(alpha: 0.15), width: 0.5),
                   ),
                   minimumSize: Size.zero,
                 ),
@@ -106,12 +107,10 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1A1A)))
+          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
           : Column(
               children: [
-                // 筛选标签行
                 if (_allItems.isNotEmpty) _buildFilterRow(),
-                // 列表
                 Expanded(
                   child: _filteredItems.isEmpty
                       ? _buildEmptyState()
@@ -130,11 +129,12 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Widget _buildFilterRow() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE), width: 0.5)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
       ),
       child: Wrap(
         spacing: 8,
@@ -149,6 +149,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Widget _filterChip(String label, _ItemType? type) {
+    final colors = Theme.of(context).colorScheme;
     final active = _filterType == type;
     final count = type == null ? _allItems.length : _allItems.where((i) => i.type == type).length;
     return GestureDetector(
@@ -156,7 +157,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+          color: active ? colors.primary : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
@@ -164,7 +165,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: active ? Colors.white : const Color(0xFF888888),
+            color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
           ),
         ),
       ),
@@ -172,6 +173,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Widget _buildCard(_DeletedItem item) {
+    final colors = Theme.of(context).colorScheme;
     return Dismissible(
       key: Key('${item.type.name}_${item.id}'),
       direction: DismissDirection.endToStart,
@@ -181,9 +183,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFAFA),
+          color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+          border: Border.all(color: colors.outlineVariant, width: 0.5),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -193,11 +195,11 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFEEEEEE), width: 0.5),
+                  border: Border.all(color: colors.outlineVariant, width: 0.5),
                 ),
-                child: Icon(item.icon, size: 20, color: const Color(0xFF888888)),
+                child: Icon(item.icon, size: 20, color: colors.onSurface.withValues(alpha: 0.5)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -210,7 +212,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                         Expanded(
                           child: Text(
                             item.title,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A), height: 1.3),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface, height: 1.3),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -219,13 +221,13 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colors.surface,
                             borderRadius: BorderRadius.circular(3),
-                            border: Border.all(color: const Color(0xFFE8E8E8), width: 0.5),
+                            border: Border.all(color: colors.outlineVariant, width: 0.5),
                           ),
                           child: Text(
                             item.typeLabel,
-                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Color(0xFF999999)),
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4)),
                           ),
                         ),
                       ],
@@ -233,15 +235,15 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                     const SizedBox(height: 3),
                     Text(
                       item.subtitle,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
+                      style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              _actionBtn(Icons.restore, '恢复', const Color(0xFF1A1A1A), () => _restore(item)),
+              _actionBtn(Icons.restore, '恢复', colors.primary, () => _restore(item)),
               const SizedBox(width: 6),
-              _actionBtn(Icons.delete_outline, '删除', Colors.red, () => _permanentDelete(item)),
+              _actionBtn(Icons.delete_outline, '删除', colors.error, () => _permanentDelete(item)),
             ],
           ),
         ),
@@ -263,6 +265,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Widget _actionBtn(IconData icon, String tooltip, Color color, VoidCallback onTap) {
+    final colors = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -274,9 +277,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.surface,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFEEEEEE), width: 0.5),
+              border: Border.all(color: colors.outlineVariant, width: 0.5),
             ),
             child: Icon(icon, size: 16, color: color),
           ),
@@ -286,6 +289,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Widget _buildEmptyState() {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -294,18 +298,18 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
+              color: colors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(Icons.delete_outline, size: 32, color: Color(0xFFD5D5D5)),
+            child: Icon(Icons.delete_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.15)),
           ),
           const SizedBox(height: 16),
           Text(
             _filterType == null ? '回收站是空的' : '没有删除的项目',
-            style: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
           ),
           const SizedBox(height: 4),
-          const Text('删除的项目会显示在这里', style: TextStyle(fontSize: 12, color: Color(0xFFCCCCCC))),
+          Text('删除的项目会显示在这里', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
         ],
       ),
     );
@@ -344,25 +348,26 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Future<bool> _showConfirmDialog(String message) async {
+    final colors = Theme.of(context).colorScheme;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        content: Text(message, style: const TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5)),
+        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text(message, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF666666)),
+            style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6)),
             child: const Text('取消'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -377,27 +382,28 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
 
   void _showClearAllDialog() {
     final pageContext = context;
+    final colors = Theme.of(pageContext).colorScheme;
     showDialog(
       context: pageContext,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
-            SizedBox(width: 8),
-            Text('清空回收站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
+            const SizedBox(width: 8),
+            Text('清空回收站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ],
         ),
-        content: const Text(
+        content: Text(
           '确定要清空回收站吗？所有项目将被彻底删除，此操作不可恢复。',
-          style: TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5),
+          style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF666666)),
+            style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6)),
             child: const Text('取消'),
           ),
           ElevatedButton(
@@ -408,8 +414,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
               if (mounted) ToastUtil.show(pageContext, '回收站已清空');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),

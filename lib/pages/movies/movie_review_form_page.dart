@@ -46,10 +46,11 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final isEdit = widget.review != null;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(isEdit ? '编辑影评' : '写影评'),
         actions: [
@@ -73,24 +74,24 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
             // 顶部信息栏
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+                  bottom: BorderSide(color: colors.outline, width: 0.5),
                 ),
               ),
               child: Row(
                 children: [
                   // 类型选择
-                  _buildTypeSelector(),
+                  _buildTypeSelector(colors),
                   const SizedBox(width: 16),
                   // 评论人
                   Expanded(
                     child: TextField(
                       controller: _reviewerController,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                      decoration: const InputDecoration(
+                      style: TextStyle(fontSize: 14, color: colors.onSurface),
+                      decoration: InputDecoration(
                         hintText: '评论人',
-                        hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                        hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
@@ -103,10 +104,10 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                     width: 100,
                     child: TextField(
                       controller: _sourceController,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                      decoration: const InputDecoration(
+                      style: TextStyle(fontSize: 14, color: colors.onSurface),
+                      decoration: InputDecoration(
                         hintText: '来源',
-                        hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                        hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
@@ -116,7 +117,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                 ],
               ),
             ),
-            
+
             // 评论内容区域
             Expanded(
               child: TextFormField(
@@ -124,19 +125,19 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                   height: 1.7,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: '写下你的影评...',
                   hintStyle: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFFCCCCCC),
+                    color: colors.onSurface.withValues(alpha: 0.25),
                   ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
+                  contentPadding: const EdgeInsets.all(16),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -153,29 +154,29 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   }
 
   /// 构建类型选择器
-  Widget _buildTypeSelector() {
+  Widget _buildTypeSelector(ColorScheme colors) {
     return GestureDetector(
       onTap: () => _showTypeSelector(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          border: Border.all(color: colors.outline),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _reviewType == 1 ? '短评' : '长评',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF666666),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.arrow_drop_down,
               size: 16,
-              color: Color(0xFF999999),
+              color: colors.onSurface.withValues(alpha: 0.4),
             ),
           ],
         ),
@@ -187,36 +188,42 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   void _showTypeSelector() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('短评'),
-              trailing: _reviewType == 1
-                  ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
-                  : null,
-              onTap: () {
-                setState(() => _reviewType = 1);
-                Navigator.pop(context);
-              },
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return Container(
+          color: colors.surface,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('短评'),
+                  trailing: _reviewType == 1
+                      ? Icon(Icons.check, color: colors.onSurface)
+                      : null,
+                  onTap: () {
+                    setState(() => _reviewType = 1);
+                    Navigator.pop(context);
+                  },
+                ),
+                Divider(height: 0.5, color: colors.outline),
+                ListTile(
+                  title: const Text('长评'),
+                  trailing: _reviewType == 2
+                      ? Icon(Icons.check, color: colors.onSurface)
+                      : null,
+                  onTap: () {
+                    setState(() => _reviewType = 2);
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
             ),
-            const Divider(height: 0.5),
-            ListTile(
-              title: const Text('长评'),
-              trailing: _reviewType == 2
-                  ? const Icon(Icons.check, color: Color(0xFF1A1A1A))
-                  : null,
-              onTap: () {
-                setState(() => _reviewType = 2);
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

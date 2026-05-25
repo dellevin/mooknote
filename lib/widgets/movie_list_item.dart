@@ -15,6 +15,7 @@ class MovieListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () {
         Navigator.pushNamed(context, '/movie-detail', arguments: movie);
@@ -23,28 +24,21 @@ class MovieListItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 海报
           Expanded(
-            child: _buildPoster(),
+            child: _buildPoster(colors),
           ),
-
           const SizedBox(height: 8),
-
-          // 影视名称
           Text(
             movie.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF1A1A1A),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-
           const SizedBox(height: 4),
-
-          // 评分
           if (movie.rating != null)
             AnimatedStarRating(rating: movie.rating!, starSize: 12, showNumber: true)
           else
@@ -53,45 +47,45 @@ class MovieListItem extends StatelessWidget {
       ),
     );
   }
-  
-  /// 构建海报
-  Widget _buildPoster() {
+
+  Widget _buildPoster(ColorScheme colors) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E5E5), width: 0.5),
+        border: Border.all(color: colors.outline, width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: FadeInLocalImage(
         path: movie.posterPath,
         fit: BoxFit.cover,
-        placeholder: const Center(child: Icon(Icons.movie_outlined, size: 24, color: Color(0xFFCCCCCC))),
-        errorWidget: const Center(child: Icon(Icons.movie_outlined, size: 24, color: Color(0xFFCCCCCC))),
+        placeholder: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }
-  
-  /// 显示删除确认对话框
+
   void _showDeleteDialog(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
+        title: Text(
           '确认删除',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
+            color: colors.onSurface,
           ),
         ),
         content: Text(
           '确定要删除《${movie.title}》吗？删除后可在回收站恢复。',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF666666),
+            color: colors.onSurface.withValues(alpha: 0.6),
             height: 1.5,
           ),
         ),
@@ -99,7 +93,7 @@ class MovieListItem extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: const Text('取消'),
@@ -111,8 +105,8 @@ class MovieListItem extends StatelessWidget {
               ToastUtil.show(context, '已删除');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

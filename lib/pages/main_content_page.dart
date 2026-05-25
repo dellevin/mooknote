@@ -31,7 +31,6 @@ class _MainContentPageState extends State<MainContentPage> {
     _loadTabSettings();
   }
 
-  /// 加载标签显示设置
   void _loadTabSettings() {
     setState(() {
       _showMovieTab = _userPrefs.showMovieTab;
@@ -43,11 +42,9 @@ class _MainContentPageState extends State<MainContentPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 当页面重新获得焦点时刷新设置
     _loadTabSettings();
   }
 
-  /// 获取启用的标签列表
   List<_TabItem> get _enabledTabs {
     final tabs = <_TabItem>[];
     if (_showMovieTab) tabs.add(_TabItem('影视', 0));
@@ -56,7 +53,6 @@ class _MainContentPageState extends State<MainContentPage> {
     return tabs;
   }
 
-  /// 将原始索引映射到启用标签的索引
   int _mapToEnabledTabIndex(int originalIndex) {
     final tabs = _enabledTabs;
     for (int i = 0; i < tabs.length; i++) {
@@ -69,13 +65,8 @@ class _MainContentPageState extends State<MainContentPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 顶部 AppBar
         _buildAppBar(context),
-        
-        // 三个标签页的标题栏
         _buildTabBar(context),
-        
-        // 标签页内容
         Expanded(
           child: _buildTabContent(),
         ),
@@ -83,16 +74,13 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 构建顶部 AppBar
   Widget _buildAppBar(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return AppBar(
           title: Text(_getAppBarTitle(provider)),
           actions: [
-            // 云备份按钮
             _buildCloudSyncButton(context),
-            // 搜索按钮
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: () {
@@ -110,8 +98,8 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 构建云备份按钮
   Widget _buildCloudSyncButton(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return PopupMenuButton<String>(
       icon: const Icon(Icons.cloud_sync_outlined),
       tooltip: '云备份',
@@ -128,21 +116,21 @@ class _MainContentPageState extends State<MainContentPage> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: colors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.cloud_upload_outlined,
                   size: 18,
-                  color: Color(0xFF666666),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '上传数据',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                 ),
               ),
             ],
@@ -156,21 +144,21 @@ class _MainContentPageState extends State<MainContentPage> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: colors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.cloud_download_outlined,
                   size: 18,
-                  color: Color(0xFF666666),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '下载数据',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                 ),
               ),
             ],
@@ -185,21 +173,21 @@ class _MainContentPageState extends State<MainContentPage> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: colors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.settings_outlined,
                   size: 18,
-                  color: Color(0xFF666666),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'WebDAV设置',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.onSurface,
                 ),
               ),
             ],
@@ -227,9 +215,8 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 执行同步操作
   Future<void> _performSync(BuildContext context, SyncDirection direction) async {
-    // 检查是否已配置
+    final colors = Theme.of(context).colorScheme;
     final config = await WebDAVService.instance.getConfig();
     if (config == null) {
       if (context.mounted) {
@@ -243,28 +230,24 @@ class _MainContentPageState extends State<MainContentPage> {
       return;
     }
 
-    // 显示加载对话框
     if (context.mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
+        builder: (context) => Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF1A1A1A),
+            color: colors.primary,
           ),
         ),
       );
     }
 
-    // 执行同步
     final result = await WebDAVService.instance.syncData(direction: direction);
 
-    // 关闭加载对话框
     if (context.mounted) {
       Navigator.pop(context);
     }
 
-    // 下载了数据则刷新界面
     if (result.success && result.needReload && context.mounted) {
       final provider = context.read<AppProvider>();
       await provider.loadMovies();
@@ -272,11 +255,10 @@ class _MainContentPageState extends State<MainContentPage> {
       await provider.loadNotes();
     }
 
-    // 显示结果
     if (context.mounted) {
       final isSuccess = result.success;
       final message = result.message.isNotEmpty ? result.message : (isSuccess ? '同步成功' : '同步失败');
-      
+
       _showResultDialog(
         context,
         title: isSuccess ? '同步成功' : '同步失败',
@@ -290,7 +272,6 @@ class _MainContentPageState extends State<MainContentPage> {
     }
   }
 
-  /// 显示同步结果对话框
   void _showResultDialog(
     BuildContext context, {
     required String title,
@@ -298,10 +279,11 @@ class _MainContentPageState extends State<MainContentPage> {
     required bool isSuccess,
     Map<String, dynamic>? details,
   }) {
+    final colors = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Row(
@@ -322,9 +304,10 @@ class _MainContentPageState extends State<MainContentPage> {
             const SizedBox(width: 12),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
+                color: colors.onSurface,
               ),
             ),
           ],
@@ -335,9 +318,9 @@ class _MainContentPageState extends State<MainContentPage> {
           children: [
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF666666),
+                color: colors.onSurface.withValues(alpha: 0.6),
                 height: 1.5,
               ),
             ),
@@ -346,7 +329,7 @@ class _MainContentPageState extends State<MainContentPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: colors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -370,8 +353,8 @@ class _MainContentPageState extends State<MainContentPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1A),
-              foregroundColor: Colors.white,
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -386,8 +369,8 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 构建详情行
   Widget _buildDetailRow(String label, String value, {bool isError = false}) {
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -395,9 +378,9 @@ class _MainContentPageState extends State<MainContentPage> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF999999),
+              color: colors.onSurface.withValues(alpha: 0.4),
             ),
           ),
           Text(
@@ -405,7 +388,7 @@ class _MainContentPageState extends State<MainContentPage> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isError ? const Color(0xFFE57373) : const Color(0xFF1A1A1A),
+              color: isError ? const Color(0xFFE57373) : colors.onSurface,
             ),
           ),
         ],
@@ -413,7 +396,6 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 获取 AppBar 标题
   String _getAppBarTitle(AppProvider provider) {
     switch (provider.mainTabIndex) {
       case 0:
@@ -440,17 +422,17 @@ class _MainContentPageState extends State<MainContentPage> {
     }
   }
 
-  /// 构建标签栏
   Widget _buildTabBar(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        final colors = Theme.of(context).colorScheme;
         final tabs = _enabledTabs;
         final currentEnabledIndex = _mapToEnabledTabIndex(provider.mainTabIndex);
         final safeIndex = currentEnabledIndex < tabs.length ? currentEnabledIndex : 0;
 
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colors.surface,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -474,7 +456,7 @@ class _MainContentPageState extends State<MainContentPage> {
                               Icon(
                                 _getTabIcon(tab.label),
                                 size: 22,
-                                color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFB0B0B0),
+                                color: isSelected ? colors.primary : colors.onSurface.withValues(alpha: 0.35),
                               ),
                               const SizedBox(height: 6),
                               Text(
@@ -482,7 +464,7 @@ class _MainContentPageState extends State<MainContentPage> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                  color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFB0B0B0),
+                                  color: isSelected ? colors.primary : colors.onSurface.withValues(alpha: 0.35),
                                 ),
                               ),
                             ],
@@ -513,7 +495,7 @@ class _MainContentPageState extends State<MainContentPage> {
                               width: indicatorWidth,
                               height: 3,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1A1A1A),
+                                color: colors.primary,
                                 borderRadius: BorderRadius.circular(1.5),
                               ),
                             ),
@@ -524,7 +506,7 @@ class _MainContentPageState extends State<MainContentPage> {
                   },
                 ),
               ),
-              const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5)),
+              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
             ],
           ),
         );
@@ -532,12 +514,10 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 构建标签页内容
   Widget _buildTabContent() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final tabs = _enabledTabs;
-        // 找到当前应该显示的标签
         _TabItem? currentTab;
         for (final tab in tabs) {
           if (tab.originalIndex == provider.mainTabIndex) {
@@ -545,10 +525,8 @@ class _MainContentPageState extends State<MainContentPage> {
             break;
           }
         }
-        // 如果当前标签被禁用了，显示第一个启用的标签
         if (currentTab == null && tabs.isNotEmpty) {
           currentTab = tabs.first;
-          // 更新 provider 的索引
           WidgetsBinding.instance.addPostFrameCallback((_) {
             provider.setMainTabIndex(currentTab!.originalIndex);
           });
@@ -572,22 +550,21 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  /// 显示添加对话框
   void _showAddDialog(BuildContext context, AppProvider provider) {
+    final colors = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       builder: (BuildContext context) {
         return SafeArea(
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.movie, color: Color(0xFF1A1A1A)),
+                leading: Icon(Icons.movie, color: colors.onSurface),
                 title: const Text('添加观影'),
                 onTap: () {
                   Navigator.pop(context);
-                  // 根据当前影视标签页的选中状态设置默认值
                   final statusMap = {
                     0: 'watched',
                     1: 'watching',
@@ -601,13 +578,12 @@ class _MainContentPageState extends State<MainContentPage> {
                   );
                 },
               ),
-              const Divider(height: 0.5, indent: 56),
+              Divider(height: 0.5, indent: 56, color: colors.outlineVariant),
               ListTile(
-                leading: const Icon(Icons.menu_book, color: Color(0xFF1A1A1A)),
+                leading: Icon(Icons.menu_book, color: colors.onSurface),
                 title: const Text('添加阅读'),
                 onTap: () {
                   Navigator.pop(context);
-                  // 根据当前阅读标签页的选中状态设置默认值
                   final statusMap = {
                     0: 'read',
                     1: 'reading',
@@ -621,9 +597,9 @@ class _MainContentPageState extends State<MainContentPage> {
                   );
                 },
               ),
-              const Divider(height: 0.5, indent: 56),
+              Divider(height: 0.5, indent: 56, color: colors.outlineVariant),
               ListTile(
-                leading: const Icon(Icons.note, color: Color(0xFF1A1A1A)),
+                leading: Icon(Icons.note, color: colors.onSurface),
                 title: const Text('添加笔记'),
                 onTap: () {
                   Navigator.pop(context);
@@ -638,7 +614,6 @@ class _MainContentPageState extends State<MainContentPage> {
   }
 }
 
-/// 标签项数据类
 class _TabItem {
   final String label;
   final int originalIndex;

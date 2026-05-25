@@ -23,7 +23,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
 
-  int _layoutStyle = 0; // 0: 列表, 1: 瀑布流, 2: 时间线
+  int _layoutStyle = 0;
   bool _firstLoad = true;
 
   @override
@@ -110,7 +110,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 笔记内容
         Expanded(
           child: Consumer<AppProvider>(
             builder: (context, provider, child) {
@@ -122,10 +121,11 @@ class _NoteTabPageState extends State<NoteTabPage> {
               }
 
               if (allNotes.isEmpty && _displayedNotes.isEmpty) {
+                final colors = Theme.of(context).colorScheme;
                 return RefreshIndicator(
                   onRefresh: _refresh,
-                  color: const Color(0xFF1A1A1A),
-                  backgroundColor: Colors.white,
+                  color: colors.primary,
+                  backgroundColor: colors.surface,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [_buildEmptyState(context)],
@@ -159,6 +159,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   }
 
   Widget _buildWaterfallSkeleton() {
+    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
       child: Row(
@@ -168,7 +169,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
             children: List.generate(4, (_) => Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2)),
@@ -200,25 +201,24 @@ class _NoteTabPageState extends State<NoteTabPage> {
     );
   }
 
-  // ─── 列表视图 ────────────────────────────────────────────────────────
-
   Widget _buildListView() {
+    final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(
       onRefresh: _refresh,
-      color: const Color(0xFF1A1A1A),
-      backgroundColor: Colors.white,
+      color: colors.primary,
+      backgroundColor: colors.surface,
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 100),
         itemCount: _displayedNotes.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _displayedNotes.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: SizedBox(
                   width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1A1A)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
                 ),
               ),
             );
@@ -229,24 +229,23 @@ class _NoteTabPageState extends State<NoteTabPage> {
     );
   }
 
-  // ─── 时间线视图 ──────────────────────────────────────────────────────
-
   Widget _buildTimelineView() {
+    final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(
       onRefresh: _refresh,
-      color: const Color(0xFF1A1A1A),
-      backgroundColor: Colors.white,
+      color: colors.primary,
+      backgroundColor: colors.surface,
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
         itemCount: _displayedNotes.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _displayedNotes.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1A1A))),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
               ),
             );
           }
@@ -257,6 +256,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   }
 
   Widget _buildTimelineItem(Note note) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) async {
@@ -268,72 +268,60 @@ class _NoteTabPageState extends State<NoteTabPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 左侧时间线
             SizedBox(
               width: 40,
               child: Column(
                 children: [
-                  // 圆点
                   Container(
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
+                      color: colors.primary,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: colors.surface, width: 2),
                     ),
                   ),
-                  // 连线
                   Expanded(
                     child: Container(
                       width: 1,
-                      color: const Color(0xFFE5E5E5),
+                      color: colors.outline,
                     ),
                   ),
                 ],
               ),
             ),
-
-            // 右侧内容
             Expanded(
               child: Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: colors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 时间
                     Text(
                       _formatFullDate(note.updatedAt),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF999999)),
+                      style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
-
-                    // 标题
                     if (note.title.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(
                         note.title,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-
-                    // 内容预览
                     const SizedBox(height: 6),
                     Text(
                       _getPreviewText(note),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF888888), height: 1.5),
+                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5), height: 1.5),
                     ),
-
-                    // 标签
                     if (note.tags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
@@ -342,10 +330,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
                         children: note.tags.map((tag) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colors.surface,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(tag, style: const TextStyle(fontSize: 10, color: Color(0xFF999999))),
+                          child: Text(tag, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
                         )).toList(),
                       ),
                     ],
@@ -364,10 +352,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  // ─── 瀑布流视图 ──────────────────────────────────────────────────────
-
   Widget _buildWaterfallView() {
-    // 分为左右两列
+    final colors = Theme.of(context).colorScheme;
     final leftItems = <Note>[];
     final rightItems = <Note>[];
     for (int i = 0; i < _displayedNotes.length; i++) {
@@ -380,8 +366,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
     return RefreshIndicator(
       onRefresh: _refresh,
-      color: const Color(0xFF1A1A1A),
-      backgroundColor: Colors.white,
+      color: colors.primary,
+      backgroundColor: colors.surface,
       child: SingleChildScrollView(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
@@ -398,6 +384,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   }
 
   Widget _buildWaterfallCard(Note note) {
+    final colors = Theme.of(context).colorScheme;
     final contentText = _getPreviewText(note);
     final images = note.images;
     final hasImage = images.isNotEmpty;
@@ -413,7 +400,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
@@ -428,7 +415,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 顶部图片
             if (hasImage)
               Stack(
                 children: [
@@ -458,8 +444,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
                     ),
                 ],
               ),
-
-            // 底部文字区域
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(
@@ -471,47 +455,45 @@ class _NoteTabPageState extends State<NoteTabPage> {
                       note.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
+                        color: colors.onSurface,
                         height: 1.3,
                       ),
                     ),
-
                   if (contentText.isNotEmpty && contentText != '(无内容)') ...[
                     if (note.title.isNotEmpty) const SizedBox(height: 4),
                     Text(
                       contentText,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF999999),
+                        color: colors.onSurface.withValues(alpha: 0.4),
                         height: 1.4,
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       Expanded(
                         child: Text(
                           _formatTime(note.updatedAt),
-                          style: const TextStyle(fontSize: 10, color: Color(0xFFCCCCCC)),
+                          style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25)),
                         ),
                       ),
                       if (note.tags.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
+                            color: colors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
                             note.tags.first,
-                            style: const TextStyle(fontSize: 10, color: Color(0xFF999999)),
+                            style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4)),
                           ),
                         ),
                     ],
@@ -546,20 +528,21 @@ class _NoteTabPageState extends State<NoteTabPage> {
   }
 
   void _showDeleteDialog(BuildContext context, Note note) {
+    final colors = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        content: const Text('确定要删除这条笔记吗？删除后可在回收站恢复。',
-            style: TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5)),
+        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF666666),
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: const Text('取消'),
@@ -570,8 +553,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -583,8 +566,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
       ),
     );
   }
-
-  // ─── 数据同步 ────────────────────────────────────────────────────────
 
   void _syncDisplayedNotes(List<Note> allNotes) {
     final validNoteIds = allNotes.map((n) => n.id).toSet();
@@ -611,9 +592,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
     }
   }
 
-  // ─── 空状态 ──────────────────────────────────────────────────────────
-
   Widget _buildEmptyState(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -621,24 +601,24 @@ class _NoteTabPageState extends State<NoteTabPage> {
           Container(
             width: 80, height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.note_outlined, size: 40, color: Color(0xFFCCCCCC)),
+            child: Icon(Icons.note_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 20),
-          const Text('暂无笔记', style: TextStyle(fontSize: 16, color: Color(0xFF999999))),
+          Text('暂无笔记', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 24),
           InkWell(
             onTap: () => Navigator.pushNamed(context, '/note-form'),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: colors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('添加记录',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
+              child: Text('添加记录',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
             ),
           ),
         ],

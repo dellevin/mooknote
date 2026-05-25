@@ -50,10 +50,11 @@ class _MdViewerPageState extends State<MdViewerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final fileName = widget.filePath.split('/').last;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         elevation: 0,
         title: Text(
@@ -61,69 +62,71 @@ class _MdViewerPageState extends State<MdViewerPage> {
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
-      body: _buildBody(),
+      body: _buildBody(colors),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(ColorScheme colors) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF1A1A1A)));
+      return Center(child: CircularProgressIndicator(color: colors.primary));
     }
 
     if (_error != null) {
-      return _buildErrorState();
+      return _buildErrorState(colors);
     }
 
     return Markdown(
       data: _content,
       padding: const EdgeInsets.all(20),
       styleSheet: MarkdownStyleSheet(
-        h1: const TextStyle(
+        h1: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
           height: 1.4,
         ),
-        h2: const TextStyle(
+        h2: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
           height: 1.4,
         ),
-        h3: const TextStyle(
+        h3: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
           height: 1.4,
         ),
-        p: const TextStyle(
+        p: TextStyle(
           fontSize: 15,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
           height: 1.8,
         ),
-        code: const TextStyle(
+        code: TextStyle(
           fontSize: 13,
-          color: Color(0xFF1A1A1A),
-          backgroundColor: Color(0xFFF5F5F5),
+          color: colors.onSurface,
+          backgroundColor: colors.surfaceContainerHighest,
         ),
         codeblockDecoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          border: Border.all(color: const Color(0xFFE5E5E5)),
+          color: colors.surfaceContainerHighest,
+          border: Border.all(color: colors.outline),
           borderRadius: BorderRadius.circular(6),
         ),
         codeblockPadding: const EdgeInsets.all(12),
-        blockquote: const TextStyle(
+        blockquote: TextStyle(
           fontSize: 15,
-          color: Color(0xFF666666),
+          color: colors.onSurface.withValues(alpha: 0.6),
           fontStyle: FontStyle.italic,
         ),
-        blockquoteDecoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: Color(0xFF999999), width: 4)),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(
+              left: BorderSide(
+                  color: colors.onSurface.withValues(alpha: 0.4), width: 4)),
         ),
         blockquotePadding: const EdgeInsets.only(left: 12),
-        listBullet: const TextStyle(
+        listBullet: TextStyle(
           fontSize: 15,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
         ),
         listIndent: 24,
         a: const TextStyle(
@@ -133,12 +136,12 @@ class _MdViewerPageState extends State<MdViewerPage> {
         ),
       ),
       // ignore: deprecated_member_use
-      imageBuilder: (uri, title, alt) => _buildImage(uri.toString(), alt),
+      imageBuilder: (uri, title, alt) => _buildImage(colors, uri.toString(), alt),
     );
   }
 
   /// 构建图片显示
-  Widget _buildImage(String uri, String? alt) {
+  Widget _buildImage(ColorScheme colors, String uri, String? alt) {
     if (uri.isEmpty) return const SizedBox.shrink();
 
     // 处理相对路径：基于 md 文件所在目录
@@ -158,17 +161,19 @@ class _MdViewerPageState extends State<MdViewerPage> {
           return Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.broken_image_outlined, size: 20, color: Color(0xFF999999)),
+                Icon(Icons.broken_image_outlined,
+                    size: 20, color: colors.onSurface.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     alt ?? '图片加载失败',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+                    style:
+                        TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
                   ),
                 ),
               ],
@@ -179,16 +184,17 @@ class _MdViewerPageState extends State<MdViewerPage> {
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(ColorScheme colors) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Color(0xFFCCCCCC)),
+          Icon(Icons.error_outline,
+              size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
           Text(
             _error!,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
           ),
         ],
       ),

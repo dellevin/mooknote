@@ -48,7 +48,6 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   String get _currentType => _tabTypes[_currentIndex];
 
-  /// 计算标签使用次数
   Map<String, int> _getTagUsageCounts(String type) {
     final provider = context.read<AppProvider>();
     final counts = <String, int>{};
@@ -81,16 +80,17 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
         title: const Text('标签管理'),
         actions: [
           _isSyncing
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
                   child: SizedBox(width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1A1A))),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
                 )
               : IconButton(
                   icon: const Icon(Icons.sync, size: 20),
@@ -112,7 +112,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: colors.primary,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 12, offset: const Offset(0, 4)),
@@ -121,10 +121,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.add, size: 18, color: Colors.white),
+              Icon(Icons.add, size: 18, color: colors.onPrimary),
               const SizedBox(width: 6),
               Text('添加${_typeLabels[_currentIndex]}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
             ],
           ),
         ),
@@ -132,14 +132,13 @@ class _TagManagementPageState extends State<TagManagementPage> {
     );
   }
 
-  // ─── Tab 选择器 ──────────────────────────────────────────────────────
-
   Widget _buildTabSelector() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEBEBEB),
+        color: colors.outlineVariant,
         borderRadius: BorderRadius.circular(24),
       ),
       child: LayoutBuilder(
@@ -158,7 +157,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                     padding: const EdgeInsets.all(3),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colors.surface,
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
@@ -183,7 +182,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                           alignment: Alignment.center,
                           child: Text(_typeLabels[i],
                               style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                                  color: selected ? const Color(0xFF1A1A1A) : const Color(0xFF999999))),
+                                  color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4))),
                         ),
                       ),
                     );
@@ -197,9 +196,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
     );
   }
 
-  // ─── 标签列表 ────────────────────────────────────────────────────────
-
   Widget _buildTagList(String type) {
+    final colors = Theme.of(context).colorScheme;
     final tags = _tagCache[type] ?? [];
     final usageCounts = _getTagUsageCounts(type);
 
@@ -207,7 +205,6 @@ class _TagManagementPageState extends State<TagManagementPage> {
       return _buildEmptyState(type);
     }
 
-    // 按使用次数降序排序
     final sorted = List<Map<String, dynamic>>.from(tags)
       ..sort((a, b) {
         final ca = usageCounts[a['name']] ?? 0;
@@ -220,18 +217,16 @@ class _TagManagementPageState extends State<TagManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 统计行
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                Text('共 ${tags.length} 个标签', style: const TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
+                Text('共 ${tags.length} 个标签', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
                 const Spacer(),
-                Text('已使用 ${usageCounts.length} 个', style: const TextStyle(fontSize: 12, color: Color(0xFFD0D0D0))),
+                Text('已使用 ${usageCounts.length} 个', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
               ],
             ),
           ),
-          // 标签列表
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 80),
@@ -248,50 +243,50 @@ class _TagManagementPageState extends State<TagManagementPage> {
   }
 
   Widget _buildTagChip(Map<String, dynamic> tag, Map<String, int> usageCounts) {
+    final colors = Theme.of(context).colorScheme;
     final name = tag['name'] as String;
     final count = usageCounts[name] ?? 0;
 
-    return Container(
-      padding: const EdgeInsets.only(left: 14, right: 6, top: 8, bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 标签名区域 — 点击改名
-          GestureDetector(
-            onTap: () => _showRenameDialog(tag),
-            child: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
-          ),
-          if (count > 0) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(8)),
-              child: Text('$count', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF999999))),
+    return GestureDetector(
+      onLongPress: () => _showRenameDialog(tag),
+      child: Container(
+        padding: const EdgeInsets.only(left: 14, right: 6, top: 8, bottom: 8),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(8)),
+                child: Text('$count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
+              ),
+            ],
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => _showDeleteDialog(tag),
+              child: Container(
+                width: 22, height: 22,
+                decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(11)),
+                child: Icon(Icons.close, size: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+              ),
             ),
           ],
-          const SizedBox(width: 4),
-          // X 按钮 — 点击删除
-          GestureDetector(
-            onTap: () => _showDeleteDialog(tag),
-            child: Container(
-              width: 22, height: 22,
-              decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(11)),
-              child: const Icon(Icons.close, size: 12, color: Color(0xFF999999)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState(String type) {
+    final colors = Theme.of(context).colorScheme;
     final idx = _tabTypes.indexOf(type);
     final icon = _typeIcons[idx];
     final label = _typeLabels[idx];
@@ -303,57 +298,56 @@ class _TagManagementPageState extends State<TagManagementPage> {
         children: [
           Container(
             width: 64, height: 64,
-            decoration: BoxDecoration(color: const Color(0xFFECECEC), borderRadius: BorderRadius.circular(18)),
-            child: Icon(icon, size: 28, color: const Color(0xFFCCCCCC)),
+            decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(18)),
+            child: Icon(icon, size: 28, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 16),
           Text('暂无$label',
-              style: const TextStyle(fontSize: 14, color: Color(0xFFBBBBBB), fontWeight: FontWeight.w500)),
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3), fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          Text(hints[idx], style: const TextStyle(fontSize: 12, color: Color(0xFFD5D5D5))),
+          Text(hints[idx], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.15))),
         ],
       ),
     );
   }
 
-  // ─── 添加标签 ────────────────────────────────────────────────────────
-
   void _showAddDialog() {
+    final colors = Theme.of(context).colorScheme;
     final controller = TextEditingController();
     final type = _currentType;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('添加${_typeLabels[_currentIndex]}',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
           controller: controller, autofocus: true,
-          style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+          style: TextStyle(fontSize: 15, color: colors.onSurface),
           decoration: InputDecoration(
             hintText: '输入标签名称',
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
-            filled: true, fillColor: const Color(0xFFFAFAFA),
+            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+            filled: true, fillColor: colors.surfaceContainerHigh,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.primary, width: 1)),
           ),
           onSubmitted: (value) => _doAddTag(ctx, controller.text.trim(), type),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消', style: TextStyle(color: Color(0xFF999999)))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           Container(
-            decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _doAddTag(ctx, controller.text.trim(), type),
                 borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text('添加', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Text('添加', style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w500)),
                 ),
               ),
             ),
@@ -378,9 +372,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
     await _loadTags(type);
   }
 
-  // ─── 重命名 ──────────────────────────────────────────────────────────
-
   void _showRenameDialog(Map<String, dynamic> tag) {
+    final colors = Theme.of(context).colorScheme;
     final controller = TextEditingController(text: tag['name'] as String);
     final tagId = tag['id'] as String;
     final type = tag['type'] as String;
@@ -389,34 +382,34 @@ class _TagManagementPageState extends State<TagManagementPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('重命名标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+        title: Text('重命名标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
           controller: controller, autofocus: true,
-          style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+          style: TextStyle(fontSize: 15, color: colors.onSurface),
           decoration: InputDecoration(
             hintText: '输入新名称',
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
-            filled: true, fillColor: const Color(0xFFFAFAFA),
+            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+            filled: true, fillColor: colors.surfaceContainerHigh,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.primary, width: 1)),
           ),
           onSubmitted: (value) => _doRenameTag(ctx, tagId, value.trim(), type, oldName),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消', style: TextStyle(color: Color(0xFF999999)))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           Container(
-            decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _doRenameTag(ctx, tagId, controller.text.trim(), type, oldName),
                 borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text('确定', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Text('确定', style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w500)),
                 ),
               ),
             ),
@@ -439,9 +432,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
     if (success) await _loadTags(type);
   }
 
-  // ─── 删除（长按触发）──────────────────────────────────────────────────
-
   void _showDeleteDialog(Map<String, dynamic> tag) {
+    final colors = Theme.of(context).colorScheme;
     final tagId = tag['id'] as String;
     final type = tag['type'] as String;
     final name = tag['name'] as String;
@@ -457,17 +449,17 @@ class _TagManagementPageState extends State<TagManagementPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(12)),
-                child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF666666))),
+                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+                child: Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
               ),
               const SizedBox(width: 10),
-              const Text('删除标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              Text('删除标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -481,7 +473,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-                    const Text('删除后对已有条目的影响：', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                    Text('删除后对已有条目的影响：', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                     const SizedBox(height: 12),
                     _buildDeleteOption(value: 'remove', groupValue: selectedAction, onChanged: (v) => setDialogState(() => selectedAction = v), title: '从所有条目中移除该标签', subtitle: '标签将从影视/书籍/笔记中清除'),
                     const SizedBox(height: 4),
@@ -504,19 +496,19 @@ class _TagManagementPageState extends State<TagManagementPage> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                       decoration: BoxDecoration(
-                                        color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+                                        color: isSelected ? colors.primary : colors.surfaceContainerHighest,
                                         borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFFE8E8E8), width: 0.5),
+                                        border: Border.all(color: isSelected ? colors.primary : colors.outlineVariant, width: 0.5),
                                       ),
-                                      child: Text(t, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isSelected ? Colors.white : const Color(0xFF555555))),
+                                      child: Text(t, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.7))),
                                     ),
                                   );
                                 }).toList(),
                               )
                             : Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(color: const Color(0xFFFAFAFA), borderRadius: BorderRadius.circular(12)),
-                                child: const Text('无其他标签可替换', style: TextStyle(fontSize: 13, color: Color(0xFFAAAAAA))),
+                                decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+                                child: Text('无其他标签可替换', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
                               ),
                       ),
                   ],
@@ -526,7 +518,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           ),
           contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消', style: TextStyle(color: Color(0xFF999999)))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
             Container(
               decoration: BoxDecoration(color: const Color(0xFFE53935), borderRadius: BorderRadius.circular(20)),
               child: Material(
@@ -573,15 +565,16 @@ class _TagManagementPageState extends State<TagManagementPage> {
     required String title,
     String? subtitle,
   }) {
+    final colors = Theme.of(context).colorScheme;
     final selected = value == groupValue;
     return GestureDetector(
       onTap: () => onChanged(value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFAFAFA) : Colors.white,
+          color: selected ? colors.surfaceContainerHigh : colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFEEEEEE), width: selected ? 1 : 0.5),
+          border: Border.all(color: selected ? colors.primary : colors.outlineVariant, width: selected ? 1 : 0.5),
         ),
         child: Row(
           children: [
@@ -589,14 +582,14 @@ class _TagManagementPageState extends State<TagManagementPage> {
               width: 18, height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC), width: selected ? 5 : 1.5),
+                border: Border.all(color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.25), width: selected ? 5 : 1.5),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                Text(title, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w500 : FontWeight.normal, color: selected ? const Color(0xFF1A1A1A) : const Color(0xFF666666))),
-                if (subtitle != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)))),
+                Text(title, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w500 : FontWeight.normal, color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.6))),
+                if (subtitle != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)))),
               ]),
             ),
           ],

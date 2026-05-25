@@ -26,21 +26,22 @@ class _NoteSharePageState extends State<NoteSharePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: colors.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF1A1A1A)),
+          icon: Icon(Icons.close, color: colors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           '分享笔记',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
+            color: colors.onSurface,
           ),
         ),
         centerTitle: true,
@@ -53,12 +54,12 @@ class _NoteSharePageState extends State<NoteSharePage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
+                : Text(
                     '分享',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+                      color: colors.onSurface,
                     ),
                   ),
           ),
@@ -78,6 +79,7 @@ class _NoteSharePageState extends State<NoteSharePage> {
   }
 
   Widget _buildPosterWidget() {
+    final colors = Theme.of(context).colorScheme;
     final note = widget.note;
     final hasImages = note.images.isNotEmpty;
     final dateStr =
@@ -88,7 +90,7 @@ class _NoteSharePageState extends State<NoteSharePage> {
     return Container(
       width: 320,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -124,10 +126,10 @@ class _NoteSharePageState extends State<NoteSharePage> {
                 if (note.title.isNotEmpty) ...[
                   Text(
                     note.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1A1A),
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -136,9 +138,9 @@ class _NoteSharePageState extends State<NoteSharePage> {
                 // 日期
                 Text(
                   dateStr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF999999),
+                    color: colors.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
 
@@ -152,12 +154,12 @@ class _NoteSharePageState extends State<NoteSharePage> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F0F0),
+                          color: colors.outlineVariant,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           tag,
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF888888)),
+                          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5)),
                         ),
                       );
                     }).toList(),
@@ -165,7 +167,7 @@ class _NoteSharePageState extends State<NoteSharePage> {
                 ],
 
                 const SizedBox(height: 16),
-                Container(height: 0.5, color: const Color(0xFFE8E8E8)),
+                Container(height: 0.5, color: colors.outline),
                 const SizedBox(height: 16),
 
                 // 正文内容
@@ -173,9 +175,9 @@ class _NoteSharePageState extends State<NoteSharePage> {
                   note.content,
                   maxLines: 12,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF333333),
+                    color: colors.onSurface.withValues(alpha: 0.75),
                     height: 1.8,
                   ),
                 ),
@@ -191,11 +193,11 @@ class _NoteSharePageState extends State<NoteSharePage> {
                     ],
                     const Spacer(),
                     // Mooknote 品牌
-                    const Text(
+                    Text(
                       'Mooknote',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFFCCCCCC),
+                        color: colors.onSurface.withValues(alpha: 0.25),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -210,14 +212,15 @@ class _NoteSharePageState extends State<NoteSharePage> {
   }
 
   Widget _buildMetaChip(IconData icon, String text) {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: const Color(0xFFAAAAAA)),
+        Icon(icon, size: 13, color: colors.onSurface.withValues(alpha: 0.35)),
         const SizedBox(width: 4),
         Text(
           text,
-          style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
+          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
         ),
       ],
     );

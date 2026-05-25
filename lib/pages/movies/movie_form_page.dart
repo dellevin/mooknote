@@ -14,9 +14,9 @@ import '../../utils/image_path_helper.dart';
 class MovieFormPage extends StatefulWidget {
   final Movie? movie;
   final String? initialStatus; // 添加时的默认状态
-  
+
   const MovieFormPage({super.key, this.movie, this.initialStatus});
-  
+
   @override
   State<MovieFormPage> createState() => _MovieFormPageState();
 }
@@ -24,15 +24,15 @@ class MovieFormPage extends StatefulWidget {
 class _MovieFormPageState extends State<MovieFormPage> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  
+
   // 输入框控制器
   late TextEditingController _titleController;
   late TextEditingController _summaryController;
   late TextEditingController _ratingController;
-  
+
   // 多值字段的临时输入控制器
   final Map<String, TextEditingController> _tagControllers = {};
-  
+
   // 数据
   List<String> _directors = [];
   List<String> _writers = [];
@@ -43,13 +43,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
   String _status = 'want_to_watch';
   DateTime? _releaseDate;
   DateTime? _watchDate;
-  
+
   @override
   void initState() {
     super.initState();
     _initializeData();
   }
-  
+
   void _initializeData() {
     // 如果有传入movie，尝试从Provider获取最新数据
     Movie? movie = widget.movie;
@@ -62,11 +62,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
         movie = latestMovie;
       }
     }
-    
+
     _titleController = TextEditingController(text: movie?.title ?? '');
     _summaryController = TextEditingController(text: movie?.summary ?? '');
     _ratingController = TextEditingController(text: movie?.rating?.toString() ?? '');
-    
+
     if (movie != null) {
       _directors = List.from(movie.directors);
       _writers = List.from(movie.writers);
@@ -82,7 +82,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       _status = widget.initialStatus!;
     }
   }
-  
+
   @override
   void dispose() {
     // 先 dispose controllers
@@ -93,7 +93,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     // 最后调用 super.dispose
     super.dispose();
   }
-  
+
   TextEditingController _getTagController(String key) {
     return _tagControllers.putIfAbsent(key, () => TextEditingController());
   }
@@ -103,12 +103,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required IconData icon,
     required VoidCallback onPressed,
     required String tooltip,
-    Color color = const Color(0xFF1A1A1A),
+    Color? color,
   }) {
+    final colors = Theme.of(context).colorScheme;
+    final iconColor = color ?? colors.onSurface;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: colors.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Material(
@@ -120,7 +122,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
             padding: const EdgeInsets.all(8),
             child: Icon(
               icon,
-              color: color,
+              color: iconColor,
               size: 22,
             ),
           ),
@@ -132,54 +134,86 @@ class _MovieFormPageState extends State<MovieFormPage> {
   /// 显示快捷添加对话框
   void _showQuickAddDialog() {
     final textController = TextEditingController();
-    
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          '快捷添加',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text(
+            '快捷添加',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface,
+            ),
           ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '请输入分享的豆瓣影视链接：',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '请输入分享的豆瓣影视链接：',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'https://m.douban.com/subject/...',
+                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.primary, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                onSubmitted: (url) async {
+                  if (url.trim().isNotEmpty) {
+                    // 先移除焦点
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    await Future.delayed(const Duration(milliseconds: 50));
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop(url);
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // 先移除焦点，等待一帧确保焦点已释放
+                FocusManager.instance.primaryFocus?.unfocus();
+                await Future.delayed(const Duration(milliseconds: 50));
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(null);
+                }
+              },
+              child: Text(
+                '取消',
+                style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'https://m.douban.com/subject/...',
-                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-              onSubmitted: (url) async {
-                if (url.trim().isNotEmpty) {
+            TextButton(
+              onPressed: () async {
+                final url = textController.text.trim();
+                if (url.isNotEmpty) {
                   // 先移除焦点
                   FocusManager.instance.primaryFocus?.unfocus();
                   await Future.delayed(const Duration(milliseconds: 50));
@@ -188,43 +222,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   }
                 }
               },
+              child: Text(
+                '确定',
+                style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              // 先移除焦点，等待一帧确保焦点已释放
-              FocusManager.instance.primaryFocus?.unfocus();
-              await Future.delayed(const Duration(milliseconds: 50));
-              if (dialogContext.mounted) {
-                Navigator.of(dialogContext).pop(null);
-              }
-            },
-            child: const Text(
-              '取消',
-              style: TextStyle(color: Color(0xFF999999)),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              final url = textController.text.trim();
-              if (url.isNotEmpty) {
-                // 先移除焦点
-                FocusManager.instance.primaryFocus?.unfocus();
-                await Future.delayed(const Duration(milliseconds: 50));
-                if (dialogContext.mounted) {
-                  Navigator.of(dialogContext).pop(url);
-                }
-              }
-            },
-            child: const Text(
-              '确定',
-              style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     ).then((result) {
       // 延迟 dispose，确保 widget tree 已释放 controller
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -245,13 +250,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
       '/douban-webview',
       arguments: url,
     );
-    
+
     // 处理返回的影视信息
     if (result != null && result is Map<String, dynamic>) {
       _fillMovieInfo(result);
     }
   }
-  
+
   /// 填充影视信息到表单
   void _fillMovieInfo(Map<String, dynamic> info) {
     setState(() {
@@ -259,42 +264,42 @@ class _MovieFormPageState extends State<MovieFormPage> {
       if (info['title'] != null && info['title'].toString().isNotEmpty) {
         _titleController.text = info['title'].toString();
       }
-      
+
       // 填充评分
       if (info['rating'] != null && info['rating'].toString().isNotEmpty) {
         _ratingController.text = info['rating'].toString();
       }
-      
+
       // 填充导演
       if (info['director'] != null && info['director'].toString().isNotEmpty) {
         _directors = [info['director'].toString()];
       }
-      
+
       // 填充编剧
       if (info['writers'] != null && info['writers'] is List) {
         _writers = (info['writers'] as List).map((w) => w.toString()).toList();
       }
-      
+
       // 填充演员
       if (info['actors'] != null && info['actors'] is List) {
         _actors = (info['actors'] as List).map((a) => a.toString()).toList();
       }
-      
+
       // 填充类型
       if (info['genres'] != null && info['genres'].toString().isNotEmpty) {
         _genres = info['genres'].toString().split(',').map((g) => g.trim()).toList();
       }
-      
+
       // 填充别名
       if (info['alternateTitles'] != null && info['alternateTitles'] is List) {
         _alternateTitles = (info['alternateTitles'] as List).map((t) => t.toString()).toList();
       }
-      
+
       // 填充简介
       if (info['summary'] != null && info['summary'].toString().isNotEmpty) {
         _summaryController.text = info['summary'].toString();
       }
-      
+
       // 填充上映日期
       if (info['releaseDate'] != null && info['releaseDate'].toString().isNotEmpty) {
         final dateStr = info['releaseDate'].toString();
@@ -307,14 +312,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 解析失败则忽略
         }
       }
-      
+
       // 下载封面图
       if (info['coverUrl'] != null && info['coverUrl'].toString().isNotEmpty) {
         _downloadCoverFromUrl(info['coverUrl'].toString());
       }
-      
+
     });
-    
+
     // 显示成功提示
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -322,7 +327,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       );
     }
   }
-  
+
   /// 从URL下载封面图
   Future<void> _downloadCoverFromUrl(String url) async {
     try {
@@ -335,7 +340,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           'Referer': 'https://movie.douban.com/',
         },
       );
-      
+
       if (response.statusCode != 200) {
         throw Exception('下载失败: HTTP ${response.statusCode}');
       }
@@ -353,13 +358,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
       // 生成文件名
       final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
+
       // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID
       final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // 保存到新的路径结构
       final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
-        movieId, 
+        movieId,
         fileName
       );
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
@@ -373,13 +378,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
       debugPrint('封面下载失败: $e');
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final isEdit = widget.movie != null;
-    
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(isEdit ? '编辑影视' : '添加影视'),
         actions: [
@@ -406,19 +412,19 @@ class _MovieFormPageState extends State<MovieFormPage> {
           children: [
             // 封面选择 - 居中显示
             Center(child: _buildCoverPicker()),
-            
+
             const SizedBox(height: 32),
-            
+
             // 状态选择（靠左显示）
             _buildStatusSelector(),
-            
+
             const SizedBox(height: 20),
-            
+
             // 评分 - 星星选择（靠左显示）
             _buildStarRating(),
-            
+
             const SizedBox(height: 32),
-            
+
             // 信息卡片网格
             Wrap(
               spacing: 12,
@@ -459,15 +465,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     ),
                   ),
                 ),
-                
+
                 // 第二行：导演 + 编剧
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
                   child: _buildInfoCard(
                     label: '导演',
-                    value: _directors.isEmpty 
-                        ? '' 
+                    value: _directors.isEmpty
+                        ? ''
                         : '${_directors.length}人：${_directors.join('、')}',
                     icon: Icons.videocam_outlined,
                     onTap: () => _showMultiValueDialog(
@@ -483,8 +489,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   height: 90,
                   child: _buildInfoCard(
                     label: '编剧',
-                    value: _writers.isEmpty 
-                        ? '' 
+                    value: _writers.isEmpty
+                        ? ''
                         : '${_writers.length}人：${_writers.join('、')}',
                     icon: Icons.edit_note_outlined,
                     onTap: () => _showMultiValueDialog(
@@ -495,15 +501,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     ),
                   ),
                 ),
-                
+
                 // 第三行：主演 + 类型
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
                   child: _buildInfoCard(
                     label: '主演',
-                    value: _actors.isEmpty 
-                        ? '' 
+                    value: _actors.isEmpty
+                        ? ''
                         : '${_actors.length}人：${_actors.join('、')}',
                     icon: Icons.people_outline,
                     onTap: () => _showMultiValueDialog(
@@ -539,15 +545,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     },
                   ),
                 ),
-                
+
                 // 第四行：上映日期 + 观看日期
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
                   child: _buildInfoCard(
                     label: '上映日期',
-                    value: _releaseDate != null 
-                        ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}' 
+                    value: _releaseDate != null
+                        ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
                         : '',
                     icon: Icons.theaters_outlined,
                     onTap: () => _selectReleaseDate(),
@@ -558,14 +564,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   height: 90,
                   child: _buildInfoCard(
                     label: '观看日期',
-                    value: _watchDate != null 
-                        ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}' 
+                    value: _watchDate != null
+                        ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
                         : '',
                     icon: Icons.visibility_outlined,
                     onTap: () => _selectWatchDate(),
                   ),
                 ),
-                
+
                 // 第五行：剧情简介（独占一行）
                 SizedBox(
                   width: double.infinity,
@@ -586,14 +592,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 48),
           ],
         ),
       ),
     );
   }
-  
+
   /// 构建信息卡片（用于网格布局）
   Widget _buildInfoCard({
     required String label,
@@ -606,6 +612,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     bool scrollHorizontal = false,
   }) {
     final hasValue = value.isNotEmpty;
+    final colors = Theme.of(context).colorScheme;
 
     // 构建值显示部分
     Widget buildContent() {
@@ -618,7 +625,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
               hasValue ? value : '点击填写',
               style: TextStyle(
                 fontSize: 15,
-                color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
                 fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -633,7 +640,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
             hasValue ? value : '点击填写',
             style: TextStyle(
               fontSize: 15,
-              color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+              color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
               fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -644,7 +651,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           hasValue ? value : '点击填写',
           style: TextStyle(
             fontSize: 15,
-            color: hasValue ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+            color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
             fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
           ),
           maxLines: 1,
@@ -652,19 +659,19 @@ class _MovieFormPageState extends State<MovieFormPage> {
         );
       }
     }
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: height,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8E8E8)),
+          border: Border.all(color: colors.outline),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: colors.onSurface.withValues(alpha: 0.018),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -678,14 +685,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: const Color(0xFF999999)),
+                  Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 6),
                 ],
                 Text(
                   required ? '$label *' : label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+                    color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
                     fontWeight: required ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
@@ -717,7 +724,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         maxLines: maxLines,
       ),
     );
-    
+
     if (result != null) {
       onConfirm(result);
     }
@@ -753,12 +760,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required VoidCallback onTap,
     required VoidCallback onClear,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -773,15 +781,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   style: TextStyle(
                     fontSize: 15,
                     color: date != null
-                        ? const Color(0xFF1A1A1A)
-                        : const Color(0xFFCCCCCC),
+                        ? colors.onSurface
+                        : colors.onSurface.withValues(alpha: 0.25),
                   ),
                 ),
               ),
               if (date != null)
                 GestureDetector(
                   onTap: onClear,
-                  child: const Icon(Icons.close, size: 18, color: Color(0xFF999999)),
+                  child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
                 ),
             ],
           ),
@@ -796,6 +804,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required Widget child,
     bool required = false,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -803,7 +812,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           required ? '$label *' : label,
           style: TextStyle(
             fontSize: 13,
-            color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+            color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
             fontWeight: required ? FontWeight.w500 : FontWeight.normal,
           ),
         ),
@@ -811,9 +820,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFD0D0D0)),
+            border: Border.all(color: colors.onSurface.withValues(alpha: 0.2)),
           ),
           child: child,
         ),
@@ -828,12 +837,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required VoidCallback onTap,
     required VoidCallback onClear,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -841,16 +851,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.surface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFD0D0D0)),
+              border: Border.all(color: colors.onSurface.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.calendar_today_outlined,
                   size: 18,
-                  color: date != null ? const Color(0xFF1A1A1A) : const Color(0xFFAAAAAA),
+                  color: date != null ? colors.onSurface : colors.onSurface.withValues(alpha: 0.35),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -861,8 +871,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     style: TextStyle(
                       fontSize: 15,
                       color: date != null
-                          ? const Color(0xFF1A1A1A)
-                          : const Color(0xFFAAAAAA),
+                          ? colors.onSurface
+                          : colors.onSurface.withValues(alpha: 0.35),
                     ),
                   ),
                 ),
@@ -872,10 +882,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEEEEE),
+                        color: colors.outlineVariant,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ),
               ],
@@ -888,12 +898,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
   /// 构建表单条目（标签 + 内容）- 剧情简介使用
   Widget _buildFormItem({required String label, required Widget child}) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)),
         ),
         const SizedBox(height: 8),
         child,
@@ -907,6 +918,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required Widget child,
     bool required = false,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -916,7 +928,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
             required ? '$label *' : label,
             style: TextStyle(
               fontSize: 13,
-              color: required ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+              color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
               fontWeight: required ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -937,6 +949,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required Function(int) onRemove,
   }) {
     final controller = _getTagController(controllerKey);
+    final colors = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -946,7 +959,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
             ),
             const Spacer(),
             // 添加按钮
@@ -967,7 +980,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+                      color: hasText ? colors.primary : colors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -976,14 +989,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         Icon(
                           Icons.add,
                           size: 14,
-                          color: hasText ? Colors.white : const Color(0xFFCCCCCC),
+                          color: hasText ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.25),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '添加',
                           style: TextStyle(
                             fontSize: 12,
-                            color: hasText ? Colors.white : const Color(0xFFCCCCCC),
+                            color: hasText ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.25),
                           ),
                         ),
                       ],
@@ -1004,7 +1017,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
@@ -1012,12 +1025,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   children: [
                     Text(
                       entry.value,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                      style: TextStyle(fontSize: 14, color: colors.onSurface),
                     ),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: () => onRemove(entry.key),
-                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],
                 ),
@@ -1028,16 +1041,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
         // 输入框（带边框背景）
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFD0D0D0)),
+            border: Border.all(color: colors.onSurface.withValues(alpha: 0.2)),
           ),
           child: TextField(
             controller: controller,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+            style: TextStyle(fontSize: 14, color: colors.onSurface),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+              hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
@@ -1064,7 +1077,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required Function(int) onRemove,
   }) {
     final controller = _getTagController(controllerKey);
-    
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1073,7 +1087,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)),
             ),
             const Spacer(),
             // 添加按钮（当输入框有内容时显示）
@@ -1095,7 +1109,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFE5E5E5),
+                        color: hasText ? colors.primary : colors.outline,
                       ),
                     ),
                     child: Row(
@@ -1104,14 +1118,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         Icon(
                           Icons.add,
                           size: 14,
-                          color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                          color: hasText ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
                         ),
                         const SizedBox(width: 2),
                         Text(
                           '添加',
                           style: TextStyle(
                             fontSize: 12,
-                            color: hasText ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC),
+                            color: hasText ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
                           ),
                         ),
                       ],
@@ -1133,20 +1147,20 @@ class _MovieFormPageState extends State<MovieFormPage> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
+                  color: colors.surfaceContainerHighest,
+                  border: Border.all(color: colors.outline),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       entry.value,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                      style: TextStyle(fontSize: 14, color: colors.onSurface),
                     ),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: () => onRemove(entry.key),
-                      child: const Icon(Icons.close, size: 14, color: Color(0xFF999999)),
+                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],
                 ),
@@ -1157,10 +1171,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
               constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
               child: TextField(
                 controller: controller,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                style: TextStyle(fontSize: 14, color: colors.onSurface),
                 decoration: InputDecoration(
                   hintText: values.isEmpty ? hint : '',
-                  hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 5),
@@ -1179,20 +1193,21 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ],
     );
   }
-  
+
   /// 构建状态选择器（简洁风格）
   Widget _buildStatusSelector() {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       children: [
-        const Text(
+        Text(
           '状态',
-          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(width: 16),
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0),
+            color: colors.outlineVariant,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -1207,14 +1222,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ],
     );
   }
-  
+
   /// 构建星星评分（支持手动输入）
   Widget _buildStarRating() {
+    final colors = Theme.of(context).colorScheme;
     return Row(
       children: [
-        const Text(
+        Text(
           '评分',
-          style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
+          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
         const SizedBox(width: 16),
         // 星星选择
@@ -1225,12 +1241,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ],
     );
   }
-  
+
   /// 构建星星选择器
   Widget _buildStarSelector() {
     final currentRating = double.tryParse(_ratingController.text) ?? 0;
     final starRating = currentRating / 2;
-    
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -1240,7 +1257,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           final scoreValue = starValue * 2;
           final isFilled = starValue <= starRating;
           final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
-          
+
           return InkWell(
             onTap: () {
               setState(() {
@@ -1259,7 +1276,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 size: 24,
                 color: isFilled || isHalf
                     ? const Color(0xFFFFB800)
-                    : const Color(0xFFE5E5E5),
+                    : colors.outline,
               ),
             ),
           );
@@ -1267,30 +1284,31 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ),
     );
   }
-  
+
   /// 构建评分输入框（支持0-10，保留1位小数）
   Widget _buildRatingInputField() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: 56,
       height: 32,
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
+        color: colors.outlineVariant,
         borderRadius: BorderRadius.circular(6),
       ),
       child: TextFormField(
         controller: _ratingController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: Color(0xFF1A1A1A),
+          color: colors.onSurface,
         ),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: '-',
-          hintStyle: TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         ),
         onChanged: (value) {
           if (value.isNotEmpty) {
@@ -1308,23 +1326,24 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ),
     );
   }
-  
+
   /// 构建状态选项
   Widget _buildStatusOption(String label, String value) {
     final isSelected = _status == value;
-    
+    final colors = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: () => setState(() => _status = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
+          color: isSelected ? colors.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: colors.onSurface.withValues(alpha: 0.03),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -1336,17 +1355,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-            color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFF999999),
+            color: isSelected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
           ),
         ),
       ),
     );
   }
-  
+
   /// 构建封面选择器
   Widget _buildCoverPicker() {
     final hasPoster = _posterPath != null && _posterPath!.isNotEmpty;
-    
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1356,7 +1376,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
             width: 120,
             height: 170,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             clipBehavior: Clip.antiAlias,
@@ -1378,7 +1398,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -1387,14 +1407,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     Icon(
                       Icons.delete_outline,
                       size: 14,
-                      color: Colors.grey[600],
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '移除海报',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: colors.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -1405,78 +1425,83 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ],
     );
   }
-  
+
   /// 显示封面选择选项
   void _showCoverOptions() {
+    final colors = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 顶部指示条
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0E0E0),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 顶部指示条
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              // 标题
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '添加海报',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+                const SizedBox(height: 20),
+                // 标题
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '添加海报',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // 本地图片选项
-              _buildCoverOption(
-                icon: Icons.photo_library_outlined,
-                title: '从相册选择',
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickCover();
-                },
-              ),
-              // 网络链接选项
-              _buildCoverOption(
-                icon: Icons.link_outlined,
-                title: '网络链接',
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickCoverFromUrl();
-                },
-              ),
-            ],
+                const SizedBox(height: 16),
+                // 本地图片选项
+                _buildCoverOption(
+                  icon: Icons.photo_library_outlined,
+                  title: '从相册选择',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickCover();
+                  },
+                ),
+                // 网络链接选项
+                _buildCoverOption(
+                  icon: Icons.link_outlined,
+                  title: '网络链接',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickCoverFromUrl();
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
-  
+
   /// 构建封面选项
   Widget _buildCoverOption({
     required IconData icon,
     required String title,
     required VoidCallback onTap,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -1487,27 +1512,27 @@ class _MovieFormPageState extends State<MovieFormPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 22,
-                color: const Color(0xFF666666),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(width: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF1A1A1A),
+                color: colors.onSurface,
               ),
             ),
             const Spacer(),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: Color(0xFFCCCCCC),
+              color: colors.onSurface.withValues(alpha: 0.25),
               size: 20,
             ),
           ],
@@ -1515,28 +1540,29 @@ class _MovieFormPageState extends State<MovieFormPage> {
       ),
     );
   }
-  
+
   Widget _buildCoverPlaceholder() {
-    return const Column(
+    final colors = Theme.of(context).colorScheme;
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
           Icons.image_outlined,
           size: 32,
-          color: Color(0xFFCCCCCC),
+          color: colors.onSurface.withValues(alpha: 0.25),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
           '海报',
           style: TextStyle(
             fontSize: 12,
-            color: Color(0xFFAAAAAA),
+            color: colors.onSurface.withValues(alpha: 0.35),
           ),
         ),
       ],
     );
   }
-  
+
   /// 选择封面
   Future<void> _pickCover() async {
     try {
@@ -1546,23 +1572,23 @@ class _MovieFormPageState extends State<MovieFormPage> {
         maxHeight: 1200,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         // 生成文件名
         final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        
+
         // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID（保存时会替换）
         final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-        
+
         // 保存到新的路径结构: images/movies/{movieId}/{fileName}
         final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
-          movieId, 
+          movieId,
           fileName
         );
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-        
+
         await File(pickedFile.path).copy(targetPath);
-        
+
         setState(() => _posterPath = targetPath);
       }
     } catch (e) {
@@ -1571,59 +1597,62 @@ class _MovieFormPageState extends State<MovieFormPage> {
       }
     }
   }
-  
+
   /// 从网络链接选择封面
   Future<void> _pickCoverFromUrl() async {
     final urlController = TextEditingController();
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('添加网络图片'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '请输入图片链接地址',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('添加网络图片'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '请输入图片链接地址',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  hintText: 'https://movie.douban.com/image.jpg',
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                  border: const UnderlineInputBorder(),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: colors.primary, width: 1.5),
+                  ),
+                ),
+                style: const TextStyle(fontSize: 14),
+                keyboardType: TextInputType.url,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                hintText: 'https://movie.douban.com/image.jpg',
-                hintStyle: TextStyle(color: Color(0xFFCCCCCC)),
-                border: UnderlineInputBorder(),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
-                ),
-              ),
-              style: const TextStyle(fontSize: 14),
-              keyboardType: TextInputType.url,
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('确定', style: TextStyle(color: colors.onSurface)),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确定', style: TextStyle(color: Color(0xFF1A1A1A))),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed != true) return;
@@ -1644,7 +1673,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       );
-      
+
       if (response.statusCode != 200) {
         throw Exception('下载失败: HTTP ${response.statusCode}');
       }
@@ -1662,13 +1691,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
       // 生成文件名
       final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
+
       // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID
       final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // 保存到新的路径结构
       final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
-        movieId, 
+        movieId,
         fileName
       );
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
@@ -1677,7 +1706,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
       setState(() => _posterPath = targetPath);
-      
+
       if (mounted) {
         ToastUtil.show(context, '添加成功');
       }
@@ -1687,7 +1716,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       }
     }
   }
-  
+
   /// 选择上映日期
   Future<void> _selectReleaseDate() async {
     final picked = await showDatePicker(
@@ -1695,16 +1724,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       initialDate: _releaseDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A1A1A),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => child!,
     );
 
     if (picked != null) {
@@ -1719,23 +1739,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
       initialDate: _watchDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A1A1A),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => child!,
     );
 
     if (picked != null) {
       setState(() => _watchDate = picked);
     }
   }
-  
+
   /// 收集所有多值字段输入框中的未提交内容
   void _collectUnsubmittedValues() {
     // 别名
@@ -1747,7 +1758,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         alternateTitlesController.clear();
       }
     }
-    
+
     // 导演
     final directorsController = _tagControllers['directors'];
     if (directorsController != null) {
@@ -1757,7 +1768,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         directorsController.clear();
       }
     }
-    
+
     // 编剧
     final writersController = _tagControllers['writers'];
     if (writersController != null) {
@@ -1767,7 +1778,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         writersController.clear();
       }
     }
-    
+
     // 主演
     final actorsController = _tagControllers['actors'];
     if (actorsController != null) {
@@ -1777,7 +1788,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         actorsController.clear();
       }
     }
-    
+
     // 类型
     final genresController = _tagControllers['genres'];
     if (genresController != null) {
@@ -1794,26 +1805,26 @@ class _MovieFormPageState extends State<MovieFormPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
     // 收集所有多值字段输入框中的未提交内容
     _collectUnsubmittedValues();
-    
-    final rating = _ratingController.text.isNotEmpty 
-        ? double.tryParse(_ratingController.text) 
+
+    final rating = _ratingController.text.isNotEmpty
+        ? double.tryParse(_ratingController.text)
         : null;
-    
+
     final now = DateTime.now();
-    
+
     if (widget.movie == null) {
       // 生成新的影视ID
       final newMovieId = now.millisecondsSinceEpoch.toString();
-      
+
       // 如果有海报，需要移动到正确的ID目录
       String? finalPosterPath;
       if (_posterPath != null && _posterPath!.isNotEmpty) {
         finalPosterPath = await _movePosterToNewId(_posterPath!, newMovieId);
       }
-      
+
       final newMovie = Movie(
         id: newMovieId,
         title: _titleController.text.trim(),
@@ -1831,7 +1842,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         createdAt: now,
         updatedAt: now,
       );
-      
+
       await context.read<AppProvider>().addMovie(newMovie);
     } else {
       final updatedMovie = widget.movie!.copyWith(
@@ -1849,17 +1860,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
         watchDate: _watchDate,
         updatedAt: now,
       );
-      
+
       await context.read<AppProvider>().updateMovie(updatedMovie);
     }
-    
+
     if (!mounted) return;
-    
+
     ToastUtil.show(context, widget.movie == null ? '添加成功' : '更新成功');
-    
+
     Navigator.pop(context);
   }
-  
+
   /// 将海报从临时ID目录移动到新的影视ID目录
   Future<String?> _movePosterToNewId(String currentPath, String newMovieId) async {
     // 检查是否已经在正确的目录中（兼容 Windows 路径分隔符）
@@ -1867,24 +1878,24 @@ class _MovieFormPageState extends State<MovieFormPage> {
     if (normalizedPath.contains('/movies/$newMovieId/')) {
       return currentPath;
     }
-    
+
     // 提取文件名
     final fileName = p.basename(currentPath);
-    
+
     // 获取新路径
     final newPath = await ImagePathHelper.instance.getMoviePosterPath(
-      newMovieId, 
+      newMovieId,
       fileName
     );
-    
+
     // 确保目标目录存在
     await ImagePathHelper.instance.ensureDirExists(p.dirname(newPath));
-    
+
     // 移动文件
     final currentFile = File(currentPath);
     if (await currentFile.exists()) {
       await currentFile.rename(newPath);
-      
+
       // 删除空的临时目录
       final tempDir = Directory(p.dirname(currentPath));
       if (await tempDir.exists()) {
@@ -1894,10 +1905,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 忽略删除目录失败的情况
         }
       }
-      
+
       return newPath;
     }
-    
+
     return null;
   }
 }
@@ -1964,13 +1975,14 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     // 未选中的已有标签
     final availableTags = widget.existingTags
         .where((t) => !values.contains(t))
         .toList();
 
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         widget.title,
@@ -1996,9 +2008,9 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                       children: [
                         // 已选择的标签
                         if (values.isNotEmpty) ...[
-                          const Text(
+                          Text(
                             '已选择',
-                            style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
                           ),
                           const SizedBox(height: 8),
                           Wrap(
@@ -2008,7 +2020,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                               return Container(
                                 padding: const EdgeInsets.only(left: 12, right: 6, top: 7, bottom: 7),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1A1A1A),
+                                  color: colors.primary,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
@@ -2016,10 +2028,10 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                   children: [
                                     Text(
                                       v,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.white,
+                                        color: colors.onPrimary,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -2031,10 +2043,10 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                         width: 18,
                                         height: 18,
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.3),
+                                          color: colors.onPrimary.withValues(alpha: 0.3),
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.close, size: 12, color: Colors.white),
+                                        child: Icon(Icons.close, size: 12, color: colors.onPrimary),
                                       ),
                                     ),
                                   ],
@@ -2044,15 +2056,15 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                           ),
                           if (availableTags.isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            const Divider(height: 0.5, color: Color(0xFFEEEEEE)),
+                            Divider(height: 0.5, color: colors.outlineVariant),
                             const SizedBox(height: 16),
                           ],
                         ],
                         // 已有类型
                         if (availableTags.isNotEmpty) ...[
-                          const Text(
+                          Text(
                             '已有类型',
-                            style: TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
                           ),
                           const SizedBox(height: 8),
                           Wrap(
@@ -2066,24 +2078,24 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F5F5),
+                                    color: colors.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: const Color(0xFFE8E8E8),
+                                      color: colors.outline,
                                       width: 0.5,
                                     ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.add, size: 14, color: Color(0xFF999999)),
+                                      Icon(Icons.add, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                                       const SizedBox(width: 4),
                                       Text(
                                         tag,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFF555555),
+                                          color: colors.onSurface.withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ],
@@ -2100,7 +2112,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
               // 固定底部的输入框
               if (values.isNotEmpty || availableTags.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                const Divider(height: 0.5, color: Color(0xFFEEEEEE)),
+                Divider(height: 0.5, color: colors.outlineVariant),
                 const SizedBox(height: 12),
               ],
               Row(
@@ -2109,21 +2121,21 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                     child: TextField(
                       controller: controller,
                       autofocus: true,
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+                      style: TextStyle(fontSize: 15, color: colors.onSurface),
                       decoration: InputDecoration(
                         hintText: widget.hint,
-                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+                        hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: BorderSide(color: colors.outline),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: BorderSide(color: colors.outline),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                          borderSide: BorderSide(color: colors.primary, width: 1.5),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
@@ -2136,10 +2148,10 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
+                        color: colors.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add, size: 20, color: Colors.white),
+                      child: Icon(Icons.add, size: 20, color: colors.onPrimary),
                     ),
                   ),
                 ],
@@ -2151,7 +2163,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
         ),
         ElevatedButton(
           onPressed: () {
@@ -2159,8 +2171,8 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
             Navigator.pop(context, values);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1A1A1A),
-            foregroundColor: Colors.white,
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: const Text('确定'),
@@ -2205,8 +2217,9 @@ class _TextInputDialogState extends State<_TextInputDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         widget.title,
@@ -2216,21 +2229,21 @@ class _TextInputDialogState extends State<_TextInputDialog> {
         controller: controller,
         maxLines: widget.maxLines,
         autofocus: true,
-        style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+        style: TextStyle(fontSize: 15, color: colors.onSurface),
         decoration: InputDecoration(
           hintText: widget.hint,
-          hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFAAAAAA)),
+          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: BorderSide(color: colors.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            borderSide: BorderSide(color: colors.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+            borderSide: BorderSide(color: colors.primary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
@@ -2238,13 +2251,13 @@ class _TextInputDialogState extends State<_TextInputDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, controller.text.trim()),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1A1A1A),
-            foregroundColor: Colors.white,
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: const Text('确定'),

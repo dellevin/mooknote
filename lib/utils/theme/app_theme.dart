@@ -51,6 +51,10 @@ class AppTheme {
         onSurface: _black,
         error: error,
         onError: _white,
+        surfaceContainerHighest: _offWhite,
+        surfaceContainerHigh: Color(0xFFFAFAFA),
+        outline: _lighterGray,
+        outlineVariant: Color(0xFFF0F0F0),
       ),
       
       // AppBar - 极简无边框
@@ -262,6 +266,10 @@ class AppTheme {
         onSurface: _white,
         error: Color(0xFFEF4444),
         onError: _black,
+        surfaceContainerHighest: _darkGray,
+        surfaceContainerHigh: Color(0xFF2A2A2A),
+        outline: _gray,
+        outlineVariant: _darkGray,
       ),
       
       appBarTheme: const AppBarTheme(
@@ -286,6 +294,12 @@ class AppTheme {
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         margin: EdgeInsets.zero,
       ),
+
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        minLeadingWidth: 0,
+        dense: true,
+      ),
       
       dividerTheme: DividerThemeData(
         color: _darkGray,
@@ -304,12 +318,21 @@ class AppTheme {
         focusedBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: _white, width: 1),
         ),
+        errorBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFEF4444), width: 0.5),
+        ),
         contentPadding: EdgeInsets.symmetric(vertical: 12),
         hintStyle: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 15,
           fontWeight: _regular,
           color: _gray,
+        ),
+        labelStyle: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 13,
+          fontWeight: _medium,
+          color: _lightGray,
         ),
       ),
       
@@ -327,6 +350,11 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: _white,
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          textStyle: TextStyle(
+            fontFamily: _fontFamily,
+            fontSize: 14,
+            fontWeight: _medium,
+          ),
         ),
       ),
       
@@ -335,6 +363,84 @@ class AppTheme {
         selectedItemColor: _white,
         unselectedItemColor: _gray,
         elevation: 0,
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 11,
+          fontWeight: _medium,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 11,
+          fontWeight: _regular,
+        ),
+      ),
+
+      textTheme: const TextTheme(
+        headlineLarge: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 32,
+          fontWeight: _semibold,
+          color: _white,
+          letterSpacing: -0.5,
+          height: 1.2,
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 24,
+          fontWeight: _semibold,
+          color: _white,
+          letterSpacing: -0.3,
+          height: 1.3,
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 20,
+          fontWeight: _semibold,
+          color: _white,
+          letterSpacing: -0.2,
+          height: 1.4,
+        ),
+        bodyLarge: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 16,
+          fontWeight: _regular,
+          color: _offWhite,
+          height: 1.6,
+        ),
+        bodyMedium: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 15,
+          fontWeight: _regular,
+          color: _offWhite,
+          height: 1.5,
+        ),
+        bodySmall: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 13,
+          fontWeight: _regular,
+          color: _lightGray,
+          height: 1.5,
+        ),
+        labelLarge: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 14,
+          fontWeight: _medium,
+          color: _white,
+        ),
+        labelMedium: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 12,
+          fontWeight: _medium,
+          color: _lightGray,
+        ),
+        labelSmall: TextStyle(
+          fontFamily: _fontFamily,
+          fontSize: 11,
+          fontWeight: _medium,
+          color: _gray,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }

@@ -42,6 +42,7 @@ class _ShimmerSkeletonState extends State<ShimmerSkeleton>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -49,7 +50,7 @@ class _ShimmerSkeletonState extends State<ShimmerSkeleton>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: const Color(0xFFE0E0E0).withValues(alpha: _animation.value),
+            color: colors.surfaceContainerHighest.withValues(alpha: _animation.value),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
         );
@@ -134,6 +135,7 @@ class NoteSkeletonList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 100),
       itemCount: 6,
@@ -141,7 +143,7 @@ class NoteSkeletonList extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8F8F8),
+          color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Column(

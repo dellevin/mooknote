@@ -8,20 +8,21 @@ class MovieStatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colors.surface,
             border: Border(
-              bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+              bottom: BorderSide(color: colors.outline, width: 0.5),
             ),
           ),
           child: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(24),
             ),
             child: LayoutBuilder(
@@ -42,7 +43,7 @@ class MovieStatusBar extends StatelessWidget {
                           padding: const EdgeInsets.all(3),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
+                              color: colors.primary,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
@@ -58,18 +59,21 @@ class MovieStatusBar extends StatelessWidget {
                       Row(
                         children: [
                           _buildTab(
+                            colors: colors,
                             label: '已看',
                             icon: Icons.check_circle_outline,
                             isSelected: provider.movieStatusIndex == 0,
                             onTap: () => provider.setMovieStatusIndex(0),
                           ),
                           _buildTab(
+                            colors: colors,
                             label: '在看',
                             icon: Icons.play_circle_outline,
                             isSelected: provider.movieStatusIndex == 1,
                             onTap: () => provider.setMovieStatusIndex(1),
                           ),
                           _buildTab(
+                            colors: colors,
                             label: '想看',
                             icon: Icons.bookmark_outline,
                             isSelected: provider.movieStatusIndex == 2,
@@ -89,6 +93,7 @@ class MovieStatusBar extends StatelessWidget {
   }
 
   Widget _buildTab({
+    required ColorScheme colors,
     required String label,
     required IconData icon,
     required bool isSelected,
@@ -108,7 +113,7 @@ class MovieStatusBar extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : const Color(0xFF666666),
+                color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 6),
               Text(
@@ -116,7 +121,7 @@ class MovieStatusBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? Colors.white : const Color(0xFF666666),
+                  color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],

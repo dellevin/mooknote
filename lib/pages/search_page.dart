@@ -100,8 +100,9 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('搜索'),
         elevation: 0,
@@ -121,18 +122,19 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildSearchBar() {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: TextField(
         controller: _searchController,
         focusNode: _focusNode,
-        style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
+        style: TextStyle(fontSize: 15, color: colors.onSurface),
         decoration: InputDecoration(
           hintText: '搜索标题、别名、内容...',
-          hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 15),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.only(left: 12, right: 8),
-            child: Icon(Icons.search, color: Color(0xFF1A1A1A), size: 22),
+          hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.35), fontSize: 15),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            child: Icon(Icons.search, color: colors.onSurface, size: 22),
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
           suffixIcon: _searchController.text.isNotEmpty
@@ -147,15 +149,15 @@ class _SearchPageState extends State<SearchPage> {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5E5E5),
+                      color: colors.outline,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.close, color: Color(0xFF666666), size: 16),
+                    child: Icon(Icons.close, color: colors.onSurface.withValues(alpha: 0.6), size: 16),
                   ),
                 )
               : null,
           filled: true,
-          fillColor: const Color(0xFFF8F8F8),
+          fillColor: colors.surfaceContainerHigh,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
@@ -166,7 +168,7 @@ class _SearchPageState extends State<SearchPage> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
+            borderSide: BorderSide(color: colors.primary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
@@ -205,26 +207,27 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildTypeChip(String label, IconData icon, bool selected, ValueChanged<bool> onChanged) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => onChanged(!selected),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+          color: selected ? colors.primary : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: selected ? Colors.white : const Color(0xFF888888)),
+            Icon(icon, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
             const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: selected ? Colors.white : const Color(0xFF888888),
+                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -234,6 +237,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildInitialState() {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -242,21 +246,22 @@ class _SearchPageState extends State<SearchPage> {
             width: 88,
             height: 88,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
+              color: colors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.search_rounded, size: 44, color: Color(0xFFD0D0D0)),
+            child: Icon(Icons.search_rounded, size: 44, color: colors.onSurface.withValues(alpha: 0.2)),
           ),
           const SizedBox(height: 24),
-          const Text('输入关键词搜索', style: TextStyle(fontSize: 15, color: Color(0xFF999999))),
+          Text('输入关键词搜索', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
-          const Text('可同时筛选影视、书籍、笔记', style: TextStyle(fontSize: 13, color: Color(0xFFCCCCCC))),
+          Text('可同时筛选影视、书籍、笔记', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25))),
         ],
       ),
     );
   }
 
   Widget _buildEmptyState() {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -265,15 +270,15 @@ class _SearchPageState extends State<SearchPage> {
             width: 88,
             height: 88,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
+              color: colors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.search_off_rounded, size: 44, color: Color(0xFFD0D0D0)),
+            child: Icon(Icons.search_off_rounded, size: 44, color: colors.onSurface.withValues(alpha: 0.2)),
           ),
           const SizedBox(height: 24),
-          const Text('未找到相关内容', style: TextStyle(fontSize: 15, color: Color(0xFF999999))),
+          Text('未找到相关内容', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
-          const Text('换个关键词试试', style: TextStyle(fontSize: 13, color: Color(0xFFCCCCCC))),
+          Text('换个关键词试试', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25))),
         ],
       ),
     );
@@ -302,13 +307,14 @@ class _SearchPageState extends State<SearchPage> {
   // ─── 影视结果项 ──────────────────────────────────────────────────────
 
   Widget _buildMovieItem(Movie movie) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: movie))),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFAFA),
+          color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -328,17 +334,17 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   if (movie.alternateTitles.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(movie.alternateTitles.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
+                        style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0), size: 20),
+            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
           ],
         ),
       ),
@@ -348,13 +354,14 @@ class _SearchPageState extends State<SearchPage> {
   // ─── 书籍结果项 ──────────────────────────────────────────────────────
 
   Widget _buildBookItem(Book book) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: book))),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFAFA),
+          color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -374,17 +381,17 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   if (book.authors.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(book.authors.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
+                        style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0), size: 20),
+            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
           ],
         ),
       ),
@@ -394,13 +401,14 @@ class _SearchPageState extends State<SearchPage> {
   // ─── 笔记结果项 ──────────────────────────────────────────────────────
 
   Widget _buildNoteItem(Note note) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: note))),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFAFA),
+          color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -410,7 +418,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 _typeBadge('笔记', const Color(0xFF66BB6A)),
                 const Spacer(),
-                const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0), size: 20),
+                Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
               ],
             ),
             const SizedBox(height: 10),
@@ -418,7 +426,7 @@ class _SearchPageState extends State<SearchPage> {
               note.summary.trim().isEmpty ? '(无内容)' : note.summary.trim(),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF333333), height: 1.6),
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.75), height: 1.6),
             ),
             if (note.tags.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -428,10 +436,10 @@ class _SearchPageState extends State<SearchPage> {
                 children: note.tags.map((tag) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: colors.surface,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(tag, style: const TextStyle(fontSize: 11, color: Color(0xFF888888))),
+                  child: Text(tag, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                 )).toList(),
               ),
             ],
@@ -444,18 +452,19 @@ class _SearchPageState extends State<SearchPage> {
   // ─── 通用组件 ────────────────────────────────────────────────────────
 
   Widget _buildPosterThumb(String? path, IconData fallback) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: 48,
       height: 64,
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
+        color: colors.outlineVariant,
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
       child: path != null && path.isNotEmpty
           ? Image.file(File(path), fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Icon(fallback, size: 22, color: const Color(0xFFCCCCCC)))
-          : Icon(fallback, size: 22, color: const Color(0xFFCCCCCC)),
+              errorBuilder: (_, __, ___) => Icon(fallback, size: 22, color: colors.onSurface.withValues(alpha: 0.25)))
+          : Icon(fallback, size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
     );
   }
 
@@ -471,11 +480,12 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _statusBadge(String status) {
+    final colors = Theme.of(context).colorScheme;
     final (label, bg, fg) = switch (status) {
-      'watched' => ('已看', const Color(0xFF1A1A1A), Colors.white),
-      'watching' => ('在看', const Color(0xFFF0F0F0), const Color(0xFF666666)),
-      'want_to_watch' => ('想看', const Color(0xFFF5F5F5), const Color(0xFF999999)),
-      _ => ('', const Color(0xFFF5F5F5), const Color(0xFFBBBBBB)),
+      'watched' => ('已看', colors.primary, colors.onPrimary),
+      'watching' => ('在看', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
+      'want_to_watch' => ('想看', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      _ => ('', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.3)),
     };
     if (label.isEmpty) return const SizedBox.shrink();
     return Container(
@@ -486,11 +496,12 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _bookStatusBadge(String status) {
+    final colors = Theme.of(context).colorScheme;
     final (label, bg, fg) = switch (status) {
-      'read' => ('已读', const Color(0xFF1A1A1A), Colors.white),
-      'reading' => ('在读', const Color(0xFFF0F0F0), const Color(0xFF666666)),
-      'want_to_read' => ('想读', const Color(0xFFF5F5F5), const Color(0xFF999999)),
-      _ => ('', const Color(0xFFF5F5F5), const Color(0xFFBBBBBB)),
+      'read' => ('已读', colors.primary, colors.onPrimary),
+      'reading' => ('在读', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
+      'want_to_read' => ('想读', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      _ => ('', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.3)),
     };
     if (label.isEmpty) return const SizedBox.shrink();
     return Container(

@@ -99,7 +99,7 @@ class _HomePageState extends State<HomePage> {
                         width: 44,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: const BorderRadius.horizontal(
                               right: Radius.circular(28)),
                           boxShadow: [
@@ -111,10 +111,10 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ],
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(
                             Icons.chevron_right,
-                            color: Color(0xFF999999),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                             size: 24,
                           ),
                         ),

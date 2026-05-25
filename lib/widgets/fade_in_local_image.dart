@@ -51,7 +51,6 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
       return;
     }
 
-    // 如果是 http 开头，直接当网络图片
     if (widget.path!.startsWith('http')) {
       _useNetwork = true;
       _imageUrl = widget.path;
@@ -60,7 +59,6 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
       return;
     }
 
-    // 本地文件存在就直接显示
     final file = File(widget.path!);
     if (file.existsSync()) {
       setState(() => _loaded = true);
@@ -68,7 +66,6 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
       return;
     }
 
-    // 本地不存在，尝试服务端 URL
     if (ServerDataService.isActive) {
       try {
         final url = await ServerDataService.toImageUrl(widget.path!);
@@ -105,13 +102,14 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     if (_error) {
       return widget.errorWidget ??
           Container(
             width: widget.width,
             height: widget.height,
-            color: const Color(0xFFF5F5F5),
-            child: const Icon(Icons.broken_image_outlined, size: 24, color: Color(0xFFCCCCCC)),
+            color: colors.surfaceContainerHighest,
+            child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
           );
     }
     if (!_loaded) {
@@ -119,7 +117,7 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
           Container(
             width: widget.width,
             height: widget.height,
-            color: const Color(0xFFF5F5F5),
+            color: colors.surfaceContainerHighest,
           );
     }
     return FadeTransition(
@@ -136,8 +134,8 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
                     Container(
                       width: widget.width,
                       height: widget.height,
-                      color: const Color(0xFFF5F5F5),
-                      child: const Icon(Icons.broken_image_outlined, size: 24, color: Color(0xFFCCCCCC)),
+                      color: colors.surfaceContainerHighest,
+                      child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
                     );
               },
             )
@@ -150,8 +148,8 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
                   Container(
                     width: widget.width,
                     height: widget.height,
-                    color: const Color(0xFFF5F5F5),
-                    child: const Icon(Icons.broken_image_outlined, size: 24, color: Color(0xFFCCCCCC)),
+                    color: colors.surfaceContainerHighest,
+                    child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
                   ),
             ),
     );

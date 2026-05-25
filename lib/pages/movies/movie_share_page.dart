@@ -24,21 +24,22 @@ class _MovieSharePageState extends State<MovieSharePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: colors.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF1A1A1A)),
+          icon: Icon(Icons.close, color: colors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           '分享海报',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
+            color: colors.onSurface,
           ),
         ),
         centerTitle: true,
@@ -51,12 +52,12 @@ class _MovieSharePageState extends State<MovieSharePage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
+                : Text(
                     '分享',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+                      color: colors.onSurface,
                     ),
                   ),
           ),
@@ -77,13 +78,14 @@ class _MovieSharePageState extends State<MovieSharePage> {
 
   /// 构建海报 Widget
   Widget _buildPosterWidget() {
+    final colors = Theme.of(context).colorScheme;
     final movie = widget.movie;
     final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
 
     return Container(
       width: 320,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -118,10 +120,10 @@ class _MovieSharePageState extends State<MovieSharePage> {
                 // 标题
                 Text(
                   movie.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
+                    color: colors.onSurface,
                   ),
                 ),
 
@@ -130,9 +132,9 @@ class _MovieSharePageState extends State<MovieSharePage> {
                   const SizedBox(height: 8),
                   Text(
                     movie.alternateTitles.join(' / '),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF666666),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -158,11 +160,11 @@ class _MovieSharePageState extends State<MovieSharePage> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         '/ 10',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF999999),
+                          color: colors.onSurface.withValues(alpha: 0.4),
                         ),
                       ),
                     ],
@@ -172,44 +174,45 @@ class _MovieSharePageState extends State<MovieSharePage> {
 
                 // 导演
                 if (movie.directors.isNotEmpty)
-                  _buildInfoRow('导演', movie.directors.join(' / ')),
+                  _buildInfoRow('导演', movie.directors.join(' / '), colors),
 
                 // 编剧
                 if (movie.writers.isNotEmpty)
-                  _buildInfoRow('编剧', movie.writers.join(' / ')),
+                  _buildInfoRow('编剧', movie.writers.join(' / '), colors),
 
                 // 主演
                 if (movie.actors.isNotEmpty)
-                  _buildInfoRow('主演', movie.actors.take(3).join(' / ')),
+                  _buildInfoRow('主演', movie.actors.take(3).join(' / '), colors),
 
                 // 类型
                 if (movie.genres.isNotEmpty)
-                  _buildInfoRow('类型', movie.genres.join(' / ')),
+                  _buildInfoRow('类型', movie.genres.join(' / '), colors),
 
                 // 上映日期
                 if (movie.releaseDate != null)
                   _buildInfoRow(
                     '上映',
                     '${movie.releaseDate!.year}.${movie.releaseDate!.month.toString().padLeft(2, '0')}.${movie.releaseDate!.day.toString().padLeft(2, '0')}',
+                    colors,
                   ),
 
                 const SizedBox(height: 16),
 
                 // 简介
                 if (movie.summary != null && movie.summary!.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     '简介',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF999999),
+                      color: colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     movie.summary!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF666666),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                       height: 1.6,
                     ),
                     maxLines: 5,
@@ -220,7 +223,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
                 const SizedBox(height: 20),
 
                 // 底部标识
-                const Divider(height: 1, color: Color(0xFFE8E8E8)),
+                Divider(height: 1, color: colors.outline),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -228,14 +231,14 @@ class _MovieSharePageState extends State<MovieSharePage> {
                     Icon(
                       Icons.movie_outlined,
                       size: 14,
-                      color: const Color(0xFF1A1A1A).withOpacity(0.5),
+                      color: colors.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '来自 MookNote',
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF1A1A1A).withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -249,7 +252,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
   }
 
   /// 构建信息行
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, ColorScheme colors) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -257,17 +260,17 @@ class _MovieSharePageState extends State<MovieSharePage> {
         children: [
           Text(
             '$label：',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF999999),
+              color: colors.onSurface.withValues(alpha: 0.4),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF333333),
+                color: colors.onSurface.withValues(alpha: 0.75),
               ),
             ),
           ),

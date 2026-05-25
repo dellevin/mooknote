@@ -157,16 +157,24 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
   Future<void> _disconnect() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('断开连接', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        content: const Text('将清除服务器配置和激活信息，确定要断开吗？', style: TextStyle(fontSize: 14, color: Color(0xFF666666))),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消', style: TextStyle(color: Color(0xFF999999)))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确定', style: TextStyle(color: Color(0xFFE53935)))),
-        ],
-      ),
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('断开连接', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          content: Text('将清除服务器配置和激活信息，确定要断开吗？',
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('确定', style: TextStyle(color: Color(0xFFE53935)))),
+          ],
+        );
+      },
     );
     if (confirm != true) return;
 
@@ -190,63 +198,107 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(title: const Text('服务端实时同步')),
       body: ListView(padding: const EdgeInsets.all(20), children: [
         // 状态卡片
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))
+            ],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(
-                color: _isActivated ? const Color(0xFF66BB6A) : const Color(0xFFDDDDDD), shape: BoxShape.circle)),
+              Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                      color: _isActivated
+                          ? const Color(0xFF66BB6A)
+                          : colors.onSurface.withValues(alpha: 0.15),
+                      shape: BoxShape.circle)),
               const SizedBox(width: 10),
               Text(_isActivated ? '已激活' : '未激活',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
-                      color: _isActivated ? const Color(0xFF66BB6A) : const Color(0xFFBBBBBB))),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _isActivated
+                          ? const Color(0xFF66BB6A)
+                          : colors.onSurface.withValues(alpha: 0.3))),
               const Spacer(),
               if (_isActivated)
                 GestureDetector(
                   onTap: _disconnect,
-                  child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(6)),
-                      child: const Text('断开', style: TextStyle(fontSize: 12, color: Color(0xFFE57373)))),
+                  child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+                      child: const Text('断开',
+                          style: TextStyle(fontSize: 12, color: Color(0xFFE57373)))),
                 ),
             ]),
             const SizedBox(height: 20),
-            const Text('服务器地址', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+            Text('服务器地址',
+                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 6),
-            TextField(controller: _urlController, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-              decoration: _inputDeco('例: http://192.168.1.100:5000')),
+            TextField(
+              controller: _urlController,
+              style: TextStyle(fontSize: 14, color: colors.onSurface),
+              decoration: _inputDeco(colors, '例: http://192.168.1.100:5000'),
+            ),
             const SizedBox(height: 14),
-            const Text('激活码', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+            Text('激活码',
+                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 6),
-            TextField(controller: _codeController, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                textCapitalization: TextCapitalization.characters, decoration: _inputDeco('例: MK-A1B2C3D4E5F6')),
+            TextField(
+                controller: _codeController,
+                style: TextStyle(fontSize: 14, color: colors.onSurface),
+                textCapitalization: TextCapitalization.characters,
+                decoration: _inputDeco(colors, '例: MK-A1B2C3D4E5F6')),
             const SizedBox(height: 16),
-            SizedBox(width: double.infinity,
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isChecking ? null : _checkActivation,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A1A), foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFDDDDDD), elevation: 0,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    disabledBackgroundColor: colors.onSurface.withValues(alpha: 0.15),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(vertical: 13)),
                 child: _isChecking
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(_isActivated ? '重新验证' : '验证激活', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                    : Text(_isActivated ? '重新验证' : '验证激活',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
             if (_expiresText.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.access_time, size: 14, color: _prefs.syncIsPermanent ? const Color(0xFF66BB6A) : const Color(0xFFFF9800)),
+              Center(
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.access_time,
+                    size: 14,
+                    color: _prefs.syncIsPermanent
+                        ? const Color(0xFF66BB6A)
+                        : const Color(0xFFFF9800)),
                 const SizedBox(width: 6),
-                Text(_expiresText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
-                    color: _prefs.syncIsPermanent ? const Color(0xFF66BB6A) : const Color(0xFFFF9800))),
+                Text(_expiresText,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: _prefs.syncIsPermanent
+                            ? const Color(0xFF66BB6A)
+                            : const Color(0xFFFF9800))),
               ])),
             ],
           ]),
@@ -255,47 +307,78 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
         // 同步开关
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+          decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))
+              ]),
           child: Row(children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)),
-              child: Icon(_syncEnabled ? Icons.sync : Icons.sync_disabled,
-                  color: _syncEnabled ? const Color(0xFF1A1A1A) : const Color(0xFFCCCCCC), size: 22)),
+            Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                child: Icon(_syncEnabled ? Icons.sync : Icons.sync_disabled,
+                    color: _syncEnabled
+                        ? colors.primary
+                        : colors.onSurface.withValues(alpha: 0.25),
+                    size: 22)),
             const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('服务端实时同步', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A))),
+            Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('服务端实时同步',
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
               const SizedBox(height: 2),
               Text(_syncEnabled ? '使用服务端数据，多设备实时共享' : '关闭后下载数据到本地使用',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
             ])),
-            Switch(value: _syncEnabled, onChanged: _isActivated ? _toggleSync : null,
-              activeColor: const Color(0xFF1A1A1A), activeTrackColor: const Color(0xFF1A1A1A).withOpacity(0.3),
-              inactiveThumbColor: Colors.white, inactiveTrackColor: const Color(0xFFE5E5E5)),
+            Switch(
+                value: _syncEnabled,
+                onChanged: _isActivated ? _toggleSync : null,
+                activeThumbColor: colors.primary,
+                activeTrackColor: colors.primary.withValues(alpha: 0.3),
+                inactiveThumbColor: colors.surface,
+                inactiveTrackColor: colors.outline),
           ]),
         ),
         const SizedBox(height: 24),
         // 说明
         Container(
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2))]),
+          decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2))
+              ]),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Container(width: 36, height: 36, decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.info_outline, size: 18, color: Color(0xFF666666))),
+              Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+                  child: Icon(Icons.info_outline,
+                      size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
               const SizedBox(width: 10),
-              const Text('使用说明', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              Text('使用说明',
+                  style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ]),
             const SizedBox(height: 14),
-            _infoItem('1. 在服务端管理后台生成激活码'),
+            _infoItem(colors, '1. 在服务端管理后台生成激活码'),
             const SizedBox(height: 8),
-            _infoItem('2. 输入服务器地址和激活码完成验证'),
+            _infoItem(colors, '2. 输入服务器地址和激活码完成验证'),
             const SizedBox(height: 8),
-            _infoItem('3. 验证通过后自动开启实时同步'),
+            _infoItem(colors, '3. 验证通过后自动开启实时同步'),
             const SizedBox(height: 8),
-            _infoItem('4. 开启时所有数据通过服务端接口操作'),
+            _infoItem(colors, '4. 开启时所有数据通过服务端接口操作'),
             const SizedBox(height: 8),
-            _infoItem('5. 关闭时从服务端下载数据到本地使用'),
+            _infoItem(colors, '5. 关闭时从服务端下载数据到本地使用'),
           ]),
         ),
         const SizedBox(height: 40),
@@ -303,21 +386,33 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
     );
   }
 
-  InputDecoration _inputDeco(String hint) {
+  InputDecoration _inputDeco(ColorScheme colors, String hint) {
     return InputDecoration(
-      hintText: hint, hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCCCC)),
-      filled: true, fillColor: const Color(0xFFF8F8F8),
+      hintText: hint,
+      hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25)),
+      filled: true,
+      fillColor: colors.surfaceContainerHigh,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: colors.primary, width: 1)),
     );
   }
 
-  Widget _infoItem(String text) {
+  Widget _infoItem(ColorScheme colors, String text) {
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(width: 5, height: 5, margin: const EdgeInsets.only(top: 6), decoration: BoxDecoration(color: const Color(0xFFBBBBBB), shape: BoxShape.circle)),
+      Container(
+          width: 5,
+          height: 5,
+          margin: const EdgeInsets.only(top: 6),
+          decoration: BoxDecoration(
+              color: colors.onSurface.withValues(alpha: 0.3), shape: BoxShape.circle)),
       const SizedBox(width: 10),
-      Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: Color(0xFF888888), height: 1.5))),
+      Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5), height: 1.5))),
     ]);
   }
 }

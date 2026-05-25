@@ -17,8 +17,8 @@ class UsageStatsService with WidgetsBindingObserver {
   final UserPrefs _prefs = UserPrefs();
 
   /// 统计服务器地址，发布前替换为实际地址，置空则禁用
-  static String serverUrl = 'http://api.mooknote.iletter.top/';
-
+  // static String serverUrl = 'http://api.mooknote.iletter.top/';
+  static String serverUrl = 'http://192.168.31.48:27050/';
   Timer? _heartbeatTimer;
   bool _started = false;
 

@@ -19,8 +19,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('数据统计')),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
@@ -63,6 +64,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // ─── 总览卡片 ────────────────────────────────────────────────────────
 
   Widget _buildTotalCards(List<Movie> movies, List<Book> books, List<Note> notes) {
+    final colors = Theme.of(context).colorScheme;
     final items = <_CardData>[];
     if (_showMovies) items.add(_CardData('影视', movies.length, Icons.movie_outlined, const Color(0xFF4A90D9)));
     if (_showBooks) items.add(_CardData('书籍', books.length, Icons.menu_book_outlined, const Color(0xFF7E57C2)));
@@ -83,7 +85,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               const SizedBox(height: 10),
               Text('${d.count}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: d.color)),
               const SizedBox(height: 2),
-              Text(d.label, style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
+              Text(d.label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
             ],
           ),
         ),
@@ -94,6 +96,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // ─── 状态分布 ────────────────────────────────────────────────────────
 
   Widget _buildStatusSection(String title, List items, String Function(dynamic) getStatus, Map<String, String> labels) {
+    final colors = Theme.of(context).colorScheme;
     final active = items.where((i) => !(i is Movie) || !i.isDeleted).toList();
     final total = active.length;
 
@@ -110,11 +113,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 Row(
                   children: [
-                    Text(e.key, style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
+                    Text(e.key, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
                     const Spacer(),
-                    Text('$count', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                    Text('$count', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
                     const SizedBox(width: 4),
-                    Text('${(pct * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
+                    Text('${(pct * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -122,8 +125,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value: pct,
-                    backgroundColor: const Color(0xFFF0F0F0),
-                    color: const Color(0xFF1A1A1A),
+                    backgroundColor: colors.outlineVariant,
+                    color: colors.primary,
                     minHeight: 6,
                   ),
                 ),
@@ -138,6 +141,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // ─── 类型/标签分布 ───────────────────────────────────────────────────
 
   Widget _buildGenreDistribution(String title, List items) {
+    final colors = Theme.of(context).colorScheme;
     final genreCounts = <String, int>{};
     for (final item in items) {
       for (final genre in (item.genres as List<String>)) {
@@ -161,17 +165,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 SizedBox(
                   width: 60,
-                  child: Text(e.key, style: const TextStyle(fontSize: 12, color: Color(0xFF666666)), overflow: TextOverflow.ellipsis),
+                  child: Text(e.key, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6)), overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(value: pct, backgroundColor: const Color(0xFFF0F0F0), color: const Color(0xFF1A1A1A), minHeight: 4),
+                    child: LinearProgressIndicator(value: pct, backgroundColor: colors.outlineVariant, color: colors.primary, minHeight: 4),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('${e.value}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                Text('${e.value}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ],
             ),
           );
@@ -181,6 +185,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget _buildNoteTagDistribution(String title, List<Note> notes) {
+    final colors = Theme.of(context).colorScheme;
     final tagCounts = <String, int>{};
     for (final note in notes) {
       for (final tag in note.tags) {
@@ -204,17 +209,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 SizedBox(
                   width: 60,
-                  child: Text(e.key, style: const TextStyle(fontSize: 12, color: Color(0xFF666666)), overflow: TextOverflow.ellipsis),
+                  child: Text(e.key, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6)), overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(value: pct, backgroundColor: const Color(0xFFF0F0F0), color: const Color(0xFF1A1A1A), minHeight: 4),
+                    child: LinearProgressIndicator(value: pct, backgroundColor: colors.outlineVariant, color: colors.primary, minHeight: 4),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('${e.value}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                Text('${e.value}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ],
             ),
           );
@@ -226,6 +231,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // ─── 评分分布 ────────────────────────────────────────────────────────
 
   Widget _buildRatingDistribution(String title, List<Movie> movies, List<Book> books) {
+    final colors = Theme.of(context).colorScheme;
     final allRatings = <double>[];
     for (final m in movies) {
       if (m.rating != null) allRatings.add(m.rating!);
@@ -255,10 +261,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           Row(
             children: [
-              const Text('平均评分', style: TextStyle(fontSize: 13, color: Color(0xFF666666))),
+              Text('平均评分', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
               const Spacer(),
-              Text(avg.toStringAsFixed(1), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
-              const Text(' / 10', style: TextStyle(fontSize: 13, color: Color(0xFFBBBBBB))),
+              Text(avg.toStringAsFixed(1), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface)),
+              Text(' / 10', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
             ],
           ),
           const SizedBox(height: 16),
@@ -268,7 +274,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 SizedBox(
                   width: 28,
-                  child: Text(ranges[i], style: const TextStyle(fontSize: 11, color: Color(0xFF999999))),
+                  child: Text(ranges[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -276,14 +282,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     borderRadius: BorderRadius.circular(2),
                     child: LinearProgressIndicator(
                       value: maxCount > 0 ? counts[i] / maxCount : 0.0,
-                      backgroundColor: const Color(0xFFF0F0F0),
-                      color: const Color(0xFF1A1A1A),
+                      backgroundColor: colors.outlineVariant,
+                      color: colors.primary,
                       minHeight: 6,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('${counts[i]}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                Text('${counts[i]}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ],
             ),
           )),
@@ -295,6 +301,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // ─── 月度趋势 ────────────────────────────────────────────────────────
 
   Widget _buildMonthlyTrend(List<Movie> movies, List<Book> books, List<Note> notes) {
+    final colors = Theme.of(context).colorScheme;
     final now = DateTime.now();
     final months = List.generate(6, (i) {
       final d = DateTime(now.year, now.month - (5 - i), 1);
@@ -323,7 +330,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final maxVal = allValues.isEmpty ? 1 : allValues.reduce((a, b) => a > b ? a : b);
     final safeMax = maxVal == 0 ? 1 : maxVal;
 
-    final colors = { '影视': const Color(0xFF4A90D9), '书籍': const Color(0xFF7E57C2), '笔记': const Color(0xFF66BB6A) };
+    final brandColors = { '影视': const Color(0xFF4A90D9), '书籍': const Color(0xFF7E57C2), '笔记': const Color(0xFF66BB6A) };
 
     return _buildCard(
       title: '近6月趋势',
@@ -345,7 +352,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           height: h < 2 && e.value[i] > 0 ? 2 : h,
                           margin: const EdgeInsets.only(top: 1),
                           decoration: BoxDecoration(
-                            color: colors[e.key]!.withValues(alpha: 0.7),
+                            color: brandColors[e.key]!.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         );
@@ -357,12 +364,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
           ),
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, color: colors.outlineVariant),
           const SizedBox(height: 8),
           // 月份标签
           Row(
             children: months.map((m) => Expanded(
-              child: Text(m, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB))),
+              child: Text(m, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
             )).toList(),
           ),
           const SizedBox(height: 12),
@@ -374,9 +381,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: colors[k], borderRadius: BorderRadius.circular(2))),
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: brandColors[k], borderRadius: BorderRadius.circular(2))),
                   const SizedBox(width: 4),
-                  Text(k, style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
+                  Text(k, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
                 ],
               ),
             )).toList(),
@@ -394,10 +401,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // ─── 通用卡片 ────────────────────────────────────────────────────────
 
   Widget _buildCard({required String title, required Widget child}) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -405,9 +413,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           Row(
             children: [
-              Container(width: 3, height: 14, decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(2))),
+              Container(width: 3, height: 14, decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+              Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
           ),
           const SizedBox(height: 16),

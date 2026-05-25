@@ -23,21 +23,22 @@ class _BookSharePageState extends State<BookSharePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: colors.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF1A1A1A)),
+          icon: Icon(Icons.close, color: colors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           '分享海报',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A1A),
+            color: colors.onSurface,
           ),
         ),
         centerTitle: true,
@@ -50,12 +51,12 @@ class _BookSharePageState extends State<BookSharePage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
+                : Text(
                     '分享',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+                      color: colors.onSurface,
                     ),
                   ),
           ),
@@ -76,13 +77,14 @@ class _BookSharePageState extends State<BookSharePage> {
 
   /// 构建海报 Widget
   Widget _buildPosterWidget() {
+    final colors = Theme.of(context).colorScheme;
     final book = widget.book;
     final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
 
     return Container(
       width: 320,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -117,10 +119,10 @@ class _BookSharePageState extends State<BookSharePage> {
                 // 书名
                 Text(
                   book.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
+                    color: colors.onSurface,
                   ),
                 ),
 
@@ -129,9 +131,9 @@ class _BookSharePageState extends State<BookSharePage> {
                   const SizedBox(height: 8),
                   Text(
                     book.alternateTitles.join(' / '),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF666666),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -157,11 +159,11 @@ class _BookSharePageState extends State<BookSharePage> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         '/ 10',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF999999),
+                          color: colors.onSurface.withValues(alpha: 0.4),
                         ),
                       ),
                     ],
@@ -171,44 +173,45 @@ class _BookSharePageState extends State<BookSharePage> {
 
                 // 作者
                 if (book.authors.isNotEmpty)
-                  _buildInfoRow('作者', book.authors.join(' / ')),
+                  _buildInfoRow('作者', book.authors.join(' / '), colors),
 
                 // 出版社
                 if (book.publisher != null && book.publisher!.isNotEmpty)
-                  _buildInfoRow('出版社', book.publisher!),
+                  _buildInfoRow('出版社', book.publisher!, colors),
 
                 // 出版时间
                 if (book.publishDate != null)
                   _buildInfoRow(
                     '出版',
                     '${book.publishDate!.year}.${book.publishDate!.month.toString().padLeft(2, '0')}.${book.publishDate!.day.toString().padLeft(2, '0')}',
+                    colors,
                   ),
 
                 // 类型
                 if (book.genres.isNotEmpty)
-                  _buildInfoRow('类型', book.genres.join(' / ')),
+                  _buildInfoRow('类型', book.genres.join(' / '), colors),
 
                 // ISBN
                 if (book.isbn != null && book.isbn!.isNotEmpty)
-                  _buildInfoRow('ISBN', book.isbn!),
+                  _buildInfoRow('ISBN', book.isbn!, colors),
 
                 const SizedBox(height: 16),
 
                 // 简介
                 if (book.summary != null && book.summary!.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     '简介',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF999999),
+                      color: colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     book.summary!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF666666),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                       height: 1.6,
                     ),
                     maxLines: 5,
@@ -219,7 +222,7 @@ class _BookSharePageState extends State<BookSharePage> {
                 const SizedBox(height: 20),
 
                 // 底部标识
-                const Divider(height: 1, color: Color(0xFFE8E8E8)),
+                Divider(height: 1, color: colors.outline),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -227,14 +230,14 @@ class _BookSharePageState extends State<BookSharePage> {
                     Icon(
                       Icons.book_outlined,
                       size: 14,
-                      color: const Color(0xFF1A1A1A).withOpacity(0.5),
+                      color: colors.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '来自 MookNote',
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF1A1A1A).withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -248,7 +251,7 @@ class _BookSharePageState extends State<BookSharePage> {
   }
 
   /// 构建信息行
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, ColorScheme colors) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -256,17 +259,17 @@ class _BookSharePageState extends State<BookSharePage> {
         children: [
           Text(
             '$label：',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF999999),
+              color: colors.onSurface.withValues(alpha: 0.4),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF333333),
+                color: colors.onSurface.withValues(alpha: 0.75),
               ),
             ),
           ),

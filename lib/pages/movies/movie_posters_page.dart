@@ -45,8 +45,9 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('海报墙'),
         actions: [
@@ -66,6 +67,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   }
 
   Widget _buildEmptyState() {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -74,21 +76,21 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.photo_library_outlined,
               size: 40,
-              color: Color(0xFFCCCCCC),
+              color: colors.onSurface.withValues(alpha: 0.25),
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             '暂无海报',
             style: TextStyle(
               fontSize: 16,
-              color: Color(0xFF999999),
+              color: colors.onSurface.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 24),
@@ -97,15 +99,15 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: colors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
+              child: Text(
                 '添加记录',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: colors.onPrimary,
                 ),
               ),
             ),
@@ -130,10 +132,11 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   }
 
   Widget _buildPosterItem(MoviePoster poster, int index) {
+    final colors = Theme.of(context).colorScheme;
     // 根据索引生成不同的高度，实现瀑布流效果
     final heights = [180.0, 220.0, 160.0, 200.0, 240.0, 190.0];
     final height = heights[index % heights.length];
-    
+
     return GestureDetector(
       onTap: () => _showPosterDetail(poster),
       onLongPress: () => _showDeleteDialog(poster),
@@ -158,10 +161,10 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
               Image.file(
                 File(poster.posterPath),
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Center(
+                errorBuilder: (_, __, ___) => Center(
                   child: Icon(
                     Icons.broken_image,
-                    color: Color(0xFFCCCCCC),
+                    color: colors.onSurface.withValues(alpha: 0.25),
                   ),
                 ),
               ),
@@ -194,7 +197,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   void _showPosterDetail(MoviePoster poster) {
     // 找到当前海报的索引
     final initialIndex = _posters.indexWhere((p) => p.id == poster.id);
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -210,61 +213,72 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
     // 显示选择对话框
     final result = await showModalBottomSheet<int>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 顶部指示条
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0E0E0),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // 标题
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Text(
-                      '添加海报',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // 从相册选择
-              _buildAddOption(
-                icon: Icons.photo_library_outlined,
-                title: '从相册选择',
-                subtitle: '选择本地图片',
-                onTap: () => Navigator.pop(context, 0),
-              ),
-              // 网络链接
-              _buildAddOption(
-                icon: Icons.link_outlined,
-                title: '网络链接',
-                subtitle: '输入图片URL地址',
-                onTap: () => Navigator.pop(context, 1),
-              ),
-            ],
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return Container(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-        ),
-      ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 顶部指示条
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.outline,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // 标题
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: [
+                        Text(
+                          '添加海报',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 从相册选择
+                  _buildAddOption(
+                    colors: colors,
+                    icon: Icons.photo_library_outlined,
+                    title: '从相册选择',
+                    subtitle: '选择本地图片',
+                    onTap: () => Navigator.pop(context, 0),
+                  ),
+                  // 网络链接
+                  _buildAddOption(
+                    colors: colors,
+                    icon: Icons.link_outlined,
+                    title: '网络链接',
+                    subtitle: '输入图片URL地址',
+                    onTap: () => Navigator.pop(context, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
 
     if (result == null) return;
@@ -289,10 +303,10 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       if (pickedFile != null) {
         // 生成文件名
         final fileName = 'posterimg_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        
+
         // 保存到 posterimgs 子目录: images/movies/{movieId}/posterimgs/{fileName}
         final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
-          widget.movie.id, 
+          widget.movie.id,
           fileName
         );
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
@@ -323,55 +337,58 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   /// 从网络链接添加
   Future<void> _pickFromUrl() async {
     final urlController = TextEditingController();
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('添加网络图片'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '请输入图片链接地址',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('添加网络图片'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '请输入图片链接地址',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  hintText: 'https://example.com/image.jpg',
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                  border: const UnderlineInputBorder(),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: colors.outline),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: colors.primary),
+                  ),
+                ),
+                style: const TextStyle(fontSize: 14),
+                keyboardType: TextInputType.url,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                hintText: 'https://example.com/image.jpg',
-                hintStyle: TextStyle(color: Color(0xFFCCCCCC)),
-                border: UnderlineInputBorder(),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFFE5E5E5)),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF1A1A1A)),
-                ),
-              ),
-              style: const TextStyle(fontSize: 14),
-              keyboardType: TextInputType.url,
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('确定', style: TextStyle(color: colors.onSurface)),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确定', style: TextStyle(color: Color(0xFF1A1A1A))),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed != true) return;
@@ -404,7 +421,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       );
-      
+
       if (response.statusCode != 200) {
         throw Exception('下载失败: HTTP ${response.statusCode}');
       }
@@ -422,10 +439,10 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
 
       // 生成文件名
       final fileName = 'posterimg_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
+
       // 保存到 posterimgs 子目录
       final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
-        widget.movie.id, 
+        widget.movie.id,
         fileName
       );
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
@@ -453,6 +470,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
 
   /// 构建添加选项
   Widget _buildAddOption({
+    required ColorScheme colors,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -468,13 +486,13 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 22,
-                color: const Color(0xFF666666),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(width: 16),
@@ -484,26 +502,26 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A1A),
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF999999),
+                      color: colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: Color(0xFFCCCCCC),
+              color: colors.onSurface.withValues(alpha: 0.25),
               size: 20,
             ),
           ],
@@ -515,28 +533,31 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   void _showDeleteDialog(MoviePoster poster) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这张海报吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () async {
-              await context.read<AppProvider>().removeMoviePoster(poster.id);
-              Navigator.pop(context);
-              _loadPosters();
-              ToastUtil.show(context, '已删除');
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('确认删除'),
+          content: const Text('确定要删除这张海报吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            TextButton(
+              onPressed: () async {
+                await context.read<AppProvider>().removeMoviePoster(poster.id);
+                Navigator.pop(context);
+                _loadPosters();
+                ToastUtil.show(context, '已删除');
+              },
+              child: Text('删除', style: TextStyle(color: colors.error)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -73,19 +73,20 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: '搜索影评内容、评论人、来源...',
-                  hintStyle: TextStyle(color: Color(0xFF999999)),
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
                   border: InputBorder.none,
                 ),
-                style: const TextStyle(color: Color(0xFF1A1A1A)),
+                style: TextStyle(color: colors.onSurface),
                 onChanged: _onSearchChanged,
               )
             : const Text('影评'),
@@ -112,6 +113,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
   }
 
   Widget _buildEmptyState() {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -120,21 +122,21 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.rate_review_outlined,
               size: 40,
-              color: Color(0xFFCCCCCC),
+              color: colors.onSurface.withValues(alpha: 0.25),
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             '暂无影评',
             style: TextStyle(
               fontSize: 16,
-              color: Color(0xFF999999),
+              color: colors.onSurface.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 24),
@@ -143,15 +145,15 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: colors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
+              child: Text(
                 '添加记录',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: colors.onPrimary,
                 ),
               ),
             ),
@@ -176,13 +178,14 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
   }
 
   Widget _buildReviewCard(MovieReview review) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => _navigateToReviewDetail(review),
       onLongPress: () => _showDeleteDialog(review),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -193,8 +196,8 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: review.reviewType == 1
-                    ? Colors.white
-                    : const Color(0xFF1A1A1A),
+                    ? colors.surface
+                    : colors.primary,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -202,8 +205,8 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
                 style: TextStyle(
                   fontSize: 10,
                   color: review.reviewType == 1
-                      ? const Color(0xFF666666)
-                      : Colors.white,
+                      ? colors.onSurface.withValues(alpha: 0.6)
+                      : colors.onPrimary,
                 ),
               ),
             ),
@@ -215,9 +218,9 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
               review.content,
               maxLines: review.reviewType == 1 ? 4 : 8,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF1A1A1A),
+                color: colors.onSurface,
                 height: 1.5,
               ),
             ),
@@ -232,9 +235,9 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
                   Expanded(
                     child: Text(
                       review.reviewer,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF666666),
+                        color: colors.onSurface.withValues(alpha: 0.6),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -252,9 +255,9 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
                   Expanded(
                     child: Text(
                       review.source,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF999999),
+                        color: colors.onSurface.withValues(alpha: 0.4),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -262,9 +265,9 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
                 // 日期
                 Text(
                   _formatDate(review.createdAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF999999),
+                    color: colors.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
               ],
@@ -315,28 +318,31 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
   void _showDeleteDialog(MovieReview review) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这条影评吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF666666))),
-          ),
-          TextButton(
-            onPressed: () async {
-              await context.read<AppProvider>().removeMovieReview(review.id);
-              Navigator.pop(context);
-              _loadReviews();
-              ToastUtil.show(context, '已删除');
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('确认删除'),
+          content: const Text('确定要删除这条影评吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            TextButton(
+              onPressed: () async {
+                await context.read<AppProvider>().removeMovieReview(review.id);
+                Navigator.pop(context);
+                _loadReviews();
+                ToastUtil.show(context, '已删除');
+              },
+              child: Text('删除', style: TextStyle(color: colors.error)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

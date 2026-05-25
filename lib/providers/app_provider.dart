@@ -32,12 +32,15 @@ class AppProvider extends ChangeNotifier {
   
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
-  
+
   // 当前底部导航选中的索引 (0: 主页，1: 新增，2: 我的)
   int _bottomNavIndex = 0;
 
   // 底部导航栏是否可见
   bool _bottomNavVisible = true;
+
+  // 主题模式
+  ThemeMode _themeMode = ThemeMode.system;
 
   /// 是否使用远程服务端（同步开关 + 已激活）
   bool get _useRemote {
@@ -134,6 +137,7 @@ class AppProvider extends ChangeNotifier {
   int get bookStatusIndex => _bookStatusIndex;
   bool get drawerOpen => _drawerOpen;
   bool get bottomNavVisible => _bottomNavVisible;
+  ThemeMode get themeMode => _themeMode;
   List<Movie> get movies => _movies;
   List<Book> get books => _books;
   List<Note> get notes => _notes;
@@ -165,6 +169,26 @@ class AppProvider extends ChangeNotifier {
       _bottomNavVisible = visible;
       notifyListeners();
     }
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    if (_themeMode != mode) {
+      _themeMode = mode;
+      notifyListeners();
+    }
+  }
+
+  void loadThemeMode() {
+    final prefs = UserPrefs();
+    switch (prefs.themeMode) {
+      case 1:
+        _themeMode = ThemeMode.light;
+      case 2:
+        _themeMode = ThemeMode.dark;
+      default:
+        _themeMode = ThemeMode.system;
+    }
+    notifyListeners();
   }
 
   void setMovieStatusIndex(int index) {
