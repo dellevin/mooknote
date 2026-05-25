@@ -58,7 +58,7 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
       final exp = _prefs.syncExpiresAt;
       if (exp.isNotEmpty) {
         try {
-          final dt = DateTime.parse(exp);
+          final dt = DateTime.parse(exp).add(const Duration(hours: 8));
           _expiresText = '有效期至 ${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
               '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
         } catch (_) {

@@ -26,14 +26,12 @@ void main() async {
   
   // 初始化用户偏好设置
   await UserPrefs.init();
-  // 初始化数据库
   final appProvider = AppProvider();
-  await appProvider.initDatabase();
-  appProvider.initMainTabIndex();
-  // 以下初始化不阻塞界面显示
+  // 先显示界面，后台加载数据
+  runApp(MyApp(appProvider: appProvider));
+  unawaited(appProvider.initDatabase().then((_) => appProvider.initMainTabIndex()));
   unawaited(_initAutoBackup());
   unawaited(_initUsageStats());
-  runApp(MyApp(appProvider: appProvider));
 }
 
 /// 初始化自动备份

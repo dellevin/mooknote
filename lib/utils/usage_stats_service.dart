@@ -17,7 +17,7 @@ class UsageStatsService with WidgetsBindingObserver {
   final UserPrefs _prefs = UserPrefs();
 
   /// 统计服务器地址，发布前替换为实际地址，置空则禁用
-  static String serverUrl = 'http://192.168.31.48:5000';
+  static String serverUrl = 'http://api.mooknote.iletter.top/';
 
   Timer? _heartbeatTimer;
   bool _started = false;
@@ -52,23 +52,6 @@ class UsageStatsService with WidgetsBindingObserver {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     WidgetsBinding.instance.removeObserver(this);
-  }
-
-  /// 获取统计信息（总用户数 / 在线数）
-  static Future<Map<String, dynamic>?> fetchStats() async {
-    if (serverUrl.isEmpty) return null;
-
-    try {
-      final response = await http
-          .get(Uri.parse('$serverUrl/api/stats'))
-          .timeout(const Duration(seconds: 5));
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      }
-    } catch (_) {
-      // 静默失败
-    }
-    return null;
   }
 
   // ─── 内部方法 ──────────────────────────────────────────────────────────
@@ -106,8 +89,10 @@ class UsageStatsService with WidgetsBindingObserver {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'device_hash': deviceId,
-              'device_type': Platform.operatingSystem,       // android/ios/windows/macos/linux
-              'device_name': '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
+              'device_type':
+                  Platform.operatingSystem, // android/ios/windows/macos/linux
+              'device_name':
+                  '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
             }),
           )
           .timeout(const Duration(seconds: 5));
