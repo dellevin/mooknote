@@ -57,13 +57,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.appProvider.loadThemeMode();
+    widget.appProvider.addListener(_onThemeChanged);
     _updateSystemUI(widget.appProvider.themeMode);
   }
 
   @override
   void dispose() {
+    widget.appProvider.removeListener(_onThemeChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _onThemeChanged() {
+    _updateSystemUI(widget.appProvider.themeMode);
   }
 
   @override
@@ -85,6 +91,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
     final isDark = brightness == Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       systemNavigationBarColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
       systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
@@ -100,7 +108,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ],
       child: Consumer<AppProvider>(
         builder: (context, provider, _) {
-          _updateSystemUI(provider.themeMode);
           return MaterialApp(
             title: 'MookNote',
             debugShowCheckedModeBanner: false,

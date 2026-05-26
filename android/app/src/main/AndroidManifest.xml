@@ -48,6 +48,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
+
+        <!-- 图标3: M 风格 -->
+        <activity-alias
+            android:name=".MainActivityIcon3"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_m"
+            android:roundIcon="@mipmap/ic_launcher_m"
+            android:label="MookNote">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
         
         <meta-data
             android:name="flutterEmbedding"

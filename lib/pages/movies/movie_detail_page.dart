@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
@@ -24,15 +25,17 @@ class MovieDetailPage extends StatefulWidget {
 }
 
 class _MovieDetailPageState extends State<MovieDetailPage> {
+  late bool _showExactDate;
+
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _refreshMovieData();
+  void initState() {
+    super.initState();
+    _showExactDate = UserPrefs().showExactReleaseDate;
   }
 
-  void _refreshMovieData() {
-    final provider = context.read<AppProvider>();
-    provider.loadMovies();
+  void _toggleDateDisplay() {
+    setState(() => _showExactDate = !_showExactDate);
+    UserPrefs().setShowExactReleaseDate(_showExactDate);
   }
 
   @override
@@ -275,11 +278,23 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ),
           const SizedBox(height: 8),
           if (movie.releaseDate != null)
-            Text(
-              '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
-              style: TextStyle(
-                fontSize: 14,
-                color: colors.onSurface.withValues(alpha: 0.4),
+            GestureDetector(
+              onTap: _toggleDateDisplay,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _showExactDate
+                        ? '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月${movie.releaseDate!.day.toString().padLeft(2, '0')}日上映'
+                        : '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.tune, size: 14, color: colors.onSurface.withValues(alpha: 0.2)),
+                ],
               ),
             ),
           const SizedBox(height: 8),

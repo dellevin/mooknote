@@ -36,26 +36,30 @@ class MainActivity : FlutterActivity() {
         val pm = packageManager
         val icon1 = ComponentName(this, "${packageName}.MainActivityIcon1")
         val icon2 = ComponentName(this, "${packageName}.MainActivityIcon2")
+        val icon3 = ComponentName(this, "${packageName}.MainActivityIcon3")
 
-        when (iconName) {
-            "app_icon2" -> {
-                pm.setComponentEnabledSetting(icon1, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-                pm.setComponentEnabledSetting(icon2, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-            }
-            else -> {
-                pm.setComponentEnabledSetting(icon2, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-                pm.setComponentEnabledSetting(icon1, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-            }
+        // 先全部禁用
+        pm.setComponentEnabledSetting(icon1, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+        pm.setComponentEnabledSetting(icon2, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+        pm.setComponentEnabledSetting(icon3, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+
+        // 启用选中的
+        val target = when (iconName) {
+            "app_icon2" -> icon2
+            "app_icon_m" -> icon3
+            else -> icon1
         }
+        pm.setComponentEnabledSetting(target, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
     }
 
     private fun getCurrentIcon(): String {
         val pm = packageManager
-        val icon1 = ComponentName(this, "${packageName}.MainActivityIcon1")
         val icon2 = ComponentName(this, "${packageName}.MainActivityIcon2")
+        val icon3 = ComponentName(this, "${packageName}.MainActivityIcon3")
 
         return when {
             pm.getComponentEnabledSetting(icon2) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> "app_icon2"
+            pm.getComponentEnabledSetting(icon3) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> "app_icon_m"
             else -> "app_icon"
         }
     }

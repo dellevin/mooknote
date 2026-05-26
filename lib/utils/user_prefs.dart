@@ -46,6 +46,10 @@ class UserPrefs {
   /// 主题模式: 0=跟随系统, 1=浅色, 2=深色
   int get themeMode => prefs.getInt('themeMode') ?? 0;
   Future<bool> setThemeMode(int value) => prefs.setInt('themeMode', value);
+
+  /// 上映日期：显示到日（true）/ 显示到月（false）
+  bool get showExactReleaseDate => prefs.getBool('showExactReleaseDate') ?? true;
+  Future<bool> setShowExactReleaseDate(bool value) => prefs.setBool('showExactReleaseDate', value);
   
   /// 是否首次启动
   bool get isFirstLaunch => prefs.getBool('isFirstLaunch') ?? true;

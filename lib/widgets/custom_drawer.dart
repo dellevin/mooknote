@@ -125,27 +125,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
               _buildProfileStatRow(Icons.menu_book_outlined, bookCount, '阅读'),
               const SizedBox(height: 12),
               _buildProfileStatRow(Icons.note_outlined, noteCount, '笔记'),
-              const SizedBox(height: 14),
-              Divider(height: 1, color: colors.outlineVariant),
-              InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: Row(
-                    children: [
-                      Icon(Icons.settings_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.4)),
-                      const SizedBox(width: 8),
-                      Text('设置', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-                      const Spacer(),
-                      Icon(Icons.chevron_right, size: 14, color: colors.onSurface.withValues(alpha: 0.2)),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         );

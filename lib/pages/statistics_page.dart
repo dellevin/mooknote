@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -13,6 +14,7 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
+  int _cloudTabIndex = 0; // 0=影视, 1=书籍, 2=笔记
   bool get _showMovies => UserPrefs().showMovieTab;
   bool get _showBooks => UserPrefs().showBookTab;
   bool get _showNotes => UserPrefs().showNoteTab;
@@ -50,6 +52,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 _buildNoteTagDistribution('笔记标签分布', notes),
                 const SizedBox(height: 28),
               ],
+              _buildTagCloud(movies, books, notes),
+              const SizedBox(height: 28),
               _buildRatingDistribution('评分分布', movies, books),
               const SizedBox(height: 28),
               _buildMonthlyTrend(movies, books, notes),
@@ -396,6 +400,88 @@ class _StatisticsPageState extends State<StatisticsPage> {
   int _monthIndex(DateTime date, DateTime now) {
     final diff = (now.year - date.year) * 12 + (now.month - date.month);
     return 5 - diff; // index 0..5 where 0=5 months ago, 5=current month
+  }
+
+  // ─── 标签词云 ──────────────────────────────────────────────────────────
+
+  Widget _buildTagCloud(List<Movie> movies, List<Book> books, List<Note> notes) {
+    final colors = Theme.of(context).colorScheme;
+    final tabs = <String>[];
+    if (_showMovies) tabs.add('影视');
+    if (_showBooks) tabs.add('书籍');
+    if (_showNotes) tabs.add('笔记');
+    if (tabs.isEmpty) return const SizedBox.shrink();
+
+    // 确保 cloudTabIndex 在有效范围内
+    if (_cloudTabIndex >= tabs.length) _cloudTabIndex = 0;
+
+    final tagCounts = <String, int>{};
+    switch (tabs[_cloudTabIndex]) {
+      case '影视':
+        for (final m in movies) { for (final g in m.genres) { tagCounts[g] = (tagCounts[g] ?? 0) + 1; } }
+        break;
+      case '书籍':
+        for (final b in books) { for (final g in b.genres) { tagCounts[g] = (tagCounts[g] ?? 0) + 1; } }
+        break;
+      case '笔记':
+        for (final n in notes) { for (final t in n.tags) { tagCounts[t] = (tagCounts[t] ?? 0) + 1; } }
+        break;
+    }
+
+    final sorted = tagCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    if (sorted.isEmpty) return const SizedBox.shrink();
+
+    final maxCount = sorted.first.value;
+    final minCount = sorted.last.value;
+    final range = math.max(maxCount - minCount, 1);
+
+    const cloudColors = [
+      Color(0xFFE53935), Color(0xFF4A90D9), Color(0xFF7E57C2),
+      Color(0xFF66BB6A), Color(0xFFFF8F00), Color(0xFF00ACC1),
+      Color(0xFF5C6BC0), Color(0xFF26A69A), Color(0xFF8D6E63),
+    ];
+
+    return _buildCard(
+      title: '标签词云',
+      child: Column(children: [
+        // Tab 切换
+        Row(
+          children: tabs.map((t) {
+            final i = tabs.indexOf(t);
+            final selected = _cloudTabIndex == i;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _cloudTabIndex = i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  margin: EdgeInsets.only(right: i < tabs.length - 1 ? 6 : 0),
+                  decoration: BoxDecoration(
+                    color: selected ? colors.primary : colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(t, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        // 词云
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: sorted.map((e) {
+            final ratio = (e.value - minCount) / range;
+            final fontSize = (12.0 + ratio * 18.0).roundToDouble();
+            final c = cloudColors[((ratio * (cloudColors.length - 1)).round()).clamp(0, cloudColors.length - 1)];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+              child: Text(e.key, style: TextStyle(fontSize: fontSize, fontWeight: fontSize > 18 ? FontWeight.w700 : FontWeight.w500, color: c, height: 1.3)),
+            );
+          }).toList(),
+        ),
+      ]),
+    );
   }
 
   // ─── 通用卡片 ────────────────────────────────────────────────────────
