@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/data_models.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 海报画廊页面 - 支持左右滑动浏览
 class PosterGalleryPage extends StatefulWidget {
@@ -53,16 +54,9 @@ class _PosterGalleryPageState extends State<PosterGalleryPage> {
                 minScale: 0.5,
                 maxScale: 3.0,
                 child: Center(
-                  child: Image.file(
-                    File(poster.posterPath),
+                  child: FadeInLocalImage(
+                    path: poster.posterPath,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        color: Colors.white54,
-                        size: 64,
-                      ),
-                    ),
                   ),
                 ),
               );

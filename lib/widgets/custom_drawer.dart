@@ -8,6 +8,7 @@ import '../pages/stroll_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
 import '../pages/tag_management_page.dart';
 import '../pages/profile_page.dart';
+import 'fade_in_local_image.dart';
 
 /// 自定义侧边栏
 class CustomDrawer extends StatefulWidget {
@@ -97,9 +98,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: avatarPath != null && avatarPath.isNotEmpty
-                        ? Image.file(File(avatarPath), fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)))
+                        ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
+                            errorWidget: Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)))
                         : Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)),
                   ),
                   const SizedBox(width: 14),

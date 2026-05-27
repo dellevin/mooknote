@@ -7,6 +7,7 @@ import '../models/data_models.dart';
 import 'movies/movie_detail_page.dart';
 import 'book/book_detail_page.dart';
 import 'note/note_detail_page.dart';
+import '../widgets/fade_in_local_image.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -379,7 +380,8 @@ class _SearchPageState extends State<SearchPage> {
       decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
       clipBehavior: Clip.antiAlias,
       child: path != null && path.isNotEmpty
-          ? Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(fallback, size: 20, color: colors.onSurface.withValues(alpha: 0.25)))
+          ? FadeInLocalImage(path: path, fit: BoxFit.cover,
+              errorWidget: Icon(fallback, size: 20, color: colors.onSurface.withValues(alpha: 0.25)))
           : Icon(fallback, size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
     );
   }

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 笔记分享海报页面
 class NoteSharePage extends StatefulWidget {
@@ -105,11 +106,11 @@ class _NoteSharePageState extends State<NoteSharePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 首张图片
-          if (hasImages && File(note.images.first).existsSync())
+          if (hasImages)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.file(
-                File(note.images.first),
+              child: FadeInLocalImage(
+                path: note.images.first,
                 width: 320,
                 height: 200,
                 fit: BoxFit.cover,

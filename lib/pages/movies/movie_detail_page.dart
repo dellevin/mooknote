@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../../widgets/fade_in_local_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -193,10 +194,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   Widget _buildPosterSection(Movie movie) {
     return SizedBox.expand(
       child: movie.posterPath != null && movie.posterPath!.isNotEmpty
-          ? Image.file(
-              File(movie.posterPath!),
+          ? FadeInLocalImage(
+              path: movie.posterPath,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildPosterPlaceholder(),
             )
           : _buildPosterPlaceholder(),
     );

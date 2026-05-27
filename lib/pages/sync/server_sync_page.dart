@@ -117,7 +117,7 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
       _startStatusPolling();
       await _prefs.setSyncEnabled(true);
       _syncEnabled = true;
-      await ServerSyncService.instance.uploadToServer();
+      await ServerSyncService.instance.syncWithServer();
       if (mounted) ToastUtil.show(context, '激活成功，实时同步已开启');
     } else {
       final error = result?['error'] ?? '激活失败';
@@ -126,31 +126,28 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
   }
 
   Future<void> _toggleSync(bool value) async {
-    await _prefs.setSyncEnabled(value);
-    setState(() => _syncEnabled = value);
-
     if (value && _isActivated) {
-      await ServerSyncService.instance.uploadToServer();
+      // 开启同步：合并本地与服务端数据
+      await _prefs.setSyncEnabled(true);
+      setState(() => _syncEnabled = true);
+      if (mounted) ToastUtil.show(context, '正在同步数据...');
+      await ServerSyncService.instance.syncWithServer();
       final provider = context.read<AppProvider>();
       await provider.loadMovies();
       await provider.loadBooks();
       await provider.loadNotes();
-      if (mounted) ToastUtil.show(context, '已切换到服务端数据');
+      if (mounted) ToastUtil.show(context, '同步已开启，数据已合并');
     } else {
-      // 关闭同步：从服务端下载最新数据到本地
-      if (mounted) ToastUtil.show(context, '正在从服务端同步数据...');
-      final success = await ServerSyncService.instance.downloadToLocal();
-      if (mounted) {
-        if (success) {
-          final provider = context.read<AppProvider>();
-          await provider.loadMovies();
-          await provider.loadBooks();
-          await provider.loadNotes();
-          ToastUtil.show(context, '数据已下载到本地');
-        } else {
-          ToastUtil.show(context, '下载失败，使用本地数据');
-        }
-      }
+      // 关闭同步：先合并最新数据，再切换到本地
+      if (mounted) ToastUtil.show(context, '正在同步数据到本地...');
+      await ServerSyncService.instance.syncWithServer();
+      await _prefs.setSyncEnabled(false);
+      setState(() => _syncEnabled = false);
+      final provider = context.read<AppProvider>();
+      await provider.loadMovies();
+      await provider.loadBooks();
+      await provider.loadNotes();
+      if (mounted) ToastUtil.show(context, '同步已关闭，已切换到本地数据');
     }
   }
 

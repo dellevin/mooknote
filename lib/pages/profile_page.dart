@@ -10,6 +10,7 @@ import '../utils/user_prefs.dart';
 import '../utils/toast_util.dart';
 import 'recycle_bin_page.dart';
 import 'sync/backup_page.dart';
+import '../widgets/fade_in_local_image.dart';
 import 'statistics_page.dart';
 import 'sync/cloud_sync_page.dart';
 import 'app_icon_picker_page.dart';
@@ -129,8 +130,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: _avatarPath != null && _avatarPath!.isNotEmpty
-                          ? Image.file(File(_avatarPath!), fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(Icons.person_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.25)))
+                          ? FadeInLocalImage(path: _avatarPath, fit: BoxFit.cover,
+                              errorWidget: Icon(Icons.person_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.25)))
                           : Icon(Icons.person_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                     ),
                   ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../widgets/animated_star_rating.dart';
+import '../widgets/fade_in_local_image.dart';
 
 /// 漫步页面 - 随机发现内容
 class StrollPage extends StatefulWidget {
@@ -190,7 +191,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
                   style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.3), height: 1.6)))
           : Consumer<AppProvider>(builder: (context, provider, _) {
               final item = _currentItem!;
-              final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty && File(item.imagePath!).existsSync();
+              final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty;
 
               return FadeTransition(
                 opacity: _fadeAnim,
@@ -298,8 +299,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
       ),
       clipBehavior: Clip.antiAlias,
       child: hasImage
-          ? Image.file(File(item.imagePath!), fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildPlaceholder(item))
+          ? FadeInLocalImage(path: item.imagePath, fit: BoxFit.cover)
           : _buildPlaceholder(item),
     );
   }
@@ -321,8 +321,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         mainAxisSize: MainAxisSize.min,
         children: [
           if (hasImage)
-            Image.file(File(item.imagePath!), fit: BoxFit.cover, height: 200, width: double.infinity,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            FadeInLocalImage(path: item.imagePath, fit: BoxFit.cover, height: 200, width: double.infinity),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(item.detail.isEmpty ? '(无内容)' : item.detail,

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'user_prefs.dart';
 
@@ -16,9 +17,10 @@ class UsageStatsService with WidgetsBindingObserver {
 
   final UserPrefs _prefs = UserPrefs();
 
-  /// 统计服务器地址，发布前替换为实际地址，置空则禁用
-  static String serverUrl = 'http://api.mooknote.iletter.top/';
-  // static String serverUrl = 'http://192.168.31.48:27050/';
+  /// 统计服务器地址，debug 走局域网，release 走线上
+  static String serverUrl = kDebugMode
+      ? 'http://192.168.31.48:27047/'
+      : 'http://api.mooknote.iletter.top/';
   Timer? _heartbeatTimer;
   bool _started = false;
 

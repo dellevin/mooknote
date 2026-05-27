@@ -31,7 +31,6 @@ class CloudSyncPage extends StatelessWidget {
             icon: Icons.sync_outlined,
             title: '服务端实时同步',
             subtitle: '自建服务端，多设备数据实时同步',
-            enabled: false,
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ServerSyncPage())),
           ),

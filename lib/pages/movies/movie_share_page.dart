@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 影视分享海报页面
 class MovieSharePage extends StatefulWidget {
@@ -103,8 +104,8 @@ class _MovieSharePageState extends State<MovieSharePage> {
           if (hasPoster)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.file(
-                File(movie.posterPath!),
+              child: FadeInLocalImage(
+                path: movie.posterPath,
                 width: 320,
                 height: 200,
                 fit: BoxFit.cover,

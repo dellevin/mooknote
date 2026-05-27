@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../widgets/fade_in_local_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
 import '../../providers/app_provider.dart';
@@ -188,10 +189,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildCoverSection(Book book) {
     return SizedBox.expand(
       child: book.coverPath != null && book.coverPath!.isNotEmpty
-          ? Image.file(
-              File(book.coverPath!),
+          ? FadeInLocalImage(
+              path: book.coverPath,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
             )
           : _buildCoverPlaceholder(),
     );

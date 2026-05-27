@@ -19,6 +19,20 @@ class MovieDao {
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
   }
 
+  // 分页查询影视记录
+  Future<List<Movie>> getMoviesPaged({String? status, int limit = 20, int offset = 0}) async {
+    final db = await _dbHelper.database;
+    String where = 'is_deleted = 0';
+    List<dynamic> whereArgs = [];
+    if (status != null && status.isNotEmpty) {
+      where += ' AND status = ?';
+      whereArgs.add(status);
+    }
+    final maps = await db.query('movies', where: where, whereArgs: whereArgs,
+        orderBy: 'created_at DESC', limit: limit, offset: offset);
+    return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
+  }
+
   // 根据状态筛选影视记录
   Future<List<Movie>> getMoviesByStatus(String status) async {
     final db = await _dbHelper.database;

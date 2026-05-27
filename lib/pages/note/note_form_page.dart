@@ -8,6 +8,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
@@ -1037,8 +1038,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
           border: Border.all(color: colors.outline, width: 0.5),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Image.file(
-          File(_images[index]),
+        child: FadeInLocalImage(
+          path: _images[index],
           fit: BoxFit.cover,
         ),
       ),
@@ -1060,8 +1061,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
               boundaryMargin: const EdgeInsets.all(20),
               minScale: 0.5,
               maxScale: 4,
-              child: Image.file(
-                File(_images[index]),
+              child: FadeInLocalImage(
+                path: _images[index],
                 fit: BoxFit.contain,
               ),
             ),

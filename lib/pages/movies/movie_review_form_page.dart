@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
+import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 
@@ -155,8 +156,8 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
             ),
             clipBehavior: Clip.antiAlias,
             child: movie.posterPath != null
-                ? Image.file(File(movie.posterPath!), fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)))
+                ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)))
                 : Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 14),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/fade_in_local_image.dart';
 import 'movie_review_form_page.dart';
 
 /// 影评详情页
@@ -121,7 +122,8 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: colors.surfaceContainerHighest),
         clipBehavior: Clip.antiAlias,
         child: movie.posterPath != null
-            ? Image.file(File(movie.posterPath!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(Icons.movie_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)))
+            ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover,
+                errorWidget: Icon(Icons.movie_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)))
             : Icon(Icons.movie_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
       ),
       const SizedBox(width: 12),

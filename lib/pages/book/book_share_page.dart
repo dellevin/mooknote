@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 书籍分享海报页面
 class BookSharePage extends StatefulWidget {
@@ -102,8 +103,8 @@ class _BookSharePageState extends State<BookSharePage> {
           if (hasCover)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.file(
-                File(book.coverPath!),
+              child: FadeInLocalImage(
+                path: book.coverPath,
                 width: 320,
                 height: 200,
                 fit: BoxFit.cover,

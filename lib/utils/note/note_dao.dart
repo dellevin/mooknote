@@ -19,6 +19,14 @@ class NoteDao {
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
   }
 
+  // 分页查询笔记
+  Future<List<Note>> getNotesPaged({int limit = 20, int offset = 0}) async {
+    final db = await _dbHelper.database;
+    final maps = await db.query('notes', where: 'is_deleted = 0',
+        orderBy: 'created_at DESC', limit: limit, offset: offset);
+    return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
+  }
+
   // 根据ID获取笔记
   Future<Note?> getNoteById(String id) async {
     final db = await _dbHelper.database;

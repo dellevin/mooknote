@@ -26,19 +26,31 @@ class ServerDataService {
   bool get isAvailable => _baseUrl.isNotEmpty && _code.isNotEmpty;
 
   Future<dynamic> _post(String path, [Map<String, dynamic>? extra]) async {
-    final resp = await http.post(
-      Uri.parse('$_baseUrl$path'),
-      headers: _headers,
-      body: jsonEncode(_body(extra)),
-    ).timeout(const Duration(seconds: 30));
-    if (resp.statusCode != 200) return null;
-    return jsonDecode(resp.body);
+    try {
+      final url = '$_baseUrl$path';
+      debugPrint('[ServerData] POST $url');
+      final resp = await http.post(
+        Uri.parse(url),
+        headers: _headers,
+        body: jsonEncode(_body(extra)),
+      ).timeout(const Duration(seconds: 30));
+      debugPrint('[ServerData] ${resp.statusCode} $path');
+      if (resp.statusCode != 200) return null;
+      return jsonDecode(resp.body);
+    } catch (e) {
+      debugPrint('[ServerData] ERROR $path: $e');
+      return null;
+    }
   }
 
   // ─── 影视 ────────────────────────────────────────────────────
 
-  Future<List<Movie>> getMovies() async {
-    final data = await _post('/api/data/movies');
+  Future<List<Movie>> getMovies({String? status, int? limit, int? offset}) async {
+    final body = <String, dynamic>{};
+    if (status != null && status.isNotEmpty) body['status'] = status;
+    if (limit != null) body['limit'] = limit;
+    if (offset != null) body['offset'] = offset;
+    final data = await _post('/api/data/movies', body.isEmpty ? null : body);
     if (data == null || data['movies'] == null) return [];
     return (data['movies'] as List).map((m) => Movie.fromJson(m as Map<String, dynamic>)).toList();
   }
@@ -55,8 +67,12 @@ class ServerDataService {
 
   // ─── 书籍 ────────────────────────────────────────────────────
 
-  Future<List<Book>> getBooks() async {
-    final data = await _post('/api/data/books');
+  Future<List<Book>> getBooks({String? status, int? limit, int? offset}) async {
+    final body = <String, dynamic>{};
+    if (status != null && status.isNotEmpty) body['status'] = status;
+    if (limit != null) body['limit'] = limit;
+    if (offset != null) body['offset'] = offset;
+    final data = await _post('/api/data/books', body.isEmpty ? null : body);
     if (data == null || data['books'] == null) return [];
     return (data['books'] as List).map((b) => Book.fromJson(b as Map<String, dynamic>)).toList();
   }
@@ -73,8 +89,11 @@ class ServerDataService {
 
   // ─── 笔记 ────────────────────────────────────────────────────
 
-  Future<List<Note>> getNotes() async {
-    final data = await _post('/api/data/notes');
+  Future<List<Note>> getNotes({int? limit, int? offset}) async {
+    final body = <String, dynamic>{};
+    if (limit != null) body['limit'] = limit;
+    if (offset != null) body['offset'] = offset;
+    final data = await _post('/api/data/notes', body.isEmpty ? null : body);
     if (data == null || data['notes'] == null) return [];
     return (data['notes'] as List).map((n) => Note.fromJson(n as Map<String, dynamic>)).toList();
   }
@@ -87,6 +106,29 @@ class ServerDataService {
   Future<bool> deleteNote(String id) async {
     final data = await _post('/api/data/note/delete', {'id': id});
     return data != null;
+  }
+
+  // ─── 批量同步 ────────────────────────────────────────────────
+
+  Future<Map<String, int>> batchSync({
+    List<Movie>? movies,
+    List<Book>? books,
+    List<Note>? notes,
+    List<Map<String, dynamic>>? tags,
+  }) async {
+    final data = await _post('/api/data/batch_sync', {
+      if (movies != null) 'movies': movies.map((m) => m.toJson()).toList(),
+      if (books != null) 'books': books.map((b) => b.toJson()).toList(),
+      if (notes != null) 'notes': notes.map((n) => n.toJson()).toList(),
+      if (tags != null) 'tags': tags,
+    });
+    if (data == null) return {};
+    return {
+      'movies': (data['movies'] as int?) ?? 0,
+      'books': (data['books'] as int?) ?? 0,
+      'notes': (data['notes'] as int?) ?? 0,
+      'tags': (data['tags'] as int?) ?? 0,
+    };
   }
 
   // ─── 标签 ────────────────────────────────────────────────────

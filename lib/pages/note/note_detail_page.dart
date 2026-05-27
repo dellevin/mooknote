@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
+import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
 import 'note_share_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -176,10 +177,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 border: Border.all(color: colors.outlineVariant, width: 0.5),
               ),
               clipBehavior: Clip.antiAlias,
-              child: Image.file(
-                File(images[index]),
+              child: FadeInLocalImage(
+                path: images[index],
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorWidget: Container(
                   color: colors.surfaceContainerHighest,
                   child: Icon(Icons.broken_image_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
                 ),

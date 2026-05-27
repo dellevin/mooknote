@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
+import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -921,10 +922,9 @@ class _BookFormPageState extends State<BookFormPage> {
             ),
             clipBehavior: Clip.antiAlias,
             child: hasCover
-                ? Image.file(
-                    File(_coverPath!),
+                ? FadeInLocalImage(
+                    path: _coverPath,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
                   )
                 : _buildCoverPlaceholder(),
           ),

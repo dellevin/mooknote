@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
 import '../utils/movie/movie_dao.dart';
@@ -62,6 +63,12 @@ class AppProvider extends ChangeNotifier {
   
   // 初始化数据库
   Future<void> initDatabase() async {
+    debugPrint('[AppProvider] initDatabase, _useRemote=$_useRemote');
+    if (_useRemote) {
+      // 同步模式：从服务端拉取数据
+      await Future.wait([loadMovies(), loadBooks(), loadNotes()]);
+      return;
+    }
     final results = await Future.wait([
       _movieDao.getAllMovies(),
       _bookDao.getAllBooks(),
@@ -70,6 +77,7 @@ class AppProvider extends ChangeNotifier {
     _movies = results[0] as List<Movie>;
     _books = results[1] as List<Book>;
     _notes = results[2] as List<Note>;
+    debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}');
     notifyListeners();
   }
 
@@ -100,7 +108,9 @@ class AppProvider extends ChangeNotifier {
   // 加载影视数据
   Future<void> loadMovies() async {
     if (_useRemote) {
+      debugPrint('[AppProvider] loadMovies from server');
       _movies = await ServerDataService.instance.getMovies();
+      debugPrint('[AppProvider] server movies: ${_movies.length}');
       notifyListeners();
       return;
     }
@@ -111,23 +121,51 @@ class AppProvider extends ChangeNotifier {
   // 加载书籍数据
   Future<void> loadBooks() async {
     if (_useRemote) {
+      debugPrint('[AppProvider] loadBooks from server');
       _books = await ServerDataService.instance.getBooks();
+      debugPrint('[AppProvider] server books: ${_books.length}');
       notifyListeners();
       return;
     }
     _books = await _bookDao.getAllBooks();
     notifyListeners();
   }
-  
+
   // 加载笔记数据
   Future<void> loadNotes() async {
     if (_useRemote) {
+      debugPrint('[AppProvider] loadNotes from server');
       _notes = await ServerDataService.instance.getNotes();
+      debugPrint('[AppProvider] server notes: ${_notes.length}');
       notifyListeners();
       return;
     }
     _notes = await _noteDao.getAllNotes();
     notifyListeners();
+  }
+
+  // ─── 分页加载（供列表页触底加载使用）────────────────────────
+  static const int _pageSize = 20;
+
+  Future<List<Movie>> loadMoviesPaged({String? status, required int offset}) async {
+    if (_useRemote) {
+      return ServerDataService.instance.getMovies(status: status, limit: _pageSize, offset: offset);
+    }
+    return _movieDao.getMoviesPaged(status: status, limit: _pageSize, offset: offset);
+  }
+
+  Future<List<Book>> loadBooksPaged({String? status, required int offset}) async {
+    if (_useRemote) {
+      return ServerDataService.instance.getBooks(status: status, limit: _pageSize, offset: offset);
+    }
+    return _bookDao.getBooksPaged(status: status, limit: _pageSize, offset: offset);
+  }
+
+  Future<List<Note>> loadNotesPaged({required int offset}) async {
+    if (_useRemote) {
+      return ServerDataService.instance.getNotes(limit: _pageSize, offset: offset);
+    }
+    return _noteDao.getNotesPaged(limit: _pageSize, offset: offset);
   }
 
   // Getters
@@ -216,8 +254,13 @@ class AppProvider extends ChangeNotifier {
   Future<void> _uploadImagesIfRemote(List<String?> paths) async {
     if (!_useRemote) return;
     final valid = paths.where((p) => p != null && p!.isNotEmpty).cast<String>().toList();
-    if (valid.isNotEmpty) {
-      await ServerDataService.uploadLocalImages(valid);
+    if (valid.isEmpty) return;
+    final exist = <String>[];
+    for (final p in valid) {
+      if (File(p).existsSync()) exist.add(p);
+    }
+    if (exist.isNotEmpty) {
+      await ServerDataService.uploadLocalImages(exist);
     }
   }
 
