@@ -64,7 +64,6 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
         titleSpacing: 24,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 18,
@@ -278,7 +277,6 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
         titleSpacing: 24,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
         titleTextStyle: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 18,

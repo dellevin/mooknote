@@ -44,7 +44,6 @@ Future<void> _initUsageStats() async {
 
 class MyApp extends StatefulWidget {
   final AppProvider appProvider;
-
   const MyApp({super.key, required this.appProvider});
 
   @override
@@ -52,50 +51,48 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  ThemeMode? _lastAppliedTheme;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.appProvider.loadThemeMode();
     widget.appProvider.addListener(_onThemeChanged);
-    _updateSystemUI(widget.appProvider.themeMode);
-  }
-
-  @override
-  void dispose() {
-    widget.appProvider.removeListener(_onThemeChanged);
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
+    // 延迟到首帧后确保生效
+    WidgetsBinding.instance.addPostFrameCallback((_) => _applySystemUI());
   }
 
   void _onThemeChanged() {
-    _updateSystemUI(widget.appProvider.themeMode);
+    final current = widget.appProvider.themeMode;
+    if (_lastAppliedTheme != current) {
+      _applySystemUI();
+    }
+  }
+
+  void _applySystemUI() {
+    final mode = widget.appProvider.themeMode;
+    final Brightness brightness;
+    switch (mode) {
+      case ThemeMode.light:  brightness = Brightness.light;
+      case ThemeMode.dark:   brightness = Brightness.dark;
+      case ThemeMode.system: brightness = PlatformDispatcher.instance.platformBrightness;
+    }
+    _lastAppliedTheme = mode;
+    final isDark = brightness == Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: isDark ? Colors.black : Colors.white,
+      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _updateSystemUI(widget.appProvider.themeMode);
+      _applySystemUI();
     }
-  }
-
-  void _updateSystemUI(ThemeMode mode) {
-    final Brightness brightness;
-    switch (mode) {
-      case ThemeMode.light:
-        brightness = Brightness.light;
-      case ThemeMode.dark:
-        brightness = Brightness.dark;
-      case ThemeMode.system:
-        brightness = PlatformDispatcher.instance.platformBrightness;
-    }
-    final isDark = brightness == Brightness.dark;
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-    ));
   }
 
   @override
@@ -138,7 +135,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 class _AppIconWrapper extends StatefulWidget {
   final Widget child;
   final String iconName;
-
   const _AppIconWrapper({required this.child, required this.iconName});
 
   @override
@@ -163,7 +159,6 @@ class _AppIconWrapperState extends State<_AppIconWrapper> {
 @Preview(name: "MookNote App Preview")
 Widget previewMyApp() {
   final appProvider = AppProvider();
-
   return MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: appProvider),
