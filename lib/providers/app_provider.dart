@@ -497,81 +497,96 @@ class AppProvider extends ChangeNotifier {
   
   /// 获取已删除的影视
   Future<List<Movie>> getDeletedMovies() async {
+    if (_useRemote) return ServerDataService.instance.getDeletedMovies();
     return await _movieDao.getDeletedMovies();
   }
-  
+
   /// 恢复影视
   Future<void> restoreMovie(String id) async {
-    await _movieDao.restoreMovie(id);
+    if (_useRemote) {
+      await ServerDataService.instance.restoreMovie(id);
+    } else {
+      await _movieDao.restoreMovie(id);
+    }
     await loadMovies();
   }
-  
+
   /// 彻底删除影视
   Future<void> permanentDeleteMovie(String id) async {
-    // 删除影视对应的图片目录（包括海报和海报墙）
     await ImagePathHelper.instance.deleteMovieImages(id);
-    
-    await _movieDao.permanentDeleteMovie(id);
+    if (_useRemote) {
+      await ServerDataService.instance.permanentDeleteMovie(id);
+    } else {
+      await _movieDao.permanentDeleteMovie(id);
+    }
   }
-  
+
   /// 获取已删除的书籍
   Future<List<Book>> getDeletedBooks() async {
+    if (_useRemote) return ServerDataService.instance.getDeletedBooks();
     return await _bookDao.getDeletedBooks();
   }
-  
+
   /// 恢复书籍
   Future<void> restoreBook(String id) async {
-    await _bookDao.restoreBook(id);
+    if (_useRemote) {
+      await ServerDataService.instance.restoreBook(id);
+    } else {
+      await _bookDao.restoreBook(id);
+    }
     await loadBooks();
   }
-  
+
   /// 彻底删除书籍
   Future<void> permanentDeleteBook(String id) async {
-    // 删除书籍对应的图片目录
     await ImagePathHelper.instance.deleteBookImages(id);
-    
-    await _bookDao.permanentDeleteBook(id);
+    if (_useRemote) {
+      await ServerDataService.instance.permanentDeleteBook(id);
+    } else {
+      await _bookDao.permanentDeleteBook(id);
+    }
   }
-  
+
   /// 获取已删除的笔记
   Future<List<Note>> getDeletedNotes() async {
+    if (_useRemote) return ServerDataService.instance.getDeletedNotes();
     return await _noteDao.getDeletedNotes();
   }
-  
+
   /// 恢复笔记
   Future<void> restoreNote(String id) async {
-    await _noteDao.restoreNote(id);
+    if (_useRemote) {
+      await ServerDataService.instance.restoreNote(id);
+    } else {
+      await _noteDao.restoreNote(id);
+    }
     await loadNotes();
   }
-  
+
   /// 彻底删除笔记
   Future<void> permanentDeleteNote(String id) async {
-    // 删除笔记对应的图片目录
     await ImagePathHelper.instance.deleteNoteImages(id);
-    
-    await _noteDao.permanentDeleteNote(id);
+    if (_useRemote) {
+      await ServerDataService.instance.permanentDeleteNote(id);
+    } else {
+      await _noteDao.permanentDeleteNote(id);
+    }
   }
   
   /// 清空回收站
   Future<void> clearRecycleBin() async {
-    final deletedMovies = await _movieDao.getDeletedMovies();
-    final deletedBooks = await _bookDao.getDeletedBooks();
-    final deletedNotes = await _noteDao.getDeletedNotes();
-    
+    final deletedMovies = await getDeletedMovies();
+    final deletedBooks = await getDeletedBooks();
+    final deletedNotes = await getDeletedNotes();
+
     for (final movie in deletedMovies) {
-      // 删除影视对应的图片目录（包括海报和海报墙）
-      await ImagePathHelper.instance.deleteMovieImages(movie.id);
-      await _movieDao.permanentDeleteMovie(movie.id);
+      await permanentDeleteMovie(movie.id);
     }
     for (final book in deletedBooks) {
-      // 删除书籍对应的图片目录
-      await ImagePathHelper.instance.deleteBookImages(book.id);
-      await _bookDao.permanentDeleteBook(book.id);
+      await permanentDeleteBook(book.id);
     }
     for (final note in deletedNotes) {
-      // 删除笔记对应的图片目录
-      await ImagePathHelper.instance.deleteNoteImages(note.id);
-      await _noteDao.permanentDeleteNote(note.id);
+      await permanentDeleteNote(note.id);
     }
     
     await loadMovies();

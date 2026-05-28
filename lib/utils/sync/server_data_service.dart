@@ -108,6 +108,56 @@ class ServerDataService {
     return data != null;
   }
 
+  // ─── 回收站 ────────────────────────────────────────────────────
+
+  Future<List<Movie>> getDeletedMovies() async {
+    final data = await _post('/api/data/movies/deleted');
+    if (data == null || data['movies'] == null) return [];
+    return (data['movies'] as List).map((m) => Movie.fromJson(m as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> restoreMovie(String id) async {
+    final data = await _post('/api/data/movie/restore', {'id': id});
+    return data != null;
+  }
+
+  Future<bool> permanentDeleteMovie(String id) async {
+    final data = await _post('/api/data/movie/permanent_delete', {'id': id});
+    return data != null;
+  }
+
+  Future<List<Book>> getDeletedBooks() async {
+    final data = await _post('/api/data/books/deleted');
+    if (data == null || data['books'] == null) return [];
+    return (data['books'] as List).map((b) => Book.fromJson(b as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> restoreBook(String id) async {
+    final data = await _post('/api/data/book/restore', {'id': id});
+    return data != null;
+  }
+
+  Future<bool> permanentDeleteBook(String id) async {
+    final data = await _post('/api/data/book/permanent_delete', {'id': id});
+    return data != null;
+  }
+
+  Future<List<Note>> getDeletedNotes() async {
+    final data = await _post('/api/data/notes/deleted');
+    if (data == null || data['notes'] == null) return [];
+    return (data['notes'] as List).map((n) => Note.fromJson(n as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> restoreNote(String id) async {
+    final data = await _post('/api/data/note/restore', {'id': id});
+    return data != null;
+  }
+
+  Future<bool> permanentDeleteNote(String id) async {
+    final data = await _post('/api/data/note/permanent_delete', {'id': id});
+    return data != null;
+  }
+
   // ─── 影评 ────────────────────────────────────────────────────
 
   Future<List<MovieReview>> getMovieReviews(String movieId) async {
