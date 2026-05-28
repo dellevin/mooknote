@@ -549,14 +549,19 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   /// 显示添加标签对话框
-  void _showAddTagDialog() {
+  Future<void> _showAddTagDialog() async {
     final controller = TextEditingController();
 
-    // 获取所有已有标签（从所有笔记中收集）
+    // 从 tags 表获取已有标签（sync 模式下走服务端 API）
     final provider = context.read<AppProvider>();
-    final allTags = _getAllExistingTags(provider);
+    final tagRows = await provider.getTags('note_tag');
+    final allTags = tagRows.map((t) => t['name'] as String).toSet();
+    // 也从当前笔记内容中收集
+    for (final note in provider.notes) {
+      allTags.addAll(note.tags);
+    }
     // 过滤掉已添加的标签
-    final availableTags = allTags.where((tag) => !_tags.contains(tag)).toList();
+    final availableTags = allTags.where((tag) => !_tags.contains(tag)).toList()..sort();
 
     showDialog(
       context: context,
@@ -713,14 +718,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   /// 获取所有已有标签（从所有笔记中收集）
-  List<String> _getAllExistingTags(AppProvider provider) {
-    final allTags = <String>{};
-    for (final note in provider.notes) {
-      allTags.addAll(note.tags);
-    }
-    return allTags.toList()..sort();
-  }
-
   /// 添加标签
   void _addTag(String tag) {
     final trimmed = tag.trim();

@@ -257,6 +257,11 @@ class ServerDataService {
     return data != null;
   }
 
+  Future<bool> deleteTagByName(String name, String type) async {
+    final data = await _post('/api/data/tag/delete_by_name', {'name': name, 'type': type});
+    return data != null;
+  }
+
   // ─── 图片 ────────────────────────────────────────────────────
 
   /// 是否激活（AppProvider 也会用这个检查）

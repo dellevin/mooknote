@@ -48,7 +48,10 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
     _isActivated = url.isNotEmpty && code.isNotEmpty;
     _syncEnabled = _isActivated && _prefs.syncEnabled;
     _updateExpiresText();
-    if (_isActivated) _startStatusPolling();
+    if (_isActivated) {
+      _startStatusPolling();
+      _checkStatus(); // 立即向服务端验证
+    }
   }
 
   void _updateExpiresText() {

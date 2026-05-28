@@ -582,19 +582,34 @@ class AppProvider extends ChangeNotifier {
   // ========== 标签管理方法 ==========
 
   Future<List<Map<String, dynamic>>> getTags(String type) async {
+    if (_useRemote) {
+      return await ServerDataService.instance.getTags(type.isEmpty ? null : type);
+    }
     return await _tagDao.getTagsByType(type);
   }
 
   Future<String> addTag(String name, String type) async {
     final id = await _tagDao.addTag(name, type);
+    if (_useRemote) {
+      await ServerDataService.instance.saveTag(name, type);
+    }
     await _reloadByTagType(type);
     return id;
   }
 
   Future<bool> renameTag(String tagId, String newName, String type) async {
+    final tag = await _tagDao.getTagById(tagId);
+    final oldName = tag?['name'] as String?;
     final result = await _tagDao.renameTag(tagId, newName);
     if (result) {
-      await _reloadByTagType(type);
+      if (_useRemote) {
+        if (oldName != null) {
+          await ServerDataService.instance.deleteTagByName(oldName, type);
+        }
+        await ServerDataService.instance.saveTag(newName, type);
+        await _pushAffectedByType(type); // 先推到服务端
+      }
+      await _reloadByTagType(type); // 再从服务端拉最新
     }
     return result;
   }
@@ -602,13 +617,36 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteTag(String tagId, String type,
       {String? replacementName}) async {
     await _tagDao.deleteTag(tagId, replacementName: replacementName);
-    await _reloadByTagType(type);
+    if (_useRemote) {
+      await ServerDataService.instance.deleteTag(tagId);
+      if (replacementName != null) {
+        await ServerDataService.instance.saveTag(replacementName, type);
+      }
+      await _pushAffectedByType(type); // 先推到服务端
+    }
+    await _reloadByTagType(type); // 再从服务端拉最新
   }
 
   /// 仅删除标签本身，不级联影响已有条目
   Future<void> deleteTagOnly(String tagId, String type) async {
     await _tagDao.deleteTagOnly(tagId);
+    if (_useRemote) {
+      await ServerDataService.instance.deleteTag(tagId);
+    }
     await _reloadByTagType(type);
+  }
+
+  /// 把某类型的所有条目推送到服务端（标签级联后调用）
+  Future<void> _pushAffectedByType(String type) async {
+    final server = ServerDataService.instance;
+    switch (type) {
+      case 'movie_genre':
+        for (final m in _movies) { await server.saveMovie(m); }
+      case 'book_genre':
+        for (final b in _books) { await server.saveBook(b); }
+      case 'note_tag':
+        for (final n in _notes) { await server.saveNote(n); }
+    }
   }
 
   /// 从影视/书籍/笔记数据中解析标签，同步到 tags 表
