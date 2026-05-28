@@ -138,16 +138,18 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
       await provider.loadNotes();
       if (mounted) ToastUtil.show(context, '同步已开启，数据已合并');
     } else {
-      // 关闭同步：先合并最新数据，再切换到本地
-      if (mounted) ToastUtil.show(context, '正在同步数据到本地...');
-      await ServerSyncService.instance.syncWithServer();
+      // 关闭同步：从服务器下载数据库和图片到本地
+      if (mounted) ToastUtil.show(context, '正在从服务器下载数据...');
+      final success = await ServerSyncService.instance.downloadToLocal();
       await _prefs.setSyncEnabled(false);
       setState(() => _syncEnabled = false);
       final provider = context.read<AppProvider>();
       await provider.loadMovies();
       await provider.loadBooks();
       await provider.loadNotes();
-      if (mounted) ToastUtil.show(context, '同步已关闭，已切换到本地数据');
+      if (mounted) {
+        ToastUtil.show(context, success ? '数据已下载到本地' : '服务器无备份，保留本地数据');
+      }
     }
   }
 

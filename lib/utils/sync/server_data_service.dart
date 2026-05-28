@@ -108,6 +108,102 @@ class ServerDataService {
     return data != null;
   }
 
+  // ─── 影评 ────────────────────────────────────────────────────
+
+  Future<List<MovieReview>> getMovieReviews(String movieId) async {
+    final data = await _post('/api/data/movie_reviews', {'movie_id': movieId});
+    if (data == null || data['reviews'] == null) return [];
+    return (data['reviews'] as List).map((r) => MovieReview.fromJson(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<MovieReview>> getAllMovieReviews() async {
+    final data = await _post('/api/data/movie_reviews');
+    if (data == null || data['reviews'] == null) return [];
+    return (data['reviews'] as List).map((r) => MovieReview.fromJson(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> saveMovieReview(MovieReview review) async {
+    final data = await _post('/api/data/movie_review/save', {'review': review.toJson()});
+    return data != null;
+  }
+
+  Future<bool> deleteMovieReview(String id) async {
+    final data = await _post('/api/data/movie_review/delete', {'id': id});
+    return data != null;
+  }
+
+  // ─── 海报 ────────────────────────────────────────────────────
+
+  Future<List<MoviePoster>> getMoviePosters(String movieId) async {
+    final data = await _post('/api/data/movie_posters', {'movie_id': movieId});
+    if (data == null || data['posters'] == null) return [];
+    return (data['posters'] as List).map((p) => MoviePoster.fromJson(p as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<MoviePoster>> getAllMoviePosters() async {
+    final data = await _post('/api/data/movie_posters');
+    if (data == null || data['posters'] == null) return [];
+    return (data['posters'] as List).map((p) => MoviePoster.fromJson(p as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> saveMoviePoster(MoviePoster poster) async {
+    final data = await _post('/api/data/movie_poster/save', {'poster': poster.toJson()});
+    return data != null;
+  }
+
+  Future<bool> deleteMoviePoster(String id) async {
+    final data = await _post('/api/data/movie_poster/delete', {'id': id});
+    return data != null;
+  }
+
+  // ─── 书评 ────────────────────────────────────────────────────
+
+  Future<List<BookReview>> getBookReviews(String bookId) async {
+    final data = await _post('/api/data/book_reviews', {'book_id': bookId});
+    if (data == null || data['reviews'] == null) return [];
+    return (data['reviews'] as List).map((r) => BookReview.fromJson(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<BookReview>> getAllBookReviews() async {
+    final data = await _post('/api/data/book_reviews');
+    if (data == null || data['reviews'] == null) return [];
+    return (data['reviews'] as List).map((r) => BookReview.fromJson(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> saveBookReview(BookReview review) async {
+    final data = await _post('/api/data/book_review/save', {'review': review.toJson()});
+    return data != null;
+  }
+
+  Future<bool> deleteBookReview(String id) async {
+    final data = await _post('/api/data/book_review/delete', {'id': id});
+    return data != null;
+  }
+
+  // ─── 书摘 ────────────────────────────────────────────────────
+
+  Future<List<BookExcerpt>> getBookExcerpts(String bookId) async {
+    final data = await _post('/api/data/book_excerpts', {'book_id': bookId});
+    if (data == null || data['excerpts'] == null) return [];
+    return (data['excerpts'] as List).map((e) => BookExcerpt.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<BookExcerpt>> getAllBookExcerpts() async {
+    final data = await _post('/api/data/book_excerpts');
+    if (data == null || data['excerpts'] == null) return [];
+    return (data['excerpts'] as List).map((e) => BookExcerpt.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<bool> saveBookExcerpt(BookExcerpt excerpt) async {
+    final data = await _post('/api/data/book_excerpt/save', {'excerpt': excerpt.toJson()});
+    return data != null;
+  }
+
+  Future<bool> deleteBookExcerpt(String id) async {
+    final data = await _post('/api/data/book_excerpt/delete', {'id': id});
+    return data != null;
+  }
+
   // ─── 批量同步 ────────────────────────────────────────────────
 
   Future<Map<String, int>> batchSync({
@@ -115,12 +211,20 @@ class ServerDataService {
     List<Book>? books,
     List<Note>? notes,
     List<Map<String, dynamic>>? tags,
+    List<Map<String, dynamic>>? movieReviews,
+    List<Map<String, dynamic>>? moviePosters,
+    List<Map<String, dynamic>>? bookReviews,
+    List<Map<String, dynamic>>? bookExcerpts,
   }) async {
     final data = await _post('/api/data/batch_sync', {
       if (movies != null) 'movies': movies.map((m) => m.toJson()).toList(),
       if (books != null) 'books': books.map((b) => b.toJson()).toList(),
       if (notes != null) 'notes': notes.map((n) => n.toJson()).toList(),
       if (tags != null) 'tags': tags,
+      if (movieReviews != null) 'movie_reviews': movieReviews,
+      if (moviePosters != null) 'movie_posters': moviePosters,
+      if (bookReviews != null) 'book_reviews': bookReviews,
+      if (bookExcerpts != null) 'book_excerpts': bookExcerpts,
     });
     if (data == null) return {};
     return {
@@ -128,6 +232,10 @@ class ServerDataService {
       'books': (data['books'] as int?) ?? 0,
       'notes': (data['notes'] as int?) ?? 0,
       'tags': (data['tags'] as int?) ?? 0,
+      'movie_reviews': (data['movie_reviews'] as int?) ?? 0,
+      'movie_posters': (data['movie_posters'] as int?) ?? 0,
+      'book_reviews': (data['book_reviews'] as int?) ?? 0,
+      'book_excerpts': (data['book_excerpts'] as int?) ?? 0,
     };
   }
 
@@ -168,9 +276,11 @@ class ServerDataService {
 
   /// 批量上传图片到服务端（自动计算相对路径）
   static Future<void> uploadLocalImages(List<String> filePaths) async {
+    debugPrint('[Sync] uploadLocalImages: isActive=$isActive count=${filePaths.length}');
     if (!isActive || filePaths.isEmpty) return;
+    debugPrint('[Sync] 调用 uploadImages...');
     final result = await instance.uploadImages(filePaths);
-    debugPrint('[Sync] 上传 ${result.length}/${filePaths.length} 张图片');
+    debugPrint('[Sync] uploadImages 返回: ${result.length} 个文件');
   }
 
   /// 上传单张图片到服务端
@@ -185,20 +295,29 @@ class ServerDataService {
   }
 
   Future<List<String>> uploadImages(List<String> filePaths) async {
+    debugPrint('[Sync] uploadImages: 准备上传 ${filePaths.length} 个文件到 $_baseUrl/api/data/image/upload');
     final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/api/data/image/upload'));
     request.fields['code'] = _code;
     final appDir = (await getApplicationDocumentsDirectory()).path;
     for (final path in filePaths) {
       final relPath = p.relative(path, from: appDir).replaceAll('\\', '/');
       final file = File(path);
-      request.files.add(await http.MultipartFile(
-        'images', file.readAsBytes().asStream(), await file.length(),
-        filename: relPath,
-      ));
+      final exists = await file.exists();
+      final size = exists ? await file.length() : 0;
+      debugPrint('[Sync]   图片: $relPath (存在=$exists 大小=$size)');
+      if (exists) {
+        request.files.add(await http.MultipartFile(
+          'images', file.readAsBytes().asStream(), size,
+          filename: relPath,
+        ));
+      }
     }
+    debugPrint('[Sync] 发送 upload 请求 (${request.files.length} 个文件)...');
     final resp = await request.send().timeout(const Duration(seconds: 60));
+    debugPrint('[Sync] upload 响应: ${resp.statusCode}');
     if (resp.statusCode != 200) return [];
     final body = await resp.stream.bytesToString();
+    debugPrint('[Sync] upload 响应体: $body');
     final data = jsonDecode(body) as Map<String, dynamic>;
     return (data['files'] as List?)?.cast<String>() ?? [];
   }

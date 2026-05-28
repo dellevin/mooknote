@@ -50,7 +50,7 @@ class _NoteListItemContent extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  _formatDateCached(note.updatedAt),
+                  _formatDate(note.createdAt),
                   style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.4),
@@ -256,24 +256,14 @@ class _NoteListItemContent extends StatelessWidget {
   }
 }
 
-final Map<DateTime, String> _dateFormatCache = {};
-
-String _formatDateCached(DateTime date) {
-  final cacheKey = DateTime(date.year, date.month, date.day);
-
-  if (_dateFormatCache.containsKey(cacheKey)) {
-    return _dateFormatCache[cacheKey]!;
-  }
-
-  final result = _formatDate(date);
-  _dateFormatCache[cacheKey] = result;
-  return result;
-}
-
 String _formatDate(DateTime date) {
   final now = DateTime.now();
   final difference = now.difference(date);
 
+  if (difference.isNegative) {
+    // 服务端时间比本地快（时钟偏差），显示绝对日期
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
   if (difference.inDays == 0) {
     if (difference.inHours == 0) {
       if (difference.inMinutes == 0) {

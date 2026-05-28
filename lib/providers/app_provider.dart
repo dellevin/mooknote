@@ -353,58 +353,73 @@ class AppProvider extends ChangeNotifier {
   }
   
   // ========== 影评相关方法 ==========
-  
+
   /// 获取影视的所有影评
   Future<List<MovieReview>> getMovieReviews(String movieId) async {
+    if (_useRemote) return await ServerDataService.instance.getMovieReviews(movieId);
     return await _reviewDao.getReviewsByMovieId(movieId);
   }
-  
+
   /// 添加影评
   Future<void> addMovieReview(MovieReview review) async {
-    await _reviewDao.insertReview(review);
+    if (_useRemote) await ServerDataService.instance.saveMovieReview(review);
+    else await _reviewDao.insertReview(review);
   }
-  
+
   /// 更新影评
   Future<void> updateMovieReview(MovieReview review) async {
-    await _reviewDao.updateReview(review);
+    if (_useRemote) await ServerDataService.instance.saveMovieReview(review);
+    else await _reviewDao.updateReview(review);
   }
-  
+
   /// 删除影评
   Future<void> removeMovieReview(String id) async {
-    await _reviewDao.deleteReview(id);
+    if (_useRemote) await ServerDataService.instance.deleteMovieReview(id);
+    else await _reviewDao.deleteReview(id);
   }
-  
+
   /// 获取影视的影评数量
   Future<int> getMovieReviewCount(String movieId) async {
+    if (_useRemote) {
+      final reviews = await ServerDataService.instance.getMovieReviews(movieId);
+      return reviews.length;
+    }
     return await _reviewDao.getReviewCount(movieId);
   }
-  
+
   // ========== 海报墙相关方法 ==========
-  
+
   /// 获取影视的所有海报
   Future<List<MoviePoster>> getMoviePosters(String movieId) async {
+    if (_useRemote) return await ServerDataService.instance.getMoviePosters(movieId);
     return await _posterDao.getPostersByMovieId(movieId);
   }
-  
+
   /// 添加海报
   Future<void> addMoviePoster(MoviePoster poster) async {
-    await _posterDao.insertPoster(poster);
+    if (_useRemote) await ServerDataService.instance.saveMoviePoster(poster);
+    else await _posterDao.insertPoster(poster);
   }
-  
+
   /// 删除海报
   Future<void> removeMoviePoster(String id) async {
-    // 先获取海报信息，以便删除文件
+    if (_useRemote) {
+      await ServerDataService.instance.deleteMoviePoster(id);
+      return;
+    }
     final poster = await _posterDao.getPosterById(id);
     if (poster != null) {
-      // 删除海报文件
       await ImagePathHelper.instance.deleteFile(poster.posterPath);
     }
-    
     await _posterDao.deletePoster(id);
   }
-  
+
   /// 获取影视的海报数量
   Future<int> getMoviePosterCount(String movieId) async {
+    if (_useRemote) {
+      final posters = await ServerDataService.instance.getMoviePosters(movieId);
+      return posters.length;
+    }
     return await _posterDao.getPosterCount(movieId);
   }
 
@@ -412,26 +427,34 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取书籍的所有书评
   Future<List<BookReview>> getBookReviews(String bookId) async {
+    if (_useRemote) return await ServerDataService.instance.getBookReviews(bookId);
     return await _bookReviewDao.getReviewsByBookId(bookId);
   }
 
   /// 添加书评
   Future<void> addBookReview(BookReview review) async {
-    await _bookReviewDao.insertReview(review);
+    if (_useRemote) await ServerDataService.instance.saveBookReview(review);
+    else await _bookReviewDao.insertReview(review);
   }
 
   /// 更新书评
   Future<void> updateBookReview(BookReview review) async {
-    await _bookReviewDao.updateReview(review);
+    if (_useRemote) await ServerDataService.instance.saveBookReview(review);
+    else await _bookReviewDao.updateReview(review);
   }
 
   /// 删除书评
   Future<void> removeBookReview(String id) async {
-    await _bookReviewDao.deleteReview(id);
+    if (_useRemote) await ServerDataService.instance.deleteBookReview(id);
+    else await _bookReviewDao.deleteReview(id);
   }
 
   /// 获取书籍的书评数量
   Future<int> getBookReviewCount(String bookId) async {
+    if (_useRemote) {
+      final reviews = await ServerDataService.instance.getBookReviews(bookId);
+      return reviews.length;
+    }
     return await _bookReviewDao.getReviewCount(bookId);
   }
 
@@ -439,26 +462,34 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取书籍的所有摘抄
   Future<List<BookExcerpt>> getBookExcerpts(String bookId) async {
+    if (_useRemote) return await ServerDataService.instance.getBookExcerpts(bookId);
     return await _bookExcerptDao.getExcerptsByBookId(bookId);
   }
 
   /// 添加摘抄
   Future<void> addBookExcerpt(BookExcerpt excerpt) async {
-    await _bookExcerptDao.insertExcerpt(excerpt);
+    if (_useRemote) await ServerDataService.instance.saveBookExcerpt(excerpt);
+    else await _bookExcerptDao.insertExcerpt(excerpt);
   }
 
   /// 更新摘抄
   Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
-    await _bookExcerptDao.updateExcerpt(excerpt);
+    if (_useRemote) await ServerDataService.instance.saveBookExcerpt(excerpt);
+    else await _bookExcerptDao.updateExcerpt(excerpt);
   }
 
   /// 删除摘抄
   Future<void> removeBookExcerpt(String id) async {
-    await _bookExcerptDao.deleteExcerpt(id);
+    if (_useRemote) await ServerDataService.instance.deleteBookExcerpt(id);
+    else await _bookExcerptDao.deleteExcerpt(id);
   }
 
   /// 获取书籍的摘抄数量
   Future<int> getBookExcerptCount(String bookId) async {
+    if (_useRemote) {
+      final excerpts = await ServerDataService.instance.getBookExcerpts(bookId);
+      return excerpts.length;
+    }
     return await _bookExcerptDao.getExcerptCount(bookId);
   }
 

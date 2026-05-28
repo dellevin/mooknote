@@ -27,6 +27,8 @@ class BackupService {
       final notes = await db.query('notes');
       final movieReviews = await db.query('movie_reviews');
       final moviePosters = await db.query('movie_posters');
+      final bookReviews = await db.query('book_reviews');
+      final bookExcerpts = await db.query('book_excerpts');
       final tags = await db.query('tags');
       
       // 收集所有图片路径
@@ -100,6 +102,8 @@ class BackupService {
           'notes': notes,
           'movie_reviews': movieReviews,
           'movie_posters': moviePosters,
+          'book_reviews': bookReviews,
+          'book_excerpts': bookExcerpts,
           'tags': tags,
         },
       };
@@ -211,6 +215,8 @@ class BackupService {
       final notes = await db.query('notes');
       final movieReviews = await db.query('movie_reviews');
       final moviePosters = await db.query('movie_posters');
+      final bookReviews = await db.query('book_reviews');
+      final bookExcerpts = await db.query('book_excerpts');
       final tags = await db.query('tags');
       
       // 收集所有图片路径
@@ -284,6 +290,8 @@ class BackupService {
           'notes': notes,
           'movie_reviews': movieReviews,
           'movie_posters': moviePosters,
+          'book_reviews': bookReviews,
+          'book_excerpts': bookExcerpts,
           'tags': tags,
         },
       };
@@ -425,6 +433,8 @@ class BackupService {
         // 清空现有数据
         await txn.delete('movie_reviews');
         await txn.delete('movie_posters');
+        await txn.delete('book_reviews');
+        await txn.delete('book_excerpts');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
@@ -475,6 +485,20 @@ class BackupService {
             final posterMap = _convertToDbMap(poster);
             final updatedMap = _updateImagePath(posterMap, 'poster_path', imagePathMap);
             await txn.insert('movie_posters', updatedMap);
+          }
+        }
+        // 导入书评数据
+        if (data.containsKey('book_reviews')) {
+          final reviews = data['book_reviews'] as List<dynamic>;
+          for (final review in reviews) {
+            await txn.insert('book_reviews', _convertToDbMap(review));
+          }
+        }
+        // 导入书摘数据
+        if (data.containsKey('book_excerpts')) {
+          final excerpts = data['book_excerpts'] as List<dynamic>;
+          for (final excerpt in excerpts) {
+            await txn.insert('book_excerpts', _convertToDbMap(excerpt));
           }
         }
 
@@ -597,6 +621,8 @@ class BackupService {
         // 清空现有数据
         await txn.delete('movie_reviews');
         await txn.delete('movie_posters');
+        await txn.delete('book_reviews');
+        await txn.delete('book_excerpts');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
@@ -643,6 +669,20 @@ class BackupService {
             await txn.insert('movie_posters', updatedMap);
           }
         }
+        // 导入书评数据
+        if (data.containsKey('book_reviews')) {
+          final reviews = data['book_reviews'] as List<dynamic>;
+          for (final review in reviews) {
+            await txn.insert('book_reviews', _convertToDbMap(review));
+          }
+        }
+        // 导入书摘数据
+        if (data.containsKey('book_excerpts')) {
+          final excerpts = data['book_excerpts'] as List<dynamic>;
+          for (final excerpt in excerpts) {
+            await txn.insert('book_excerpts', _convertToDbMap(excerpt));
+          }
+        }
 
         // 导入标签数据
         if (data.containsKey('tags')) {
@@ -686,6 +726,8 @@ class BackupService {
       if (data.containsKey('notes')) stats['笔记'] = (data['notes'] as List).length;
       if (data.containsKey('movie_reviews')) stats['影评'] = (data['movie_reviews'] as List).length;
       if (data.containsKey('movie_posters')) stats['海报'] = (data['movie_posters'] as List).length;
+      if (data.containsKey('book_reviews')) stats['书评'] = (data['book_reviews'] as List).length;
+      if (data.containsKey('book_excerpts')) stats['书摘'] = (data['book_excerpts'] as List).length;
       if (imageCount > 0) stats['图片'] = imageCount;
 
       return ImportResult.success(stats);

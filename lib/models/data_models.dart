@@ -64,11 +64,11 @@ class Movie {
       watchDate: json['watch_date'] != null
           ? DateTime.parse(json['watch_date'])
           : null,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
     );
@@ -79,7 +79,7 @@ class Movie {
       'id': id,
       'title': title,
       'poster_path': posterPath,
-      'release_date': releaseDate?.toIso8601String(),
+      'release_date': releaseDate?.toUtc().toUtc().toIso8601String(),
       'directors': jsonEncode(directors),
       'writers': jsonEncode(writers),
       'actors': jsonEncode(actors),
@@ -88,9 +88,9 @@ class Movie {
       'summary': summary,
       'rating': rating,
       'status': status,
-      'watch_date': watchDate?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'watch_date': watchDate?.toUtc().toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
     };
   }
@@ -217,11 +217,11 @@ class Book {
       publishDate: json['publish_date'] != null
           ? DateTime.parse(json['publish_date'])
           : null,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
     );
@@ -240,9 +240,9 @@ class Book {
       'rating': rating,
       'status': status,
       'isbn': isbn,
-      'publish_date': publishDate?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'publish_date': publishDate?.toUtc().toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
     };
   }
@@ -323,11 +323,11 @@ class Note {
       contentType: json['content_type'] ?? 'markdown',
       tags: Movie.parseStringList(json['tags']),
       images: Movie.parseStringList(json['images']),
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
     );
@@ -341,8 +341,8 @@ class Note {
       'content_type': contentType,
       'tags': jsonEncode(tags),
       'images': jsonEncode(images),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
     };
   }
@@ -412,11 +412,11 @@ class MovieReview {
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
     );
   }
@@ -430,8 +430,8 @@ class MovieReview {
       'source': source,
       'review_type': reviewType,
       'is_deleted': isDeleted ? 1 : 0,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
     };
   }
   
@@ -504,7 +504,7 @@ class MoviePoster {
       'movie_id': movieId,
       'poster_path': posterPath,
       'is_deleted': isDeleted ? 1 : 0,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
   
@@ -566,8 +566,8 @@ class BookReview {
       'source': source,
       'review_type': reviewType,
       'is_deleted': isDeleted ? 1 : 0,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
     };
   }
 
@@ -653,8 +653,8 @@ class BookExcerpt {
       'content': content,
       'comment': comment,
       'is_deleted': isDeleted ? 1 : 0,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
     };
   }
 

@@ -23,17 +23,6 @@ class BookDetailPage extends StatefulWidget {
 
 class _BookDetailPageState extends State<BookDetailPage> {
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _refreshBookData();
-  }
-
-  void _refreshBookData() {
-    final provider = context.read<AppProvider>();
-    provider.loadBooks();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final book = context.watch<AppProvider>().books
