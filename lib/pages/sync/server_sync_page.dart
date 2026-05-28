@@ -129,6 +129,7 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
     if (value && _isActivated) {
       // 开启同步：合并本地与服务端数据
       await _prefs.setSyncEnabled(true);
+      if (!mounted) return;
       setState(() => _syncEnabled = true);
       if (mounted) ToastUtil.show(context, '正在同步数据...');
       await ServerSyncService.instance.syncWithServer();
@@ -142,6 +143,7 @@ class _ServerSyncPageState extends State<ServerSyncPage> {
       if (mounted) ToastUtil.show(context, '正在从服务器下载数据...');
       final success = await ServerSyncService.instance.downloadToLocal();
       await _prefs.setSyncEnabled(false);
+      if (!mounted) return;
       setState(() => _syncEnabled = false);
       final provider = context.read<AppProvider>();
       await provider.loadMovies();

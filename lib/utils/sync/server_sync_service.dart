@@ -404,9 +404,14 @@ class ServerSyncService {
 
       final dbPath = await DatabaseHelper.instance.databasePath;
       if (dbPath != null) {
+        final dbFile = File(dbPath);
+        // 先关掉旧连接，删除旧文件，再写入新数据库
         await DatabaseHelper.instance.close();
-        await File(dbPath).writeAsBytes(dbResp.bodyBytes);
-        await DatabaseHelper.instance.reopen();
+        if (await dbFile.exists()) await dbFile.delete();
+        await dbFile.writeAsBytes(dbResp.bodyBytes);
+        // 设置正确的版本号
+        final db = await openDatabase(dbPath, version: 14);
+        await db.close();
         debugPrint('[Sync] 数据库已写入: $dbPath');
       }
 
