@@ -30,8 +30,9 @@ class _NoteListItemContent extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () {
+        final provider = context.read<AppProvider>();
         Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) async {
-          await context.read<AppProvider>().loadNotes();
+          await provider.loadNotes();
         });
       },
       onLongPress: () => _showDeleteDialog(context),

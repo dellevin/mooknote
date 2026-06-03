@@ -83,7 +83,8 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
                     height: 64,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: colors.outlineVariant, width: 0.5),
+                      border:
+                          Border.all(color: colors.outlineVariant, width: 0.5),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Image.asset(
@@ -95,7 +96,9 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
                         width: 64,
                         height: 64,
                         color: colors.surfaceContainerHighest,
-                        child: Icon(Icons.image_not_supported, size: 24, color: colors.onSurface.withValues(alpha: 0.3)),
+                        child: Icon(Icons.image_not_supported,
+                            size: 24,
+                            color: colors.onSurface.withValues(alpha: 0.3)),
                       ),
                     ),
                   ),
@@ -113,7 +116,9 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
                   if (isSelected)
                     Icon(Icons.check_circle, size: 22, color: colors.primary)
                   else
-                    Icon(Icons.radio_button_unchecked, size: 22, color: colors.onSurface.withValues(alpha: 0.2)),
+                    Icon(Icons.radio_button_unchecked,
+                        size: 22,
+                        color: colors.onSurface.withValues(alpha: 0.2)),
                 ],
               ),
             ),

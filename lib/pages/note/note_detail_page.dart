@@ -291,8 +291,9 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       (n) => n.id == widget.note.id,
       orElse: () => widget.note,
     );
+    final provider = context.read<AppProvider>();
     Navigator.pushNamed(context, '/note-form', arguments: currentNote).then((_) async {
-      await context.read<AppProvider>().loadNotes();
+      await provider.loadNotes();
     });
   }
 

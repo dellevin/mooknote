@@ -686,8 +686,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   void _navigateToEdit(BuildContext context) {
+    final provider = context.read<AppProvider>();
     Navigator.pushNamed(context, '/book-form', arguments: widget.book).then((_) {
-      context.read<AppProvider>().loadBooks();
+      provider.loadBooks();
     });
   }
 
