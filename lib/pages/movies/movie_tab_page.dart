@@ -28,6 +28,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   int _lastDataCount = -1;
   DateTime? _lastUpdatedAt;
   late ScrollController _scrollController;
+  AppProvider? _provider;
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
 
@@ -38,6 +39,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AppProvider>();
+      _provider = provider;
       provider.addListener(_onDataChanged);
       _lastDataCount = provider.movies.length;
       if (provider.movies.isNotEmpty) _lastUpdatedAt = provider.movies.first.updatedAt;
@@ -47,6 +49,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
 
   @override
   void dispose() {
+    _provider?.removeListener(_onDataChanged);
     _scrollController.dispose();
     super.dispose();
   }

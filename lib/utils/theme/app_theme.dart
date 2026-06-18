@@ -69,7 +69,7 @@ class AppTheme {
           fontSize: 18,
           fontWeight: _semibold,
           color: _black,
-          letterSpacing: -0.3,
+          letterSpacing: 0,
         ),
       ),
       
@@ -184,7 +184,7 @@ class AppTheme {
           fontSize: 32,
           fontWeight: _semibold,
           color: _black,
-          letterSpacing: -0.5,
+          letterSpacing: 0,
           height: 1.2,
         ),
         headlineMedium: TextStyle(
@@ -192,7 +192,7 @@ class AppTheme {
           fontSize: 24,
           fontWeight: _semibold,
           color: _black,
-          letterSpacing: -0.3,
+          letterSpacing: 0,
           height: 1.3,
         ),
         headlineSmall: TextStyle(
@@ -200,7 +200,7 @@ class AppTheme {
           fontSize: 20,
           fontWeight: _semibold,
           color: _black,
-          letterSpacing: -0.2,
+          letterSpacing: 0,
           height: 1.4,
         ),
         // 正文
@@ -282,7 +282,7 @@ class AppTheme {
           fontSize: 18,
           fontWeight: _semibold,
           color: _white,
-          letterSpacing: -0.3,
+          letterSpacing: 0,
         ),
       ),
       
@@ -380,7 +380,7 @@ class AppTheme {
           fontSize: 32,
           fontWeight: _semibold,
           color: _white,
-          letterSpacing: -0.5,
+          letterSpacing: 0,
           height: 1.2,
         ),
         headlineMedium: TextStyle(
@@ -388,7 +388,7 @@ class AppTheme {
           fontSize: 24,
           fontWeight: _semibold,
           color: _white,
-          letterSpacing: -0.3,
+          letterSpacing: 0,
           height: 1.3,
         ),
         headlineSmall: TextStyle(
@@ -396,7 +396,7 @@ class AppTheme {
           fontSize: 20,
           fontWeight: _semibold,
           color: _white,
-          letterSpacing: -0.2,
+          letterSpacing: 0,
           height: 1.4,
         ),
         bodyLarge: TextStyle(

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -402,18 +403,8 @@ class ServerSyncService {
       debugPrint('[Sync] 数据库下载响应: ${dbResp.statusCode} size=${dbResp.bodyBytes.length}');
       if (dbResp.statusCode != 200) return false;
 
-      final dbPath = await DatabaseHelper.instance.databasePath;
-      if (dbPath != null) {
-        final dbFile = File(dbPath);
-        // 先关掉旧连接，删除旧文件，再写入新数据库
-        await DatabaseHelper.instance.close();
-        if (await dbFile.exists()) await dbFile.delete();
-        await dbFile.writeAsBytes(dbResp.bodyBytes);
-        // 设置正确的版本号
-        final db = await openDatabase(dbPath, version: 14);
-        await db.close();
-        debugPrint('[Sync] 数据库已写入: $dbPath');
-      }
+      await DatabaseHelper.instance.reopenDatabaseFromBytes(dbResp.bodyBytes);
+      debugPrint('[Sync] 数据库已重写并重新打开');
 
       final images = (info['images'] as List<dynamic>?)
           ?.map((e) => e is Map ? {'name': e['name'] as String, 'rel_path': e['rel_path'] as String} : null)

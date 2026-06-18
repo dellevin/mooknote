@@ -303,6 +303,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   Future<void> _saveReview() async {
     if (!_formKey.currentState!.validate()) return;
 
+    try {
     final now = DateTime.now();
 
     if (widget.review == null) {
@@ -331,5 +332,9 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
     if (!mounted) return;
     ToastUtil.show(context, widget.review == null ? '添加成功' : '更新成功');
     Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ToastUtil.show(context, '保存失败: $e');
+    }
   }
 }

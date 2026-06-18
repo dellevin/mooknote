@@ -1,4 +1,4 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
 
@@ -6,8 +6,17 @@ import '../database_helper.dart';
 class BookDao {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
+  Future<T> _wrap<T>(String op, Future<T> Function() fn) async {
+    try {
+      return await fn();
+    } catch (e) {
+      debugPrint('[BookDao] $op error: $e');
+      rethrow;
+    }
+  }
+
   // 获取所有未删除的书籍记录
-  Future<List<Book>> getAllBooks() async {
+  Future<List<Book>> getAllBooks() => _wrap('getAllBooks', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
@@ -15,12 +24,11 @@ class BookDao {
       whereArgs: [0],
       orderBy: 'created_at DESC',
     );
-
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // 分页查询书籍记录
-  Future<List<Book>> getBooksPaged({String? status, int limit = 20, int offset = 0}) async {
+  Future<List<Book>> getBooksPaged({String? status, int limit = 20, int offset = 0}) => _wrap('getBooksPaged', () async {
     final db = await _dbHelper.database;
     String where = 'is_deleted = 0';
     List<dynamic> whereArgs = [];
@@ -31,10 +39,10 @@ class BookDao {
     final maps = await db.query('books', where: where, whereArgs: whereArgs,
         orderBy: 'created_at DESC', limit: limit, offset: offset);
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // 根据状态筛选书籍记录
-  Future<List<Book>> getBooksByStatus(String status) async {
+  Future<List<Book>> getBooksByStatus(String status) => _wrap('getBooksByStatus', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
@@ -42,31 +50,29 @@ class BookDao {
       whereArgs: [status, 0],
       orderBy: 'created_at DESC',
     );
-
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // 根据ID获取书籍
-  Future<Book?> getBookById(String id) async {
+  Future<Book?> getBookById(String id) => _wrap('getBookById', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
       where: 'id = ? AND is_deleted = ?',
       whereArgs: [id, 0],
     );
-
     if (maps.isEmpty) return null;
     return Book.fromJson(maps.first);
-  }
+  });
 
   // 添加书籍记录
-  Future<int> insertBook(Book book) async {
+  Future<int> insertBook(Book book) => _wrap('insertBook', () async {
     final db = await _dbHelper.database;
     return await db.insert('books', book.toJson());
-  }
+  });
 
   // 更新书籍记录
-  Future<int> updateBook(Book book) async {
+  Future<int> updateBook(Book book) => _wrap('updateBook', () async {
     final db = await _dbHelper.database;
     return await db.update(
       'books',
@@ -74,10 +80,10 @@ class BookDao {
       where: 'id = ?',
       whereArgs: [book.id],
     );
-  }
+  });
 
   // 软删除书籍记录（移入回收站）
-  Future<int> deleteBook(String id) async {
+  Future<int> deleteBook(String id) => _wrap('deleteBook', () async {
     final db = await _dbHelper.database;
     return await db.update(
       'books',
@@ -88,10 +94,10 @@ class BookDao {
       where: 'id = ?',
       whereArgs: [id],
     );
-  }
+  });
 
   // 搜索书籍（标题、别名）
-  Future<List<Book>> searchBooks(String query) async {
+  Future<List<Book>> searchBooks(String query) => _wrap('searchBooks', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
@@ -99,12 +105,11 @@ class BookDao {
       whereArgs: ['%$query%', '%$query%', 0],
       orderBy: 'created_at DESC',
     );
-
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // 根据作者筛选
-  Future<List<Book>> getBooksByAuthor(String author) async {
+  Future<List<Book>> getBooksByAuthor(String author) => _wrap('getBooksByAuthor', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
@@ -112,12 +117,11 @@ class BookDao {
       whereArgs: ['%$author%', 0],
       orderBy: 'created_at DESC',
     );
-
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // 根据类型筛选
-  Future<List<Book>> getBooksByGenre(String genre) async {
+  Future<List<Book>> getBooksByGenre(String genre) => _wrap('getBooksByGenre', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
@@ -125,14 +129,13 @@ class BookDao {
       whereArgs: ['%$genre%', 0],
       orderBy: 'created_at DESC',
     );
-
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // ========== 回收站相关方法 ==========
 
   // 获取已删除的书籍
-  Future<List<Book>> getDeletedBooks() async {
+  Future<List<Book>> getDeletedBooks() => _wrap('getDeletedBooks', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
@@ -140,12 +143,11 @@ class BookDao {
       whereArgs: [1],
       orderBy: 'created_at DESC',
     );
-
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
-  }
+  });
 
   // 恢复已删除的书籍
-  Future<int> restoreBook(String id) async {
+  Future<int> restoreBook(String id) => _wrap('restoreBook', () async {
     final db = await _dbHelper.database;
     return await db.update(
       'books',
@@ -153,15 +155,15 @@ class BookDao {
       where: 'id = ?',
       whereArgs: [id],
     );
-  }
+  });
 
   // 彻底删除书籍
-  Future<int> permanentDeleteBook(String id) async {
+  Future<int> permanentDeleteBook(String id) => _wrap('permanentDeleteBook', () async {
     final db = await _dbHelper.database;
     return await db.delete(
       'books',
       where: 'id = ?',
       whereArgs: [id],
     );
-  }
+  });
 }

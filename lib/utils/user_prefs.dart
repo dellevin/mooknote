@@ -91,6 +91,8 @@ class UserPrefs {
 
   // ========== 应用图标设置 ==========
 
+  // ========== Markdown 阅读器 ==========
+
   /// Markdown 阅读器最近选择的目录
   String? get lastMdFolder => prefs.getString('lastMdFolder');
   Future<bool> setLastMdFolder(String value) => prefs.setString('lastMdFolder', value);

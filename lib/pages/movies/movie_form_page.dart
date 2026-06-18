@@ -1806,6 +1806,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       return;
     }
 
+    try {
     // 收集所有多值字段输入框中的未提交内容
     _collectUnsubmittedValues();
 
@@ -1869,6 +1870,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
     ToastUtil.show(context, widget.movie == null ? '添加成功' : '更新成功');
 
     Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ToastUtil.show(context, '保存失败: $e');
+    }
   }
 
   /// 将海报从临时ID目录移动到新的影视ID目录

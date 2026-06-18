@@ -21,6 +21,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   bool _isLoading = false;
   int _offset = 0;
   late ScrollController _scrollController;
+  AppProvider? _provider;
   int _layoutStyle = 0;
   bool _initialized = false;
   int _lastDataCount = -1;
@@ -33,6 +34,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AppProvider>();
+      _provider = provider;
       provider.addListener(_onDataChanged);
       _lastDataCount = provider.notes.length;
       if (provider.notes.isNotEmpty) _lastUpdatedAt = provider.notes.first.updatedAt;
@@ -42,6 +44,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   @override
   void dispose() {
+    _provider?.removeListener(_onDataChanged);
     _scrollController.dispose();
     super.dispose();
   }

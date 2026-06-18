@@ -28,6 +28,7 @@ class _BookTabPageState extends State<BookTabPage> {
   int _lastDataCount = -1;
   DateTime? _lastUpdatedAt;
   late ScrollController _scrollController;
+  AppProvider? _provider;
 
   static const _statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read'};
 
@@ -38,6 +39,7 @@ class _BookTabPageState extends State<BookTabPage> {
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AppProvider>();
+      _provider = provider;
       provider.addListener(_onDataChanged);
       _lastDataCount = provider.books.length;
       if (provider.books.isNotEmpty) _lastUpdatedAt = provider.books.first.updatedAt;
@@ -47,6 +49,7 @@ class _BookTabPageState extends State<BookTabPage> {
 
   @override
   void dispose() {
+    _provider?.removeListener(_onDataChanged);
     _scrollController.dispose();
     super.dispose();
   }

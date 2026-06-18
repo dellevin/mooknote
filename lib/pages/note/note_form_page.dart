@@ -825,6 +825,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       return;
     }
 
+    try {
     final now = DateTime.now();
 
     if (_isEditing) {
@@ -873,6 +874,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     if (!mounted) return;
     Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ToastUtil.show(context, '保存失败: $e');
+    }
   }
 
   /// 将图片从临时ID目录移动到新ID目录
