@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猫眼电影 · 票根（收藏版）</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+  :root {
+    --red: #D4342E;
+    --gold: #C9A96E;
+    --bg: #F8F5F0;
+    --card: #FFFFFF;
+    --text: #1C1C1C;
+    --text-secondary: #6B6B6B;
+    --text-muted: #A0A0A0;
+    --border: #EBE5D9;
+    --divider: #EEE8DA;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #EBE4D8 0%, #F2EDE4 40%, #EEF0EF 100%);
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    padding: 40px 20px;
+  }
+
+  /* Ambient */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+  body::before {
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, #D4342E 0%, transparent 70%);
+    top: -120px; right: -120px;
+  }
+  body::after {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, #C9A96E 0%, transparent 70%);
+    bottom: -80px; left: -80px;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    width: 400px;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow:
+      0 1px 0 rgba(0,0,0,0.03),
+      0 2px 8px rgba(0,0,0,0.04),
+      0 12px 40px rgba(0,0,0,0.10);
+    overflow: hidden;
+    animation: cardIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes cardIn {
+    0%   { opacity: 0; transform: translateY(40px) scale(0.94); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--red) 0%, #E85D59 30%, var(--red) 60%, #C1272D 100%);
+    z-index: 2;
+  }
+
+  /* Header */
+  .header {
+    padding: 28px 28px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo {
+    width: 34px; height: 34px;
+    flex-shrink: 0;
+  }
+  .logo img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+
+  .brand {
+    font-size: 20px; font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0.03em;
+  }
+
+  .header-right {
+    font-size: 10px; color: var(--text-muted);
+    text-align: right;
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+
+  /* Body */
+  .body {
+    padding: 24px 28px 0;
+  }
+
+  .cinema {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cinema svg {
+    width: 14px; height: 14px;
+    flex-shrink: 0;
+    color: var(--red);
+  }
+
+  .movie-title {
+    font-family: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+    font-size: 34px; font-weight: 700;
+    color: var(--text);
+    line-height: 1.15;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  .movie-meta-row {
+    font-size: 12px; color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .movie-meta-row .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+  }
+
+  /* Session grid */
+  .session-grid {
+    display: flex;
+    gap: 20px;
+    padding: 16px 0;
+    margin-bottom: 0;
+  }
+
+  .session-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .session-item .label {
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .session-item .value {
+    font-size: 13px; font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .session-item .value.large {
+    font-size: 14px;
+  }
+
+  /* Tear line */
+  .tear-section {
+    padding: 0 28px;
+  }
+  .tear-line {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+  .tear-line::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 1px;
+    background: repeating-linear-gradient(
+      to right,
+      #D5CFC0 0px, #D5CFC0 7px,
+      transparent 7px, transparent 15px
+    );
+  }
+  .tear-dot {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    z-index: 1;
+  }
+  .tear-dot.left  { left: -2px; }
+  .tear-dot.right { right: -2px; }
+  .tear-dot svg {
+    width: 12px; height: 12px;
+    color: #C5BFAE;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 10px 28px 28px;
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .footer-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+  }
+  .info-row .key {
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .info-row .val {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .info-row .val.price {
+    font-size: 22px; font-weight: 700;
+    color: var(--red);
+  }
+  .info-row .val.code {
+    font-family: 'SF Mono', 'Cascadia Code', 'Courier New', monospace;
+    font-size: 11px; letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+
+
+  /* QR */
+  .qr-wrap {
+    flex-shrink: 0;
+    width: 150px;
+    display: flex;
+    align-items: stretch;
+  }
+  .qr-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .qr-img img {
+    width: 100%;
+    display: block;
+  }
+
+  /* Bottom strip */
+  .footer-strip {
+    margin: 0 28px;
+    padding: 12px 0;
+    border-top: 1px solid var(--divider);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-strip .left {
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .footer-strip .right {
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Print */
+  @media print {
+    @page { margin: 14mm; size: auto; }
+    body {
+      background: #FFF;
+      padding: 0;
+    }
+    body::before, body::after { display: none; }
+    .card {
+      box-shadow: none;
+      border: 1px solid #D8D3C5;
+      border-radius: 10px;
+      animation: none;
+      width: 360px;
+      margin: 0 auto;
+    }
+    .card::before { height: 3px; }
+    .header { padding: 22px 24px 0; }
+    .body { padding: 18px 24px 0; }
+    .tear-section { padding: 0 24px; }
+    .footer { padding: 8px 24px 24px; }
+    .footer-strip { margin: 0 24px; }
+  }
+
+  @media (max-width: 440px) {
+    .card { width: 100%; max-width: 400px; }
+    .header { padding: 22px 20px 0; }
+    .body   { padding: 18px 20px 0; }
+    .tear-section { padding: 0 20px; }
+    .footer { padding: 8px 20px 24px; gap: 14px; }
+    .footer-strip { margin: 0 20px; }
+    .movie-title { font-size: 28px; }
+    .session-grid { gap: 14px; }
+    .qr-img { width: 120px; height: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <img src="maoyan.png" alt="">
+      </div>
+      <span class="brand">猫眼电影</span>
+    </div>
+    <div class="header-right">收藏纪念<br>PASSENGER COPY</div>
+  </div>
+
+  <div class="body">
+    <div class="cinema">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      万达影城（朝阳大悦城IMAX店）
+    </div>
+
+    <div class="movie-title">流浪地球3</div>
+    <div class="movie-meta-row">
+      <span class="tag">3D IMAX</span>
+      <span class="tag">科幻 / 冒险</span>
+      <span class="tag">片长148分钟</span>
+    </div>
+
+    <div class="session-grid">
+      <div class="session-item">
+        <span class="label">影厅</span>
+        <span class="value large">3号IMAX厅</span>
+      </div>
+      <div class="session-item">
+        <span class="label">座位</span>
+        <span class="value large">8排12座</span>
+      </div>
+      <div class="session-item">
+        <span class="label">时间</span>
+        <span class="value">2026/06/18 19:30</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tear-section">
+    <div class="tear-line">
+      <span class="tear-dot left">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+      </span>
+      <span class="tear-dot right">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="qr-wrap">
+      <div class="qr-img">
+        <img src="mookiletter.png" alt="二维码">
+      </div>
+    </div>
+
+    <div class="footer-right">
+      <div class="info-row">
+        <span class="key">票价</span>
+        <span class="val price">¥49.90</span>
+      </div>
+      <div class="info-row">
+        <span class="key">服务费</span>
+        <span class="val">¥5.00</span>
+      </div>
+      <div class="divider-thin"></div>
+      <div class="info-row">
+        <span class="key">出票时间</span>
+        <span class="val">2026-06-18 10:32</span>
+      </div>
+      <div class="info-row">
+        <span class="key">淘票票</span>
+        <span class="val">已出票</span>
+      </div>
+      <div class="info-row">
+        <span class="key">编码</span>
+        <span class="val code">8602 3100 0618 7251</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span class="left">M AOYAN MOVIE · TICKET</span>
+    <span class="right">MY202606181930</span>
+  </div>
+
+</div>
+
+</body>
+</html>

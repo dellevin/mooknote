@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猫眼电影 · 票根</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+  :root {
+    --maoyan-red: #E5342F;
+    --maoyan-red-dark: #C41F1A;
+    --ticket-bg: #FFFDF7;
+    --text-primary: #1A1A1A;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --divider: #E8E4DA;
+    --bg-dark: #1E1610;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F0E6;
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    padding: 20px;
+  }
+
+  /* ── Ticket Wrapper ── */
+  .ticket-wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+    filter: drop-shadow(0 4px 24px rgba(0,0,0,0.12));
+    transition: transform 0.3s ease;
+    animation: ticketEntrance 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+
+  .ticket-wrapper:hover {
+    transform: translateY(-4px);
+  }
+
+  @keyframes ticketEntrance {
+    0%   { opacity: 0; transform: translateY(30px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Main Ticket ── */
+  .ticket {
+    background: var(--ticket-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 2px 0 0 rgba(255,255,255,0.06) inset;
+  }
+
+  /* Subtle print texture */
+  .ticket::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0,0,0,0.003) 1px,
+      rgba(0,0,0,0.003) 2px
+    );
+    border-radius: 12px;
+    z-index: 10;
+  }
+
+  /* ── Header (票头) ── */
+  .ticket-header {
+    padding: 18px 24px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    border-bottom: 1px solid #F0EDE5;
+  }
+
+  .maoyan-logo {
+    width: 42px; height: 42px;
+    flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+
+  .logo-text {
+    font-size: 24px; font-weight: 900;
+    color: #1A1A1A;
+    letter-spacing: 0.06em;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Body (票身) ── */
+  .ticket-body {
+    padding: 22px 24px 18px;
+    position: relative;
+  }
+
+  /* Cinema */
+  .cinema-info {
+    margin-bottom: 20px;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .cinema-name {
+    font-size: 15px; font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+
+  .cinema-address {
+    font-size: 12px; color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Movie title */
+  .movie-title-section {
+    margin-bottom: 18px;
+  }
+
+  .movie-title {
+    font-family: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+    font-size: 28px; font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3; letter-spacing: 0.04em;
+  }
+
+  .movie-subtitle {
+    font-size: 13px; color: var(--text-secondary);
+    margin-top: 3px; letter-spacing: 0.03em;
+  }
+
+  /* Hall & seat */
+  .session-info {
+    margin-bottom: 10px;
+  }
+
+  .hall-badge {
+    display: inline-flex;
+    align-items: center; gap: 6px;
+    color: var(--text-primary);
+    font-size: 14px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  .hall-badge svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+  }
+
+  .seat-datetime {
+    font-size: 14px; color: var(--text-primary);
+    font-weight: 500;
+    display: flex; align-items: center;
+    gap: 8px;
+  }
+
+  .separator {
+    color: #D0CCC0; font-weight: 300;
+    user-select: none;
+  }
+
+  .datetime-text {
+    color: var(--text-secondary); font-weight: 400;
+  }
+
+  /* ── Tear Line (撕票虚线) ── */
+  .tear-line {
+    position: relative;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    margin: 0 12px;
+    overflow: visible;
+  }
+
+  .tear-line::before {
+    content: '';
+    position: absolute;
+    left: 18px; right: 18px;
+    top: 50%; transform: translateY(-50%);
+    height: 1px;
+    background: repeating-linear-gradient(
+      to right,
+      #C8C4B8 0px, #C8C4B8 6px,
+      transparent 6px, transparent 14px
+    );
+  }
+
+  .scissors-icon {
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px; color: #B8B4A8;
+    z-index: 1;
+    background: var(--ticket-bg);
+    padding-right: 6px;
+    user-select: none;
+  }
+
+  /* ── Footer (票尾) ── */
+  .ticket-footer {
+    padding: 10px 24px 16px;
+    display: flex;
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  /* QR code */
+  .qr-section {
+    flex-shrink: 0;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .qr-code {
+    width: 130px;
+  }
+
+  .qr-code img {
+    width: 100%;
+    display: block;
+  }
+
+  .qr-label {
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Detail rows */
+  .details-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+  }
+
+  .detail-label {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    margin-right: 8px;
+    font-size: 12px;
+  }
+
+  .detail-value {
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .price-value {
+    font-size: 18px; font-weight: 700;
+    color: var(--maoyan-red);
+  }
+
+  .price-symbol {
+    font-size: 12px; font-weight: 500;
+  }
+
+  .service-fee {
+    font-size: 14px; font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .platform-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  .platform-text {
+    font-size: 11px; color: var(--text-muted);
+    letter-spacing: 0.05em; font-weight: 500;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 440px) {
+    .ticket-wrapper { max-width: 100%; }
+    .ticket-header { padding: 14px 18px 12px; }
+    .ticket-body  { padding: 16px 18px 14px; }
+    .ticket-footer { padding: 10px 18px 14px; gap: 12px; }
+    .movie-title { font-size: 24px; }
+    .qr-code { width: 110px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ticket-wrapper">
+  <div class="ticket">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <div class="ticket-header">
+      <div class="maoyan-logo">
+        <img src="maoyan.png" alt="猫眼电影" style="width:100%;height:100%;object-fit:contain;">
+      </div>
+      <div class="logo-text">猫眼电影</div>
+    </div>
+
+    <!-- ═══════════ BODY ═══════════ -->
+    <div class="ticket-body">
+      <div class="cinema-info">
+        <div class="cinema-name">万达影城（朝阳大悦城IMAX店）</div>
+      </div>
+
+      <div class="movie-title-section">
+        <div class="movie-title">流浪地球3</div>
+        <div class="movie-subtitle">科幻 / 冒险 / 3D IMAX · 片长148分钟</div>
+      </div>
+
+      <div class="session-info">
+        <div class="hall-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="8" rx="1"/>
+            <path d="M4 10v10h16V10"/>
+            <path d="M6 14h4v6H6z"/><path d="M14 14h4v6h-4z"/>
+          </svg>
+          3号IMAX厅
+        </div>
+      </div>
+      <div class="seat-datetime">
+        <span>8排12座</span>
+        <span class="separator">|</span>
+        <span class="datetime-text">2026年6月18日 19:30</span>
+      </div>
+    </div>
+
+    <!-- ═══════════ TEAR LINE ═══════════ -->
+    <div class="tear-line">
+      <span class="scissors-icon">✂</span>
+    </div>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <div class="ticket-footer">
+      <div class="qr-section">
+        <div class="qr-code">
+          <img src="mookiletter.png"
+               alt="验票二维码" style="width:100%;height:100%;object-fit:contain;">
+        </div>
+        <span class="qr-label"></span>
+      </div>
+
+      <div class="details-section">
+        <div class="detail-row">
+          <span class="detail-label">票价</span>
+          <span class="detail-value price-value"><span class="price-symbol">¥</span>49.90</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">服务费</span>
+          <span class="detail-value service-fee">¥5.00</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">出票时间</span>
+          <span class="detail-value">2026-06-18 10:32:15</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">淘票票</span>
+          <span class="detail-value platform-badge">
+            <span class="platform-text">已出票</span>
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">编码</span>
+          <span class="detail-value" style="font-family: monospace; letter-spacing:0.05em;">8602 3100 0618 7251</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电影票根 · 收藏版</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=Noto+Serif+SC:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  :root {
+    --bg: #FAF7F2;
+    --card: #FFFFFF;
+    --red: #C0392B;
+    --red-light: #E74C3C;
+    --text: #1A1A1A;
+    --text-mid: #555555;
+    --text-light: #8C8C8C;
+    --line: #E8E2D8;
+    --line-light: #F2EDE5;
+    --stamp: #E8D5C4;
+    --accent: #2C5F8A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EBE5DB;
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    padding: 40px 20px;
+  }
+
+  .ticket {
+    width: 420px;
+    background: #FFFFFB;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.04),
+      0 2px 12px rgba(0,0,0,0.05),
+      0 8px 40px rgba(0,0,0,0.10);
+    animation: in 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    position: relative;
+  }
+
+  @keyframes in {
+    0%   { opacity: 0; transform: translateY(32px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Red header strip ── */
+  .hdr {
+    background: var(--red);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hdr-title {
+    font-size: 18px; font-weight: 700;
+    color: #FFF;
+    letter-spacing: 0.06em;
+  }
+  .hdr-sub {
+    margin-left: auto;
+    font-size: 9px; color: rgba(255,255,255,0.7);
+    text-align: right;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+  }
+
+  /* ── Main content ── */
+  .main {
+    padding: 26px 32px 0;
+  }
+
+  .cinema-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .cinema-icon {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    color: var(--red);
+  }
+  .cinema-name {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-mid);
+    letter-spacing: 0.03em;
+  }
+
+  .film-title {
+    font-family: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+    font-size: 38px; font-weight: 700;
+    color: var(--text);
+    line-height: 1.12;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .film-sub {
+    font-size: 12px; color: var(--text-light);
+    letter-spacing: 0.04em;
+    margin-bottom: 26px;
+    display: flex;
+    gap: 16px;
+  }
+  .film-sub span {
+    display: inline-block;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* ── Three-column session ── */
+  .sess {
+    display: flex;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 0;
+    margin-bottom: 0;
+  }
+  .sess-col {
+    flex: 1;
+    text-align: center;
+    border-right: 1px solid var(--line-light);
+    padding: 4px 8px;
+  }
+  .sess-col:last-child {
+    border-right: none;
+  }
+  .sess-col .sess-label {
+    font-size: 9px; color: var(--text-light);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .sess-col .sess-val {
+    font-size: 15px; font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .sess-col .sess-val.hi {
+    color: var(--red);
+  }
+
+  /* ── Tear ── */
+  .tear {
+    margin: 0 32px;
+    height: 28px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .tear::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 1px;
+    background: repeating-linear-gradient(
+      to right,
+      #D8D0C0 0px, #D8D0C0 9px,
+      transparent 9px, transparent 18px
+    );
+  }
+  .tear-circle {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px; height: 13px;
+    background: #EBE5DB;
+    border-radius: 50%;
+  }
+  .tear-circle.l { left: -38px; }
+  .tear-circle.r { right: -38px; }
+
+  /* ── Footer ── */
+  .ftr {
+    padding: 14px 32px 26px;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .ftr-l {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+  .qr {
+    width: 150px;
+    height: 150px;
+  }
+  .qr img {
+    width: 100%; height: 100%;
+    display: block;
+    object-fit: contain;
+  }
+
+  .ftr-r {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .row .lbl {
+    font-size: 11px; color: var(--text-light);
+    letter-spacing: 0.04em;
+  }
+  .row .val {
+    font-size: 13px; color: var(--text);
+    font-weight: 500;
+    text-align: right;
+  }
+  .row .val.big {
+    font-size: 26px; font-weight: 700;
+    color: var(--red);
+    font-family: 'Noto Serif SC', serif;
+  }
+  .row .val.code {
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 10px; letter-spacing: 0.06em;
+    color: var(--text-mid);
+  }
+  .split {
+    height: 1px;
+    background: var(--line);
+    margin: 4px 0;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .status::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: #27AE60;
+    border-radius: 50%;
+  }
+
+  /* ── Ticket stub number ── */
+  .stub {
+    margin: 0 32px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+  }
+  .stub span {
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 10px; color: var(--text-light);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Print ── */
+  @media print {
+    @page { margin: 12mm; size: auto; }
+    body { background: #FFF; padding: 0; }
+    .ticket {
+      box-shadow: none;
+      border: 1px solid #D0CBC0;
+      width: 370px;
+      margin: 0 auto;
+      animation: none;
+    }
+    .hdr { background: var(--red); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hdr-title, .hdr-sub { color: #FFF; }
+    .tear-circle { background: #FFF; }
+  }
+
+  @media (max-width: 460px) {
+    .ticket { width: 100%; }
+    .main, .ftr, .stub { padding-left: 20px; padding-right: 20px; }
+    .tear { margin: 0 20px; }
+    .stub { margin: 0 20px; }
+    .film-title { font-size: 32px; }
+    .qr { width: 120px; height: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ticket">
+
+  <!-- Header -->
+  <div class="hdr">
+    <span class="hdr-title">猫眼电影</span>
+    <span class="hdr-sub">收藏纪念<br>COLLECTIBLE</span>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="cinema-row">
+      <svg class="cinema-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      <span class="cinema-name">万达影城（朝阳大悦城IMAX店）</span>
+    </div>
+
+    <div class="film-title">流浪地球3</div>
+    <div class="film-sub">
+      <span>3D IMAX</span>
+      <span>科幻 / 冒险</span>
+      <span>片长148分钟</span>
+    </div>
+
+    <div class="sess">
+      <div class="sess-col">
+        <span class="sess-label">影厅</span>
+        <span class="sess-val hi">3号IMAX厅</span>
+      </div>
+      <div class="sess-col">
+        <span class="sess-label">座位</span>
+        <span class="sess-val">8排12座</span>
+      </div>
+      <div class="sess-col">
+        <span class="sess-label">时间</span>
+        <span class="sess-val">2026.06.18 19:30</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tear line -->
+  <div class="tear">
+    <span class="tear-circle l"></span>
+    <span class="tear-circle r"></span>
+  </div>
+
+  <!-- Footer -->
+  <div class="ftr">
+    <div class="ftr-l">
+      <div class="qr">
+        <img src="mookiletter.png" alt="二维码">
+      </div>
+    </div>
+
+    <div class="ftr-r">
+      <div class="row">
+        <span class="lbl">票价</span>
+        <span class="val big">¥49.90</span>
+      </div>
+      <div class="row">
+        <span class="lbl">服务费</span>
+        <span class="val">¥5.00</span>
+      </div>
+      <div class="split"></div>
+      <div class="row">
+        <span class="lbl">出票时间</span>
+        <span class="val">2026-06-18 10:32</span>
+      </div>
+      <div class="row">
+        <span class="lbl">淘票票</span>
+        <span class="val status">已出票</span>
+      </div>
+      <div class="row">
+        <span class="lbl">取票码</span>
+        <span class="val code">8602 3100 0618 7251</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stub -->
+  <div class="stub">
+    <span>TICKET · COLLECTIBLE</span>
+    <span>NO. MY202606181930</span>
+  </div>
+
+</div>
+
+</body>
+</html>
