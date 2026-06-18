@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -312,18 +311,22 @@ class ServerSyncService {
       final deviceId = _prefs.deviceId;
       final appDir = (await getApplicationDocumentsDirectory()).path;
 
-      // 上传数据库
+      // 上传数据库（先关闭连接再读取，避免文件被占用）
+      await DatabaseHelper.instance.close();
       final dbPath = await DatabaseHelper.instance.databasePath;
       final request = http.MultipartRequest('POST', Uri.parse('$url/api/sync/upload'));
       request.fields['code'] = code;
       request.fields['device_id'] = deviceId;
       if (dbPath != null && File(dbPath).existsSync()) {
-        request.files.add(await http.MultipartFile(
-          'database', File(dbPath).readAsBytes().asStream(), await File(dbPath).length(),
+        final dbBytes = await File(dbPath).readAsBytes();
+        request.files.add(http.MultipartFile.fromBytes(
+          'database', dbBytes,
           filename: 'mooknote.db',
         ));
-        debugPrint('[Sync] 上传数据库: ${await File(dbPath).length()} bytes');
+        debugPrint('[Sync] 上传数据库: ${dbBytes.length} bytes');
       }
+      // 重新打开数据库
+      await DatabaseHelper.instance.reopen();
 
       // 收集并上传所有图片
       final imagePaths = _collectAllImageFiles(appDir);
@@ -331,8 +334,9 @@ class ServerSyncService {
       for (final path in imagePaths) {
         final relPath = p.relative(path, from: appDir).replaceAll('\\', '/');
         if (await File(path).exists()) {
-          request.files.add(await http.MultipartFile(
-            'images', File(path).readAsBytes().asStream(), await File(path).length(),
+          final bytes = await File(path).readAsBytes();
+          request.files.add(http.MultipartFile.fromBytes(
+            'images', bytes,
             filename: relPath,
           ));
         }

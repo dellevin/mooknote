@@ -79,7 +79,7 @@ class Movie {
       'id': id,
       'title': title,
       'poster_path': posterPath,
-      'release_date': releaseDate?.toUtc().toUtc().toIso8601String(),
+      'release_date': releaseDate?.toUtc().toIso8601String(),
       'directors': jsonEncode(directors),
       'writers': jsonEncode(writers),
       'actors': jsonEncode(actors),

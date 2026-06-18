@@ -361,8 +361,9 @@ class ServerDataService {
       final size = exists ? await file.length() : 0;
       debugPrint('[Sync]   图片: $relPath (存在=$exists 大小=$size)');
       if (exists) {
-        request.files.add(await http.MultipartFile(
-          'images', file.readAsBytes().asStream(), size,
+        final bytes = await file.readAsBytes();
+        request.files.add(http.MultipartFile.fromBytes(
+          'images', bytes,
           filename: relPath,
         ));
       }

@@ -8,6 +8,10 @@ import '../pages/stroll_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
 import '../pages/tag_management_page.dart';
 import '../pages/profile_page.dart';
+import '../pages/movies/movie_detail_page.dart';
+import '../pages/book/book_detail_page.dart';
+import '../pages/note/note_detail_page.dart';
+import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
 
 /// 自定义侧边栏
@@ -368,22 +372,26 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ],
               ),
               const SizedBox(height: 14),
-              ...recent.take(4).map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    Icon(
-                      item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : Icons.note_outlined,
-                      size: 14, color: colors.onSurface.withValues(alpha: 0.3),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75))),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(_recentTimeAgo(item.date), style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
-                  ],
+              ...recent.take(4).map((item) => InkWell(
+                onTap: () => _openRecentItem(context, item),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 10, top: 2),
+                  child: Row(
+                    children: [
+                      Icon(
+                        item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : Icons.note_outlined,
+                        size: 14, color: colors.onSurface.withValues(alpha: 0.3),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75))),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(_recentTimeAgo(item.date), style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
+                    ],
+                  ),
                 ),
               )),
             ],
@@ -396,16 +404,28 @@ class _CustomDrawerState extends State<CustomDrawer> {
   List<_RecentItem> _getRecentItems(AppProvider provider) {
     final items = <_RecentItem>[];
     for (final m in provider.movies.where((m) => !m.isDeleted)) {
-      items.add(_RecentItem(type: 'movie', title: m.title, date: m.createdAt));
+      items.add(_RecentItem(type: 'movie', title: m.title, date: m.createdAt, data: m));
     }
     for (final b in provider.books.where((b) => !b.isDeleted)) {
-      items.add(_RecentItem(type: 'book', title: b.title, date: b.createdAt));
+      items.add(_RecentItem(type: 'book', title: b.title, date: b.createdAt, data: b));
     }
     for (final n in provider.notes.where((n) => !n.isDeleted)) {
-      items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记', date: n.createdAt));
+      items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记', date: n.createdAt, data: n));
     }
     items.sort((a, b) => b.date.compareTo(a.date));
     return items;
+  }
+
+  void _openRecentItem(BuildContext context, _RecentItem item) {
+    Navigator.pop(context);
+    switch (item.type) {
+      case 'movie':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));
+      case 'book':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: item.data as Book)));
+      case 'note':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: item.data as Note)));
+    }
   }
 
   String _recentTimeAgo(DateTime date) {
@@ -422,5 +442,6 @@ class _RecentItem {
   final String type;
   final String title;
   final DateTime date;
-  _RecentItem({required this.type, required this.title, required this.date});
+  final dynamic data;
+  _RecentItem({required this.type, required this.title, required this.date, required this.data});
 }

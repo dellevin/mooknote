@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import '../models/data_models.dart';
 
 /// 数据库帮助类 - 管理数据库的创建和版本控制
@@ -341,11 +341,11 @@ class DatabaseHelper {
           'updated_at': row['updated_at']?.toString() ?? now,
         });
       } catch (e) {
-        // 忽略迁移失败的记录
+        debugPrint('[DB] 迁移笔记记录失败: $e');
       }
     }
   }
-  
+
   /// 升级books表到V3
   Future<void> _upgradeBooksTableV3(Database db) async {
     // 备份旧数据
@@ -393,7 +393,7 @@ class DatabaseHelper {
           'is_deleted': 0,
         });
       } catch (e) {
-        // 忽略迁移失败的记录
+        debugPrint('[DB] 迁移书籍记录失败: $e');
       }
     }
   }
@@ -448,7 +448,7 @@ class DatabaseHelper {
           'is_deleted': row['is_deleted'] ?? 0,
         });
       } catch (e) {
-        // 忽略迁移失败的记录
+        debugPrint('[DB] 迁移影视记录失败: $e');
       }
     }
   }

@@ -12,14 +12,34 @@ import 'utils/sync/auto_backup_service.dart';
 import 'utils/sync/server_sync_service.dart';
 import 'utils/usage_stats_service.dart';
 import 'providers/app_provider.dart';
-import 'package:flutter/widget_previews.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await UserPrefs.init();
   final appProvider = AppProvider();
   runApp(MyApp(appProvider: appProvider));
-  unawaited(_validateSyncOnStartup().then((_) => appProvider.initDatabase().then((_) => appProvider.initMainTabIndex())));
+
+  unawaited(_bootstrap(appProvider));
+}
+
+/// 启动后台任务：先校验同步状态，再按顺序初始化数据库与主标签，
+/// 保持 UI 先渲染、数据后就绪。
+Future<void> _bootstrap(AppProvider appProvider) async {
+  // 数据库优先初始化（不被 sync 阻塞）
+  try {
+    await appProvider.initDatabase();
+  } catch (e) {
+    debugPrint('[Startup] 数据库初始化失败: $e');
+  }
+  appProvider.initMainTabIndex();
+
+  // sync 校验在数据库加载完成后执行（避免阻塞本地数据展示）
+  try {
+    await _validateSyncOnStartup();
+  } catch (e) {
+    debugPrint('[Startup] 同步状态校验失败: $e');
+  }
+
   unawaited(_initAutoBackup());
   unawaited(_initUsageStats());
 }
@@ -183,15 +203,4 @@ class _AppIconWrapperState extends State<_AppIconWrapper> {
   Widget build(BuildContext context) {
     return widget.child;
   }
-}
-
-@Preview(name: "MookNote App Preview")
-Widget previewMyApp() {
-  final appProvider = AppProvider();
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider.value(value: appProvider),
-    ],
-    child: MyApp(appProvider: appProvider),
-  );
 }

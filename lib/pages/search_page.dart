@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -27,6 +26,8 @@ class _SearchPageState extends State<SearchPage> {
 
   List<_SearchResult> _results = [];
   bool _hasSearched = false;
+  List<String> _matchingTags = [];
+  String? _selectedTag;
 
   Timer? _debounce;
 
@@ -64,7 +65,10 @@ class _SearchPageState extends State<SearchPage> {
         if (movie.title.toLowerCase().contains(lowerKeyword) ||
             movie.alternateTitles.any((t) => t.toLowerCase().contains(lowerKeyword)) ||
             (movie.summary?.toLowerCase().contains(lowerKeyword) ?? false) ||
-            movie.genres.any((g) => g.toLowerCase().contains(lowerKeyword))) {
+            movie.genres.any((g) => g.toLowerCase().contains(lowerKeyword)) ||
+            movie.directors.any((d) => d.toLowerCase().contains(lowerKeyword)) ||
+            movie.writers.any((w) => w.toLowerCase().contains(lowerKeyword)) ||
+            movie.actors.any((a) => a.toLowerCase().contains(lowerKeyword))) {
           results.add(_SearchResult(type: 'movie', data: movie));
         }
       }
@@ -81,13 +85,61 @@ class _SearchPageState extends State<SearchPage> {
     }
     if (_showNotes) {
       for (final note in provider.notes.where((n) => !n.isDeleted)) {
-        if (note.content.toLowerCase().contains(lowerKeyword) ||
+        if (note.title.toLowerCase().contains(lowerKeyword) ||
+            note.content.toLowerCase().contains(lowerKeyword) ||
             note.tags.any((t) => t.toLowerCase().contains(lowerKeyword))) {
           results.add(_SearchResult(type: 'note', data: note));
         }
       }
     }
-    setState(() { _results = results; _hasSearched = true; });
+    setState(() {
+      _results = results;
+      _hasSearched = true;
+      // 收集匹配的标签
+      _matchingTags = _collectMatchingTags(lowerKeyword);
+      _selectedTag = null;
+    });
+  }
+
+  /// 收集所有包含关键词的标签
+  List<String> _collectMatchingTags(String lowerKeyword) {
+    final provider = context.read<AppProvider>();
+    final tagSet = <String>{};
+    for (final m in provider.movies.where((m) => !m.isDeleted)) {
+      for (final g in m.genres) {
+        if (g.toLowerCase().contains(lowerKeyword)) tagSet.add(g);
+      }
+    }
+    for (final b in provider.books.where((b) => !b.isDeleted)) {
+      for (final g in b.genres) {
+        if (g.toLowerCase().contains(lowerKeyword)) tagSet.add(g);
+      }
+    }
+    for (final n in provider.notes.where((n) => !n.isDeleted)) {
+      for (final t in n.tags) {
+        if (t.toLowerCase().contains(lowerKeyword)) tagSet.add(t);
+      }
+    }
+    return tagSet.toList()..sort();
+  }
+
+  /// 按标签筛选：点击标签后只显示包含该标签的结果
+  void _filterByTag(String tag) {
+    final provider = context.read<AppProvider>();
+    setState(() {
+      _selectedTag = tag;
+      final results = <_SearchResult>[];
+      for (final m in provider.movies.where((m) => !m.isDeleted)) {
+        if (m.genres.contains(tag)) results.add(_SearchResult(type: 'movie', data: m));
+      }
+      for (final b in provider.books.where((b) => !b.isDeleted)) {
+        if (b.genres.contains(tag)) results.add(_SearchResult(type: 'book', data: b));
+      }
+      for (final n in provider.notes.where((n) => !n.isDeleted)) {
+        if (n.tags.contains(tag)) results.add(_SearchResult(type: 'note', data: n));
+      }
+      _results = results;
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -107,7 +159,7 @@ class _SearchPageState extends State<SearchPage> {
         _buildFilterRow(),
         Expanded(
           child: _hasSearched
-              ? _results.isEmpty ? _buildEmptyState() : _buildResultList()
+              ? _results.isEmpty && _matchingTags.isEmpty ? _buildEmptyState() : _buildResultList()
               : _buildInitialState(),
         ),
       ]),
@@ -155,9 +207,9 @@ class _SearchPageState extends State<SearchPage> {
     int movieCount = 0, bookCount = 0, noteCount = 0;
     if (keyword.isNotEmpty) {
       final kw = keyword.toLowerCase();
-      movieCount = provider.movies.where((m) => !m.isDeleted && (m.title.toLowerCase().contains(kw) || m.alternateTitles.any((t) => t.toLowerCase().contains(kw)) || (m.summary?.toLowerCase().contains(kw) ?? false) || m.genres.any((g) => g.toLowerCase().contains(kw)))).length;
+      movieCount = provider.movies.where((m) => !m.isDeleted && (m.title.toLowerCase().contains(kw) || m.alternateTitles.any((t) => t.toLowerCase().contains(kw)) || (m.summary?.toLowerCase().contains(kw) ?? false) || m.genres.any((g) => g.toLowerCase().contains(kw)) || m.directors.any((d) => d.toLowerCase().contains(kw)) || m.writers.any((w) => w.toLowerCase().contains(kw)) || m.actors.any((a) => a.toLowerCase().contains(kw)))).length;
       bookCount = provider.books.where((b) => !b.isDeleted && (b.title.toLowerCase().contains(kw) || b.alternateTitles.any((t) => t.toLowerCase().contains(kw)) || (b.summary?.toLowerCase().contains(kw) ?? false) || b.authors.any((a) => a.toLowerCase().contains(kw)))).length;
-      noteCount = provider.notes.where((n) => !n.isDeleted && (n.content.toLowerCase().contains(kw) || n.tags.any((t) => t.toLowerCase().contains(kw)))).length;
+      noteCount = provider.notes.where((n) => !n.isDeleted && (n.title.toLowerCase().contains(kw) || n.content.toLowerCase().contains(kw) || n.tags.any((t) => t.toLowerCase().contains(kw)))).length;
     }
 
     return Padding(
@@ -206,7 +258,7 @@ class _SearchPageState extends State<SearchPage> {
         const SizedBox(height: 20),
         Text('输入关键词搜索', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.35))),
         const SizedBox(height: 4),
-        Text('支持标题、作者、标签、类型', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
+        Text('支持标题、导演、作者、标签、简介', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
       ]),
     );
   }
@@ -231,28 +283,83 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildResultList() {
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // 标签筛选区
+      if (_matchingTags.isNotEmpty) _buildTagSection(colors),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-        child: Text('找到 ${_results.length} 条结果',
+        child: Text(_selectedTag != null
+            ? '标签 "$_selectedTag" 共 ${_results.length} 条'
+            : '找到 ${_results.length} 条结果',
             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
       ),
       Expanded(
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          itemCount: _results.length,
-          itemBuilder: (context, index) {
-            final item = _results[index];
-            switch (item.type) {
-              case 'movie': return _buildMovieItem(item.data as Movie);
-              case 'book': return _buildBookItem(item.data as Book);
-              case 'note': return _buildNoteItem(item.data as Note);
-              default: return const SizedBox.shrink();
-            }
-          },
-        ),
+        child: _results.isEmpty
+            ? _buildEmptyState()
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                itemCount: _results.length,
+                itemBuilder: (context, index) {
+                  final item = _results[index];
+                  switch (item.type) {
+                    case 'movie': return _buildMovieItem(item.data as Movie);
+                    case 'book': return _buildBookItem(item.data as Book);
+                    case 'note': return _buildNoteItem(item.data as Note);
+                    default: return const SizedBox.shrink();
+                  }
+                },
+              ),
       ),
     ]);
+  }
+
+  Widget _buildTagSection(ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.label_outline, size: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+            const SizedBox(width: 4),
+            Text('匹配标签', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+            if (_selectedTag != null) ...[
+              const Spacer(),
+              GestureDetector(
+                onTap: () { setState(() { _selectedTag = null; }); _performSearch(); },
+                child: Text('清除筛选', style: TextStyle(fontSize: 12, color: colors.primary)),
+              ),
+            ],
+          ]),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: _matchingTags.map((tag) {
+              final isSelected = _selectedTag == tag;
+              return GestureDetector(
+                onTap: () => _filterByTag(tag),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isSelected ? colors.primary : colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? colors.primary : colors.outline.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Text(tag, style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+                  )),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMovieItem(Movie movie) {
