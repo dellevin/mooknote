@@ -90,10 +90,10 @@ class _BookTabPageState extends State<BookTabPage> {
     _lastStatusIndex = statusIdx;
     _initialized = true;
     final status = _statusMap[statusIdx] ?? 'read';
-    setState(() { _isLoading = true; _items.clear(); _offset = 0; _hasMore = true; });
+    setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final list = await provider.loadBooksPaged(status: status, offset: 0);
     if (!mounted) return;
-    setState(() { _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
+    setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
 
   Future<void> _loadMore() async {

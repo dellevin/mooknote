@@ -385,10 +385,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.movie != null;
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        title: Text(isEdit ? '编辑影视' : '添加影视'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _confirmLeave();
+        if (shouldPop && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          title: Text(isEdit ? '编辑影视' : '添加影视'),
         actions: [
           // 快捷添加按钮（仅添加模式显示）
           if (!isEdit)
@@ -598,10 +605,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
           ],
         ),
       ),
+    ),
     );
   }
-
-  /// 构建信息卡片（用于网格布局）
   Widget _buildInfoCard({
     required String label,
     required String value,
@@ -1798,6 +1804,55 @@ class _MovieFormPageState extends State<MovieFormPage> {
         genresController.clear();
       }
     }
+  }
+
+  /// 检查表单是否有内容
+  bool _hasContent() {
+    if (widget.movie != null) return true; // 编辑模式始终需要确认
+    if (_titleController.text.trim().isNotEmpty) return true;
+    if (_summaryController.text.trim().isNotEmpty) return true;
+    if (_ratingController.text.trim().isNotEmpty) return true;
+    if (_posterPath != null) return true;
+    if (_directors.isNotEmpty || _writers.isNotEmpty || _actors.isNotEmpty) return true;
+    if (_genres.isNotEmpty || _alternateTitles.isNotEmpty) return true;
+    if (_releaseDate != null || _watchDate != null) return true;
+    return false;
+  }
+
+  /// 离开确认
+  Future<bool> _confirmLeave() async {
+    if (!_hasContent()) return true;
+    final colors = Theme.of(context).colorScheme;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('未保存', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('当前内容未保存，确定要离开吗？',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('离开'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+    return result ?? false;
   }
 
   /// 保存影视

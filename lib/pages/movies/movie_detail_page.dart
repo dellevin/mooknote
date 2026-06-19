@@ -32,7 +32,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   late int _detailStyle;
   final ValueNotifier<double> _posterOffset = ValueNotifier(0.0);
   double _posterDragStartOffset = 0.0;
-  bool _draggingPoster = false;
+  final ValueNotifier<bool> _draggingPoster = ValueNotifier(false);
   final GlobalKey _posterImageKey = GlobalKey();
   double _posterImageHeight = 0.0;
 
@@ -41,7 +41,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     super.initState();
     _showExactDate = UserPrefs().showExactReleaseDate;
     _detailStyle = UserPrefs().detailPageStyle;
-    _posterOffset.value = widget.movie.coverOffset;
+    _posterOffset.value = UserPrefs().getCoverOffset(widget.movie.id);
+  }
+
+  @override
+  void dispose() {
+    _posterOffset.dispose();
+    _draggingPoster.dispose();
+    super.dispose();
   }
 
   void _toggleDateDisplay() {
@@ -403,7 +410,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               final box = ctx.findRenderObject() as RenderBox?;
               if (box != null) _posterImageHeight = box.size.height;
             }
-            setState(() => _draggingPoster = true);
+            _draggingPoster.value = true;
             _posterDragStartOffset = _posterOffset.value;
           } : null,
           onLongPressMoveUpdate: hasPoster ? (d) {
@@ -414,8 +421,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             _posterOffset.value = (raw.clamp(minOffset, 0.0) as double);
           } : null,
           onLongPressEnd: hasPoster ? (_) {
-            setState(() => _draggingPoster = false);
-            context.read<AppProvider>().updateMovie(movie.copyWith(coverOffset: _posterOffset.value));
+            _draggingPoster.value = false;
+            final offset = _posterOffset.value;
+            UserPrefs().setCoverOffset(widget.movie.id, offset);
+            context.read<AppProvider>().updateMovieCoverOffset(widget.movie.id, offset);
           } : null,
           child: ValueListenableBuilder<double>(
             valueListenable: _posterOffset,
@@ -442,46 +451,54 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     )
                   else
                     _buildPosterPlaceholder(),
-                  // 底部白色渐变过渡（拖动时隐藏）
-                  if (!_draggingPoster)
-                    Positioned(
-                      left: 0, right: 0, bottom: 0,
-                      child: IgnorePointer(
-                        child: Container(
-                          height: 60,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                colors.surface.withValues(alpha: 0),
-                                colors.surface,
-                              ],
+                  // 底部渐变 + 拖动遮罩
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _draggingPoster,
+                    builder: (context, dragging, _) {
+                      return Stack(
+                        children: [
+                          if (!dragging)
+                            Positioned(
+                              left: 0, right: 0, bottom: 0,
+                              child: IgnorePointer(
+                                child: Container(
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        colors.surface.withValues(alpha: 0),
+                                        colors.surface,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  // 长按拖动时的遮罩 + 提示
-                  if (_draggingPoster) ...[
-                    Positioned.fill(
-                      child: Container(color: Colors.black.withValues(alpha: 0.3)),
-                    ),
-                    Positioned(
-                      left: 0, right: 0, bottom: 20,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text('上下滑动调整图片位置',
-                            style: TextStyle(fontSize: 13, color: Colors.white70)),
-                        ),
-                      ),
-                    ),
-                  ],
+                          if (dragging) ...[
+                            Positioned.fill(
+                              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+                            ),
+                            Positioned(
+                              left: 0, right: 0, bottom: 20,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text('上下滑动调整图片位置',
+                                      style: TextStyle(fontSize: 13, color: Colors.white70)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
                 ],
               );
             },

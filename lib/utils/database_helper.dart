@@ -57,7 +57,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 15,
+      version: 16,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -119,8 +119,26 @@ class DatabaseHelper {
       await _createReaderBooksTable(db);
     }
     if (oldVersion < 15) {
-      await db.execute('ALTER TABLE movies ADD COLUMN cover_offset REAL DEFAULT 0');
-      await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
+      // 安全添加 cover_offset 列（防止列已存在时报错）
+      final movieCols = await db.rawQuery('PRAGMA table_info(movies)');
+      if (!movieCols.any((col) => col['name'] == 'cover_offset')) {
+        await db.execute('ALTER TABLE movies ADD COLUMN cover_offset REAL DEFAULT 0');
+      }
+      final bookCols = await db.rawQuery('PRAGMA table_info(books)');
+      if (!bookCols.any((col) => col['name'] == 'cover_offset')) {
+        await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
+      }
+    }
+    // v16: 确保 cover_offset 列存在（v15 的数据库可能缺少此列）
+    if (oldVersion < 16) {
+      final movieCols = await db.rawQuery('PRAGMA table_info(movies)');
+      if (!movieCols.any((col) => col['name'] == 'cover_offset')) {
+        await db.execute('ALTER TABLE movies ADD COLUMN cover_offset REAL DEFAULT 0');
+      }
+      final bookCols = await db.rawQuery('PRAGMA table_info(books)');
+      if (!bookCols.any((col) => col['name'] == 'cover_offset')) {
+        await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
+      }
     }
   }
 

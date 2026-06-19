@@ -139,6 +139,12 @@ class MovieDao {
     );
   });
 
+  // 仅更新封面偏移量（不触发全量刷新）
+  Future<void> updateCoverOffset(String movieId, double offset) => _wrap('updateCoverOffset', () async {
+    final db = await _dbHelper.database;
+    await db.update('movies', {'cover_offset': offset}, where: 'id = ?', whereArgs: [movieId]);
+  });
+
   // 删除影视记录（软删除）
   Future<int> deleteMovie(String id) => _wrap('deleteMovie', () async {
     final db = await _dbHelper.database;

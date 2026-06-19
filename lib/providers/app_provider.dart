@@ -322,6 +322,26 @@ class AppProvider extends ChangeNotifier {
     await loadMovies();
   }
 
+  /// 仅更新封面偏移量（不触发全量刷新）
+  Future<void> updateMovieCoverOffset(String movieId, double offset) async {
+    await _movieDao.updateCoverOffset(movieId, offset);
+    final idx = _movies.indexWhere((m) => m.id == movieId);
+    if (idx != -1) {
+      _movies[idx] = _movies[idx].copyWith(coverOffset: offset);
+      notifyListeners();
+    }
+  }
+
+  /// 仅更新封面偏移量（不触发全量刷新）
+  Future<void> updateBookCoverOffset(String bookId, double offset) async {
+    await _bookDao.updateCoverOffset(bookId, offset);
+    final idx = _books.indexWhere((b) => b.id == bookId);
+    if (idx != -1) {
+      _books[idx] = _books[idx].copyWith(coverOffset: offset);
+      notifyListeners();
+    }
+  }
+
   Future<void> removeMovie(String id) async {
     if (_useRemote) {
       await ServerDataService.instance.deleteMovie(id);

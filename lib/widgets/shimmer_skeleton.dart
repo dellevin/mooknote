@@ -168,3 +168,61 @@ class NoteSkeletonList extends StatelessWidget {
     );
   }
 }
+
+/// 笔记时间线骨架屏
+class NoteSkeletonTimeline extends StatelessWidget {
+  const NoteSkeletonTimeline({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+      itemCount: 5,
+      itemBuilder: (_, __) => IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 40,
+              child: Column(
+                children: [
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Expanded(child: Container(width: 1, color: colors.outline)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShimmerSkeleton(width: 80, height: 11),
+                    SizedBox(height: 8),
+                    ShimmerSkeleton(width: 150, height: 15),
+                    SizedBox(height: 6),
+                    ShimmerSkeleton(width: double.infinity, height: 12),
+                    SizedBox(height: 4),
+                    ShimmerSkeleton(width: 200, height: 12),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

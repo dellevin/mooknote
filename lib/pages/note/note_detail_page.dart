@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +5,6 @@ import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
 import 'note_share_page.dart';
-import '../../widgets/fade_in_local_image.dart';
 
 /// 笔记详情页
 class NoteDetailPage extends StatefulWidget {

@@ -135,10 +135,17 @@ class _BookFormPageState extends State<BookFormPage> {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.book != null;
 
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        title: Text(isEdit ? '编辑书籍' : '添加书籍'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _confirmLeave();
+        if (shouldPop && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          title: Text(isEdit ? '编辑书籍' : '添加书籍'),
         actions: [
           // 保存按钮
           _buildActionButton(
@@ -325,6 +332,7 @@ class _BookFormPageState extends State<BookFormPage> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -1262,6 +1270,56 @@ class _BookFormPageState extends State<BookFormPage> {
         ),
       ),
     );
+  }
+
+  /// 检查表单是否有内容
+  bool _hasContent() {
+    if (widget.book != null) return true;
+    if (_titleController.text.trim().isNotEmpty) return true;
+    if (_summaryController.text.trim().isNotEmpty) return true;
+    if (_ratingController.text.trim().isNotEmpty) return true;
+    if (_isbnController.text.trim().isNotEmpty) return true;
+    if (_publisherController.text.trim().isNotEmpty) return true;
+    if (_coverPath != null) return true;
+    if (_authors.isNotEmpty || _alternateTitles.isNotEmpty || _genres.isNotEmpty) return true;
+    if (_publishDate != null) return true;
+    return false;
+  }
+
+  /// 离开确认
+  Future<bool> _confirmLeave() async {
+    if (!_hasContent()) return true;
+    final colors = Theme.of(context).colorScheme;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('未保存', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('当前内容未保存，确定要离开吗？',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('离开'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+    return result ?? false;
   }
 
   /// 保存书籍

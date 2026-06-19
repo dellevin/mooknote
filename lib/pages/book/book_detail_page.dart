@@ -28,13 +28,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
   late int _detailStyle;
   final ValueNotifier<double> _coverOffset = ValueNotifier(0.0);
   double _coverDragStartOffset = 0.0;
-  bool _draggingCover = false;
+  final ValueNotifier<bool> _draggingCover = ValueNotifier(false);
   final GlobalKey _coverImageKey = GlobalKey();
   double _coverImageHeight = 0.0;
 
   @override
   void dispose() {
     _coverOffset.dispose();
+    _draggingCover.dispose();
     super.dispose();
   }
 
@@ -42,7 +43,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   void initState() {
     super.initState();
     _detailStyle = UserPrefs().detailPageStyle;
-    _coverOffset.value = widget.book.coverOffset;
+    _coverOffset.value = UserPrefs().getCoverOffset(widget.book.id);
   }
 
   @override
@@ -351,7 +352,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               final box = ctx.findRenderObject() as RenderBox?;
               if (box != null) _coverImageHeight = box.size.height;
             }
-            setState(() => _draggingCover = true);
+            _draggingCover.value = true;
             _coverDragStartOffset = _coverOffset.value;
           } : null,
           onLongPressMoveUpdate: hasCover ? (d) {
@@ -361,8 +362,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
             _coverOffset.value = (raw.clamp(minOffset, 0.0) as double);
           } : null,
           onLongPressEnd: hasCover ? (_) {
-            setState(() => _draggingCover = false);
-            context.read<AppProvider>().updateBook(book.copyWith(coverOffset: _coverOffset.value));
+            _draggingCover.value = false;
+            final offset = _coverOffset.value;
+            UserPrefs().setCoverOffset(widget.book.id, offset);
+            context.read<AppProvider>().updateBookCoverOffset(widget.book.id, offset);
           } : null,
           child: ValueListenableBuilder<double>(
             valueListenable: _coverOffset,
@@ -389,44 +392,54 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     )
                   else
                     _buildCoverPlaceholder(),
-                  if (!_draggingCover)
-                    Positioned(
-                      left: 0, right: 0, bottom: 0,
-                      child: IgnorePointer(
-                        child: Container(
-                          height: 60,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                colors.surface.withValues(alpha: 0),
-                                colors.surface,
-                              ],
+                  // 底部渐变 + 拖动遮罩
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _draggingCover,
+                    builder: (context, dragging, _) {
+                      return Stack(
+                        children: [
+                          if (!dragging)
+                            Positioned(
+                              left: 0, right: 0, bottom: 0,
+                              child: IgnorePointer(
+                                child: Container(
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        colors.surface.withValues(alpha: 0),
+                                        colors.surface,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (_draggingCover) ...[
-                    Positioned.fill(
-                      child: Container(color: Colors.black.withValues(alpha: 0.3)),
-                    ),
-                    Positioned(
-                      left: 0, right: 0, bottom: 20,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text('上下滑动调整图片位置',
-                            style: TextStyle(fontSize: 13, color: Colors.white70)),
-                        ),
-                      ),
-                    ),
-                  ],
+                          if (dragging) ...[
+                            Positioned.fill(
+                              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+                            ),
+                            Positioned(
+                              left: 0, right: 0, bottom: 20,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text('上下滑动调整图片位置',
+                                      style: TextStyle(fontSize: 13, color: Colors.white70)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
                 ],
               );
             },

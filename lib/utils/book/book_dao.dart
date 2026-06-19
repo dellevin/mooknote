@@ -82,6 +82,12 @@ class BookDao {
     );
   });
 
+  // 仅更新封面偏移量（不触发全量刷新）
+  Future<void> updateCoverOffset(String bookId, double offset) => _wrap('updateCoverOffset', () async {
+    final db = await _dbHelper.database;
+    await db.update('books', {'cover_offset': offset}, where: 'id = ?', whereArgs: [bookId]);
+  });
+
   // 软删除书籍记录（移入回收站）
   Future<int> deleteBook(String id) => _wrap('deleteBook', () async {
     final db = await _dbHelper.database;

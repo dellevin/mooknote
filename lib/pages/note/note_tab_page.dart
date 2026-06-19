@@ -81,10 +81,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   Future<void> _loadFirst() async {
     _initialized = true;
-    setState(() { _isLoading = true; _items.clear(); _offset = 0; _hasMore = true; });
+    setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final list = await context.read<AppProvider>().loadNotesPaged(offset: 0);
     if (!mounted) return;
-    setState(() { _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
+    setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
 
   Future<void> _loadMore() async {
@@ -118,6 +118,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Widget _buildSkeleton() {
     switch (_layoutStyle) {
       case 1: return _buildWaterfallSkeleton();
+      case 2: return const NoteSkeletonTimeline();
       default: return const NoteSkeletonList();
     }
   }

@@ -92,10 +92,11 @@ class _MovieTabPageState extends State<MovieTabPage> {
     _lastStatusIndex = statusIdx;
     _initialized = true;
     final status = _statusMap[statusIdx] ?? 'watched';
-    setState(() { _isLoading = true; _items.clear(); _offset = 0; _hasMore = true; });
+    setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final list = await provider.loadMoviesPaged(status: status, offset: 0);
     if (!mounted) return;
     setState(() {
+      _items.clear();
       _items.addAll(list);
       _offset = list.length;
       _hasMore = list.length >= 20;
