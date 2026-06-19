@@ -88,8 +88,8 @@ lib/
 
 ## 数据存储
 
-- **数据库**：`/mooknote/mooknote.db`
-- **图片**：`/mooknote/images/<类别>/<条目ID>/<文件名>`
+- **数据存储位置**：`/mooknote/mooknote.db`
+- **图片存储位置**：`/mooknote/images/<类别>/<条目ID>/<文件名>`
   - 类别：`movie` / `book` / `note`
 
 ## 环境要求
