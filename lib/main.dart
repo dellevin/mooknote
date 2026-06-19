@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
+import 'utils/changelog_service.dart';
 import 'utils/sync/auto_backup_service.dart';
 import 'utils/sync/server_sync_service.dart';
 import 'utils/usage_stats_service.dart';
@@ -101,6 +103,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeMode? _lastAppliedTheme;
+  bool _updateCheckDone = false;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -108,8 +112,76 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.appProvider.loadThemeMode();
     widget.appProvider.addListener(_onThemeChanged);
-    // 延迟到首帧后确保生效
-    WidgetsBinding.instance.addPostFrameCallback((_) => _applySystemUI());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applySystemUI();
+      _checkUpdate(); // 不阻塞，完成后自行弹窗
+    });
+  }
+
+  /// 延迟到首页渲染后再检查版本更新，确保 context 已就绪
+  Future<void> _checkUpdate() async {
+    if (_updateCheckDone) return;
+    _updateCheckDone = true;
+    await Future.delayed(const Duration(milliseconds: 500));
+    var ctx = _navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    try {
+      final hasUpdate = await ChangelogService.hasUpdate();
+      if (!hasUpdate) return;
+      final latestVersion = await ChangelogService.fetchLatestVersion();
+      if (latestVersion == null) return;
+      final dismissed = UserPrefs().dismissedVersion;
+      if (dismissed == latestVersion) return;
+      ctx = _navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      _showUpdateDialog(ctx, latestVersion);
+    } catch (_) {}
+  }
+
+  void _showUpdateDialog(BuildContext context, String version) {
+    if (!context.mounted) return;
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          Icon(Icons.system_update_outlined, color: colors.primary, size: 24),
+          const SizedBox(width: 10),
+          Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        ]),
+        content: Text('新版本 $version 已发布，是否下载更新？',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              UserPrefs().setDismissedVersion(version);
+              Navigator.pop(ctx);
+            },
+            child: Text('不再显示', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await launchUrl(Uri.parse('https://mooknote.iletter.top/#/'),
+                    mode: LaunchMode.externalApplication);
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('链接失效')));
+                }
+              }
+            },
+            icon: const Icon(Icons.open_in_browser, size: 18),
+            label: const Text('去官网下载'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      ),
+    );
   }
 
   void _onThemeChanged() {
@@ -160,7 +232,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: provider.themeMode,
-            localizationsDelegates: [
+            localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
@@ -170,6 +242,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               Locale('en', 'US'),
             ],
             home: const HomePage(),
+            navigatorKey: _navigatorKey,
             onGenerateRoute: AppRouter.generateRoute,
             builder: (context, child) {
               return _AppIconWrapper(iconName: iconName, child: child!);

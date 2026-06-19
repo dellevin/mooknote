@@ -629,7 +629,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -662,7 +662,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -695,7 +695,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -728,7 +728,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -760,7 +760,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildGenresSection(Book book) {
     final isOverlay = _detailStyle == 1;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -12,6 +12,7 @@ import 'recycle_bin_page.dart';
 import 'sync/backup_page.dart';
 import '../widgets/fade_in_local_image.dart';
 import 'statistics_page.dart';
+import 'changelog_page.dart';
 import 'sync/cloud_sync_page.dart';
 import 'app_icon_picker_page.dart';
 import 'tag_management_page.dart';
@@ -496,6 +497,13 @@ class _SettingsPageState extends State<SettingsPage> {
             title: '使用说明',
             subtitle: '查看应用使用指南',
             url: 'https://mooknote.iletter.top/#/guide',
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildActionItem(
+            icon: Icons.update_outlined,
+            title: '更新日志',
+            subtitle: '查看版本更新内容',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangelogPage())),
           ),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
         ],

@@ -222,59 +222,45 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     );
   }
 
-  /// 叠层模式：封面小图 + 标题/评分（毛玻璃卡片）
+  /// 叠层模式：封面小图 + 标题/评分
   Widget _buildOverlayHeader(Movie movie) {
     final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 100, height: 140,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 100, height: 140,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: hasPoster
-                    ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
-                    : Container(color: Colors.white24, child: const Icon(Icons.movie_outlined, color: Colors.white38, size: 32)),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const SizedBox(height: 4),
-                  Text(movie.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                  if (movie.directors.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text('导演：${movie.directors.join(' / ')}', style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
-                  ],
-                  const SizedBox(height: 12),
-                  Row(children: [
-                    if (movie.rating != null && movie.rating! > 0) ...[
-                      const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
-                      const SizedBox(width: 4),
-                      Text(movie.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
-                      const SizedBox(width: 16),
-                    ],
-                    _statusChip(movie.status),
-                  ]),
-                ]),
-              ),
-            ],
-          ),
+          clipBehavior: Clip.antiAlias,
+          child: hasPoster
+              ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
+              : Container(color: Colors.white24, child: const Icon(Icons.movie_outlined, color: Colors.white38, size: 32)),
         ),
-      ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 4),
+            Text(movie.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+            if (movie.directors.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('导演：${movie.directors.join(' / ')}', style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+            ],
+            const SizedBox(height: 12),
+            Row(children: [
+              if (movie.rating != null && movie.rating! > 0) ...[
+                const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
+                const SizedBox(width: 4),
+                Text(movie.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
+                const SizedBox(width: 16),
+              ],
+              _statusChip(movie.status),
+            ]),
+          ]),
+        ),
+      ],
     );
   }
 
@@ -660,7 +646,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -693,7 +679,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -726,7 +712,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -758,7 +744,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   Widget _buildGenresSection(Movie movie) {
     final isOverlay = _detailStyle == 1;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

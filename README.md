@@ -1,139 +1,158 @@
-# MookNote - 极简风格的观影阅读笔记应用
+# MookNote
 
-## 项目简介
-MookNote 是一款用于记录观影、阅读和笔记的 Android 软件，基于 Flutter 框架开发。
+极简风格的观影 · 阅读 · 笔记 记录应用，基于 Flutter 开发。
 
-## 功能
-- 影视增删改查
-- 书籍增删改查
-- 笔记增删改查
-- 影评增删改查
-- 书评增删改
-- 豆瓣分享链接爬取
-- 支持使用网络图片
-- 添加清除无效图片功能
-- 优化左侧边栏
+## 应用预览
 
-## 环境要求
+| 影视列表 | 书籍列表 | 笔记界面 |
+|:---:|:---:|:---:|
+| <img src="proj-img/Screenshot_1781866410.png" width="240"> | <img src="proj-img/Screenshot_1781866427.png" width="240"> |  <img src="proj-img/Screenshot_1781866432.png" width="240"> |
 
-### 必需软件
-1. **Flutter SDK** (建议 3.5.0+)
-   - 下载地址：https://docs.flutter.dev/get-started/install
-   
-2. **Android Studio**
-   - 下载地址：https://developer.android.com/studio
-   
-3. **Android SDK** (通过 Android Studio 安装)
 
-### 环境配置步骤
+更多预览图片请到应用预览2里面查看
 
-#### Windows 系统
+## 功能特性
 
-1. **下载并安装 Flutter SDK**
-   ```
-   - 下载 Flutter SDK zip 文件
-   - 解压到 C:\src\flutter（或其他非系统目录）
-   - 将 C:\src\flutter\bin 添加到系统环境变量 Path
-   ```
+### 影视管理
+- 影视增删改查，支持海报、导演、演员、类型等信息录入
+- 影评撰写与管理，支持星级评分
+- 影视海报墙浏览（瀑布流布局）
+- 影视分享（生成海报名场面风格分享卡片）
+- 豆瓣链接爬取，自动填充影视信息
+- 影视状态筛选（想看 / 在看 / 已看）
 
-2. **验证 Flutter 安装**
-   ```bash
-   flutter --version
-   flutter doctor
-   ```
+### 书籍管理
+- 书籍增删改查，支持封面、作者、出版社等信息
+- 书评撰写与管理
+- 书摘 / 摘录记录
+- 书籍分享卡片
+- 书籍状态筛选
 
-3. **安装 Android Studio**
-   ```
-   - 下载并安装 Android Studio
-   - 打开 Android Studio → Settings → Appearance & Behavior → System Settings → Android SDK
-   - 安装 Android SDK Platform（建议 API 33+）
-   - 安装 Android SDK Build-Tools
-   - 安装 Android Emulator（可选，用于模拟器测试）
-   ```
+### 笔记管理
+- 笔记增删改查，支持 Markdown 编辑与实时渲染
+- 笔记分享卡片
+- Markdown 阅读器支持暗色模式与字体大小调节
 
-4. **接受 Android 许可证**
-   
-   ```bash
-   flutter doctor --android-licenses
-   ```
-
-## 运行项目
-
-### 1. 克隆/复制项目后，进入项目目录
-```bash
-cd mooknote
-```
-
-### 2. 安装依赖
-
-```bash
-flutter pub get
-```
-
-### 3. 连接设备或启动模拟器
-
-- 连接 Android 真机（需开启 USB 调试）
-- 或启动 Android 模拟器
-
-### 4. 运行应用
-```bash
-flutter run
-```
-
-或使用 Android Studio:
-- 打开项目
-- 点击运行按钮 (Run)
-
-### 其他命令
-
-```bash
-# 清理依赖
-flutter clean 
-# 获取依赖
-flutter pub get
-# 如果失败可以先添加代理再进行get
-$env:HTTP_PROXY="http://127.0.0.1:10808"
-$env:HTTPS_PROXY="http://127.0.0.1:10808"
-flutter pub get
-# 运行
-flutter run
-# 构建 APK
-flutter build apk --release
-# 或构建 App Bundle（推荐用于 Google Play）
-flutter build appbundle --release
-# 使用国内镜像构建运行
-$env:PUB_HOSTED_URL="https://pub.flutter-io.cn"
-$env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
-flutter pub get
-flutter run
-```
-
-## 用户统计
-```
-/// usage_stats_service.dart文件
-/// 统计服务器地址，发布前替换为实际地址，置空则禁用
-static String serverUrl = 'http://192.168.31.48:5000';
-```
+### 通用功能
+- 全局搜索（影视 / 书籍 / 笔记）
+- 标签管理与分类
+- 数据统计与可视化图表（月度趋势 / 类型分布）
+- 回收站（软删除，可恢复）
+- 服务器同步与 WebDAV 云同步
+- 自动备份
+- 暗色 / 亮色主题切换
+- 自定义应用图标
+- 更新日志查看
+- 用户使用统计（可选）
 
 ## 技术栈
 
-- **Flutter**: 跨平台移动应用框架
-- **Dart**: 编程语言
-- **Provider**: 状态管理
+| 类别 | 技术 |
+|------|------|
+| 框架 | Flutter 3.5+ |
+| 语言 | Dart |
+| 状态管理 | Provider |
+| 本地数据库 | SQLite（sqflite） |
+
+## 项目结构
+
+```
+lib/
+├── main.dart                  # 应用入口，初始化与后台任务
+├── models/
+│   └── data_models.dart       # 数据模型（Movie, Book, Note 等）
+├── providers/
+│   └── app_provider.dart      # 全局状态管理（Provider）
+├── pages/
+│   ├── movies/                # 影视相关页面
+│   ├── book/                  # 书籍相关页面
+│   ├── note/                  # 笔记相关页面
+│   ├── markdown_reader/       # Markdown 阅读器
+│   ├── sync/                  # 同步与备份页面
+│   ├── home_page.dart         # 首页
+│   ├── search_page.dart       # 搜索页
+│   ├── statistics_page.dart   # 数据统计页
+│   ├── profile_page.dart      # 个人中心
+│   └── recycle_bin_page.dart  # 回收站
+├── utils/
+│   ├── database_helper.dart   # SQLite 数据库管理
+│   ├── movie/                 # 影视 DAO
+│   ├── book/                  # 书籍 DAO
+│   ├── note/                  # 笔记 DAO
+│   ├── tag/                   # 标签 DAO
+│   ├── sync/                  # 同步服务（Server / WebDAV / 备份）
+│   ├── theme/                 # 主题配置
+│   └── user_prefs.dart        # 用户偏好设置
+└── widgets/                   # 通用组件
+```
+
+## 数据存储
+
+- **数据库**：`/mooknote/mooknote.db`
+- **图片**：`/mooknote/images/<类别>/<条目ID>/<文件名>`
+  - 类别：`movie` / `book` / `note`
+
+## 环境要求
+
+- Flutter SDK 3.5+
+- Dart SDK 3.5+
+- Android SDK（API 21+）
+
+## 快速开始
+
+```bash
+# 克隆项目
+git clone https://github.com/dellevin/mooknote.git
+cd mooknote
+
+# 安装依赖
+flutter pub get
+
+# 运行
+flutter run
+```
+
+如果 `pub get` 失败，可尝试设置临时变量的国内镜像：
+
+```bash
+$env:PUB_HOSTED_URL="https://pub.flutter-io.cn"
+$env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
+flutter pub get
+```
+
+或者使用代理方式：
+
+```bash
+# 如果失败可以先添加代理再进行get，ip和端口号自行更改
+$env:HTTP_PROXY="http://127.0.0.1:10808"
+$env:HTTPS_PROXY="http://127.0.0.1:10808"
+flutter pub get
+```
+
+## 构建
+
+```bash
+# 构建 Release APK
+flutter build apk --release
+
+# 构建 App Bundle（Google Play）
+flutter build appbundle --release
+```
+
+## 应用预览2
+
+| 数据统计 | 侧边栏 | 我的界面 |
+|:---:|:---:|:---:|
+| <img src="proj-img/Screenshot_1781866461.png" width="240" > | <img src="proj-img/Screenshot_1781866436.png" width="240"> | <img src="./assets/README/Screenshot_1781866417.png" width="240"> |
 
 
+| 详情界面1 | 详情界面2 | 编辑笔记 |
+|:---:|:---:|:---:|
+|  <img src="proj-img/xq1.png" width="240"> | <img src="proj-img/xq2.png" width="240"> | <img src="proj-img/bj1.png" width="240"> |
 
-**5. 图片文件存储路径：**
-
-- 数据库：`/mooknote/mooknote.db`
-- 
-- 图片：`/mooknote/images/类别（影视/图书/笔记）/类别下的条目id/图片文件名`
-
-**注意：**
-
-- 目前图片同步是基于文件存在性判断，不是基于修改时间
-- 下载新数据库后，应用会自动重新加载数据（调用 Provider 的 load 方法）
-- 首次同步会创建远程目录结构
+| 分享界面1 | 分享界面2 | 预览笔记 |
+|:---:|:---:|:---:|
+|  <img src="proj-img/fx1.png" width="240"> | <img src="proj-img/fx2.png" width="240"> | <img src="proj-img/bj2.png" width="240"> |
 
 ## 开源协议
 

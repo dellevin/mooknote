@@ -154,4 +154,10 @@ class UserPrefs {
   /// 上次同步到的 entry id
   int get syncLastEntryId => prefs.getInt('syncLastEntryId') ?? 0;
   Future<bool> setSyncLastEntryId(int value) => prefs.setInt('syncLastEntryId', value);
+
+  // ========== 版本更新 ==========
+
+  /// 已忽略的版本号（不再提示更新）
+  String get dismissedVersion => prefs.getString('dismissedVersion') ?? '';
+  Future<bool> setDismissedVersion(String value) => prefs.setString('dismissedVersion', value);
 }
