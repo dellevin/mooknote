@@ -55,6 +55,18 @@ class UserPrefs {
   bool get isFirstLaunch => prefs.getBool('isFirstLaunch') ?? true;
   Future<bool> setFirstLaunch(bool value) => prefs.setBool('isFirstLaunch', value);
 
+  // ========== 详情页样式 ==========
+
+  /// 详情页展示样式: 0=标准(封面顶部), 1=叠层(封面+毛玻璃卡片)
+  int get detailPageStyle => prefs.getInt('detailPageStyle') ?? 0;
+  Future<bool> setDetailPageStyle(int value) => prefs.setInt('detailPageStyle', value);
+
+  // ========== 封面位置 ==========
+
+  /// 获取封面偏移量（-1.0 到 1.0，0 = 居中）
+  double getCoverOffset(String itemId) => prefs.getDouble('coverOffset_$itemId') ?? 0.0;
+  Future<bool> setCoverOffset(String itemId, double value) => prefs.setDouble('coverOffset_$itemId', value);
+
   // ========== 主界面显示设置 ==========
 
   /// 是否启用底部导航栏滚动隐藏（默认开启）

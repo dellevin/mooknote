@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
@@ -247,22 +248,29 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     final avg = allRatings.reduce((a, b) => a + b) / allRatings.length;
 
-    // 按区间统计 (0-2, 2-4, 4-6, 6-8, 8-10)
-    final ranges = ['0-2', '2-4', '4-6', '6-8', '8-10'];
-    final counts = [0, 0, 0, 0, 0];
+    // 按 1-10 分统计
+    final counts = List.filled(10, 0);
     for (final r in allRatings) {
-      if (r < 2) counts[0]++;
-      else if (r < 4) counts[1]++;
-      else if (r < 6) counts[2]++;
-      else if (r < 8) counts[3]++;
-      else counts[4]++;
+      final idx = (r.round()).clamp(1, 10) - 1;
+      counts[idx]++;
     }
-    final maxCount = counts.isEmpty ? 1 : counts.reduce((a, b) => a > b ? a : b);
+    final maxCount = counts.reduce((a, b) => a > b ? a : b).toDouble();
+    if (maxCount == 0) return const SizedBox.shrink();
+
+    // 渐变色：低分灰色 → 高分金色
+    const barColors = [
+      Color(0xFFBDBDBD), Color(0xFFBDBDBD), // 1-2 灰
+      Color(0xFFFFCC80), Color(0xFFFFCC80), // 3-4 橙黄
+      Color(0xFFFFB74D), Color(0xFFFFB74D), // 5-6 橙
+      Color(0xFFFFA726), Color(0xFFFFA726), // 7-8 深橙
+      Color(0xFFFFB800), Color(0xFFFFB800), // 9-10 金
+    ];
 
     return _buildCard(
       title: title,
       child: Column(
         children: [
+          // 平均评分
           Row(
             children: [
               Text('平均评分', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
@@ -271,32 +279,71 @@ class _StatisticsPageState extends State<StatisticsPage> {
               Text(' / 10', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
             ],
           ),
-          const SizedBox(height: 16),
-          ...List.generate(5, (i) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 28,
-                  child: Text(ranges[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: maxCount > 0 ? counts[i] / maxCount : 0.0,
-                      backgroundColor: colors.outlineVariant,
-                      color: colors.primary,
-                      minHeight: 6,
-                    ),
+          const SizedBox(height: 20),
+          // 柱状图
+          SizedBox(
+            height: 160,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxCount * 1.2,
+                minY: 0,
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => colors.inverseSurface,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        '${group.x + 1}星 ${rod.toY.toInt()}部',
+                        TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text('${counts[i]}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
-              ],
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text('${value.toInt() + 1}', style: TextStyle(
+                            fontSize: 10, color: colors.onSurface.withValues(alpha: 0.5))),
+                        );
+                      },
+                      reservedSize: 24,
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                gridData: const FlGridData(show: false),
+                barGroups: List.generate(10, (i) {
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: counts[i].toDouble(),
+                        color: barColors[i],
+                        width: 20,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxCount * 1.2,
+                          color: colors.outlineVariant.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
             ),
-          )),
+          ),
+          const SizedBox(height: 8),
+          // 底部标签
+          Text('星级评分', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );

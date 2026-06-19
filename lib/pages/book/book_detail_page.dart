@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:share_plus/share_plus.dart';
@@ -7,6 +9,7 @@ import 'package:cross_file/cross_file.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
@@ -22,6 +25,25 @@ class BookDetailPage extends StatefulWidget {
 }
 
 class _BookDetailPageState extends State<BookDetailPage> {
+  late int _detailStyle;
+  final ValueNotifier<double> _coverOffset = ValueNotifier(0.0);
+  double _coverDragStartOffset = 0.0;
+  bool _draggingCover = false;
+  final GlobalKey _coverImageKey = GlobalKey();
+  double _coverImageHeight = 0.0;
+
+  @override
+  void dispose() {
+    _coverOffset.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _detailStyle = UserPrefs().detailPageStyle;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -29,46 +51,194 @@ class _BookDetailPageState extends State<BookDetailPage> {
         .where((b) => b.id == widget.book.id)
         .firstOrNull ?? widget.book;
 
+    if (_detailStyle == 1) {
+      return _buildOverlayStyle(book, colors);
+    }
+    return _buildStandardStyle(book, colors);
+  }
+
+  /// 标准样式
+  Widget _buildStandardStyle(Book book, ColorScheme colors) {
+    final topSafe = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(book),
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBasicInfo(book),
-                    Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                    _buildAuthorsSection(book),
-                    if (book.genres.isNotEmpty)
-                      _buildGenresSection(book),
-                    if (book.isbn != null && book.isbn!.isNotEmpty)
-                      _buildIsbnSection(book),
-                    if (book.publisher != null && book.publisher!.isNotEmpty)
-                      _buildPublisherSection(book),
-                    if (book.publishDate != null)
-                      _buildPublishDateSection(book),
-                    Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                    if (book.summary != null && book.summary!.isNotEmpty)
-                      _buildSummarySection(book),
-                    Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                    _buildExtraSections(book),
-                    const SizedBox(height: 120),
-                  ],
-                ),
+          // 图片从导航栏下方开始，固定在顶部
+          Column(
+            children: [
+              SizedBox(height: topSafe + 48),
+              SizedBox(
+                height: 320,
+                width: double.infinity,
+                child: _buildCoverSection(book),
               ),
             ],
           ),
+          // 可滚动内容区域从图片底部开始
           Positioned(
-            right: 16,
-            bottom: 24,
-            child: _buildFloatingActionButtons(book),
+            top: topSafe + 48 + 320,
+            left: 0, right: 0, bottom: 0,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildBasicInfo(book),
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  _buildAuthorsSection(book),
+                  if (book.genres.isNotEmpty) _buildGenresSection(book),
+                  if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
+                  if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
+                  if (book.publishDate != null) _buildPublishDateSection(book),
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  _buildExtraSections(book),
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
           ),
+          _buildStandardTopBar(book.title, colors),
+          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
         ],
       ),
+    );
+  }
+
+  /// 毛玻璃层叠样式：海报背景 + 毛玻璃 + 内容
+  Widget _buildOverlayStyle(Book book, ColorScheme colors) {
+    final screenH = MediaQuery.of(context).size.height;
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          // 海报背景（高度不够时重复拼接）
+          if (hasCover)
+            Positioned.fill(
+              child: Image(
+                image: FileImage(File(book.coverPath!)),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: screenH,
+                repeat: ImageRepeat.repeatY,
+              ),
+            )
+          else
+            Container(color: colors.surfaceContainerHighest),
+
+          // 毛玻璃层
+          ClipRect(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+            ),
+          ),
+
+          // 内容
+          SafeArea(
+            child: Column(
+              children: [
+                // 顶部栏
+                SizedBox(
+                  height: 48,
+                  child: Row(children: [
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Spacer(),
+                    Text(book.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const Spacer(),
+                    _buildStyleButton(),
+                  ]),
+                ),
+                // 可滚动内容
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 封面缩略图 + 标题
+                        _buildOverlayHeader(book),
+                        const SizedBox(height: 20),
+                        // 信息区块：无毛玻璃
+                        _buildAuthorsSection(book),
+                        if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
+                        if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
+                        if (book.publishDate != null) _buildPublishDateSection(book),
+                        // 类型标签毛玻璃
+                        if (book.genres.isNotEmpty) _buildGenresSection(book),
+                        // 简介：内部已有毛玻璃卡片
+                        if (book.summary != null && book.summary!.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _buildSummarySection(book),
+                        ],
+                        const SizedBox(height: 12),
+                        // 书评、书摘毛玻璃
+                        _buildExtraSectionsOverlay(book),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
+        ],
+      ),
+    );
+  }
+
+  /// 叠层模式顶部：封面小图 + 标题/评分
+  Widget _buildOverlayHeader(Book book) {
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 封面缩略图
+        Container(
+          width: 100, height: 140,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: hasCover
+              ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
+              : Container(color: Colors.white24, child: const Icon(Icons.menu_book, color: Colors.white38, size: 32)),
+        ),
+        const SizedBox(width: 16),
+        // 标题 + 信息
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              Text(book.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              if (book.authors.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(book.authors.join(' / '), style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+              ],
+              const SizedBox(height: 12),
+              Row(children: [
+                if (book.rating != null && book.rating! > 0) ...[
+                  const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
+                  const SizedBox(width: 4),
+                  Text(book.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
+                  const SizedBox(width: 16),
+                ],
+                _statusChip(book.status),
+              ]),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -137,52 +307,130 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  Widget _buildBackButton() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => Navigator.pop(context),
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: const Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-              size: 22,
+  /// 固定在顶部的导航栏（纯色，与主体一致）
+  Widget _buildStandardTopBar(String title, ColorScheme colors) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    return Positioned(
+      top: 0, left: 0, right: 0,
+      child: Container(
+        padding: EdgeInsets.only(top: topPadding),
+        color: colors.surface,
+        child: SizedBox(
+          height: 48,
+          child: Row(children: [
+            const SizedBox(width: 4),
+            IconButton(
+              icon: Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
+              onPressed: () => Navigator.pop(context),
             ),
-          ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(title,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            _buildStyleButton(color: colors.onSurface),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _buildSliverAppBar(Book book) {
-    final colors = Theme.of(context).colorScheme;
-    return SliverAppBar(
-      expandedHeight: 320,
-      pinned: true,
-      backgroundColor: colors.surfaceContainerHighest,
-      leading: _buildBackButton(),
-      flexibleSpace: FlexibleSpaceBar(
-        background: _buildCoverSection(book),
-      ),
-    );
-  }
-
   Widget _buildCoverSection(Book book) {
-    return SizedBox.expand(
-      child: book.coverPath != null && book.coverPath!.isNotEmpty
-          ? FadeInLocalImage(
-              path: book.coverPath,
-              fit: BoxFit.cover,
-            )
-          : _buildCoverPlaceholder(),
+    final colors = Theme.of(context).colorScheme;
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final containerH = constraints.maxHeight;
+        return GestureDetector(
+          onLongPressStart: hasCover ? (_) {
+            HapticFeedback.mediumImpact();
+            final ctx = _coverImageKey.currentContext;
+            if (ctx != null) {
+              final box = ctx.findRenderObject() as RenderBox?;
+              if (box != null) _coverImageHeight = box.size.height;
+            }
+            setState(() => _draggingCover = true);
+            _coverDragStartOffset = _coverOffset.value;
+          } : null,
+          onLongPressMoveUpdate: hasCover ? (d) {
+            final raw = _coverDragStartOffset + d.offsetFromOrigin.dy;
+            final imgH = _coverImageHeight > 0 ? _coverImageHeight : containerH;
+            final minOffset = -(imgH - containerH).clamp(0, double.infinity);
+            _coverOffset.value = (raw.clamp(minOffset, 0.0) as double);
+          } : null,
+          onLongPressEnd: hasCover ? (_) {
+            setState(() => _draggingCover = false);
+          } : null,
+          child: ValueListenableBuilder<double>(
+            valueListenable: _coverOffset,
+            builder: (context, offset, _) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (hasCover)
+                    ClipRect(
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: offset,
+                            left: 0, right: 0,
+                            child: FadeInLocalImage(
+                              key: _coverImageKey,
+                              path: book.coverPath,
+                              fit: BoxFit.fitWidth,
+                              width: constraints.maxWidth,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    _buildCoverPlaceholder(),
+                  if (!_draggingCover)
+                    Positioned(
+                      left: 0, right: 0, bottom: 0,
+                      child: IgnorePointer(
+                        child: Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                colors.surface.withValues(alpha: 0),
+                                colors.surface,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_draggingCover) ...[
+                    Positioned.fill(
+                      child: Container(color: Colors.black.withValues(alpha: 0.3)),
+                    ),
+                    Positioned(
+                      left: 0, right: 0, bottom: 20,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text('上下滑动调整图片位置',
+                            style: TextStyle(fontSize: 13, color: Colors.white70)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -207,6 +455,66 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// 样式选择按钮
+  Widget _buildStyleButton({Color color = Colors.white}) {
+    return IconButton(
+      icon: Icon(Icons.tune, color: color, size: 20),
+      tooltip: '切换样式',
+      onPressed: _showStylePicker,
+    );
+  }
+
+  void _showStylePicker() {
+    final colors = Theme.of(context).colorScheme;
+    const names = ['默认样式', '毛玻璃层叠'];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('详情页样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          const SizedBox(height: 16),
+          Wrap(spacing: 10, runSpacing: 10, children: List.generate(names.length, (i) {
+            final selected = _detailStyle == i;
+            return GestureDetector(
+              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyle(i); Navigator.pop(ctx); },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected ? colors.primary : colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: selected ? colors.primary : colors.outline, width: 0.5),
+                ),
+                child: Text(names[i], style: TextStyle(
+                  fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+                )),
+              ),
+            );
+          })),
+        ]),
+      ),
+    );
+  }
+
+  Widget _statusChip(String status) {
+    final colors = Theme.of(context).colorScheme;
+    final (label, bg, fg) = switch (status) {
+      'read' => ('已读', colors.primary, colors.onPrimary),
+      'reading' => ('在读', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
+      'want_to_read' => ('想读', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      _ => ('', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.3)),
+    };
+    if (label.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 
@@ -318,6 +626,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _buildAuthorsSection(Book book) {
+    final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -330,7 +639,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '作者',
               style: TextStyle(
                 fontSize: 13,
-                color: colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -339,7 +648,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               book.authors.join('，'),
               style: TextStyle(
                 fontSize: 15,
-                color: colors.onSurface,
+                color: isOverlay ? Colors.white : colors.onSurface,
                 height: 1.5,
               ),
             ),
@@ -350,6 +659,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _buildIsbnSection(Book book) {
+    final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -362,7 +672,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               'ISBN',
               style: TextStyle(
                 fontSize: 13,
-                color: colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -371,7 +681,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               book.isbn!,
               style: TextStyle(
                 fontSize: 15,
-                color: colors.onSurface,
+                color: isOverlay ? Colors.white : colors.onSurface,
                 height: 1.5,
               ),
             ),
@@ -382,6 +692,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _buildPublisherSection(Book book) {
+    final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -394,7 +705,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '出版社',
               style: TextStyle(
                 fontSize: 13,
-                color: colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -403,7 +714,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               book.publisher!,
               style: TextStyle(
                 fontSize: 15,
-                color: colors.onSurface,
+                color: isOverlay ? Colors.white : colors.onSurface,
                 height: 1.5,
               ),
             ),
@@ -414,6 +725,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _buildPublishDateSection(Book book) {
+    final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -426,7 +738,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '出版时间',
               style: TextStyle(
                 fontSize: 13,
-                color: colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -435,7 +747,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '${book.publishDate!.year}年${book.publishDate!.month.toString().padLeft(2, '0')}月',
               style: TextStyle(
                 fontSize: 15,
-                color: colors.onSurface,
+                color: isOverlay ? Colors.white : colors.onSurface,
                 height: 1.5,
               ),
             ),
@@ -446,42 +758,21 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _buildGenresSection(Book book) {
-    final colors = Theme.of(context).colorScheme;
+    final isOverlay = _detailStyle == 1;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 64,
-            child: Text(
-              '类型',
-              style: TextStyle(
-                fontSize: 13,
-                color: colors.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
+            width: 48,
+            child: Text('类型', style: TextStyle(fontSize: 13,
+                color: isOverlay ? const Color(0x66FFFFFF) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
             child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: book.genres.map((genre) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    genre,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: colors.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                );
-              }).toList(),
+              spacing: 8, runSpacing: 8,
+              children: book.genres.map((g) => _buildGenreChip(g, isOverlay)).toList(),
             ),
           ),
         ],
@@ -489,7 +780,36 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
+  Widget _buildGenreChip(String label, bool isOverlay) {
+    if (isOverlay) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(label, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85))),
+          ),
+        ),
+      );
+    }
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+    );
+  }
+
   Widget _buildSummarySection(Book book) {
+    final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -502,7 +822,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 width: 4,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: colors.onSurface,
+                  color: isOverlay ? Colors.white : colors.onSurface,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -512,24 +832,30 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: colors.onSurface,
+                  color: isOverlay ? Colors.white : colors.onSurface,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              book.summary!,
-              style: TextStyle(
-                fontSize: 15,
-                color: colors.onSurface,
-                height: 1.8,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  book.summary!,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: isOverlay ? Colors.white : colors.onSurface,
+                    height: 1.8,
+                  ),
+                ),
               ),
             ),
           ),
@@ -585,6 +911,85 @@ class _BookDetailPageState extends State<BookDetailPage> {
             onTap: () => _navigateToExcerpts(book),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 叠层模式：书评、摘抄各自独立毛玻璃卡片
+  Widget _buildExtraSectionsOverlay(Book book) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          _buildFrostedExtraItem(
+            icon: Icons.rate_review_outlined,
+            title: '书评',
+            subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
+            emptyText: '暂无书评',
+            unit: '条书评',
+            onTap: () => _navigateToReviews(book),
+          ),
+          const SizedBox(height: 12),
+          _buildFrostedExtraItem(
+            icon: Icons.format_quote_outlined,
+            title: '摘抄',
+            subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
+            emptyText: '暂无摘抄',
+            unit: '条摘抄',
+            onTap: () => _navigateToExcerpts(book),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 毛玻璃书评/摘抄卡片
+  Widget _buildFrostedExtraItem({
+    required IconData icon,
+    required String title,
+    required Future<int> subtitleFuture,
+    required String emptyText,
+    required String unit,
+    required VoidCallback onTap,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(children: [
+                  Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.7)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                      FutureBuilder<int>(
+                        future: subtitleFuture,
+                        builder: (ctx, snap) {
+                          final count = snap.data ?? 0;
+                          return Text(count > 0 ? '$count $unit' : emptyText,
+                            style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)));
+                        },
+                      ),
+                    ]),
+                  ),
+                  Icon(Icons.chevron_right, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                ]),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
