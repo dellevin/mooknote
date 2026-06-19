@@ -57,7 +57,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 14,
+      version: 15,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -117,6 +117,10 @@ class DatabaseHelper {
     }
     if (oldVersion < 14) {
       await _createReaderBooksTable(db);
+    }
+    if (oldVersion < 15) {
+      await db.execute('ALTER TABLE movies ADD COLUMN cover_offset REAL DEFAULT 0');
+      await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
     }
   }
 
@@ -501,7 +505,8 @@ class DatabaseHelper {
         watch_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
+        is_deleted INTEGER DEFAULT 0,
+        cover_offset REAL DEFAULT 0
       )
     ''');
 
@@ -522,7 +527,8 @@ class DatabaseHelper {
         publish_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
+        is_deleted INTEGER DEFAULT 0,
+        cover_offset REAL DEFAULT 0
       )
     ''');
 

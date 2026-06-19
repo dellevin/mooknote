@@ -41,6 +41,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     super.initState();
     _showExactDate = UserPrefs().showExactReleaseDate;
     _detailStyle = UserPrefs().detailPageStyle;
+    _posterOffset.value = widget.movie.coverOffset;
   }
 
   void _toggleDateDisplay() {
@@ -414,6 +415,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           } : null,
           onLongPressEnd: hasPoster ? (_) {
             setState(() => _draggingPoster = false);
+            context.read<AppProvider>().updateMovie(movie.copyWith(coverOffset: _posterOffset.value));
           } : null,
           child: ValueListenableBuilder<double>(
             valueListenable: _posterOffset,

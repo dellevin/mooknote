@@ -42,6 +42,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   void initState() {
     super.initState();
     _detailStyle = UserPrefs().detailPageStyle;
+    _coverOffset.value = widget.book.coverOffset;
   }
 
   @override
@@ -361,6 +362,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           } : null,
           onLongPressEnd: hasCover ? (_) {
             setState(() => _draggingCover = false);
+            context.read<AppProvider>().updateBook(book.copyWith(coverOffset: _coverOffset.value));
           } : null,
           child: ValueListenableBuilder<double>(
             valueListenable: _coverOffset,

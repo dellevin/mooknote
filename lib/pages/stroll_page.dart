@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,8 +5,11 @@ import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../widgets/animated_star_rating.dart';
 import '../widgets/fade_in_local_image.dart';
+import 'movies/movie_detail_page.dart';
+import 'book/book_detail_page.dart';
+import 'note/note_detail_page.dart';
 
-/// 漫步页面 - 随机发现内容
+/// 漫步页面 - 随机发现内容（滑卡形式）
 class StrollPage extends StatefulWidget {
   const StrollPage({super.key});
 
@@ -15,29 +17,26 @@ class StrollPage extends StatefulWidget {
   State<StrollPage> createState() => _StrollPageState();
 }
 
-class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateMixin {
+class _StrollPageState extends State<StrollPage> {
   final _random = Random();
-  _StrollItem? _currentItem;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  bool _isLoading = false;
+  final List<_StrollItem> _items = [];
+  late PageController _pageController;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeIn);
-    _animController.value = 1.0;
-    _loadRandom();
+    _pageController = PageController(viewportFraction: 0.85);
+    _loadBatch(5);
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  void _loadRandom() {
+  void _loadBatch(int count) {
     final provider = context.read<AppProvider>();
     final movies = provider.movies.where((m) => !m.isDeleted).toList();
     final books = provider.books.where((b) => !b.isDeleted).toList();
@@ -48,80 +47,79 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     if (books.isNotEmpty) categories['book'] = books;
     if (notes.isNotEmpty) categories['note'] = notes;
 
-    if (categories.isEmpty) {
-      setState(() => _currentItem = null);
-      return;
-    }
+    if (categories.isEmpty) return;
 
     final categoryKeys = categories.keys.toList();
-    final pickedCategory = categoryKeys[_random.nextInt(categoryKeys.length)];
-
-    _StrollItem item;
-    switch (pickedCategory) {
-      case 'movie':
-        final m = movies[_random.nextInt(movies.length)];
-        item = _StrollItem(
-          type: 'movie',
-          title: m.title,
-          subtitle: m.alternateTitles.take(2).join(' / '),
-          detail: _movieDetail(m),
-          imagePath: m.posterPath,
-          icon: Icons.movie_outlined,
-          label: '影视',
-          rating: m.rating,
-          createdAt: m.createdAt,
-          color: const Color(0xFF4A90D9),
-        );
-        break;
-      case 'book':
-        final b = books[_random.nextInt(books.length)];
-        item = _StrollItem(
-          type: 'book',
-          title: b.title,
-          subtitle: b.authors.take(2).join(' / '),
-          detail: _bookDetail(b),
-          imagePath: b.coverPath,
-          icon: Icons.menu_book_outlined,
-          label: '书籍',
-          rating: b.rating,
-          createdAt: b.createdAt,
-          color: const Color(0xFF7E57C2),
-        );
-        break;
-      case 'note':
-        final n = notes[_random.nextInt(notes.length)];
-        item = _StrollItem(
-          type: 'note',
-          title: n.title.isNotEmpty ? n.title : '随手记',
-          subtitle: n.tags.take(3).join(' · '),
-          detail: n.content,
-          imagePath: n.images.isNotEmpty ? n.images.first : null,
-          icon: Icons.note_outlined,
-          label: '笔记',
-          createdAt: n.createdAt,
-          color: const Color(0xFF66BB6A),
-        );
-        break;
-      default:
-        setState(() => _currentItem = null);
-        return;
+    for (int i = 0; i < count; i++) {
+      final pickedCategory = categoryKeys[_random.nextInt(categoryKeys.length)];
+      _StrollItem? item;
+      switch (pickedCategory) {
+        case 'movie':
+          final m = movies[_random.nextInt(movies.length)];
+          item = _StrollItem(
+            type: 'movie', data: m,
+            title: m.title,
+            subtitle: m.alternateTitles.take(2).join(' / '),
+            detail: _movieDetail(m),
+            imagePath: m.posterPath,
+            icon: Icons.movie_outlined, label: '影视',
+            rating: m.rating, createdAt: m.createdAt,
+            color: const Color(0xFF4A90D9),
+          );
+        case 'book':
+          final b = books[_random.nextInt(books.length)];
+          item = _StrollItem(
+            type: 'book', data: b,
+            title: b.title,
+            subtitle: b.authors.take(2).join(' / '),
+            detail: _bookDetail(b),
+            imagePath: b.coverPath,
+            icon: Icons.menu_book_outlined, label: '书籍',
+            rating: b.rating, createdAt: b.createdAt,
+            color: const Color(0xFF7E57C2),
+          );
+        case 'note':
+          final n = notes[_random.nextInt(notes.length)];
+          item = _StrollItem(
+            type: 'note', data: n,
+            title: n.title.isNotEmpty ? n.title : '随手记',
+            subtitle: n.tags.take(3).join(' · '),
+            detail: n.content,
+            imagePath: n.images.isNotEmpty ? n.images.first : null,
+            icon: Icons.note_outlined, label: '笔记',
+            createdAt: n.createdAt,
+            color: const Color(0xFF66BB6A),
+          );
+      }
+      if (item != null) _items.add(item);
     }
-
-    setState(() => _currentItem = item);
   }
 
-  void _refresh() async {
-    setState(() => _isLoading = true);
-    await _animController.reverse();
-    _loadRandom();
-    setState(() => _isLoading = false);
-    _animController.forward();
+  void _reshuffle() {
+    setState(() {
+      _items.clear();
+      _currentIndex = 0;
+      _loadBatch(5);
+    });
+  }
+
+  void _openDetail(_StrollItem item) {
+    switch (item.type) {
+      case 'movie':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));
+      case 'book':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: item.data as Book)));
+      case 'note':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: item.data as Note)));
+    }
   }
 
   String _movieDetail(Movie m) {
     final parts = <String>[];
     if (m.genres.isNotEmpty) parts.add(m.genres.take(3).join(' / '));
-    if (m.summary != null && m.summary!.isNotEmpty) parts.add(m.summary!.length > 80 ? '${m.summary!.substring(0, 80)}...' : m.summary!);
+    if (m.summary != null && m.summary!.isNotEmpty) {
+      parts.add(m.summary!.length > 80 ? '${m.summary!.substring(0, 80)}...' : m.summary!);
+    }
     return parts.join('\n');
   }
 
@@ -129,7 +127,9 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     final parts = <String>[];
     if (b.genres.isNotEmpty) parts.add(b.genres.take(3).join(' / '));
     if (b.publisher != null && b.publisher!.isNotEmpty) parts.add(b.publisher!);
-    if (b.summary != null && b.summary!.isNotEmpty) parts.add(b.summary!.length > 80 ? '${b.summary!.substring(0, 80)}...' : b.summary!);
+    if (b.summary != null && b.summary!.isNotEmpty) {
+      parts.add(b.summary!.length > 80 ? '${b.summary!.substring(0, 80)}...' : b.summary!);
+    }
     return parts.join('\n');
   }
 
@@ -155,17 +155,26 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final hasContent = _items.isNotEmpty;
+
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('漫步'),
         actions: [
+          if (hasContent)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Center(
+                child: Text('${_currentIndex + 1}/${_items.length}',
+                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
-              onTap: _isLoading ? null : _refresh,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+              onTap: _reshuffle,
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   color: colors.primary,
@@ -184,165 +193,155 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
           ),
         ],
       ),
-      body: _currentItem == null
+      body: !hasContent
           ? Center(
               child: Text('还没有任何内容\n去添加一些吧',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.3), height: 1.6)))
-          : Consumer<AppProvider>(builder: (context, provider, _) {
-              final item = _currentItem!;
-              final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty;
+          : PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() => _currentIndex = index);
+                // 接近末尾时追加新条目
+                if (index >= _items.length - 2) {
+                  setState(() => _loadBatch(3));
+                }
+              },
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                return AnimatedBuilder(
+                  animation: _pageController,
+                  builder: (context, child) {
+                    double scale = 1.0;
+                    if (_pageController.hasClients && _pageController.page != null) {
+                      final diff = (_pageController.page! - index).abs();
+                      scale = (1 - diff * 0.1).clamp(0.85, 1.0);
+                    }
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: _buildCard(_items[index], colors),
+                );
+              },
+            ),
+    );
+  }
 
-              return FadeTransition(
-                opacity: _fadeAnim,
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+  Widget _buildCard(_StrollItem item, ColorScheme colors) {
+    final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty;
+
+    return GestureDetector(
+      onTap: () => _openDetail(item),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 24, horizontal: 6),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 8)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            // 封面/图片区域
+            if (hasImage)
+              Expanded(
+                flex: 5,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FadeInLocalImage(path: item.imagePath, fit: BoxFit.cover),
+                ),
+              )
+            else
+              Expanded(
+                flex: 3,
+                child: Container(
+                  width: double.infinity,
+                  color: colors.surfaceContainerHigh,
+                  child: Center(child: Icon(item.icon, size: 56, color: item.color.withValues(alpha: 0.2))),
+                ),
+              ),
+
+            // 内容区域
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 类型标签 + 评分
+                    Row(
                       children: [
-                        // 类型标签
-                        _buildTypeBadge(item),
-                        const SizedBox(height: 24),
-
-                        // 封面/图片
-                        if (item.type != 'note')
-                          _buildCoverCard(item, hasImage)
-                        else
-                          _buildNoteCard(item, hasImage),
-
-                        const SizedBox(height: 24),
-
-                        // 标题（笔记卡片已包含标题和内容，不需要重复）
-                        if (item.type != 'note') ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              item.title,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3),
-                            ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: item.color.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-
-                          if (item.subtitle.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(item.subtitle, textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
-                            ),
-                          ],
-
-                          // 评分
-                          if (item.rating != null) ...[
-                            const SizedBox(height: 10),
-                            AnimatedStarRating(rating: item.rating!, starSize: 16, showNumber: true),
-                          ],
-
-                          // 详情
-                          if (item.detail.isNotEmpty) ...[
-                            const SizedBox(height: 14),
-                            Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: colors.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(item.detail,
-                                  style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.7)),
-                            ),
-                          ],
-                        ],
-
-                        // 时间
-                        const SizedBox(height: 12),
-                        Text(_actionText(item), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
-
-                        const SizedBox(height: 40),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(item.icon, size: 12, color: item.color),
+                              const SizedBox(width: 4),
+                              Text(item.label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: item.color)),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        if (item.rating != null)
+                          AnimatedStarRating(rating: item.rating!, starSize: 14, showNumber: true),
                       ],
                     ),
-                  ),
+
+                    const SizedBox(height: 10),
+
+                    // 标题
+                    Text(item.title,
+                        maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3)),
+
+                    // 副标题
+                    if (item.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(item.subtitle,
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                    ],
+
+                    const SizedBox(height: 8),
+
+                    // 详情
+                    if (item.detail.isNotEmpty)
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(item.detail, maxLines: 3, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.7)),
+                        ),
+                      ),
+
+                    const SizedBox(height: 8),
+
+                    // 时间 + 点击提示
+                    Row(
+                      children: [
+                        Text(_actionText(item), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
+                        const Spacer(),
+                        Icon(Icons.arrow_forward_ios, size: 12, color: colors.onSurface.withValues(alpha: 0.15)),
+                      ],
+                    ),
+                  ],
                 ),
-              );
-            }),
-    );
-  }
-
-  Widget _buildTypeBadge(_StrollItem item) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: item.color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(item.icon, size: 14, color: item.color),
-          const SizedBox(width: 5),
-          Text(item.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: item.color)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCoverCard(_StrollItem item, bool hasImage) {
-    return Container(
-      width: 220,
-      height: 290,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: item.color.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 8)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: hasImage
-          ? FadeInLocalImage(path: item.imagePath, fit: BoxFit.cover)
-          : _buildPlaceholder(item),
-    );
-  }
-
-  Widget _buildNoteCard(_StrollItem item, bool hasImage) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 360),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (hasImage)
-            FadeInLocalImage(path: item.imagePath, fit: BoxFit.cover, height: 200, width: double.infinity),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(item.detail.isEmpty ? '(无内容)' : item.detail,
-                style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.73), height: 1.8)),
-          ),
-          Divider(height: 1, color: colors.outlineVariant),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Text('${item.detail.length} 字 · Mooknote', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder(_StrollItem item) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      color: colors.surfaceContainerHigh,
-      child: Center(
-        child: Icon(item.icon, size: 48, color: item.color.withValues(alpha: 0.2)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -350,6 +349,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
 
 class _StrollItem {
   final String type;
+  final dynamic data;
   final String title;
   final String subtitle;
   final String detail;
@@ -362,6 +362,7 @@ class _StrollItem {
 
   _StrollItem({
     required this.type,
+    required this.data,
     required this.title,
     required this.subtitle,
     required this.detail,

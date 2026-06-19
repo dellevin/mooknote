@@ -27,6 +27,7 @@ class _MainContentPageState extends State<MainContentPage> {
 
   late PageController _pageController;
   bool _isTabTap = false;
+  bool _syncScheduled = false;
 
   @override
   void initState() {
@@ -309,6 +310,19 @@ class _MainContentPageState extends State<MainContentPage> {
       builder: (context, provider, child) {
         final tabs = _enabledTabs;
         final safeIndex = _mapToEnabledTabIndex(provider.mainTabIndex).clamp(0, tabs.length - 1);
+
+        // 从其他页面返回时，修正 PageView 页面与 tab 的一致性
+        if (!_syncScheduled) {
+          _syncScheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _syncScheduled = false;
+            if (!mounted || !_pageController.hasClients) return;
+            final currentPage = _pageController.page?.round() ?? 0;
+            if (currentPage != safeIndex) {
+              _pageController.jumpToPage(safeIndex);
+            }
+          });
+        }
 
         if (_isTabTap && _pageController.hasClients) {
           _pageController.animateToPage(safeIndex, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);

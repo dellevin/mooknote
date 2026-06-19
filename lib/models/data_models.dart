@@ -25,6 +25,7 @@ class Movie {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
+  final double coverOffset; // 封面偏移量
 
   Movie({
     required this.id,
@@ -43,6 +44,7 @@ class Movie {
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
+    this.coverOffset = 0.0,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -71,6 +73,7 @@ class Movie {
           ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      coverOffset: (json['cover_offset'] ?? 0.0).toDouble(),
     );
   }
 
@@ -92,9 +95,10 @@ class Movie {
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
+      'cover_offset': coverOffset,
     };
   }
-  
+
   /// 获取封面文件
   File? get posterFile {
     if (posterPath == null || posterPath!.isEmpty) return null;
@@ -143,6 +147,7 @@ class Movie {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
+    double? coverOffset,
   }) {
     return Movie(
       id: id ?? this.id,
@@ -161,6 +166,7 @@ class Movie {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
+      coverOffset: coverOffset ?? this.coverOffset,
     );
   }
 }
@@ -182,6 +188,7 @@ class Book {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
+  final double coverOffset; // 封面偏移量
 
   Book({
     required this.id,
@@ -199,6 +206,7 @@ class Book {
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
+    this.coverOffset = 0.0,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -224,6 +232,7 @@ class Book {
           ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      coverOffset: (json['cover_offset'] ?? 0.0).toDouble(),
     );
   }
 
@@ -244,9 +253,10 @@ class Book {
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
+      'cover_offset': coverOffset,
     };
   }
-  
+
   /// 获取封面文件
   File? get coverFile {
     if (coverPath == null || coverPath!.isEmpty) return null;
@@ -270,6 +280,7 @@ class Book {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
+    double? coverOffset,
   }) {
     return Book(
       id: id ?? this.id,
@@ -287,6 +298,7 @@ class Book {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
+      coverOffset: coverOffset ?? this.coverOffset,
     );
   }
 }
