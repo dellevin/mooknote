@@ -29,6 +29,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   DateTime? _lastUpdatedAt;
   late ScrollController _scrollController;
   AppProvider? _provider;
+  int _lastScrollSignal = 0;
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
 
@@ -57,6 +58,15 @@ class _MovieTabPageState extends State<MovieTabPage> {
   void _onDataChanged() {
     if (!_initialized || !mounted) return;
     final provider = context.read<AppProvider>();
+
+    // 检查回到顶部信号
+    if (provider.scrollToTopSignal != _lastScrollSignal && provider.scrollToTopSignal > 0) {
+      _lastScrollSignal = provider.scrollToTopSignal;
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      }
+    }
+
     final count = provider.movies.length;
     final latest = provider.movies.isNotEmpty ? provider.movies.first.updatedAt : null;
     if (count != _lastDataCount || latest != _lastUpdatedAt) {

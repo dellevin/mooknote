@@ -29,6 +29,7 @@ class _BookTabPageState extends State<BookTabPage> {
   DateTime? _lastUpdatedAt;
   late ScrollController _scrollController;
   AppProvider? _provider;
+  int _lastScrollSignal = 0;
 
   static const _statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read'};
 
@@ -57,6 +58,15 @@ class _BookTabPageState extends State<BookTabPage> {
   void _onDataChanged() {
     if (!_initialized || !mounted) return;
     final provider = context.read<AppProvider>();
+
+    // 检查回到顶部信号
+    if (provider.scrollToTopSignal != _lastScrollSignal && provider.scrollToTopSignal > 0) {
+      _lastScrollSignal = provider.scrollToTopSignal;
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      }
+    }
+
     final count = provider.books.length;
     final latest = provider.books.isNotEmpty ? provider.books.first.updatedAt : null;
     if (count != _lastDataCount || latest != _lastUpdatedAt) {

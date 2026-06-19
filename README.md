@@ -2,6 +2,10 @@
 
 极简风格的观影 · 阅读 · 笔记 记录应用，基于 Flutter 开发。
 
+**开发计划：**
+
+http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC
+
 ## 应用预览
 
 | 影视列表 | 书籍列表 | 笔记界面 |
@@ -9,7 +13,7 @@
 | <img src="proj-img/Screenshot_1781866410.png" width="240"> | <img src="proj-img/Screenshot_1781866427.png" width="240"> |  <img src="proj-img/Screenshot_1781866432.png" width="240"> |
 
 
-更多预览图片请到应用预览2里面查看
+更多预览图片请到**应用功能详情预览**里面查看
 
 ## 功能特性
 
@@ -139,7 +143,7 @@ flutter build apk --release
 flutter build appbundle --release
 ```
 
-## 应用预览2
+## 应用功能详情预览
 
 | 数据统计 | 侧边栏 | 我的界面 |
 |:---:|:---:|:---:|

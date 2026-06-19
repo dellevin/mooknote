@@ -7,6 +7,7 @@ import '../utils/user_prefs.dart';
 import '../pages/stroll_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
 import '../pages/tag_management_page.dart';
+import '../pages/reader/bookshelf_page.dart';
 import '../pages/profile_page.dart';
 import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
@@ -180,16 +181,24 @@ class _CustomDrawerState extends State<CustomDrawer> {
           _buildToolItem(Icons.description_outlined, 'MD阅读', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const MdReaderTabPage()));
-          }, bottomRounded: true),
+          }),
+          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
+          _buildToolItem(Icons.menu_book_outlined, '阅读器', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const BookshelfPage()));
+          }, bottomRounded: true, enabled: false),
         ],
       ),
     );
   }
 
-  Widget _buildToolItem(IconData icon, String title, VoidCallback onTap, {bool topRounded = false, bool bottomRounded = false}) {
+  Widget _buildToolItem(IconData icon, String title, VoidCallback onTap, {bool topRounded = false, bool bottomRounded = false, bool enabled = true}) {
     final colors = Theme.of(context).colorScheme;
+    final effectiveOnTap = enabled ? onTap : null;
+    final iconOpacity = enabled ? 0.7 : 0.25;
+    final textOpacity = enabled ? 1.0 : 0.35;
     return InkWell(
-      onTap: onTap,
+      onTap: effectiveOnTap,
       borderRadius: BorderRadius.only(
         topLeft: topRounded ? const Radius.circular(16) : Radius.zero,
         topRight: topRounded ? const Radius.circular(16) : Radius.zero,
@@ -200,9 +209,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
+            Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: iconOpacity)),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface))),
+            Expanded(child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: textOpacity)))),
             Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
           ],
         ),

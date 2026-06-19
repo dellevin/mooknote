@@ -35,12 +35,8 @@ Future<void> _bootstrap(AppProvider appProvider) async {
   }
   appProvider.initMainTabIndex();
 
-  // sync 校验在数据库加载完成后执行（避免阻塞本地数据展示）
-  try {
-    await _validateSyncOnStartup();
-  } catch (e) {
-    debugPrint('[Startup] 同步状态校验失败: $e');
-  }
+  // sync 校验放到后台执行，不阻塞启动
+  unawaited(_validateSyncOnStartup());
 
   unawaited(_initAutoBackup());
   unawaited(_initUsageStats());

@@ -57,7 +57,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -115,6 +115,9 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       await _upgradeToV13(db);
     }
+    if (oldVersion < 14) {
+      await _createReaderBooksTable(db);
+    }
   }
 
   /// 升级books表到V11（添加ISBN和出版时间字段）
@@ -152,6 +155,26 @@ class DatabaseHelper {
     if (!hasTitle) {
       await db.execute('ALTER TABLE notes ADD COLUMN title TEXT DEFAULT \'\'');
     }
+  }
+
+  /// 升级到V14：创建阅读器书籍表
+  Future<void> _createReaderBooksTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS reader_books (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT DEFAULT '',
+        cover_path TEXT,
+        file_path TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_extension TEXT NOT NULL DEFAULT 'epub',
+        last_read_cfi TEXT DEFAULT '',
+        reading_percentage REAL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
   }
 
   /// 升级到V13：创建标签表并回填已有数据
@@ -585,6 +608,24 @@ class DatabaseHelper {
         type TEXT NOT NULL,
         created_at TEXT NOT NULL,
         UNIQUE(name, type)
+      )
+    ''');
+
+    // 阅读器书籍表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS reader_books (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT DEFAULT '',
+        cover_path TEXT,
+        file_path TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_extension TEXT NOT NULL DEFAULT 'epub',
+        last_read_cfi TEXT DEFAULT '',
+        reading_percentage REAL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
       )
     ''');
   }

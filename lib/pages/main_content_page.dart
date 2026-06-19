@@ -26,7 +26,7 @@ class _MainContentPageState extends State<MainContentPage> {
   bool _showNoteTab = true;
 
   late PageController _pageController;
-  bool _isTabTap = false; // 防止点击 Tab 和滑动互斥
+  bool _isTabTap = false;
 
   @override
   void initState() {
@@ -82,6 +82,8 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
+  // ─── AppBar ──────────────────────────────────────────
+
   Widget _buildAppBar(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
@@ -99,6 +101,17 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
+  String _getAppBarTitle(AppProvider provider) {
+    switch (provider.mainTabIndex) {
+      case 0: return '影视';
+      case 1: return '阅读';
+      case 2: return '笔记';
+      default: return 'MookNote';
+    }
+  }
+
+  // ─── 云备份 ──────────────────────────────────────────
+
   Widget _buildCloudSyncButton(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.cloud_sync_outlined),
@@ -110,7 +123,6 @@ class _MainContentPageState extends State<MainContentPage> {
   void _showCloudSheet(BuildContext context) async {
     final colors = Theme.of(context).colorScheme;
     final hasConfig = (await WebDAVService.instance.getConfig()) != null;
-
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
@@ -220,18 +232,7 @@ class _MainContentPageState extends State<MainContentPage> {
     ]),
   );
 
-  String _getAppBarTitle(AppProvider provider) {
-    switch (provider.mainTabIndex) {
-      case 0: return '影视';
-      case 1: return '阅读';
-      case 2: return '笔记';
-      default: return 'MookNote';
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Tab 栏 + 指示条（跟随 PageView 滑动）
-  // ═══════════════════════════════════════════════════════════════════
+  // ─── Tab 栏 + 指示条 ─────────────────────────────────
 
   Widget _buildTabBar(BuildContext context) {
     return Consumer<AppProvider>(
@@ -273,7 +274,6 @@ class _MainContentPageState extends State<MainContentPage> {
                 }).toList(),
               ),
             ),
-            // 指示条 — 跟随 PageView 滑动
             AnimatedBuilder(
               animation: _pageController,
               builder: (context, _) {
@@ -302,9 +302,7 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // PageView 内容区
-  // ═══════════════════════════════════════════════════════════════════
+  // ─── PageView 内容区 ─────────────────────────────────
 
   Widget _buildTabContent() {
     return Consumer<AppProvider>(
@@ -312,7 +310,6 @@ class _MainContentPageState extends State<MainContentPage> {
         final tabs = _enabledTabs;
         final safeIndex = _mapToEnabledTabIndex(provider.mainTabIndex).clamp(0, tabs.length - 1);
 
-        // 同步 provider → PageView（点击 Tab 触发）
         if (_isTabTap && _pageController.hasClients) {
           _pageController.animateToPage(safeIndex, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
         }

@@ -26,6 +26,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   bool _initialized = false;
   int _lastDataCount = -1;
   DateTime? _lastUpdatedAt;
+  int _lastScrollSignal = 0;
 
   @override
   void initState() {
@@ -52,6 +53,15 @@ class _NoteTabPageState extends State<NoteTabPage> {
   void _onDataChanged() {
     if (!_initialized || !mounted) return;
     final provider = context.read<AppProvider>();
+
+    // 检查回到顶部信号
+    if (provider.scrollToTopSignal != _lastScrollSignal && provider.scrollToTopSignal > 0) {
+      _lastScrollSignal = provider.scrollToTopSignal;
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      }
+    }
+
     final count = provider.notes.length;
     final latest = provider.notes.isNotEmpty ? provider.notes.first.updatedAt : null;
     if (count != _lastDataCount || latest != _lastUpdatedAt) {
