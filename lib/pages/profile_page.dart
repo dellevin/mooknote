@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../utils/toast_util.dart';
@@ -66,236 +67,425 @@ class _ProfilePageState extends State<ProfilePage> {
           title: const Text('我的'),
         ),
         Expanded(
-          child: Container(
-            color: colors.surfaceContainerHigh,
-            child: SingleChildScrollView(
+          child: Consumer<AppProvider>(
+            builder: (context, provider, child) {
+              final movies = provider.movies.where((m) => !m.isDeleted).toList();
+              final books = provider.books.where((b) => !b.isDeleted).toList();
+              final notes = provider.notes.where((n) => !n.isDeleted).toList();
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHero(movies, books, notes),
+                    const SizedBox(height: 20),
+                    if (_userPrefs.showMovieTab) ...[
+                      _buildModuleHeader('影视'),
+                      _buildMovieModule(movies),
+                      const SizedBox(height: 20),
+                    ],
+                    if (_userPrefs.showBookTab) ...[
+                      _buildModuleHeader('阅读'),
+                      _buildBookModule(books),
+                      const SizedBox(height: 20),
+                    ],
+                    _buildTagsSection(movies, books, notes),
+                    const SizedBox(height: 20),
+                    _buildToolsGrid(context),
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Hero 区域 ──────────────────────────────────────────────────────
+
+  Widget _buildHero(List<Movie> movies, List<Book> books, List<Note> notes) {
+    final colors = Theme.of(context).colorScheme;
+    final coverPaths = [
+      ...movies.where((m) => m.posterPath != null && m.posterPath!.isNotEmpty).map((m) => m.posterPath!),
+      ...books.where((b) => b.coverPath != null && b.coverPath!.isNotEmpty).map((b) => b.coverPath!),
+    ]..shuffle();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      child: Stack(
+        children: [
+          if (coverPaths.length >= 4)
+            Positioned.fill(child: _buildPosterMosaic(coverPaths))
+          else
+            Positioned.fill(child: Container(decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [colors.primary, colors.primary.withValues(alpha: 0.6)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+            ))),
+          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.55))),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildUserCard(),
-                const SizedBox(height: 8),
-                _buildExploreRow(),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickAvatar,
+                      child: Container(
+                        width: 56, height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _avatarPath != null && _avatarPath!.isNotEmpty
+                            ? FadeInLocalImage(path: _avatarPath, fit: BoxFit.cover,
+                                errorWidget: Icon(Icons.person_outline, size: 28, color: Colors.white.withValues(alpha: 0.6)))
+                            : Container(color: Colors.white.withValues(alpha: 0.15), child: Icon(Icons.person_outline, size: 28, color: Colors.white.withValues(alpha: 0.6))),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _editNickname(context),
+                            child: Text(_nickname, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => _editMotto(context),
+                            child: Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
-                _buildSectionHeader('数据'),
-                _buildMenuGroup([
-                  _MenuEntry(Icons.analytics_outlined, '数据统计', () => _push(context, const StatisticsPage())),
-                  _MenuEntry(Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
-                  _MenuEntry(Icons.delete_outline, '回收站', () => _push(context, const RecycleBinPage())),
-                ]),
-                const SizedBox(height: 80),
+                Row(
+                  children: [
+                    _buildHeroStat(_formatCount(movies.length), '观影'),
+                    _buildHeroStat(_formatCount(books.length), '阅读'),
+                    _buildHeroStat(_formatCount(notes.length), '笔记'),
+                  ],
+                ),
               ],
             ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPosterMosaic(List<String> paths) {
+    final posters = paths.take(12).toList();
+    while (posters.length < 12) posters.add(posters[posters.length % paths.length]);
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4, mainAxisSpacing: 2, crossAxisSpacing: 2,
+      ),
+      itemCount: 12,
+      itemBuilder: (_, i) => FadeInLocalImage(path: posters[i], fit: BoxFit.cover),
+    );
+  }
+
+  Widget _buildHeroStat(String value, String label) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+        ],
+      ),
+    );
+  }
+
+  // ─── 模块标题 ──────────────────────────────────────────────────────
+
+  Widget _buildModuleHeader(String title) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+    );
+  }
+
+  // ─── 影视模块 ──────────────────────────────────────────────────────
+
+  Widget _buildMovieModule(List<Movie> movies) {
+    final colors = Theme.of(context).colorScheme;
+    final watched = movies.where((m) => m.status == 'watched').length;
+    final watching = movies.where((m) => m.status == 'watching').length;
+    final wantTo = movies.where((m) => m.status == 'want_to_watch').length;
+    final recent = movies.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(children: [
+            _buildStatusTag('已看', watched, true, colors),
+            const SizedBox(width: 10),
+            _buildStatusTag('在看', watching, false, colors),
+            const SizedBox(width: 10),
+            _buildStatusTag('想看', wantTo, false, colors),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        if (recent.isNotEmpty)
+          SizedBox(
+            height: 120,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: recent.take(8).length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => _buildCoverCard(
+                title: recent[i].title,
+                imagePath: recent[i].posterPath,
+                onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: recent[i]),
+              ),
+            ),
+          )
+        else
+          _buildEmptyHint('暂无影视记录'),
       ],
     );
   }
 
-  void _push(BuildContext context, Widget page) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  // ─── 阅读模块 ──────────────────────────────────────────────────────
+
+  Widget _buildBookModule(List<Book> books) {
+    final colors = Theme.of(context).colorScheme;
+    final read = books.where((b) => b.status == 'read').length;
+    final reading = books.where((b) => b.status == 'reading').length;
+    final wantTo = books.where((b) => b.status == 'want_to_read').length;
+    final recent = books.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(children: [
+            _buildStatusTag('已读', read, true, colors),
+            const SizedBox(width: 10),
+            _buildStatusTag('在读', reading, false, colors),
+            const SizedBox(width: 10),
+            _buildStatusTag('想读', wantTo, false, colors),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        if (recent.isNotEmpty)
+          SizedBox(
+            height: 120,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: recent.take(8).length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => _buildCoverCard(
+                title: recent[i].title,
+                imagePath: recent[i].coverPath,
+                onTap: () => Navigator.pushNamed(context, '/book-detail', arguments: recent[i]),
+              ),
+            ),
+          )
+        else
+          _buildEmptyHint('暂无阅读记录'),
+      ],
+    );
   }
 
-  // ─── 用户卡片 ────────────────────────────────────────────────────────
-
-  Widget _buildUserCard() {
-    return Consumer<AppProvider>(
-      builder: (context, provider, child) {
-        final colors = Theme.of(context).colorScheme;
-        final movieCount = provider.movies.where((m) => !m.isDeleted).length;
-        final bookCount = provider.books.length;
-        final noteCount = provider.notes.length;
-
-        return Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: const EdgeInsets.all(24),
+  Widget _buildStatusTag(String label, int count, bool active, ColorScheme colors) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6, height: 6,
           decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+            shape: BoxShape.circle,
+            color: active ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text('$label $count', style: TextStyle(
+          fontSize: 12,
+          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+          color: active ? colors.onSurface : colors.onSurface.withValues(alpha: 0.5),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildCoverCard({required String title, String? imagePath, VoidCallback? onTap}) {
+    final colors = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 78,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: 78,
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: imagePath != null && imagePath.isNotEmpty
+                    ? FadeInLocalImage(path: imagePath, fit: BoxFit.cover,
+                        errorWidget: Icon(Icons.image_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.2)))
+                    : Icon(Icons.image_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.2)),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.6))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyHint(String text) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Center(child: Text(text, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
+    );
+  }
+
+  // ─── 标签模块 ──────────────────────────────────────────────────────
+
+  Widget _buildTagsSection(List<Movie> movies, List<Book> books, List<Note> notes) {
+    final colors = Theme.of(context).colorScheme;
+    final freq = <String, int>{};
+    for (final m in movies) { for (final g in m.genres) { freq[g] = (freq[g] ?? 0) + 1; } }
+    for (final b in books) { for (final g in b.genres) { freq[g] = (freq[g] ?? 0) + 1; } }
+    for (final n in notes) { for (final t in n.tags) { freq[t] = (freq[t] ?? 0) + 1; } }
+    final sorted = freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final topTags = sorted.take(10).map((e) => e.key).toList();
+
+    if (topTags.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Text('常用标签', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage())),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('管理', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                    Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+                  ],
+                ),
+              ),
             ],
           ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: _pickAvatar,
-                    child: Container(
-                      width: 64, height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: colors.surfaceContainerHighest,
-                        border: Border.all(color: colors.outlineVariant, width: 0.5),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _avatarPath != null && _avatarPath!.isNotEmpty
-                          ? FadeInLocalImage(path: _avatarPath, fit: BoxFit.cover,
-                              errorWidget: Icon(Icons.person_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.25)))
-                          : Icon(Icons.person_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
-                    ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Wrap(
+            spacing: 8, runSpacing: 8,
+            children: topTags.map((tag) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(tag, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.7))),
+            )).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── 工具栏 ────────────────────────────────────────────────────────
+
+  Widget _buildToolsGrid(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final tools = [
+      (Icons.explore_outlined, '漫步', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()))),
+      (Icons.analytics_outlined, '统计', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsPage()))),
+      (Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
+      (Icons.settings_outlined, '设置', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()))),
+      (Icons.delete_outline, '回收', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: tools.asMap().entries.map((e) {
+            final isLast = e.key == tools.length - 1;
+            return Column(
+              children: [
+                InkWell(
+                  onTap: e.value.$3,
+                  borderRadius: BorderRadius.only(
+                    topLeft: e.key == 0 ? const Radius.circular(12) : Radius.zero,
+                    topRight: e.key == 0 ? const Radius.circular(12) : Radius.zero,
+                    bottomLeft: isLast ? const Radius.circular(12) : Radius.zero,
+                    bottomRight: isLast ? const Radius.circular(12) : Radius.zero,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
                       children: [
-                        GestureDetector(
-                          onTap: () => _editNickname(context),
-                          child: Text(_nickname, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                        ),
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () => _editMotto(context),
-                          child: Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
-                        ),
+                        Icon(e.value.$1, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(e.value.$2, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7)))),
+                        Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.settings_outlined, color: colors.onSurface.withValues(alpha: 0.4)),
-                    onPressed: () => _showSettings(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Divider(height: 1, color: colors.outlineVariant),
-              const SizedBox(height: 12),
-              _buildStatRow(Icons.movie_outlined, _formatCount(movieCount), '观影'),
-              const SizedBox(height: 8),
-              _buildStatRow(Icons.menu_book_outlined, _formatCount(bookCount), '阅读'),
-              const SizedBox(height: 8),
-              _buildStatRow(Icons.note_outlined, _formatCount(noteCount), '笔记'),
-            ],
-          ),
-        );
-      },
+                ),
+                if (!isLast) Divider(height: 1, indent: 46, endIndent: 16, color: colors.outlineVariant),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
-  Widget _buildStatRow(IconData icon, String count, String label) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-        const Spacer(),
-        Text(count, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
-      ],
-    );
+  // ─── 辅助方法 ──────────────────────────────────────────────────────
+
+  void _push(BuildContext context, Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   String _formatCount(int count) {
     if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return count.toString();
-  }
-
-  // ─── 探索行 ──────────────────────────────────────────────────────────
-
-  Widget _buildExploreRow() {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.auto_awesome, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
-          const SizedBox(width: 10),
-          Text('快捷入口', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-          const Spacer(),
-          _buildQuickAction(Icons.explore_outlined, '漫步', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()))),
-          const SizedBox(width: 24),
-          _buildQuickAction(Icons.label_outline, '标签', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage()))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickAction(IconData icon, String label, VoidCallback onTap) {
-    final colors = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
-        ],
-      ),
-    );
-  }
-
-  // ─── 菜单 ────────────────────────────────────────────────────────────
-
-  Widget _buildSectionHeader(String title) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.3))),
-    );
-  }
-
-  Widget _buildMenuGroup(List<_MenuEntry> entries) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        children: entries.asMap().entries.map((e) {
-          final isLast = e.key == entries.length - 1;
-          return Column(
-            children: [
-              InkWell(
-                onTap: e.value.onTap,
-                borderRadius: BorderRadius.only(
-                  topLeft: e.key == 0 ? const Radius.circular(16) : Radius.zero,
-                  topRight: e.key == 0 ? const Radius.circular(16) : Radius.zero,
-                  bottomLeft: isLast ? const Radius.circular(16) : Radius.zero,
-                  bottomRight: isLast ? const Radius.circular(16) : Radius.zero,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36, height: 36,
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(e.value.icon, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(e.value.title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface))),
-                      Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
-                    ],
-                  ),
-                ),
-              ),
-              if (!isLast) Divider(height: 1, indent: 68, endIndent: 20, color: colors.outlineVariant),
-            ],
-          );
-        }).toList(),
-      ),
-    );
   }
 
   // ─── 头像 ────────────────────────────────────────────────────────────
@@ -440,19 +630,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  void _showSettings(BuildContext context) {
-    _push(context, const SettingsPage());
-  }
-}
-
-// ─── 数据类 ────────────────────────────────────────────────────────────
-
-class _MenuEntry {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  _MenuEntry(this.icon, this.title, this.onTap);
 }
 
 // ─── 设置页面 ──────────────────────────────────────────────────────────

@@ -27,6 +27,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   int _lastDataCount = -1;
   DateTime? _lastUpdatedAt;
   int _lastScrollSignal = 0;
+  String? _selectedTag;
 
   @override
   void initState() {
@@ -82,7 +83,12 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Future<void> _loadFirst() async {
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await context.read<AppProvider>().loadNotesPaged(offset: 0);
+    List<Note> list = await context.read<AppProvider>().loadNotesPaged(offset: 0);
+    if (_selectedTag != null) {
+      final all = context.read<AppProvider>().notes.where((n) => !n.isDeleted && n.tags.contains(_selectedTag)).toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      list = all.take(20).toList();
+    }
     if (!mounted) return;
     setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -90,7 +96,14 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
-    final list = await context.read<AppProvider>().loadNotesPaged(offset: _offset);
+    List<Note> list;
+    if (_selectedTag != null) {
+      final all = context.read<AppProvider>().notes.where((n) => !n.isDeleted && n.tags.contains(_selectedTag)).toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      list = all.skip(_offset).take(20).toList();
+    } else {
+      list = await context.read<AppProvider>().loadNotesPaged(offset: _offset);
+    }
     if (!mounted) return;
     setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -105,14 +118,74 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final colors = Theme.of(context).colorScheme;
     return Consumer<AppProvider>(builder: (context, provider, _) {
       if (_items.isEmpty && _isLoading) return _buildSkeleton();
-      if (_items.isEmpty) {
+      if (_items.isEmpty && _selectedTag == null) {
         return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
             child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildEmptyState(context)]));
       }
-      if (_layoutStyle == 1) return _buildWaterfallView();
-      if (_layoutStyle == 2) return _buildTimelineView();
-      return _buildListView();
+      return Column(
+        children: [
+          _buildTagBar(provider),
+          Expanded(
+            child: _items.isEmpty
+                ? Center(child: Text('没有"$_selectedTag"相关的笔记', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))))
+                : _buildContent(),
+          ),
+        ],
+      );
     });
+  }
+
+  Widget _buildContent() {
+    if (_layoutStyle == 1) return _buildWaterfallView();
+    if (_layoutStyle == 2) return _buildTimelineView();
+    return _buildListView();
+  }
+
+  Widget _buildTagBar(AppProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+    final allTags = <String>{};
+    for (final n in provider.notes.where((n) => !n.isDeleted)) {
+      allTags.addAll(n.tags);
+    }
+    if (allTags.isEmpty) return const SizedBox.shrink();
+    final tags = allTags.toList()..sort();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
+      ),
+      child: SizedBox(
+        height: 32,
+        child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: tags.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (_, i) {
+          final tag = tags[i];
+          final selected = _selectedTag == tag;
+          return GestureDetector(
+            onTap: () {
+              setState(() => _selectedTag = selected ? null : tag);
+              _loadFirst();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: selected ? colors.primary : colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              alignment: Alignment.center,
+              child: Text(tag, style: TextStyle(
+                fontSize: 12,
+                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+              )),
+            ),
+          );
+        },
+      ),
+      ),
+    );
   }
 
   Widget _buildSkeleton() {
