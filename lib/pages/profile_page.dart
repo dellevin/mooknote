@@ -111,13 +111,15 @@ class _ProfilePageState extends State<ProfilePage> {
       ...books.where((b) => b.coverPath != null && b.coverPath!.isNotEmpty).map((b) => b.coverPath!),
     ]..shuffle();
 
+    final hasData = coverPaths.length >= 4;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
       child: Stack(
         children: [
-          if (coverPaths.length >= 4)
+          if (hasData)
             Positioned.fill(child: _buildPosterMosaic(coverPaths))
           else
             Positioned.fill(child: Container(decoration: BoxDecoration(
@@ -126,7 +128,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
             ))),
-          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.55))),
+          Positioned.fill(child: Container(color: hasData
+              ? Colors.black.withValues(alpha: 0.35)
+              : colors.surface.withValues(alpha: 0.82))),
           Padding(
             padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             child: Column(
@@ -139,13 +143,21 @@ class _ProfilePageState extends State<ProfilePage> {
                         width: 56, height: 56,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
+                          border: Border.all(color: hasData
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : colors.outlineVariant, width: 1.5),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: _avatarPath != null && _avatarPath!.isNotEmpty
                             ? FadeInLocalImage(path: _avatarPath, fit: BoxFit.cover,
-                                errorWidget: Icon(Icons.person_outline, size: 28, color: Colors.white.withValues(alpha: 0.6)))
-                            : Container(color: Colors.white.withValues(alpha: 0.15), child: Icon(Icons.person_outline, size: 28, color: Colors.white.withValues(alpha: 0.6))),
+                                errorWidget: Icon(Icons.person_outline, size: 28, color: hasData
+                                    ? Colors.white.withValues(alpha: 0.5)
+                                    : colors.onSurface.withValues(alpha: 0.3)))
+                            : Container(
+                                color: hasData ? Colors.white.withValues(alpha: 0.1) : colors.surfaceContainerHighest,
+                                child: Icon(Icons.person_outline, size: 28, color: hasData
+                                    ? Colors.white.withValues(alpha: 0.5)
+                                    : colors.onSurface.withValues(alpha: 0.3))),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -155,13 +167,18 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           GestureDetector(
                             onTap: () => _editNickname(context),
-                            child: Text(_nickname, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                            child: Text(_nickname, style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w600,
+                                color: hasData ? Colors.white : colors.onSurface)),
                           ),
                           const SizedBox(height: 4),
                           GestureDetector(
                             onTap: () => _editMotto(context),
                             child: Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
+                                style: TextStyle(fontSize: 12,
+                                    color: hasData
+                                        ? Colors.white.withValues(alpha: 0.7)
+                                        : colors.onSurface.withValues(alpha: 0.5))),
                           ),
                         ],
                       ),
@@ -171,9 +188,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    _buildHeroStat(_formatCount(movies.length), '观影'),
-                    _buildHeroStat(_formatCount(books.length), '阅读'),
-                    _buildHeroStat(_formatCount(notes.length), '笔记'),
+                    _buildHeroStat(_formatCount(movies.length), '观影', hasData),
+                    _buildHeroStat(_formatCount(books.length), '阅读', hasData),
+                    _buildHeroStat(_formatCount(notes.length), '笔记', hasData),
                   ],
                 ),
               ],
@@ -198,13 +215,15 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildHeroStat(String value, String label) {
+  Widget _buildHeroStat(String value, String label, bool hasData) {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: hasData ? Colors.white : Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+          Text(label, style: TextStyle(fontSize: 11, color: hasData
+              ? Colors.white.withValues(alpha: 0.7)
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
         ],
       ),
     );
