@@ -47,6 +47,10 @@ class UserPrefs {
   int get themeMode => prefs.getInt('themeMode') ?? 0;
   Future<bool> setThemeMode(int value) => prefs.setInt('themeMode', value);
 
+  /// 配色方案: 0=经典, 1=靛蓝, 2=薄荷, 3=琥珀, 4=玫瑰, 5=紫罗兰
+  int get colorSchemeIndex => prefs.getInt('colorSchemeIndex') ?? 0;
+  Future<bool> setColorSchemeIndex(int value) => prefs.setInt('colorSchemeIndex', value);
+
   /// 上映日期：显示到日（true）/ 显示到月（false）
   bool get showExactReleaseDate => prefs.getBool('showExactReleaseDate') ?? true;
   Future<bool> setShowExactReleaseDate(bool value) => prefs.setBool('showExactReleaseDate', value);

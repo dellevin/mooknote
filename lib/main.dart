@@ -225,7 +225,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           return MaterialApp(
             title: 'MookNote',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
+            theme: AppTheme.getLightTheme(provider.colorSchemeIndex),
             darkTheme: AppTheme.darkTheme,
             themeMode: provider.themeMode,
             localizationsDelegates: const [

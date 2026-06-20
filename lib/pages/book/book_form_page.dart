@@ -10,6 +10,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
+import '../../widgets/genre_selector_page.dart';
 
 /// 添加/编辑书籍页面 - 紧凑双行布局设计
 class BookFormPage extends StatefulWidget {
@@ -266,13 +267,18 @@ class _BookFormPageState extends State<BookFormPage> {
                       final tags = await provider.getTags('book_genre', excludeHidden: true);
                       final existingNames = tags.map((t) => t['name'] as String).toList();
                       if (mounted) {
-                        _showMultiValueDialog(
-                          title: '添加类型',
-                          initialValues: _genres,
-                          hint: '如：小说、历史、传记',
-                          existingTags: existingNames,
-                          onConfirm: (values) => setState(() => _genres = values),
+                        final result = await Navigator.push<List<String>>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GenreSelectorPage(
+                              title: '选择类型',
+                              existingTags: existingNames,
+                              initialSelected: _genres,
+                              hint: '如：小说、历史、传记',
+                            ),
+                          ),
                         );
+                        if (result != null) setState(() => _genres = result);
                       }
                     },
                   ),
@@ -314,15 +320,9 @@ class _BookFormPageState extends State<BookFormPage> {
                     label: '书籍简介',
                     value: _summaryController.text,
                     icon: Icons.description_outlined,
-                    height: 120,
+                    height: 160,
                     scrollable: true,
-                    onTap: () => _showTextInputDialog(
-                      title: '书籍简介',
-                      initialValue: _summaryController.text,
-                      hint: '写下书籍简介...',
-                      maxLines: 8,
-                      onConfirm: (value) => setState(() => _summaryController.text = value),
-                    ),
+                    onTap: () => _editSummary(),
                   ),
                 ),
               ],
@@ -715,6 +715,7 @@ class _BookFormPageState extends State<BookFormPage> {
   /// 构建星星评分（支持手动输入）
   Widget _buildStarRating() {
     final colors = Theme.of(context).colorScheme;
+    final hasRating = _ratingController.text.isNotEmpty;
     return Row(
       children: [
         Text(
@@ -727,6 +728,14 @@ class _BookFormPageState extends State<BookFormPage> {
         const SizedBox(width: 12),
         // 手动输入框
         _buildRatingInputField(),
+        // 清除按钮
+        if (hasRating) ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => setState(() => _ratingController.clear()),
+            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+          ),
+        ],
       ],
     );
   }
@@ -1429,6 +1438,19 @@ class _BookFormPageState extends State<BookFormPage> {
     return null;
   }
 
+  /// 全屏编辑书籍简介
+  Future<void> _editSummary() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _SummaryEditorPage(initialText: _summaryController.text),
+      ),
+    );
+    if (result != null) {
+      setState(() => _summaryController.text = result);
+    }
+  }
+
   /// 显示文本输入对话框
   Future<void> _showTextInputDialog({
     required String title,
@@ -1522,7 +1544,6 @@ class _TextInputDialogState extends State<_TextInputDialog> {
       content: TextField(
         controller: controller,
         maxLines: widget.maxLines,
-        autofocus: true,
         style: TextStyle(fontSize: 15, color: colors.onSurface),
         decoration: InputDecoration(
           hintText: widget.hint,
@@ -1664,6 +1685,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                             spacing: 8,
                             runSpacing: 8,
                             children: values.map((v) {
+                              final display = v.length > 8 ? '${v.substring(0, 8)}...' : v;
                               return Container(
                                 padding: const EdgeInsets.only(left: 12, right: 6, top: 7, bottom: 7),
                                 decoration: BoxDecoration(
@@ -1674,7 +1696,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      v,
+                                      display,
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
@@ -1718,6 +1740,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                             spacing: 8,
                             runSpacing: 8,
                             children: availableTags.map((tag) {
+                              final display = tag.length > 8 ? '${tag.substring(0, 8)}...' : tag;
                               return GestureDetector(
                                 onTap: () {
                                   setState(() => values.add(tag));
@@ -1738,7 +1761,7 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                                       Icon(Icons.add, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                                       const SizedBox(width: 4),
                                       Text(
-                                        tag,
+                                        display,
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
@@ -1824,6 +1847,64 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
           child: const Text('确定'),
         ),
       ],
+    );
+  }
+}
+
+/// 书籍简介全屏编辑页
+class _SummaryEditorPage extends StatefulWidget {
+  final String initialText;
+  const _SummaryEditorPage({required this.initialText});
+
+  @override
+  State<_SummaryEditorPage> createState() => _SummaryEditorPageState();
+}
+
+class _SummaryEditorPageState extends State<_SummaryEditorPage> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        title: const Text('书籍简介'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, _controller.text.trim()),
+            child: Text('完成', style: TextStyle(
+              fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary,
+            )),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: TextField(
+        controller: _controller,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
+        decoration: InputDecoration(
+          hintText: '写下书籍简介...',
+          hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+          contentPadding: const EdgeInsets.all(20),
+          border: InputBorder.none,
+        ),
+      ),
     );
   }
 }

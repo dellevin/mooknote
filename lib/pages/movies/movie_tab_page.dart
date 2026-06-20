@@ -232,9 +232,9 @@ class _MovieTabPageState extends State<MovieTabPage> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            if (movie.alternateTitles.isNotEmpty) ...[
+            ...[
               const SizedBox(height: 3),
-              Text(movie.alternateTitles.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
+              Text(_buildSubtitle(movie), maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
             ],
             const SizedBox(height: 6),
@@ -246,6 +246,14 @@ class _MovieTabPageState extends State<MovieTabPage> {
         ]),
       ),
     );
+  }
+
+  String _buildSubtitle(Movie movie) {
+    final parts = <String>[];
+    if (movie.directors.isNotEmpty) parts.add(movie.directors.first);
+    if (movie.actors.isNotEmpty) parts.add(movie.actors.take(2).join('、'));
+    if (movie.genres.isNotEmpty) parts.add(movie.genres.take(2).join('、'));
+    return parts.join(' · ');
   }
 
   void _showDeleteDialog(BuildContext context, Movie movie) {

@@ -34,6 +34,92 @@ class AppTheme {
   static const FontWeight _medium = FontWeight.w500;
   static const FontWeight _semibold = FontWeight.w600;
 
+  // 配色方案种子色
+  static const List<Color> seedColors = [
+    Color(0xFF333333), // 经典
+    Color(0xFF3F51B5), // 靛蓝
+    Color(0xFF009688), // 薄荷
+    Color(0xFFFF8F00), // 琥珀
+    Color(0xFFE91E63), // 玫瑰
+    Color(0xFF673AB7), // 紫罗兰
+  ];
+
+  static const List<String> colorSchemeNames = ['经典', '靛蓝', '薄荷', '琥珀', '玫瑰', '紫罗兰'];
+
+  /// 根据配色索引获取浅色主题
+  static ThemeData getLightTheme(int index) {
+    if (index <= 0) return lightTheme;
+    return _buildColoredLightTheme(seedColors[index]);
+  }
+
+  /// 带配色的浅色主题
+  static ThemeData _buildColoredLightTheme(Color seed) {
+    final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: scheme.surface,
+      colorScheme: scheme,
+      appBarTheme: AppBarTheme(
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+        centerTitle: false,
+        titleSpacing: 24,
+        titleTextStyle: TextStyle(
+          fontFamily: _fontFamily, fontSize: 18, fontWeight: _semibold,
+          color: scheme.onSurface, letterSpacing: 0,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: scheme.surface, elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: scheme.outlineVariant, width: 0.5),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        minLeadingWidth: 0, dense: true,
+      ),
+      dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 0.5, space: 0),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: false,
+        border: UnderlineInputBorder(borderSide: BorderSide(color: scheme.outlineVariant, width: 0.5)),
+        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: scheme.outlineVariant, width: 0.5)),
+        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: scheme.primary, width: 1)),
+        errorBorder: UnderlineInputBorder(borderSide: BorderSide(color: scheme.error, width: 0.5)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        hintStyle: TextStyle(fontFamily: _fontFamily, fontSize: 15, fontWeight: _regular, color: scheme.onSurfaceVariant),
+        labelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 13, fontWeight: _medium, color: scheme.onSurfaceVariant),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.primary, foregroundColor: scheme.onPrimary,
+          elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          textStyle: TextStyle(fontFamily: _fontFamily, fontSize: 14, fontWeight: _medium, letterSpacing: 0.3),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: scheme.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          textStyle: TextStyle(fontFamily: _fontFamily, fontSize: 14, fontWeight: _medium),
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: scheme.surface,
+        selectedItemColor: scheme.primary,
+        unselectedItemColor: scheme.onSurfaceVariant,
+        elevation: 0, type: BottomNavigationBarType.fixed,
+        selectedLabelStyle: const TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium),
+        unselectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _regular, color: scheme.onSurfaceVariant),
+      ),
+    );
+  }
+
   // 亮色主题 - 极简主义
   static ThemeData get lightTheme {
     return ThemeData(

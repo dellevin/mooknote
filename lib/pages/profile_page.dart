@@ -8,6 +8,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../utils/theme/app_theme.dart';
 import '../utils/toast_util.dart';
 import 'recycle_bin_page.dart';
 import 'sync/backup_page.dart';
@@ -704,6 +705,8 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildThemeModeSelector(),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildColorSchemeSelector(),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildSectionHeader('其他设置'),
           _buildSwitchItem(
             icon: Icons.swipe_vertical_outlined,
@@ -781,22 +784,32 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.only(bottom: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Text('主题模式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
-            const SizedBox(height: 16),
-            for (int i = 0; i < _themeModeLabels.length; i++)
-              ListTile(
-                leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(_themeModeIcons[i], color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(_themeModeLabels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                trailing: _themeMode == i ? Icon(Icons.check, color: colors.onSurface, size: 20) : null,
-                onTap: () async { await _setThemeMode(i); Navigator.pop(ctx); },
-              ),
+            Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(alignment: Alignment.centerLeft, child: Text('主题模式', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface))),
+            ),
             const SizedBox(height: 8),
+            for (int i = 0; i < _themeModeLabels.length; i++)
+              InkWell(
+                onTap: () async { await _setThemeMode(i); Navigator.pop(ctx); },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(_themeModeIcons[i], size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(_themeModeLabels[i], style: TextStyle(fontSize: 13, color: colors.onSurface))),
+                      if (_themeMode == i) Icon(Icons.check, color: colors.onSurface, size: 18),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -814,6 +827,88 @@ class _SettingsPageState extends State<SettingsPage> {
       context.read<AppProvider>().setThemeMode(themeMode);
       setState(() => _themeMode = mode);
     }
+  }
+
+  Widget _buildColorSchemeSelector() {
+    final colors = Theme.of(context).colorScheme;
+    final provider = context.watch<AppProvider>();
+    final currentIndex = provider.colorSchemeIndex;
+    return InkWell(
+      onTap: () => _showColorSchemePicker(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.palette_outlined, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('配色方案', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                const SizedBox(height: 2),
+                Text(AppTheme.colorSchemeNames[currentIndex], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              ]),
+            ),
+            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showColorSchemePicker() {
+    final colors = Theme.of(context).colorScheme;
+    final provider = context.read<AppProvider>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(alignment: Alignment.centerLeft, child: Text('配色方案', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface))),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 2.2),
+                itemCount: AppTheme.seedColors.length,
+                itemBuilder: (_, i) {
+                  final selected = provider.colorSchemeIndex == i;
+                  return GestureDetector(
+                    onTap: () { provider.setColorScheme(i); Navigator.pop(ctx); },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected ? AppTheme.seedColors[i].withValues(alpha: 0.12) : colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: selected ? AppTheme.seedColors[i] : Colors.transparent, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(width: 14, height: 14, decoration: BoxDecoration(color: AppTheme.seedColors[i], shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Text(AppTheme.colorSchemeNames[i], style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSwitchItem({required IconData icon, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {

@@ -47,6 +47,9 @@ class AppProvider extends ChangeNotifier {
   // 主题模式
   ThemeMode _themeMode = ThemeMode.system;
 
+  // 配色方案索引
+  int _colorSchemeIndex = 0;
+
   /// 是否使用远程服务端（同步开关 + 已激活）
   bool get _useRemote {
     final prefs = UserPrefs();
@@ -206,6 +209,7 @@ class AppProvider extends ChangeNotifier {
   bool get drawerOpen => _drawerOpen;
   bool get bottomNavVisible => _bottomNavVisible;
   ThemeMode get themeMode => _themeMode;
+  int get colorSchemeIndex => _colorSchemeIndex;
   List<Movie> get movies => _movies;
   List<Book> get books => _books;
   List<Note> get notes => _notes;
@@ -263,7 +267,16 @@ class AppProvider extends ChangeNotifier {
       default:
         _themeMode = ThemeMode.system;
     }
+    _colorSchemeIndex = prefs.colorSchemeIndex;
     notifyListeners();
+  }
+
+  void setColorScheme(int index) {
+    if (_colorSchemeIndex != index) {
+      _colorSchemeIndex = index;
+      UserPrefs().setColorSchemeIndex(index);
+      notifyListeners();
+    }
   }
 
   void setMovieStatusIndex(int index) {
