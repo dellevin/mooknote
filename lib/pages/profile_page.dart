@@ -325,20 +325,37 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('修改昵称', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: TextField(controller: controller, decoration: InputDecoration(hintText: '输入昵称', border: UnderlineInputBorder(borderSide: BorderSide(color: colors.outline)))),
+        content: TextField(controller: controller,
+            style: TextStyle(fontSize: 14, color: colors.onSurface),
+            decoration: InputDecoration(
+              hintText: '输入昵称',
+              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+              filled: true,
+              fillColor: colors.surfaceContainerHighest,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1.5)),
+            )),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          TextButton(onPressed: () async {
-            final newNickname = controller.text.trim();
-            if (newNickname.isNotEmpty) {
-              await _userPrefs.setNickname(newNickname);
-              setState(() => _nickname = newNickname);
-            }
-            Navigator.pop(context);
-          }, child: const Text('确定')),
+          ElevatedButton(
+            onPressed: () async {
+              final newNickname = controller.text.trim();
+              if (newNickname.isNotEmpty) {
+                await _userPrefs.setNickname(newNickname);
+                setState(() => _nickname = newNickname);
+              }
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('确定'),
+          ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -350,18 +367,35 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('修改座右铭', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: TextField(controller: controller, maxLines: 2, decoration: InputDecoration(hintText: '输入座右铭', border: UnderlineInputBorder(borderSide: BorderSide(color: colors.outline)))),
+        content: TextField(controller: controller, maxLines: 2,
+            style: TextStyle(fontSize: 14, color: colors.onSurface),
+            decoration: InputDecoration(
+              hintText: '输入座右铭',
+              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+              filled: true,
+              fillColor: colors.surfaceContainerHighest,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1.5)),
+            )),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          TextButton(onPressed: () async {
-            final newMotto = controller.text.trim();
-            await _userPrefs.setMotto(newMotto);
-            setState(() => _motto = newMotto);
-            Navigator.pop(context);
-          }, child: const Text('确定')),
+          ElevatedButton(
+            onPressed: () async {
+              final newMotto = controller.text.trim();
+              await _userPrefs.setMotto(newMotto);
+              setState(() => _motto = newMotto);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('确定'),
+          ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
