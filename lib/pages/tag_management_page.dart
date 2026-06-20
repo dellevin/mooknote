@@ -22,11 +22,20 @@ class _TagManagementPageState extends State<TagManagementPage> {
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
   Map<String, int> _usageCounts = {};
   String? _newlyAddedTagId;
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
+  bool _showTypePicker = false;
 
   @override
   void initState() {
     super.initState();
     _loadTags(_tabTypes[0]);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -86,147 +95,163 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   String get _currentType => _tabTypes[_currentIndex];
 
-  int get _activeTagCount {
-    return (_tagCache[_currentType] ?? []).where((t) => (_usageCounts[t['name']] ?? 0) > 0).length;
-  }
-
   // ─── build ─────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final tags = _tagCache[_currentType] ?? [];
+    final isSearching = _searchQuery.isNotEmpty;
+    final usedCount = tags.where((t) => (_usageCounts[t['name']] ?? 0) > 0 && (t['is_hidden'] as int?) != 1).length;
+    final unusedCount = tags.where((t) => (_usageCounts[t['name']] ?? 0) == 0 && (t['is_hidden'] as int?) != 1).length;
+    final hiddenCount = tags.where((t) => (t['is_hidden'] as int?) == 1).length;
+
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
-      appBar: AppBar(
-        title: const Text('标签管理'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(20),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Text(
-              '共 ${(_tagCache[_currentType] ?? []).length} 个标签 · 已使用 $_activeTagCount 个',
-              style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)),
-            ),
-          ),
-        ),
-        actions: [
-          _isSyncing
-              ? Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
-                )
-              : IconButton(
-                  icon: const Icon(Icons.sync, size: 20),
-                  tooltip: '从数据中同步标签',
-                  onPressed: _syncTags,
-                ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('标签管理'), actions: [
+        _isSyncing
+            ? Padding(padding: const EdgeInsets.all(16),
+                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
+            : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签', onPressed: _syncTags),
+      ]),
       body: Column(
         children: [
           const SizedBox(height: 12),
-          _buildTabSelector(),
-          const SizedBox(height: 16),
+          // 搜索栏
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(fontSize: 13, color: colors.onSurface),
+              decoration: InputDecoration(
+                hintText: '搜索标签...',
+                hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
+                prefixIcon: Icon(Icons.search, size: 18, color: colors.onSurface.withValues(alpha: 0.3)),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? GestureDetector(onTap: () { _searchController.clear(); setState(() => _searchQuery = ''); },
+                        child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.3)))
+                    : null,
+                filled: true, fillColor: colors.surface,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+              onChanged: (v) => setState(() => _searchQuery = v.trim()),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 统计卡片
+          if (!isSearching)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                _buildStatChip(Icons.check_circle_outline, '已使用', usedCount, colors),
+                const SizedBox(width: 8),
+                _buildStatChip(Icons.radio_button_unchecked, '未使用', unusedCount, colors),
+                const SizedBox(width: 8),
+                _buildStatChip(Icons.visibility_off_outlined, '隐藏', hiddenCount, colors),
+              ]),
+            ),
+          SizedBox(height: isSearching ? 0 : 12),
+          // 标签列表
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeIn,
+              switchInCurve: Curves.easeOut, switchOutCurve: Curves.easeIn,
               child: _buildTagList(_currentType),
             ),
           ),
         ],
       ),
-      floatingActionButton: GestureDetector(
-        onTap: _showAddDialog,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: colors.primary,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 12, offset: const Offset(0, 4)),
-            ],
-          ),
-          child: Row(
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 弹出的类别胶囊按钮
+          if (_showTypePicker) ...[
+            ...[0, 1, 2].where((i) => i != _currentIndex).map((i) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() => _showTypePicker = false);
+                  _onTabChanged(i);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colors.surface, borderRadius: BorderRadius.circular(24),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_typeIcons[i], size: 16, color: colors.onSurface.withValues(alpha: 0.6)),
+                    const SizedBox(width: 6),
+                    Text(_typeLabels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                  ]),
+                ),
+              ),
+            )),
+            const SizedBox(height: 4),
+          ],
+          // 底部按钮行
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, size: 18, color: colors.onPrimary),
-              const SizedBox(width: 6),
-              Text('添加${_typeLabels[_currentIndex]}',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+              // 类别切换按钮
+              GestureDetector(
+                onTap: () => setState(() => _showTypePicker = !_showTypePicker),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: colors.surface, borderRadius: BorderRadius.circular(24),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_typeIcons[_currentIndex], size: 16, color: colors.onSurface.withValues(alpha: 0.6)),
+                    const SizedBox(width: 6),
+                    Text(_typeLabels[_currentIndex], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                    const SizedBox(width: 4),
+                    Icon(_showTypePicker ? Icons.arrow_drop_down : Icons.arrow_drop_up, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 添加按钮
+              GestureDetector(
+                onTap: _showAddDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: colors.primary, borderRadius: BorderRadius.circular(24),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add, size: 18, color: colors.onPrimary),
+                    const SizedBox(width: 6),
+                    Text('添加${_typeLabels[_currentIndex]}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+                  ]),
+                ),
+              ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 
-  // ─── Tab 选择器 ─────────────────────────────────────────────────────────
-
-  Widget _buildTabSelector() {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: colors.outlineVariant,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tabWidth = constraints.maxWidth / 3;
-          return SizedBox(
-            height: 42,
-            child: Stack(
-              children: [
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  left: _currentIndex * tabWidth,
-                  top: 0, bottom: 0, width: tabWidth,
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 2, offset: const Offset(0, 1)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Row(
-                  children: List.generate(3, (i) {
-                    final selected = _currentIndex == i;
-                    return Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _onTabChanged(i),
-                        child: AnimatedOpacity(
-                          opacity: selected ? 1.0 : 0.4,
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          child: Container(
-                            height: double.infinity,
-                            alignment: Alignment.center,
-                            child: Text(_typeLabels[i],
-                                style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                                    color: colors.onSurface)),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ],
-            ),
-          );
-        },
+  Widget _buildStatChip(IconData icon, String label, int count, ColorScheme colors) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.5)),
+            const SizedBox(width: 4),
+            Text('$count', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            const SizedBox(width: 2),
+            Text(label, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+          ],
+        ),
       ),
     );
   }
@@ -235,28 +260,73 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   Widget _buildTagList(String type) {
     final tags = _tagCache[type] ?? [];
+    if (tags.isEmpty) return _buildEmptyState(type);
 
-    if (tags.isEmpty) {
-      return _buildEmptyState(type);
+    final isSearching = _searchQuery.isNotEmpty;
+
+    // 搜索模式
+    if (isSearching) {
+      final filtered = tags.where((t) => (t['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList()
+        ..sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
+      if (filtered.isEmpty) {
+        return Center(child: Text('没有找到"$_searchQuery"相关标签', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))));
+      }
+      return SingleChildScrollView(
+        key: ValueKey('search_$type'),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
+        child: Wrap(spacing: 8, runSpacing: 6, children: filtered.map(_buildTagChip).toList()),
+      );
     }
 
-    final sorted = List<Map<String, dynamic>>.from(tags)
-      ..sort((a, b) {
-        final ca = _usageCounts[a['name']] ?? 0;
-        final cb = _usageCounts[b['name']] ?? 0;
-        return cb.compareTo(ca);
-      });
+    // 分组模式
+    final used = <Map<String, dynamic>>[];
+    final unused = <Map<String, dynamic>>[];
+    final hidden = <Map<String, dynamic>>[];
+    for (final t in tags) {
+      if ((t['is_hidden'] as int?) == 1) { hidden.add(t); continue; }
+      if ((_usageCounts[t['name']] ?? 0) > 0) { used.add(t); continue; }
+      unused.add(t);
+    }
+    used.sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
 
-    return Padding(
+    final colors = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
       key: ValueKey(type),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 80),
-        child: Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: sorted.map((tag) => _buildTagChip(tag)).toList(),
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (used.isNotEmpty) ...[
+            _buildGroupHeader('已使用', used.length, colors),
+            const SizedBox(height: 6),
+            Wrap(spacing: 8, runSpacing: 6, children: used.map(_buildTagChip).toList()),
+            const SizedBox(height: 16),
+          ],
+          if (unused.isNotEmpty) ...[
+            _buildGroupHeader('未使用', unused.length, colors),
+            const SizedBox(height: 6),
+            Wrap(spacing: 8, runSpacing: 6, children: unused.map(_buildTagChip).toList()),
+            const SizedBox(height: 16),
+          ],
+          if (hidden.isNotEmpty) ...[
+            _buildGroupHeader('隐藏', hidden.length, colors),
+            const SizedBox(height: 6),
+            Wrap(spacing: 8, runSpacing: 6, children: hidden.map(_buildTagChip).toList()),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupHeader(String label, int count, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5))),
+          const SizedBox(width: 6),
+          Text('$count', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
+        ],
       ),
     );
   }
@@ -284,28 +354,22 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   Widget _tagChipContent(String name, int count, ColorScheme colors, {bool isHidden = false}) {
     return Container(
-      padding: const EdgeInsets.only(left: 14, right: 10, top: 8, bottom: 8),
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: colors.surface,
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
-        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(name, style: TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface,
+            fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurface,
             decoration: isHidden ? TextDecoration.lineThrough : null,
           )),
           if (count > 0) ...[
             const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(8)),
-              child: Text('$count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
-            ),
+            Text('$count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.35))),
           ],
         ],
       ),

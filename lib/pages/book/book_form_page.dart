@@ -1767,7 +1767,6 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                   Expanded(
                     child: TextField(
                       controller: controller,
-                      autofocus: true,
                       style: TextStyle(fontSize: 15, color: colors.onSurface),
                       decoration: InputDecoration(
                         hintText: widget.hint,

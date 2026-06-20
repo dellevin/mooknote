@@ -570,13 +570,32 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
-                  child: _buildInfoCard(
-                    label: '观看日期',
-                    value: _watchDate != null
-                        ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
-                        : '',
-                    icon: Icons.visibility_outlined,
-                    onTap: () => _selectWatchDate(),
+                  child: Stack(
+                    children: [
+                      _buildInfoCard(
+                        label: '观看日期',
+                        value: _watchDate != null
+                            ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
+                            : '',
+                        icon: Icons.visibility_outlined,
+                        onTap: () => _selectWatchDate(),
+                      ),
+                      if (_watchDate != null)
+                        Positioned(
+                          top: 8, right: 8,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _watchDate = null),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainerHighest,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 
@@ -2180,7 +2199,6 @@ class _MultiValueDialogState extends State<_MultiValueDialog> {
                   Expanded(
                     child: TextField(
                       controller: controller,
-                      autofocus: true,
                       style: TextStyle(fontSize: 15, color: colors.onSurface),
                       decoration: InputDecoration(
                         hintText: widget.hint,
