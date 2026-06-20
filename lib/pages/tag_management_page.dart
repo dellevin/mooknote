@@ -267,20 +267,22 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final count = _usageCounts[name] ?? 0;
     final tagId = tag['id'] as String;
     final isNew = tagId == _newlyAddedTagId;
+    final isHidden = (tag['is_hidden'] as int?) == 1;
 
     return GestureDetector(
       key: ValueKey(tagId),
       onTap: () => _showTagMenu(tag),
       onLongPress: () => _showTagMenu(tag),
-      child: isNew
-          ? _NewTagHighlight(
-              child: _tagChipContent(name, count, colors),
-            )
-          : _tagChipContent(name, count, colors),
+      child: Opacity(
+        opacity: isHidden ? 0.4 : 1.0,
+        child: isNew
+            ? _NewTagHighlight(child: _tagChipContent(name, count, colors, isHidden: isHidden))
+            : _tagChipContent(name, count, colors, isHidden: isHidden),
+      ),
     );
   }
 
-  Widget _tagChipContent(String name, int count, ColorScheme colors) {
+  Widget _tagChipContent(String name, int count, ColorScheme colors, {bool isHidden = false}) {
     return Container(
       padding: const EdgeInsets.only(left: 14, right: 10, top: 8, bottom: 8),
       decoration: BoxDecoration(
@@ -293,7 +295,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
+          Text(name, style: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface,
+            decoration: isHidden ? TextDecoration.lineThrough : null,
+          )),
           if (count > 0) ...[
             const SizedBox(width: 6),
             Container(
@@ -341,6 +346,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
   void _showTagMenu(Map<String, dynamic> tag) {
     final colors = Theme.of(context).colorScheme;
     final name = tag['name'] as String;
+    final isHidden = (tag['is_hidden'] as int?) == 1;
 
     showModalBottomSheet(
       context: context,
@@ -361,9 +367,28 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
-                  child: Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface))),
+                      if (isHidden) Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(4)),
+                        child: Text('已隐藏', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
+                _menuAction(
+                  isHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  isHidden ? '取消隐藏' : '隐藏',
+                  colors,
+                  () async {
+                    Navigator.pop(ctx);
+                    await context.read<AppProvider>().toggleTagHidden(tag['id'] as String);
+                    await _loadTags(_currentType);
+                  },
+                ),
                 _menuAction(Icons.edit_outlined, '重命名', colors, () {
                   Navigator.pop(ctx);
                   _showRenameDialog(tag);

@@ -539,7 +539,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     icon: Icons.category_outlined,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
-                      final tags = await provider.getTags('movie_genre');
+                      final tags = await provider.getTags('movie_genre', excludeHidden: true);
                       final existingNames = tags.map((t) => t['name'] as String).toList();
                       if (mounted) {
                         _showMultiValueDialog(

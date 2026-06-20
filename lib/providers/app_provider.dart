@@ -653,11 +653,16 @@ class AppProvider extends ChangeNotifier {
 
   // ========== 标签管理方法 ==========
 
-  Future<List<Map<String, dynamic>>> getTags(String type) async {
+  Future<List<Map<String, dynamic>>> getTags(String type, {bool excludeHidden = false}) async {
     if (_useRemote) {
       return await ServerDataService.instance.getTags(type.isEmpty ? null : type);
     }
-    return await _tagDao.getTagsByType(type);
+    return await _tagDao.getTagsByType(type, excludeHidden: excludeHidden);
+  }
+
+  Future<void> toggleTagHidden(String tagId) async {
+    await _tagDao.toggleHidden(tagId);
+    notifyListeners();
   }
 
   Future<String> addTag(String name, String type) async {

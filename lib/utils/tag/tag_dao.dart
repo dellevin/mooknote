@@ -16,10 +16,12 @@ class TagDao {
   }
 
   /// 获取指定类型的所有标签，按名称排序
-  Future<List<Map<String, dynamic>>> getTagsByType(String type) => _wrap('getTagsByType', () async {
+  /// [excludeHidden] 为 true 时，过滤掉隐藏标签
+  Future<List<Map<String, dynamic>>> getTagsByType(String type, {bool excludeHidden = false}) => _wrap('getTagsByType', () async {
     final db = await _dbHelper.database;
+    final where = excludeHidden ? 'type = ? AND is_hidden = 0' : 'type = ?';
     return await db.query('tags',
-        where: 'type = ?',
+        where: where,
         whereArgs: [type],
         orderBy: 'name ASC');
   });
@@ -120,6 +122,12 @@ class TagDao {
   Future<void> deleteTagOnly(String tagId) => _wrap('deleteTagOnly', () async {
     final db = await _dbHelper.database;
     await db.delete('tags', where: 'id = ?', whereArgs: [tagId]);
+  });
+
+  /// 切换标签的隐藏状态
+  Future<void> toggleHidden(String tagId) => _wrap('toggleHidden', () async {
+    final db = await _dbHelper.database;
+    await db.rawUpdate('UPDATE tags SET is_hidden = 1 - is_hidden WHERE id = ?', [tagId]);
   });
 
   /// 确保标签存在（用于替换操作）

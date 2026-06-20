@@ -57,7 +57,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -140,6 +140,9 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
       }
     }
+    if (oldVersion < 17) {
+      await db.execute('ALTER TABLE tags ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0');
+    }
   }
 
   /// 升级books表到V11（添加ISBN和出版时间字段）
@@ -207,6 +210,7 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         type TEXT NOT NULL,
         created_at TEXT NOT NULL,
+        is_hidden INTEGER NOT NULL DEFAULT 0,
         UNIQUE(name, type)
       )
     ''');
@@ -631,6 +635,7 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         type TEXT NOT NULL,
         created_at TEXT NOT NULL,
+        is_hidden INTEGER NOT NULL DEFAULT 0,
         UNIQUE(name, type)
       )
     ''');
