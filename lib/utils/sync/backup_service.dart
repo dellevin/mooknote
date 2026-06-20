@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
+import 'package:sqflite/sqflite.dart';
 import '../database_helper.dart';
 import '../user_prefs.dart';
 
@@ -428,6 +429,16 @@ class BackupService {
       final data = backupData['data'] as Map<String, dynamic>;
       final db = await DatabaseHelper.instance.database;
       
+      // 预获取各表的列名（用于过滤不存在的列）
+      final moviesCols = await _getTableColumns(db, 'movies');
+      final booksCols = await _getTableColumns(db, 'books');
+      final notesCols = await _getTableColumns(db, 'notes');
+      final movieReviewsCols = await _getTableColumns(db, 'movie_reviews');
+      final moviePostersCols = await _getTableColumns(db, 'movie_posters');
+      final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
+      final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
+      final tagsCols = await _getTableColumns(db, 'tags');
+
       // 开始事务
       await db.transaction((txn) async {
         // 清空现有数据
@@ -439,50 +450,50 @@ class BackupService {
         await txn.delete('books');
         await txn.delete('notes');
         await txn.delete('tags');
-        
+
         // 导入影视数据（更新图片路径）
         if (data.containsKey('movies')) {
           final movies = data['movies'] as List<dynamic>;
           for (final movie in movies) {
-            final movieMap = _convertToDbMap(movie);
+            final movieMap = _convertToDbMapSafe(movie, moviesCols);
             final updatedMap = _updateImagePath(movieMap, 'poster_path', imagePathMap);
             await txn.insert('movies', updatedMap);
           }
         }
-        
+
         // 导入书籍数据（更新图片路径）
         if (data.containsKey('books')) {
           final books = data['books'] as List<dynamic>;
           for (final book in books) {
-            final bookMap = _convertToDbMap(book);
+            final bookMap = _convertToDbMapSafe(book, booksCols);
             final updatedMap = _updateImagePath(bookMap, 'cover_path', imagePathMap);
             await txn.insert('books', updatedMap);
           }
         }
-        
+
         // 导入笔记数据（更新图片路径）
         if (data.containsKey('notes')) {
           final notes = data['notes'] as List<dynamic>;
           for (final note in notes) {
-            final noteMap = _convertToDbMap(note);
+            final noteMap = _convertToDbMapSafe(note, notesCols);
             final updatedMap = _updateNoteImagesPath(noteMap, imagePathMap);
             await txn.insert('notes', updatedMap);
           }
         }
-        
+
         // 导入影评数据
         if (data.containsKey('movie_reviews')) {
           final reviews = data['movie_reviews'] as List<dynamic>;
           for (final review in reviews) {
-            await txn.insert('movie_reviews', _convertToDbMap(review));
+            await txn.insert('movie_reviews', _convertToDbMapSafe(review, movieReviewsCols));
           }
         }
-        
+
         // 导入海报墙数据（更新图片路径）
         if (data.containsKey('movie_posters')) {
           final posters = data['movie_posters'] as List<dynamic>;
           for (final poster in posters) {
-            final posterMap = _convertToDbMap(poster);
+            final posterMap = _convertToDbMapSafe(poster, moviePostersCols);
             final updatedMap = _updateImagePath(posterMap, 'poster_path', imagePathMap);
             await txn.insert('movie_posters', updatedMap);
           }
@@ -491,14 +502,14 @@ class BackupService {
         if (data.containsKey('book_reviews')) {
           final reviews = data['book_reviews'] as List<dynamic>;
           for (final review in reviews) {
-            await txn.insert('book_reviews', _convertToDbMap(review));
+            await txn.insert('book_reviews', _convertToDbMapSafe(review, bookReviewsCols));
           }
         }
         // 导入书摘数据
         if (data.containsKey('book_excerpts')) {
           final excerpts = data['book_excerpts'] as List<dynamic>;
           for (final excerpt in excerpts) {
-            await txn.insert('book_excerpts', _convertToDbMap(excerpt));
+            await txn.insert('book_excerpts', _convertToDbMapSafe(excerpt, bookExcerptsCols));
           }
         }
 
@@ -506,7 +517,7 @@ class BackupService {
         if (data.containsKey('tags')) {
           final tags = data['tags'] as List<dynamic>;
           for (final tag in tags) {
-            final map = _convertToDbMap(tag);
+            final map = _convertToDbMapSafe(tag, tagsCols);
             await txn.rawInsert(
               'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
               [map['id'], map['name'], map['type'], map['created_at']],
@@ -617,6 +628,16 @@ class BackupService {
       final data = backupData['data'] as Map<String, dynamic>;
       final db = await DatabaseHelper.instance.database;
 
+      // 预获取各表的列名
+      final moviesCols = await _getTableColumns(db, 'movies');
+      final booksCols = await _getTableColumns(db, 'books');
+      final notesCols = await _getTableColumns(db, 'notes');
+      final movieReviewsCols = await _getTableColumns(db, 'movie_reviews');
+      final moviePostersCols = await _getTableColumns(db, 'movie_posters');
+      final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
+      final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
+      final tagsCols = await _getTableColumns(db, 'tags');
+
       await db.transaction((txn) async {
         // 清空现有数据
         await txn.delete('movie_reviews');
@@ -630,7 +651,7 @@ class BackupService {
         if (data.containsKey('movies')) {
           final movies = data['movies'] as List<dynamic>;
           for (final movie in movies) {
-            final movieMap = _convertToDbMap(movie);
+            final movieMap = _convertToDbMapSafe(movie, moviesCols);
             final updatedMap = _updateImagePath(movieMap, 'poster_path', imagePathMap);
             await txn.insert('movies', updatedMap);
           }
@@ -639,7 +660,7 @@ class BackupService {
         if (data.containsKey('books')) {
           final books = data['books'] as List<dynamic>;
           for (final book in books) {
-            final bookMap = _convertToDbMap(book);
+            final bookMap = _convertToDbMapSafe(book, booksCols);
             final updatedMap = _updateImagePath(bookMap, 'cover_path', imagePathMap);
             await txn.insert('books', updatedMap);
           }
@@ -648,7 +669,7 @@ class BackupService {
         if (data.containsKey('notes')) {
           final notes = data['notes'] as List<dynamic>;
           for (final note in notes) {
-            final noteMap = _convertToDbMap(note);
+            final noteMap = _convertToDbMapSafe(note, notesCols);
             final updatedMap = _updateNoteImagesPath(noteMap, imagePathMap);
             await txn.insert('notes', updatedMap);
           }
@@ -657,14 +678,14 @@ class BackupService {
         if (data.containsKey('movie_reviews')) {
           final reviews = data['movie_reviews'] as List<dynamic>;
           for (final review in reviews) {
-            await txn.insert('movie_reviews', _convertToDbMap(review));
+            await txn.insert('movie_reviews', _convertToDbMapSafe(review, movieReviewsCols));
           }
         }
 
         if (data.containsKey('movie_posters')) {
           final posters = data['movie_posters'] as List<dynamic>;
           for (final poster in posters) {
-            final posterMap = _convertToDbMap(poster);
+            final posterMap = _convertToDbMapSafe(poster, moviePostersCols);
             final updatedMap = _updateImagePath(posterMap, 'poster_path', imagePathMap);
             await txn.insert('movie_posters', updatedMap);
           }
@@ -673,14 +694,14 @@ class BackupService {
         if (data.containsKey('book_reviews')) {
           final reviews = data['book_reviews'] as List<dynamic>;
           for (final review in reviews) {
-            await txn.insert('book_reviews', _convertToDbMap(review));
+            await txn.insert('book_reviews', _convertToDbMapSafe(review, bookReviewsCols));
           }
         }
         // 导入书摘数据
         if (data.containsKey('book_excerpts')) {
           final excerpts = data['book_excerpts'] as List<dynamic>;
           for (final excerpt in excerpts) {
-            await txn.insert('book_excerpts', _convertToDbMap(excerpt));
+            await txn.insert('book_excerpts', _convertToDbMapSafe(excerpt, bookExcerptsCols));
           }
         }
 
@@ -688,7 +709,7 @@ class BackupService {
         if (data.containsKey('tags')) {
           final tags = data['tags'] as List<dynamic>;
           for (final tag in tags) {
-            final map = _convertToDbMap(tag);
+            final map = _convertToDbMapSafe(tag, tagsCols);
             await txn.rawInsert(
               'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
               [map['id'], map['name'], map['type'], map['created_at']],
@@ -734,6 +755,19 @@ class BackupService {
     } catch (e) {
       return ImportResult.error('恢复失败: $e');
     }
+  }
+
+  /// 将动态类型转换为数据库可用的 Map，并过滤掉表中不存在的列
+  Map<String, dynamic> _convertToDbMapSafe(dynamic item, Set<String> validColumns) {
+    final raw = _convertToDbMap(item);
+    if (raw.isEmpty) return raw;
+    return Map.fromEntries(raw.entries.where((e) => validColumns.contains(e.key)));
+  }
+
+  /// 获取表的列名集合
+  Future<Set<String>> _getTableColumns(Database db, String table) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    return columns.map((c) => c['name'] as String).toSet();
   }
 
   /// 将动态类型转换为数据库可用的 Map

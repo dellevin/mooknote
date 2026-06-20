@@ -136,7 +136,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           : Icon(Icons.person_outline, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
         const SizedBox(width: 8),
-        Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+        Text(label, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
         const Spacer(),
         Text(count, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ],
@@ -243,7 +243,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-      child: Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.3))),
+      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.3))),
     );
   }
 
@@ -385,18 +385,18 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.folder_outlined, color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('本地备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text('备份到本地文件夹，支持恢复', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.folder_outlined, color: colors.onSurface.withValues(alpha: 0.6))),
+              title: Text('本地备份', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text('备份到本地文件夹，支持恢复', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () { Navigator.pop(ctx); _push(context, const BackupPage()); },
             ),
             Divider(height: 0.5, color: colors.outlineVariant),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.cloud_outlined, color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text('通过 WebDAV 同步到云端', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.cloud_outlined, color: colors.onSurface.withValues(alpha: 0.6))),
+              title: Text('云备份', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text('通过 WebDAV 同步到云端', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () { Navigator.pop(ctx); _push(context, const CloudSyncPage()); },
             ),
@@ -450,22 +450,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
         children: [
-          _buildSectionHeader('数据管理'),
-          _buildActionItem(
-            icon: Icons.cleaning_services_outlined,
-            title: '清除缓存数据',
-            subtitle: '清理未在数据库中引用的图片文件',
-            onTap: () => _showClearCacheDialog(context),
-          ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(
-            icon: Icons.swipe_vertical_outlined,
-            title: '底部导航栏滚动隐藏',
-            subtitle: '下滑时自动隐藏底部导航栏',
-            value: _hideBottomNavOnScroll,
-            onChanged: _toggleHideBottomNavOnScroll,
-          ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSectionHeader('显示设置'),
           _buildNavigationItem(
             icon: Icons.apps_outlined,
             title: '应用图标',
@@ -483,27 +468,43 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildNavigationItem(
             icon: Icons.dashboard_outlined,
             title: '布局设置',
-            subtitle: '笔记、影视、阅读的展示样式',
+            subtitle: '影视、阅读、笔记的展示样式',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
           ),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSectionHeader('外观'),
           _buildThemeModeSelector(),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSectionHeader('其他设置'),
+          _buildSwitchItem(
+            icon: Icons.swipe_vertical_outlined,
+            title: '底部导航栏滚动隐藏',
+            subtitle: '下滑时自动隐藏底部导航栏',
+            value: _hideBottomNavOnScroll,
+            onChanged: _toggleHideBottomNavOnScroll,
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSectionHeader('数据管理'),
+          _buildActionItem(
+            icon: Icons.cleaning_services_outlined,
+            title: '清除缓存数据',
+            subtitle: '清理未在数据库中引用的图片文件',
+            onTap: () => _showClearCacheDialog(context),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildSectionHeader('帮助'),
+          _buildActionItem(
+            icon: Icons.update_outlined,
+            title: '更新日志',
+            subtitle: '查看版本更新内容',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangelogPage())),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildLinkItem(
             context: context,
             icon: Icons.help_outline,
             title: '使用说明',
             subtitle: '查看应用使用指南',
             url: 'https://mooknote.iletter.top/#/guide',
-          ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildActionItem(
-            icon: Icons.update_outlined,
-            title: '更新日志',
-            subtitle: '查看版本更新内容',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangelogPage())),
           ),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
         ],
@@ -524,16 +525,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return InkWell(
       onTap: () => _showThemeModePicker(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(_themeModeIcons[_themeMode], color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-            const SizedBox(width: 16),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(_themeModeIcons[_themeMode], color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('主题模式', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                Text('主题模式', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(_themeModeLabels[_themeMode], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text(_themeModeLabels[_themeMode], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               ]),
             ),
             Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
@@ -560,8 +561,8 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 16),
             for (int i = 0; i < _themeModeLabels.length; i++)
               ListTile(
-                leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(_themeModeIcons[i], color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(_themeModeLabels[i], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(_themeModeIcons[i], color: colors.onSurface.withValues(alpha: 0.6))),
+                title: Text(_themeModeLabels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 trailing: _themeMode == i ? Icon(Icons.check, color: colors.onSurface, size: 20) : null,
                 onTap: () async { await _setThemeMode(i); Navigator.pop(ctx); },
               ),
@@ -590,16 +591,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return InkWell(
       onTap: () => onChanged(!value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-            const SizedBox(width: 16),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               ]),
             ),
             Switch(value: value, onChanged: onChanged, activeColor: colors.primary, activeTrackColor: colors.primary.withOpacity(0.3), inactiveThumbColor: colors.surface, inactiveTrackColor: colors.outline),
@@ -612,8 +613,8 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildSectionHeader(String title) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
-      child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface)),
     );
   }
 
@@ -622,16 +623,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-            const SizedBox(width: 16),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               ]),
             ),
             Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
@@ -646,16 +647,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return InkWell(
       onTap: () => _launchUrl(context, url),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-            const SizedBox(width: 16),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               ]),
             ),
             Icon(Icons.open_in_new, color: colors.onSurface.withValues(alpha: 0.25), size: 18),
@@ -670,16 +671,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-            const SizedBox(width: 16),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               ]),
             ),
           ],
@@ -694,16 +695,24 @@ class _SettingsPageState extends State<SettingsPage> {
       context: pageContext,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text('清除缓存数据'),
-        content: const Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('清除缓存数据', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          TextButton(onPressed: () async {
-            Navigator.pop(dialogContext);
-            await _clearCacheData(pageContext);
-          }, child: Text('确定', style: TextStyle(color: colors.error))),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await _clearCacheData(pageContext);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('清除'),
+          ),
         ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -740,7 +749,7 @@ class _SettingsPageState extends State<SettingsPage> {
       final imagesDir = Directory('${appDir.path}/images');
       if (!await imagesDir.exists()) return 0;
       await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
-        if (entity is File && !dbImagePaths.contains(entity.path)) {
+        if (entity is File && !dbImagePaths.contains(entity.path) && !path.basename(entity.path).startsWith('avatar')) {
           try { await entity.delete(); deletedCount++; } catch (_) {}
         }
       }
@@ -830,7 +839,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-            child: Text('至少保留一个模块，关闭后对应标签页将不再显示。', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
+            child: Text('至少保留一个模块，关闭后对应标签页将不再显示。', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
           ),
         ],
       ),
@@ -840,8 +849,8 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
   Widget _buildSectionHeader(String title) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
-      child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface)),
     );
   }
 
@@ -849,9 +858,9 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
-      subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+      title: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+      subtitle: Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
       trailing: Switch(value: value, onChanged: onChanged, activeColor: colors.primary, activeTrackColor: colors.primary.withOpacity(0.3), inactiveThumbColor: colors.surface, inactiveTrackColor: colors.outline),
     );
   }
@@ -863,9 +872,9 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.home_outlined, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-      title: Text('默认启动标签', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
-      subtitle: Text('打开应用时默认显示的页面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.home_outlined, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+      title: Text('默认启动标签', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+      subtitle: Text('打开应用时默认显示的页面', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -895,8 +904,8 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
             const SizedBox(height: 16),
             for (int i = 0; i < labels.length; i++)
               ListTile(
-                leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icons[i], color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(labels[i], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icons[i], color: colors.onSurface.withValues(alpha: 0.6))),
+                title: Text(labels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                 trailing: _defaultTabIndex == i ? Icon(Icons.check, color: colors.onSurface, size: 20) : null,
                 onTap: () async { await _userPrefs.setDefaultMainTabIndex(i); setState(() => _defaultTabIndex = i); Navigator.pop(ctx); },
               ),
@@ -938,24 +947,21 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('布局设置')),
       body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          _buildSectionHeader('笔记布局'),
-          _buildLayoutOption(icon: Icons.view_list_outlined, title: '列表布局', subtitle: '单列列表，简洁清晰', value: 0, groupValue: _noteLayout, onTap: () => _setLayout('note', 0)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildLayoutOption(icon: Icons.grid_view_outlined, title: '瀑布流布局', subtitle: '双列卡片，图文并茂', value: 1, groupValue: _noteLayout, onTap: () => _setLayout('note', 1)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildLayoutOption(icon: Icons.timeline_outlined, title: '时间线布局', subtitle: '按时间排列，纵览全局', value: 2, groupValue: _noteLayout, onTap: () => _setLayout('note', 2)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSectionHeader('影视布局'),
-          _buildLayoutOption(icon: Icons.grid_view_outlined, title: '海报网格', subtitle: '三列海报，赏心悦目', value: 0, groupValue: _movieLayout, onTap: () => _setLayout('movie', 0)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildLayoutOption(icon: Icons.view_list_outlined, title: '列表布局', subtitle: '单列卡片，信息一览', value: 1, groupValue: _movieLayout, onTap: () => _setLayout('movie', 1)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSectionHeader('阅读布局'),
-          _buildLayoutOption(icon: Icons.grid_view_outlined, title: '封面网格', subtitle: '三列封面，清新雅致', value: 0, groupValue: _bookLayout, onTap: () => _setLayout('book', 0)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildLayoutOption(icon: Icons.view_list_outlined, title: '列表布局', subtitle: '单列卡片，信息一览', value: 1, groupValue: _bookLayout, onTap: () => _setLayout('book', 1)),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSection('影视布局', [
+            ButtonSegment(value: 0, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('海报网格', style: TextStyle(fontSize: 12))),
+            ButtonSegment(value: 1, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
+          ], _movieLayout, (v) => _setLayout('movie', v)),
+          _buildSection('阅读布局', [
+            ButtonSegment(value: 0, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('封面网格', style: TextStyle(fontSize: 12))),
+            ButtonSegment(value: 1, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
+          ], _bookLayout, (v) => _setLayout('book', v)),
+          _buildSection('笔记布局', [
+            ButtonSegment(value: 0, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
+            ButtonSegment(value: 1, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('瀑布流', style: TextStyle(fontSize: 12))),
+            ButtonSegment(value: 2, icon: Icon(Icons.timeline_outlined, size: 16), label: Text('时间线', style: TextStyle(fontSize: 12))),
+          ], _noteLayout, (v) => _setLayout('note', v)),
         ],
       ),
     );
@@ -969,24 +975,34 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     }
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSection(String title, List<ButtonSegment<int>> segments, int selected, ValueChanged<int> onChanged) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
-      child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
-    );
-  }
-
-  Widget _buildLayoutOption({required IconData icon, required String title, required String subtitle, required int value, required int groupValue, required VoidCallback onTap}) {
-    final colors = Theme.of(context).colorScheme;
-    final selected = value == groupValue;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 22)),
-      title: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
-      subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-      trailing: selected ? Icon(Icons.check_circle, color: colors.onSurface, size: 20) : Icon(Icons.circle_outlined, color: colors.onSurface.withValues(alpha: 0.15), size: 20),
-      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          ),
+          SegmentedButton<int>(
+            segments: segments,
+            selected: {selected},
+            onSelectionChanged: (s) => onChanged(s.first),
+            showSelectedIcon: false,
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.onSurface : colors.surfaceContainerHighest),
+              foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.surface : colors.onSurface.withValues(alpha: 0.6)),
+              side: WidgetStateProperty.all(BorderSide.none),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 10)),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.standard,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

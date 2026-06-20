@@ -309,18 +309,6 @@ class _MovieTabPageState extends State<MovieTabPage> {
           child: Icon(Icons.movie_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
       Text('暂无$statusText的影片', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
-      const SizedBox(height: 24),
-      InkWell(
-        onTap: () {
-          final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
-          Navigator.pushNamed(context, '/movie-form', arguments: {'initialStatus': statusMap[statusIndex]!});
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(8)),
-          child: Text('添加记录', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
-        ),
-      ),
     ]));
   }
 }

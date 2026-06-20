@@ -141,12 +141,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Icon(Icons.system_update_outlined, color: colors.primary, size: 24),
-          const SizedBox(width: 10),
-          Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        ]),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Text('新版本 $version 已发布，是否下载更新？',
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
@@ -155,10 +152,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               UserPrefs().setDismissedVersion(version);
               Navigator.pop(ctx);
             },
-            child: Text('不再显示', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+            child: Text('不再显示', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -171,11 +167,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 }
               }
             },
-            icon: const Icon(Icons.open_in_browser, size: 18),
-            label: const Text('去官网下载'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('去官网下载'),
           ),
         ],
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

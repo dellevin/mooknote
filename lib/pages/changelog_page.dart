@@ -47,13 +47,32 @@ class _ChangelogPageState extends State<ChangelogPage> {
           localVersion: localVersion,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('已是最新版本（当前 $localVersion）'),
-          duration: const Duration(seconds: 2),
-        ));
+        _showNoUpdateDialog(localVersion);
       }
     } catch (_) {}
     if (mounted) setState(() => _checking = false);
+  }
+
+  void _showNoUpdateDialog(String localVersion) {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('检查更新', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('已是最新版本（当前 $localVersion）',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('好的', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
   }
 
   void _showUpdateDialog({required String version, String? localVersion}) {
@@ -62,12 +81,9 @@ class _ChangelogPageState extends State<ChangelogPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Icon(Icons.system_update_outlined, color: colors.primary, size: 24),
-          const SizedBox(width: 10),
-          Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        ]),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,21 +100,24 @@ class _ChangelogPageState extends State<ChangelogPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('稍后再说', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+            child: Text('稍后再说', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               try {
                 await launchUrl(Uri.parse(_websiteUrl), mode: LaunchMode.externalApplication);
               } catch (_) {}
             },
-            icon: const Icon(Icons.open_in_browser, size: 18),
-            label: const Text('去官网下载'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('去官网下载'),
           ),
         ],
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
