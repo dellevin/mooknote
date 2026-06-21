@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'webdav_sync_page.dart';
-import 'server_sync_page.dart';
 
 /// 云备份主页面 - 选择备份方式
 class CloudSyncPage extends StatelessWidget {
@@ -24,15 +23,6 @@ class CloudSyncPage extends StatelessWidget {
             subtitle: '通过 WebDAV 协议备份到个人云盘',
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())),
-          ),
-          const SizedBox(height: 12),
-          _buildOption(
-            colors: colors,
-            icon: Icons.sync_outlined,
-            title: '服务端实时同步',
-            subtitle: '自建服务端，多设备数据实时同步',
-            onTap: () =>
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ServerSyncPage())),
           ),
           const SizedBox(height: 28),
           _buildInfo(colors),
@@ -142,11 +132,7 @@ class CloudSyncPage extends StatelessWidget {
         const SizedBox(height: 14),
         _infoItem(colors, 'WebDAV 备份：将数据备份到支持 WebDAV 的云盘'),
         const SizedBox(height: 8),
-        _infoItem(colors, '服务端实时同步：通过自建服务端实现多设备实时同步'),
-        const SizedBox(height: 8),
-        _infoItem(colors, '激活码由服务端管理员在管理后台生成'),
-        const SizedBox(height: 8),
-        _infoItem(colors, '建议定期备份 + 实时同步配合使用'),
+        _infoItem(colors, '建议定期备份到本地或云盘'),
       ]),
     );
   }

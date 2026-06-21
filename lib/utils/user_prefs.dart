@@ -133,32 +133,6 @@ class UserPrefs {
   String get deviceId => prefs.getString('deviceId') ?? '';
   Future<bool> setDeviceId(String value) => prefs.setString('deviceId', value);
 
-  // ========== 服务端实时同步设置 ==========
-
-  /// 服务器地址
-  String get syncServerUrl => prefs.getString('syncServerUrl') ?? '';
-  Future<bool> setSyncServerUrl(String value) => prefs.setString('syncServerUrl', value);
-
-  /// 激活码
-  String get syncActivationCode => prefs.getString('syncActivationCode') ?? '';
-  Future<bool> setSyncActivationCode(String value) => prefs.setString('syncActivationCode', value);
-
-  /// 激活码有效期
-  String get syncExpiresAt => prefs.getString('syncExpiresAt') ?? '';
-  Future<bool> setSyncExpiresAt(String value) => prefs.setString('syncExpiresAt', value);
-
-  /// 是否永久有效
-  bool get syncIsPermanent => prefs.getBool('syncIsPermanent') ?? false;
-  Future<bool> setSyncIsPermanent(bool value) => prefs.setBool('syncIsPermanent', value);
-
-  /// 实时同步开关（默认开启）
-  bool get syncEnabled => prefs.getBool('syncEnabled') ?? true;
-  Future<bool> setSyncEnabled(bool value) => prefs.setBool('syncEnabled', value);
-
-  /// 上次同步到的 entry id
-  int get syncLastEntryId => prefs.getInt('syncLastEntryId') ?? 0;
-  Future<bool> setSyncLastEntryId(int value) => prefs.setInt('syncLastEntryId', value);
-
   // ========== 版本更新 ==========
 
   /// 已忽略的版本号（不再提示更新）

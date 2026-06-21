@@ -524,7 +524,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Future<void> _showAddTagDialog() async {
     final controller = TextEditingController();
 
-    // 从 tags 表获取已有标签（sync 模式下走服务端 API）
+    // 从 tags 表获取已有标签
     final provider = context.read<AppProvider>();
     final tagRows = await provider.getTags('note_tag');
     final allTags = tagRows.map((t) => t['name'] as String).toSet();

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
 import '../utils/movie/movie_dao.dart';
@@ -14,7 +13,6 @@ import '../models/reader_book.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
-import '../utils/sync/server_data_service.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -50,15 +48,6 @@ class AppProvider extends ChangeNotifier {
   // 配色方案索引
   int _colorSchemeIndex = 0;
 
-  /// 是否使用远程服务端（同步开关 + 已激活）
-  bool get _useRemote {
-    final prefs = UserPrefs();
-    return prefs.syncEnabled &&
-        prefs.syncServerUrl.isNotEmpty &&
-        prefs.syncActivationCode.isNotEmpty &&
-        ServerDataService.instance.isAvailable;
-  }
-  
   // 观影选中的状态 (0: 已看，1: 想看，2: 在看)
   int _movieStatusIndex = 0;
   
@@ -74,12 +63,7 @@ class AppProvider extends ChangeNotifier {
   
   // 初始化数据库
   Future<void> initDatabase() async {
-    debugPrint('[AppProvider] initDatabase, _useRemote=$_useRemote');
-    if (_useRemote) {
-      // 同步模式：从服务端拉取数据
-      await Future.wait([loadMovies(), loadBooks(), loadNotes()]);
-      return;
-    }
+    debugPrint('[AppProvider] initDatabase');
     final results = await Future.wait([
       _movieDao.getAllMovies(),
       _bookDao.getAllBooks(),
@@ -120,39 +104,18 @@ class AppProvider extends ChangeNotifier {
   
   // 加载影视数据
   Future<void> loadMovies() async {
-    if (_useRemote) {
-      debugPrint('[AppProvider] loadMovies from server');
-      _movies = await ServerDataService.instance.getMovies();
-      debugPrint('[AppProvider] server movies: ${_movies.length}');
-      notifyListeners();
-      return;
-    }
     _movies = await _movieDao.getAllMovies();
     notifyListeners();
   }
-  
+
   // 加载书籍数据
   Future<void> loadBooks() async {
-    if (_useRemote) {
-      debugPrint('[AppProvider] loadBooks from server');
-      _books = await ServerDataService.instance.getBooks();
-      debugPrint('[AppProvider] server books: ${_books.length}');
-      notifyListeners();
-      return;
-    }
     _books = await _bookDao.getAllBooks();
     notifyListeners();
   }
 
   // 加载笔记数据
   Future<void> loadNotes() async {
-    if (_useRemote) {
-      debugPrint('[AppProvider] loadNotes from server');
-      _notes = await ServerDataService.instance.getNotes();
-      debugPrint('[AppProvider] server notes: ${_notes.length}');
-      notifyListeners();
-      return;
-    }
     _notes = await _noteDao.getAllNotes();
     notifyListeners();
   }
@@ -181,23 +144,14 @@ class AppProvider extends ChangeNotifier {
   static const int _pageSize = 20;
 
   Future<List<Movie>> loadMoviesPaged({String? status, required int offset}) async {
-    if (_useRemote) {
-      return ServerDataService.instance.getMovies(status: status, limit: _pageSize, offset: offset);
-    }
     return _movieDao.getMoviesPaged(status: status, limit: _pageSize, offset: offset);
   }
 
   Future<List<Book>> loadBooksPaged({String? status, required int offset}) async {
-    if (_useRemote) {
-      return ServerDataService.instance.getBooks(status: status, limit: _pageSize, offset: offset);
-    }
     return _bookDao.getBooksPaged(status: status, limit: _pageSize, offset: offset);
   }
 
   Future<List<Note>> loadNotesPaged({required int offset}) async {
-    if (_useRemote) {
-      return ServerDataService.instance.getNotes(limit: _pageSize, offset: offset);
-    }
     return _noteDao.getNotesPaged(limit: _pageSize, offset: offset);
   }
 
@@ -301,37 +255,14 @@ class AppProvider extends ChangeNotifier {
   
   // ─── 图片上传辅助 ────────────────────────────────────────────────
 
-  Future<void> _uploadImagesIfRemote(List<String?> paths) async {
-    if (!_useRemote) return;
-    final valid = paths.where((p) => p != null && p!.isNotEmpty).cast<String>().toList();
-    if (valid.isEmpty) return;
-    final exist = <String>[];
-    for (final p in valid) {
-      if (File(p).existsSync()) exist.add(p);
-    }
-    if (exist.isNotEmpty) {
-      await ServerDataService.uploadLocalImages(exist);
-    }
-  }
-
   // 添加影视记录
   Future<void> addMovie(Movie movie) async {
-    if (_useRemote) {
-      await ServerDataService.instance.saveMovie(movie);
-    } else {
-      await _movieDao.insertMovie(movie);
-    }
-    await _uploadImagesIfRemote([movie.posterPath]);
+    await _movieDao.insertMovie(movie);
     await loadMovies();
   }
 
   Future<void> updateMovie(Movie movie) async {
-    if (_useRemote) {
-      await ServerDataService.instance.saveMovie(movie);
-    } else {
-      await _movieDao.updateMovie(movie);
-    }
-    await _uploadImagesIfRemote([movie.posterPath]);
+    await _movieDao.updateMovie(movie);
     await loadMovies();
   }
 
@@ -356,69 +287,37 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> removeMovie(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.deleteMovie(id);
-    } else {
-      await _movieDao.deleteMovie(id);
-    }
+    await _movieDao.deleteMovie(id);
     await loadMovies();
   }
 
   Future<void> addBook(Book book) async {
-    if (_useRemote) {
-      await ServerDataService.instance.saveBook(book);
-    } else {
-      await _bookDao.insertBook(book);
-    }
-    await _uploadImagesIfRemote([book.coverPath]);
+    await _bookDao.insertBook(book);
     await loadBooks();
   }
 
   Future<void> updateBook(Book book) async {
-    if (_useRemote) {
-      await ServerDataService.instance.saveBook(book);
-    } else {
-      await _bookDao.updateBook(book);
-    }
-    await _uploadImagesIfRemote([book.coverPath]);
+    await _bookDao.updateBook(book);
     await loadBooks();
   }
 
   Future<void> removeBook(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.deleteBook(id);
-    } else {
-      await _bookDao.deleteBook(id);
-    }
+    await _bookDao.deleteBook(id);
     await loadBooks();
   }
 
   Future<void> addNote(Note note) async {
-    if (_useRemote) {
-      await ServerDataService.instance.saveNote(note);
-    } else {
-      await _noteDao.insertNote(note);
-    }
-    await _uploadImagesIfRemote(note.images);
+    await _noteDao.insertNote(note);
     await loadNotes();
   }
 
   Future<void> updateNote(Note note) async {
-    if (_useRemote) {
-      await ServerDataService.instance.saveNote(note);
-    } else {
-      await _noteDao.updateNote(note);
-    }
-    await _uploadImagesIfRemote(note.images);
+    await _noteDao.updateNote(note);
     await loadNotes();
   }
 
   Future<void> removeNote(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.deleteNote(id);
-    } else {
-      await _noteDao.deleteNote(id);
-    }
+    await _noteDao.deleteNote(id);
     await loadNotes();
   }
   
@@ -426,34 +325,26 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取影视的所有影评
   Future<List<MovieReview>> getMovieReviews(String movieId) async {
-    if (_useRemote) return await ServerDataService.instance.getMovieReviews(movieId);
     return await _reviewDao.getReviewsByMovieId(movieId);
   }
 
   /// 添加影评
   Future<void> addMovieReview(MovieReview review) async {
-    if (_useRemote) await ServerDataService.instance.saveMovieReview(review);
-    else await _reviewDao.insertReview(review);
+    await _reviewDao.insertReview(review);
   }
 
   /// 更新影评
   Future<void> updateMovieReview(MovieReview review) async {
-    if (_useRemote) await ServerDataService.instance.saveMovieReview(review);
-    else await _reviewDao.updateReview(review);
+    await _reviewDao.updateReview(review);
   }
 
   /// 删除影评
   Future<void> removeMovieReview(String id) async {
-    if (_useRemote) await ServerDataService.instance.deleteMovieReview(id);
-    else await _reviewDao.deleteReview(id);
+    await _reviewDao.deleteReview(id);
   }
 
   /// 获取影视的影评数量
   Future<int> getMovieReviewCount(String movieId) async {
-    if (_useRemote) {
-      final reviews = await ServerDataService.instance.getMovieReviews(movieId);
-      return reviews.length;
-    }
     return await _reviewDao.getReviewCount(movieId);
   }
 
@@ -461,22 +352,16 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取影视的所有海报
   Future<List<MoviePoster>> getMoviePosters(String movieId) async {
-    if (_useRemote) return await ServerDataService.instance.getMoviePosters(movieId);
     return await _posterDao.getPostersByMovieId(movieId);
   }
 
   /// 添加海报
   Future<void> addMoviePoster(MoviePoster poster) async {
-    if (_useRemote) await ServerDataService.instance.saveMoviePoster(poster);
-    else await _posterDao.insertPoster(poster);
+    await _posterDao.insertPoster(poster);
   }
 
   /// 删除海报
   Future<void> removeMoviePoster(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.deleteMoviePoster(id);
-      return;
-    }
     final poster = await _posterDao.getPosterById(id);
     if (poster != null) {
       await ImagePathHelper.instance.deleteFile(poster.posterPath);
@@ -486,10 +371,6 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取影视的海报数量
   Future<int> getMoviePosterCount(String movieId) async {
-    if (_useRemote) {
-      final posters = await ServerDataService.instance.getMoviePosters(movieId);
-      return posters.length;
-    }
     return await _posterDao.getPosterCount(movieId);
   }
 
@@ -497,34 +378,26 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取书籍的所有书评
   Future<List<BookReview>> getBookReviews(String bookId) async {
-    if (_useRemote) return await ServerDataService.instance.getBookReviews(bookId);
     return await _bookReviewDao.getReviewsByBookId(bookId);
   }
 
   /// 添加书评
   Future<void> addBookReview(BookReview review) async {
-    if (_useRemote) await ServerDataService.instance.saveBookReview(review);
-    else await _bookReviewDao.insertReview(review);
+    await _bookReviewDao.insertReview(review);
   }
 
   /// 更新书评
   Future<void> updateBookReview(BookReview review) async {
-    if (_useRemote) await ServerDataService.instance.saveBookReview(review);
-    else await _bookReviewDao.updateReview(review);
+    await _bookReviewDao.updateReview(review);
   }
 
   /// 删除书评
   Future<void> removeBookReview(String id) async {
-    if (_useRemote) await ServerDataService.instance.deleteBookReview(id);
-    else await _bookReviewDao.deleteReview(id);
+    await _bookReviewDao.deleteReview(id);
   }
 
   /// 获取书籍的书评数量
   Future<int> getBookReviewCount(String bookId) async {
-    if (_useRemote) {
-      final reviews = await ServerDataService.instance.getBookReviews(bookId);
-      return reviews.length;
-    }
     return await _bookReviewDao.getReviewCount(bookId);
   }
 
@@ -532,34 +405,26 @@ class AppProvider extends ChangeNotifier {
 
   /// 获取书籍的所有摘抄
   Future<List<BookExcerpt>> getBookExcerpts(String bookId) async {
-    if (_useRemote) return await ServerDataService.instance.getBookExcerpts(bookId);
     return await _bookExcerptDao.getExcerptsByBookId(bookId);
   }
 
   /// 添加摘抄
   Future<void> addBookExcerpt(BookExcerpt excerpt) async {
-    if (_useRemote) await ServerDataService.instance.saveBookExcerpt(excerpt);
-    else await _bookExcerptDao.insertExcerpt(excerpt);
+    await _bookExcerptDao.insertExcerpt(excerpt);
   }
 
   /// 更新摘抄
   Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
-    if (_useRemote) await ServerDataService.instance.saveBookExcerpt(excerpt);
-    else await _bookExcerptDao.updateExcerpt(excerpt);
+    await _bookExcerptDao.updateExcerpt(excerpt);
   }
 
   /// 删除摘抄
   Future<void> removeBookExcerpt(String id) async {
-    if (_useRemote) await ServerDataService.instance.deleteBookExcerpt(id);
-    else await _bookExcerptDao.deleteExcerpt(id);
+    await _bookExcerptDao.deleteExcerpt(id);
   }
 
   /// 获取书籍的摘抄数量
   Future<int> getBookExcerptCount(String bookId) async {
-    if (_useRemote) {
-      final excerpts = await ServerDataService.instance.getBookExcerpts(bookId);
-      return excerpts.length;
-    }
     return await _bookExcerptDao.getExcerptCount(bookId);
   }
 
@@ -567,80 +432,53 @@ class AppProvider extends ChangeNotifier {
   
   /// 获取已删除的影视
   Future<List<Movie>> getDeletedMovies() async {
-    if (_useRemote) return ServerDataService.instance.getDeletedMovies();
     return await _movieDao.getDeletedMovies();
   }
 
   /// 恢复影视
   Future<void> restoreMovie(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.restoreMovie(id);
-    } else {
-      await _movieDao.restoreMovie(id);
-    }
+    await _movieDao.restoreMovie(id);
     await loadMovies();
   }
 
   /// 彻底删除影视
   Future<void> permanentDeleteMovie(String id) async {
     await ImagePathHelper.instance.deleteMovieImages(id);
-    if (_useRemote) {
-      await ServerDataService.instance.permanentDeleteMovie(id);
-    } else {
-      await _movieDao.permanentDeleteMovie(id);
-    }
+    await _movieDao.permanentDeleteMovie(id);
   }
 
   /// 获取已删除的书籍
   Future<List<Book>> getDeletedBooks() async {
-    if (_useRemote) return ServerDataService.instance.getDeletedBooks();
     return await _bookDao.getDeletedBooks();
   }
 
   /// 恢复书籍
   Future<void> restoreBook(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.restoreBook(id);
-    } else {
-      await _bookDao.restoreBook(id);
-    }
+    await _bookDao.restoreBook(id);
     await loadBooks();
   }
 
   /// 彻底删除书籍
   Future<void> permanentDeleteBook(String id) async {
     await ImagePathHelper.instance.deleteBookImages(id);
-    if (_useRemote) {
-      await ServerDataService.instance.permanentDeleteBook(id);
-    } else {
-      await _bookDao.permanentDeleteBook(id);
-    }
+    await _bookDao.permanentDeleteBook(id);
   }
 
   /// 获取已删除的笔记
   Future<List<Note>> getDeletedNotes() async {
-    if (_useRemote) return ServerDataService.instance.getDeletedNotes();
     return await _noteDao.getDeletedNotes();
   }
 
   /// 恢复笔记
   Future<void> restoreNote(String id) async {
-    if (_useRemote) {
-      await ServerDataService.instance.restoreNote(id);
-    } else {
-      await _noteDao.restoreNote(id);
-    }
+    await _noteDao.restoreNote(id);
     await loadNotes();
   }
 
   /// 彻底删除笔记
   Future<void> permanentDeleteNote(String id) async {
     await ImagePathHelper.instance.deleteNoteImages(id);
-    if (_useRemote) {
-      await ServerDataService.instance.permanentDeleteNote(id);
-    } else {
-      await _noteDao.permanentDeleteNote(id);
-    }
+    await _noteDao.permanentDeleteNote(id);
   }
   
   /// 清空回收站
@@ -667,9 +505,6 @@ class AppProvider extends ChangeNotifier {
   // ========== 标签管理方法 ==========
 
   Future<List<Map<String, dynamic>>> getTags(String type, {bool excludeHidden = false}) async {
-    if (_useRemote) {
-      return await ServerDataService.instance.getTags(type.isEmpty ? null : type);
-    }
     return await _tagDao.getTagsByType(type, excludeHidden: excludeHidden);
   }
 
@@ -680,26 +515,14 @@ class AppProvider extends ChangeNotifier {
 
   Future<String> addTag(String name, String type) async {
     final id = await _tagDao.addTag(name, type);
-    if (_useRemote) {
-      await ServerDataService.instance.saveTag(name, type);
-    }
     await _reloadByTagType(type);
     return id;
   }
 
   Future<bool> renameTag(String tagId, String newName, String type) async {
-    final tag = await _tagDao.getTagById(tagId);
-    final oldName = tag?['name'] as String?;
     final result = await _tagDao.renameTag(tagId, newName);
     if (result) {
-      if (_useRemote) {
-        if (oldName != null) {
-          await ServerDataService.instance.deleteTagByName(oldName, type);
-        }
-        await ServerDataService.instance.saveTag(newName, type);
-        await _pushAffectedByType(type); // 先推到服务端
-      }
-      await _reloadByTagType(type); // 再从服务端拉最新
+      await _reloadByTagType(type);
     }
     return result;
   }
@@ -707,36 +530,13 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteTag(String tagId, String type,
       {String? replacementName}) async {
     await _tagDao.deleteTag(tagId, replacementName: replacementName);
-    if (_useRemote) {
-      await ServerDataService.instance.deleteTag(tagId);
-      if (replacementName != null) {
-        await ServerDataService.instance.saveTag(replacementName, type);
-      }
-      await _pushAffectedByType(type); // 先推到服务端
-    }
-    await _reloadByTagType(type); // 再从服务端拉最新
+    await _reloadByTagType(type);
   }
 
   /// 仅删除标签本身，不级联影响已有条目
   Future<void> deleteTagOnly(String tagId, String type) async {
     await _tagDao.deleteTagOnly(tagId);
-    if (_useRemote) {
-      await ServerDataService.instance.deleteTag(tagId);
-    }
     await _reloadByTagType(type);
-  }
-
-  /// 把某类型的所有条目推送到服务端（标签级联后调用）
-  Future<void> _pushAffectedByType(String type) async {
-    final server = ServerDataService.instance;
-    switch (type) {
-      case 'movie_genre':
-        for (final m in _movies) { await server.saveMovie(m); }
-      case 'book_genre':
-        for (final b in _books) { await server.saveBook(b); }
-      case 'note_tag':
-        for (final n in _notes) { await server.saveNote(n); }
-    }
   }
 
   /// 从影视/书籍/笔记数据中解析标签，同步到 tags 表

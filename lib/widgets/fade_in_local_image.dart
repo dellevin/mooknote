@@ -1,9 +1,7 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../utils/sync/server_data_service.dart';
 
-/// 带淡入动画的图片组件（支持本地文件 + 服务端 URL 回退）
+/// 带淡入动画的图片组件（支持本地文件 + HTTP URL）
 class FadeInLocalImage extends StatefulWidget {
   final String? path;
   final double? width;
@@ -64,18 +62,6 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
       setState(() => _loaded = true);
       _controller.forward();
       return;
-    }
-
-    if (ServerDataService.isActive) {
-      try {
-        final url = await ServerDataService.toImageUrl(widget.path!);
-        debugPrint('[Image] 本地不存在，使用服务端: $url');
-        _useNetwork = true;
-        _imageUrl = url;
-        setState(() => _loaded = true);
-        _controller.forward();
-        return;
-      } catch (_) {}
     }
 
     setState(() => _error = true);

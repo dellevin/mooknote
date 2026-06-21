@@ -11,7 +11,6 @@ import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'utils/changelog_service.dart';
 import 'utils/sync/auto_backup_service.dart';
-import 'utils/sync/server_sync_service.dart';
 import 'utils/usage_stats_service.dart';
 import 'providers/app_provider.dart';
 
@@ -35,9 +34,6 @@ Future<void> _bootstrap(AppProvider appProvider) async {
   }
   appProvider.initMainTabIndex();
 
-  // sync 校验放到后台执行，不阻塞启动
-  unawaited(_validateSyncOnStartup());
-
   unawaited(_initAutoBackup());
   unawaited(_initUsageStats());
 }
@@ -58,34 +54,6 @@ Future<void> _initUsageStats() async {
     await UsageStatsService.instance.start();
   } catch (e) {
     print('初始化用户统计失败: $e');
-  }
-}
-
-/// 启动时校验同步激活码：有效则继续，过期/失效则下载数据并关闭同步
-Future<void> _validateSyncOnStartup() async {
-  try {
-    final prefs = UserPrefs();
-    if (!prefs.syncEnabled || prefs.syncServerUrl.isEmpty || prefs.syncActivationCode.isEmpty) {
-      return; // 未开启同步，跳过
-    }
-
-    debugPrint('[Startup] 校验同步激活码...');
-    final result = await ServerSyncService.instance.checkActivation();
-
-    if (result != null && result['valid'] == true) {
-      // 激活码有效，更新有效期信息
-      await prefs.setSyncExpiresAt(result['expires_at'] ?? '');
-      await prefs.setSyncIsPermanent(result['is_permanent'] == true);
-      debugPrint('[Startup] 激活码有效，继续同步模式');
-    } else {
-      // 激活码无效/过期，下载服务端数据并关闭同步
-      debugPrint('[Startup] 激活码失效: ${result?['error'] ?? '未知'}，关闭同步并下载数据');
-      await ServerSyncService.instance.downloadToLocal();
-      await prefs.setSyncEnabled(false);
-      debugPrint('[Startup] 已切换到本地模式');
-    }
-  } catch (e) {
-    debugPrint('[Startup] 激活码校验异常: $e');
   }
 }
 

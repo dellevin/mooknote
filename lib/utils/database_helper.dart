@@ -1,7 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io';
 import '../models/data_models.dart';
 
 /// 数据库帮助类 - 管理数据库的创建和版本控制
@@ -25,23 +24,6 @@ class DatabaseHelper {
       _database = null;
     }
     // 重新初始化
-    _database = await _initDB('mooknote.db');
-  }
-
-  /// 从备份字节重写数据库文件并安全重连，
-  /// 始终按当前代码的 targetVersion 重新初始化，避免版本不一致。
-  Future<void> reopenDatabaseFromBytes(Uint8List bytes) async {
-    await close();
-
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'mooknote.db');
-
-    final dbFile = File(path);
-    if (await dbFile.exists()) {
-      await dbFile.delete();
-    }
-
-    await dbFile.writeAsBytes(bytes, flush: true);
     _database = await _initDB('mooknote.db');
   }
 
