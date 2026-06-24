@@ -11,6 +11,7 @@ class ServerConfig {
   static final String apiBase = '$baseUrl/api';
 
   static final String vipBaseUrl = kDebugMode
+      // ? 'http://vipapi.mooknote.iletter.top'
       ? 'http://192.168.31.48:8081'
       : 'http://vipapi.mooknote.iletter.top';
 }

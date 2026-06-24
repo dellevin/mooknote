@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../utils/user_prefs.dart';
 import '../utils/server_config.dart';
+import 'legal_page.dart';
 
 /// 增强搜索设置页面
 class EnhancedSearchSettingsPage extends StatefulWidget {
@@ -392,19 +393,33 @@ class _EnhancedSearchSettingsPageState
   }
 
   Widget _buildSaveButton(ColorScheme colors) {
-    return GestureDetector(
-      onTap: _saveAndVerify,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: colors.primary,
-          borderRadius: BorderRadius.circular(10),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: _saveAndVerify,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: colors.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Center(
+              child: Text('保存并验证', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+            ),
+          ),
         ),
-        child: Center(
-          child: Text('保存并验证', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const LegalPage(slug: 'token_doc', title: '获取Token'))),
+            child: Text('点击获取 Token', style: TextStyle(fontSize: 12, color: colors.primary)),
+          ),
         ),
-      ),
+      ],
     );
   }
 

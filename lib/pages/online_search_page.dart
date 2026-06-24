@@ -123,7 +123,7 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
       final url =
           '${ServerConfig.vipBaseUrl}/api/movie/list?movieName=${Uri.encodeComponent(keyword)}&token=$token&page=$page';
       final resp =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
       if (!mounted) return;
 
       if (resp.statusCode == 200) {
@@ -156,7 +156,12 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
           return;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().contains('TimeoutException') ? '搜索超时，请稍后重试' : '搜索失败，请检查网络';
+        ToastUtil.show(context, msg);
+      }
+    }
 
     if (mounted) {
       setState(() {
@@ -186,7 +191,7 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
       final url =
           '${ServerConfig.vipBaseUrl}/api/book/list?title=${Uri.encodeComponent(keyword)}&token=$token&page=$page';
       final resp =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
       if (!mounted) return;
 
       if (resp.statusCode == 200) {
@@ -219,7 +224,12 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
           return;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().contains('TimeoutException') ? '搜索超时，请稍后重试' : '搜索失败，请检查网络';
+        ToastUtil.show(context, msg);
+      }
+    }
 
     if (mounted) {
       setState(() {

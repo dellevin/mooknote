@@ -8,16 +8,16 @@ http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC
 
 ## 应用预览
 
-| 影视列表 | 书籍列表 | 笔记界面 |
-|:---:|:---:|:---:|
-| <img src="proj-img/Screenshot_1781866410.png" width="240"> | <img src="proj-img/Screenshot_1781866427.png" width="240"> |  <img src="proj-img/Screenshot_1781866432.png" width="240"> |
-
+|                            影视列表                            |                            书籍列表                            |                            笔记界面                            |
+| :------------------------------------------------------------: | :------------------------------------------------------------: | :------------------------------------------------------------: |
+| `<img src="proj-img/Screenshot_1781866410.png" width="240">` | `<img src="proj-img/Screenshot_1781866427.png" width="240">` | `<img src="proj-img/Screenshot_1781866432.png" width="240">` |
 
 更多预览图片请到**应用功能详情预览**里面查看
 
 ## 功能特性
 
 ### 影视管理
+
 - 影视增删改查，支持海报、导演、演员、类型等信息录入
 - 影评撰写与管理，支持星级评分
 - 影视海报墙浏览（瀑布流布局）
@@ -26,6 +26,7 @@ http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC
 - 影视状态筛选（想看 / 在看 / 已看）
 
 ### 书籍管理
+
 - 书籍增删改查，支持封面、作者、出版社等信息
 - 书评撰写与管理
 - 书摘 / 摘录记录
@@ -33,11 +34,13 @@ http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC
 - 书籍状态筛选
 
 ### 笔记管理
+
 - 笔记增删改查，支持 Markdown 编辑与实时渲染
 - 笔记分享卡片
 - Markdown 阅读器支持暗色模式与字体大小调节
 
 ### 通用功能
+
 - 全局搜索（影视 / 书籍 / 笔记）
 - 标签管理与分类
 - 数据统计与可视化图表（月度趋势 / 类型分布）
@@ -51,11 +54,11 @@ http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC
 
 ## 技术栈
 
-| 类别 | 技术 |
-|------|------|
-| 框架 | Flutter 3.5+ |
-| 语言 | Dart |
-| 状态管理 | Provider |
+| 类别       | 技术              |
+| ---------- | ----------------- |
+| 框架       | Flutter 3.5+      |
+| 语言       | Dart              |
+| 状态管理   | Provider          |
 | 本地数据库 | SQLite（sqflite） |
 
 ## 项目结构
@@ -145,18 +148,21 @@ flutter build appbundle --release
 
 ## 应用功能详情预览
 
-| 数据统计 | 侧边栏 | 我的界面 |
-|:---:|:---:|:---:|
-| <img src="proj-img/Screenshot_1781866461.png" width="240" > | <img src="proj-img/Screenshot_1781866436.png" width="240"> | <img src="./assets/README/Screenshot_1781866417.png" width="240"> |
+|                            数据统计                            |                             侧边栏                             |                               我的界面                               |
+| :-------------------------------------------------------------: | :------------------------------------------------------------: | :-------------------------------------------------------------------: |
+| `<img src="proj-img/Screenshot_1781866461.png" width="240" >` | `<img src="proj-img/Screenshot_1781866436.png" width="240">` | `<img src="./assets/README/Screenshot_1781866417.png" width="240">` |
 
+|                  详情界面1                  |                  详情界面2                  |                   编辑笔记                   |
+| :------------------------------------------: | :------------------------------------------: | :------------------------------------------: |
+| `<img src="proj-img/xq1.png" width="240">` | `<img src="proj-img/xq2.png" width="240">` | `<img src="proj-img/bj1.png" width="240">` |
 
-| 详情界面1 | 详情界面2 | 编辑笔记 |
-|:---:|:---:|:---:|
-|  <img src="proj-img/xq1.png" width="240"> | <img src="proj-img/xq2.png" width="240"> | <img src="proj-img/bj1.png" width="240"> |
+|                  分享界面1                  |                  分享界面2                  |                   预览笔记                   |
+| :------------------------------------------: | :------------------------------------------: | :------------------------------------------: |
+| `<img src="proj-img/fx1.png" width="240">` | `<img src="proj-img/fx2.png" width="240">` | `<img src="proj-img/bj2.png" width="240">` |
 
-| 分享界面1 | 分享界面2 | 预览笔记 |
-|:---:|:---:|:---:|
-|  <img src="proj-img/fx1.png" width="240"> | <img src="proj-img/fx2.png" width="240"> | <img src="proj-img/bj2.png" width="240"> |
+## 数据对接
+
+数据已对接6w+影视基础数据，以及300w+书籍基础信息，如需对接接口，或技术交流请联系作者。
 
 ## 开源协议
 
