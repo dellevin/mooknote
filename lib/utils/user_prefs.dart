@@ -133,6 +133,49 @@ class UserPrefs {
   String get deviceId => prefs.getString('deviceId') ?? '';
   Future<bool> setDeviceId(String value) => prefs.setString('deviceId', value);
 
+  // ========== 搜索历史 ==========
+
+  /// 搜索历史记录
+  List<String> get searchHistory => prefs.getStringList('searchHistory') ?? [];
+  Future<bool> setSearchHistory(List<String> value) => prefs.setStringList('searchHistory', value);
+
+  /// 添加搜索记录（最多 20 条）
+  Future<void> addSearchHistory(String keyword) async {
+    final list = searchHistory;
+    list.remove(keyword);
+    list.insert(0, keyword);
+    if (list.length > 50) { list.removeRange(50, list.length); }
+    await setSearchHistory(list);
+  }
+
+  /// 删除单条搜索记录
+  Future<void> removeSearchHistory(String keyword) async {
+    final list = searchHistory;
+    list.remove(keyword);
+    await setSearchHistory(list);
+  }
+
+  /// 清空搜索历史
+  Future<void> clearSearchHistory() => setSearchHistory([]);
+
+  // ========== 增强搜索 ==========
+
+  /// 是否开启增强搜索
+  bool get enhancedSearchEnabled => prefs.getBool('enhancedSearchEnabled') ?? false;
+  Future<bool> setEnhancedSearchEnabled(bool value) => prefs.setBool('enhancedSearchEnabled', value);
+
+  /// 影视增强搜索 Token
+  String get movieSearchToken => prefs.getString('movieSearchToken') ?? '';
+  Future<bool> setMovieSearchToken(String value) => prefs.setString('movieSearchToken', value);
+
+  /// 书籍增强搜索 Token
+  String get bookSearchToken => prefs.getString('bookSearchToken') ?? '';
+  Future<bool> setBookSearchToken(String value) => prefs.setString('bookSearchToken', value);
+
+  /// 上次搜索的 Tab: 0=影视, 1=书籍
+  int get lastSearchTab => prefs.getInt('lastSearchTab') ?? 0;
+  Future<bool> setLastSearchTab(int value) => prefs.setInt('lastSearchTab', value);
+
   // ========== 版本更新 ==========
 
   /// 已忽略的版本号（不再提示更新）

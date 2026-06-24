@@ -50,6 +50,9 @@ class AppProvider extends ChangeNotifier {
 
   // 观影选中的状态 (0: 已看，1: 想看，2: 在看)
   int _movieStatusIndex = 0;
+
+  // 影视列表布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
+  int _movieLayoutStyle = 0;
   
   // 阅读选中的状态 (0: 读完，1: 在读，2: 准备读)
   int _bookStatusIndex = 0;
@@ -81,6 +84,7 @@ class AppProvider extends ChangeNotifier {
   // 从用户偏好恢复默认启动标签
   void initMainTabIndex() {
     final userPrefs = UserPrefs();
+    _movieLayoutStyle = userPrefs.movieLayoutStyle;
     final defaultIndex = userPrefs.defaultMainTabIndex;
     // 确保选中的标签是启用的
     final showMovie = userPrefs.showMovieTab;
@@ -159,6 +163,7 @@ class AppProvider extends ChangeNotifier {
   int get mainTabIndex => _mainTabIndex;
   int get bottomNavIndex => _bottomNavIndex;
   int get movieStatusIndex => _movieStatusIndex;
+  int get movieLayoutStyle => _movieLayoutStyle;
   int get bookStatusIndex => _bookStatusIndex;
   bool get drawerOpen => _drawerOpen;
   bool get bottomNavVisible => _bottomNavVisible;
@@ -235,6 +240,12 @@ class AppProvider extends ChangeNotifier {
 
   void setMovieStatusIndex(int index) {
     _movieStatusIndex = index;
+    notifyListeners();
+  }
+
+  void setMovieLayoutStyle(int style) {
+    _movieLayoutStyle = style;
+    UserPrefs().setMovieLayoutStyle(style);
     notifyListeners();
   }
 

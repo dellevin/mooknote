@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
-import '../../utils/user_prefs.dart';
 import '../../widgets/movie_status_bar.dart';
 import '../../widgets/movie_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
@@ -18,7 +17,6 @@ class MovieTabPage extends StatefulWidget {
 }
 
 class _MovieTabPageState extends State<MovieTabPage> {
-  int _layoutStyle = 0;
   final List<Movie> _items = [];
   bool _hasMore = true;
   bool _isLoading = false;
@@ -36,7 +34,6 @@ class _MovieTabPageState extends State<MovieTabPage> {
   @override
   void initState() {
     super.initState();
-    _layoutStyle = UserPrefs().movieLayoutStyle;
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AppProvider>();
@@ -165,7 +162,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
           onRefresh: _refresh,
           color: colors.primary,
           backgroundColor: colors.surface,
-          child: _layoutStyle == 1 ? _buildListView() : _buildGridView(),
+          child: provider.movieLayoutStyle == 1 ? _buildListView() : provider.movieLayoutStyle == 2 ? _buildCoverCardView() : _buildGridView(),
         );
       },
     );
@@ -256,6 +253,97 @@ class _MovieTabPageState extends State<MovieTabPage> {
     return parts.join(' · ');
   }
 
+  // ─── 大图卡片样式 ───────────────────────────────────────
+
+  Widget _buildCoverCardView() {
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      itemCount: _items.length + (_hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _items.length) return _buildLoadMoreIndicator();
+        return _buildCoverCard(_items[index]);
+      },
+    );
+  }
+
+  Widget _buildCoverCard(Movie movie) {
+    final colors = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: movie),
+      onLongPress: () => _showDeleteDialog(context, movie),
+      child: Container(
+        height: 200,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: colors.surfaceContainerHigh,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(fit: StackFit.expand, children: [
+          // 海报背景
+          if (movie.posterPath != null && movie.posterPath!.isNotEmpty)
+            FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover,
+                errorWidget: Container(color: colors.surfaceContainerHighest))
+          else
+            Container(color: colors.surfaceContainerHighest,
+                child: Icon(Icons.movie_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
+          // 底部渐变遮罩
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                  stops: const [0.4, 1.0],
+                ),
+              ),
+            ),
+          ),
+          // 底部信息
+          Positioned(
+            left: 14, right: 14, bottom: 14,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
+              const SizedBox(height: 4),
+              Row(children: [
+                Expanded(
+                  child: Text(_buildSubtitle(movie), maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
+                ),
+                if (movie.rating != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade400),
+                  const SizedBox(width: 2),
+                  Text(movie.rating!.toStringAsFixed(1),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                ],
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildCoverCardSkeleton() {
+    final colors = Theme.of(context).colorScheme;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      itemCount: 4,
+      itemBuilder: (_, __) => Container(
+        height: 200,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+  }
+
   void _showDeleteDialog(BuildContext context, Movie movie) {
     final colors = Theme.of(context).colorScheme;
     showDialog(
@@ -286,7 +374,12 @@ class _MovieTabPageState extends State<MovieTabPage> {
     );
   }
 
-  Widget _buildSkeleton() => _layoutStyle == 1 ? _buildListSkeleton() : const MovieSkeletonGrid();
+  Widget _buildSkeleton() {
+    final layoutStyle = context.read<AppProvider>().movieLayoutStyle;
+    if (layoutStyle == 1) return _buildListSkeleton();
+    if (layoutStyle == 2) return _buildCoverCardSkeleton();
+    return const MovieSkeletonGrid();
+  }
 
   Widget _buildListSkeleton() {
     final colors = Theme.of(context).colorScheme;

@@ -149,7 +149,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Column(
             children: [
               Container(
@@ -270,19 +270,19 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
+                    color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
               ),
               const SizedBox(width: 12),
               Text('清除配置',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -297,18 +297,20 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: Text('取消',
-                  style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6), fontSize: 14)),
+              child: const Text('取消', style: TextStyle(fontSize: 14)),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.error,
+                  foregroundColor: colors.onError,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('清除',
-                  style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.w600)),
+              child: const Text('清除', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ],
         );
@@ -340,30 +342,30 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       body: _isLoading && !_isConfigured
           ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
           : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
 
                 // 已连接提示
                 if (_isConfigured) _buildConnectedBanner(colors),
 
                 // 服务器配置
                 _buildSectionLabel(colors, '服务器配置'),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _buildInput(
                   colors: colors,
                   controller: _urlController,
                   hint: '服务器地址，如 https://dav.example.com',
                   icon: Icons.link,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildInput(
                   colors: colors,
                   controller: _usernameController,
                   hint: '用户名',
                   icon: Icons.person_outline,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildInput(
                   colors: colors,
                   controller: _passwordController,
@@ -378,23 +380,42 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                         color: colors.onSurface.withValues(alpha: 0.3)),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildInput(
                   colors: colors,
                   controller: _pathController,
                   hint: '同步路径，如 /mooknote',
                   icon: Icons.folder_outlined,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // 测试并保存
                 _buildBtn(colors, '测试并保存', onTap: _isLoading ? null : _saveConfig),
-                const SizedBox(height: 40),
+                const SizedBox(height: 28),
 
                 if (_isConfigured) ...[
+                  // 手动同步
+                  _buildSectionLabel(colors, '手动同步'),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _buildDirectionChip(
+                              colors, '上传到云端', SyncDirection.upload, Icons.upload)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _buildDirectionChip(
+                              colors, '下载到本地', SyncDirection.download, Icons.download)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBtn(colors, '立即同步', onTap: _isLoading ? null : _syncData, loading: _isLoading),
+
+                  const SizedBox(height: 24),
+
                   // 自动同步
                   _buildSectionLabel(colors, '自动同步'),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _buildSwitchRow(
                     colors: colors,
                     icon: Icons.sync,
@@ -413,35 +434,16 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                     ),
                   ],
 
-                  const SizedBox(height: 32),
-
-                  // 手动同步
-                  _buildSectionLabel(colors, '手动同步'),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildDirectionChip(
-                              colors, '上传到云端', SyncDirection.upload, Icons.upload)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: _buildDirectionChip(
-                              colors, '下载到本地', SyncDirection.download, Icons.download)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildBtn(colors, '立即同步', onTap: _isLoading ? null : _syncData, loading: _isLoading),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // 清除配置
                   _buildTextBtn(colors, '清除配置', onTap: _isLoading ? null : _clearConfig),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                 ],
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 _buildTips(colors),
-                const SizedBox(height: 60),
+                const SizedBox(height: 40),
               ],
             ),
     );
@@ -451,8 +453,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
 
   Widget _buildConnectedBanner(ColorScheme colors) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
@@ -525,7 +527,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: colors.primary, width: 1),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }
@@ -536,21 +538,21 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 15),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: disabled ? colors.onSurface.withValues(alpha: 0.15) : colors.primary,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
           child: loading
               ? SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 18,
+                  height: 18,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, valueColor: AlwaysStoppedAnimation(colors.onPrimary)))
               : Text(text,
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600, color: colors.onPrimary)),
+                      fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
         ),
       ),
     );
@@ -561,7 +563,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       onTap: onTap,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Text(
               text,
               style: TextStyle(
@@ -583,22 +585,22 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     required ValueChanged<bool>? onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
           Icon(icon,
-              size: 20,
+              size: 18,
               color: value ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               value ? sub : label,
               style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: value ? colors.onSurface.withValues(alpha: 0.6) : colors.onSurface),
             ),
           ),
@@ -624,19 +626,19 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
-            const SizedBox(width: 32),
+            const SizedBox(width: 28),
             Text(label,
-                style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
             const Spacer(),
             Text(value,
-                style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(width: 4),
             Icon(Icons.chevron_right,
                 size: 16, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -651,10 +653,10 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     return GestureDetector(
       onTap: () => setState(() => _syncDirection = dir),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: selected ? colors.primary : colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -680,7 +682,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
 
   Widget _buildTips(ColorScheme colors) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(10),

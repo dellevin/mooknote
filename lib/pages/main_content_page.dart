@@ -8,6 +8,7 @@ import 'movies/movie_tab_page.dart';
 import 'book/book_tab_page.dart';
 import 'note/note_tab_page.dart';
 import 'search_page.dart';
+import 'online_search_page.dart';
 import 'sync/webdav_sync_page.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页（PageView 滑动切换）
@@ -88,13 +89,40 @@ class _MainContentPageState extends State<MainContentPage> {
   Widget _buildAppBar(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
+        final colors = Theme.of(context).colorScheme;
         return AppBar(
+          titleSpacing: 8,
+          leadingWidth: 44,
           title: Text(_getAppBarTitle(provider)),
+          actionsPadding: const EdgeInsets.only(right: 4),
           actions: [
             _buildCloudSyncButton(context),
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchPage())),
+            ),
+            if (UserPrefs().enhancedSearchEnabled)
+              IconButton(
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.search, size: 22),
+                  Positioned(
+                    right: -3,
+                    top: -3,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.add, size: 10, color: colors.onSurface),
+                    ),
+                  ),
+                ],
+              ),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OnlineSearchPage())),
             ),
           ],
         );
@@ -110,6 +138,7 @@ class _MainContentPageState extends State<MainContentPage> {
       default: return 'MookNote';
     }
   }
+
 
   // ─── 云备份 ──────────────────────────────────────────
 
@@ -133,18 +162,18 @@ class _MainContentPageState extends State<MainContentPage> {
         final bc = Theme.of(ctx).colorScheme;
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Center(child: Container(
-                width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
+                width: 36, height: 4, margin: const EdgeInsets.only(bottom: 14),
                 decoration: BoxDecoration(color: bc.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
               )),
-              Text('云备份', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: bc.onSurface)),
-              const SizedBox(height: 20),
+              Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
+              const SizedBox(height: 14),
               _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据', desc: hasConfig ? '将本地数据同步到云端' : '请先配置 WebDAV 服务器', enabled: hasConfig, onTap: hasConfig ? () { Navigator.pop(ctx); _performSync(context, SyncDirection.upload); } : null, colors: bc),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据', desc: hasConfig ? '从云端恢复数据到本地' : '请先配置 WebDAV 服务器', enabled: hasConfig, onTap: hasConfig ? () { Navigator.pop(ctx); _performSync(context, SyncDirection.download); } : null, colors: bc),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置', desc: '配置服务器地址与认证信息', enabled: true, onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
             ]),
           ),
@@ -157,19 +186,19 @@ class _MainContentPageState extends State<MainContentPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: enabled ? colors.primary.withValues(alpha: 0.04) : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.outlineVariant, width: 0.5),
         ),
         child: Row(children: [
-          Container(width: 48, height: 48, decoration: BoxDecoration(color: enabled ? colors.primary.withValues(alpha: 0.08) : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)), child: Icon(icon, size: 24, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.18))),
-          const SizedBox(width: 16),
+          Container(width: 36, height: 36, decoration: BoxDecoration(color: enabled ? colors.primary.withValues(alpha: 0.08) : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 20, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.18))),
+          const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: enabled ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
-            const SizedBox(height: 2),
-            Text(desc, style: TextStyle(fontSize: 12, color: enabled ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface.withValues(alpha: 0.2))),
+            Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: enabled ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
+            const SizedBox(height: 1),
+            Text(desc, style: TextStyle(fontSize: 11, color: enabled ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface.withValues(alpha: 0.2))),
           ])),
           Icon(Icons.chevron_right, size: 20, color: enabled ? colors.onSurface.withValues(alpha: 0.15) : colors.onSurface.withValues(alpha: 0.08)),
         ]),

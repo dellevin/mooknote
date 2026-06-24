@@ -116,26 +116,53 @@ class _TagManagementPageState extends State<TagManagementPage> {
       ]),
       body: Column(
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // 搜索栏
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(fontSize: 13, color: colors.onSurface),
-              decoration: InputDecoration(
-                hintText: '搜索标签...',
-                hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
-                prefixIcon: Icon(Icons.search, size: 18, color: colors.onSurface.withValues(alpha: 0.3)),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? GestureDetector(onTap: () { _searchController.clear(); setState(() => _searchQuery = ''); },
-                        child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.3)))
-                    : null,
-                filled: true, fillColor: colors.surface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            child: Container(
+              height: 36,
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: colors.outlineVariant, width: 0.5),
               ),
-              onChanged: (v) => setState(() => _searchQuery = v.trim()),
+              child: Row(
+                children: [
+                  const SizedBox(width: 10),
+                  Icon(Icons.search, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(fontSize: 13, color: colors.onSurface),
+                      decoration: InputDecoration(
+                        hintText: '搜索标签',
+                        hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                      ),
+                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                    ),
+                  ),
+                  if (_searchQuery.isNotEmpty)
+                    GestureDetector(
+                      onTap: () { _searchController.clear(); setState(() => _searchQuery = ''); FocusManager.instance.primaryFocus?.unfocus(); },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(Icons.close, size: 15, color: colors.onSurface.withValues(alpha: 0.3)),
+                      ),
+                    ),
+                  if (_searchQuery.isEmpty) const SizedBox(width: 10),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
@@ -15,6 +16,8 @@ import 'sync/backup_page.dart';
 import '../widgets/fade_in_local_image.dart';
 import 'statistics_page.dart';
 import 'changelog_page.dart';
+import 'legal_page.dart';
+import 'enhanced_search_settings_page.dart';
 import 'sync/cloud_sync_page.dart';
 import 'app_icon_picker_page.dart';
 import 'tag_management_page.dart';
@@ -166,21 +169,15 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GestureDetector(
-                            onTap: () => _editNickname(context),
-                            child: Text(_nickname, style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w600,
-                                color: hasData ? Colors.white : colors.onSurface)),
-                          ),
+                          Text(_nickname, style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600,
+                              color: hasData ? Colors.white : colors.onSurface)),
                           const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: () => _editMotto(context),
-                            child: Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12,
-                                    color: hasData
-                                        ? Colors.white.withValues(alpha: 0.7)
-                                        : colors.onSurface.withValues(alpha: 0.5))),
-                          ),
+                          Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13,
+                                  color: hasData
+                                      ? Colors.white.withValues(alpha: 0.85)
+                                      : colors.onSurface.withValues(alpha: 0.6))),
                         ],
                       ),
                     ),
@@ -223,8 +220,8 @@ class _ProfilePageState extends State<ProfilePage> {
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: hasData ? Colors.white : Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 11, color: hasData
-              ? Colors.white.withValues(alpha: 0.7)
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
+              ? Colors.white.withValues(alpha: 0.85)
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
         ],
       ),
     );
@@ -528,88 +525,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _editNickname(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: _nickname);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('修改昵称', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: TextField(controller: controller,
-            style: TextStyle(fontSize: 14, color: colors.onSurface),
-            decoration: InputDecoration(
-              hintText: '输入昵称',
-              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-              filled: true,
-              fillColor: colors.surfaceContainerHighest,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1.5)),
-            )),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          ElevatedButton(
-            onPressed: () async {
-              final newNickname = controller.text.trim();
-              if (newNickname.isNotEmpty) {
-                await _userPrefs.setNickname(newNickname);
-                setState(() => _nickname = newNickname);
-              }
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确定'),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
-  void _editMotto(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: _motto);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('修改座右铭', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: TextField(controller: controller, maxLines: 2,
-            style: TextStyle(fontSize: 14, color: colors.onSurface),
-            decoration: InputDecoration(
-              hintText: '输入座右铭',
-              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-              filled: true,
-              fillColor: colors.surfaceContainerHighest,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1.5)),
-            )),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          ElevatedButton(
-            onPressed: () async {
-              final newMotto = controller.text.trim();
-              await _userPrefs.setMotto(newMotto);
-              setState(() => _motto = newMotto);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确定'),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
   // ─── 备份弹窗 ────────────────────────────────────────────────────────
 
   void _showBackupOptions(BuildContext context) {
@@ -708,6 +623,20 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildColorSchemeSelector(),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildSectionHeader('其他设置'),
+          _buildActionItem(
+            icon: Icons.person_outline,
+            title: '个人信息',
+            subtitle: '修改昵称和座右铭',
+            onTap: () => _showProfileEditDialog(context),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildActionItem(
+            icon: Icons.manage_search,
+            title: '增强搜索',
+            subtitle: '在线搜索影视和书籍信息',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnhancedSearchSettingsPage())),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildSwitchItem(
             icon: Icons.swipe_vertical_outlined,
             title: '底部导航栏滚动隐藏',
@@ -726,18 +655,40 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildSectionHeader('帮助'),
           _buildActionItem(
+            icon: Icons.language_outlined,
+            title: '查看官网',
+            subtitle: '在浏览器中打开官方网站',
+            onTap: () => launchUrl(Uri.parse('https://mooknote.iletter.top/#/')),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildActionItem(
+            icon: Icons.code_outlined,
+            title: '开发日志',
+            subtitle: '在浏览器中查看项目开发记录',
+            onTap: () => launchUrl(Uri.parse('http://docmost.iletter.top/s/technologyNote/p/mook-note-lHmPTswdDC')),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildActionItem(
             icon: Icons.update_outlined,
             title: '更新日志',
             subtitle: '查看版本更新内容',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangelogPage())),
           ),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildLinkItem(
-            context: context,
-            icon: Icons.help_outline,
-            title: '使用说明',
-            subtitle: '查看应用使用指南',
-            url: 'https://mooknote.iletter.top/#/guide',
+          _buildActionItem(
+            icon: Icons.description_outlined,
+            title: '用户服务协议',
+            subtitle: '查看用户服务协议',
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const LegalPage(slug: 'terms', title: '用户服务协议'))),
+          ),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildActionItem(
+            icon: Icons.shield_outlined,
+            title: '隐私政策',
+            subtitle: '查看隐私政策',
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const LegalPage(slug: 'privacy', title: '隐私政策'))),
           ),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
         ],
@@ -748,6 +699,82 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleHideBottomNavOnScroll(bool value) async {
     await _userPrefs.setHideBottomNavOnScroll(value);
     setState(() => _hideBottomNavOnScroll = value);
+  }
+
+  void _showProfileEditDialog(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final nicknameController = TextEditingController(text: _userPrefs.nickname);
+    final mottoController = TextEditingController(text: _userPrefs.motto);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('个人信息', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nicknameController,
+              style: TextStyle(fontSize: 14, color: colors.onSurface),
+              decoration: InputDecoration(
+                labelText: '昵称',
+                labelStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: colors.surfaceContainerHighest,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: mottoController,
+              maxLines: 2,
+              style: TextStyle(fontSize: 14, color: colors.onSurface),
+              decoration: InputDecoration(
+                labelText: '座右铭',
+                labelStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: colors.surfaceContainerHighest,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('取消', style: TextStyle(fontSize: 14)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final nickname = nicknameController.text.trim();
+              final motto = mottoController.text.trim();
+              if (nickname.isNotEmpty) await _userPrefs.setNickname(nickname);
+              if (motto.isNotEmpty) await _userPrefs.setMotto(motto);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) ToastUtil.show(context, '已保存');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('保存', style: TextStyle(fontSize: 14)),
+          ),
+        ],
+      ),
+    );
   }
 
   static const _themeModeLabels = ['跟随系统', '浅色模式', '深色模式'];
@@ -967,30 +994,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildLinkItem({required BuildContext context, required IconData icon, required String title, required String subtitle, required String url}) {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => _launchUrl(context, url),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              ]),
-            ),
-            Icon(Icons.open_in_new, color: colors.onSurface.withValues(alpha: 0.25), size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildActionItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
@@ -1080,10 +1083,6 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } catch (e) { debugPrint('清理图片目录失败: $e'); }
     return deletedCount;
-  }
-
-  void _launchUrl(BuildContext context, String url) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => WebViewPage(url: url)));
   }
 }
 
@@ -1277,6 +1276,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           _buildSection('影视布局', [
             ButtonSegment(value: 0, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('海报网格', style: TextStyle(fontSize: 12))),
             ButtonSegment(value: 1, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
+            ButtonSegment(value: 2, icon: Icon(Icons.crop_landscape_outlined, size: 16), label: Text('大图卡片', style: TextStyle(fontSize: 12))),
           ], _movieLayout, (v) => _setLayout('movie', v)),
           _buildSection('阅读布局', [
             ButtonSegment(value: 0, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('封面网格', style: TextStyle(fontSize: 12))),
@@ -1295,7 +1295,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   void _setLayout(String type, int value) async {
     switch (type) {
       case 'note': await _userPrefs.setNoteLayoutStyle(value); setState(() => _noteLayout = value);
-      case 'movie': await _userPrefs.setMovieLayoutStyle(value); setState(() => _movieLayout = value);
+      case 'movie': await _userPrefs.setMovieLayoutStyle(value); setState(() => _movieLayout = value); if (mounted) context.read<AppProvider>().setMovieLayoutStyle(value);
       case 'book': await _userPrefs.setBookLayoutStyle(value); setState(() => _bookLayout = value);
     }
   }

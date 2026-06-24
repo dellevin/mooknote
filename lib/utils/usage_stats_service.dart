@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'user_prefs.dart';
+import 'server_config.dart';
 
 /// 匿名用户统计服务（静默运行，对用户不可见）
 ///
@@ -18,9 +18,7 @@ class UsageStatsService with WidgetsBindingObserver {
   final UserPrefs _prefs = UserPrefs();
 
   /// 统计服务器地址，debug 走局域网，release 走线上
-  static String serverUrl = kDebugMode
-      ? 'http://192.168.31.48:27047/'
-      : 'http://api.mooknote.iletter.top/';
+  static String serverUrl = '${ServerConfig.baseUrl}/';
   Timer? _heartbeatTimer;
   bool _started = false;
 

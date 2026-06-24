@@ -49,16 +49,16 @@ class _BackupPageState extends State<BackupPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               children: [
                 // 自动备份开关 - 紧凑一行
                 _buildAutoBackupSection(colors),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // 手动备份
                 _buildSectionTitle(colors, '手动备份'),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 _buildActionCard(
                   colors: colors,
                   title: '导出数据',
@@ -68,7 +68,7 @@ class _BackupPageState extends State<BackupPage> {
                   isLoading: _isExporting,
                   onTap: _exportData,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildActionCard(
                   colors: colors,
                   title: '导入数据',
@@ -80,7 +80,7 @@ class _BackupPageState extends State<BackupPage> {
                   isDestructive: true,
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // 使用说明
                 _buildInfoSection(colors),
@@ -126,7 +126,7 @@ class _BackupPageState extends State<BackupPage> {
     bool isDestructive = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
@@ -137,23 +137,19 @@ class _BackupPageState extends State<BackupPage> {
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isDestructive ? Colors.red.withOpacity(0.3) : colors.outline,
-                    width: 0.5,
-                  ),
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
-                  size: 22,
+                  size: 18,
                   color: isDestructive ? Colors.red : colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,18 +157,18 @@ class _BackupPageState extends State<BackupPage> {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                         color: colors.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 1),
                     Text(
                       description,
                       style: TextStyle(
-                        fontSize: 13,
-                        color: colors.onSurface.withValues(alpha: 0.6),
-                        height: 1.4,
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4),
+                        height: 1.3,
                       ),
                     ),
                   ],
@@ -180,12 +176,12 @@ class _BackupPageState extends State<BackupPage> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           GestureDetector(
             onTap: isLoading ? null : onTap,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: isLoading ? colors.onSurface.withValues(alpha: 0.25) : colors.primary,
                 borderRadius: BorderRadius.circular(8),
@@ -193,8 +189,8 @@ class _BackupPageState extends State<BackupPage> {
               child: Center(
                 child: isLoading
                     ? SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation(colors.onPrimary),
@@ -203,7 +199,7 @@ class _BackupPageState extends State<BackupPage> {
                     : Text(
                         buttonText,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: colors.onPrimary,
                         ),
@@ -219,7 +215,7 @@ class _BackupPageState extends State<BackupPage> {
   /// 构建信息说明区域
   Widget _buildInfoSection(ColorScheme colors) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
@@ -233,9 +229,8 @@ class _BackupPageState extends State<BackupPage> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: colors.surface,
+                  color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colors.outline, width: 0.5),
                 ),
                 child: Icon(
                   Icons.info_outline,
@@ -243,60 +238,47 @@ class _BackupPageState extends State<BackupPage> {
                   color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Text(
                 '使用说明',
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                   color: colors.onSurface,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildInfoItem(colors, '1', '导出数据会生成一个 .zip 文件，包含所有数据和图片'),
           const SizedBox(height: 12),
-          _buildInfoItem(colors, '2', '选择保存路径后，可以通过微信、邮件等方式发送备份文件'),
-          const SizedBox(height: 12),
-          _buildInfoItem(colors, '3', '在新设备上选择导入数据，选择备份文件即可恢复'),
-          const SizedBox(height: 12),
-          _buildInfoItem(colors, '4', '导入数据会完全覆盖当前设备的数据，请谨慎操作'),
+          _buildInfoItem(colors, '导出数据会生成一个 .zip 文件，包含所有数据和图片'),
+          const SizedBox(height: 8),
+          _buildInfoItem(colors, '选择保存路径后，可以通过微信、邮件等方式发送备份文件'),
+          const SizedBox(height: 8),
+          _buildInfoItem(colors, '在新设备上选择导入数据，选择备份文件即可恢复'),
+          const SizedBox(height: 8),
+          _buildInfoItem(colors, '导入数据会完全覆盖当前设备的数据，请谨慎操作'),
         ],
       ),
     );
   }
 
   /// 构建信息项
-  Widget _buildInfoItem(ColorScheme colors, String number, String text) {
+  Widget _buildInfoItem(ColorScheme colors, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: colors.outline,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: Text(
-              number,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Icon(Icons.circle,
+              size: 4, color: colors.onSurface.withValues(alpha: 0.25)),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
               fontSize: 13,
-              color: colors.onSurface.withValues(alpha: 0.6),
+              color: colors.onSurface.withValues(alpha: 0.5),
               height: 1.5,
             ),
           ),
@@ -318,29 +300,17 @@ class _BackupPageState extends State<BackupPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: Column(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.check, color: colors.primary, size: 24),
-              ),
-              const SizedBox(height: 16),
-              Text(title,
-                  style: TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            ],
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text(title,
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              Icon(Icons.check_circle_outline, color: colors.primary, size: 40),
+              const SizedBox(height: 16),
               Text(
                 content,
                 style: TextStyle(
@@ -370,13 +340,17 @@ class _BackupPageState extends State<BackupPage> {
           contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
           actionsPadding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
-              style: TextButton.styleFrom(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
                 minimumSize: const Size(120, 40),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: Text('确定', style: TextStyle(fontSize: 14, color: colors.primary)),
+              child: const Text('确定', style: TextStyle(fontSize: 14)),
             ),
           ],
         );
@@ -426,14 +400,14 @@ class _BackupPageState extends State<BackupPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.08),
+                  color: Colors.red.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
@@ -441,7 +415,7 @@ class _BackupPageState extends State<BackupPage> {
               const SizedBox(width: 12),
               Text('确认导入',
                   style: TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -459,21 +433,22 @@ class _BackupPageState extends State<BackupPage> {
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: Text('取消',
-                  style: TextStyle(
-                      color: colors.onSurface.withValues(alpha: 0.6), fontSize: 14)),
+              child: const Text('取消', style: TextStyle(fontSize: 14)),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('确认导入',
-                  style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.w600)),
+              child: const Text('确认导入', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ],
         );
@@ -520,7 +495,7 @@ class _BackupPageState extends State<BackupPage> {
   /// 构建自动备份区域 - 紧凑一行
   Widget _buildAutoBackupSection(ColorScheme colors) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
@@ -529,17 +504,16 @@ class _BackupPageState extends State<BackupPage> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: colors.surface,
+              color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.outline, width: 0.5),
             ),
             child: Icon(Icons.schedule,
-                size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+                size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: _backupDirPath != null && _autoBackupEnabled
                 ? Column(
@@ -548,7 +522,7 @@ class _BackupPageState extends State<BackupPage> {
                       Text(
                         '自动本地备份',
                         style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+                            fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -563,7 +537,7 @@ class _BackupPageState extends State<BackupPage> {
                 : Text(
                     '自动本地备份',
                     style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+                        fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
                   ),
           ),
           Switch(

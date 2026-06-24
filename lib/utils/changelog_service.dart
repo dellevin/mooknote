@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'server_config.dart';
 
 /// 更新日志数据模型
 class ChangelogItem {
@@ -29,7 +30,7 @@ class ChangelogItem {
 
 /// 版本更新检查服务
 class ChangelogService {
-  static const _apiUrl = 'https://api.mooknote.iletter.top/api/changelog';
+  static final _apiUrl = '${ServerConfig.apiBase}/changelog';
 
   /// 获取更新日志列表
   static Future<List<ChangelogItem>> fetchChangelog() async {
@@ -69,6 +70,7 @@ class ChangelogService {
       final rest = s.substring(dot + 1).replaceAll('.', ''); // "19" 或 "188"
       return double.tryParse('$major$rest') ?? 0;
     }
+
     final aVal = toNum(a);
     final bVal = toNum(b);
     debugPrint('[Update] compare: "$a"→$aVal vs "$b"→$bVal');
