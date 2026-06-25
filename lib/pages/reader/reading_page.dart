@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import '../../models/reader_book.dart';
 import '../../service/book_server.dart';
-import '../../utils/book_file_helper.dart';
+import '../../utils/reader/book_file_helper.dart';
 import 'epub_player.dart';
 import 'toc_drawer.dart';
 import 'progress_panel.dart';

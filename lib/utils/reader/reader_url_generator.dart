@@ -1,6 +1,6 @@
 import 'dart:convert';
-import '../service/book_server.dart';
-import 'color_converter.dart';
+import '../../service/book_server.dart';
+import '../color_converter.dart';
 
 /// 生成 foliate-js 阅读器 URL
 String generateReaderUrl({

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/reader_book.dart';
 import '../../providers/app_provider.dart';
-import '../../utils/book_file_helper.dart';
+import '../../utils/reader/book_file_helper.dart';
 import 'reading_page.dart';
 
 /// 阅读器书籍详情页

@@ -7,8 +7,8 @@ import '../utils/toast_util.dart';
 import 'movies/movie_tab_page.dart';
 import 'book/book_tab_page.dart';
 import 'note/note_tab_page.dart';
-import 'search_page.dart';
-import 'online_search_page.dart';
+import 'online_search/search_page.dart';
+import 'online_search/online_search_page.dart';
 import 'sync/webdav_sync_page.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页（PageView 滑动切换）

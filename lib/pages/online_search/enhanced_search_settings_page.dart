@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../utils/user_prefs.dart';
-import '../utils/server_config.dart';
-import 'legal_page.dart';
+import '../../utils/user_prefs.dart';
+import '../../utils/server_config.dart';
+import '../legal_page.dart';
 
 /// 增强搜索设置页面
 class EnhancedSearchSettingsPage extends StatefulWidget {

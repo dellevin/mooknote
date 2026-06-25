@@ -17,7 +17,7 @@ import '../widgets/fade_in_local_image.dart';
 import 'statistics_page.dart';
 import 'changelog_page.dart';
 import 'legal_page.dart';
-import 'enhanced_search_settings_page.dart';
+import 'online_search/enhanced_search_settings_page.dart';
 import 'sync/cloud_sync_page.dart';
 import 'app_icon_picker_page.dart';
 import 'tag_management_page.dart';

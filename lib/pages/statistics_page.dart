@@ -702,7 +702,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(7, (i) {
             final ratio = weekdayCounts[i] / maxCount;
-            final barHeight = (ratio * 100).clamp(4.0, 100.0);
+            final barHeight = (ratio * 96).clamp(4.0, 96.0);
             return Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),

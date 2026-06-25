@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../models/data_models.dart';
-import 'movies/movie_detail_page.dart';
-import 'book/book_detail_page.dart';
-import 'note/note_detail_page.dart';
-import '../widgets/fade_in_local_image.dart';
+import '../../providers/app_provider.dart';
+import '../../models/data_models.dart';
+import '../movies/movie_detail_page.dart';
+import '../book/book_detail_page.dart';
+import '../note/note_detail_page.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {

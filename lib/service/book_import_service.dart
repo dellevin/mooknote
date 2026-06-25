@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import '../models/reader_book.dart';
 import '../providers/app_provider.dart';
-import '../utils/book_file_helper.dart';
+import '../utils/reader/book_file_helper.dart';
 
 /// 书籍导入服务
 class BookImportService {

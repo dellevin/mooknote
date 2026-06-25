@@ -6,12 +6,12 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../utils/server_config.dart';
-import '../utils/user_prefs.dart';
-import '../models/data_models.dart';
-import '../providers/app_provider.dart';
-import '../utils/image_path_helper.dart';
-import '../utils/toast_util.dart';
+import '../../utils/server_config.dart';
+import '../../utils/user_prefs.dart';
+import '../../models/data_models.dart';
+import '../../providers/app_provider.dart';
+import '../../utils/image_path_helper.dart';
+import '../../utils/toast_util.dart';
 
 /// 书籍详情页 - 在线版
 class BookDetailPage extends StatefulWidget {

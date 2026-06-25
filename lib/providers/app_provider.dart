@@ -8,7 +8,7 @@ import '../utils/movie/movie_poster_dao.dart';
 import '../utils/book/book_review_dao.dart';
 import '../utils/book/book_excerpt_dao.dart';
 import '../utils/tag/tag_dao.dart';
-import '../utils/reader_book_dao.dart';
+import '../utils/reader/reader_book_dao.dart';
 import '../models/reader_book.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';

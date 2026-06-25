@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../utils/server_config.dart';
-import '../utils/user_prefs.dart';
-import '../utils/toast_util.dart';
+import '../../utils/server_config.dart';
+import '../../utils/user_prefs.dart';
+import '../../utils/toast_util.dart';
 import 'movie_detail_page.dart';
 import 'book_detail_page.dart';
 

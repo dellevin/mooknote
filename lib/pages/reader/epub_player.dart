@@ -9,8 +9,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../models/reader_book.dart';
 import '../../providers/app_provider.dart';
 import '../../service/book_server.dart';
-import '../../utils/book_file_helper.dart';
-import '../../utils/reader_url_generator.dart';
+import '../../utils/reader/book_file_helper.dart';
+import '../../utils/reader/reader_url_generator.dart';
 
 /// 目录条目
 class TocItem {
