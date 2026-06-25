@@ -1100,6 +1100,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
+  bool _showNotePlusTab = false;
   int _defaultTabIndex = 0;
 
   @override
@@ -1113,6 +1114,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       _showMovieTab = _userPrefs.showMovieTab;
       _showBookTab = _userPrefs.showBookTab;
       _showNoteTab = _userPrefs.showNoteTab;
+      _showNotePlusTab = _userPrefs.showNotePlusTab;
       _defaultTabIndex = _userPrefs.defaultMainTabIndex;
     });
   }
@@ -1143,6 +1145,11 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     setState(() => _showNoteTab = value);
   }
 
+  Future<void> _toggleNotePlusTab(bool value) async {
+    await _userPrefs.setShowNotePlusTab(value);
+    setState(() => _showNotePlusTab = value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -1160,6 +1167,8 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
           _buildSwitchItem(Icons.menu_book_outlined, '阅读', '记录和管理阅读记录', _showBookTab, _toggleBookTab),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           _buildSwitchItem(Icons.note_outlined, '笔记', '记录和管理笔记', _showNoteTab, _toggleNoteTab),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.edit_note, 'Note Plus', '块编辑器，支持富文本文档', _showNotePlusTab, _toggleNotePlusTab),
           Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
@@ -13,6 +14,7 @@ import 'utils/changelog_service.dart';
 import 'utils/sync/auto_backup_service.dart';
 import 'utils/usage_stats_service.dart';
 import 'providers/app_provider.dart';
+import 'providers/note_plus_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,6 +189,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: widget.appProvider),
+        ChangeNotifierProvider(create: (_) => NotePlusProvider()),
       ],
       child: Consumer<AppProvider>(
         builder: (context, provider, _) {
@@ -200,6 +203,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
+              quill.FlutterQuillLocalizations.delegate,
             ],
             supportedLocales: const [
               Locale('zh', 'CN'),

@@ -37,6 +37,8 @@ dependencies:
   wakelock_plus: ^1.2.5
   pointer_interceptor: ^0.10.1+2
   gbk_codec: ^0.4.0
+  expandable: ^5.0.1
+  flutter_quill: ^11.5.0
 
 dev_dependencies:
   flutter_test:

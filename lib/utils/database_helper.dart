@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 17,
+      version: 21,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -124,6 +124,33 @@ class DatabaseHelper {
     }
     if (oldVersion < 17) {
       await db.execute('ALTER TABLE tags ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0');
+    }
+    if (oldVersion < 18) {
+      await _createNotePlusTable(db);
+    }
+    if (oldVersion < 19) {
+      await _createNotePlusTable(db);
+    }
+    if (oldVersion < 20) {
+      // 确保 note_plus 表有 parent_id 列（从旧版 folder 迁移）
+      try {
+        final cols = await db.rawQuery('PRAGMA table_info(note_plus)');
+        if (!cols.any((col) => col['name'] == 'parent_id')) {
+          if (cols.any((col) => col['name'] == 'folder')) {
+            await db.execute("ALTER TABLE note_plus RENAME COLUMN folder TO parent_id");
+          } else {
+            await db.execute("ALTER TABLE note_plus ADD COLUMN parent_id TEXT DEFAULT ''");
+          }
+        }
+      } catch (_) {}
+    }
+    if (oldVersion < 21) {
+      try {
+        final cols = await db.rawQuery('PRAGMA table_info(note_plus)');
+        if (!cols.any((col) => col['name'] == 'sort_index')) {
+          await db.execute("ALTER TABLE note_plus ADD COLUMN sort_index INTEGER DEFAULT 0");
+        }
+      } catch (_) {}
     }
   }
 
@@ -634,6 +661,27 @@ class DatabaseHelper {
         file_extension TEXT NOT NULL DEFAULT 'epub',
         last_read_cfi TEXT DEFAULT '',
         reading_percentage REAL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Note Plus 块编辑器文档表
+    await _createNotePlusTable(db);
+  }
+
+  /// 创建 Note Plus 文档表
+  Future<void> _createNotePlusTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS note_plus (
+        id TEXT PRIMARY KEY,
+        title TEXT DEFAULT '',
+        parent_id TEXT DEFAULT '',
+        sort_index INTEGER DEFAULT 0,
+        blocks_json TEXT NOT NULL,
+        tags TEXT,
+        images TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0

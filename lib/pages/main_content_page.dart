@@ -7,6 +7,7 @@ import '../utils/toast_util.dart';
 import 'movies/movie_tab_page.dart';
 import 'book/book_tab_page.dart';
 import 'note/note_tab_page.dart';
+import 'note_plus/note_plus_tab_page.dart';
 import 'online_search/search_page.dart';
 import 'online_search/online_search_page.dart';
 import 'sync/webdav_sync_page.dart';
@@ -25,6 +26,7 @@ class _MainContentPageState extends State<MainContentPage> {
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
+  bool _showNotePlusTab = false;
 
   late PageController _pageController;
   bool _isTabTap = false;
@@ -48,6 +50,7 @@ class _MainContentPageState extends State<MainContentPage> {
       _showMovieTab = _userPrefs.showMovieTab;
       _showBookTab = _userPrefs.showBookTab;
       _showNoteTab = _userPrefs.showNoteTab;
+      _showNotePlusTab = _userPrefs.showNotePlusTab;
     });
   }
 
@@ -62,6 +65,7 @@ class _MainContentPageState extends State<MainContentPage> {
     if (_showMovieTab) tabs.add(_TabItem('影视', 0));
     if (_showBookTab) tabs.add(_TabItem('阅读', 1));
     if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
+    if (_showNotePlusTab) tabs.add(_TabItem('Plus', 3));
     return tabs;
   }
 
@@ -135,6 +139,7 @@ class _MainContentPageState extends State<MainContentPage> {
       case 0: return '影视';
       case 1: return '阅读';
       case 2: return '笔记';
+      case 3: return 'Note Plus';
       default: return 'MookNote';
     }
   }
@@ -368,6 +373,7 @@ class _MainContentPageState extends State<MainContentPage> {
             if (_showMovieTab) const MovieTabPage(),
             if (_showBookTab) const BookTabPage(),
             if (_showNoteTab) const NoteTabPage(),
+            if (_showNotePlusTab) const NotePlusTabPage(),
           ],
         );
       },
@@ -379,6 +385,7 @@ class _MainContentPageState extends State<MainContentPage> {
       case '影视': return Icons.movie_outlined;
       case '阅读': return Icons.menu_book_outlined;
       case '笔记': return Icons.note_outlined;
+      case 'Plus': return Icons.edit_note;
       default: return Icons.circle;
     }
   }
