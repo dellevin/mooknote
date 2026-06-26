@@ -158,7 +158,9 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().contains('TimeoutException') ? '搜索超时，请稍后重试' : '搜索失败，请检查网络';
+        final msg = e.toString().contains('TimeoutException')
+            ? '搜索超时，请稍后重试'
+            : '搜索失败，请检查网络';
         ToastUtil.show(context, msg);
       }
     }
@@ -226,7 +228,9 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().contains('TimeoutException') ? '搜索超时，请稍后重试' : '搜索失败，请检查网络';
+        final msg = e.toString().contains('TimeoutException')
+            ? '搜索超时，请稍后重试'
+            : '搜索失败，请检查网络';
         ToastUtil.show(context, msg);
       }
     }
@@ -871,7 +875,7 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
 
   Widget _buildHistoryPanel(ColorScheme colors) {
     if (_history.isEmpty)
-      return _buildEmptyState(colors, '搜索你想看的影视作品', Icons.movie_outlined);
+      return _buildEmptyState(colors, '搜索你想看的影视/书籍作品', Icons.manage_search_outlined);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [

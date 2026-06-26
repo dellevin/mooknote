@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 21,
+      version: 22,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -152,6 +152,10 @@ class DatabaseHelper {
         }
       } catch (_) {}
     }
+    if (oldVersion < 22) {
+      // 为笔记表添加置顶字段
+      await _upgradeNotesTableV22(db);
+    }
   }
 
   /// 升级books表到V11（添加ISBN和出版时间字段）
@@ -188,6 +192,15 @@ class DatabaseHelper {
 
     if (!hasTitle) {
       await db.execute('ALTER TABLE notes ADD COLUMN title TEXT DEFAULT \'\'');
+    }
+  }
+
+  /// 升级notes表到V22（添加置顶字段）
+  Future<void> _upgradeNotesTableV22(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(notes)');
+    final hasIsPinned = columns.any((col) => col['name'] == 'is_pinned');
+    if (!hasIsPinned) {
+      await db.execute('ALTER TABLE notes ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0');
     }
   }
 
@@ -574,7 +587,8 @@ class DatabaseHelper {
         images TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
+        is_deleted INTEGER DEFAULT 0,
+        is_pinned INTEGER NOT NULL DEFAULT 0
       )
     ''');
     

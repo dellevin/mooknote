@@ -5,6 +5,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../pages/stroll_page.dart';
+import '../pages/media_calendar_page.dart';
+import '../pages/person_list_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
 import '../pages/tag_management_page.dart';
 import '../pages/reader/bookshelf_page.dart';
@@ -173,6 +175,16 @@ class _CustomDrawerState extends State<CustomDrawer> {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()));
           }, topRounded: true),
           Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
+          _buildToolItem(Icons.calendar_month_outlined, '书影日历', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const MediaCalendarPage()));
+          }),
+          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
+          _buildToolItem(Icons.people_outline, '角色信息', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonListPage()));
+          }),
+          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
           _buildToolItem(Icons.label_outline, '标签管理', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage()));
@@ -252,8 +264,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         const totalWeeks = 20;
         const weekDays = 7;
-        const cellSize = 13.0;
-        const cellGap = 3.0;
+        const cellSize = 10.0;
+        const cellGap = 1.5;
 
         final cells = List.generate(weekDays, (_) => List.generate(totalWeeks, (_) => 0));
         for (int week = 0; week < totalWeeks; week++) {
@@ -289,12 +301,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ],
               ),
               const SizedBox(height: 14),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                     SizedBox(
                       height: 16,
                       child: Row(
@@ -320,7 +330,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     )),
                   ],
                 ),
-              ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

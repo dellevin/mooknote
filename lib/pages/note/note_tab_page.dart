@@ -24,10 +24,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   AppProvider? _provider;
   int _layoutStyle = 0;
   bool _initialized = false;
-  int _lastDataCount = -1;
-  DateTime? _lastUpdatedAt;
   int _lastScrollSignal = 0;
-  String? _selectedTag;
 
   @override
   void initState() {
@@ -38,8 +35,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
       final provider = context.read<AppProvider>();
       _provider = provider;
       provider.addListener(_onDataChanged);
-      _lastDataCount = provider.notes.length;
-      if (provider.notes.isNotEmpty) _lastUpdatedAt = provider.notes.first.updatedAt;
       _loadFirst();
     });
   }
@@ -55,7 +50,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
     if (!_initialized || !mounted) return;
     final provider = context.read<AppProvider>();
 
-    // 检查回到顶部信号
     if (provider.scrollToTopSignal != _lastScrollSignal && provider.scrollToTopSignal > 0) {
       _lastScrollSignal = provider.scrollToTopSignal;
       if (_scrollController.hasClients) {
@@ -63,15 +57,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
       }
     }
 
-    final count = provider.notes.length;
-    final latest = provider.notes.isNotEmpty ? provider.notes.first.updatedAt : null;
-    if (count != _lastDataCount || latest != _lastUpdatedAt) {
-      _lastDataCount = count;
-      _lastUpdatedAt = latest;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadFirst();
-      });
-    }
+    // 数据变化时刷新列表（排序/评分/新增等）
+    _loadFirst();
   }
 
   void _onScroll() {
@@ -83,12 +70,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Future<void> _loadFirst() async {
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    List<Note> list = await context.read<AppProvider>().loadNotesPaged(offset: 0);
-    if (_selectedTag != null) {
-      final all = context.read<AppProvider>().notes.where((n) => !n.isDeleted && n.tags.contains(_selectedTag)).toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      list = all.take(20).toList();
-    }
+    final sortMode = UserPrefs().noteSortMode;
+    final list = await context.read<AppProvider>().loadNotesPaged(offset: 0, sortMode: sortMode);
     if (!mounted) return;
     setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -96,14 +79,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
-    List<Note> list;
-    if (_selectedTag != null) {
-      final all = context.read<AppProvider>().notes.where((n) => !n.isDeleted && n.tags.contains(_selectedTag)).toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      list = all.skip(_offset).take(20).toList();
-    } else {
-      list = await context.read<AppProvider>().loadNotesPaged(offset: _offset);
-    }
+    final sortMode = UserPrefs().noteSortMode;
+    final list = await context.read<AppProvider>().loadNotesPaged(offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -118,20 +95,11 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final colors = Theme.of(context).colorScheme;
     return Consumer<AppProvider>(builder: (context, provider, _) {
       if (_items.isEmpty && _isLoading) return _buildSkeleton();
-      if (_items.isEmpty && _selectedTag == null) {
+      if (_items.isEmpty) {
         return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
             child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildEmptyState(context)]));
       }
-      return Column(
-        children: [
-          _buildTagBar(provider),
-          Expanded(
-            child: _items.isEmpty
-                ? Center(child: Text('没有"$_selectedTag"相关的笔记', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))))
-                : _buildContent(),
-          ),
-        ],
-      );
+      return _buildContent();
     });
   }
 
@@ -139,53 +107,6 @@ class _NoteTabPageState extends State<NoteTabPage> {
     if (_layoutStyle == 1) return _buildWaterfallView();
     if (_layoutStyle == 2) return _buildTimelineView();
     return _buildListView();
-  }
-
-  Widget _buildTagBar(AppProvider provider) {
-    final colors = Theme.of(context).colorScheme;
-    final allTags = <String>{};
-    for (final n in provider.notes.where((n) => !n.isDeleted)) {
-      allTags.addAll(n.tags);
-    }
-    if (allTags.isEmpty) return const SizedBox.shrink();
-    final tags = allTags.toList()..sort();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
-      ),
-      child: SizedBox(
-        height: 32,
-        child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: tags.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (_, i) {
-          final tag = tags[i];
-          final selected = _selectedTag == tag;
-          return GestureDetector(
-            onTap: () {
-              setState(() => _selectedTag = selected ? null : tag);
-              _loadFirst();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: selected ? colors.primary : colors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Text(tag, style: TextStyle(
-                fontSize: 12,
-                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
-              )),
-            ),
-          );
-        },
-      ),
-      ),
-    );
   }
 
   Widget _buildSkeleton() {
@@ -246,7 +167,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) => _loadFirst()),
-      onLongPress: () => _showDeleteDialog(context, note),
+      onLongPress: () => _showNoteActions(note),
       child: IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         SizedBox(width: 40, child: Column(children: [
           Container(width: 10, height: 10,
@@ -256,7 +177,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
         Expanded(child: Container(margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(_formatFullDate(note.updatedAt), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            Row(children: [
+              Expanded(child: Text(_formatFullDate(note.updatedAt), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)))),
+              if (note.isPinned) Icon(Icons.push_pin, size: 14, color: colors.primary),
+            ]),
             if (note.title.isNotEmpty) ...[const SizedBox(height: 6),
               Text(note.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
@@ -305,7 +229,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final extraCount = images.length - 1;
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) => _loadFirst()),
-      onLongPress: () => _showDeleteDialog(context, note),
+      onLongPress: () => _showNoteActions(note),
       child: Container(margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(10),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))]),
@@ -344,9 +268,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
         ]),
       ),
     );
-  }
-
-  String _getPreviewText(Note note) {
+  }  String _getPreviewText(Note note) {
     final text = note.content.replaceAll(RegExp(r'[#*\[\]\(\)]'), '').trim();
     return text.isEmpty ? '(无内容)' : text;
   }
@@ -368,23 +290,72 @@ class _NoteTabPageState extends State<NoteTabPage> {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, Note note) {
+  void _showNoteActions(Note note) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      backgroundColor: colors.surface, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-      content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。',
-          style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-        ElevatedButton(onPressed: () async { await context.read<AppProvider>().removeNote(note.id); Navigator.pop(ctx); _loadFirst(); },
-          style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-          child: const Text('删除'),
-        ),
-      ],
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    ));
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                child: Icon(note.isPinned ? Icons.push_pin_outlined : Icons.push_pin, size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
+            title: Text(note.isPinned ? '取消置顶' : '置顶', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+            subtitle: Text(note.isPinned ? '取消置顶后按时间排序' : '置顶后始终显示在最前', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
+            onTap: () {
+              Navigator.pop(ctx);
+              context.read<AppProvider>().toggleNotePin(note.id, !note.isPinned);
+            },
+          ),
+          Divider(height: 0.5, color: colors.outlineVariant),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.delete_outline, size: 20, color: colors.error)),
+            title: Text('删除', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.error)),
+            subtitle: Text('删除后可在回收站恢复', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
+            onTap: () {
+              Navigator.pop(ctx);
+              _showDeleteDialog(note);
+            },
+          ),
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(Note note) {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface, elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          ElevatedButton(
+            onPressed: () async { await context.read<AppProvider>().removeNote(note.id); Navigator.pop(ctx); _loadFirst(); },
+            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('删除'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
   }
 
   Widget _buildEmptyState(BuildContext context) {

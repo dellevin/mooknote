@@ -25,8 +25,6 @@ class _BookTabPageState extends State<BookTabPage> {
   int _offset = 0;
   int _lastStatusIndex = -1;
   bool _initialized = false;
-  int _lastDataCount = -1;
-  DateTime? _lastUpdatedAt;
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
@@ -42,8 +40,6 @@ class _BookTabPageState extends State<BookTabPage> {
       final provider = context.read<AppProvider>();
       _provider = provider;
       provider.addListener(_onDataChanged);
-      _lastDataCount = provider.books.length;
-      if (provider.books.isNotEmpty) _lastUpdatedAt = provider.books.first.updatedAt;
       _loadFirst();
     });
   }
@@ -67,15 +63,8 @@ class _BookTabPageState extends State<BookTabPage> {
       }
     }
 
-    final count = provider.books.length;
-    final latest = provider.books.isNotEmpty ? provider.books.first.updatedAt : null;
-    if (count != _lastDataCount || latest != _lastUpdatedAt) {
-      _lastDataCount = count;
-      _lastUpdatedAt = latest;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadFirst();
-      });
-    }
+    // 数据变化时刷新列表（排序/评分/新增等）
+    _loadFirst();
   }
 
   void _onScroll() {
@@ -91,7 +80,7 @@ class _BookTabPageState extends State<BookTabPage> {
     _initialized = true;
     final status = _statusMap[statusIdx] ?? 'read';
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadBooksPaged(status: status, offset: 0);
+    final list = await provider.loadBooksPaged(status: status, offset: 0, sortMode: UserPrefs().bookSortMode);
     if (!mounted) return;
     setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -101,7 +90,7 @@ class _BookTabPageState extends State<BookTabPage> {
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final status = _statusMap[provider.bookStatusIndex] ?? 'read';
-    final list = await provider.loadBooksPaged(status: status, offset: _offset);
+    final list = await provider.loadBooksPaged(status: status, offset: _offset, sortMode: UserPrefs().bookSortMode);
     if (!mounted) return;
     setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }

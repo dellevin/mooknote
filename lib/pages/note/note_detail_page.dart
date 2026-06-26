@@ -30,6 +30,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        titleSpacing: 0,
         title: Text(
           note.title.isNotEmpty
               ? note.title

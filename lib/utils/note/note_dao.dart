@@ -16,24 +16,33 @@ class NoteDao {
   }
 
   // 获取所有未删除的笔记
-  Future<List<Note>> getAllNotes() => _wrap('getAllNotes', () async {
+  Future<List<Note>> getAllNotes({int sortMode = 0}) => _wrap('getAllNotes', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'created_at DESC',
+      orderBy: _buildOrderBy(sortMode),
     );
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
   });
 
   // 分页查询笔记
-  Future<List<Note>> getNotesPaged({int limit = 20, int offset = 0}) => _wrap('getNotesPaged', () async {
+  Future<List<Note>> getNotesPaged({int limit = 20, int offset = 0, int sortMode = 0}) => _wrap('getNotesPaged', () async {
     final db = await _dbHelper.database;
     final maps = await db.query('notes', where: 'is_deleted = 0',
-        orderBy: 'created_at DESC', limit: limit, offset: offset);
+        orderBy: _buildOrderBy(sortMode), limit: limit, offset: offset);
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
   });
+
+  /// 根据排序模式生成 ORDER BY 子句，置顶始终排最前
+  static String _buildOrderBy(int sortMode) {
+    switch (sortMode) {
+      case 1: return 'is_pinned DESC, created_at DESC';
+      case 2: return 'is_pinned DESC, title COLLATE NOCASE ASC';
+      default: return 'is_pinned DESC, updated_at DESC';
+    }
+  }
 
   // 根据ID获取笔记
   Future<Note?> getNoteById(String id) => _wrap('getNoteById', () async {
@@ -70,6 +79,17 @@ class NoteDao {
     return await db.update(
       'notes',
       {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
+
+  // 切换笔记置顶状态
+  Future<int> togglePin(String id, bool isPinned) => _wrap('togglePin', () async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'notes',
+      {'is_pinned': isPinned ? 1 : 0, 'updated_at': DateTime.now().toIso8601String()},
       where: 'id = ?',
       whereArgs: [id],
     );

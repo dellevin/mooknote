@@ -28,7 +28,7 @@ class BookDao {
   });
 
   // 分页查询书籍记录
-  Future<List<Book>> getBooksPaged({String? status, int limit = 20, int offset = 0}) => _wrap('getBooksPaged', () async {
+  Future<List<Book>> getBooksPaged({String? status, int limit = 20, int offset = 0, int sortMode = 0}) => _wrap('getBooksPaged', () async {
     final db = await _dbHelper.database;
     String where = 'is_deleted = 0';
     List<dynamic> whereArgs = [];
@@ -37,9 +37,17 @@ class BookDao {
       whereArgs.add(status);
     }
     final maps = await db.query('books', where: where, whereArgs: whereArgs,
-        orderBy: 'created_at DESC', limit: limit, offset: offset);
+        orderBy: _buildBookOrderBy(sortMode), limit: limit, offset: offset);
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
   });
+
+  static String _buildBookOrderBy(int sortMode) {
+    switch (sortMode) {
+      case 1: return 'created_at DESC';
+      case 2: return 'rating DESC NULLS LAST, updated_at DESC';
+      default: return 'updated_at DESC';
+    }
+  }
 
   // 根据状态筛选书籍记录
   Future<List<Book>> getBooksByStatus(String status) => _wrap('getBooksByStatus', () async {

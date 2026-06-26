@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +10,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/tag_side_panel.dart';
 
 /// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
@@ -30,6 +32,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
   final ImagePicker _picker = ImagePicker();
   String? _tempNoteId; // 新建模式时使用的临时笔记ID
   String _editorMode = 'edit'; // 'edit' | 'preview'
+  Timer? _autoSaveTimer;
+  String _saveStatus = ''; // '', 'saved'
+  Note? _savedNote; // 新建模式首次自动保存后的笔记引用
 
   static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -44,13 +49,80 @@ class _NoteFormPageState extends State<NoteFormPage> {
     _tags = note != null ? List.from(note.tags) : [];
     _images = note != null ? List.from(note.images) : [];
     _isEditing = note != null;
+    _titleController.addListener(_onTextChanged);
+    _contentController.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  void _onTextChanged() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) _autoSave();
+    });
+  }
+
+  Future<void> _autoSave() async {
+    final content = _contentController.text.trim();
+    final title = _titleController.text.trim();
+    if (title.isEmpty && content.isEmpty) return;
+
+    try {
+      final now = DateTime.now();
+      if (_isEditing) {
+        final updatedNote = widget.note!.copyWith(
+          title: title,
+          content: content,
+          tags: _tags,
+          images: _images,
+          updatedAt: now,
+        );
+        await context.read<AppProvider>().updateNote(updatedNote);
+      } else if (_savedNote != null) {
+        final updatedNote = _savedNote!.copyWith(
+          title: title,
+          content: content,
+          tags: _tags,
+          images: _images,
+          updatedAt: now,
+        );
+        await context.read<AppProvider>().updateNote(updatedNote);
+        _savedNote = updatedNote;
+      } else {
+        final noteId = now.millisecondsSinceEpoch.toString();
+        List<String> finalImages = [];
+        if (_images.isNotEmpty) {
+          final oldNoteId = _tempNoteId ?? noteId;
+          finalImages = await _moveImagesToNewId(oldNoteId, noteId);
+        }
+        final newNote = Note(
+          id: noteId,
+          title: title,
+          content: content,
+          tags: _tags,
+          images: finalImages.isNotEmpty ? finalImages : _images,
+          createdAt: _createdAt,
+          updatedAt: now,
+        );
+        await context.read<AppProvider>().addNote(newNote);
+        _savedNote = newNote;
+        _isEditing = true;
+      }
+      if (mounted) {
+        setState(() => _saveStatus = 'saved');
+        Timer(const Duration(seconds: 3), () {
+          if (mounted && _saveStatus == 'saved') setState(() => _saveStatus = '');
+        });
+      }
+    } catch (_) {
+      // 自动保存失败静默处理
+    }
   }
 
   @override
@@ -149,6 +221,19 @@ class _NoteFormPageState extends State<NoteFormPage> {
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface),
             ),
           ),
+          if (_saveStatus == 'saved')
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 6, height: 6,
+                    decoration: BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text('已保存', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                ],
+              ),
+            ),
           GestureDetector(
             onTap: _saveNote,
             child: Container(
@@ -501,7 +586,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Widget _buildAddTagButton() {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: _showAddTagDialog,
+      onTap: _showTagPanel,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
@@ -520,182 +605,24 @@ class _NoteFormPageState extends State<NoteFormPage> {
     );
   }
 
-  /// 显示添加标签对话框
-  Future<void> _showAddTagDialog() async {
-    final controller = TextEditingController();
-
-    // 从 tags 表获取已有标签
+  /// 显示标签侧边面板
+  Future<void> _showTagPanel() async {
     final provider = context.read<AppProvider>();
     final tagRows = await provider.getTags('note_tag');
     final allTags = tagRows.map((t) => t['name'] as String).toSet();
-    // 也从当前笔记内容中收集
     for (final note in provider.notes) {
       allTags.addAll(note.tags);
     }
-    // 过滤掉已添加的标签
-    final availableTags = allTags.where((tag) => !_tags.contains(tag)).toList()..sort();
 
-    showDialog(
+    if (!mounted) return;
+    TagSidePanel.show(
       context: context,
-      builder: (ctx) {
-        final colors = Theme.of(context).colorScheme;
-        return StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-        title: Text(
-          '添加标签',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: colors.onSurface,
-          ),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 输入框
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: TextStyle(fontSize: 14, color: colors.onSurface),
-                cursorColor: colors.primary,
-                decoration: InputDecoration(
-                  hintText: '输入新标签名称',
-                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
-                  filled: true,
-                  fillColor: colors.surfaceContainerHigh,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: colors.primary, width: 1),
-                  ),
-                  suffixIcon: controller.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(Icons.clear, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
-                          onPressed: () => controller.clear(),
-                        )
-                      : null,
-                ),
-                onChanged: (_) => setDialogState(() {}),
-                onSubmitted: (value) {
-                  _addTag(value);
-                  controller.clear();
-                  setDialogState(() {});
-                },
-              ),
-
-              // 已有标签列表
-              if (availableTags.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Text(
-                  '或选择已有标签',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.onSurface.withValues(alpha: 0.35),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 180),
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: availableTags.map((tag) {
-                        return InkWell(
-                          onTap: () {
-                            _addTag(tag);
-                            Navigator.pop(ctx);
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: colors.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: colors.outline, width: 0.5),
-                            ),
-                            child: Text(
-                              tag,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: colors.onSurface.withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
-
-              if (availableTags.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, bottom: 8),
-                  child: Center(
-                    child: Text(
-                      '暂无已有标签',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(
-              foregroundColor: colors.onSurface.withValues(alpha: 0.4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: const Text('取消', style: TextStyle(fontSize: 14)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _addTag(controller.text);
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: colors.onPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            ),
-            child: const Text('添加', style: TextStyle(fontSize: 14)),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        ),
-      );
+      selectedTags: List.from(_tags),
+      allAvailableTags: allTags.toList()..sort(),
+      onTagsChanged: (newTags) {
+        setState(() => _tags = newTags);
       },
     );
-  }
-
-  /// 获取所有已有标签（从所有笔记中收集）
-  /// 添加标签
-  void _addTag(String tag) {
-    final trimmed = tag.trim();
-    if (trimmed.isNotEmpty && !_tags.contains(trimmed)) {
-      setState(() => _tags.add(trimmed));
-    }
   }
 
   /// 标题输入行
@@ -729,42 +656,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
     return false;
   }
 
-  /// 离开确认
+  /// 离开确认（自动保存后直接返回）
   Future<bool> _confirmLeave() async {
-    if (!_hasContent()) return true;
-    final colors = Theme.of(context).colorScheme;
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('未保存', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('当前内容未保存，确定要离开吗？',
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.error,
-              foregroundColor: colors.onError,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: const Text('离开'),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-    return result ?? false;
+    _autoSaveTimer?.cancel();
+    if (_hasContent()) await _autoSave();
+    return true;
   }
+
   Future<void> _saveNote() async {
+    _autoSaveTimer?.cancel();
     final content = _contentController.text.trim();
     final title = _titleController.text.trim();
 

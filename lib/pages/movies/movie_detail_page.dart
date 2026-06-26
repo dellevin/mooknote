@@ -35,6 +35,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   final ValueNotifier<bool> _draggingPoster = ValueNotifier(false);
   final GlobalKey _posterImageKey = GlobalKey();
   double _posterImageHeight = 0.0;
+  final ValueNotifier<bool> _showTitle = ValueNotifier(false);
+  ScrollController? _overlayScrollController;
 
   @override
   void initState() {
@@ -48,6 +50,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   void dispose() {
     _posterOffset.dispose();
     _draggingPoster.dispose();
+    _showTitle.dispose();
+    _overlayScrollController?.dispose();
     super.dispose();
   }
 
@@ -75,25 +79,20 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       backgroundColor: colors.surface,
       body: Stack(
         children: [
-          // 图片从导航栏下方开始，固定在顶部
-          Column(
-            children: [
-              SizedBox(height: topSafe + 48),
-              SizedBox(
-                height: 320,
-                width: double.infinity,
-                child: _buildPosterSection(movie),
-              ),
-            ],
-          ),
-          // 可滚动内容区域从图片底部开始
-          Positioned(
-            top: topSafe + 48 + 320,
-            left: 0, right: 0, bottom: 0,
+          // 整体可滚动（图片 + 内容一起滑动）
+          Padding(
+            padding: EdgeInsets.only(top: topSafe + 48),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 封面图
+                  SizedBox(
+                    height: 320,
+                    width: double.infinity,
+                    child: _buildPosterSection(movie),
+                  ),
+                  // 详细信息
                   _buildBasicInfo(movie),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   if (movie.directors.isNotEmpty)
@@ -154,6 +153,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final screenH = MediaQuery.of(context).size.height;
     final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
 
+    // 初始化滚动控制器（只创建一次）
+    _overlayScrollController ??= ScrollController()..addListener(() {
+      final show = (_overlayScrollController?.offset ?? 0) > 10;
+      if (_showTitle.value != show) _showTitle.value = show;
+    });
+
     return Scaffold(
       body: Stack(
         children: [
@@ -180,6 +185,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           // 内容
           SafeArea(
             child: Column(children: [
+              // 顶部栏：只在滚动后显示标题
               SizedBox(
                 height: 48,
                 child: Row(children: [
@@ -188,15 +194,26 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Spacer(),
-                  Text(movie.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _showTitle,
+                    builder: (_, show, __) => AnimatedOpacity(
+                      opacity: show ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
+                        child: Text(movie.title,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                  ),
                   const Spacer(),
                   _buildStyleButton(),
                 ]),
               ),
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _overlayScrollController,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _buildOverlayHeader(movie),
@@ -298,33 +315,34 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   void _showStylePicker() {
     final colors = Theme.of(context).colorScheme;
     const names = ['默认样式', '毛玻璃层叠'];
+    const icons = [Icons.article_outlined, Icons.blur_on_outlined];
+    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片'];
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('详情页样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          const SizedBox(height: 16),
-          Wrap(spacing: 10, runSpacing: 10, children: List.generate(names.length, (i) {
-            final selected = _detailStyle == i;
-            return GestureDetector(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
+          Align(alignment: Alignment.centerLeft, child: Text('详情页样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          const SizedBox(height: 12),
+          for (int i = 0; i < names.length; i++) ...[
+            if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(icons[i], size: 20, color: _detailStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
+              title: Text(names[i], style: TextStyle(fontSize: 13, fontWeight: _detailStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              trailing: _detailStyle == i
+                  ? Icon(Icons.check_circle, size: 20, color: colors.primary)
+                  : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyle(i); Navigator.pop(ctx); },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected ? colors.primary : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: selected ? colors.primary : colors.outline, width: 0.5),
-                ),
-                child: Text(names[i], style: TextStyle(
-                  fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
-                )),
-              ),
-            );
-          })),
+            ),
+          ],
+          const SizedBox(height: 12),
         ]),
       ),
     );

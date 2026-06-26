@@ -296,6 +296,24 @@ class _MainContentPageState extends State<MainContentPage> {
                         provider.setMainTabIndex(tab.originalIndex);
                         Future.delayed(const Duration(milliseconds: 400), () => _isTabTap = false);
                       },
+                      onLongPress: tab.label == '影视'
+                          ? () => _showSortMenu(context, '影视排序', UserPrefs().movieSortMode, [
+                              (0, '按更新时间排序', Icons.update),
+                              (1, '按创建时间排序', Icons.calendar_today_outlined),
+                              (2, '按评分排序', Icons.star_outline),
+                            ], (v) { UserPrefs().setMovieSortMode(v); context.read<AppProvider>().loadMovies(); })
+                          : tab.label == '阅读'
+                              ? () => _showSortMenu(context, '书籍排序', UserPrefs().bookSortMode, [
+                                  (0, '按更新时间排序', Icons.update),
+                                  (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                  (2, '按评分排序', Icons.star_outline),
+                                ], (v) { UserPrefs().setBookSortMode(v); context.read<AppProvider>().loadBooks(); })
+                              : tab.label == '笔记'
+                                  ? () => _showSortMenu(context, '笔记排序', UserPrefs().noteSortMode, [
+                                      (0, '按更新时间排序', Icons.update),
+                                      (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                    ], (v) { UserPrefs().setNoteSortMode(v); context.read<AppProvider>().loadNotes(); })
+                                  : null,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
@@ -337,7 +355,45 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  // ─── PageView 内容区 ─────────────────────────────────
+  void _showSortMenu(BuildContext context, String title, int current, List<(int, String, IconData)> options, ValueChanged<int> onSelected) {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+          const SizedBox(height: 8),
+          for (int i = 0; i < options.length; i++) ...[
+            if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
+            _sortOption(ctx, options[i].$1, options[i].$2, options[i].$3, current, colors, onSelected),
+          ],
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
+  }
+
+  Widget _sortOption(BuildContext ctx, int value, String label, IconData icon, int current, ColorScheme colors, ValueChanged<int> onSelected) {
+    final selected = current == value;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
+      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+      trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
+      onTap: () {
+        Navigator.pop(ctx);
+        onSelected(value);
+      },
+    );
+  }
+
+  // ─── PageView 内容区 ───
 
   Widget _buildTabContent() {
     return Consumer<AppProvider>(
@@ -359,7 +415,11 @@ class _MainContentPageState extends State<MainContentPage> {
         }
 
         if (_isTabTap && _pageController.hasClients) {
-          _pageController.animateToPage(safeIndex, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
+          _isTabTap = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_pageController.hasClients) return;
+            _pageController.animateToPage(safeIndex, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
+          });
         }
 
         return PageView(

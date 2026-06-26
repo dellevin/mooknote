@@ -29,6 +29,7 @@ dependencies:
   http: ^1.2.0
   url_launcher: ^6.2.5
   webview_flutter: ^4.8.0
+  dynamic_color: ^1.8.1
   package_info_plus: ^8.0.0
   extended_text_field: ^16.0.2
   uuid: ^4.5.0
@@ -56,7 +57,7 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
-  
+
   assets:
     - assets/images/
     - assets/icon/
@@ -69,3 +70,17 @@ flutter:
     - assets/foliate-js/src/vendor/prism/
     - assets/foliate-js/src/vendor/prism/components/
     - assets/foliate-js/src/vendor/prism/themes/
+
+  fonts:
+    - family: LXGWWenKai
+      fonts:
+        - asset: assets/fonts/LXGWWenKai-Regular.ttf
+    - family: OPPOSans
+      fonts:
+        - asset: assets/fonts/OPPO_Sans4.0.ttf
+    - family: NotoSerifSC
+      fonts:
+        - asset: assets/fonts/NotoSerifSC-Regular.ttf
+    - family: SmileySans
+      fonts:
+        - asset: assets/fonts/SmileySans-Oblique.ttf

@@ -51,6 +51,10 @@ class UserPrefs {
   int get colorSchemeIndex => prefs.getInt('colorSchemeIndex') ?? 0;
   Future<bool> setColorSchemeIndex(int value) => prefs.setInt('colorSchemeIndex', value);
 
+  /// 字体: 空字符串=系统默认
+  String get fontFamily => prefs.getString('fontFamily') ?? '';
+  Future<bool> setFontFamily(String value) => prefs.setString('fontFamily', value);
+
   /// 上映日期：显示到日（true）/ 显示到月（false）
   bool get showExactReleaseDate => prefs.getBool('showExactReleaseDate') ?? true;
   Future<bool> setShowExactReleaseDate(bool value) => prefs.setBool('showExactReleaseDate', value);
@@ -100,6 +104,18 @@ class UserPrefs {
   /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
   Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);
+
+  /// 笔记排序方式 (0: 更新时间, 1: 创建时间)
+  int get noteSortMode => prefs.getInt('noteSortMode') ?? 0;
+  Future<bool> setNoteSortMode(int value) => prefs.setInt('noteSortMode', value);
+
+  /// 影视排序方式 (0: 更新时间, 1: 创建时间, 2: 评分)
+  int get movieSortMode => prefs.getInt('movieSortMode') ?? 0;
+  Future<bool> setMovieSortMode(int value) => prefs.setInt('movieSortMode', value);
+
+  /// 书籍排序方式 (0: 更新时间, 1: 创建时间, 2: 评分)
+  int get bookSortMode => prefs.getInt('bookSortMode') ?? 0;
+  Future<bool> setBookSortMode(int value) => prefs.setInt('bookSortMode', value);
 
   /// 影视布局样式 (0: 海报网格, 1: 列表)
   int get movieLayoutStyle => prefs.getInt('movieLayoutStyle') ?? 0;

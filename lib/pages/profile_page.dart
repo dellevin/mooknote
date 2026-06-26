@@ -73,7 +73,8 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(
           child: Consumer<AppProvider>(
             builder: (context, provider, child) {
-              final movies = provider.movies.where((m) => !m.isDeleted).toList();
+              final movies =
+                  provider.movies.where((m) => !m.isDeleted).toList();
               final books = provider.books.where((b) => !b.isDeleted).toList();
               final notes = provider.notes.where((n) => !n.isDeleted).toList();
               return SingleChildScrollView(
@@ -111,8 +112,12 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildHero(List<Movie> movies, List<Book> books, List<Note> notes) {
     final colors = Theme.of(context).colorScheme;
     final coverPaths = [
-      ...movies.where((m) => m.posterPath != null && m.posterPath!.isNotEmpty).map((m) => m.posterPath!),
-      ...books.where((b) => b.coverPath != null && b.coverPath!.isNotEmpty).map((b) => b.coverPath!),
+      ...movies
+          .where((m) => m.posterPath != null && m.posterPath!.isNotEmpty)
+          .map((m) => m.posterPath!),
+      ...books
+          .where((b) => b.coverPath != null && b.coverPath!.isNotEmpty)
+          .map((b) => b.coverPath!),
     ]..shuffle();
 
     final hasData = coverPaths.length >= 4;
@@ -126,17 +131,23 @@ class _ProfilePageState extends State<ProfilePage> {
           if (hasData)
             Positioned.fill(child: _buildPosterMosaic(coverPaths))
           else
-            Positioned.fill(child: Container(decoration: BoxDecoration(
+            Positioned.fill(
+                child: Container(
+                    decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [colors.primary, colors.primary.withValues(alpha: 0.6)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ))),
-          Positioned.fill(child: Container(color: hasData
-              ? Colors.black.withValues(alpha: 0.35)
-              : colors.surface.withValues(alpha: 0.82))),
+          Positioned.fill(
+              child: Container(
+                  color: hasData
+                      ? Colors.black.withValues(alpha: 0.35)
+                      : colors.surface.withValues(alpha: 0.82))),
           Padding(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+                20, MediaQuery.of(context).padding.top + 20, 20, 20),
             child: Column(
               children: [
                 Row(
@@ -144,24 +155,37 @@ class _ProfilePageState extends State<ProfilePage> {
                     GestureDetector(
                       onTap: _pickAvatar,
                       child: Container(
-                        width: 56, height: 56,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: hasData
-                              ? Colors.white.withValues(alpha: 0.6)
-                              : colors.outlineVariant, width: 1.5),
+                          border: Border.all(
+                              color: hasData
+                                  ? Colors.white.withValues(alpha: 0.6)
+                                  : colors.outlineVariant,
+                              width: 1.5),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: _avatarPath != null && _avatarPath!.isNotEmpty
-                            ? FadeInLocalImage(path: _avatarPath, fit: BoxFit.cover,
-                                errorWidget: Icon(Icons.person_outline, size: 28, color: hasData
-                                    ? Colors.white.withValues(alpha: 0.5)
-                                    : colors.onSurface.withValues(alpha: 0.3)))
+                            ? FadeInLocalImage(
+                                path: _avatarPath,
+                                fit: BoxFit.cover,
+                                errorWidget: Icon(Icons.person_outline,
+                                    size: 28,
+                                    color: hasData
+                                        ? Colors.white.withValues(alpha: 0.5)
+                                        : colors.onSurface
+                                            .withValues(alpha: 0.3)))
                             : Container(
-                                color: hasData ? Colors.white.withValues(alpha: 0.1) : colors.surfaceContainerHighest,
-                                child: Icon(Icons.person_outline, size: 28, color: hasData
-                                    ? Colors.white.withValues(alpha: 0.5)
-                                    : colors.onSurface.withValues(alpha: 0.3))),
+                                color: hasData
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : colors.surfaceContainerHighest,
+                                child: Icon(Icons.person_outline,
+                                    size: 28,
+                                    color: hasData
+                                        ? Colors.white.withValues(alpha: 0.5)
+                                        : colors.onSurface
+                                            .withValues(alpha: 0.3))),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -169,15 +193,23 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_nickname, style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w600,
-                              color: hasData ? Colors.white : colors.onSurface)),
+                          Text(_nickname,
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: hasData
+                                      ? Colors.white
+                                      : colors.onSurface)),
                           const SizedBox(height: 4),
-                          Text(_motto, maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13,
+                          Text(_motto,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 13,
                                   color: hasData
                                       ? Colors.white.withValues(alpha: 0.85)
-                                      : colors.onSurface.withValues(alpha: 0.6))),
+                                      : colors.onSurface
+                                          .withValues(alpha: 0.6))),
                         ],
                       ),
                     ),
@@ -201,15 +233,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildPosterMosaic(List<String> paths) {
     final posters = paths.take(12).toList();
-    while (posters.length < 12) posters.add(posters[posters.length % paths.length]);
+    while (posters.length < 12)
+      posters.add(posters[posters.length % paths.length]);
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4, mainAxisSpacing: 2, crossAxisSpacing: 2,
+        crossAxisCount: 4,
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
       ),
       itemCount: 12,
-      itemBuilder: (_, i) => FadeInLocalImage(path: posters[i], fit: BoxFit.cover),
+      itemBuilder: (_, i) =>
+          FadeInLocalImage(path: posters[i], fit: BoxFit.cover),
     );
   }
 
@@ -217,11 +253,23 @@ class _ProfilePageState extends State<ProfilePage> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: hasData ? Colors.white : Theme.of(context).colorScheme.onSurface)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: hasData
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 11, color: hasData
-              ? Colors.white.withValues(alpha: 0.85)
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: hasData
+                      ? Colors.white.withValues(alpha: 0.85)
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6))),
         ],
       ),
     );
@@ -233,7 +281,11 @@ class _ProfilePageState extends State<ProfilePage> {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      child: Text(title,
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface)),
     );
   }
 
@@ -244,7 +296,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final watched = movies.where((m) => m.status == 'watched').length;
     final watching = movies.where((m) => m.status == 'watching').length;
     final wantTo = movies.where((m) => m.status == 'want_to_watch').length;
-    final recent = movies.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recent = movies.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +324,8 @@ class _ProfilePageState extends State<ProfilePage> {
               itemBuilder: (_, i) => _buildCoverCard(
                 title: recent[i].title,
                 imagePath: recent[i].posterPath,
-                onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: recent[i]),
+                onTap: () => Navigator.pushNamed(context, '/movie-detail',
+                    arguments: recent[i]),
               ),
             ),
           )
@@ -288,7 +342,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final read = books.where((b) => b.status == 'read').length;
     final reading = books.where((b) => b.status == 'reading').length;
     final wantTo = books.where((b) => b.status == 'want_to_read').length;
-    final recent = books.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recent = books.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +370,8 @@ class _ProfilePageState extends State<ProfilePage> {
               itemBuilder: (_, i) => _buildCoverCard(
                 title: recent[i].title,
                 imagePath: recent[i].coverPath,
-                onTap: () => Navigator.pushNamed(context, '/book-detail', arguments: recent[i]),
+                onTap: () => Navigator.pushNamed(context, '/book-detail',
+                    arguments: recent[i]),
               ),
             ),
           )
@@ -325,28 +381,36 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatusTag(String label, int count, bool active, ColorScheme colors) {
+  Widget _buildStatusTag(
+      String label, int count, bool active, ColorScheme colors) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 6, height: 6,
+          width: 6,
+          height: 6,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: active ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
+            color: active
+                ? colors.primary
+                : colors.onSurface.withValues(alpha: 0.25),
           ),
         ),
         const SizedBox(width: 4),
-        Text('$label $count', style: TextStyle(
-          fontSize: 12,
-          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-          color: active ? colors.onSurface : colors.onSurface.withValues(alpha: 0.5),
-        )),
+        Text('$label $count',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+              color: active
+                  ? colors.onSurface
+                  : colors.onSurface.withValues(alpha: 0.5),
+            )),
       ],
     );
   }
 
-  Widget _buildCoverCard({required String title, String? imagePath, VoidCallback? onTap}) {
+  Widget _buildCoverCard(
+      {required String title, String? imagePath, VoidCallback? onTap}) {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
@@ -364,14 +428,24 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: imagePath != null && imagePath.isNotEmpty
-                    ? FadeInLocalImage(path: imagePath, fit: BoxFit.cover,
-                        errorWidget: Icon(Icons.image_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.2)))
-                    : Icon(Icons.image_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.2)),
+                    ? FadeInLocalImage(
+                        path: imagePath,
+                        fit: BoxFit.cover,
+                        errorWidget: Icon(Icons.image_outlined,
+                            size: 20,
+                            color: colors.onSurface.withValues(alpha: 0.2)))
+                    : Icon(Icons.image_outlined,
+                        size: 20,
+                        color: colors.onSurface.withValues(alpha: 0.2)),
               ),
             ),
             const SizedBox(height: 4),
-            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.6))),
+            Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: colors.onSurface.withValues(alpha: 0.6))),
           ],
         ),
       ),
@@ -382,19 +456,37 @@ class _ProfilePageState extends State<ProfilePage> {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Center(child: Text(text, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
+      child: Center(
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: colors.onSurface.withValues(alpha: 0.3)))),
     );
   }
 
   // ─── 标签模块 ──────────────────────────────────────────────────────
 
-  Widget _buildTagsSection(List<Movie> movies, List<Book> books, List<Note> notes) {
+  Widget _buildTagsSection(
+      List<Movie> movies, List<Book> books, List<Note> notes) {
     final colors = Theme.of(context).colorScheme;
     final freq = <String, int>{};
-    for (final m in movies) { for (final g in m.genres) { freq[g] = (freq[g] ?? 0) + 1; } }
-    for (final b in books) { for (final g in b.genres) { freq[g] = (freq[g] ?? 0) + 1; } }
-    for (final n in notes) { for (final t in n.tags) { freq[t] = (freq[t] ?? 0) + 1; } }
-    final sorted = freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    for (final m in movies) {
+      for (final g in m.genres) {
+        freq[g] = (freq[g] ?? 0) + 1;
+      }
+    }
+    for (final b in books) {
+      for (final g in b.genres) {
+        freq[g] = (freq[g] ?? 0) + 1;
+      }
+    }
+    for (final n in notes) {
+      for (final t in n.tags) {
+        freq[t] = (freq[t] ?? 0) + 1;
+      }
+    }
+    final sorted = freq.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     final topTags = sorted.take(10).map((e) => e.key).toList();
 
     if (topTags.isEmpty) return const SizedBox.shrink();
@@ -406,15 +498,27 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Text('常用标签', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              Text('常用标签',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
               const Spacer(),
               GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage())),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const TagManagementPage())),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('管理', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                    Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+                    Text('管理',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                    Icon(Icons.chevron_right,
+                        size: 16,
+                        color: colors.onSurface.withValues(alpha: 0.3)),
                   ],
                 ),
               ),
@@ -425,15 +529,22 @@ class _ProfilePageState extends State<ProfilePage> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Wrap(
-            spacing: 8, runSpacing: 8,
-            children: topTags.map((tag) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(tag, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.7))),
-            )).toList(),
+            spacing: 8,
+            runSpacing: 8,
+            children: topTags
+                .map((tag) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(tag,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: colors.onSurface.withValues(alpha: 0.7))),
+                    ))
+                .toList(),
           ),
         ),
       ],
@@ -445,11 +556,31 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildToolsGrid(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final tools = [
-      (Icons.explore_outlined, '漫步', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()))),
-      (Icons.analytics_outlined, '统计', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsPage()))),
+      (
+        Icons.explore_outlined,
+        '漫步',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const StrollPage()))
+      ),
+      (
+        Icons.analytics_outlined,
+        '统计',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
+      ),
       (Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
-      (Icons.settings_outlined, '设置', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()))),
-      (Icons.delete_outline, '回收', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))),
+      (
+        Icons.settings_outlined,
+        '设置',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const SettingsPage()))
+      ),
+      (
+        Icons.delete_outline,
+        '回收',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
+      ),
     ];
 
     return Padding(
@@ -467,24 +598,43 @@ class _ProfilePageState extends State<ProfilePage> {
                 InkWell(
                   onTap: e.value.$3,
                   borderRadius: BorderRadius.only(
-                    topLeft: e.key == 0 ? const Radius.circular(12) : Radius.zero,
-                    topRight: e.key == 0 ? const Radius.circular(12) : Radius.zero,
-                    bottomLeft: isLast ? const Radius.circular(12) : Radius.zero,
-                    bottomRight: isLast ? const Radius.circular(12) : Radius.zero,
+                    topLeft:
+                        e.key == 0 ? const Radius.circular(12) : Radius.zero,
+                    topRight:
+                        e.key == 0 ? const Radius.circular(12) : Radius.zero,
+                    bottomLeft:
+                        isLast ? const Radius.circular(12) : Radius.zero,
+                    bottomRight:
+                        isLast ? const Radius.circular(12) : Radius.zero,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Icon(e.value.$1, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+                        Icon(e.value.$1,
+                            size: 18,
+                            color: colors.onSurface.withValues(alpha: 0.6)),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(e.value.$2, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7)))),
-                        Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
+                        Expanded(
+                            child: Text(e.value.$2,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: colors.onSurface
+                                        .withValues(alpha: 0.7)))),
+                        Icon(Icons.chevron_right,
+                            size: 16,
+                            color: colors.onSurface.withValues(alpha: 0.2)),
                       ],
                     ),
                   ),
                 ),
-                if (!isLast) Divider(height: 1, indent: 46, endIndent: 16, color: colors.outlineVariant),
+                if (!isLast)
+                  Divider(
+                      height: 1,
+                      indent: 46,
+                      endIndent: 16,
+                      color: colors.outlineVariant),
               ],
             );
           }).toList(),
@@ -508,8 +658,90 @@ class _ProfilePageState extends State<ProfilePage> {
   // ─── 头像 ────────────────────────────────────────────────────────────
 
   Future<void> _pickAvatar() async {
+    final colors = Theme.of(context).colorScheme;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('更换头像',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)))),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.folder_outlined,
+                    size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
+            title: Text('从文件管理器选择',
+                style: TextStyle(fontSize: 14, color: colors.onSurface)),
+            trailing: Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25)),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await _pickAvatarFromFile();
+            },
+          ),
+          if (_avatarPath != null && _avatarPath!.isNotEmpty) ...[
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.delete_outline,
+                      size: 20, color: colors.error)),
+              title: Text('移除头像',
+                  style: TextStyle(fontSize: 14, color: colors.error)),
+              trailing: Icon(Icons.chevron_right,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _userPrefs.clearAvatarPath();
+                setState(() => _avatarPath = null);
+              },
+            ),
+          ],
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pickAvatarFromFile() async {
     try {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 400, maxHeight: 400, imageQuality: 85);
+      final pickedFile = await _picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 400,
+          maxHeight: 400,
+          imageQuality: 85);
       if (pickedFile != null) {
         final appDir = await getApplicationDocumentsDirectory();
         final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -532,32 +764,80 @@ class _ProfilePageState extends State<ProfilePage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            Align(alignment: Alignment.centerLeft, child: Text('选择备份方式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: Text('选择备份方式',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface))),
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.folder_outlined, color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('本地备份', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text('备份到本地文件夹，支持恢复', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { Navigator.pop(ctx); _push(context, const BackupPage()); },
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.folder_outlined,
+                      color: colors.onSurface.withValues(alpha: 0.6))),
+              title: Text('本地备份',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurface)),
+              subtitle: Text('备份到本地文件夹，支持恢复',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
+              trailing: Icon(Icons.chevron_right,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _push(context, const BackupPage());
+              },
             ),
             Divider(height: 0.5, color: colors.outlineVariant),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.cloud_outlined, color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('云备份', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text('通过 WebDAV 同步到云端', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { Navigator.pop(ctx); _push(context, const CloudSyncPage()); },
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.cloud_outlined,
+                      color: colors.onSurface.withValues(alpha: 0.6))),
+              title: Text('云备份',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurface)),
+              subtitle: Text('通过 WebDAV 同步到云端',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
+              trailing: Icon(Icons.chevron_right,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _push(context, const CloudSyncPage());
+              },
             ),
             const SizedBox(height: 20),
           ],
@@ -580,12 +860,14 @@ class _SettingsPageState extends State<SettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   bool _hideBottomNavOnScroll = true;
   int _themeMode = 0; // 0=系统, 1=浅色, 2=深色
+  String _fontFamily = '';
 
   @override
   void initState() {
     super.initState();
     _hideBottomNavOnScroll = _userPrefs.hideBottomNavOnScroll;
     _themeMode = _userPrefs.themeMode;
+    _fontFamily = _userPrefs.fontFamily;
   }
 
   @override
@@ -601,27 +883,58 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.apps_outlined,
             title: '应用图标',
             subtitle: '更换桌面应用图标',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildNavigationItem(
             icon: Icons.view_list_outlined,
             title: '主界面设置',
             subtitle: '启动标签、模块显示开关',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MainContentSettingsPage())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const MainContentSettingsPage())),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildNavigationItem(
             icon: Icons.dashboard_outlined,
             title: '布局设置',
             subtitle: '影视、阅读、笔记的展示样式',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildThemeModeSelector(),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildColorSchemeSelector(),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildFontSelector(),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSectionHeader('其他设置'),
           _buildActionItem(
             icon: Icons.person_outline,
@@ -629,14 +942,25 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: '修改昵称和座右铭',
             onTap: () => _showProfileEditDialog(context),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.manage_search,
             title: '增强搜索',
             subtitle: '在线搜索影视和书籍信息',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnhancedSearchSettingsPage())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const EnhancedSearchSettingsPage())),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSwitchItem(
             icon: Icons.swipe_vertical_outlined,
             title: '底部导航栏滚动隐藏',
@@ -644,7 +968,11 @@ class _SettingsPageState extends State<SettingsPage> {
             value: _hideBottomNavOnScroll,
             onChanged: _toggleHideBottomNavOnScroll,
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSectionHeader('数据管理'),
           _buildActionItem(
             icon: Icons.cleaning_services_outlined,
@@ -652,45 +980,78 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: '清理未在数据库中引用的图片文件',
             onTap: () => _showClearCacheDialog(context),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSectionHeader('帮助'),
           _buildActionItem(
             icon: Icons.language_outlined,
             title: '查看官网',
             subtitle: '在浏览器中打开官方网站',
-            onTap: () => launchUrl(Uri.parse('https://mooknote.iletter.top/#/')),
+            onTap: () =>
+                launchUrl(Uri.parse('https://mooknote.iletter.top/#/')),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.code_outlined,
             title: '开发日志',
             subtitle: '在浏览器中查看项目开发记录',
-            onTap: () => launchUrl(Uri.parse('http://docmost.iletter.top/s/technologyNote/p/mook-note-lHmPTswdDC')),
+            onTap: () => launchUrl(Uri.parse(
+                'http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC')),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.update_outlined,
             title: '更新日志',
             subtitle: '查看版本更新内容',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangelogPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ChangelogPage())),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.description_outlined,
             title: '用户服务协议',
             subtitle: '查看用户服务协议',
-            onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => const LegalPage(slug: 'terms', title: '用户服务协议'))),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const LegalPage(slug: 'terms', title: '用户服务协议'))),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.shield_outlined,
             title: '隐私政策',
             subtitle: '查看隐私政策',
-            onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => const LegalPage(slug: 'privacy', title: '隐私政策'))),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const LegalPage(slug: 'privacy', title: '隐私政策'))),
           ),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
         ],
       ),
     );
@@ -711,7 +1072,11 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('个人信息', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('个人信息',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -720,11 +1085,16 @@ class _SettingsPageState extends State<SettingsPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
                 labelText: '昵称',
-                labelStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5)),
+                labelStyle: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withValues(alpha: 0.5)),
                 filled: true,
                 fillColor: colors.surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 12),
@@ -734,11 +1104,16 @@ class _SettingsPageState extends State<SettingsPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
                 labelText: '座右铭',
-                labelStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5)),
+                labelStyle: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withValues(alpha: 0.5)),
                 filled: true,
                 fillColor: colors.surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none),
               ),
             ),
           ],
@@ -750,7 +1125,8 @@ class _SettingsPageState extends State<SettingsPage> {
             style: TextButton.styleFrom(
               foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('取消', style: TextStyle(fontSize: 14)),
           ),
@@ -768,7 +1144,8 @@ class _SettingsPageState extends State<SettingsPage> {
               foregroundColor: colors.onPrimary,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('保存', style: TextStyle(fontSize: 14)),
           ),
@@ -778,7 +1155,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   static const _themeModeLabels = ['跟随系统', '浅色模式', '深色模式'];
-  static const _themeModeIcons = [Icons.brightness_auto, Icons.light_mode, Icons.dark_mode];
+  static const _themeModeIcons = [
+    Icons.brightness_auto,
+    Icons.light_mode,
+    Icons.dark_mode
+  ];
 
   Widget _buildThemeModeSelector() {
     final colors = Theme.of(context).colorScheme;
@@ -788,16 +1169,33 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(_themeModeIcons[_themeMode], color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(_themeModeIcons[_themeMode],
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('主题模式', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(_themeModeLabels[_themeMode], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('主题模式',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(_themeModeLabels[_themeMode],
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                  ]),
             ),
-            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+            Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
           ],
         ),
       ),
@@ -810,29 +1208,53 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16))),
         padding: const EdgeInsets.only(bottom: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 12),
-                decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(alignment: Alignment.centerLeft, child: Text('主题模式', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface))),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('主题模式',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface))),
             ),
             const SizedBox(height: 8),
             for (int i = 0; i < _themeModeLabels.length; i++)
               InkWell(
-                onTap: () async { await _setThemeMode(i); Navigator.pop(ctx); },
+                onTap: () async {
+                  await _setThemeMode(i);
+                  Navigator.pop(ctx);
+                },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   child: Row(
                     children: [
-                      Icon(_themeModeIcons[i], size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+                      Icon(_themeModeIcons[i],
+                          size: 18,
+                          color: colors.onSurface.withValues(alpha: 0.6)),
                       const SizedBox(width: 12),
-                      Expanded(child: Text(_themeModeLabels[i], style: TextStyle(fontSize: 13, color: colors.onSurface))),
-                      if (_themeMode == i) Icon(Icons.check, color: colors.onSurface, size: 18),
+                      Expanded(
+                          child: Text(_themeModeLabels[i],
+                              style: TextStyle(
+                                  fontSize: 13, color: colors.onSurface))),
+                      if (_themeMode == i)
+                        Icon(Icons.check, color: colors.onSurface, size: 18),
                     ],
                   ),
                 ),
@@ -860,23 +1282,40 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     final provider = context.watch<AppProvider>();
     final currentIndex = provider.colorSchemeIndex;
+    final label = currentIndex == -1 ? '莫奈取色' : AppTheme.colorSchemeNames[currentIndex];
     return InkWell(
       onTap: () => _showColorSchemePicker(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.palette_outlined, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(currentIndex == -1 ? Icons.auto_awesome : Icons.palette_outlined,
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('配色方案', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(AppTheme.colorSchemeNames[currentIndex], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('配色方案',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                  ]),
             ),
-            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+            Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
           ],
         ),
       ),
@@ -890,16 +1329,36 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16))),
         padding: const EdgeInsets.only(bottom: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
-                decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(alignment: Alignment.centerLeft, child: Text('配色方案', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface))),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('配色方案',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface))),
+            ),
+            const SizedBox(height: 12),
+            // 莫奈自动取色
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildMonetOption(provider, colors, ctx),
             ),
             const SizedBox(height: 12),
             Padding(
@@ -907,24 +1366,48 @@ class _SettingsPageState extends State<SettingsPage> {
               child: GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 2.2),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 2.2),
                 itemCount: AppTheme.seedColors.length,
                 itemBuilder: (_, i) {
                   final selected = provider.colorSchemeIndex == i;
                   return GestureDetector(
-                    onTap: () { provider.setColorScheme(i); Navigator.pop(ctx); },
+                    onTap: () {
+                      provider.setColorScheme(i);
+                      Navigator.pop(ctx);
+                    },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: selected ? AppTheme.seedColors[i].withValues(alpha: 0.12) : colors.surfaceContainerHighest,
+                        color: selected
+                            ? AppTheme.seedColors[i].withValues(alpha: 0.12)
+                            : colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: selected ? AppTheme.seedColors[i] : Colors.transparent, width: 1.5),
+                        border: Border.all(
+                            color: selected
+                                ? AppTheme.seedColors[i]
+                                : Colors.transparent,
+                            width: 1.5),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(width: 14, height: 14, decoration: BoxDecoration(color: AppTheme.seedColors[i], shape: BoxShape.circle)),
+                          Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                  color: AppTheme.seedColors[i],
+                                  shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Text(AppTheme.colorSchemeNames[i], style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+                          Text(AppTheme.colorSchemeNames[i],
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: selected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: colors.onSurface)),
                         ],
                       ),
                     ),
@@ -938,7 +1421,197 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildSwitchItem({required IconData icon, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _buildMonetOption(AppProvider provider, ColorScheme colors, BuildContext ctx) {
+    final selected = provider.colorSchemeIndex == -1;
+    final monetColor = AppTheme.monetColor;
+    final available = monetColor != null;
+    return GestureDetector(
+      onTap: available
+          ? () { provider.setColorScheme(-1); Navigator.pop(ctx); }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? (monetColor ?? colors.primary).withValues(alpha: 0.12)
+              : colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: selected
+                  ? (monetColor ?? colors.primary)
+                  : available ? colors.outlineVariant : colors.outlineVariant.withValues(alpha: 0.5),
+              width: selected ? 1.5 : 0.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20, height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: monetColor != null
+                    ? LinearGradient(colors: [monetColor, monetColor.withValues(alpha: 0.6)])
+                    : null,
+                color: available ? null : colors.outlineVariant,
+              ),
+              child: available ? null : Icon(Icons.auto_awesome, size: 12, color: colors.onSurface.withValues(alpha: 0.3)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('莫奈取色', style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    color: available ? colors.onSurface : colors.onSurface.withValues(alpha: 0.35))),
+                Text(available ? '从系统壁纸自动提取配色' : '此设备不支持',
+                    style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+              ]),
+            ),
+            if (selected) Icon(Icons.check_circle, size: 18, color: monetColor ?? colors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── 字体选择器 ───
+
+  static const _fontLabels = ['系统默认', '霞鹜文楷', 'OPPO Sans', '思源宋体', '得意黑'];
+  static const _fontValues = [
+    '',
+    'LXGWWenKai',
+    'OPPOSans',
+    'NotoSerifSC',
+    'SmileySans'
+  ];
+  static const _fontIcons = [
+    Icons.font_download_outlined,
+    Icons.brush_outlined,
+    Icons.phone_android,
+    Icons.text_fields,
+    Icons.emoji_emotions_outlined
+  ];
+
+  Widget _buildFontSelector() {
+    final colors = Theme.of(context).colorScheme;
+    final idx = _fontValues.indexOf(_fontFamily);
+    final label = idx >= 0 ? _fontLabels[idx] : '系统默认';
+    return InkWell(
+      onTap: _showFontPicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(children: [
+          Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(Icons.font_download_outlined,
+                  size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('字体',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface)),
+                const SizedBox(height: 2),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4))),
+              ])),
+          Icon(Icons.chevron_right,
+              size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
+        ]),
+      ),
+    );
+  }
+
+  void _showFontPicker() {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16))),
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('字体',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)))),
+          const SizedBox(height: 8),
+          for (int i = 0; i < _fontLabels.length; i++) ...[
+            if (i > 0)
+              Divider(
+                  height: 0.5,
+                  indent: 24,
+                  endIndent: 24,
+                  color: colors.outlineVariant),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(_fontIcons[i],
+                      size: 20,
+                      color: _fontFamily == _fontValues[i]
+                          ? colors.primary
+                          : colors.onSurface.withValues(alpha: 0.6))),
+              title: Text(_fontLabels[i],
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _fontFamily == _fontValues[i]
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: colors.onSurface)),
+              trailing: _fontFamily == _fontValues[i]
+                  ? Icon(Icons.check, size: 20, color: colors.primary)
+                  : null,
+              onTap: () {
+                Navigator.pop(ctx);
+                _setFontFamily(_fontValues[i]);
+              },
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  void _setFontFamily(String family) {
+    setState(() => _fontFamily = family);
+    context.read<AppProvider>().setFontFamily(family);
+  }
+
+  Widget _buildSwitchItem(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required bool value,
+      required ValueChanged<bool> onChanged}) {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => onChanged(!value),
@@ -946,16 +1619,38 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon,
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                  ]),
             ),
-            Switch(value: value, onChanged: onChanged, activeColor: colors.primary, activeTrackColor: colors.primary.withOpacity(0.3), inactiveThumbColor: colors.surface, inactiveTrackColor: colors.outline),
+            Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: colors.primary,
+                activeTrackColor: colors.primary.withOpacity(0.3),
+                inactiveThumbColor: colors.surface,
+                inactiveTrackColor: colors.outline),
           ],
         ),
       ),
@@ -966,11 +1661,19 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      child: Text(title,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface)),
     );
   }
 
-  Widget _buildNavigationItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildNavigationItem(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
@@ -978,23 +1681,44 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon,
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                  ]),
             ),
-            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+            Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildActionItem(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
@@ -1002,14 +1726,30 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon,
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                  ]),
             ),
           ],
         ),
@@ -1022,37 +1762,72 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: pageContext,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
+        backgroundColor: colors.surface,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('清除缓存数据', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('清除缓存数据',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？',
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('取消',
+                  style: TextStyle(
+                      color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
               await _clearCacheData(pageContext);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             child: const Text('清除'),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
 
   Future<void> _clearCacheData(BuildContext context) async {
     try {
-      showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()));
       final appProvider = context.read<AppProvider>();
+
+      // 1. 清理未引用的图片文件
       final dbImagePaths = await _getAllDbImagePaths(appProvider);
-      final deletedCount = await _cleanImageDirectory(dbImagePaths);
+      final deletedImages = await _cleanImageDirectory(dbImagePaths);
+
+      // 2. 清理临时目录缓存（分享海报、备份ZIP等）
+      final deletedTemp = await _cleanTempDirectory();
+
       Navigator.pop(context);
-      if (context.mounted) ToastUtil.show(context, '已清理 $deletedCount 个缓存文件');
+      if (context.mounted) {
+        final total = deletedImages + deletedTemp;
+        if (total == 0) {
+          ToastUtil.show(context, '没有需要清理的缓存');
+        } else {
+          ToastUtil.show(
+              context, '已清理 $deletedImages 个孤立图片，$deletedTemp 个临时文件');
+        }
+      }
     } catch (e) {
       Navigator.pop(context);
       if (context.mounted) ToastUtil.show(context, '清理失败: $e');
@@ -1061,11 +1836,21 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<Set<String>> _getAllDbImagePaths(AppProvider provider) async {
     final paths = <String>{};
-    for (final movie in provider.movies) { if (movie.posterPath?.isNotEmpty == true) paths.add(movie.posterPath!); }
-    for (final book in provider.books) { if (book.coverPath?.isNotEmpty == true) paths.add(book.coverPath!); }
-    for (final note in provider.notes) { for (final p in note.images) { if (p.isNotEmpty) paths.add(p); } }
+    for (final movie in provider.movies) {
+      if (movie.posterPath?.isNotEmpty == true) paths.add(movie.posterPath!);
+    }
+    for (final book in provider.books) {
+      if (book.coverPath?.isNotEmpty == true) paths.add(book.coverPath!);
+    }
+    for (final note in provider.notes) {
+      for (final p in note.images) {
+        if (p.isNotEmpty) paths.add(p);
+      }
+    }
     for (final movieId in provider.movies.map((m) => m.id)) {
-      for (final poster in await provider.getMoviePosters(movieId)) { if (poster.posterPath.isNotEmpty) paths.add(poster.posterPath); }
+      for (final poster in await provider.getMoviePosters(movieId)) {
+        if (poster.posterPath.isNotEmpty) paths.add(poster.posterPath);
+      }
     }
     return paths;
   }
@@ -1076,23 +1861,84 @@ class _SettingsPageState extends State<SettingsPage> {
       final appDir = await getApplicationDocumentsDirectory();
       final imagesDir = Directory('${appDir.path}/images');
       if (!await imagesDir.exists()) return 0;
-      await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
-        if (entity is File && !dbImagePaths.contains(entity.path) && !path.basename(entity.path).startsWith('avatar')) {
-          try { await entity.delete(); deletedCount++; } catch (_) {}
+      await for (final entity
+          in imagesDir.list(recursive: true, followLinks: false)) {
+        if (entity is File &&
+            !dbImagePaths.contains(entity.path) &&
+            !path.basename(entity.path).startsWith('avatar')) {
+          try {
+            await entity.delete();
+            deletedCount++;
+          } catch (_) {}
         }
       }
-    } catch (e) { debugPrint('清理图片目录失败: $e'); }
+    } catch (e) {
+      debugPrint('清理图片目录失败: $e');
+    }
+    return deletedCount;
+  }
+
+  Future<int> _cleanTempDirectory() async {
+    int deletedCount = 0;
+    final now = DateTime.now();
+
+    // 1. 清理临时目录中的分享海报（保留备份ZIP）
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await for (final entity in tempDir.list(followLinks: false)) {
+          if (entity is File) {
+            final name = path.basename(entity.path);
+            if (name.startsWith('book_poster_') ||
+                name.startsWith('movie_poster_') ||
+                name.startsWith('note_share_') ||
+                name.startsWith('mooknote_download') ||
+                name.startsWith('mooknote_bidir')) {
+              try {
+                final stat = await entity.stat();
+                if (now.difference(stat.modified).inHours >= 1) {
+                  await entity.delete();
+                  deletedCount++;
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('清理临时目录失败: $e');
+    }
+
+    // 2. 清理应用缓存目录 (/data/user/0/{package}/cache/)
+    try {
+      final cacheDir = await getApplicationCacheDirectory();
+      if (await cacheDir.exists()) {
+        await for (final entity
+            in cacheDir.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            try {
+              await entity.delete();
+              deletedCount++;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('清理缓存目录失败: $e');
+    }
+
     return deletedCount;
   }
 }
 
-// ─── 主界面设置 ────────────────────────────────────────────────────────
+// ─── 主界面设置 ───
 
 class MainContentSettingsPage extends StatefulWidget {
   const MainContentSettingsPage({super.key});
 
   @override
-  State<MainContentSettingsPage> createState() => _MainContentSettingsPageState();
+  State<MainContentSettingsPage> createState() =>
+      _MainContentSettingsPageState();
 }
 
 class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
@@ -1128,19 +1974,28 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
   }
 
   Future<void> _toggleMovieTab(bool value) async {
-    if (!value && _enabledTabCount <= 1) { ToastUtil.show(context, '至少保留一个标签页'); return; }
+    if (!value && _enabledTabCount <= 1) {
+      ToastUtil.show(context, '至少保留一个标签页');
+      return;
+    }
     await _userPrefs.setShowMovieTab(value);
     setState(() => _showMovieTab = value);
   }
 
   Future<void> _toggleBookTab(bool value) async {
-    if (!value && _enabledTabCount <= 1) { ToastUtil.show(context, '至少保留一个标签页'); return; }
+    if (!value && _enabledTabCount <= 1) {
+      ToastUtil.show(context, '至少保留一个标签页');
+      return;
+    }
     await _userPrefs.setShowBookTab(value);
     setState(() => _showBookTab = value);
   }
 
   Future<void> _toggleNoteTab(bool value) async {
-    if (!value && _enabledTabCount <= 1) { ToastUtil.show(context, '至少保留一个标签页'); return; }
+    if (!value && _enabledTabCount <= 1) {
+      ToastUtil.show(context, '至少保留一个标签页');
+      return;
+    }
     await _userPrefs.setShowNoteTab(value);
     setState(() => _showNoteTab = value);
   }
@@ -1160,19 +2015,46 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
         children: [
           _buildSectionHeader('启动设置'),
           _buildDefaultTabSelector(),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSectionHeader('模块开关'),
-          _buildSwitchItem(Icons.movie_outlined, '观影', '记录和管理观影记录', _showMovieTab, _toggleMovieTab),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.menu_book_outlined, '阅读', '记录和管理阅读记录', _showBookTab, _toggleBookTab),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.note_outlined, '笔记', '记录和管理笔记', _showNoteTab, _toggleNoteTab),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.edit_note, 'Note Plus', '块编辑器，支持富文本文档', _showNotePlusTab, _toggleNotePlusTab),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.movie_outlined, '观影', '记录和管理观影记录',
+              _showMovieTab, _toggleMovieTab),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.menu_book_outlined, '阅读', '记录和管理阅读记录',
+              _showBookTab, _toggleBookTab),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.note_outlined, '笔记', '记录和管理笔记', _showNoteTab,
+              _toggleNoteTab),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.edit_note, 'Note Plus', '块编辑器，支持富文本文档',
+              _showNotePlusTab, _toggleNotePlusTab),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-            child: Text('至少保留一个模块，关闭后对应标签页将不再显示。', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+            child: Text('至少保留一个模块，关闭后对应标签页将不再显示。',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurface.withValues(alpha: 0.3))),
           ),
         ],
       ),
@@ -1183,37 +2065,82 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      child: Text(title,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface)),
     );
   }
 
-  Widget _buildSwitchItem(IconData icon, String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchItem(IconData icon, String title, String subtitle,
+      bool value, ValueChanged<bool> onChanged) {
     final colors = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-      title: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-      subtitle: Text(subtitle, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-      trailing: Switch(value: value, onChanged: onChanged, activeColor: colors.primary, activeTrackColor: colors.primary.withOpacity(0.3), inactiveThumbColor: colors.surface, inactiveTrackColor: colors.outline),
+      leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon,
+              color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+      title: Text(title,
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: colors.onSurface)),
+      subtitle: Text(subtitle,
+          style: TextStyle(
+              fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+      trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: colors.primary,
+          activeTrackColor: colors.primary.withOpacity(0.3),
+          inactiveThumbColor: colors.surface,
+          inactiveTrackColor: colors.outline),
     );
   }
 
   Widget _buildDefaultTabSelector() {
     final colors = Theme.of(context).colorScheme;
     final labels = ['影视', '阅读', '笔记'];
-    final icons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined];
+    final icons = [
+      Icons.movie_outlined,
+      Icons.menu_book_outlined,
+      Icons.note_outlined
+    ];
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.home_outlined, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-      title: Text('默认启动标签', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-      subtitle: Text('打开应用时默认显示的页面', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+      leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10)),
+          child: Icon(Icons.home_outlined,
+              color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+      title: Text('默认启动标签',
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: colors.onSurface)),
+      subtitle: Text('打开应用时默认显示的页面',
+          style: TextStyle(
+              fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(labels[_defaultTabIndex], style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text(labels[_defaultTabIndex],
+              style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(width: 4),
-          Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+          Icon(Icons.chevron_right,
+              color: colors.onSurface.withValues(alpha: 0.25), size: 20),
         ],
       ),
       onTap: () => _showDefaultTabPicker(labels, icons),
@@ -1226,21 +2153,54 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16))),
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Text('默认启动标签', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text('默认启动标签',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface)))),
             const SizedBox(height: 16),
             for (int i = 0; i < labels.length; i++)
               ListTile(
-                leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)), child: Icon(icons[i], color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(labels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                trailing: _defaultTabIndex == i ? Icon(Icons.check, color: colors.onSurface, size: 20) : null,
-                onTap: () async { await _userPrefs.setDefaultMainTabIndex(i); setState(() => _defaultTabIndex = i); Navigator.pop(ctx); },
+                leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Icon(icons[i],
+                        color: colors.onSurface.withValues(alpha: 0.6))),
+                title: Text(labels[i],
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface)),
+                trailing: _defaultTabIndex == i
+                    ? Icon(Icons.check, color: colors.onSurface, size: 20)
+                    : null,
+                onTap: () async {
+                  await _userPrefs.setDefaultMainTabIndex(i);
+                  setState(() => _defaultTabIndex = i);
+                  Navigator.pop(ctx);
+                },
               ),
             const SizedBox(height: 8),
           ],
@@ -1282,20 +2242,56 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          _buildSection('影视布局', [
-            ButtonSegment(value: 0, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('海报网格', style: TextStyle(fontSize: 12))),
-            ButtonSegment(value: 1, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
-            ButtonSegment(value: 2, icon: Icon(Icons.crop_landscape_outlined, size: 16), label: Text('大图卡片', style: TextStyle(fontSize: 12))),
-          ], _movieLayout, (v) => _setLayout('movie', v)),
-          _buildSection('阅读布局', [
-            ButtonSegment(value: 0, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('封面网格', style: TextStyle(fontSize: 12))),
-            ButtonSegment(value: 1, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
-          ], _bookLayout, (v) => _setLayout('book', v)),
-          _buildSection('笔记布局', [
-            ButtonSegment(value: 0, icon: Icon(Icons.view_list_outlined, size: 16), label: Text('列表', style: TextStyle(fontSize: 12))),
-            ButtonSegment(value: 1, icon: Icon(Icons.grid_view_outlined, size: 16), label: Text('瀑布流', style: TextStyle(fontSize: 12))),
-            ButtonSegment(value: 2, icon: Icon(Icons.timeline_outlined, size: 16), label: Text('时间线', style: TextStyle(fontSize: 12))),
-          ], _noteLayout, (v) => _setLayout('note', v)),
+          _buildSection(
+              '影视布局',
+              [
+                ButtonSegment(
+                    value: 0,
+                    icon: Icon(Icons.grid_view_outlined, size: 16),
+                    label: Text('海报网格', style: TextStyle(fontSize: 12))),
+                ButtonSegment(
+                    value: 1,
+                    icon: Icon(Icons.view_list_outlined, size: 16),
+                    label: Text('列表', style: TextStyle(fontSize: 12))),
+                ButtonSegment(
+                    value: 2,
+                    icon: Icon(Icons.crop_landscape_outlined, size: 16),
+                    label: Text('大图卡片', style: TextStyle(fontSize: 12))),
+              ],
+              _movieLayout,
+              (v) => _setLayout('movie', v)),
+          _buildSection(
+              '阅读布局',
+              [
+                ButtonSegment(
+                    value: 0,
+                    icon: Icon(Icons.grid_view_outlined, size: 16),
+                    label: Text('封面网格', style: TextStyle(fontSize: 12))),
+                ButtonSegment(
+                    value: 1,
+                    icon: Icon(Icons.view_list_outlined, size: 16),
+                    label: Text('列表', style: TextStyle(fontSize: 12))),
+              ],
+              _bookLayout,
+              (v) => _setLayout('book', v)),
+          _buildSection(
+              '笔记布局',
+              [
+                ButtonSegment(
+                    value: 0,
+                    icon: Icon(Icons.view_list_outlined, size: 16),
+                    label: Text('列表', style: TextStyle(fontSize: 12))),
+                ButtonSegment(
+                    value: 1,
+                    icon: Icon(Icons.grid_view_outlined, size: 16),
+                    label: Text('瀑布流', style: TextStyle(fontSize: 12))),
+                ButtonSegment(
+                    value: 2,
+                    icon: Icon(Icons.timeline_outlined, size: 16),
+                    label: Text('时间线', style: TextStyle(fontSize: 12))),
+              ],
+              _noteLayout,
+              (v) => _setLayout('note', v)),
         ],
       ),
     );
@@ -1303,13 +2299,21 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _setLayout(String type, int value) async {
     switch (type) {
-      case 'note': await _userPrefs.setNoteLayoutStyle(value); setState(() => _noteLayout = value);
-      case 'movie': await _userPrefs.setMovieLayoutStyle(value); setState(() => _movieLayout = value); if (mounted) context.read<AppProvider>().setMovieLayoutStyle(value);
-      case 'book': await _userPrefs.setBookLayoutStyle(value); setState(() => _bookLayout = value);
+      case 'note':
+        await _userPrefs.setNoteLayoutStyle(value);
+        setState(() => _noteLayout = value);
+      case 'movie':
+        await _userPrefs.setMovieLayoutStyle(value);
+        setState(() => _movieLayout = value);
+        if (mounted) context.read<AppProvider>().setMovieLayoutStyle(value);
+      case 'book':
+        await _userPrefs.setBookLayoutStyle(value);
+        setState(() => _bookLayout = value);
     }
   }
 
-  Widget _buildSection(String title, List<ButtonSegment<int>> segments, int selected, ValueChanged<int> onChanged) {
+  Widget _buildSection(String title, List<ButtonSegment<int>> segments,
+      int selected, ValueChanged<int> onChanged) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -1318,7 +2322,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            child: Text(title,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface)),
           ),
           SegmentedButton<int>(
             segments: segments,
@@ -1326,11 +2334,19 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             onSelectionChanged: (s) => onChanged(s.first),
             showSelectedIcon: false,
             style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.onSurface : colors.surfaceContainerHighest),
-              foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.surface : colors.onSurface.withValues(alpha: 0.6)),
+              backgroundColor: WidgetStateProperty.resolveWith((s) =>
+                  s.contains(WidgetState.selected)
+                      ? colors.onSurface
+                      : colors.surfaceContainerHighest),
+              foregroundColor: WidgetStateProperty.resolveWith((s) =>
+                  s.contains(WidgetState.selected)
+                      ? colors.surface
+                      : colors.onSurface.withValues(alpha: 0.6)),
               side: WidgetStateProperty.all(BorderSide.none),
-              shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 10)),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10))),
+              padding: WidgetStateProperty.all(
+                  const EdgeInsets.symmetric(vertical: 10)),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.standard,
             ),
@@ -1372,8 +2388,18 @@ class _WebViewPageState extends State<WebViewPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text(''), actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: () => _controller.reload())]),
-      body: Stack(children: [WebViewWidget(controller: _controller), if (_isLoading) Center(child: CircularProgressIndicator(color: colors.onSurface.withValues(alpha: 0.4)))]),
+      appBar: AppBar(title: const Text(''), actions: [
+        IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _controller.reload())
+      ]),
+      body: Stack(children: [
+        WebViewWidget(controller: _controller),
+        if (_isLoading)
+          Center(
+              child: CircularProgressIndicator(
+                  color: colors.onSurface.withValues(alpha: 0.4)))
+      ]),
     );
   }
 }

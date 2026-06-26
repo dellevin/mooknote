@@ -314,6 +314,7 @@ class Note {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
+  final bool isPinned;
 
   Note({
     required this.id,
@@ -325,6 +326,7 @@ class Note {
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
+    this.isPinned = false,
   });
 
   factory Note.fromJson(Map<String, dynamic> json) {
@@ -342,6 +344,7 @@ class Note {
           ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      isPinned: json['is_pinned'] == 1 || json['is_pinned'] == true,
     );
   }
 
@@ -356,9 +359,10 @@ class Note {
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
+      'is_pinned': isPinned ? 1 : 0,
     };
   }
-  
+
   /// 复制并修改
   Note copyWith({
     String? id,
@@ -370,6 +374,7 @@ class Note {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
+    bool? isPinned,
   }) {
     return Note(
       id: id ?? this.id,
@@ -381,6 +386,7 @@ class Note {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
   

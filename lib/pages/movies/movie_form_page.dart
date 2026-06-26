@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -11,6 +13,14 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/text_input_panel.dart';
+
+/// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
+List<String> _collectUnique(List<List<String>> lists) {
+  final s = <String>{};
+  for (final l in lists) { s.addAll(l); }
+  return s.toList()..sort();
+}
 
 /// 添加/编辑影视页面 - 紧凑双行布局设计
 class MovieFormPage extends StatefulWidget {
@@ -32,9 +42,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
   late TextEditingController _summaryController;
   late TextEditingController _ratingController;
 
-  // 多值字段的临时输入控制器
-  final Map<String, TextEditingController> _tagControllers = {};
-
   // 数据
   List<String> _directors = [];
   List<String> _writers = [];
@@ -45,6 +52,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
   String _status = 'want_to_watch';
   DateTime? _releaseDate;
   DateTime? _watchDate;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -91,13 +99,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     _titleController.dispose();
     _summaryController.dispose();
     _ratingController.dispose();
-    _tagControllers.values.forEach((c) => c.dispose());
-    // 最后调用 super.dispose
     super.dispose();
-  }
-
-  TextEditingController _getTagController(String key) {
-    return _tagControllers.putIfAbsent(key, () => TextEditingController());
   }
 
   /// 构建右上角操作按钮
@@ -332,52 +334,35 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
   /// 从URL下载封面图
   Future<void> _downloadCoverFromUrl(String url) async {
+    setState(() => _isDownloading = true);
     try {
-      // 下载网络图片，添加请求头模拟浏览器
       final response = await http.get(
         Uri.parse(url),
         headers: {
           'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Referer': 'https://movie.douban.com/',
+          'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('下载失败: HTTP ${response.statusCode}');
-      }
+      if (response.statusCode != 200) throw Exception('下载失败: HTTP ${response.statusCode}');
 
-      // 检查内容类型
       final contentType = response.headers['content-type'];
-      if (contentType != null && !contentType.startsWith('image/')) {
-        throw Exception('链接返回的不是图片');
-      }
+      if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片');
+      if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
-      // 检查文件大小（最大 10MB）
-      if (response.bodyBytes.length > 10 * 1024 * 1024) {
-        throw Exception('图片太大');
-      }
-
-      // 生成文件名
       final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID
       final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-
-      // 保存到新的路径结构
-      final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
-        movieId,
-        fileName
-      );
+      final targetPath = await ImagePathHelper.instance.getMoviePosterPath(movieId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-
-      // 写入文件
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
       setState(() => _posterPath = targetPath);
     } catch (e) {
-      // 封面下载失败不影响其他信息填充
       debugPrint('封面下载失败: $e');
+      if (mounted) ToastUtil.show(context, '下载失败: $e');
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
     }
   }
 
@@ -422,17 +407,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
             // 封面选择 - 居中显示
             Center(child: _buildCoverPicker()),
 
-            const SizedBox(height: 32),
-
-            // 状态选择（靠左显示）
-            _buildStatusSelector(),
-
             const SizedBox(height: 20),
 
-            // 评分 - 星星选择（靠左显示）
-            _buildStarRating(),
+            // 状态 + 评分（合并为一行）
+            _buildStatusRatingRow(),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // 信息卡片网格
             Wrap(
@@ -448,12 +428,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     value: _titleController.text,
                     required: true,
                     icon: Icons.movie_outlined,
-                    onTap: () => _showTextInputDialog(
-                      title: '影视名称',
-                      initialValue: _titleController.text,
-                      hint: '请输入影视名称',
-                      onConfirm: (value) => setState(() => _titleController.text = value),
-                    ),
+                    onTap: () async {
+                      final result = await TextInputPanel.show(
+                        context: context,
+                        title: '影视名称',
+                        initialValue: _titleController.text,
+                        hint: '请输入影视名称',
+                      );
+                      if (result != null) setState(() => _titleController.text = result);
+                    },
                   ),
                 ),
                 SizedBox(
@@ -466,12 +449,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         : '${_alternateTitles.length}个：${_alternateTitles.join('、')}',
                     icon: Icons.alternate_email_outlined,
                     scrollable: true,
-                    onTap: () => _showMultiValueDialog(
-                      title: '添加别名',
-                      initialValues: _alternateTitles,
-                      hint: '输入别名',
-                      onConfirm: (values) => setState(() => _alternateTitles = values),
-                    ),
+                    onTap: () async {
+                      final result = await GenreSelectorPage.show(
+                        context: context,
+                        title: '添加别名',
+                        existingTags: [],
+                        initialSelected: _alternateTitles,
+                        hint: '输入别名',
+                      );
+                      if (result != null) setState(() => _alternateTitles = result);
+                    },
                   ),
                 ),
 
@@ -485,12 +472,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         ? ''
                         : '${_directors.length}人：${_directors.join('、')}',
                     icon: Icons.videocam_outlined,
-                    onTap: () => _showMultiValueDialog(
-                      title: '添加导演',
-                      initialValues: _directors,
-                      hint: '输入导演姓名',
-                      onConfirm: (values) => setState(() => _directors = values),
-                    ),
+                    onTap: () async {
+                      final provider = context.read<AppProvider>();
+                      final data = provider.movies.map((m) => m.directors).toList();
+                      final result = await GenreSelectorPage.show(
+                        context: context,
+                        title: '选择导演',
+                        existingTagsFuture: compute(_collectUnique, data),
+                        initialSelected: _directors,
+                        hint: '如：张艺谋、李安',
+                      );
+                      if (result != null) setState(() => _directors = result);
+                    },
                   ),
                 ),
                 SizedBox(
@@ -502,12 +495,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         ? ''
                         : '${_writers.length}人：${_writers.join('、')}',
                     icon: Icons.edit_note_outlined,
-                    onTap: () => _showMultiValueDialog(
-                      title: '添加编剧',
-                      initialValues: _writers,
-                      hint: '输入编剧姓名',
-                      onConfirm: (values) => setState(() => _writers = values),
-                    ),
+                    onTap: () async {
+                      final provider = context.read<AppProvider>();
+                      final data = provider.movies.map((m) => m.writers).toList();
+                      final result = await GenreSelectorPage.show(
+                        context: context,
+                        title: '选择编剧',
+                        existingTagsFuture: compute(_collectUnique, data),
+                        initialSelected: _writers,
+                        hint: '如：刘慈欣、王家卫',
+                      );
+                      if (result != null) setState(() => _writers = result);
+                    },
                   ),
                 ),
 
@@ -521,12 +520,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         ? ''
                         : '${_actors.length}人：${_actors.join('、')}',
                     icon: Icons.people_outline,
-                    onTap: () => _showMultiValueDialog(
-                      title: '添加主演',
-                      initialValues: _actors,
-                      hint: '输入主演姓名',
-                      onConfirm: (values) => setState(() => _actors = values),
-                    ),
+                    onTap: () async {
+                      final provider = context.read<AppProvider>();
+                      final data = provider.movies.map((m) => m.actors).toList();
+                      final result = await GenreSelectorPage.show(
+                        context: context,
+                        title: '选择主演',
+                        existingTagsFuture: compute(_collectUnique, data),
+                        initialSelected: _actors,
+                        hint: '如：梁朝伟、周星驰',
+                      );
+                      if (result != null) setState(() => _actors = result);
+                    },
                   ),
                 ),
                 SizedBox(
@@ -542,20 +547,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
                       final provider = context.read<AppProvider>();
                       final tags = await provider.getTags('movie_genre', excludeHidden: true);
                       final existingNames = tags.map((t) => t['name'] as String).toList();
-                      if (mounted) {
-                        final result = await Navigator.push<List<String>>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => GenreSelectorPage(
-                              title: '选择类型',
-                              existingTags: existingNames,
-                              initialSelected: _genres,
-                              hint: '如：剧情、科幻、悬疑',
-                            ),
-                          ),
-                        );
-                        if (result != null) setState(() => _genres = result);
-                      }
+                      if (!mounted) return;
+                      final result = await GenreSelectorPage.show(
+                        context: context,
+                        title: '选择类型',
+                        existingTags: existingNames,
+                        initialSelected: _genres,
+                        hint: '如：剧情、科幻、悬疑',
+                      );
+                      if (result != null) setState(() => _genres = result);
                     },
                   ),
                 ),
@@ -576,32 +576,19 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
-                  child: Stack(
-                    children: [
-                      _buildInfoCard(
-                        label: '观看日期',
-                        value: _watchDate != null
-                            ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
-                            : '',
-                        icon: Icons.visibility_outlined,
-                        onTap: () => _selectWatchDate(),
-                      ),
-                      if (_watchDate != null)
-                        Positioned(
-                          top: 8, right: 8,
-                          child: GestureDetector(
+                  child: _buildInfoCard(
+                    label: '观看日期',
+                    value: _watchDate != null
+                        ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
+                        : '',
+                    icon: Icons.visibility_outlined,
+                    trailing: _watchDate != null
+                        ? GestureDetector(
                             onTap: () => setState(() => _watchDate = null),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: colors.surfaceContainerHighest,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                            ),
-                          ),
-                        ),
-                    ],
+                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                          )
+                        : null,
+                    onTap: () => _selectWatchDate(),
                   ),
                 ),
 
@@ -633,6 +620,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     required VoidCallback onTap,
     bool required = false,
     IconData? icon,
+    Widget? trailing,
     double? height,
     bool scrollable = false,
     bool scrollHorizontal = false,
@@ -722,6 +710,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     fontWeight: required ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
+                if (trailing != null) ...[
+                  const Spacer(),
+                  trailing,
+                ],
               ],
             ),
             const SizedBox(height: 8),
@@ -746,315 +738,28 @@ class _MovieFormPageState extends State<MovieFormPage> {
     }
   }
 
-  /// 显示文本输入对话框
-  Future<void> _showTextInputDialog({
-    required String title,
-    required String initialValue,
-    required Function(String) onConfirm,
-    int maxLines = 1,
-    String hint = '',
-  }) async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => _TextInputDialog(
-        title: title,
-        initialValue: initialValue,
-        hint: hint,
-        maxLines: maxLines,
-      ),
-    );
-
-    if (result != null) {
-      onConfirm(result);
-    }
-  }
-
-  /// 显示多值输入对话框
-  Future<void> _showMultiValueDialog({
-    required String title,
-    required List<String> initialValues,
-    required Function(List<String>) onConfirm,
-    String hint = '',
-    List<String> existingTags = const [],
-  }) async {
-    final result = await showDialog<List<String>>(
-      context: context,
-      builder: (context) => _MultiValueDialog(
-        title: title,
-        initialValues: initialValues,
-        hint: hint,
-        existingTags: existingTags,
-      ),
-    );
-
-    if (result != null) {
-      onConfirm(result);
-    }
-  }
-
-  /// 构建纵向日期条目（标签在上，日期在下）
-  Widget _buildVerticalDateItem({
-    required String label,
-    required DateTime? date,
-    required VoidCallback onTap,
-    required VoidCallback onClear,
-  }) {
+  /// 构建状态 + 评分合并行
+  Widget _buildStatusRatingRow() {
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: onTap,
-          child: Row(
+    final currentRating = double.tryParse(_ratingController.text) ?? 0;
+    final starRating = currentRating / 2;
+    final hasRating = _ratingController.text.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Column(
+        children: [
+          // 状态
+          Row(
             children: [
-              Expanded(
-                child: Text(
-                  date != null
-                      ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}'
-                      : '选择日期',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: date != null
-                        ? colors.onSurface
-                        : colors.onSurface.withValues(alpha: 0.25),
-                  ),
-                ),
-              ),
-              if (date != null)
-                GestureDetector(
-                  onTap: onClear,
-                  child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 构建卡片式表单条目（带边框背景）
-  Widget _buildCardFormItem({
-    required String label,
-    required Widget child,
-    bool required = false,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          required ? '$label *' : label,
-          style: TextStyle(
-            fontSize: 13,
-            color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
-            fontWeight: required ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colors.onSurface.withValues(alpha: 0.2)),
-          ),
-          child: child,
-        ),
-      ],
-    );
-  }
-
-  /// 构建卡片式日期选择项
-  Widget _buildCardDateItem({
-    required String label,
-    required DateTime? date,
-    required VoidCallback onTap,
-    required VoidCallback onClear,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: colors.onSurface.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 18,
-                  color: date != null ? colors.onSurface : colors.onSurface.withValues(alpha: 0.35),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    date != null
-                        ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}'
-                        : '选择日期',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: date != null
-                          ? colors.onSurface
-                          : colors.onSurface.withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
-                if (date != null)
-                  GestureDetector(
-                    onTap: onClear,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: colors.outlineVariant,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 构建表单条目（标签 + 内容）- 剧情简介使用
-  Widget _buildFormItem({required String label, required Widget child}) {
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)),
-        ),
-        const SizedBox(height: 8),
-        child,
-      ],
-    );
-  }
-
-  /// 构建横向表单条目（标签在左，内容在右）
-  Widget _buildHorizontalFormItem({
-    required String label,
-    required Widget child,
-    bool required = false,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 48,
-          child: Text(
-            required ? '$label *' : label,
-            style: TextStyle(
-              fontSize: 13,
-              color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
-              fontWeight: required ? FontWeight.w500 : FontWeight.normal,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: child),
-      ],
-    );
-  }
-
-  /// 构建纵向多值条目（标签在上，输入框在下，带添加按钮）
-  Widget _buildHorizontalMultiValueItem({
-    required String label,
-    required List<String> values,
-    required String hint,
-    required String controllerKey,
-    required Function(String) onAdd,
-    required Function(int) onRemove,
-  }) {
-    final controller = _getTagController(controllerKey);
-    final colors = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 标签行：标签 + 添加按钮
-        Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-            ),
-            const Spacer(),
-            // 添加按钮
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (context, value, child) {
-                final hasText = value.text.trim().isNotEmpty;
-                return GestureDetector(
-                  onTap: hasText
-                      ? () {
-                          final text = controller.text.trim();
-                          if (text.isNotEmpty && !values.contains(text)) {
-                            onAdd(text);
-                            controller.clear();
-                          }
-                        }
-                      : null,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: hasText ? colors.primary : colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add,
-                          size: 14,
-                          color: hasText ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.25),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '添加',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: hasText ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.25),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // 已选标签
-        if (values.isNotEmpty)
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: values.asMap().entries.map((entry) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              Text('状态', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(6),
@@ -1062,315 +767,71 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      entry.value,
-                      style: TextStyle(fontSize: 14, color: colors.onSurface),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => onRemove(entry.key),
-                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                    ),
+                    _buildStatusOption('想看', 'want_to_watch'),
+                    _buildStatusOption('在看', 'watching'),
+                    _buildStatusOption('已看', 'watched'),
                   ],
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
-        if (values.isNotEmpty) const SizedBox(height: 8),
-        // 输入框（带边框背景）
-        Container(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colors.onSurface.withValues(alpha: 0.2)),
-          ),
-          child: TextField(
-            controller: controller,
-            style: TextStyle(fontSize: 14, color: colors.onSurface),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            onSubmitted: (value) {
-              final trimmed = value.trim();
-              if (trimmed.isNotEmpty && !values.contains(trimmed)) {
-                onAdd(trimmed);
-                controller.clear();
-              }
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 构建多值条目
-  Widget _buildMultiValueItem({
-    required String label,
-    required List<String> values,
-    required String hint,
-    required String controllerKey,
-    required Function(String) onAdd,
-    required Function(int) onRemove,
-  }) {
-    final controller = _getTagController(controllerKey);
-    final colors = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 第一行：标签 + 添加按钮
-        Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)),
-            ),
-            const Spacer(),
-            // 添加按钮（当输入框有内容时显示）
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (context, value, child) {
-                final hasText = value.text.trim().isNotEmpty;
+          const SizedBox(height: 12),
+          // 评分
+          Row(
+            children: [
+              Text('评分', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              const SizedBox(width: 12),
+              // 星星
+              ...List.generate(5, (index) {
+                final starValue = index + 1;
+                final isFilled = starValue <= starRating;
+                final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
                 return GestureDetector(
-                  onTap: hasText
-                      ? () {
-                          final text = controller.text.trim();
-                          if (text.isNotEmpty && !values.contains(text)) {
-                            onAdd(text);
-                            controller.clear();
-                          }
-                        }
-                      : null,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: hasText ? colors.primary : colors.outline,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add,
-                          size: 14,
-                          color: hasText ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          '添加',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: hasText ? colors.primary : colors.onSurface.withValues(alpha: 0.25),
-                          ),
-                        ),
-                      ],
+                  onTap: () => setState(() => _ratingController.text = (starValue * 2).toString()),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: Icon(
+                      isHalf ? Icons.star_half : (isFilled ? Icons.star : Icons.star_border),
+                      size: 22,
+                      color: (isFilled || isHalf) ? const Color(0xFFFFB800) : colors.outline,
                     ),
                   ),
                 );
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // 第二行：已选标签 + 输入框
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            ...values.asMap().entries.map((entry) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              }),
+              const SizedBox(width: 8),
+              // 输入框
+              Container(
+                width: 48, height: 28,
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
-                  border: Border.all(color: colors.outline),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      entry.value,
-                      style: TextStyle(fontSize: 14, color: colors.onSurface),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => onRemove(entry.key),
-                      child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                    ),
-                  ],
+                child: TextFormField(
+                  controller: _ratingController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  inputFormatters: [_RatingInputFormatter()],
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    hintText: '0-10',
+                    hintStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25)),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
                 ),
-              );
-            }),
-            // 输入框
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
-              child: TextField(
-                controller: controller,
-                style: TextStyle(fontSize: 14, color: colors.onSurface),
-                decoration: InputDecoration(
-                  hintText: values.isEmpty ? hint : '',
-                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 5),
-                ),
-                onSubmitted: (value) {
-                  final trimmed = value.trim();
-                  if (trimmed.isNotEmpty && !values.contains(trimmed)) {
-                    onAdd(trimmed);
-                    controller.clear();
-                  }
-                },
               ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// 构建状态选择器（简洁风格）
-  Widget _buildStatusSelector() {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Text(
-          '状态',
-          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-        ),
-        const SizedBox(width: 16),
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: colors.outlineVariant,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildStatusOption('想看', 'want_to_watch'),
-              _buildStatusOption('在看', 'watching'),
-              _buildStatusOption('已看', 'watched'),
+              if (hasRating) ...[
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => setState(() => _ratingController.clear()),
+                  child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                ),
+              ],
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  /// 构建星星评分（支持手动输入）
-  Widget _buildStarRating() {
-    final colors = Theme.of(context).colorScheme;
-    final hasRating = _ratingController.text.isNotEmpty;
-    return Row(
-      children: [
-        Text(
-          '评分',
-          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-        ),
-        const SizedBox(width: 16),
-        // 星星选择
-        _buildStarSelector(),
-        const SizedBox(width: 12),
-        // 手动输入框
-        _buildRatingInputField(),
-        // 清除按钮
-        if (hasRating) ...[
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => setState(() => _ratingController.clear()),
-            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
-          ),
         ],
-      ],
-    );
-  }
-
-  /// 构建星星选择器
-  Widget _buildStarSelector() {
-    final currentRating = double.tryParse(_ratingController.text) ?? 0;
-    final starRating = currentRating / 2;
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(5, (index) {
-          final starValue = index + 1;
-          final scoreValue = starValue * 2;
-          final isFilled = starValue <= starRating;
-          final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
-
-          return InkWell(
-            onTap: () {
-              setState(() {
-                _ratingController.text = scoreValue.toString();
-              });
-            },
-            borderRadius: BorderRadius.circular(4),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-              child: Icon(
-                isHalf
-                    ? Icons.star_half
-                    : isFilled
-                        ? Icons.star
-                        : Icons.star_border,
-                size: 24,
-                color: isFilled || isHalf
-                    ? const Color(0xFFFFB800)
-                    : colors.outline,
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  /// 构建评分输入框（支持0-10，保留1位小数）
-  Widget _buildRatingInputField() {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      width: 56,
-      height: 32,
-      decoration: BoxDecoration(
-        color: colors.outlineVariant,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: TextFormField(
-        controller: _ratingController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: colors.onSurface,
-        ),
-        decoration: InputDecoration(
-          hintText: '-',
-          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty) {
-            final rating = double.tryParse(value);
-            if (rating != null) {
-              if (rating > 10) {
-                _ratingController.text = '10.0';
-              } else if (rating < 0) {
-                _ratingController.text = '0.0';
-              }
-            }
-          }
-          setState(() {});
-        },
       ),
     );
   }
@@ -1428,12 +889,20 @@ class _MovieFormPageState extends State<MovieFormPage> {
               borderRadius: BorderRadius.circular(8),
             ),
             clipBehavior: Clip.antiAlias,
-            child: hasPoster
-                ? FadeInLocalImage(
-                    path: _posterPath,
-                    fit: BoxFit.cover,
-                  )
-                : _buildCoverPlaceholder(),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (hasPoster)
+                  FadeInLocalImage(path: _posterPath, fit: BoxFit.cover)
+                else
+                  _buildCoverPlaceholder(),
+                if (_isDownloading)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  ),
+              ],
+            ),
           ),
         ),
         // 清空海报按钮（仅当有海报时显示）
@@ -1651,117 +1120,61 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        final colors = Theme.of(context).colorScheme;
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
         return AlertDialog(
           backgroundColor: colors.surface,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('添加网络图片'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '请输入图片链接地址',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colors.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
+              Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
               const SizedBox(height: 12),
               TextField(
                 controller: urlController,
-                decoration: InputDecoration(
-                  hintText: 'https://movie.douban.com/image.jpg',
-                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
-                  border: const UnderlineInputBorder(),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: colors.outline),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: colors.primary, width: 1.5),
-                  ),
-                ),
-                style: const TextStyle(fontSize: 14),
                 keyboardType: TextInputType.url,
+                style: TextStyle(fontSize: 14, color: colors.onSurface),
+                decoration: InputDecoration(
+                  hintText: 'https://example.com/image.jpg',
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                  filled: true,
+                  fillColor: colors.surfaceContainerHigh,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(ctx, false),
               child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text('确定', style: TextStyle(color: colors.onSurface)),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('确定'),
             ),
           ],
         );
       },
     );
 
-    if (confirmed != true) return;
-
     final url = urlController.text.trim();
-    if (url.isEmpty) {
-      ToastUtil.show(context, '请输入图片链接');
-      return;
-    }
+    urlController.dispose();
 
-    try {
-      // 下载网络图片，添加请求头模拟浏览器
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'Referer': Uri.parse(url).replace(path: '/').toString(),
-        },
-      );
+    if (confirmed != true || url.isEmpty) return;
 
-      if (response.statusCode != 200) {
-        throw Exception('下载失败: HTTP ${response.statusCode}');
-      }
-
-      // 检查内容类型
-      final contentType = response.headers['content-type'];
-      if (contentType != null && !contentType.startsWith('image/')) {
-        throw Exception('链接返回的不是图片，可能是网页或需要登录');
-      }
-
-      // 检查文件大小（最大 10MB）
-      if (response.bodyBytes.length > 10 * 1024 * 1024) {
-        throw Exception('图片太大，请使用小于 10MB 的图片');
-      }
-
-      // 生成文件名
-      final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID
-      final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-
-      // 保存到新的路径结构
-      final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
-        movieId,
-        fileName
-      );
-      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-
-      // 写入文件
-      await File(targetPath).writeAsBytes(response.bodyBytes);
-
-      setState(() => _posterPath = targetPath);
-
-      if (mounted) {
-        ToastUtil.show(context, '添加成功');
-      }
-    } catch (e) {
-      if (mounted) {
-        ToastUtil.show(context, '添加失败: $e');
-      }
-    }
+    await _downloadCoverFromUrl(url);
   }
 
   /// 选择上映日期
@@ -1791,59 +1204,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
     if (picked != null) {
       setState(() => _watchDate = picked);
-    }
-  }
-
-  /// 收集所有多值字段输入框中的未提交内容
-  void _collectUnsubmittedValues() {
-    // 别名
-    final alternateTitlesController = _tagControllers['alternateTitles'];
-    if (alternateTitlesController != null) {
-      final value = alternateTitlesController.text.trim();
-      if (value.isNotEmpty && !_alternateTitles.contains(value)) {
-        _alternateTitles.add(value);
-        alternateTitlesController.clear();
-      }
-    }
-
-    // 导演
-    final directorsController = _tagControllers['directors'];
-    if (directorsController != null) {
-      final value = directorsController.text.trim();
-      if (value.isNotEmpty && !_directors.contains(value)) {
-        _directors.add(value);
-        directorsController.clear();
-      }
-    }
-
-    // 编剧
-    final writersController = _tagControllers['writers'];
-    if (writersController != null) {
-      final value = writersController.text.trim();
-      if (value.isNotEmpty && !_writers.contains(value)) {
-        _writers.add(value);
-        writersController.clear();
-      }
-    }
-
-    // 主演
-    final actorsController = _tagControllers['actors'];
-    if (actorsController != null) {
-      final value = actorsController.text.trim();
-      if (value.isNotEmpty && !_actors.contains(value)) {
-        _actors.add(value);
-        actorsController.clear();
-      }
-    }
-
-    // 类型
-    final genresController = _tagControllers['genres'];
-    if (genresController != null) {
-      final value = genresController.text.trim();
-      if (value.isNotEmpty && !_genres.contains(value)) {
-        _genres.add(value);
-        genresController.clear();
-      }
     }
   }
 
@@ -1903,9 +1263,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
     }
 
     try {
-    // 收集所有多值字段输入框中的未提交内容
-    _collectUnsubmittedValues();
-
     final rating = _ratingController.text.isNotEmpty
         ? double.tryParse(_ratingController.text)
         : null;
@@ -2014,360 +1371,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
   }
 }
 
-/// 多值输入对话框组件
-class _MultiValueDialog extends StatefulWidget {
-  final String title;
-  final List<String> initialValues;
-  final String hint;
-  final List<String> existingTags;
-
-  const _MultiValueDialog({
-    required this.title,
-    required this.initialValues,
-    required this.hint,
-    this.existingTags = const [],
-  });
-
-  @override
-  State<_MultiValueDialog> createState() => _MultiValueDialogState();
-}
-
-class _MultiValueDialogState extends State<_MultiValueDialog> {
-  late List<String> values;
-  final controller = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    values = List<String>.from(widget.initialValues);
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  void _addValue(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isNotEmpty && !values.contains(trimmed)) {
-      setState(() {
-        values.add(trimmed);
-      });
-      controller.clear();
-    }
-  }
-
-  void _removeValue(int index) {
-    setState(() {
-      values.removeAt(index);
-    });
-  }
-
-  void _toggleExistingTag(String tag) {
-    setState(() {
-      if (values.contains(tag)) {
-        values.remove(tag);
-      } else {
-        values.add(tag);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    // 未选中的已有标签
-    final availableTags = widget.existingTags
-        .where((t) => !values.contains(t))
-        .toList();
-
-    return AlertDialog(
-      backgroundColor: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text(
-        widget.title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-      ),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.55,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 可滚动的标签区域
-              if (values.isNotEmpty || availableTags.isNotEmpty)
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 已选择的标签
-                        if (values.isNotEmpty) ...[
-                          Text(
-                            '已选择',
-                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: values.map((v) {
-                              final display = v.length > 8 ? '${v.substring(0, 8)}...' : v;
-                              return Container(
-                                padding: const EdgeInsets.only(left: 12, right: 6, top: 7, bottom: 7),
-                                decoration: BoxDecoration(
-                                  color: colors.primary,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      display,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: colors.onPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() => values.remove(v));
-                                      },
-                                      child: Container(
-                                        width: 18,
-                                        height: 18,
-                                        decoration: BoxDecoration(
-                                          color: colors.onPrimary.withValues(alpha: 0.3),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(Icons.close, size: 12, color: colors.onPrimary),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          if (availableTags.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Divider(height: 0.5, color: colors.outlineVariant),
-                            const SizedBox(height: 16),
-                          ],
-                        ],
-                        // 已有类型
-                        if (availableTags.isNotEmpty) ...[
-                          Text(
-                            '已有类型',
-                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: availableTags.map((tag) {
-                              final display = tag.length > 8 ? '${tag.substring(0, 8)}...' : tag;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() => values.add(tag));
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                  decoration: BoxDecoration(
-                                    color: colors.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: colors.outline,
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        display,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: colors.onSurface.withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              // 固定底部的输入框
-              if (values.isNotEmpty || availableTags.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Divider(height: 0.5, color: colors.outlineVariant),
-                const SizedBox(height: 12),
-              ],
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      style: TextStyle(fontSize: 15, color: colors.onSurface),
-                      decoration: InputDecoration(
-                        hintText: widget.hint,
-                        hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: colors.outline),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: colors.outline),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: colors.primary, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      ),
-                      onSubmitted: _addValue,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _addValue(controller.text),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.add, size: 20, color: colors.onPrimary),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            _addValue(controller.text);
-            Navigator.pop(context, values);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          child: const Text('确定'),
-        ),
-      ],
-    );
-  }
-}
-
-/// 文本输入对话框组件
-class _TextInputDialog extends StatefulWidget {
-  final String title;
-  final String initialValue;
-  final String hint;
-  final int maxLines;
-
-  const _TextInputDialog({
-    required this.title,
-    required this.initialValue,
-    required this.hint,
-    required this.maxLines,
-  });
-
-  @override
-  State<_TextInputDialog> createState() => _TextInputDialogState();
-}
-
-class _TextInputDialogState extends State<_TextInputDialog> {
-  late final TextEditingController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return AlertDialog(
-      backgroundColor: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text(
-        widget.title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-      ),
-      content: TextField(
-        controller: controller,
-        maxLines: widget.maxLines,
-        style: TextStyle(fontSize: 15, color: colors.onSurface),
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: colors.outline),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: colors.outline),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: colors.primary, width: 1.5),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, controller.text.trim()),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          child: const Text('确定'),
-        ),
-      ],
-    );
-  }
-}
-
 /// 剧情简介全屏编辑页
 class _SummaryEditorPage extends StatefulWidget {
   final String initialText;
@@ -2423,5 +1426,18 @@ class _SummaryEditorPageState extends State<_SummaryEditorPage> {
         ),
       ),
     );
+  }
+}
+
+/// 评分输入格式化器：只允许 0-10，最多1位小数
+class _RatingInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    if (!RegExp(r'^\d{0,2}\.?\d{0,1}$').hasMatch(text)) return oldValue;
+    final n = double.tryParse(text);
+    if (n != null && n > 10) return oldValue;
+    return newValue;
   }
 }

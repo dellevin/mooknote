@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,7 +68,7 @@ class AutoBackupService {
     try {
       final backupDir = await _getBackupDirectory();
       if (backupDir == null) {
-        print('AutoBackup: 无法获取备份目录');
+        debugPrint('AutoBackup: 无法获取备份目录');
         return;
       }
       
@@ -80,7 +81,7 @@ class AutoBackupService {
       final result = await BackupService.instance.exportDataForAutoBackup();
       
       if (!result.success) {
-        print('AutoBackup: 导出失败 - ${result.errorMessage}');
+        debugPrint('AutoBackup: 导出失败 - ${result.errorMessage}');
         return;
       }
       
@@ -91,13 +92,13 @@ class AutoBackupService {
       // 写入备份文件
       await backupFile.writeAsBytes(result.zipBytes!);
       
-      print('AutoBackup: 备份成功 - ${backupFile.path}');
+      debugPrint('AutoBackup: 备份成功 - ${backupFile.path}');
       
-      // 清理旧备份，只保留最新的10个
+      // 清理旧备份，只保留最新的5个
       await _cleanupOldBackups(backupDir);
       
     } catch (e) {
-      print('AutoBackup: 备份失败 - $e');
+      debugPrint('AutoBackup: 备份失败 - $e');
     }
   }
   
@@ -134,12 +135,12 @@ class AutoBackupService {
       
       return downloadDir;
     } catch (e) {
-      print('AutoBackup: 获取备份目录失败 - $e');
+      debugPrint('AutoBackup: 获取备份目录失败 - $e');
       return null;
     }
   }
   
-  /// 清理旧备份，只保留最新的10个
+  /// 清理旧备份，只保留最新的5个
   Future<void> _cleanupOldBackups(Directory backupDir) async {
     try {
       final files = await backupDir
@@ -160,14 +161,14 @@ class AutoBackupService {
         for (var i = _maxBackups; i < files.length; i++) {
           try {
             await files[i].delete();
-            print('AutoBackup: 删除旧备份 - ${files[i].path}');
+            debugPrint('AutoBackup: 删除旧备份 - ${files[i].path}');
           } catch (e) {
-            print('AutoBackup: 删除旧备份失败 - $e');
+            debugPrint('AutoBackup: 删除旧备份失败 - $e');
           }
         }
       }
     } catch (e) {
-      print('AutoBackup: 清理旧备份失败 - $e');
+      debugPrint('AutoBackup: 清理旧备份失败 - $e');
     }
   }
   
@@ -194,7 +195,7 @@ class AutoBackupService {
       
       return files;
     } catch (e) {
-      print('AutoBackup: 获取备份列表失败 - $e');
+      debugPrint('AutoBackup: 获取备份列表失败 - $e');
       return [];
     }
   }

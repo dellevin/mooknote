@@ -26,8 +26,9 @@ class AppTheme {
   static const Color wantToReadColor = Color(0xFF999999); // 想读 - 浅灰
   static const Color readingColor = Color(0xFF666666);    // 在读 - 中灰
 
-  // 字体配置
-  static const String _fontFamily = 'Inter';
+  // 字体配置（空字符串 = 系统默认）
+  static String _fontFamily = '';
+  static void setFontFamily(String value) => _fontFamily = value;
   
   // 字重
   static const FontWeight _regular = FontWeight.w400;
@@ -46,8 +47,18 @@ class AppTheme {
 
   static const List<String> colorSchemeNames = ['经典', '靛蓝', '薄荷', '琥珀', '玫瑰', '紫罗兰'];
 
-  /// 根据配色索引获取浅色主题
-  static ThemeData getLightTheme(int index) {
+  // 莫奈动态取色
+  static Color? _monetColor;
+  static void setMonetColor(Color? color) => _monetColor = color;
+  static Color? get monetColor => _monetColor;
+
+  /// 根据配色索引获取浅色主题（index -1 = 莫奈自动取色）
+  static ThemeData getLightTheme(int index, {Color? monetColor}) {
+    if (index == -1) {
+      final c = monetColor ?? _monetColor;
+      if (c != null) return _buildColoredLightTheme(c);
+      return lightTheme;
+    }
     if (index <= 0) return lightTheme;
     return _buildColoredLightTheme(seedColors[index]);
   }
@@ -114,7 +125,7 @@ class AppTheme {
         selectedItemColor: scheme.primary,
         unselectedItemColor: scheme.onSurfaceVariant,
         elevation: 0, type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: const TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium),
+        selectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium),
         unselectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _regular, color: scheme.onSurfaceVariant),
       ),
     );
@@ -144,7 +155,7 @@ class AppTheme {
       ),
       
       // AppBar - 极简无边框
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: _white,
         foregroundColor: _black,
         elevation: 0,
@@ -244,7 +255,7 @@ class AppTheme {
       ),
       
       // 底部导航
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: _white,
         selectedItemColor: _black,
         unselectedItemColor: _lightGray,
@@ -263,7 +274,7 @@ class AppTheme {
       ),
       
       // 文字主题
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         // 大标题
         headlineLarge: TextStyle(
           fontFamily: _fontFamily,
@@ -357,7 +368,7 @@ class AppTheme {
         outlineVariant: _darkGray,
       ),
       
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: _black,
         foregroundColor: _white,
         elevation: 0,
@@ -442,7 +453,7 @@ class AppTheme {
         ),
       ),
       
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: _black,
         selectedItemColor: _white,
         unselectedItemColor: _gray,
@@ -460,7 +471,7 @@ class AppTheme {
         ),
       ),
 
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         headlineLarge: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 32,

@@ -126,31 +126,34 @@ class _MovieSharePageState extends State<MovieSharePage> {
 
   void _showStylePicker() {
     final colors = Theme.of(context).colorScheme;
+    const icons = [Icons.image_outlined, Icons.confirmation_num_outlined, Icons.local_movies_outlined, Icons.card_giftcard_outlined];
+    const subtitles = ['简约海报风格', '经典复古票根', '电影票票根样式', '高端收藏版票根'];
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('选择样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          const SizedBox(height: 16),
-          Wrap(spacing: 10, runSpacing: 10, children: List.generate(_styleNames.length, (i) {
-            final selected = _currentStyle == i;
-            return GestureDetector(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
+          Align(alignment: Alignment.centerLeft, child: Text('选择样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          const SizedBox(height: 12),
+          for (int i = 0; i < _styleNames.length; i++) ...[
+            if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(icons[i], size: 20, color: _currentStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
+              title: Text(_styleNames[i], style: TextStyle(fontSize: 13, fontWeight: _currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              trailing: _currentStyle == i
+                  ? Icon(Icons.check_circle, size: 20, color: colors.primary)
+                  : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () { setState(() => _currentStyle = i); Navigator.pop(ctx); },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected ? colors.primary : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: selected ? colors.primary : colors.outline, width: 0.5),
-                ),
-                child: Text(_styleNames[i], style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6))),
-              ),
-            );
-          })),
+            ),
+          ],
+          const SizedBox(height: 12),
         ]),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
@@ -193,12 +194,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ],
       child: Consumer<AppProvider>(
         builder: (context, provider, _) {
-          return MaterialApp(
-            title: 'MookNote',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.getLightTheme(provider.colorSchemeIndex),
-            darkTheme: AppTheme.darkTheme,
-            themeMode: provider.themeMode,
+          AppTheme.setFontFamily(provider.fontFamily);
+          return DynamicColorBuilder(
+            builder: (lightDynamic, darkDynamic) {
+              final monetColor = lightDynamic?.primary;
+              AppTheme.setMonetColor(monetColor);
+              return MaterialApp(
+                title: 'MookNote',
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.getLightTheme(provider.colorSchemeIndex, monetColor: monetColor),
+                darkTheme: AppTheme.darkTheme,
+                themeMode: provider.themeMode,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -216,6 +222,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               return _AppIconWrapper(iconName: iconName, child: child!);
             },
           );
+          },
+        );
         },
       ),
     );

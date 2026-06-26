@@ -100,11 +100,6 @@ class _TagManagementPageState extends State<TagManagementPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final tags = _tagCache[_currentType] ?? [];
-    final isSearching = _searchQuery.isNotEmpty;
-    final usedCount = tags.where((t) => (_usageCounts[t['name']] ?? 0) > 0 && (t['is_hidden'] as int?) != 1).length;
-    final unusedCount = tags.where((t) => (_usageCounts[t['name']] ?? 0) == 0 && (t['is_hidden'] as int?) != 1).length;
-    final hiddenCount = tags.where((t) => (t['is_hidden'] as int?) == 1).length;
 
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
@@ -114,80 +109,11 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
             : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签', onPressed: _syncTags),
       ]),
-      body: Column(
-        children: [
-          const SizedBox(height: 8),
-          // 搜索栏
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              height: 36,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: colors.outlineVariant, width: 0.5),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 10),
-                  Icon(Icons.search, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: TextStyle(fontSize: 13, color: colors.onSurface),
-                      decoration: InputDecoration(
-                        hintText: '搜索标签',
-                        hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        focusedErrorBorder: InputBorder.none,
-                        filled: false,
-                      ),
-                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
-                    ),
-                  ),
-                  if (_searchQuery.isNotEmpty)
-                    GestureDetector(
-                      onTap: () { _searchController.clear(); setState(() => _searchQuery = ''); FocusManager.instance.primaryFocus?.unfocus(); },
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Icon(Icons.close, size: 15, color: colors.onSurface.withValues(alpha: 0.3)),
-                      ),
-                    ),
-                  if (_searchQuery.isEmpty) const SizedBox(width: 10),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 统计卡片
-          if (!isSearching)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(children: [
-                _buildStatChip(Icons.check_circle_outline, '已使用', usedCount, colors),
-                const SizedBox(width: 8),
-                _buildStatChip(Icons.radio_button_unchecked, '未使用', unusedCount, colors),
-                const SizedBox(width: 8),
-                _buildStatChip(Icons.visibility_off_outlined, '隐藏', hiddenCount, colors),
-              ]),
-            ),
-          SizedBox(height: isSearching ? 0 : 12),
-          // 标签列表
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeOut, switchOutCurve: Curves.easeIn,
-              child: _buildTagList(_currentType),
-            ),
-          ),
-        ],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: _buildTagList(_currentType),
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
@@ -287,21 +213,39 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   Widget _buildTagList(String type) {
     final tags = _tagCache[type] ?? [];
-    if (tags.isEmpty) return _buildEmptyState(type);
-
+    final colors = Theme.of(context).colorScheme;
     final isSearching = _searchQuery.isNotEmpty;
+
+    if (tags.isEmpty && !isSearching) {
+      return SingleChildScrollView(
+        key: ValueKey('empty_$type'),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _buildSearchBar(colors),
+          const SizedBox(height: 40),
+          _buildEmptyState(type),
+        ]),
+      );
+    }
 
     // 搜索模式
     if (isSearching) {
       final filtered = tags.where((t) => (t['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList()
         ..sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
-      if (filtered.isEmpty) {
-        return Center(child: Text('没有找到"$_searchQuery"相关标签', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))));
-      }
       return SingleChildScrollView(
         key: ValueKey('search_$type'),
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
-        child: Wrap(spacing: 8, runSpacing: 6, children: filtered.map(_buildTagChip).toList()),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _buildSearchBar(colors),
+          const SizedBox(height: 12),
+          if (filtered.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('没有找到"$_searchQuery"相关标签', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+            )
+          else
+            Wrap(spacing: 8, runSpacing: 6, children: filtered.map(_buildTagChip).toList()),
+        ]),
       );
     }
 
@@ -316,30 +260,89 @@ class _TagManagementPageState extends State<TagManagementPage> {
     }
     used.sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
 
-    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       key: ValueKey(type),
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (used.isNotEmpty) ...[
-            _buildGroupHeader('已使用', used.length, colors),
-            const SizedBox(height: 6),
-            Wrap(spacing: 8, runSpacing: 6, children: used.map(_buildTagChip).toList()),
-            const SizedBox(height: 16),
-          ],
-          if (unused.isNotEmpty) ...[
-            _buildGroupHeader('未使用', unused.length, colors),
-            const SizedBox(height: 6),
-            Wrap(spacing: 8, runSpacing: 6, children: unused.map(_buildTagChip).toList()),
-            const SizedBox(height: 16),
-          ],
-          if (hidden.isNotEmpty) ...[
-            _buildGroupHeader('隐藏', hidden.length, colors),
-            const SizedBox(height: 6),
-            Wrap(spacing: 8, runSpacing: 6, children: hidden.map(_buildTagChip).toList()),
-          ],
+          _buildSearchBar(colors),
+          // 统计栏
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
+            child: Row(children: [
+              _buildStatChip(Icons.check_circle_outline, '已使用', used.length, colors),
+              const SizedBox(width: 8),
+              _buildStatChip(Icons.radio_button_unchecked, '未使用', unused.length, colors),
+              const SizedBox(width: 8),
+              _buildStatChip(Icons.visibility_off_outlined, '隐藏', hidden.length, colors),
+            ]),
+          ),
+          _buildGroupHeader('已使用', used.length, colors),
+          const SizedBox(height: 6),
+          used.isNotEmpty
+              ? Wrap(spacing: 8, runSpacing: 6, children: used.map(_buildTagChip).toList())
+              : _buildEmptyGroup('暂无已使用标签', colors),
+          const SizedBox(height: 16),
+          _buildGroupHeader('未使用', unused.length, colors),
+          const SizedBox(height: 6),
+          unused.isNotEmpty
+              ? Wrap(spacing: 8, runSpacing: 6, children: unused.map(_buildTagChip).toList())
+              : _buildEmptyGroup('暂无未使用标签', colors),
+          const SizedBox(height: 16),
+          _buildGroupHeader('隐藏', hidden.length, colors),
+          const SizedBox(height: 6),
+          hidden.isNotEmpty
+              ? Wrap(spacing: 8, runSpacing: 6, children: hidden.map(_buildTagChip).toList())
+              : _buildEmptyGroup('暂无隐藏标签', colors),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(ColorScheme colors) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          Icon(Icons.search_rounded, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(fontSize: 14, color: colors.onSurface),
+              cursorColor: colors.primary,
+              decoration: InputDecoration(
+                hintText: '搜索标签...',
+                hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
+              ),
+              onChanged: (v) => setState(() => _searchQuery = v.trim()),
+            ),
+          ),
+          if (_searchQuery.isNotEmpty)
+            GestureDetector(
+              onTap: () { _searchController.clear(); setState(() => _searchQuery = ''); FocusManager.instance.primaryFocus?.unfocus(); },
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: colors.surfaceContainerHighest, shape: BoxShape.circle),
+                child: Icon(Icons.close_rounded, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              ),
+            )
+          else
+            const SizedBox(width: 12),
         ],
       ),
     );
@@ -355,6 +358,13 @@ class _TagManagementPageState extends State<TagManagementPage> {
           Text('$count', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyGroup(String text, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(text, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
     );
   }
 
@@ -480,6 +490,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
                     await _loadTags(_currentType);
                   },
                 ),
+                _menuAction(Icons.open_in_new_outlined, '查看相关${_typeLabels[_currentIndex].replaceAll('类型', '').replaceAll('标签', '')}', colors, () {
+                  Navigator.pop(ctx);
+                  _showTagItems(name);
+                }),
                 _menuAction(Icons.edit_outlined, '重命名', colors, () {
                   Navigator.pop(ctx);
                   _showRenameDialog(tag);
@@ -511,6 +525,77 @@ class _TagManagementPageState extends State<TagManagementPage> {
               fontWeight: FontWeight.w500,
               color: isDestructive ? const Color(0xFFE53935) : colors.onSurface,
             )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTagItems(String tagName) {
+    final provider = context.read<AppProvider>();
+    final colors = Theme.of(context).colorScheme;
+
+    List<({String title, String? subtitle, String type})> items = [];
+    if (_currentType == 'movie_genre') {
+      for (final m in provider.movies.where((m) => !m.isDeleted && m.genres.contains(tagName))) {
+        items.add((title: m.title, subtitle: m.directors.take(2).join(' / '), type: '影视'));
+      }
+    } else if (_currentType == 'book_genre') {
+      for (final b in provider.books.where((b) => !b.isDeleted && b.genres.contains(tagName))) {
+        items.add((title: b.title, subtitle: b.authors.take(2).join(' / '), type: '书籍'));
+      }
+    } else {
+      for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) {
+        items.add((title: n.title.isNotEmpty ? n.title : '随手记', subtitle: null, type: '笔记'));
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text('$tagName（${items.length}）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            ),
+            const SizedBox(height: 8),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text('暂无相关内容', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+              )
+            else
+              ...items.asMap().entries.map((entry) {
+                final item = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (entry.key > 0) Divider(height: 0.5, color: colors.outlineVariant),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(item.title, style: TextStyle(fontSize: 14, color: colors.onSurface)),
+                        subtitle: item.subtitle != null && item.subtitle!.isNotEmpty
+                            ? Text(item.subtitle!, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)))
+                            : null,
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)),
+                          child: Text(item.type, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
           ],
         ),
       ),

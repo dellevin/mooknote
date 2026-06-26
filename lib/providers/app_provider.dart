@@ -13,6 +13,7 @@ import '../models/reader_book.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
+import '../utils/theme/app_theme.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -47,6 +48,9 @@ class AppProvider extends ChangeNotifier {
 
   // 配色方案索引
   int _colorSchemeIndex = 0;
+
+  // 字体
+  String _fontFamily = '';
 
   // 观影选中的状态 (0: 已看，1: 想看，2: 在看)
   int _movieStatusIndex = 0;
@@ -119,8 +123,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   // 加载笔记数据
-  Future<void> loadNotes() async {
-    _notes = await _noteDao.getAllNotes();
+  Future<void> loadNotes({int sortMode = 0}) async {
+    _notes = await _noteDao.getAllNotes(sortMode: sortMode);
     notifyListeners();
   }
 
@@ -147,16 +151,16 @@ class AppProvider extends ChangeNotifier {
   // ─── 分页加载（供列表页触底加载使用）────────────────────────
   static const int _pageSize = 20;
 
-  Future<List<Movie>> loadMoviesPaged({String? status, required int offset}) async {
-    return _movieDao.getMoviesPaged(status: status, limit: _pageSize, offset: offset);
+  Future<List<Movie>> loadMoviesPaged({String? status, required int offset, int sortMode = 0}) async {
+    return _movieDao.getMoviesPaged(status: status, limit: _pageSize, offset: offset, sortMode: sortMode);
   }
 
-  Future<List<Book>> loadBooksPaged({String? status, required int offset}) async {
-    return _bookDao.getBooksPaged(status: status, limit: _pageSize, offset: offset);
+  Future<List<Book>> loadBooksPaged({String? status, required int offset, int sortMode = 0}) async {
+    return _bookDao.getBooksPaged(status: status, limit: _pageSize, offset: offset, sortMode: sortMode);
   }
 
-  Future<List<Note>> loadNotesPaged({required int offset}) async {
-    return _noteDao.getNotesPaged(limit: _pageSize, offset: offset);
+  Future<List<Note>> loadNotesPaged({required int offset, int sortMode = 0}) async {
+    return _noteDao.getNotesPaged(limit: _pageSize, offset: offset, sortMode: sortMode);
   }
 
   // Getters
@@ -169,6 +173,7 @@ class AppProvider extends ChangeNotifier {
   bool get bottomNavVisible => _bottomNavVisible;
   ThemeMode get themeMode => _themeMode;
   int get colorSchemeIndex => _colorSchemeIndex;
+  String get fontFamily => _fontFamily;
   List<Movie> get movies => _movies;
   List<Book> get books => _books;
   List<Note> get notes => _notes;
@@ -227,6 +232,8 @@ class AppProvider extends ChangeNotifier {
         _themeMode = ThemeMode.system;
     }
     _colorSchemeIndex = prefs.colorSchemeIndex;
+    _fontFamily = prefs.fontFamily;
+    AppTheme.setFontFamily(_fontFamily);
     notifyListeners();
   }
 
@@ -234,6 +241,15 @@ class AppProvider extends ChangeNotifier {
     if (_colorSchemeIndex != index) {
       _colorSchemeIndex = index;
       UserPrefs().setColorSchemeIndex(index);
+      notifyListeners();
+    }
+  }
+
+  void setFontFamily(String family) {
+    if (_fontFamily != family) {
+      _fontFamily = family;
+      UserPrefs().setFontFamily(family);
+      AppTheme.setFontFamily(family);
       notifyListeners();
     }
   }
@@ -329,6 +345,11 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> removeNote(String id) async {
     await _noteDao.deleteNote(id);
+    await loadNotes();
+  }
+
+  Future<void> toggleNotePin(String id, bool isPinned) async {
+    await _noteDao.togglePin(id, isPinned);
     await loadNotes();
   }
   

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/movie_status_bar.dart';
 import '../../widgets/movie_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
@@ -21,10 +22,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
   bool _hasMore = true;
   bool _isLoading = false;
   int _offset = 0;
-  int _lastStatusIndex = -1;
   bool _initialized = false;
-  int _lastDataCount = -1;
-  DateTime? _lastUpdatedAt;
+  int _lastStatusIndex = -1;
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
@@ -39,8 +38,6 @@ class _MovieTabPageState extends State<MovieTabPage> {
       final provider = context.read<AppProvider>();
       _provider = provider;
       provider.addListener(_onDataChanged);
-      _lastDataCount = provider.movies.length;
-      if (provider.movies.isNotEmpty) _lastUpdatedAt = provider.movies.first.updatedAt;
       _loadFirst();
     });
   }
@@ -64,15 +61,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
       }
     }
 
-    final count = provider.movies.length;
-    final latest = provider.movies.isNotEmpty ? provider.movies.first.updatedAt : null;
-    if (count != _lastDataCount || latest != _lastUpdatedAt) {
-      _lastDataCount = count;
-      _lastUpdatedAt = latest;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadFirst();
-      });
-    }
+    // 数据变化时刷新列表（排序/评分/新增等）
+    _loadFirst();
   }
 
   void _onScroll() {
@@ -90,7 +80,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
     _initialized = true;
     final status = _statusMap[statusIdx] ?? 'watched';
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadMoviesPaged(status: status, offset: 0);
+    final list = await provider.loadMoviesPaged(status: status, offset: 0, sortMode: UserPrefs().movieSortMode);
     if (!mounted) return;
     setState(() {
       _items.clear();
@@ -106,7 +96,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final status = _statusMap[provider.movieStatusIndex] ?? 'watched';
-    final list = await provider.loadMoviesPaged(status: status, offset: _offset);
+    final list = await provider.loadMoviesPaged(status: status, offset: _offset, sortMode: UserPrefs().movieSortMode);
     if (!mounted) return;
     setState(() {
       _items.addAll(list);
