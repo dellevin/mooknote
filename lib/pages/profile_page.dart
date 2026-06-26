@@ -999,6 +999,18 @@ class _SettingsPageState extends State<SettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildActionItem(
+            icon: Icons.open_in_new_outlined,
+            title: '项目源码',
+            subtitle: '查看 GitHub 项目仓库',
+            onTap: () =>
+                launchUrl(Uri.parse('https://github.com/dellevin/mooknote')),
+          ),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildActionItem(
             icon: Icons.code_outlined,
             title: '开发日志',
             subtitle: '在浏览器中查看项目开发记录',

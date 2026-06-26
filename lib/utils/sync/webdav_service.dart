@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -227,7 +227,7 @@ class WebDAVService {
           if (success) {
             uploadedFiles = 1;
             uploadedImages = exportResult.imageCount;
-            print('[WebDAV] 备份上传成功 (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+            debugPrint('[WebDAV] 备份上传成功 (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
           } else {
             return SyncResult(success: false, message: '上传备份文件失败');
           }
@@ -246,7 +246,7 @@ class WebDAVService {
               downloadedFiles = 1;
               downloadedImages = importResult.stats?['图片'] ?? 0;
               needReload = true;
-              print('[WebDAV] 备份恢复成功: ${importResult.statsText}');
+              debugPrint('[WebDAV] 备份恢复成功: ${importResult.statsText}');
             } else {
               return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败');
             }
@@ -268,11 +268,11 @@ class WebDAVService {
               downloadedFiles = 1;
               downloadedImages = importResult.stats?['图片'] ?? 0;
               needReload = true;
-              print('[WebDAV] 远程备份已恢复: ${importResult.statsText}');
+              debugPrint('[WebDAV] 远程备份已恢复: ${importResult.statsText}');
             }
           } else {
             try { await tempZip.delete(); } catch (_) {}
-            print('[WebDAV] 服务器无备份，仅上传本地数据');
+            debugPrint('[WebDAV] 服务器无备份，仅上传本地数据');
           }
 
           // 始终上传本地，确保远程是最新的
@@ -282,7 +282,7 @@ class WebDAVService {
             if (uploadSuccess) {
               uploadedFiles = 1;
               uploadedImages = exportResult.imageCount;
-              print('[WebDAV] 本地备份已上传 (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+              debugPrint('[WebDAV] 本地备份已上传 (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
             }
           }
         }
@@ -338,7 +338,7 @@ class WebDAVService {
     await prefs.setBool(_autoSyncKey, true);
 
     // 立即执行一次同步
-    print('[WebDAV] 自动同步已启动，间隔 $_autoSyncIntervalMinutes 分钟');
+    debugPrint('[WebDAV] 自动同步已启动，间隔 $_autoSyncIntervalMinutes 分钟');
     await syncData(direction: SyncDirection.bidirectional);
 
     // 设置定时器
@@ -407,10 +407,10 @@ class WebDAVService {
         }
       }
 
-      print('[WebDAV] PUT $url -> ${response.statusCode}');
+      debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
       return response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204;
     } catch (e) {
-      print('[WebDAV] _uploadBytes error: $e');
+      debugPrint('[WebDAV] _uploadBytes error: $e');
       return false;
     }
   }
@@ -440,13 +440,13 @@ class WebDAVService {
         }
       }
 
-      print('[WebDAV] GET $url -> ${response.statusCode}');
+      debugPrint('[WebDAV] GET $url -> ${response.statusCode}');
 
       if (response.statusCode == 200) {
         await localFile.parent.create(recursive: true);
         final bytes = await response.stream.toBytes();
         await localFile.writeAsBytes(bytes);
-        print('[WebDAV] Downloaded ${bytes.length} bytes');
+        debugPrint('[WebDAV] Downloaded ${bytes.length} bytes');
         return true;
       }
       return false;

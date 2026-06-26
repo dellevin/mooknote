@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../database_helper.dart';
 import '../user_prefs.dart';
@@ -75,6 +76,7 @@ class BackupService {
       'appName': 'MookNote',
       'hasImages': true,
       'userInfo': userInfo,
+      'sharedPrefs': await _exportSharedPrefs(),
       'data': {
         'movies': movies,
         'books': books,
@@ -453,6 +455,44 @@ class BackupService {
         if (imagePathMap.containsKey(relPath)) {
           await userPrefs.setAvatarPath(imagePathMap[relPath]!);
         }
+      }
+    }
+
+    // 恢复完整 SharedPreferences
+    if (backupData.containsKey('sharedPrefs')) {
+      await _restoreSharedPrefs(backupData['sharedPrefs'] as Map<String, dynamic>);
+    }
+  }
+
+  /// 导出完整 SharedPreferences
+  Future<Map<String, dynamic>> _exportSharedPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    final map = <String, dynamic>{};
+    for (final key in keys) {
+      map[key] = prefs.get(key);
+    }
+    return map;
+  }
+
+  /// 恢复 SharedPreferences（保留当前 avatarPath，因为已在上面用 imagePathMap 更新过）
+  Future<void> _restoreSharedPrefs(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final entry in data.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      // avatarPath 已单独处理，跳过
+      if (key == 'avatarPath') continue;
+      if (value is String) {
+        await prefs.setString(key, value);
+      } else if (value is int) {
+        await prefs.setInt(key, value);
+      } else if (value is double) {
+        await prefs.setDouble(key, value);
+      } else if (value is bool) {
+        await prefs.setBool(key, value);
+      } else if (value is List) {
+        await prefs.setStringList(key, value.cast<String>());
       }
     }
   }
