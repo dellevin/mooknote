@@ -906,6 +906,18 @@ class _SettingsPageState extends State<SettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildNavigationItem(
+            icon: Icons.view_sidebar_outlined,
+            title: '侧边栏功能设置',
+            subtitle: '控制侧边栏显示的功能模块',
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SidebarSettingsPage())),
+          ),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildNavigationItem(
             icon: Icons.dashboard_outlined,
             title: '布局设置',
             subtitle: '影视、阅读、笔记的展示样式',
@@ -2412,6 +2424,163 @@ class _WebViewPageState extends State<WebViewPage> {
               child: CircularProgressIndicator(
                   color: colors.onSurface.withValues(alpha: 0.4)))
       ]),
+    );
+  }
+}
+
+// ─── 侧边栏功能设置 ───
+
+class SidebarSettingsPage extends StatefulWidget {
+  const SidebarSettingsPage({super.key});
+
+  @override
+  State<SidebarSettingsPage> createState() => _SidebarSettingsPageState();
+}
+
+class _SidebarSettingsPageState extends State<SidebarSettingsPage> {
+  final UserPrefs _userPrefs = UserPrefs();
+  bool _showHeatmap = true;
+  bool _showRecent = true;
+  bool _showEncounter = true;
+  bool _showStroll = true;
+  bool _showCalendar = true;
+  bool _showPerson = true;
+  bool _showTags = true;
+  bool _showMdReader = true;
+  bool _showEpub = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  void _loadSettings() {
+    setState(() {
+      _showHeatmap = _userPrefs.showSidebarHeatmap;
+      _showRecent = _userPrefs.showSidebarRecent;
+      _showEncounter = _userPrefs.showSidebarEncounter;
+      _showStroll = _userPrefs.showSidebarStroll;
+      _showCalendar = _userPrefs.showSidebarCalendar;
+      _showPerson = _userPrefs.showSidebarPerson;
+      _showTags = _userPrefs.showSidebarTags;
+      _showMdReader = _userPrefs.showSidebarMdReader;
+      _showEpub = _userPrefs.showSidebarEpub;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(title: const Text('侧边栏功能设置')),
+      body: ListView(
+        children: [
+          _buildSectionHeader('信息模块'),
+          _buildSwitchItem(Icons.calendar_today, '热力图', '显示创作活跃度热力图',
+              _showHeatmap, (v) async {
+            await _userPrefs.setShowSidebarHeatmap(v);
+            setState(() => _showHeatmap = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.schedule, '最近添加', '显示最近添加的记录',
+              _showRecent, (v) async {
+            await _userPrefs.setShowSidebarRecent(v);
+            setState(() => _showRecent = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.favorite_border, '统计', '与应用相遇的天数和数据概览',
+              _showEncounter, (v) async {
+            await _userPrefs.setShowSidebarEncounter(v);
+            setState(() => _showEncounter = v);
+          }),
+          _buildSectionHeader('快捷功能'),
+          _buildSwitchItem(Icons.explore_outlined, '漫步', '随机发现内容',
+              _showStroll, (v) async {
+            await _userPrefs.setShowSidebarStroll(v);
+            setState(() => _showStroll = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.calendar_month_outlined, '书影日历', '按日历查看记录',
+              _showCalendar, (v) async {
+            await _userPrefs.setShowSidebarCalendar(v);
+            setState(() => _showCalendar = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.people_outline, '角色信息', '管理影视和书籍中的角色',
+              _showPerson, (v) async {
+            await _userPrefs.setShowSidebarPerson(v);
+            setState(() => _showPerson = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.label_outline, '标签管理', '管理所有标签',
+              _showTags, (v) async {
+            await _userPrefs.setShowSidebarTags(v);
+            setState(() => _showTags = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.description_outlined, 'MD阅读', 'Markdown 文件阅读器',
+              _showMdReader, (v) async {
+            await _userPrefs.setShowSidebarMdReader(v);
+            setState(() => _showMdReader = v);
+          }),
+          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          _buildSwitchItem(Icons.auto_stories_outlined, 'EPUB阅读', 'EPUB 电子书阅读器',
+              _showEpub, (v) async {
+            await _userPrefs.setShowSidebarEpub(v);
+            setState(() => _showEpub = v);
+          }),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Text('关闭后对应功能将从侧边栏中隐藏。',
+                style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+      child: Text(title,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurface)),
+    );
+  }
+
+  Widget _buildSwitchItem(IconData icon, String title, String subtitle,
+      bool value, ValueChanged<bool> onChanged) {
+    final colors = Theme.of(context).colorScheme;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon,
+              color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+      title: Text(title,
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: colors.onSurface)),
+      subtitle: Text(subtitle,
+          style: TextStyle(
+              fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+      trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: colors.primary,
+          activeTrackColor: colors.primary.withValues(alpha: 0.3),
+          inactiveThumbColor: colors.surface,
+          inactiveTrackColor: colors.outline),
     );
   }
 }

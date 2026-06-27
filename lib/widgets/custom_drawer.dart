@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../pages/encounter_page.dart';
 import '../pages/stroll_page.dart';
 import '../pages/media_calendar_page.dart';
 import '../pages/person_list_page.dart';
@@ -28,6 +29,16 @@ class CustomDrawer extends StatefulWidget {
 class _CustomDrawerState extends State<CustomDrawer> {
   String _version = '0.1.5';
 
+  // 热力图缓存
+  List<Movie>? _cachedMovies;
+  List<Book>? _cachedBooks;
+  List<Note>? _cachedNotes;
+  Map<DateTime, int>? _cachedDailyCounts;
+  int? _cachedMaxCount;
+
+  // 最近添加缓存
+  List<_RecentItem>? _cachedRecentItems;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +53,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final userPrefs = UserPrefs();
+    final showHeatmap = userPrefs.showSidebarHeatmap;
+    final showRecent = userPrefs.showSidebarRecent;
+    final showTools = userPrefs.showSidebarEncounter ||
+        userPrefs.showSidebarStroll ||
+        userPrefs.showSidebarCalendar ||
+        userPrefs.showSidebarPerson ||
+        userPrefs.showSidebarTags ||
+        userPrefs.showSidebarMdReader ||
+        userPrefs.showSidebarEpub;
+
     return Drawer(
       backgroundColor: colors.surfaceContainerHigh,
       child: SafeArea(
@@ -50,12 +72,18 @@ class _CustomDrawerState extends State<CustomDrawer> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildProfileCard(context),
-              const SizedBox(height: 16),
-              _buildCalendarSection(context),
-              const SizedBox(height: 16),
-              _buildRecentSection(context),
-              const SizedBox(height: 16),
-              _buildToolsCard(context),
+              if (showHeatmap) ...[
+                const SizedBox(height: 16),
+                _buildCalendarSection(context),
+              ],
+              if (showRecent) ...[
+                const SizedBox(height: 16),
+                _buildRecentSection(context),
+              ],
+              if (showTools) ...[
+                const SizedBox(height: 16),
+                _buildToolsCard(context),
+              ],
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
                 child: Center(
@@ -162,6 +190,19 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   Widget _buildToolsCard(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final userPrefs = UserPrefs();
+
+    final items = <(IconData, String, Widget)>[];
+    if (userPrefs.showSidebarEncounter) items.add((Icons.favorite_border, '统计', const EncounterPage()));
+    if (userPrefs.showSidebarStroll) items.add((Icons.explore_outlined, '漫步', const StrollPage()));
+    if (userPrefs.showSidebarCalendar) items.add((Icons.calendar_month_outlined, '书影日历', const MediaCalendarPage()));
+    if (userPrefs.showSidebarPerson) items.add((Icons.people_outline, '角色信息', const PersonListPage()));
+    if (userPrefs.showSidebarTags) items.add((Icons.label_outline, '标签管理', const TagManagementPage()));
+    if (userPrefs.showSidebarMdReader) items.add((Icons.description_outlined, 'MD阅读', const MdReaderTabPage()));
+    if (userPrefs.showSidebarEpub) items.add((Icons.auto_stories_outlined, 'EPUB阅读', const EpubLibraryPage()));
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -169,37 +210,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
-        children: [
-          _buildToolItem(Icons.explore_outlined, '漫步', () {
+        children: List.generate(items.length * 2 - 1, (i) {
+          if (i.isOdd) {
+            return Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant);
+          }
+          final idx = i ~/ 2;
+          final (icon, title, page) = items[idx];
+          return _buildToolItem(icon, title, () {
             Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const StrollPage()));
-          }, topRounded: true),
-          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
-          _buildToolItem(Icons.calendar_month_outlined, '书影日历', () {
-            Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const MediaCalendarPage()));
-          }),
-          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
-          _buildToolItem(Icons.people_outline, '角色信息', () {
-            Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonListPage()));
-          }),
-          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
-          _buildToolItem(Icons.label_outline, '标签管理', () {
-            Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const TagManagementPage()));
-          }),
-          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
-          _buildToolItem(Icons.description_outlined, 'MD阅读', () {
-            Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const MdReaderTabPage()));
-          }),
-          Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
-          _buildToolItem(Icons.auto_stories_outlined, 'EPUB阅读', () {
-            Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const EpubLibraryPage()));
-          }, bottomRounded: true),
-        ],
+            Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+          }, topRounded: idx == 0, bottomRounded: idx == items.length - 1);
+        }),
       ),
     );
   }
@@ -233,29 +254,75 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   // ─── 热力图 ──────────────────────────────────────────────────────────
 
-  Widget _buildCalendarSection(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, provider, child) {
-        final colors = Theme.of(context).colorScheme;
-        final Map<DateTime, int> dailyCounts = {};
-        for (final movie in provider.movies.where((m) => !m.isDeleted)) {
-          final date = DateTime(movie.createdAt.year, movie.createdAt.month, movie.createdAt.day);
-          dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
-        }
-        for (final book in provider.books.where((b) => !b.isDeleted)) {
-          final date = DateTime(book.createdAt.year, book.createdAt.month, book.createdAt.day);
-          dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
-        }
-        for (final note in provider.notes.where((n) => !n.isDeleted)) {
-          final date = DateTime(note.createdAt.year, note.createdAt.month, note.createdAt.day);
-          dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
-        }
+  // ─── 热力图缓存计算 ───
 
-        int maxCount = 0;
-        for (final c in dailyCounts.values) {
-          if (c > maxCount) maxCount = c;
-        }
-        if (maxCount == 0) maxCount = 1;
+  (int, Map<DateTime, int>) _computeDailyCounts(List<Movie> movies, List<Book> books, List<Note> notes) {
+    if (identical(movies, _cachedMovies) &&
+        identical(books, _cachedBooks) &&
+        identical(notes, _cachedNotes) &&
+        _cachedDailyCounts != null) {
+      return (_cachedMaxCount!, _cachedDailyCounts!);
+    }
+
+    final dailyCounts = <DateTime, int>{};
+    for (final movie in movies.where((m) => !m.isDeleted)) {
+      final date = DateTime(movie.createdAt.year, movie.createdAt.month, movie.createdAt.day);
+      dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
+    }
+    for (final book in books.where((b) => !b.isDeleted)) {
+      final date = DateTime(book.createdAt.year, book.createdAt.month, book.createdAt.day);
+      dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
+    }
+    for (final note in notes.where((n) => !n.isDeleted)) {
+      final date = DateTime(note.createdAt.year, note.createdAt.month, note.createdAt.day);
+      dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
+    }
+
+    int maxCount = 0;
+    for (final c in dailyCounts.values) {
+      if (c > maxCount) maxCount = c;
+    }
+    if (maxCount == 0) maxCount = 1;
+
+    _cachedMovies = movies;
+    _cachedBooks = books;
+    _cachedNotes = notes;
+    _cachedDailyCounts = dailyCounts;
+    _cachedMaxCount = maxCount;
+    return (maxCount, dailyCounts);
+  }
+
+  List<_RecentItem> _computeRecentItems(List<Movie> movies, List<Book> books, List<Note> notes) {
+    if (identical(movies, _cachedMovies) &&
+        identical(books, _cachedBooks) &&
+        identical(notes, _cachedNotes) &&
+        _cachedRecentItems != null) {
+      return _cachedRecentItems!;
+    }
+
+    final items = <_RecentItem>[];
+    for (final m in movies.where((m) => !m.isDeleted)) {
+      items.add(_RecentItem(type: 'movie', title: m.title, date: m.createdAt, data: m));
+    }
+    for (final b in books.where((b) => !b.isDeleted)) {
+      items.add(_RecentItem(type: 'book', title: b.title, date: b.createdAt, data: b));
+    }
+    for (final n in notes.where((n) => !n.isDeleted)) {
+      items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记', date: n.createdAt, data: n));
+    }
+    items.sort((a, b) => b.date.compareTo(a.date));
+
+    _cachedRecentItems = items;
+    return items;
+  }
+
+  Widget _buildCalendarSection(BuildContext context) {
+    final movies = context.select<AppProvider, List<Movie>>((p) => p.movies);
+    final books = context.select<AppProvider, List<Book>>((p) => p.books);
+    final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
+    final colors = Theme.of(context).colorScheme;
+
+    final (maxCount, dailyCounts) = _computeDailyCounts(movies, books, notes);
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -348,8 +415,6 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ],
           ),
         );
-      },
-    );
   }
 
   Color _heatmapColor(int count, int maxCount) {
@@ -369,69 +434,53 @@ class _CustomDrawerState extends State<CustomDrawer> {
   // ─── 最近添加 ────────────────────────────────────────────────────────
 
   Widget _buildRecentSection(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, provider, child) {
-        final colors = Theme.of(context).colorScheme;
-        final recent = _getRecentItems(provider);
-        if (recent.isEmpty) return const SizedBox.shrink();
+    final movies = context.select<AppProvider, List<Movie>>((p) => p.movies);
+    final books = context.select<AppProvider, List<Book>>((p) => p.books);
+    final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
+    final colors = Theme.of(context).colorScheme;
+    final recent = _computeRecentItems(movies, books, notes);
+    if (recent.isEmpty) return const SizedBox.shrink();
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(Icons.schedule, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                  const SizedBox(width: 8),
-                  Text('最近添加', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
-                ],
-              ),
-              const SizedBox(height: 14),
-              ...recent.take(4).map((item) => InkWell(
-                onTap: () => _openRecentItem(context, item),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 10, top: 2),
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : Icons.note_outlined,
-                        size: 14, color: colors.onSurface.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75))),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(_recentTimeAgo(item.date), style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
-                    ],
-                  ),
-                ),
-              )),
+              Icon(Icons.schedule, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              const SizedBox(width: 8),
+              Text('最近添加', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 14),
+          ...recent.take(4).map((item) => InkWell(
+            onTap: () => _openRecentItem(context, item),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10, top: 2),
+              child: Row(
+                children: [
+                  Icon(
+                    item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : Icons.note_outlined,
+                    size: 14, color: colors.onSurface.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75))),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_recentTimeAgo(item.date), style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
+                ],
+              ),
+            ),
+          )),
+        ],
+      ),
     );
-  }
-
-  List<_RecentItem> _getRecentItems(AppProvider provider) {
-    final items = <_RecentItem>[];
-    for (final m in provider.movies.where((m) => !m.isDeleted)) {
-      items.add(_RecentItem(type: 'movie', title: m.title, date: m.createdAt, data: m));
-    }
-    for (final b in provider.books.where((b) => !b.isDeleted)) {
-      items.add(_RecentItem(type: 'book', title: b.title, date: b.createdAt, data: b));
-    }
-    for (final n in provider.notes.where((n) => !n.isDeleted)) {
-      items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记', date: n.createdAt, data: n));
-    }
-    items.sort((a, b) => b.date.compareTo(a.date));
-    return items;
   }
 
   void _openRecentItem(BuildContext context, _RecentItem item) {

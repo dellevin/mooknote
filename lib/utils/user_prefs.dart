@@ -16,6 +16,10 @@ class UserPrefs {
       final oldValue = _prefs!.getBool('isDarkMode') ?? false;
       await _prefs!.setInt('themeMode', oldValue ? 2 : 0);
     }
+    // 记录首次使用日期
+    if (!_prefs!.containsKey('firstUseDate')) {
+      await _prefs!.setString('firstUseDate', DateTime.now().toIso8601String());
+    }
   }
   
   /// 获取实例
@@ -27,7 +31,14 @@ class UserPrefs {
   }
   
   // ========== 用户信息 ==========
-  
+
+  /// 首次使用日期
+  DateTime get firstUseDate {
+    final str = prefs.getString('firstUseDate');
+    if (str != null) return DateTime.tryParse(str) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   /// 昵称
   String get nickname => prefs.getString('nickname') ?? 'Mook';
   Future<bool> setNickname(String value) => prefs.setString('nickname', value);
@@ -100,6 +111,35 @@ class UserPrefs {
   /// 默认启动标签 (0: 影视, 1: 阅读, 2: 笔记)
   int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? 0;
   Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);
+
+  // ─── 侧边栏功能开关 ───
+
+  bool get showSidebarHeatmap => prefs.getBool('showSidebarHeatmap') ?? true;
+  Future<bool> setShowSidebarHeatmap(bool value) => prefs.setBool('showSidebarHeatmap', value);
+
+  bool get showSidebarRecent => prefs.getBool('showSidebarRecent') ?? true;
+  Future<bool> setShowSidebarRecent(bool value) => prefs.setBool('showSidebarRecent', value);
+
+  bool get showSidebarEncounter => prefs.getBool('showSidebarEncounter') ?? true;
+  Future<bool> setShowSidebarEncounter(bool value) => prefs.setBool('showSidebarEncounter', value);
+
+  bool get showSidebarStroll => prefs.getBool('showSidebarStroll') ?? true;
+  Future<bool> setShowSidebarStroll(bool value) => prefs.setBool('showSidebarStroll', value);
+
+  bool get showSidebarCalendar => prefs.getBool('showSidebarCalendar') ?? true;
+  Future<bool> setShowSidebarCalendar(bool value) => prefs.setBool('showSidebarCalendar', value);
+
+  bool get showSidebarPerson => prefs.getBool('showSidebarPerson') ?? true;
+  Future<bool> setShowSidebarPerson(bool value) => prefs.setBool('showSidebarPerson', value);
+
+  bool get showSidebarTags => prefs.getBool('showSidebarTags') ?? true;
+  Future<bool> setShowSidebarTags(bool value) => prefs.setBool('showSidebarTags', value);
+
+  bool get showSidebarMdReader => prefs.getBool('showSidebarMdReader') ?? true;
+  Future<bool> setShowSidebarMdReader(bool value) => prefs.setBool('showSidebarMdReader', value);
+
+  bool get showSidebarEpub => prefs.getBool('showSidebarEpub') ?? true;
+  Future<bool> setShowSidebarEpub(bool value) => prefs.setBool('showSidebarEpub', value);
 
   /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
