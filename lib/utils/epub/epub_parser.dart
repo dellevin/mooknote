@@ -11,15 +11,10 @@ class EpubParser {
   Future<EpubBookInfo?> parseFromFile(String filePath,
       {String? fileName}) async {
     try {
-      debugPrint('[EpubParser] 开始解析: $filePath');
       final bytes = await File(filePath).readAsBytes();
-      debugPrint('[EpubParser] 读取 ${bytes.length} 字节');
       final archive = ZipDecoder().decodeBytes(bytes);
-      debugPrint('[EpubParser] ZIP 解码成功, ${archive.files.length} 个文件');
       return _parseFromArchive(archive, fileName: fileName);
-    } catch (e, stack) {
-      debugPrint('[EpubParser] 解析失败: $e');
-      debugPrint('[EpubParser] $stack');
+    } catch (e) {
       return null;
     }
   }

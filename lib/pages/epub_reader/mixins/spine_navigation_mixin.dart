@@ -15,6 +15,8 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
   int get currentPageInChapter;
   set currentPageInChapter(int v);
 
+  int get totalPagesInChapter;
+
   // === Cross-mixin: _ProgressMixin ===
   void updateProgressDebounced();
   void saveProgress();
@@ -46,6 +48,7 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     double? restoreScrollRatio,
   }) async {
     if (bookSession.spine.isEmpty) return;
+    if (currentSpineItemIndex < 0) currentSpineItemIndex = 0;
     if (mounted) {
       setState(() {
         isWebViewLoading = true;
@@ -144,7 +147,11 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     updateProgressDebounced();
 
     await loadCarousel(anchor: anchor);
-    saveProgress();
+    bookSession.flushProgress(
+      currentChapterIndex: currentSpineItemIndex,
+      currentPageInChapter: currentPageInChapter,
+      totalPagesInChapter: totalPagesInChapter,
+    );
   }
 
   Future<void> previousSpineItem() async {
@@ -160,7 +167,11 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     });
 
     preloadPreviousOf(currentSpineItemIndex);
-    saveProgress();
+    bookSession.flushProgress(
+      currentChapterIndex: currentSpineItemIndex,
+      currentPageInChapter: currentPageInChapter,
+      totalPagesInChapter: totalPagesInChapter,
+    );
   }
 
   Future<void> previousSpineItemFirstPage() async {
@@ -178,7 +189,11 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     updateProgressDebounced();
 
     preloadPreviousOf(currentSpineItemIndex);
-    saveProgress();
+    bookSession.flushProgress(
+      currentChapterIndex: currentSpineItemIndex,
+      currentPageInChapter: currentPageInChapter,
+      totalPagesInChapter: totalPagesInChapter,
+    );
   }
 
   Future<void> nextSpineItem() async {
@@ -196,7 +211,11 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     updateProgressDebounced();
 
     preloadNextOf(currentSpineItemIndex);
-    saveProgress();
+    bookSession.flushProgress(
+      currentChapterIndex: currentSpineItemIndex,
+      currentPageInChapter: currentPageInChapter,
+      totalPagesInChapter: totalPagesInChapter,
+    );
   }
 
   Future<void> navigateToTocItem(TocEntry item) async {

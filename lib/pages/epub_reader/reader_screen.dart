@@ -33,6 +33,7 @@ class ReaderScreen extends StatefulWidget {
   final String filePath;
   final String title;
   final String? coverPath;
+  final Map<String, dynamic>? bookData;
 
   const ReaderScreen({
     super.key,
@@ -40,6 +41,7 @@ class ReaderScreen extends StatefulWidget {
     required this.filePath,
     required this.title,
     this.coverPath,
+    this.bookData,
   });
 
   @override
@@ -140,10 +142,11 @@ class _ReaderScreenState extends State<ReaderScreen>
     // Create a placeholder BookSession; epubInfo will be replaced after parsing.
     bookSession = BookSession(
       fileHash: widget.bookId,
-      bookData: {
+      bookData: widget.bookData ?? {
         'id': widget.bookId,
         'file_path': widget.filePath,
         'cover_path': widget.coverPath,
+        'last_read_cfi': '',
       },
       epubInfo: EpubBookInfo(
         title: widget.title,
@@ -190,6 +193,12 @@ class _ReaderScreenState extends State<ReaderScreen>
     restoreSystemUI();
     volumeSubscription?.cancel();
     VolumeControlService.disableInterception();
+    // 立即保存进度（同步写入，不被 dispose 打断）
+    bookSession.flushProgress(
+      currentChapterIndex: currentSpineItemIndex,
+      currentPageInChapter: currentPageInChapter,
+      totalPagesInChapter: totalPagesInChapter,
+    );
     bookSession.dispose();
     _streamService.dispose();
     super.dispose();
@@ -365,7 +374,11 @@ class _ReaderScreenState extends State<ReaderScreen>
         if (didPop) return;
         if (footnoteOverlayEntry != null) {
           removeFootnoteOverlay();
+          return;
         }
+        // 和 lumina 一样：先保存，再 pop
+        saveProgress();
+        Navigator.of(context).pop();
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: overlayStyle,
@@ -380,6 +393,9 @@ class _ReaderScreenState extends State<ReaderScreen>
                 totalChapters: bookSession.spine.length,
                 toc: bookSession.toc,
                 activeTocItems: activeItems,
+                currentSpineIndex: currentSpineItemIndex >= 0 && currentSpineItemIndex < bookSession.spine.length
+                    ? bookSession.spine[currentSpineItemIndex].index
+                    : -1,
                 onTocItemSelected: navigateToTocItem,
                 onCoverTap: navigateToFirstTocItemFirstPage,
                 themeData: themeData,

@@ -13,6 +13,8 @@ import '../../utils/user_prefs.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
+import '../../utils/epub/reader_dao.dart';
+import '../epub_reader/reader_screen.dart';
 
 /// 书籍详情页 - 极简主义设计
 class BookDetailPage extends StatefulWidget {
@@ -280,6 +282,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
           foregroundColor: colors.onError,
         ),
         const SizedBox(height: 12),
+        _buildEpubReadButton(book),
+        const SizedBox(height: 12),
         _buildFloatingButton(
           icon: Icons.share_outlined,
           onPressed: () => _showSharePoster(book),
@@ -288,6 +292,39 @@ class _BookDetailPageState extends State<BookDetailPage> {
           foregroundColor: Colors.white,
         ),
       ],
+    );
+  }
+
+  /// EPUB 阅读悬浮按钮（仅有关联 EPUB 时显示）
+  Widget _buildEpubReadButton(Book book) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: ReaderDao().getReaderBookByBookId(book.id),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        final readerBook = snapshot.data!;
+        return _buildFloatingButton(
+          icon: Icons.auto_stories_outlined,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReaderScreen(
+                  bookId: readerBook['id'] as String,
+                  filePath: readerBook['file_path'] as String,
+                  title: readerBook['title'] as String? ?? '',
+                  coverPath: readerBook['cover_path'] as String?,
+                  bookData: readerBook,
+                ),
+              ),
+            );
+          },
+          tooltip: 'EPUB 阅读',
+          backgroundColor: const Color(0xFF6750A4),
+          foregroundColor: Colors.white,
+        );
+      },
     );
   }
 
@@ -549,6 +586,32 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
+  /// EPUB 阅读进度条（仅有关联 EPUB 时显示）
+  Widget _buildEpubProgressBar(Book book) {
+    final colors = Theme.of(context).colorScheme;
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: ReaderDao().getReaderBookByBookId(book.id),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        final progress = (snapshot.data!['reading_percentage'] as num?)?.toDouble() ?? 0.0;
+        if (progress <= 0) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 3,
+              backgroundColor: colors.surfaceContainerHighest,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildBasicInfo(Book book) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
@@ -576,6 +639,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
             ),
           ],
+          // EPUB 阅读进度条
+          _buildEpubProgressBar(book),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -946,6 +1011,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
+  /// EPUB 阅读入口（通过关联的 reader_books）
   /// 叠层模式：书评、摘抄各自独立毛玻璃卡片
   Widget _buildExtraSectionsOverlay(Book book) {
     return Padding(

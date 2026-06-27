@@ -37,6 +37,38 @@ class BookSession {
     _debounceTimer = null;
   }
 
+  /// 立即保存进度（不做 debounce，用于退出时调用）
+  Future<void> flushProgress({
+    required int currentChapterIndex,
+    required int currentPageInChapter,
+    required int totalPagesInChapter,
+  }) async {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+
+    var progress = 0.0;
+    if (_spine.isNotEmpty) {
+      progress = (currentChapterIndex + 1) / _spine.length;
+      if (totalPagesInChapter > 0) {
+        final delta = 1.0 / _spine.length;
+        progress -= delta;
+        progress += delta * ((currentPageInChapter + 1) / totalPagesInChapter);
+      }
+    }
+
+    // 保存格式: "chapterIndex:pageRatio"
+    final pageRatio = totalPagesInChapter > 0
+        ? (currentPageInChapter / totalPagesInChapter).toStringAsFixed(4)
+        : '0';
+    final cfi = '$currentChapterIndex:$pageRatio';
+
+    await _readerDao.updateReadingProgress(
+      fileHash,
+      cfi,
+      progress,
+    );
+  }
+
   /// Update EPUB info after parsing (called when session is created before parse)
   void updateEpubInfo(EpubBookInfo info) {
     epubInfo = info;
@@ -98,13 +130,18 @@ class BookSession {
     }
 
     // Build fallback: for each spine item, pick the nearest preceding TOC entry
-    TocEntry? fallback;
+    // 初始 fallback 为书名（确保每个 spine 都有对应的 TOC 条目）
+    TocEntry fallback = TocEntry(
+      label: bookData['title'] as String? ?? '',
+      href: '',
+      spineIndex: -1,
+    );
     _tocItemFallback.clear();
-    for (final spineItem in _spine) {
-      if (fallback != null) _tocItemFallback.add(fallback);
-      final anchors = _spineToAnchorsMap[spineItem.href] ?? [];
+    for (int i = 0; i < _spine.length; i++) {
+      _tocItemFallback.add(fallback);
+      final anchors = _spineToAnchorsMap[_spine[i].href] ?? [];
       if (anchors.isNotEmpty) {
-        final lastHref = '${spineItem.href}#${anchors.last}';
+        final lastHref = '${_spine[i].href}#${anchors.last}';
         final idx = _hrefToTocIndexMap[lastHref];
         if (idx != null) {
           fallback = _flatToc[idx];
@@ -135,9 +172,15 @@ class BookSession {
         }
       }
 
+      // 保存格式: "chapterIndex:pageRatio"
+      final pageRatio = totalPagesInChapter > 0
+          ? (currentPageInChapter / totalPagesInChapter).toStringAsFixed(4)
+          : '0';
+      final cfi = '$currentChapterIndex:$pageRatio';
+
       await _readerDao.updateReadingProgress(
         fileHash,
-        '$currentChapterIndex',
+        cfi,
         progress,
       );
     });
@@ -255,12 +298,20 @@ class BookSession {
   // ─── Initial position (from saved state) ──────────────────────────
 
   /// The last-read chapter index stored in the book record.
+  /// last_read_cfi 格式: "chapterIndex" 或 "chapterIndex:pageRatio"
   int get initialChapterIndex {
     final cfi = bookData['last_read_cfi'] as String? ?? '';
     if (cfi.isEmpty) return 0;
-    return int.tryParse(cfi) ?? 0;
+    final parts = cfi.split(':');
+    return int.tryParse(parts[0]) ?? 0;
   }
 
-  /// No scroll-position column in reader_books yet; return null.
-  double? get initialScrollPosition => null;
+  /// 页内滚动位置比例 (0.0~1.0)，从 last_read_cfi 解析
+  double? get initialScrollPosition {
+    final cfi = bookData['last_read_cfi'] as String? ?? '';
+    if (cfi.isEmpty) return null;
+    final parts = cfi.split(':');
+    if (parts.length < 2) return null;
+    return double.tryParse(parts[1]);
+  }
 }

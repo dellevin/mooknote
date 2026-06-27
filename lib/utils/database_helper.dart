@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 23,
+      version: 24,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -193,6 +193,13 @@ class DatabaseHelper {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_book_annotations_type ON book_annotations(book_id, type)',
       );
+    }
+    if (oldVersion < 24) {
+      // reader_books 添加 book_id 列（关联 books 表）
+      final cols = await db.rawQuery('PRAGMA table_info(reader_books)');
+      if (!cols.any((col) => col['name'] == 'book_id')) {
+        await db.execute("ALTER TABLE reader_books ADD COLUMN book_id TEXT DEFAULT ''");
+      }
     }
   }
 
@@ -696,6 +703,7 @@ class DatabaseHelper {
         file_extension TEXT NOT NULL DEFAULT 'epub',
         last_read_cfi TEXT DEFAULT '',
         reading_percentage REAL DEFAULT 0.0,
+        book_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0

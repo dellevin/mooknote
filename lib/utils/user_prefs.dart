@@ -207,4 +207,8 @@ class UserPrefs {
   /// EPUB 阅读器字体大小
   double get epubFontSize => prefs.getDouble('epubFontSize') ?? 18.0;
   Future<bool> setEpubFontSize(double value) => prefs.setDouble('epubFontSize', value);
+
+  /// EPUB 书架视图模式: 0=宽松, 1=紧凑
+  int get epubViewMode => prefs.getInt('epubViewMode') ?? 0;
+  Future<bool> setEpubViewMode(int value) => prefs.setInt('epubViewMode', value);
 }

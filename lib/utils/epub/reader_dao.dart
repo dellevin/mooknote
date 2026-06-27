@@ -72,6 +72,42 @@ class ReaderDao {
     );
   }
 
+  // ─── 关联 books 表 ─────────────────────────────────────────────
+
+  /// 关联 EPUB 到 books 表中的书籍
+  Future<int> linkToBook(String readerBookId, String bookId) async {
+    final db = await _db.database;
+    return db.update(
+      'reader_books',
+      {'book_id': bookId, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [readerBookId],
+    );
+  }
+
+  /// 取消关联
+  Future<int> unlinkBook(String readerBookId) async {
+    final db = await _db.database;
+    return db.update(
+      'reader_books',
+      {'book_id': '', 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [readerBookId],
+    );
+  }
+
+  /// 通过 books.id 查找关联的 reader_book
+  Future<Map<String, dynamic>?> getReaderBookByBookId(String bookId) async {
+    final db = await _db.database;
+    final results = await db.query(
+      'reader_books',
+      where: 'book_id = ? AND is_deleted = 0',
+      whereArgs: [bookId],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
   // ─── book_annotations ─────────────────────────────────────────────
 
   /// 获取某本书的所有批注

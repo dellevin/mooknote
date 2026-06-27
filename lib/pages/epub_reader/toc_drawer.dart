@@ -24,6 +24,7 @@ class TocDrawer extends StatefulWidget {
   final int totalChapters;
   final List<TocEntry> toc;
   final Set<TocEntry> activeTocItems;
+  final int currentSpineIndex;
   final Function(TocEntry) onTocItemSelected;
   final VoidCallback? onCoverTap;
   final ThemeData themeData;
@@ -35,6 +36,7 @@ class TocDrawer extends StatefulWidget {
     required this.totalChapters,
     required this.toc,
     required this.activeTocItems,
+    this.currentSpineIndex = -1,
     required this.onTocItemSelected,
     this.onCoverTap,
     required this.themeData,
@@ -200,7 +202,9 @@ class _TocDrawerState extends State<TocDrawer> {
 
   Widget _buildRowItem(BuildContext context, _TocRowItem row, bool isDark) {
     final item = row.item;
-    final isActive = widget.activeTocItems.contains(item);
+    // 用 activeTocItems 匹配，或者直接用 spineIndex 匹配当前章节
+    final isActive = widget.activeTocItems.contains(item) ||
+        (item.spineIndex >= 0 && item.spineIndex == widget.currentSpineIndex);
 
     final double paddingLeft = 16.0 + (row.depth * 16.0);
 
