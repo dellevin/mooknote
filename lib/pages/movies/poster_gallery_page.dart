@@ -76,7 +76,7 @@ class _PosterGalleryPageState extends State<PosterGalleryPage> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                       Colors.transparent,
                     ],
                   ),
@@ -126,7 +126,7 @@ class _PosterGalleryPageState extends State<PosterGalleryPage> {
                         shape: BoxShape.circle,
                         color: index == _currentIndex
                             ? Colors.white
-                            : Colors.white.withOpacity(0.4),
+                            : Colors.white.withValues(alpha: 0.4),
                       ),
                     ),
                   ),

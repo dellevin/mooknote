@@ -99,7 +99,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Material(
@@ -130,7 +130,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Material(

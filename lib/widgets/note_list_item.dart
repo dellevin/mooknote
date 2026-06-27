@@ -39,7 +39,6 @@ class _NoteListItemContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colors.outlineVariant, width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +60,6 @@ class _NoteListItemContent extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: colors.surface,
                     borderRadius: BorderRadius.circular(3),
-                    border: Border.all(color: colors.outlineVariant, width: 0.5),
                   ),
                   child: Text(
                     'MD',
@@ -157,7 +155,6 @@ class _NoteListItemContent extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: colors.outlineVariant, width: 0.5),
                     ),
                     child: Text(
                       tag,

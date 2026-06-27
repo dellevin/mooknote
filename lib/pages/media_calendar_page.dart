@@ -91,15 +91,26 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           _buildMonthHeader(colors),
           _buildWeekdayLabels(colors),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildCalendarGrid(colors, today),
-                  if (_selectedDay != null) _buildSelectedDayDetail(colors),
-                  const SizedBox(height: 80),
-                ],
-              ),
-            ),
+            child: _selectedDay != null && (_dayItems[_selectedDay]?.isNotEmpty ?? false)
+                ? Column(
+                    children: [
+                      SingleChildScrollView(
+                        child: _buildCalendarGrid(colors, today),
+                      ),
+                      Expanded(
+                        child: _buildSelectedDayDetail(colors),
+                      ),
+                    ],
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildCalendarGrid(colors, today),
+                        if (_selectedDay != null) _buildSelectedDayDetail(colors),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -299,7 +310,6 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     }
 
     return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
       ),
@@ -322,9 +332,8 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
               ],
             ),
           ),
-          Flexible(
+          Expanded(
             child: ListView.separated(
-              shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: items.length,
               separatorBuilder: (_, __) => Divider(height: 0.5, color: colors.outlineVariant),

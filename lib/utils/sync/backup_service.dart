@@ -114,6 +114,21 @@ class BackupService {
       }
     }
 
+    // 收集 epub_books 目录下的 epub 文件
+    int epubCount = 0;
+    final epubRoot = path.join(appDir.path, 'epub_books');
+    final epubDir = Directory(epubRoot);
+    if (await epubDir.exists()) {
+      await for (final entity in epubDir.list(recursive: true)) {
+        if (entity is File) {
+          final bytes = await entity.readAsBytes();
+          final relativePath = entity.path.substring(epubRoot.length + 1);
+          archive.addFile(ArchiveFile('epub_books/$relativePath', bytes.length, bytes));
+          epubCount++;
+        }
+      }
+    }
+
     final zipBytes = ZipEncoder().encode(archive);
     if (zipBytes == null) throw Exception('压缩备份文件失败');
 
@@ -123,6 +138,7 @@ class BackupService {
       bookCount: books.length,
       noteCount: notes.length,
       imageCount: imageCount,
+      epubCount: epubCount,
     );
   }
 
@@ -187,6 +203,7 @@ class BackupService {
         bookCount: data.bookCount,
         noteCount: data.noteCount,
         imageCount: data.imageCount,
+        epubCount: data.epubCount,
       );
     } catch (e) {
       return AutoBackupExportResult.error('导出失败: $e');
@@ -239,6 +256,13 @@ class BackupService {
             // 用完整相对路径做 key，避免不同目录下同名文件碰撞
             imagePathMap[relativePath] = outputFile.path;
             imageCount++;
+          } else if (archiveFile.name.startsWith('epub_books/')) {
+            final relativePath = archiveFile.name.substring(12);
+            final epubDir = Directory(path.join(appDir.path, 'epub_books'));
+            if (!await epubDir.exists()) await epubDir.create(recursive: true);
+            final outputFile = File(path.join(epubDir.path, relativePath));
+            if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
+            await outputFile.writeAsBytes(archiveFile.content as List<int>);
           }
         }
       } else {
@@ -354,6 +378,13 @@ class BackupService {
           await outputFile.writeAsBytes(archiveFile.content as List<int>);
           imagePathMap[relativePath] = outputFile.path;
           imageCount++;
+        } else if (archiveFile.name.startsWith('epub_books/')) {
+          final relativePath = archiveFile.name.substring(12);
+          final epubDir = Directory(path.join(appDir.path, 'epub_books'));
+          if (!await epubDir.exists()) await epubDir.create(recursive: true);
+          final outputFile = File(path.join(epubDir.path, relativePath));
+          if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
+          await outputFile.writeAsBytes(archiveFile.content as List<int>);
         }
       }
 
@@ -475,14 +506,21 @@ class BackupService {
     return map;
   }
 
-  /// 恢复 SharedPreferences（保留当前 avatarPath，因为已在上面用 imagePathMap 更新过）
+  /// 恢复 SharedPreferences（保留当前设备的同步和路径配置）
   Future<void> _restoreSharedPrefs(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
+    // 这些键是设备特定的，不应从备份恢复
+    const skipKeys = {
+      'avatarPath',
+      'webdav_config',
+      'webdav_last_sync',
+      'webdav_auto_sync',
+      'webdav_auto_sync_interval',
+    };
     for (final entry in data.entries) {
       final key = entry.key;
       final value = entry.value;
-      // avatarPath 已单独处理，跳过
-      if (key == 'avatarPath') continue;
+      if (skipKeys.contains(key)) continue;
       if (value is String) {
         await prefs.setString(key, value);
       } else if (value is int) {
@@ -592,6 +630,7 @@ class _ExportData {
   final int bookCount;
   final int noteCount;
   final int imageCount;
+  final int epubCount;
 
   _ExportData({
     required this.zipBytes,
@@ -599,6 +638,7 @@ class _ExportData {
     required this.bookCount,
     required this.noteCount,
     required this.imageCount,
+    this.epubCount = 0,
   });
 }
 
@@ -612,6 +652,7 @@ class AutoBackupExportResult {
   final int bookCount;
   final int noteCount;
   final int imageCount;
+  final int epubCount;
 
   AutoBackupExportResult._({
     required this.success,
@@ -621,6 +662,7 @@ class AutoBackupExportResult {
     this.bookCount = 0,
     this.noteCount = 0,
     this.imageCount = 0,
+    this.epubCount = 0,
   });
 
   factory AutoBackupExportResult.success({
@@ -629,11 +671,13 @@ class AutoBackupExportResult {
     required int bookCount,
     required int noteCount,
     required int imageCount,
+    int epubCount = 0,
   }) {
     return AutoBackupExportResult._(
       success: true, zipBytes: zipBytes,
       movieCount: movieCount, bookCount: bookCount,
       noteCount: noteCount, imageCount: imageCount,
+      epubCount: epubCount,
     );
   }
 

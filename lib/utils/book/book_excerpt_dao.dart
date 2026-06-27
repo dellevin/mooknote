@@ -67,7 +67,7 @@ class BookExcerptDao {
     final db = await _dbHelper.database;
     await db.update(
       'book_excerpts',
-      {'is_deleted': 1},
+      {'is_deleted': 1, 'updated_at': DateTime.now().toUtc().toIso8601String()},
       where: 'id = ?',
       whereArgs: [id],
     );

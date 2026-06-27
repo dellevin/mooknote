@@ -44,16 +44,16 @@ class AutoBackupService {
   /// 启动自动备份
   Future<void> start() async {
     if (_isRunning) return;
-    
+
+    _isRunning = true;
+
     // 立即执行一次备份
     await _performBackup();
-    
+
     // 启动定时器
     _timer = Timer.periodic(_backupInterval, (_) async {
       await _performBackup();
     });
-    
-    _isRunning = true;
   }
   
   /// 停止自动备份

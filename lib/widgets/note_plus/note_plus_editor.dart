@@ -56,6 +56,19 @@ class _NotePlusEditorState extends State<NotePlusEditor> {
     });
   }
 
+  /// 清理已删除 block 对应的控制器和焦点节点
+  void _cleanupStaleEntries(List<NoteBlock> currentBlocks) {
+    final currentIds = currentBlocks.map((b) => b.id).toSet();
+    final staleIds = _controllers.keys.where((id) => !currentIds.contains(id)).toList();
+    for (final id in staleIds) {
+      _controllers.remove(id)?.dispose();
+    }
+    final staleFocusIds = _focusNodes.keys.where((id) => !currentIds.contains(id)).toList();
+    for (final id in staleFocusIds) {
+      _focusNodes.remove(id)?.dispose();
+    }
+  }
+
   void _onControllerChanged(NoteBlock block) {
     final provider = context.read<NotePlusProvider>();
     final idx = provider.blocks.indexWhere((b) => b.id == block.id);
@@ -229,6 +242,9 @@ class _NotePlusEditorState extends State<NotePlusEditor> {
     return Consumer<NotePlusProvider>(
       builder: (context, provider, _) {
         final blocks = provider.blocks;
+
+        // 清理已删除 block 对应的控制器和焦点节点，防止内存泄漏
+        _cleanupStaleEntries(blocks);
 
         return ListView.builder(
           controller: _scrollController,

@@ -53,7 +53,6 @@ class MovieListItem extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colors.outline, width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: FadeInLocalImage(

@@ -1660,7 +1660,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: value,
                 onChanged: onChanged,
                 activeColor: colors.primary,
-                activeTrackColor: colors.primary.withOpacity(0.3),
+                activeTrackColor: colors.primary.withValues(alpha: 0.3),
                 inactiveThumbColor: colors.surface,
                 inactiveTrackColor: colors.outline),
           ],
@@ -2110,7 +2110,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
           value: value,
           onChanged: onChanged,
           activeColor: colors.primary,
-          activeTrackColor: colors.primary.withOpacity(0.3),
+          activeTrackColor: colors.primary.withValues(alpha: 0.3),
           inactiveThumbColor: colors.surface,
           inactiveTrackColor: colors.outline),
     );

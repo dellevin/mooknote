@@ -88,7 +88,7 @@ class AppProvider extends ChangeNotifier {
     final showBook = userPrefs.showBookTab;
     final showNote = userPrefs.showNoteTab;
     final enabled = [showMovie, showBook, showNote];
-    if (enabled[defaultIndex]) {
+    if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
       _mainTabIndex = defaultIndex;
     } else {
       // 回退到第一个启用的标签
@@ -568,7 +568,7 @@ class AppProvider extends ChangeNotifier {
     final movies = await db.query('movies',
         where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
     for (final row in movies) {
-      for (final genre in Movie.parseStringList(row['genres'])) {
+      for (final genre in parseStringListGeneric(row['genres'])) {
         await insertTag(genre, 'movie_genre');
       }
     }
@@ -577,7 +577,7 @@ class AppProvider extends ChangeNotifier {
     final books = await db.query('books',
         where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
     for (final row in books) {
-      for (final genre in Movie.parseStringList(row['genres'])) {
+      for (final genre in parseStringListGeneric(row['genres'])) {
         await insertTag(genre, 'book_genre');
       }
     }
@@ -587,7 +587,7 @@ class AppProvider extends ChangeNotifier {
         where: 'tags IS NOT NULL AND tags != ? AND tags != ?',
         whereArgs: ['[]', '']);
     for (final row in notes) {
-      for (final tag in Movie.parseStringList(row['tags'])) {
+      for (final tag in parseStringListGeneric(row['tags'])) {
         await insertTag(tag, 'note_tag');
       }
     }

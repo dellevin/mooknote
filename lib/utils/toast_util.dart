@@ -22,7 +22,7 @@ class ToastUtil {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A).withOpacity(0.9),
+                color: const Color(0xFF1A1A1A).withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Text(

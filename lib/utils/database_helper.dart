@@ -7,6 +7,7 @@ import '../models/data_models.dart';
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
+  static bool _isReopening = false;
 
   DatabaseHelper._init();
 
@@ -18,16 +19,25 @@ class DatabaseHelper {
 
   /// 重新打开数据库（用于 WebDAV 同步后）
   Future<void> reopenDatabase() async {
-    // 关闭现有连接
-    if (_database != null) {
-      await _database!.close();
-      _database = null;
+    // 防止并发重开
+    if (_isReopening) return;
+    _isReopening = true;
+    try {
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+      }
+      _database = await _initDB('mooknote.db');
+    } finally {
+      _isReopening = false;
     }
-    // 重新初始化
-    _database = await _initDB('mooknote.db');
   }
 
   Future<Database> get database async {
+    // 等待重开完成
+    while (_isReopening) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
     if (_database != null) return _database!;
     _database = await _initDB('mooknote.db');
     return _database!;
@@ -157,7 +167,9 @@ class DatabaseHelper {
             await db.execute("ALTER TABLE note_plus ADD COLUMN parent_id TEXT DEFAULT ''");
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Migration v20 failed: $e');
+      }
     }
     if (oldVersion < 21) {
       try {
@@ -165,7 +177,9 @@ class DatabaseHelper {
         if (!cols.any((col) => col['name'] == 'sort_index')) {
           await db.execute("ALTER TABLE note_plus ADD COLUMN sort_index INTEGER DEFAULT 0");
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Migration v21 failed: $e');
+      }
     }
     if (oldVersion < 22) {
       // 为笔记表添加置顶字段
@@ -285,7 +299,7 @@ class DatabaseHelper {
     final movies = await db.query('movies',
         where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
     for (final row in movies) {
-      for (final genre in Movie.parseStringList(row['genres'])) {
+      for (final genre in parseStringListGeneric(row['genres'])) {
         await insertTag(genre, 'movie_genre');
       }
     }
@@ -294,7 +308,7 @@ class DatabaseHelper {
     final books = await db.query('books',
         where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
     for (final row in books) {
-      for (final genre in Movie.parseStringList(row['genres'])) {
+      for (final genre in parseStringListGeneric(row['genres'])) {
         await insertTag(genre, 'book_genre');
       }
     }
@@ -304,7 +318,7 @@ class DatabaseHelper {
         where: 'tags IS NOT NULL AND tags != ? AND tags != ?',
         whereArgs: ['[]', '']);
     for (final row in notes) {
-      for (final tag in Movie.parseStringList(row['tags'])) {
+      for (final tag in parseStringListGeneric(row['tags'])) {
         await insertTag(tag, 'note_tag');
       }
     }

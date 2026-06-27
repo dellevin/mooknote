@@ -174,6 +174,9 @@ class BookDao {
   // 彻底删除书籍
   Future<int> permanentDeleteBook(String id) => _wrap('permanentDeleteBook', () async {
     final db = await _dbHelper.database;
+    // 清理子记录，防止孤儿数据
+    await db.delete('book_reviews', where: 'book_id = ?', whereArgs: [id]);
+    await db.delete('book_excerpts', where: 'book_id = ?', whereArgs: [id]);
     return await db.delete(
       'books',
       where: 'id = ?',

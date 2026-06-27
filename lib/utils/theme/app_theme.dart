@@ -84,9 +84,8 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: scheme.surface, elevation: 0,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
-          side: BorderSide(color: scheme.outlineVariant, width: 0.5),
         ),
         margin: EdgeInsets.zero,
       ),

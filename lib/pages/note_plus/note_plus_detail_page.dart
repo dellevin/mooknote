@@ -24,8 +24,10 @@ class NotePlusDetailPage extends StatelessWidget {
           builder: (context, provider, _) {
             final doc = provider.currentDocument;
             if (doc == null || doc.id != documentId) {
-              // 加载文档
-              provider.loadDocumentById(documentId);
+              // 加载文档（延迟到 build 完成后执行，避免副作用）
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                provider.loadDocumentById(documentId);
+              });
               return Scaffold(
                 backgroundColor: colors.surface,
                 body: const Center(child: CircularProgressIndicator()),

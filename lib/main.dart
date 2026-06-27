@@ -48,7 +48,7 @@ Future<void> _initAutoBackup() async {
       await AutoBackupService.instance.start();
     }
   } catch (e) {
-    print('初始化自动备份失败: $e');
+    debugPrint('初始化自动备份失败: $e');
   }
 }
 
@@ -56,7 +56,7 @@ Future<void> _initUsageStats() async {
   try {
     await UsageStatsService.instance.start();
   } catch (e) {
-    print('初始化用户统计失败: $e');
+    debugPrint('初始化用户统计失败: $e');
   }
 }
 
@@ -240,14 +240,6 @@ class _AppIconWrapper extends StatefulWidget {
 }
 
 class _AppIconWrapperState extends State<_AppIconWrapper> {
-  @override
-  void initState() {
-    super.initState();
-    _updateSystemIcon();
-  }
-
-  Future<void> _updateSystemIcon() async {}
-
   @override
   Widget build(BuildContext context) {
     return widget.child;

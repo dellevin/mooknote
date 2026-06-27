@@ -28,13 +28,13 @@ class CustomBottomNavBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
                       spreadRadius: 0,
                     ),
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                       spreadRadius: -2,
@@ -156,6 +156,7 @@ class CustomBottomNavBar extends StatelessWidget {
 
   void _showAddDialog(BuildContext context, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
+    final outerContext = context;
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
@@ -209,7 +210,7 @@ class CustomBottomNavBar extends StatelessWidget {
                     };
                     final currentStatus = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
                     Navigator.pushNamed(
-                      context,
+                      outerContext,
                       '/movie-form',
                       arguments: {'initialStatus': currentStatus},
                     );
@@ -229,7 +230,7 @@ class CustomBottomNavBar extends StatelessWidget {
                     };
                     final currentStatus = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
                     Navigator.pushNamed(
-                      context,
+                      outerContext,
                       '/book-form',
                       arguments: {'initialStatus': currentStatus},
                     );
@@ -242,7 +243,7 @@ class CustomBottomNavBar extends StatelessWidget {
                   subtitle: '记录你的想法和笔记',
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, '/note-form');
+                    Navigator.pushNamed(outerContext, '/note-form');
                   },
                 ),
               ],

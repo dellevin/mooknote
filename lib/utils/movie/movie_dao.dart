@@ -253,6 +253,9 @@ class MovieDao {
   // 彻底删除影视
   Future<int> permanentDeleteMovie(String id) => _wrap('permanentDeleteMovie', () async {
     final db = await _dbHelper.database;
+    // 清理子记录，防止孤儿数据
+    await db.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
+    await db.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
     return await db.delete(
       'movies',
       where: 'id = ?',

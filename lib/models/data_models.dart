@@ -7,6 +7,31 @@ class _CopyWithNullSentinel {
 }
 const _copyWithNull = _CopyWithNullSentinel();
 
+/// 安全解析日期字符串，失败时返回 fallback
+DateTime? _safeParseDate(String? str, {DateTime? fallback}) {
+  if (str == null || str.isEmpty) return fallback;
+  return DateTime.tryParse(str) ?? fallback;
+}
+
+/// 解析字符串列表（通用工具函数，不限于 Movie）
+List<String> parseStringListGeneric(dynamic data) {
+  if (data == null) return [];
+  if (data is List) {
+    return data.map((e) => e.toString()).toList();
+  }
+  if (data is String) {
+    try {
+      final decoded = jsonDecode(data);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+    } catch (e) {
+      return data.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    }
+  }
+  return [];
+}
+
 /// 影视条目模型
 class Movie {
   final String id;
@@ -52,9 +77,7 @@ class Movie {
       id: json['id'] ?? '',
       title: json['title'] ?? '',
       posterPath: json['poster_path'],
-      releaseDate: json['release_date'] != null 
-          ? DateTime.parse(json['release_date']) 
-          : null,
+      releaseDate: _safeParseDate(json['release_date']),
       directors: _parseStringList(json['directors']),
       writers: _parseStringList(json['writers']),
       actors: _parseStringList(json['actors']),
@@ -63,15 +86,9 @@ class Movie {
       summary: json['summary'],
       rating: json['rating']?.toDouble(),
       status: json['status'] ?? 'want_to_watch',
-      watchDate: json['watch_date'] != null
-          ? DateTime.parse(json['watch_date'])
-          : null,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      watchDate: _safeParseDate(json['watch_date']),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       coverOffset: (json['cover_offset'] ?? 0.0).toDouble(),
     );
@@ -105,29 +122,11 @@ class Movie {
     return File(posterPath!);
   }
 
-  /// 解析字符串列表（公共静态方法，供Book使用）
-  static List<String> parseStringList(dynamic data) {
-    if (data == null) return [];
-    if (data is List) {
-      return data.map((e) => e.toString()).toList();
-    }
-    if (data is String) {
-      try {
-        // 尝试解析JSON字符串
-        final decoded = jsonDecode(data);
-        if (decoded is List) {
-          return decoded.map((e) => e.toString()).toList();
-        }
-      } catch (e) {
-        // 如果解析失败，按逗号分割
-        return data.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-      }
-    }
-    return [];
-  }
-  
+  /// 解析字符串列表（公共静态方法，供外部使用）
+  static List<String> parseStringList(dynamic data) => parseStringListGeneric(data);
+
   /// 解析字符串列表（私有别名，保持兼容性）
-  static List<String> _parseStringList(dynamic data) => parseStringList(data);
+  static List<String> _parseStringList(dynamic data) => parseStringListGeneric(data);
 
   /// 复制并修改
   Movie copyWith({
@@ -222,15 +221,9 @@ class Book {
       rating: json['rating']?.toDouble(),
       status: json['status'] ?? 'want_to_read',
       isbn: json['isbn'],
-      publishDate: json['publish_date'] != null
-          ? DateTime.parse(json['publish_date'])
-          : null,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      publishDate: _safeParseDate(json['publish_date']),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       coverOffset: (json['cover_offset'] ?? 0.0).toDouble(),
     );
@@ -337,12 +330,8 @@ class Note {
       contentType: json['content_type'] ?? 'markdown',
       tags: Movie.parseStringList(json['tags']),
       images: Movie.parseStringList(json['images']),
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       isPinned: json['is_pinned'] == 1 || json['is_pinned'] == true,
     );
@@ -430,12 +419,8 @@ class MovieReview {
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
     );
   }
 
@@ -510,9 +495,7 @@ class MoviePoster {
       movieId: json['movie_id']?.toString() ?? '',
       posterPath: json['poster_path'] ?? '',
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
-          : DateTime.now(),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
     );
   }
 
@@ -566,12 +549,8 @@ class BookReview {
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
     );
   }
 
@@ -654,12 +633,8 @@ class BookExcerpt {
       content: json['content'] ?? '',
       comment: json['comment'] ?? '',
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
     );
   }
 

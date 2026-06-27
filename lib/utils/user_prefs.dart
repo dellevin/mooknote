@@ -159,7 +159,7 @@ class UserPrefs {
   List<String> get searchHistory => prefs.getStringList('searchHistory') ?? [];
   Future<bool> setSearchHistory(List<String> value) => prefs.setStringList('searchHistory', value);
 
-  /// 添加搜索记录（最多 20 条）
+  /// 添加搜索记录（最多 50 条）
   Future<void> addSearchHistory(String keyword) async {
     final list = searchHistory;
     list.remove(keyword);

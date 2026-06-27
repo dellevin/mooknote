@@ -33,6 +33,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   String? _tempNoteId; // 新建模式时使用的临时笔记ID
   String _editorMode = 'edit'; // 'edit' | 'preview'
   Timer? _autoSaveTimer;
+  Timer? _saveStatusTimer;
   String _saveStatus = ''; // '', 'saved'
   Note? _savedNote; // 新建模式首次自动保存后的笔记引用
 
@@ -56,6 +57,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _saveStatusTimer?.cancel();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
@@ -116,7 +118,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
       }
       if (mounted) {
         setState(() => _saveStatus = 'saved');
-        Timer(const Duration(seconds: 3), () {
+        _saveStatusTimer?.cancel();
+        _saveStatusTimer = Timer(const Duration(seconds: 3), () {
           if (mounted && _saveStatus == 'saved') setState(() => _saveStatus = '');
         });
       }
@@ -875,7 +878,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       builder: (context) => GestureDetector(
         onTap: () => Navigator.pop(context),
         child: Container(
-          color: Colors.black.withOpacity(0.9),
+          color: Colors.black.withValues(alpha: 0.9),
           child: Center(
             child: InteractiveViewer(
               panEnabled: true,
