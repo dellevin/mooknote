@@ -1,6 +1,5 @@
 import 'dart:convert';
 import '../../service/book_server.dart';
-import '../color_converter.dart';
 
 /// 生成 foliate-js 阅读器 URL
 String generateReaderUrl({
@@ -12,11 +11,11 @@ String generateReaderUrl({
 }) {
   final indexHtmlPath = 'http://127.0.0.1:${Server().port}/foliate-js/index.html';
 
-  final jsBg = convertDartColorToJs(backgroundColor);
-  final jsTc = convertDartColorToJs(textColor);
+  final jsBg = _convertDartColorToJs(backgroundColor);
+  final jsTc = _convertDartColorToJs(textColor);
 
   final style = {
-    'fontSize': 100,         // 100 = base 100%
+    'fontSize': 100,
     'fontName': '',
     'fontPath': '',
     'fontWeight': 400,
@@ -28,7 +27,7 @@ String generateReaderUrl({
     'backgroundColor': '#$jsBg',
     'topMargin': 25,
     'bottomMargin': 25,
-    'sideMargin': 15,
+    'sideMargin': 3,
     'justify': true,
     'hyphenate': false,
     'pageTurnStyle': 'slide',
@@ -48,17 +47,11 @@ String generateReaderUrl({
     'codeHighlightTheme': 'atom-one-light',
   };
 
-  final readingRules = {
-    'convertChineseMode': 'none',
-    'bionicReadingMode': false,
-  };
-
   final params = {
     'importing': false,
     'url': fileUrl,
     'initialCfi': cfi,
     'style': style,
-    'readingRules': readingRules,
   };
 
   final queryParts = params.entries
@@ -66,4 +59,15 @@ String generateReaderUrl({
       .join('&');
 
   return '$indexHtmlPath?$queryParts';
+}
+
+/// 将 Dart 的 ARGB hex (FFRRGGBB) 转成 CSS 的 #RRGGBB 格式
+String _convertDartColorToJs(String dartColor) {
+  if (dartColor.startsWith('#')) {
+    dartColor = dartColor.substring(1);
+  }
+  if (dartColor.length == 8) {
+    return '#${dartColor.substring(2)}';
+  }
+  return '#$dartColor';
 }

@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 22,
+      version: 23,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -155,6 +155,10 @@ class DatabaseHelper {
     if (oldVersion < 22) {
       // 为笔记表添加置顶字段
       await _upgradeNotesTableV22(db);
+    }
+    if (oldVersion < 23) {
+      // 创建书籍批注表（高亮、下划线、书签）
+      await _createBookAnnotationsTable(db);
     }
   }
 
@@ -683,6 +687,9 @@ class DatabaseHelper {
 
     // Note Plus 块编辑器文档表
     await _createNotePlusTable(db);
+
+    // 书籍批注表
+    await _createBookAnnotationsTable(db);
   }
 
   /// 创建 Note Plus 文档表
@@ -701,6 +708,32 @@ class DatabaseHelper {
         is_deleted INTEGER DEFAULT 0
       )
     ''');
+  }
+
+  /// 创建书籍批注表（高亮、下划线、书签）
+  Future<void> _createBookAnnotationsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_annotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        cfi TEXT NOT NULL DEFAULT '',
+        chapter TEXT DEFAULT '',
+        type TEXT NOT NULL DEFAULT 'highlight',
+        color TEXT NOT NULL DEFAULT 'FFEB3B',
+        reader_note TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    // 索引：按 book_id 查询加速
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_book_annotations_book_id ON book_annotations(book_id)',
+    );
+    // 索引：按 book_id + type 查询加速
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_book_annotations_type ON book_annotations(book_id, type)',
+    );
   }
 
   // 关闭数据库

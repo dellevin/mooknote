@@ -1099,8 +1099,8 @@ class Reader {
     this.setView(this.view)
     await this.view.init({ lastLocation: cfi })
 
-    // set html bg color to grey 
-    document.documentElement.style.backgroundColor = 'grey'
+    // set html bg color to match theme
+    document.documentElement.style.backgroundColor = style.backgroundColor
   }
 
   setView(view) {

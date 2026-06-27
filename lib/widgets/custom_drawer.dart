@@ -198,7 +198,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           _buildToolItem(Icons.menu_book_outlined, '阅读器', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const BookshelfPage()));
-          }, bottomRounded: true, enabled: false),
+          }, bottomRounded: true),
         ],
       ),
     );

@@ -4,10 +4,10 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 import '../../models/reader_book.dart';
 import '../../service/book_server.dart';
 import '../../utils/reader/book_file_helper.dart';
+import '../../widgets/reader/reading_notes_panel.dart';
 import 'epub_player.dart';
 import 'toc_drawer.dart';
 import 'progress_panel.dart';
-import 'style_panel.dart';
 
 /// 书籍阅读页面
 class ReadingPage extends StatefulWidget {
@@ -22,12 +22,12 @@ class ReadingPage extends StatefulWidget {
 class _ReadingPageState extends State<ReadingPage> {
   final GlobalKey<EpubPlayerState> _epubPlayerKey = GlobalKey<EpubPlayerState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final FocusNode _readerFocusNode = FocusNode();
 
   static const _empty = SizedBox.shrink();
-  bool _toolbarOffstage = true; // true=隐藏, false=显示
+  bool _toolbarOffstage = true;
   Widget _currentPage = const SizedBox.shrink();
   bool _serverReady = false;
-
   List<TocItem> _toc = [];
 
   @override
@@ -35,6 +35,9 @@ class _ReadingPageState extends State<ReadingPage> {
     super.initState();
     _initServer();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _readerFocusNode.requestFocus();
+    });
   }
 
   Future<void> _initServer() async {
@@ -47,15 +50,12 @@ class _ReadingPageState extends State<ReadingPage> {
   void dispose() {
     _epubPlayerKey.currentState?.saveReadingProgress();
     Server().stop();
+    _readerFocusNode.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
-  void _showToolbar() {
-    setState(() {
-      _toolbarOffstage = false;
-    });
-  }
+  void _showToolbar() => setState(() => _toolbarOffstage = false);
 
   void _hideToolbar() {
     setState(() {
@@ -64,13 +64,7 @@ class _ReadingPageState extends State<ReadingPage> {
     });
   }
 
-  void _toggleToolbar() {
-    if (_toolbarOffstage) {
-      _showToolbar();
-    } else {
-      _hideToolbar();
-    }
-  }
+  void _toggleToolbar() => _toolbarOffstage ? _showToolbar() : _hideToolbar();
 
   void _onTocReady(List<TocItem> toc) {
     if (mounted) setState(() => _toc = toc);
@@ -81,48 +75,62 @@ class _ReadingPageState extends State<ReadingPage> {
     _scaffoldKey.currentState?.openDrawer();
   }
 
-  // ─── 底部面板切换 ─────────────────────────────────────
-
-  void _onProgressPressed() {
-    setState(() {
-      _currentPage = ProgressPanel(epubPlayerKey: _epubPlayerKey);
-    });
+  void _setPanel(Widget panel) {
+    setState(() => _currentPage = panel);
   }
 
-  void _onStylePressed() {
-    setState(() {
-      _currentPage = StylePanel(epubPlayerKey: _epubPlayerKey);
-    });
+  // ─── 键盘快捷键 ──────────────────────────────────
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.pageDown ||
+        key == LogicalKeyboardKey.space) {
+      _epubPlayerKey.currentState?.nextPage();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.pageUp) {
+      _epubPlayerKey.currentState?.prevPage();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter) {
+      _toggleToolbar();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.escape && !_toolbarOffstage) {
+      _hideToolbar();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
+
+  // ─── 构建 ──────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    // ─── 工具栏覆盖层（照抄 anx-reader 的 Offstage + PointerInterceptor 模式）
-    Offstage controller = Offstage(
+    final toolbar = Offstage(
       offstage: _toolbarOffstage,
       child: PointerInterceptor(
         child: Stack(
           children: [
-            // 半透明背景，点击关闭工具栏
             Positioned.fill(
               child: GestureDetector(
                 onTap: _hideToolbar,
                 behavior: HitTestBehavior.opaque,
-                onVerticalDragUpdate: (details) {},
-                onVerticalDragEnd: (details) {},
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.15),
-                ),
+                child: Container(color: Colors.black.withAlpha(38)),
               ),
             ),
-            // 顶部 AppBar + 底部工具栏
             Column(
               children: [
-                // 顶部 AppBar
                 AppBar(
-                  backgroundColor: colors.surface.withValues(alpha: 0.94),
+                  backgroundColor: colors.surface.withAlpha(240),
                   title: Text(widget.book.title, overflow: TextOverflow.ellipsis),
                   leading: IconButton(
                     icon: const Icon(Icons.arrow_back),
@@ -130,7 +138,6 @@ class _ReadingPageState extends State<ReadingPage> {
                   ),
                 ),
                 const Spacer(),
-                // 底部面板 + 按钮行
                 BottomSheet(
                   onClosing: () {},
                   enableDrag: false,
@@ -145,14 +152,10 @@ class _ReadingPageState extends State<ReadingPage> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // 面板内容区域
                                 if (hasContent)
                                   Expanded(
-                                    child: SingleChildScrollView(
-                                      child: _currentPage,
-                                    ),
+                                    child: SingleChildScrollView(child: _currentPage),
                                   ),
-                                // 按钮行
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                                   children: [
@@ -162,20 +165,20 @@ class _ReadingPageState extends State<ReadingPage> {
                                       onPressed: _openTocDrawer,
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.data_usage),
-                                      tooltip: '进度',
+                                      icon: const Icon(Icons.edit_note),
+                                      tooltip: '笔记',
                                       onPressed: () {
                                         modalSetState(() {
-                                          _onProgressPressed();
+                                          _setPanel(_buildNotesPanel());
                                         });
                                       },
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.color_lens),
-                                      tooltip: '样式',
+                                      icon: const Icon(Icons.data_usage),
+                                      tooltip: '进度',
                                       onPressed: () {
                                         modalSetState(() {
-                                          _onStylePressed();
+                                          _setPanel(ProgressPanel(epubPlayerKey: _epubPlayerKey));
                                         });
                                       },
                                     ),
@@ -213,7 +216,6 @@ class _ReadingPageState extends State<ReadingPage> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: colors.surface,
-      // TOC 目录抽屉
       drawer: PointerInterceptor(
         child: Drawer(
           width: MediaQuery.of(context).size.width * 0.75,
@@ -224,20 +226,33 @@ class _ReadingPageState extends State<ReadingPage> {
         ),
       ),
       body: _serverReady
-          ? Stack(
-              children: [
-                // 阅读内容（WebView）
-                EpubPlayer(
-                  key: _epubPlayerKey,
-                  book: widget.book,
-                  showOrHideToolbar: _toggleToolbar,
-                  onTocReady: _onTocReady,
-                ),
-                // 工具栏覆盖层
-                controller,
-              ],
+          ? Focus(
+              focusNode: _readerFocusNode,
+              onKeyEvent: _handleKeyEvent,
+              autofocus: true,
+              child: Stack(
+                children: [
+                  EpubPlayer(
+                    key: _epubPlayerKey,
+                    book: widget.book,
+                    showOrHideToolbar: _toggleToolbar,
+                    onTocReady: _onTocReady,
+                  ),
+                  toolbar,
+                ],
+              ),
             )
           : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildNotesPanel() {
+    return ReadingNotesPanel(
+      bookId: widget.book.id,
+      onNavigate: (cfi) {
+        _hideToolbar();
+        _epubPlayerKey.currentState?.goToCfi(cfi);
+      },
     );
   }
 }
