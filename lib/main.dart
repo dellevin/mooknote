@@ -17,6 +17,8 @@ import 'utils/usage_stats_service.dart';
 import 'providers/app_provider.dart';
 import 'providers/note_plus_provider.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await UserPrefs.init();
@@ -217,6 +219,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ],
             home: const HomePage(),
             navigatorKey: _navigatorKey,
+            navigatorObservers: [routeObserver],
             onGenerateRoute: AppRouter.generateRoute,
             builder: (context, child) {
               return _AppIconWrapper(iconName: iconName, child: child!);

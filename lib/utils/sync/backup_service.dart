@@ -61,10 +61,8 @@ class BackupService {
         }
       }
     }
-    for (final rb in readerBooks) {
-      final p = rb['cover_path'] as String?;
-      if (p != null && p.isNotEmpty) imagePaths.add(p);
-    }
+    // reader_books 的封面在 epub_books/ 目录下，由 epub_books 归档处理
+    // 不加入 imagePaths，避免 basename 碰撞导致所有封面变成同一个路径
 
     final userPrefs = UserPrefs();
     final userInfo = {
@@ -258,6 +256,8 @@ class BackupService {
       int imageCount = 0;
       // 完整相对路径 → 新绝对路径 的映射（避免同名文件碰撞）
       final imagePathMap = <String, String>{};
+      // epub_books/ 内相对路径 → 新绝对路径 的映射
+      final epubFileMap = <String, String>{};
 
       if (extension == '.zip') {
         final bytes = await file.readAsBytes();
@@ -288,6 +288,7 @@ class BackupService {
             final outputFile = File(path.join(epubDir.path, relativePath));
             if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
             await outputFile.writeAsBytes(archiveFile.content as List<int>);
+            epubFileMap[relativePath] = outputFile.path;
           }
         }
       } else {
@@ -368,7 +369,9 @@ class BackupService {
         }
         if (data.containsKey('reader_books')) {
           for (final rb in data['reader_books'] as List) {
-            await txn.insert('reader_books', _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap));
+            var row = _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap);
+            row = _updateEpubPaths(row, epubFileMap);
+            await txn.insert('reader_books', row);
           }
         }
         if (data.containsKey('book_annotations')) {
@@ -410,6 +413,7 @@ class BackupService {
 
       final backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
       final imagePathMap = <String, String>{};
+      final epubFileMap = <String, String>{};
       int imageCount = 0;
 
       final appDir = await getApplicationDocumentsDirectory();
@@ -431,6 +435,7 @@ class BackupService {
           final outputFile = File(path.join(epubDir.path, relativePath));
           if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
           await outputFile.writeAsBytes(archiveFile.content as List<int>);
+          epubFileMap[relativePath] = outputFile.path;
         }
       }
 
@@ -506,7 +511,9 @@ class BackupService {
         }
         if (data.containsKey('reader_books')) {
           for (final rb in data['reader_books'] as List) {
-            await txn.insert('reader_books', _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap));
+            var row = _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap);
+            row = _updateEpubPaths(row, epubFileMap);
+            await txn.insert('reader_books', row);
           }
         }
         if (data.containsKey('book_annotations')) {
@@ -649,6 +656,39 @@ class BackupService {
       });
     }
     return {};
+  }
+
+  /// 更新 epub 阅读器的 file_path 和 cover_path
+  Map<String, dynamic> _updateEpubPaths(Map<String, dynamic> item, Map<String, String> epubFileMap) {
+    if (epubFileMap.isEmpty) return item;
+    final newItem = Map<String, dynamic>.from(item);
+
+    final oldFilePath = item['file_path'] as String?;
+    if (oldFilePath != null && oldFilePath.isNotEmpty) {
+      final oldRel = _toEpubRelativePath(oldFilePath);
+      if (oldRel != null && epubFileMap.containsKey(oldRel)) {
+        newItem['file_path'] = epubFileMap[oldRel];
+      }
+    }
+
+    final oldCoverPath = item['cover_path'] as String?;
+    if (oldCoverPath != null && oldCoverPath.isNotEmpty) {
+      final oldRel = _toEpubRelativePath(oldCoverPath);
+      if (oldRel != null && epubFileMap.containsKey(oldRel)) {
+        newItem['cover_path'] = epubFileMap[oldRel];
+      }
+    }
+
+    return newItem;
+  }
+
+  /// 从绝对路径中提取 epub_books/ 下的相对路径
+  String? _toEpubRelativePath(String absolutePath) {
+    final idx = absolutePath.indexOf('/epub_books/');
+    if (idx >= 0) return absolutePath.substring(idx + 13); // skip '/epub_books/'
+    final winIdx = absolutePath.indexOf('\\epub_books\\');
+    if (winIdx >= 0) return absolutePath.substring(winIdx + 13);
+    return null;
   }
 
   /// 更新单值图片路径（poster_path / cover_path）

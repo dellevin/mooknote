@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../main.dart' show routeObserver;
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
@@ -32,7 +33,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with RouteAware {
   final ImagePicker _picker = ImagePicker();
   final UserPrefs _userPrefs = UserPrefs();
 
@@ -43,6 +44,24 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // 从其他页面返回时刷新用户数据（头像、昵称等）
     _loadUserData();
   }
 
@@ -1821,7 +1840,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: colors.onSurface)),
-        content: Text('这将删除所有未在数据库中引用的图片文件。确定要继续吗？',
+        content: Text('这将删除所有未在数据库中引用的文件。确定要继续吗？',
             style: TextStyle(
                 fontSize: 14,
                 color: colors.onSurface.withValues(alpha: 0.6),
@@ -1877,12 +1896,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
       Navigator.pop(context);
       if (context.mounted) {
-        final total = deletedImages + deletedEpubs + deletedTemp + deletedEmptyDirs;
+        final total =
+            deletedImages + deletedEpubs + deletedTemp + deletedEmptyDirs;
         if (total == 0) {
           ToastUtil.show(context, '没有需要清理的缓存');
         } else {
-          ToastUtil.show(
-              context, '已清理 $deletedImages 个孤立图片，$deletedEpubs 个孤立电子书，$deletedTemp 个临时文件，$deletedEmptyDirs 个空文件夹');
+          ToastUtil.show(context,
+              '已清理 $deletedImages 个孤立图片，$deletedEpubs 个孤立电子书，$deletedTemp 个临时文件，$deletedEmptyDirs 个空文件夹');
         }
       }
     } catch (e) {
@@ -1939,10 +1959,16 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<int> _cleanOrphanedEpubBooks(AppProvider provider) async {
     int deletedCount = 0;
     try {
-      // 收集数据库中所有 reader_books 的 bookId
       final db = await DatabaseHelper.instance.database;
-      final rows = await db.query('reader_books', columns: ['id']);
-      final dbIds = rows.map((r) => r['id'] as String).toSet();
+      // 收集数据库中所有引用的 epub_books 子目录名
+      final rows = await db.query('reader_books', columns: ['id', 'file_path', 'cover_path']);
+      final usedDirs = <String>{};
+      for (final r in rows) {
+        final id = r['id'] as String?;
+        if (id != null && id.isNotEmpty) usedDirs.add(id);
+        _collectEpubDirName(r['file_path'] as String?, usedDirs);
+        _collectEpubDirName(r['cover_path'] as String?, usedDirs);
+      }
 
       final appDir = await getApplicationDocumentsDirectory();
       final epubDir = Directory('${appDir.path}/epub_books');
@@ -1951,7 +1977,7 @@ class _SettingsPageState extends State<SettingsPage> {
       await for (final entity in epubDir.list(followLinks: false)) {
         if (entity is Directory) {
           final dirName = path.basename(entity.path);
-          if (!dbIds.contains(dirName)) {
+          if (!usedDirs.contains(dirName)) {
             try {
               await entity.delete(recursive: true);
               deletedCount++;
@@ -1963,6 +1989,17 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint('清理 epub_books 目录失败: $e');
     }
     return deletedCount;
+  }
+
+  /// 从绝对路径中提取 epub_books/ 下的目录名
+  void _collectEpubDirName(String? pathStr, Set<String> dirs) {
+    if (pathStr == null || pathStr.isEmpty) return;
+    final marker = '/epub_books/';
+    final idx = pathStr.indexOf(marker);
+    if (idx < 0) return;
+    final rest = pathStr.substring(idx + marker.length);
+    final slashIdx = rest.indexOf('/');
+    dirs.add(slashIdx >= 0 ? rest.substring(0, slashIdx) : rest);
   }
 
   Future<int> _cleanTempDirectory() async {
