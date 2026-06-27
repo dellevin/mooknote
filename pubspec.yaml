@@ -24,23 +24,20 @@ dependencies:
   share_plus: ^10.0.0
   cross_file: ^0.3.4
   archive: ^3.6.0
+  xml: ^6.6.1
   permission_handler: ^11.3.0
   flutter_staggered_grid_view: ^0.7.0
   http: ^1.2.0
   url_launcher: ^6.2.5
   webview_flutter: ^4.8.0
+  flutter_inappwebview: ^6.1.5
   dynamic_color: ^1.8.1
   package_info_plus: ^8.0.0
   extended_text_field: ^16.0.2
   uuid: ^4.5.0
-  flutter_inappwebview: ^6.0.0
-  shelf: ^1.4.1
-  wakelock_plus: ^1.2.5
-  pointer_interceptor: ^0.10.1+2
   gbk_codec: ^0.4.0
   expandable: ^5.0.1
   flutter_quill: ^11.5.0
-  battery_plus: ^6.2.1
   flutter_colorpicker: ^1.1.0
 
 dev_dependencies:
@@ -64,14 +61,6 @@ flutter:
     - assets/images/
     - assets/icon/
     - assets/images/ticket/
-    - assets/foliate-js/
-    - assets/foliate-js/dist/
-    - assets/foliate-js/src/
-    - assets/foliate-js/src/vendor/
-    - assets/foliate-js/src/vendor/pdfjs/
-    - assets/foliate-js/src/vendor/prism/
-    - assets/foliate-js/src/vendor/prism/components/
-    - assets/foliate-js/src/vendor/prism/themes/
 
   fonts:
     - family: LXGWWenKai

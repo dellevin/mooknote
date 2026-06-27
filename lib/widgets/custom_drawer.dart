@@ -8,8 +8,8 @@ import '../pages/stroll_page.dart';
 import '../pages/media_calendar_page.dart';
 import '../pages/person_list_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
+import '../pages/epub_reader/epub_library_page.dart';
 import '../pages/tag_management_page.dart';
-import '../pages/reader/bookshelf_page.dart';
 import '../pages/profile_page.dart';
 import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
@@ -195,9 +195,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const MdReaderTabPage()));
           }),
           Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant),
-          _buildToolItem(Icons.menu_book_outlined, '阅读器', () {
+          _buildToolItem(Icons.auto_stories_outlined, 'EPUB阅读', () {
             Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const BookshelfPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const EpubLibraryPage()));
           }, bottomRounded: true),
         ],
       ),

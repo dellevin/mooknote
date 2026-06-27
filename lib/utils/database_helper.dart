@@ -98,7 +98,22 @@ class DatabaseHelper {
       await _upgradeToV13(db);
     }
     if (oldVersion < 14) {
-      await _createReaderBooksTable(db);
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS reader_books (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          author TEXT DEFAULT '',
+          cover_path TEXT,
+          file_path TEXT NOT NULL,
+          file_name TEXT NOT NULL,
+          file_extension TEXT NOT NULL DEFAULT 'epub',
+          last_read_cfi TEXT DEFAULT '',
+          reading_percentage REAL DEFAULT 0.0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          is_deleted INTEGER DEFAULT 0
+        )
+      ''');
     }
     if (oldVersion < 15) {
       // 安全添加 cover_offset 列（防止列已存在时报错）
@@ -158,7 +173,26 @@ class DatabaseHelper {
     }
     if (oldVersion < 23) {
       // 创建书籍批注表（高亮、下划线、书签）
-      await _createBookAnnotationsTable(db);
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS book_annotations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          book_id TEXT NOT NULL,
+          content TEXT NOT NULL DEFAULT '',
+          cfi TEXT NOT NULL DEFAULT '',
+          chapter TEXT DEFAULT '',
+          type TEXT NOT NULL DEFAULT 'highlight',
+          color TEXT NOT NULL DEFAULT 'FFEB3B',
+          reader_note TEXT DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_book_annotations_book_id ON book_annotations(book_id)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_book_annotations_type ON book_annotations(book_id, type)',
+      );
     }
   }
 
@@ -206,26 +240,6 @@ class DatabaseHelper {
     if (!hasIsPinned) {
       await db.execute('ALTER TABLE notes ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0');
     }
-  }
-
-  /// 升级到V14：创建阅读器书籍表
-  Future<void> _createReaderBooksTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS reader_books (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        author TEXT DEFAULT '',
-        cover_path TEXT,
-        file_path TEXT NOT NULL,
-        file_name TEXT NOT NULL,
-        file_extension TEXT NOT NULL DEFAULT 'epub',
-        last_read_cfi TEXT DEFAULT '',
-        reading_percentage REAL DEFAULT 0.0,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
-      )
-    ''');
   }
 
   /// 升级到V13：创建标签表并回填已有数据
@@ -667,7 +681,10 @@ class DatabaseHelper {
       )
     ''');
 
-    // 阅读器书籍表
+    // Note Plus 块编辑器文档表
+    await _createNotePlusTable(db);
+
+    // EPUB 阅读器书籍表
     await db.execute('''
       CREATE TABLE IF NOT EXISTS reader_books (
         id TEXT PRIMARY KEY,
@@ -685,11 +702,21 @@ class DatabaseHelper {
       )
     ''');
 
-    // Note Plus 块编辑器文档表
-    await _createNotePlusTable(db);
-
     // 书籍批注表
-    await _createBookAnnotationsTable(db);
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_annotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        cfi TEXT NOT NULL DEFAULT '',
+        chapter TEXT DEFAULT '',
+        type TEXT NOT NULL DEFAULT 'highlight',
+        color TEXT NOT NULL DEFAULT 'FFEB3B',
+        reader_note TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
   }
 
   /// 创建 Note Plus 文档表
@@ -708,32 +735,6 @@ class DatabaseHelper {
         is_deleted INTEGER DEFAULT 0
       )
     ''');
-  }
-
-  /// 创建书籍批注表（高亮、下划线、书签）
-  Future<void> _createBookAnnotationsTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS book_annotations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        book_id TEXT NOT NULL,
-        content TEXT NOT NULL DEFAULT '',
-        cfi TEXT NOT NULL DEFAULT '',
-        chapter TEXT DEFAULT '',
-        type TEXT NOT NULL DEFAULT 'highlight',
-        color TEXT NOT NULL DEFAULT 'FFEB3B',
-        reader_note TEXT DEFAULT '',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-    ''');
-    // 索引：按 book_id 查询加速
-    await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_book_annotations_book_id ON book_annotations(book_id)',
-    );
-    // 索引：按 book_id + type 查询加速
-    await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_book_annotations_type ON book_annotations(book_id, type)',
-    );
   }
 
   // 关闭数据库

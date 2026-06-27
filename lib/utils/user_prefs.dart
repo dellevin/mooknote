@@ -201,4 +201,10 @@ class UserPrefs {
   /// 已忽略的版本号（不再提示更新）
   String get dismissedVersion => prefs.getString('dismissedVersion') ?? '';
   Future<bool> setDismissedVersion(String value) => prefs.setString('dismissedVersion', value);
+
+  // ========== EPUB 阅读器 ==========
+
+  /// EPUB 阅读器字体大小
+  double get epubFontSize => prefs.getDouble('epubFontSize') ?? 18.0;
+  Future<bool> setEpubFontSize(double value) => prefs.setDouble('epubFontSize', value);
 }

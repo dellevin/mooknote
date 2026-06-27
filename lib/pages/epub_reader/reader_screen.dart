@@ -1,0 +1,546 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../utils/epub/epub_theme.dart';
+import '../../utils/epub/epub_webview_handler.dart';
+import '../../utils/epub/epub_stream_service.dart';
+import '../../utils/epub/epub_parser.dart';
+import '../../utils/epub/reader_settings.dart';
+import '../../utils/epub/reader_models.dart';
+import '../../utils/epub/volume_control_service.dart';
+import '../../utils/epub/reader_dao.dart';
+import 'book_session.dart';
+import 'reader_renderer.dart';
+import 'control_panel.dart';
+import 'toc_drawer.dart';
+import 'image_viewer.dart';
+import 'footnote_popup.dart';
+
+part 'mixins/spine_navigation_mixin.dart';
+part 'mixins/page_navigation_mixin.dart';
+part 'mixins/progress_mixin.dart';
+part 'mixins/theme_mixin.dart';
+part 'mixins/link_handling_mixin.dart';
+part 'mixins/image_viewer_mixin.dart';
+part 'mixins/footnote_mixin.dart';
+
+/// Reads EPUB directly from compressed file without extraction.
+class ReaderScreen extends StatefulWidget {
+  final String bookId;
+  final String filePath;
+  final String title;
+  final String? coverPath;
+
+  const ReaderScreen({
+    super.key,
+    required this.bookId,
+    required this.filePath,
+    required this.title,
+    this.coverPath,
+  });
+
+  @override
+  State<ReaderScreen> createState() => _ReaderScreenState();
+}
+
+class _ReaderScreenState extends State<ReaderScreen>
+    with
+        WidgetsBindingObserver,
+        _SpineNavigationMixin,
+        _PageNavigationMixin,
+        _ProgressMixin,
+        _ThemeMixin,
+        _LinkHandlingMixin,
+        _ImageViewerMixin,
+        _FootnoteMixin {
+  @override
+  late final EpubWebViewHandler webViewHandler;
+
+  @override
+  late final BookSession bookSession;
+
+  @override
+  final ReaderRendererController rendererController =
+      ReaderRendererController();
+
+  // Core UI state
+  @override
+  bool isWebViewLoading = true;
+
+  @override
+  bool showControls = false;
+
+  // WebView visibility control for smoother transitions
+  Animation<double>? routeAnimation;
+  bool shouldShowWebView = false;
+
+  // Spine navigation state (used by _SpineNavigationMixin)
+  @override
+  int currentSpineItemIndex = 0;
+
+  // Pagination state (used by _PageNavigationMixin)
+  @override
+  int currentPageInChapter = 0;
+  @override
+  int totalPagesInChapter = 1;
+
+  // Progress state (used by _ProgressMixin)
+  @override
+  String displayProgress = '';
+  @override
+  Timer? progressDebouncer;
+
+  // Theme state (used by _ThemeMixin)
+  @override
+  ThemeData? currentTheme;
+  @override
+  bool updatingTheme = false;
+  @override
+  Timer? themeUpdateDebouncer;
+  @override
+  ReaderSettings readerSettings = const ReaderSettings();
+
+  // Image viewer state (used by _ImageViewerMixin)
+  @override
+  bool isImageViewerVisible = false;
+  @override
+  Uint8List? currentImageData;
+  @override
+  Rect? currentImageRect;
+
+  // Footnote state (used by _FootnoteMixin)
+  @override
+  OverlayEntry? footnoteOverlayEntry;
+  @override
+  final GlobalKey<FootnotePopupOverlayState> footnoteKey =
+      GlobalKey<FootnotePopupOverlayState>();
+  @override
+  bool isClosingFootnote = false;
+
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  StreamSubscription<String>? volumeSubscription;
+  bool tocDrawerOpen = false;
+  bool styleDrawerOpen = false;
+  AppLifecycleState? lastLifecycleState = AppLifecycleState.resumed;
+
+  // Services
+  final EpubStreamService _streamService = EpubStreamService();
+  final ReaderDao _readerDao = ReaderDao();
+  final EpubParser _epubParser = EpubParser();
+
+  @override
+  void initState() {
+    super.initState();
+    webViewHandler = EpubWebViewHandler(streamService: _streamService);
+
+    // Create a placeholder BookSession; epubInfo will be replaced after parsing.
+    bookSession = BookSession(
+      fileHash: widget.bookId,
+      bookData: {
+        'id': widget.bookId,
+        'file_path': widget.filePath,
+        'cover_path': widget.coverPath,
+      },
+      epubInfo: EpubBookInfo(
+        title: widget.title,
+        author: '',
+        authors: [],
+        opfRootPath: '',
+        epubVersion: '',
+        spine: [],
+        toc: [],
+      ),
+      readerDao: _readerDao,
+    );
+
+    // Load settings first, then book
+    ReaderSettings.load().then((settings) {
+      readerSettings = settings;
+      if (mounted) {
+        setupVolumeControl();
+        _loadBook();
+      }
+    });
+
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final route = ModalRoute.of(context);
+      if (route != null && route.animation != null) {
+        routeAnimation = route.animation!;
+        routeAnimation?.addStatusListener(handleRouteAnimationStatus);
+      } else {
+        shouldShowWebView = true;
+      }
+    });
+    hideBottomNavigationBar();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    routeAnimation?.removeStatusListener(handleRouteAnimationStatus);
+    routeAnimation = null;
+    themeUpdateDebouncer?.cancel();
+    progressDebouncer?.cancel();
+    removeFootnoteOverlay(animate: false);
+    restoreSystemUI();
+    volumeSubscription?.cancel();
+    VolumeControlService.disableInterception();
+    bookSession.dispose();
+    _streamService.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      saveProgress();
+    }
+
+    lastLifecycleState = state;
+    setupVolumeControl();
+  }
+
+  void setupVolumeControl() {
+    final resume = readerSettings.volumeKeyTurnsPage &&
+        !tocDrawerOpen &&
+        !styleDrawerOpen &&
+        lastLifecycleState == AppLifecycleState.resumed;
+
+    if (resume) {
+      VolumeControlService.enableInterception();
+      volumeSubscription ??= VolumeControlService.volumeKeyEvents.listen((
+        event,
+      ) {
+        if (readerSettings.volumeKeyTurnsPage) {
+          if (footnoteOverlayEntry != null) {
+            removeFootnoteOverlay();
+            return;
+          }
+          if (event == 'up') {
+            rendererController.performPreviousPageTurn();
+          } else if (event == 'down') {
+            rendererController.performNextPageTurn();
+          }
+        }
+      });
+    } else {
+      VolumeControlService.disableInterception();
+    }
+  }
+
+  void hideBottomNavigationBar() {
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top],
+    );
+  }
+
+  void restoreSystemUI() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (currentTheme == null) {
+      currentTheme = Theme.of(context);
+    } else if (currentTheme?.colorScheme != Theme.of(context).colorScheme) {
+      currentTheme = Theme.of(context);
+      updateWebViewThemeWithDebounce();
+    }
+  }
+
+  void handleRouteAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      setState(() {
+        shouldShowWebView = true;
+      });
+      routeAnimation?.removeStatusListener(handleRouteAnimationStatus);
+      routeAnimation = null;
+    }
+  }
+
+  /// Load book data from EPUB file and initialize session.
+  Future<void> _loadBook() async {
+    try {
+      // filePath is the original absolute path from import
+      final fullEpubPath = widget.filePath;
+
+      // Parse EPUB metadata using existing EpubParser
+      final epubInfo = await _epubParser.parseFromFile(
+        fullEpubPath,
+        fileName: widget.title,
+      );
+
+      if (epubInfo == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('EPUB 解析失败')),
+          );
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
+      // Open archive in stream service for WebView resource serving
+      await _streamService.openBook(fullEpubPath);
+
+      // Update session with parsed data
+      bookSession.updateEpubInfo(epubInfo);
+      bookSession.load();
+
+      if (mounted) {
+        setState(() {
+          currentSpineItemIndex = bookSession.initialChapterIndex;
+        });
+        updateProgressDebounced();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载书籍失败: $e')),
+        );
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  void toggleControls() {
+    if (showControls) {
+      hideBottomNavigationBar();
+    } else {
+      restoreSystemUI();
+    }
+    setState(() {
+      showControls = !showControls;
+    });
+  }
+
+  void openDrawer() {
+    scaffoldKey.currentState?.openDrawer();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!bookSession.isLoaded) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: const SizedBox.shrink(),
+      );
+    }
+
+    final epubTheme = getEpubTheme();
+    final isDark = epubTheme.isDark;
+    final colorScheme = epubTheme.colorScheme;
+    final themeData = Theme.of(context);
+
+    final overlayStyle = isDark
+        ? SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: colorScheme.surface,
+            systemNavigationBarIconBrightness: Brightness.light,
+          )
+        : SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: colorScheme.surface,
+            systemNavigationBarIconBrightness: Brightness.dark,
+          );
+
+    final activeItems = resolveActiveItems();
+    final activateTocTitle = activeItems.isNotEmpty
+        ? activeItems.last.label
+        : widget.title;
+
+    return PopScope(
+      canPop: footnoteOverlayEntry == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (footnoteOverlayEntry != null) {
+          removeFootnoteOverlay();
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: overlayStyle,
+        child: Stack(
+          children: [
+            Scaffold(
+              key: scaffoldKey,
+              backgroundColor: colorScheme.surfaceContainer,
+              drawer: TocDrawer(
+                bookTitle: widget.title,
+                coverPath: widget.coverPath,
+                totalChapters: bookSession.spine.length,
+                toc: bookSession.toc,
+                activeTocItems: activeItems,
+                onTocItemSelected: navigateToTocItem,
+                onCoverTap: navigateToFirstTocItemFirstPage,
+                themeData: themeData,
+              ),
+              onDrawerChanged: (isOpened) {
+                tocDrawerOpen = isOpened;
+                setupVolumeControl();
+              },
+              body: Container(
+                color: epubTheme.surfaceColor,
+                child: Stack(
+                  children: [
+                    ReaderRenderer(
+                      controller: rendererController,
+                      bookSession: bookSession,
+                      webViewHandler: webViewHandler,
+                      fileHash: widget.bookId,
+                      showControls: showControls,
+                      isLoading: isWebViewLoading || updatingTheme,
+                      canPerformPageTurn: canPerformPageTurn,
+                      onPerformPageTurn: handlePageTurn,
+                      onToggleControls: toggleControls,
+                      onInitialized: () async {
+                        final ratio = bookSession.initialScrollPosition;
+                        await loadCarousel(restoreScrollRatio: ratio);
+                      },
+                      onPageCountReady: (totalPages) async {
+                        setState(() {
+                          totalPagesInChapter = totalPages;
+                          if (currentPageInChapter >= totalPagesInChapter) {
+                            currentPageInChapter = totalPagesInChapter - 1;
+                          }
+                        });
+                        updateProgressDebounced();
+                      },
+                      onPageChanged: (pageIndex) {
+                        setState(() {
+                          currentPageInChapter = pageIndex;
+                        });
+                        updateProgressDebounced();
+                        saveProgress();
+                      },
+                      onScrollAnchors: handleScrollAnchors,
+                      onImageLongPress: handleImageLongPress,
+                      onFootnoteTap: handleFootnoteTap,
+                      onLinkTap: handleLinkTap,
+                      shouldHandleLinkTap: shouldHandleLinkTap,
+                      shouldShowWebView: shouldShowWebView,
+                      initializeTheme: epubTheme,
+                      statusBarLeftContent: activateTocTitle,
+                      statusBarRightContent: displayProgress,
+                      pageAnimation: readerSettings.pageAnimation,
+                    ),
+
+                    ControlPanel(
+                      showControls: showControls,
+                      title: bookSession.spine.isEmpty
+                          ? widget.title
+                          : activateTocTitle,
+                      currentSpineItemIndex: currentSpineItemIndex,
+                      totalSpineItems: bookSession.spine.length,
+                      currentPageInChapter: currentPageInChapter,
+                      totalPagesInChapter: totalPagesInChapter,
+                      direction: bookSession.direction,
+                      fontSize: readerSettings.zoom * 18.0,
+                      zoom: readerSettings.zoom,
+                      marginTop: readerSettings.marginTop,
+                      marginBottom: readerSettings.marginBottom,
+                      marginLeft: readerSettings.marginLeft,
+                      marginRight: readerSettings.marginRight,
+                      onBack: () {
+                        saveProgress();
+                        Navigator.of(context).pop();
+                      },
+                      onOpenDrawer: openDrawer,
+                      onPreviousPage: () =>
+                          rendererController.performPreviousPageTurn(),
+                      onFirstPage: () => goToPage(0),
+                      onNextPage: () =>
+                          rendererController.performNextPageTurn(),
+                      onLastPage: () => goToPage(totalPagesInChapter - 1),
+                      onPreviousChapter: previousSpineItemFirstPage,
+                      onNextChapter: nextSpineItem,
+                      onToggleStyleDrawer: () {
+                        // Style sheet is opened internally by ControlPanel
+                      },
+                      onZoomChanged: (value) {
+                        setState(() {
+                          readerSettings = readerSettings.copyWith(zoom: value);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      onFontSizeChanged: (value) {
+                        // 将字号值映射为 zoom（12px→0.7, 18px→1.0, 32px→1.8）
+                        final zoom = value / 18.0;
+                        setState(() {
+                          readerSettings = readerSettings.copyWith(zoom: zoom);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      onMarginTopChanged: (value) {
+                        setState(() {
+                          readerSettings =
+                              readerSettings.copyWith(marginTop: value);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      onMarginBottomChanged: (value) {
+                        setState(() {
+                          readerSettings =
+                              readerSettings.copyWith(marginBottom: value);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      onMarginLeftChanged: (value) {
+                        setState(() {
+                          readerSettings =
+                              readerSettings.copyWith(marginLeft: value);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      onMarginRightChanged: (value) {
+                        setState(() {
+                          readerSettings =
+                              readerSettings.copyWith(marginRight: value);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: !isImageViewerVisible,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                  opacity: isImageViewerVisible ? 1.0 : 0.0,
+                  child: (currentImageData != null && currentImageRect != null)
+                      ? ImageViewer(
+                          imageData: currentImageData!,
+                          onClose: closeImageViewer,
+                          sourceRect: currentImageRect!,
+                          colorScheme: colorScheme,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

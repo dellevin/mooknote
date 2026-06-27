@@ -1,0 +1,100 @@
+import '../database_helper.dart';
+
+/// EPUB 阅读器数据访问层
+class ReaderDao {
+  final DatabaseHelper _db = DatabaseHelper.instance;
+
+  // ─── reader_books ─────────────────────────────────────────────────
+
+  /// 获取所有未删除的阅读记录
+  Future<List<Map<String, dynamic>>> getAllReaderBooks() async {
+    final db = await _db.database;
+    return db.query(
+      'reader_books',
+      where: 'is_deleted = 0',
+      orderBy: 'updated_at DESC',
+    );
+  }
+
+  /// 根据 ID 获取阅读记录
+  Future<Map<String, dynamic>?> getReaderBookById(String id) async {
+    final db = await _db.database;
+    final results = await db.query(
+      'reader_books',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  /// 插入阅读记录
+  Future<int> insertReaderBook(Map<String, dynamic> book) async {
+    final db = await _db.database;
+    return db.insert('reader_books', book);
+  }
+
+  /// 更新阅读记录字段
+  Future<int> updateReaderBook(String id, Map<String, dynamic> fields) async {
+    final db = await _db.database;
+    return db.update(
+      'reader_books',
+      fields,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// 更新阅读进度
+  Future<int> updateReadingProgress(
+      String id, String cfi, double percentage) async {
+    final db = await _db.database;
+    return db.update(
+      'reader_books',
+      {
+        'last_read_cfi': cfi,
+        'reading_percentage': percentage,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// 软删除
+  Future<int> deleteReaderBook(String id) async {
+    final db = await _db.database;
+    return db.update(
+      'reader_books',
+      {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // ─── book_annotations ─────────────────────────────────────────────
+
+  /// 获取某本书的所有批注
+  Future<List<Map<String, dynamic>>> getAnnotationsByBookId(
+      String bookId) async {
+    final db = await _db.database;
+    return db.query(
+      'book_annotations',
+      where: 'book_id = ?',
+      whereArgs: [bookId],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  /// 插入批注
+  Future<int> insertAnnotation(Map<String, dynamic> annotation) async {
+    final db = await _db.database;
+    return db.insert('book_annotations', annotation);
+  }
+
+  /// 删除批注
+  Future<int> deleteAnnotation(int id) async {
+    final db = await _db.database;
+    return db.delete('book_annotations', where: 'id = ?', whereArgs: [id]);
+  }
+}

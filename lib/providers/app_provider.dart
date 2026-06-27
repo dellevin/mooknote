@@ -8,8 +8,6 @@ import '../utils/movie/movie_poster_dao.dart';
 import '../utils/book/book_review_dao.dart';
 import '../utils/book/book_excerpt_dao.dart';
 import '../utils/tag/tag_dao.dart';
-import '../utils/reader/reader_book_dao.dart';
-import '../models/reader_book.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
@@ -26,14 +24,11 @@ class AppProvider extends ChangeNotifier {
   final BookReviewDao _bookReviewDao = BookReviewDao();
   final BookExcerptDao _bookExcerptDao = BookExcerptDao();
   final TagDao _tagDao = TagDao();
-  final ReaderBookDao _readerBookDao = ReaderBookDao();
-  
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
   List<Note> _notes = [];
-  List<ReaderBook> _readerBooks = [];
-  
+
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
 
@@ -75,12 +70,10 @@ class AppProvider extends ChangeNotifier {
       _movieDao.getAllMovies(),
       _bookDao.getAllBooks(),
       _noteDao.getAllNotes(),
-      _readerBookDao.getAllReaderBooks(),
     ]);
     _movies = results[0] as List<Movie>;
     _books = results[1] as List<Book>;
     _notes = results[2] as List<Note>;
-    _readerBooks = results[3] as List<ReaderBook>;
     debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}');
     notifyListeners();
   }
@@ -128,26 +121,6 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadReaderBooks() async {
-    _readerBooks = await _readerBookDao.getAllReaderBooks();
-    notifyListeners();
-  }
-
-  Future<void> addReaderBook(ReaderBook book) async {
-    await _readerBookDao.insertReaderBook(book);
-    await loadReaderBooks();
-  }
-
-  Future<void> updateReaderBook(ReaderBook book) async {
-    await _readerBookDao.updateReaderBook(book);
-    await loadReaderBooks();
-  }
-
-  Future<void> removeReaderBook(String id) async {
-    await _readerBookDao.deleteReaderBook(id);
-    await loadReaderBooks();
-  }
-
   // ─── 分页加载（供列表页触底加载使用）────────────────────────
   static const int _pageSize = 20;
 
@@ -177,8 +150,7 @@ class AppProvider extends ChangeNotifier {
   List<Movie> get movies => _movies;
   List<Book> get books => _books;
   List<Note> get notes => _notes;
-  List<ReaderBook> get readerBooks => _readerBooks;
-  
+
   // 根据状态获取影视列表
   List<Movie> getMoviesByStatus(String status) {
     return _movies.where((movie) => movie.status == status).toList();
