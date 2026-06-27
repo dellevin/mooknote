@@ -11,6 +11,7 @@ import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../utils/theme/app_theme.dart';
 import '../utils/toast_util.dart';
+import '../utils/database_helper.dart';
 import 'recycle_bin_page.dart';
 import 'sync/backup_page.dart';
 import '../widgets/fade_in_local_image.dart';
@@ -989,7 +990,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildActionItem(
             icon: Icons.cleaning_services_outlined,
             title: '清除缓存数据',
-            subtitle: '清理未在数据库中引用的图片文件',
+            subtitle: '清理未在数据库中引用的文件',
             onTap: () => _showClearCacheDialog(context),
           ),
           Divider(
@@ -1306,7 +1307,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     final provider = context.watch<AppProvider>();
     final currentIndex = provider.colorSchemeIndex;
-    final label = currentIndex == -1 ? '莫奈取色' : AppTheme.colorSchemeNames[currentIndex];
+    final label =
+        currentIndex == -1 ? '莫奈取色' : AppTheme.colorSchemeNames[currentIndex];
     return InkWell(
       onTap: () => _showColorSchemePicker(),
       child: Container(
@@ -1319,8 +1321,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 decoration: BoxDecoration(
                     color: colors.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(10)),
-                child: Icon(currentIndex == -1 ? Icons.auto_awesome : Icons.palette_outlined,
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+                child: Icon(
+                    currentIndex == -1
+                        ? Icons.auto_awesome
+                        : Icons.palette_outlined,
+                    color: colors.onSurface.withValues(alpha: 0.6),
+                    size: 18)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1445,13 +1451,17 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildMonetOption(AppProvider provider, ColorScheme colors, BuildContext ctx) {
+  Widget _buildMonetOption(
+      AppProvider provider, ColorScheme colors, BuildContext ctx) {
     final selected = provider.colorSchemeIndex == -1;
     final monetColor = AppTheme.monetColor;
     final available = monetColor != null;
     return GestureDetector(
       onTap: available
-          ? () { provider.setColorScheme(-1); Navigator.pop(ctx); }
+          ? () {
+              provider.setColorScheme(-1);
+              Navigator.pop(ctx);
+            }
           : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1463,34 +1473,51 @@ class _SettingsPageState extends State<SettingsPage> {
           border: Border.all(
               color: selected
                   ? (monetColor ?? colors.primary)
-                  : available ? colors.outlineVariant : colors.outlineVariant.withValues(alpha: 0.5),
+                  : available
+                      ? colors.outlineVariant
+                      : colors.outlineVariant.withValues(alpha: 0.5),
               width: selected ? 1.5 : 0.5),
         ),
         child: Row(
           children: [
             Container(
-              width: 20, height: 20,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: monetColor != null
-                    ? LinearGradient(colors: [monetColor, monetColor.withValues(alpha: 0.6)])
+                    ? LinearGradient(
+                        colors: [monetColor, monetColor.withValues(alpha: 0.6)])
                     : null,
                 color: available ? null : colors.outlineVariant,
               ),
-              child: available ? null : Icon(Icons.auto_awesome, size: 12, color: colors.onSurface.withValues(alpha: 0.3)),
+              child: available
+                  ? null
+                  : Icon(Icons.auto_awesome,
+                      size: 12, color: colors.onSurface.withValues(alpha: 0.3)),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('莫奈取色', style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                    color: available ? colors.onSurface : colors.onSurface.withValues(alpha: 0.35))),
-                Text(available ? '从系统壁纸自动提取配色' : '此设备不支持',
-                    style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('莫奈取色',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w500,
+                            color: available
+                                ? colors.onSurface
+                                : colors.onSurface.withValues(alpha: 0.35))),
+                    Text(available ? '从系统壁纸自动提取配色' : '此设备不支持',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.35))),
+                  ]),
             ),
-            if (selected) Icon(Icons.check_circle, size: 18, color: monetColor ?? colors.primary),
+            if (selected)
+              Icon(Icons.check_circle,
+                  size: 18, color: monetColor ?? colors.primary),
           ],
         ),
       ),
@@ -1839,17 +1866,23 @@ class _SettingsPageState extends State<SettingsPage> {
       final dbImagePaths = await _getAllDbImagePaths(appProvider);
       final deletedImages = await _cleanImageDirectory(dbImagePaths);
 
-      // 2. 清理临时目录缓存（分享海报、备份ZIP等）
+      // 2. 清理孤立的 epub_books 目录
+      final deletedEpubs = await _cleanOrphanedEpubBooks(appProvider);
+
+      // 3. 清理临时目录缓存（分享海报、备份ZIP等）
       final deletedTemp = await _cleanTempDirectory();
+
+      // 4. 清理空文件夹
+      final deletedEmptyDirs = await _cleanEmptyDirectories();
 
       Navigator.pop(context);
       if (context.mounted) {
-        final total = deletedImages + deletedTemp;
+        final total = deletedImages + deletedEpubs + deletedTemp + deletedEmptyDirs;
         if (total == 0) {
           ToastUtil.show(context, '没有需要清理的缓存');
         } else {
           ToastUtil.show(
-              context, '已清理 $deletedImages 个孤立图片，$deletedTemp 个临时文件');
+              context, '已清理 $deletedImages 个孤立图片，$deletedEpubs 个孤立电子书，$deletedTemp 个临时文件，$deletedEmptyDirs 个空文件夹');
         }
       }
     } catch (e) {
@@ -1898,6 +1931,36 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } catch (e) {
       debugPrint('清理图片目录失败: $e');
+    }
+    return deletedCount;
+  }
+
+  /// 清理 epub_books 中孤立的目录（数据库中不存在的）
+  Future<int> _cleanOrphanedEpubBooks(AppProvider provider) async {
+    int deletedCount = 0;
+    try {
+      // 收集数据库中所有 reader_books 的 bookId
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query('reader_books', columns: ['id']);
+      final dbIds = rows.map((r) => r['id'] as String).toSet();
+
+      final appDir = await getApplicationDocumentsDirectory();
+      final epubDir = Directory('${appDir.path}/epub_books');
+      if (!await epubDir.exists()) return 0;
+
+      await for (final entity in epubDir.list(followLinks: false)) {
+        if (entity is Directory) {
+          final dirName = path.basename(entity.path);
+          if (!dbIds.contains(dirName)) {
+            try {
+              await entity.delete(recursive: true);
+              deletedCount++;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('清理 epub_books 目录失败: $e');
     }
     return deletedCount;
   }
@@ -1952,6 +2015,48 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     return deletedCount;
+  }
+
+  /// 清理 images、epub_books、cache 下的空文件夹
+  Future<int> _cleanEmptyDirectories() async {
+    int deletedCount = 0;
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final cacheDir = await getApplicationCacheDirectory();
+      final dirs = [
+        Directory('${appDir.path}/images'),
+        Directory('${appDir.path}/epub_books'),
+        cacheDir,
+      ];
+      for (final dir in dirs) {
+        if (!await dir.exists()) continue;
+        deletedCount += await _removeEmptyDirsRecursive(dir);
+      }
+    } catch (e) {
+      debugPrint('清理空文件夹失败: $e');
+    }
+    return deletedCount;
+  }
+
+  /// 递归删除空子文件夹（自底向上），不删除根目录本身
+  Future<int> _removeEmptyDirsRecursive(Directory dir) async {
+    int count = 0;
+    try {
+      final children = await dir.list(followLinks: false).toList();
+      for (final child in children) {
+        if (child is Directory) {
+          count += await _removeEmptyDirsRecursive(child);
+          final remaining = await child.list(followLinks: false).toList();
+          if (remaining.isEmpty) {
+            try {
+              await child.delete();
+              count++;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+    return count;
   }
 }
 
@@ -2478,63 +2583,98 @@ class _SidebarSettingsPageState extends State<SidebarSettingsPage> {
       body: ListView(
         children: [
           _buildSectionHeader('信息模块'),
-          _buildSwitchItem(Icons.calendar_today, '热力图', '显示创作活跃度热力图',
-              _showHeatmap, (v) async {
+          _buildSwitchItem(
+              Icons.calendar_today, '热力图', '显示创作活跃度热力图', _showHeatmap,
+              (v) async {
             await _userPrefs.setShowSidebarHeatmap(v);
             setState(() => _showHeatmap = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.schedule, '最近添加', '显示最近添加的记录',
-              _showRecent, (v) async {
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.schedule, '最近添加', '显示最近添加的记录', _showRecent,
+              (v) async {
             await _userPrefs.setShowSidebarRecent(v);
             setState(() => _showRecent = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.favorite_border, '统计', '与应用相遇的天数和数据概览',
-              _showEncounter, (v) async {
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.favorite_border, '统计', '与应用相遇的天数和数据概览', _showEncounter,
+              (v) async {
             await _userPrefs.setShowSidebarEncounter(v);
             setState(() => _showEncounter = v);
           }),
           _buildSectionHeader('快捷功能'),
-          _buildSwitchItem(Icons.explore_outlined, '漫步', '随机发现内容',
-              _showStroll, (v) async {
+          _buildSwitchItem(Icons.explore_outlined, '漫步', '随机发现内容', _showStroll,
+              (v) async {
             await _userPrefs.setShowSidebarStroll(v);
             setState(() => _showStroll = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.calendar_month_outlined, '书影日历', '按日历查看记录',
-              _showCalendar, (v) async {
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.calendar_month_outlined, '书影日历', '按日历查看记录', _showCalendar,
+              (v) async {
             await _userPrefs.setShowSidebarCalendar(v);
             setState(() => _showCalendar = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.people_outline, '角色信息', '管理影视和书籍中的角色',
-              _showPerson, (v) async {
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.people_outline, '角色信息', '管理影视和书籍中的角色', _showPerson,
+              (v) async {
             await _userPrefs.setShowSidebarPerson(v);
             setState(() => _showPerson = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.label_outline, '标签管理', '管理所有标签',
-              _showTags, (v) async {
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.label_outline, '标签管理', '管理所有标签', _showTags,
+              (v) async {
             await _userPrefs.setShowSidebarTags(v);
             setState(() => _showTags = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSwitchItem(Icons.description_outlined, 'MD阅读', 'Markdown 文件阅读器',
               _showMdReader, (v) async {
             await _userPrefs.setShowSidebarMdReader(v);
             setState(() => _showMdReader = v);
           }),
-          Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
-          _buildSwitchItem(Icons.auto_stories_outlined, 'EPUB阅读', 'EPUB 电子书阅读器',
-              _showEpub, (v) async {
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.auto_stories_outlined, 'EPUB阅读', 'EPUB 电子书阅读器', _showEpub,
+              (v) async {
             await _userPrefs.setShowSidebarEpub(v);
             setState(() => _showEpub = v);
           }),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Text('关闭后对应功能将从侧边栏中隐藏。',
-                style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurface.withValues(alpha: 0.3))),
           ),
         ],
       ),

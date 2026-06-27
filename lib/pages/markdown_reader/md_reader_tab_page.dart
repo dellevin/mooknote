@@ -39,7 +39,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
 
   Future<void> _init() async {
     final saved = UserPrefs().lastMdFolder;
-    if (saved != null && saved.isNotEmpty) {
+    if (saved != null && saved.isNotEmpty && saved.length > 3) {
       final dir = Directory(saved);
       if (await dir.exists()) {
         _rootPath = saved;
@@ -239,8 +239,15 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
       }
     } catch (e) {
       if (mounted) {
+        final isPermissionError = e is FileSystemException && e.osError?.errorCode == 13;
+        if (isPermissionError) {
+          // 清除无效的保存路径
+          await UserPrefs().setLastMdFolder('');
+          _rootPath = null;
+          _currentPath = null;
+        }
         setState(() {
-          _error = '读取失败: $e';
+          _error = isPermissionError ? '权限不足，请重新选择目录' : '读取失败: $e';
           _isLoading = false;
         });
       }

@@ -31,6 +31,9 @@ class BackupService {
     final bookReviews = await db.query('book_reviews');
     final bookExcerpts = await db.query('book_excerpts');
     final tags = await db.query('tags');
+    final readerBooks = await db.query('reader_books');
+    final bookAnnotations = await db.query('book_annotations');
+    final notePlus = await db.query('note_plus');
 
     // 收集图片路径
     final imagePaths = <String>{};
@@ -57,6 +60,10 @@ class BackupService {
           debugPrint('[BackupService] 笔记图片解析失败 (noteId=${n['id']}): $e');
         }
       }
+    }
+    for (final rb in readerBooks) {
+      final p = rb['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) imagePaths.add(p);
     }
 
     final userPrefs = UserPrefs();
@@ -85,6 +92,9 @@ class BackupService {
         'book_reviews': bookReviews,
         'book_excerpts': bookExcerpts,
         'tags': tags,
+        'reader_books': readerBooks,
+        'book_annotations': bookAnnotations,
+        'note_plus': notePlus,
       },
     };
 
@@ -304,15 +314,21 @@ class BackupService {
       final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
       final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
       final tagsCols = await _getTableColumns(db, 'tags');
+      final readerBooksCols = await _getTableColumns(db, 'reader_books');
+      final bookAnnotationsCols = await _getTableColumns(db, 'book_annotations');
+      final notePlusCols = await _getTableColumns(db, 'note_plus');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
         await txn.delete('movie_posters');
         await txn.delete('book_reviews');
         await txn.delete('book_excerpts');
+        await txn.delete('book_annotations');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
+        await txn.delete('reader_books');
+        await txn.delete('note_plus');
         await txn.delete('tags');
 
         if (data.containsKey('movies')) {
@@ -348,6 +364,21 @@ class BackupService {
         if (data.containsKey('book_excerpts')) {
           for (final e in data['book_excerpts'] as List) {
             await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
+          }
+        }
+        if (data.containsKey('reader_books')) {
+          for (final rb in data['reader_books'] as List) {
+            await txn.insert('reader_books', _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('book_annotations')) {
+          for (final a in data['book_annotations'] as List) {
+            await txn.insert('book_annotations', _convertToDbMapSafe(a, bookAnnotationsCols));
+          }
+        }
+        if (data.containsKey('note_plus')) {
+          for (final np in data['note_plus'] as List) {
+            await txn.insert('note_plus', _convertToDbMapSafe(np, notePlusCols));
           }
         }
         if (data.containsKey('tags')) {
@@ -421,15 +452,21 @@ class BackupService {
       final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
       final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
       final tagsCols = await _getTableColumns(db, 'tags');
+      final readerBooksCols = await _getTableColumns(db, 'reader_books');
+      final bookAnnotationsCols = await _getTableColumns(db, 'book_annotations');
+      final notePlusCols = await _getTableColumns(db, 'note_plus');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
         await txn.delete('movie_posters');
         await txn.delete('book_reviews');
         await txn.delete('book_excerpts');
+        await txn.delete('book_annotations');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
+        await txn.delete('reader_books');
+        await txn.delete('note_plus');
         await txn.delete('tags'); // 修复: 之前漏删 tags 表
 
         if (data.containsKey('movies')) {
@@ -465,6 +502,21 @@ class BackupService {
         if (data.containsKey('book_excerpts')) {
           for (final e in data['book_excerpts'] as List) {
             await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
+          }
+        }
+        if (data.containsKey('reader_books')) {
+          for (final rb in data['reader_books'] as List) {
+            await txn.insert('reader_books', _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('book_annotations')) {
+          for (final a in data['book_annotations'] as List) {
+            await txn.insert('book_annotations', _convertToDbMapSafe(a, bookAnnotationsCols));
+          }
+        }
+        if (data.containsKey('note_plus')) {
+          for (final np in data['note_plus'] as List) {
+            await txn.insert('note_plus', _convertToDbMapSafe(np, notePlusCols));
           }
         }
         if (data.containsKey('tags')) {
@@ -560,6 +612,9 @@ class BackupService {
     if (data.containsKey('book_reviews')) stats['书评'] = (data['book_reviews'] as List).length;
     if (data.containsKey('book_excerpts')) stats['书摘'] = (data['book_excerpts'] as List).length;
     if (data.containsKey('tags')) stats['标签'] = (data['tags'] as List).length;
+    if (data.containsKey('reader_books')) stats['阅读'] = (data['reader_books'] as List).length;
+    if (data.containsKey('book_annotations')) stats['批注'] = (data['book_annotations'] as List).length;
+    if (data.containsKey('note_plus')) stats['高级笔记'] = (data['note_plus'] as List).length;
     if (imageCount > 0) stats['图片'] = imageCount;
     return stats;
   }

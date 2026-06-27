@@ -12,6 +12,7 @@ import '../../utils/epub/reader_settings.dart';
 import '../../utils/epub/reader_models.dart';
 import '../../utils/epub/volume_control_service.dart';
 import '../../utils/epub/reader_dao.dart';
+import '../../utils/toast_util.dart';
 import 'book_session.dart';
 import 'reader_renderer.dart';
 import 'control_panel.dart';
@@ -346,11 +347,7 @@ class _ReaderScreenState extends State<ReaderScreen>
     if (existing != null) {
       // 删除已有书签
       await _readerDao.deleteBookmark(existing['id'] as int);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已移除书签'), duration: Duration(seconds: 1)),
-        );
-      }
+      if (mounted) ToastUtil.show(context, '已移除书签');
     } else {
       // 添加书签
       final chapterTitle = bookSession.spine.isNotEmpty &&
@@ -374,11 +371,7 @@ class _ReaderScreenState extends State<ReaderScreen>
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已添加书签'), duration: Duration(seconds: 1)),
-        );
-      }
+      if (mounted) ToastUtil.show(context, '已添加书签');
     }
     await _loadBookmarks();
   }
