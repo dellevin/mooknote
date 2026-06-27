@@ -129,6 +129,9 @@ class _ReaderScreenState extends State<ReaderScreen>
   bool styleDrawerOpen = false;
   AppLifecycleState? lastLifecycleState = AppLifecycleState.resumed;
 
+  // 书签
+  final List<Map<String, dynamic>> _bookmarks = [];
+
   // Services
   final EpubStreamService _streamService = EpubStreamService();
   final ReaderDao _readerDao = ReaderDao();
@@ -311,6 +314,7 @@ class _ReaderScreenState extends State<ReaderScreen>
           currentSpineItemIndex = bookSession.initialChapterIndex;
         });
         updateProgressDebounced();
+        _loadBookmarks();
       }
     } catch (e) {
       if (mounted) {
@@ -320,6 +324,84 @@ class _ReaderScreenState extends State<ReaderScreen>
         Navigator.of(context).pop();
       }
     }
+  }
+
+  // ─── 书签 ──────────────────────────────────────────────────────
+
+  Future<void> _loadBookmarks() async {
+    final list = await _readerDao.getBookmarksByBookId(widget.bookId);
+    if (mounted) setState(() => _bookmarks..clear()..addAll(list));
+  }
+
+  bool get _currentPageHasBookmark {
+    final cfi = '$currentSpineItemIndex:${(currentPageInChapter / (totalPagesInChapter > 0 ? totalPagesInChapter : 1)).toStringAsFixed(4)}';
+    return _bookmarks.any((bm) => (bm['cfi'] as String? ?? '') == cfi);
+  }
+
+  Future<void> _toggleBookmark() async {
+    // 检查当前页是否已有书签
+    final cfi = '$currentSpineItemIndex:${(currentPageInChapter / (totalPagesInChapter > 0 ? totalPagesInChapter : 1)).toStringAsFixed(4)}';
+    final existing = _bookmarks.where((bm) => (bm['cfi'] as String? ?? '') == cfi).firstOrNull;
+
+    if (existing != null) {
+      // 删除已有书签
+      await _readerDao.deleteBookmark(existing['id'] as int);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已移除书签'), duration: Duration(seconds: 1)),
+        );
+      }
+    } else {
+      // 添加书签
+      final chapterTitle = bookSession.spine.isNotEmpty &&
+              currentSpineItemIndex < bookSession.spine.length
+          ? bookSession.spine[currentSpineItemIndex].href
+          : '';
+      // 尝试从 TOC 找更友好的标题
+      String title = chapterTitle;
+      for (final toc in bookSession.toc) {
+        if (toc.spineIndex == currentSpineItemIndex) {
+          title = toc.label;
+          break;
+        }
+      }
+
+      await _readerDao.insertBookmark({
+        'book_id': widget.bookId,
+        'content': title,
+        'cfi': cfi,
+        'chapter': currentSpineItemIndex.toString(),
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已添加书签'), duration: Duration(seconds: 1)),
+        );
+      }
+    }
+    await _loadBookmarks();
+  }
+
+  void _jumpToBookmark(Map<String, dynamic> bookmark) {
+    final cfi = bookmark['cfi'] as String? ?? '';
+    if (cfi.isEmpty) return;
+    final parts = cfi.split(':');
+    if (parts.isEmpty) return;
+    final chapterIndex = int.tryParse(parts[0]) ?? 0;
+    final scrollRatio = parts.length >= 2 ? (double.tryParse(parts[1]) ?? 0.0) : 0.0;
+
+    if (chapterIndex >= 0 && chapterIndex < bookSession.spine.length) {
+      setState(() {
+        currentSpineItemIndex = chapterIndex;
+      });
+      loadCarousel(restoreScrollRatio: scrollRatio);
+    }
+  }
+
+  Future<void> _deleteBookmark(int id) async {
+    await _readerDao.deleteBookmark(id);
+    await _loadBookmarks();
   }
 
   void toggleControls() {
@@ -399,6 +481,9 @@ class _ReaderScreenState extends State<ReaderScreen>
                 onTocItemSelected: navigateToTocItem,
                 onCoverTap: navigateToFirstTocItemFirstPage,
                 themeData: themeData,
+                bookmarks: _bookmarks,
+                onBookmarkTap: _jumpToBookmark,
+                onBookmarkDelete: _deleteBookmark,
               ),
               onDrawerChanged: (isOpened) {
                 tocDrawerOpen = isOpened;
@@ -530,6 +615,28 @@ class _ReaderScreenState extends State<ReaderScreen>
                         readerSettings.save();
                         updateWebViewTheme();
                       },
+                      themeIndex: readerSettings.themeIndex,
+                      customBgColor: readerSettings.customBgColor,
+                      customTextColor: readerSettings.customTextColor,
+                      onThemeIndexChanged: (index) {
+                        setState(() {
+                          readerSettings = readerSettings.copyWith(themeIndex: index);
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      onCustomColorChanged: (bgColor, textColor) {
+                        setState(() {
+                          readerSettings = readerSettings.copyWith(
+                            customBgColor: bgColor,
+                            customTextColor: textColor,
+                          );
+                        });
+                        readerSettings.save();
+                        updateWebViewTheme();
+                      },
+                      currentPageHasBookmark: _currentPageHasBookmark,
+                      onBookmarkToggle: _toggleBookmark,
                     ),
                   ],
                 ),

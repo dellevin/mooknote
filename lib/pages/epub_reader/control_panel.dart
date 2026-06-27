@@ -33,6 +33,13 @@ class ControlPanel extends StatefulWidget {
   final ValueChanged<double> onMarginBottomChanged;
   final ValueChanged<double> onMarginLeftChanged;
   final ValueChanged<double> onMarginRightChanged;
+  final int themeIndex;
+  final int customBgColor;
+  final int customTextColor;
+  final ValueChanged<int> onThemeIndexChanged;
+  final void Function(int bgColor, int textColor) onCustomColorChanged;
+  final bool currentPageHasBookmark;
+  final VoidCallback onBookmarkToggle;
 
   const ControlPanel({
     super.key,
@@ -64,6 +71,13 @@ class ControlPanel extends StatefulWidget {
     required this.onMarginBottomChanged,
     required this.onMarginLeftChanged,
     required this.onMarginRightChanged,
+    required this.themeIndex,
+    required this.customBgColor,
+    required this.customTextColor,
+    required this.onThemeIndexChanged,
+    required this.onCustomColorChanged,
+    required this.currentPageHasBookmark,
+    required this.onBookmarkToggle,
   });
 
   bool get isVertical => direction == 1;
@@ -246,6 +260,11 @@ class _ControlPanelState extends State<ControlPanel> {
                     onMarginBottomChanged: widget.onMarginBottomChanged,
                     onMarginLeftChanged: widget.onMarginLeftChanged,
                     onMarginRightChanged: widget.onMarginRightChanged,
+                    themeIndex: widget.themeIndex,
+                    customBgColor: widget.customBgColor,
+                    customTextColor: widget.customTextColor,
+                    onThemeIndexChanged: widget.onThemeIndexChanged,
+                    onCustomColorChanged: widget.onCustomColorChanged,
                   ),
                 ),
               ],
@@ -293,6 +312,16 @@ class _ControlPanelState extends State<ControlPanel> {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      widget.currentPageHasBookmark
+                          ? Icons.bookmark
+                          : Icons.bookmark_outline,
+                    ),
+                    onPressed: widget.onBookmarkToggle,
+                  ),
+                ],
               ),
             ),
           ),

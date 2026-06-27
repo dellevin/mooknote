@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../utils/epub/reader_dao.dart';
@@ -48,6 +49,14 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     if (result == null || result.files.isEmpty) return;
     final path = result.files.single.path;
     if (path == null) return;
+    if (!path.toLowerCase().endsWith('.epub')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('仅支持导入 .epub 格式的文件')),
+        );
+      }
+      return;
+    }
 
     if (!mounted) return;
     showDialog(
@@ -210,29 +219,123 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   }
 
   Widget _buildGrid(ColorScheme colors) {
-    final bool isRelaxed = _viewMode == ViewMode.relaxed;
-    final maxExtent = isRelaxed ? 180.0 : 120.0;
-    final aspectRatio = isRelaxed ? 0.55 : 0.68;
-    final spacing = isRelaxed ? 16.0 : 8.0;
+    final bool showList = _viewMode == ViewMode.compact;
 
+    if (showList) {
+      return _buildListView(colors);
+    }
+    return _buildGridView(colors);
+  }
+
+  Widget _buildGridView(ColorScheme colors) {
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: maxExtent,
-        childAspectRatio: aspectRatio,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.55,
       ),
       itemCount: _books.length,
       itemBuilder: (context, index) {
         final book = _books[index];
         return BookGridItem(
           book: book,
-          viewMode: _viewMode,
+          viewMode: ViewMode.relaxed,
           onTap: () => _openBook(book),
           onLongPress: () => _deleteBook(book),
         );
       },
+    );
+  }
+
+  Widget _buildListView(ColorScheme colors) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      itemCount: _books.length,
+      itemBuilder: (context, index) {
+        final book = _books[index];
+        final title = book['title'] as String? ?? '';
+        final author = book['author'] as String? ?? '';
+        final coverPath = book['cover_path'] as String?;
+        final progress = (book['reading_percentage'] as num?)?.toDouble() ?? 0.0;
+
+        return GestureDetector(
+          onTap: () => _openBook(book),
+          onLongPress: () => _deleteBook(book),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.outlineVariant, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                // 封面
+                SizedBox(
+                  width: 56, height: 80,
+                  child: _buildCover(coverPath, colors),
+                ),
+                const SizedBox(width: 14),
+                // 信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      if (author.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                      ],
+                      const SizedBox(height: 8),
+                      // 标签
+                      Wrap(spacing: 6, runSpacing: 4, children: [
+                        _buildTag('EPUB', colors),
+                        if (progress > 0) _buildTag('${(progress * 100).toInt()}%', colors),
+                      ]),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCover(String? path, ColorScheme colors) {
+    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.file(File(path), fit: BoxFit.cover,
+            width: double.infinity, height: double.infinity),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(Icons.auto_stories_outlined, size: 24,
+          color: colors.onSurface.withValues(alpha: 0.25)),
+    );
+  }
+
+  Widget _buildTag(String label, ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.5))),
     );
   }
 }

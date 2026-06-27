@@ -127,6 +127,44 @@ class AppTheme {
         selectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium),
         unselectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _regular, color: scheme.onSurfaceVariant),
       ),
+      textTheme: TextTheme(
+        headlineLarge: TextStyle(
+          fontFamily: _fontFamily, fontSize: 32, fontWeight: _semibold,
+          color: scheme.onSurface, letterSpacing: 0, height: 1.2,
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: _fontFamily, fontSize: 24, fontWeight: _semibold,
+          color: scheme.onSurface, letterSpacing: 0, height: 1.3,
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: _fontFamily, fontSize: 20, fontWeight: _semibold,
+          color: scheme.onSurface, letterSpacing: 0, height: 1.4,
+        ),
+        bodyLarge: TextStyle(
+          fontFamily: _fontFamily, fontSize: 16, fontWeight: _regular,
+          color: scheme.onSurface, height: 1.6,
+        ),
+        bodyMedium: TextStyle(
+          fontFamily: _fontFamily, fontSize: 15, fontWeight: _regular,
+          color: scheme.onSurface, height: 1.5,
+        ),
+        bodySmall: TextStyle(
+          fontFamily: _fontFamily, fontSize: 13, fontWeight: _regular,
+          color: scheme.onSurfaceVariant, height: 1.5,
+        ),
+        labelLarge: TextStyle(
+          fontFamily: _fontFamily, fontSize: 14, fontWeight: _medium,
+          color: scheme.onSurface,
+        ),
+        labelMedium: TextStyle(
+          fontFamily: _fontFamily, fontSize: 12, fontWeight: _medium,
+          color: scheme.onSurfaceVariant,
+        ),
+        labelSmall: TextStyle(
+          fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium,
+          color: scheme.onSurfaceVariant, letterSpacing: 0.3,
+        ),
+      ),
     );
   }
 

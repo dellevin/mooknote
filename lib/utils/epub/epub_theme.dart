@@ -1,6 +1,35 @@
 import 'package:flutter/material.dart';
 import 'reader_scripts.dart';
 
+/// 阅读器主题预设
+class ReaderThemePreset {
+  final String name;
+  final Color surface;
+  final Color onSurface;
+  final bool isDark;
+
+  const ReaderThemePreset({
+    required this.name,
+    required this.surface,
+    required this.onSurface,
+    this.isDark = false,
+  });
+}
+
+class ReaderThemePresets {
+  static const List<ReaderThemePreset> presets = [
+    ReaderThemePreset(name: '跟随App', surface: Colors.white, onSurface: Colors.black),
+    ReaderThemePreset(name: '纯白', surface: Color(0xFFFFFFFF), onSurface: Color(0xFF1A1A1A)),
+    ReaderThemePreset(name: '护眼', surface: Color(0xFFF4ECD8), onSurface: Color(0xFF5B4636)),
+    ReaderThemePreset(name: '抹茶', surface: Color(0xFFF6FBF5), onSurface: Color(0xFF2E3E2E)),
+    ReaderThemePreset(name: '樱花', surface: Color(0xFFFFF8F8), onSurface: Color(0xFF4A2030)),
+    ReaderThemePreset(name: '午夜蓝', surface: Color(0xFFF7F9FC), onSurface: Color(0xFF1A2A3A)),
+    ReaderThemePreset(name: '深色', surface: Color(0xFF191919), onSurface: Color(0xFFD4D4D4), isDark: true),
+    ReaderThemePreset(name: '深色护眼', surface: Color(0xFF1C1A18), onSurface: Color(0xFFC8B8A0), isDark: true),
+    ReaderThemePreset(name: '咖啡', surface: Color(0xFFFCF8F3), onSurface: Color(0xFF3E2E1E)),
+  ];
+}
+
 class EpubTheme {
   final double zoom;
   final bool shouldOverrideTextColor;

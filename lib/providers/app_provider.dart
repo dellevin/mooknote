@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
 import '../utils/movie/movie_dao.dart';
@@ -147,9 +148,9 @@ class AppProvider extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   int get colorSchemeIndex => _colorSchemeIndex;
   String get fontFamily => _fontFamily;
-  List<Movie> get movies => _movies;
-  List<Book> get books => _books;
-  List<Note> get notes => _notes;
+  List<Movie> get movies => UnmodifiableListView(_movies);
+  List<Book> get books => UnmodifiableListView(_books);
+  List<Note> get notes => UnmodifiableListView(_notes);
 
   // 根据状态获取影视列表
   List<Movie> getMoviesByStatus(String status) {
@@ -490,6 +491,8 @@ class AppProvider extends ChangeNotifier {
     final deletedMovies = await getDeletedMovies();
     final deletedBooks = await getDeletedBooks();
     final deletedNotes = await getDeletedNotes();
+    final deletedMovieReviews = await getDeletedMovieReviews();
+    final deletedBookReviews = await getDeletedBookReviews();
 
     for (final movie in deletedMovies) {
       await permanentDeleteMovie(movie.id);
@@ -500,10 +503,42 @@ class AppProvider extends ChangeNotifier {
     for (final note in deletedNotes) {
       await permanentDeleteNote(note.id);
     }
-    
+    for (final review in deletedMovieReviews) {
+      await _reviewDao.permanentDeleteReview(review.id);
+    }
+    for (final review in deletedBookReviews) {
+      await _bookReviewDao.permanentDeleteReview(review.id);
+    }
+
     await loadMovies();
     await loadBooks();
     await loadNotes();
+  }
+
+  // ========== 影评书评回收站 ==========
+
+  Future<List<MovieReview>> getDeletedMovieReviews() async {
+    return await _reviewDao.getDeletedReviews();
+  }
+
+  Future<void> restoreMovieReview(String id) async {
+    await _reviewDao.restoreReview(id);
+  }
+
+  Future<void> permanentDeleteMovieReview(String id) async {
+    await _reviewDao.permanentDeleteReview(id);
+  }
+
+  Future<List<BookReview>> getDeletedBookReviews() async {
+    return await _bookReviewDao.getDeletedReviews();
+  }
+
+  Future<void> restoreBookReview(String id) async {
+    await _bookReviewDao.restoreReview(id);
+  }
+
+  Future<void> permanentDeleteBookReview(String id) async {
+    await _bookReviewDao.permanentDeleteReview(id);
   }
 
   // ========== 标签管理方法 ==========

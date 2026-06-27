@@ -28,6 +28,15 @@ class ReaderSettings {
   /// When true, volume up/down keys turn pages in the reader.
   final bool volumeKeyTurnsPage;
 
+  /// Reader theme preset index (0 = follow app, 1-8 = presets, 9 = custom).
+  final int themeIndex;
+
+  /// Custom background color (ARGB int), used when themeIndex == 9.
+  final int customBgColor;
+
+  /// Custom text color (ARGB int), used when themeIndex == 9.
+  final int customTextColor;
+
   const ReaderSettings({
     this.zoom = 1.0,
     this.followAppTheme = true,
@@ -40,6 +49,9 @@ class ReaderSettings {
     this.fontFileName,
     this.overrideFontFamily = false,
     this.volumeKeyTurnsPage = false,
+    this.themeIndex = 0,
+    this.customBgColor = 0xFFFFFFFF,
+    this.customTextColor = 0xFF1A1A1A,
   });
 
   // Sentinel: lets copyWith(fontFileName: null) mean "set to null" rather than
@@ -58,6 +70,9 @@ class ReaderSettings {
     Object? fontFileName = _kUnset,
     bool? overrideFontFamily,
     bool? volumeKeyTurnsPage,
+    int? themeIndex,
+    int? customBgColor,
+    int? customTextColor,
   }) {
     return ReaderSettings(
       zoom: zoom ?? this.zoom,
@@ -73,21 +88,78 @@ class ReaderSettings {
           : fontFileName as String?,
       overrideFontFamily: overrideFontFamily ?? this.overrideFontFamily,
       volumeKeyTurnsPage: volumeKeyTurnsPage ?? this.volumeKeyTurnsPage,
+      themeIndex: themeIndex ?? this.themeIndex,
+      customBgColor: customBgColor ?? this.customBgColor,
+      customTextColor: customTextColor ?? this.customTextColor,
     );
   }
 
   EpubTheme toEpubTheme(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    ColorScheme colorScheme;
+    bool shouldOverride = true;
+
+    if (themeIndex == 0) {
+      // 跟随 App 主题
+      colorScheme = Theme.of(context).colorScheme;
+    } else {
+      Color bg;
+      Color text;
+      bool isDark;
+
+      if (themeIndex == 9) {
+        // 自定义颜色
+        bg = Color(customBgColor);
+        text = Color(customTextColor);
+        isDark = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark;
+      } else if (themeIndex >= 1 &&
+          themeIndex <= ReaderThemePresets.presets.length) {
+        final preset = ReaderThemePresets.presets[themeIndex];
+        bg = preset.surface;
+        text = preset.onSurface;
+        isDark = preset.isDark;
+      } else {
+        colorScheme = Theme.of(context).colorScheme;
+        return EpubTheme(
+          zoom: zoom,
+          shouldOverrideTextColor: true,
+          colorScheme: colorScheme,
+          padding: EdgeInsets.only(
+            top: marginTop, bottom: marginBottom,
+            left: marginLeft, right: marginRight,
+          ),
+          fontFileName: fontFileName,
+          overrideFontFamily: overrideFontFamily,
+        );
+      }
+
+      colorScheme = ColorScheme(
+        brightness: isDark ? Brightness.dark : Brightness.light,
+        primary: text,
+        onPrimary: bg,
+        secondary: text,
+        onSecondary: bg,
+        error: const Color(0xFFDC2626),
+        onError: bg,
+        surface: bg,
+        onSurface: text,
+        surfaceContainerHighest: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0),
+        surfaceContainerHigh: isDark ? const Color(0xFF222222) : const Color(0xFFFAFAFA),
+        surfaceContainer: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+        surfaceContainerLow: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
+        outline: isDark ? const Color(0xFF444444) : const Color(0xFFCCCCCC),
+        outlineVariant: isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5),
+        onSurfaceVariant: isDark ? const Color(0xFFAAAAAA) : const Color(0xFF666666),
+        primaryContainer: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0),
+      );
+    }
 
     return EpubTheme(
       zoom: zoom,
-      shouldOverrideTextColor: true,
+      shouldOverrideTextColor: shouldOverride,
       colorScheme: colorScheme,
       padding: EdgeInsets.only(
-        top: marginTop,
-        bottom: marginBottom,
-        left: marginLeft,
-        right: marginRight,
+        top: marginTop, bottom: marginBottom,
+        left: marginLeft, right: marginRight,
       ),
       fontFileName: fontFileName,
       overrideFontFamily: overrideFontFamily,
@@ -115,6 +187,9 @@ class ReaderSettings {
     }
     await prefs.setBool('${_kPrefix}overrideFontFamily', overrideFontFamily);
     await prefs.setBool('${_kPrefix}volumeKeyTurnsPage', volumeKeyTurnsPage);
+    await prefs.setInt('${_kPrefix}themeIndex', themeIndex);
+    await prefs.setInt('${_kPrefix}customBgColor', customBgColor);
+    await prefs.setInt('${_kPrefix}customTextColor', customTextColor);
   }
 
   static Future<ReaderSettings> load() async {

@@ -21,70 +21,90 @@ class _StatisticsPageState extends State<StatisticsPage> {
   bool get _showBooks => UserPrefs().showBookTab;
   bool get _showNotes => UserPrefs().showNoteTab;
 
+  // 缓存过滤后的列表，避免每次 build 都重新过滤
+  List<Movie>? _cachedMovies;
+  List<Book>? _cachedBooks;
+  List<Note>? _cachedNotes;
+  List<Movie>? _filteredMovies;
+  List<Book>? _filteredBooks;
+  List<Note>? _filteredNotes;
+
+  (List<Movie>, List<Book>, List<Note>) _getFilteredLists(
+      List<Movie> movies, List<Book> books, List<Note> notes) {
+    if (!identical(movies, _cachedMovies) ||
+        !identical(books, _cachedBooks) ||
+        !identical(notes, _cachedNotes)) {
+      _cachedMovies = movies;
+      _cachedBooks = books;
+      _cachedNotes = notes;
+      _filteredMovies = movies.where((m) => !m.isDeleted).toList();
+      _filteredBooks = books.where((b) => !b.isDeleted).toList();
+      _filteredNotes = notes.where((n) => !n.isDeleted).toList();
+    }
+    return (_filteredMovies!, _filteredBooks!, _filteredNotes!);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final movies = context.select<AppProvider, List<Movie>>((p) => p.movies);
+    final books = context.select<AppProvider, List<Book>>((p) => p.books);
+    final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
+    final (fm, fb, fn) = _getFilteredLists(movies, books, notes);
+
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('数据统计')),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, child) {
-          final movies = provider.movies.where((m) => !m.isDeleted).toList();
-          final books = provider.books.where((b) => !b.isDeleted).toList();
-          final notes = provider.notes.where((n) => !n.isDeleted).toList();
-
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              // 1. 总览
-              _buildOverview(movies, books, notes),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // 1. 总览
+          _buildOverview(fm, fb, fn),
               const SizedBox(height: 28),
               // 2. 状态分布
               if (_showMovies) ...[
-                _buildStatusSection('影视状态分布', movies, (m) => m.status, {'已看': 'watched', '在看': 'watching', '想看': 'want_to_watch'}),
+                _buildStatusSection('影视状态分布', fm, (m) => m.status, {'已看': 'watched', '在看': 'watching', '想看': 'want_to_watch'}),
                 const SizedBox(height: 28),
               ],
               if (_showBooks) ...[
-                _buildStatusSection('阅读状态分布', books, (b) => b.status, {'已读': 'read', '在读': 'reading', '想读': 'want_to_read'}),
+                _buildStatusSection('阅读状态分布', fb, (b) => b.status, {'已读': 'read', '在读': 'reading', '想读': 'want_to_read'}),
                 const SizedBox(height: 28),
               ],
               // 3. 习惯洞察
-              _buildHabitsInsight(movies, books, notes),
+              _buildHabitsInsight(fm, fb, fn),
               const SizedBox(height: 28),
               // 4. 类型偏好雷达图
-              _buildGenreRadar(movies, books),
+              _buildGenreRadar(fm, fb),
               const SizedBox(height: 28),
               // 5. 导演/作者 TOP 5
-              _buildDirectorTop5(movies),
+              _buildDirectorTop5(fm),
               const SizedBox(height: 28),
-              _buildAuthorTop5(books),
+              _buildAuthorTop5(fb),
               const SizedBox(height: 28),
               // 6. 高分之最
-              _buildTopRated(movies, books),
+              _buildTopRated(fm, fb),
               const SizedBox(height: 28),
               // 7. 评分分布
-              _buildRatingDistribution(movies, books),
+              _buildRatingDistribution(fm, fb),
               const SizedBox(height: 28),
               // 8. 年度趋势
-              _buildYearlyTrend(movies, books, notes),
+              _buildYearlyTrend(fm, fb, fn),
               const SizedBox(height: 28),
               // 9. 星期分布
-              _buildWeekdayDistribution(movies, books, notes),
+              _buildWeekdayDistribution(fm, fb, fn),
               const SizedBox(height: 28),
               // 10. 累计增长
-              _buildCumulativeGrowth(movies, books, notes),
+              _buildCumulativeGrowth(fm, fb, fn),
               const SizedBox(height: 28),
               // 11. 标签词云
-              _buildTagCloud(movies, books, notes),
+              _buildTagCloud(fm, fb, fn),
               const SizedBox(height: 28),
               // 12+13. 马拉松 + 标签之最
-              _buildFunStats(movies, books, notes),
+              _buildFunStats(fm, fb, fn),
               const SizedBox(height: 80),
             ],
-          );
-        },
-      ),
-    );
+          ),
+        );
   }
 
   // ─── 1. 总览区域 ──────────────────────────────────────────────────────

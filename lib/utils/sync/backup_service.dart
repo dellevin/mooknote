@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -89,57 +88,73 @@ class BackupService {
       },
     };
 
-    // 创建 ZIP
-    final archive = Archive();
-    final jsonString = const JsonEncoder.withIndent('  ').convert(backupData);
-    final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
-    archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
+    // 创建 ZIP（逐文件写入磁盘，避免全部加载到内存）
+    final tempDir = await getTemporaryDirectory();
+    final tempZipPath = path.join(tempDir.path, 'mooknote_backup_temp.zip');
+    final encoder = ZipFileEncoder();
+    encoder.create(tempZipPath);
 
-    int imageCount = 0;
-    final appDir = await getApplicationDocumentsDirectory();
-    final imagesRoot = path.join(appDir.path, 'images');
+    try {
+      // data.json
+      final jsonString = const JsonEncoder.withIndent('  ').convert(backupData);
+      final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
+      final dataFile = File(path.join(tempDir.path, 'mooknote_data.json'));
+      await dataFile.writeAsBytes(jsonBytes);
+      encoder.addFile(dataFile, 'data.json');
+      await dataFile.delete();
 
-    for (final imagePath in imagePaths) {
-      final file = File(imagePath);
-      if (await file.exists()) {
-        final bytes = await file.readAsBytes();
-        String relativePath;
-        if (imagePath.startsWith(imagesRoot)) {
-          relativePath = imagePath.substring(imagesRoot.length + 1);
-        } else {
-          relativePath = path.basename(imagePath);
-        }
-        archive.addFile(ArchiveFile('images/$relativePath', bytes.length, bytes));
-        imageCount++;
-      }
-    }
+      int imageCount = 0;
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesRoot = path.join(appDir.path, 'images');
 
-    // 收集 epub_books 目录下的 epub 文件
-    int epubCount = 0;
-    final epubRoot = path.join(appDir.path, 'epub_books');
-    final epubDir = Directory(epubRoot);
-    if (await epubDir.exists()) {
-      await for (final entity in epubDir.list(recursive: true)) {
-        if (entity is File) {
-          final bytes = await entity.readAsBytes();
-          final relativePath = entity.path.substring(epubRoot.length + 1);
-          archive.addFile(ArchiveFile('epub_books/$relativePath', bytes.length, bytes));
-          epubCount++;
+      for (final imagePath in imagePaths) {
+        final file = File(imagePath);
+        if (await file.exists()) {
+          String relativePath;
+          if (imagePath.startsWith(imagesRoot)) {
+            relativePath = imagePath.substring(imagesRoot.length + 1);
+          } else {
+            relativePath = path.basename(imagePath);
+          }
+          encoder.addFile(file, 'images/$relativePath');
+          imageCount++;
         }
       }
+
+      // 收集 epub_books 目录下的 epub 文件
+      int epubCount = 0;
+      final epubRoot = path.join(appDir.path, 'epub_books');
+      final epubDir = Directory(epubRoot);
+      if (await epubDir.exists()) {
+        await for (final entity in epubDir.list(recursive: true)) {
+          if (entity is File) {
+            final relativePath = entity.path.substring(epubRoot.length + 1);
+            encoder.addFile(entity, 'epub_books/$relativePath');
+            epubCount++;
+          }
+        }
+      }
+
+      encoder.close();
+
+      // 读取最终 zip 文件
+      final zipFile = File(tempZipPath);
+      final zipBytes = await zipFile.readAsBytes();
+      await zipFile.delete();
+
+      return _ExportData(
+        zipBytes: Uint8List.fromList(zipBytes),
+        movieCount: movies.length,
+        bookCount: books.length,
+        noteCount: notes.length,
+        imageCount: imageCount,
+        epubCount: epubCount,
+      );
+    } catch (e) {
+      encoder.close();
+      try { await File(tempZipPath).delete(); } catch (_) {}
+      rethrow;
     }
-
-    final zipBytes = ZipEncoder().encode(archive);
-    if (zipBytes == null) throw Exception('压缩备份文件失败');
-
-    return _ExportData(
-      zipBytes: Uint8List.fromList(zipBytes),
-      movieCount: movies.length,
-      bookCount: books.length,
-      noteCount: notes.length,
-      imageCount: imageCount,
-      epubCount: epubCount,
-    );
   }
 
   // ─── 手动导出 ─────────────────────────────────────────

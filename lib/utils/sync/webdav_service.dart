@@ -311,11 +311,16 @@ class WebDAVService {
         }
 
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
+
+        // 仅在上传成功或下载成功时记录同步时间
+        final bool anySuccess = uploadedFiles > 0 || downloadedFiles > 0;
+        if (anySuccess) {
+          await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
+        }
 
         return SyncResult(
-          success: true,
-          message: '同步完成',
+          success: anySuccess,
+          message: anySuccess ? '同步完成' : '同步未完成，未传输任何数据',
           lastSyncTime: DateTime.now(),
           uploadedFiles: uploadedFiles,
           downloadedFiles: downloadedFiles,

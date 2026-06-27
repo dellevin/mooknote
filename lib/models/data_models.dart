@@ -46,6 +46,7 @@ class Movie {
   final String? summary; // 剧情简介
   final double? rating; // 评分 1-10
   final String status; // watched/want_to_watch/watching
+  final String category; // 影视分类: movie/tv/anime/variety/documentary/short
   final DateTime? watchDate; // 观看日期
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -65,6 +66,7 @@ class Movie {
     this.summary,
     this.rating,
     required this.status,
+    this.category = 'movie',
     this.watchDate,
     required this.createdAt,
     required this.updatedAt,
@@ -86,6 +88,7 @@ class Movie {
       summary: json['summary'],
       rating: json['rating']?.toDouble(),
       status: json['status'] ?? 'want_to_watch',
+      category: json['category'] ?? 'movie',
       watchDate: _safeParseDate(json['watch_date']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -108,6 +111,7 @@ class Movie {
       'summary': summary,
       'rating': rating,
       'status': status,
+      'category': category,
       'watch_date': watchDate?.toUtc().toIso8601String(),
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -142,6 +146,7 @@ class Movie {
     Object? summary = _copyWithNull,
     Object? rating = _copyWithNull,
     String? status,
+    String? category,
     DateTime? watchDate,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -161,6 +166,7 @@ class Movie {
       summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
       rating: rating is _CopyWithNullSentinel ? this.rating : (rating as double?),
       status: status ?? this.status,
+      category: category ?? this.category,
       watchDate: watchDate ?? this.watchDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

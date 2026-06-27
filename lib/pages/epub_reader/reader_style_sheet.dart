@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/epub/epub_theme.dart';
 import 'widgets/integer_stepper.dart';
 import 'widgets/reader_scale_slider.dart';
 
@@ -18,6 +19,11 @@ class ReaderStyleSheet extends StatefulWidget {
   final ValueChanged<double> onMarginLeftChanged;
   final ValueChanged<double> onMarginRightChanged;
   final ValueChanged<double> onFontSizeChanged;
+  final int themeIndex;
+  final int customBgColor;
+  final int customTextColor;
+  final ValueChanged<int> onThemeIndexChanged;
+  final void Function(int bgColor, int textColor) onCustomColorChanged;
 
   const ReaderStyleSheet({
     super.key,
@@ -33,6 +39,11 @@ class ReaderStyleSheet extends StatefulWidget {
     required this.onMarginLeftChanged,
     required this.onMarginRightChanged,
     required this.onFontSizeChanged,
+    required this.themeIndex,
+    required this.customBgColor,
+    required this.customTextColor,
+    required this.onThemeIndexChanged,
+    required this.onCustomColorChanged,
   });
 
   @override
@@ -46,6 +57,9 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
   late int _leftMargin;
   late int _rightMargin;
   late double _fontSize;
+  late int _themeIndex;
+  late int _customBgColor;
+  late int _customTextColor;
 
   static const int _marginMin = 0;
   static const int _marginMax = 64;
@@ -62,6 +76,9 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
     _leftMargin = widget.marginLeft.toInt();
     _rightMargin = widget.marginRight.toInt();
     _fontSize = widget.fontSize;
+    _themeIndex = widget.themeIndex;
+    _customBgColor = widget.customBgColor;
+    _customTextColor = widget.customTextColor;
   }
 
   @override
@@ -257,6 +274,13 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 24),
+
+                // -- 阅读主题 --
+                const _SectionTitle(label: '阅读主题'),
+                const SizedBox(height: 10),
+                _buildThemePresets(colorScheme),
               ],
             ),
           ),
@@ -264,6 +288,223 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
       },
     );
   }
+
+  Widget _buildThemePresets(ColorScheme colorScheme) {
+    final presets = ReaderThemePresets.presets;
+    return SizedBox(
+      height: 56,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: presets.length + 1, // +1 for custom
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (ctx, i) {
+          final isSelected = _themeIndex == i;
+          final borderColor = isSelected
+              ? colorScheme.primary
+              : colorScheme.outlineVariant;
+          if (i < presets.length) {
+            final preset = presets[i];
+            return GestureDetector(
+              onTap: () {
+                setState(() => _themeIndex = i);
+                widget.onThemeIndexChanged(i);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: i == 0
+                      ? colorScheme.surfaceContainerHighest
+                      : preset.surface,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: borderColor,
+                    width: isSelected ? 2.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: isSelected
+                      ? Icon(
+                          Icons.check,
+                          size: 20,
+                          color: i == 0
+                              ? colorScheme.onSurface
+                              : preset.onSurface,
+                        )
+                      : i == 0
+                          ? Icon(
+                              Icons.phone_android,
+                              size: 18,
+                              color: colorScheme.onSurfaceVariant,
+                            )
+                          : Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: preset.onSurface,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                ),
+              ),
+            );
+          }
+          // Custom color chip
+          return GestureDetector(
+            onTap: () => _showCustomColorPicker(ctx),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Color(_customBgColor),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: borderColor,
+                  width: isSelected ? 2.5 : 1,
+                ),
+              ),
+              child: Center(
+                child: isSelected
+                    ? Icon(Icons.check, size: 20, color: Color(_customTextColor))
+                    : Icon(Icons.palette_outlined, size: 18, color: Color(_customTextColor)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCustomColorPicker(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    Color bgColor = Color(_customBgColor);
+    Color textColor = Color(_customTextColor);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: cs.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('自定义颜色', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Preview
+                  Container(
+                    width: double.infinity,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.outlineVariant, width: 0.5),
+                    ),
+                    child: Center(
+                      child: Text('预览文字 Aa 字体',
+                          style: TextStyle(color: textColor, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Background color
+                  _buildColorRow(
+                    label: '背景色',
+                    color: bgColor,
+                    onChanged: (c) => setDialogState(() => bgColor = c),
+                    cs: cs,
+                  ),
+                  const SizedBox(height: 12),
+                  // Text color
+                  _buildColorRow(
+                    label: '文字色',
+                    color: textColor,
+                    onChanged: (c) => setDialogState(() => textColor = c),
+                    cs: cs,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _customBgColor = bgColor.value;
+                      _customTextColor = textColor.value;
+                      _themeIndex = 9;
+                    });
+                    widget.onCustomColorChanged(bgColor.value, textColor.value);
+                    widget.onThemeIndexChanged(9);
+                    Navigator.pop(ctx);
+                  },
+                  child: Text('确定', style: TextStyle(fontWeight: FontWeight.w600, color: cs.primary)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildColorRow({
+    required String label,
+    required Color color,
+    required ValueChanged<Color> onChanged,
+    required ColorScheme cs,
+  }) {
+    return Row(
+      children: [
+        Text(label, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+        const Spacer(),
+        // Preset color chips
+        ..._presetColors.map((c) {
+          final selected = c.$2 == color;
+          return GestureDetector(
+            onTap: () => onChanged(c.$2),
+            child: Container(
+              width: 28,
+              height: 28,
+              margin: const EdgeInsets.only(left: 6),
+              decoration: BoxDecoration(
+                color: c.$2,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: selected ? cs.primary : cs.outlineVariant,
+                  width: selected ? 2 : 1,
+                ),
+              ),
+              child: selected
+                  ? Icon(Icons.check, size: 14,
+                      color: ThemeData.estimateBrightnessForColor(c.$2) == Brightness.dark
+                          ? Colors.white : Colors.black)
+                  : null,
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  static const _presetColors = [
+    ('白色', Color(0xFFFFFFFF)),
+    ('浅灰', Color(0xFFF5F5F5)),
+    ('护眼', Color(0xFFF4ECD8)),
+    ('抹茶', Color(0xFFF6FBF5)),
+    ('樱花', Color(0xFFFFF8F8)),
+    ('浅蓝', Color(0xFFF0F4FF)),
+    ('深灰', Color(0xFF333333)),
+    ('深褐', Color(0xFF2C2418)),
+    ('深蓝', Color(0xFF1A2A3A)),
+    ('深绿', Color(0xFF1A2E1A)),
+    ('黑色', Color(0xFF1A1A1A)),
+    ('深红', Color(0xFF3A1A1A)),
+  ];
 }
 
 /// Section title (equivalent to lumina's SettingsSectionTitle)

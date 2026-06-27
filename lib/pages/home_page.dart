@@ -18,11 +18,41 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
   bool _isSwitchingPage = false;
+  int _lastNavIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _lastNavIndex = context.read<AppProvider>().bottomNavIndex;
+    });
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _onNavIndexChanged(AppProvider provider) {
+    final currentPage = provider.bottomNavIndex == 0 ? 0 : 1;
+    if (currentPage == _lastNavIndex) return;
+    _lastNavIndex = currentPage;
+
+    if (!_pageController.hasClients) return;
+    if (_pageController.page?.round() == currentPage) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _isSwitchingPage = true;
+      _pageController.jumpToPage(currentPage);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _isSwitchingPage = false;
+          provider.setBottomNavVisible(true);
+        }
+      });
+    });
   }
 
   @override
@@ -34,21 +64,7 @@ class _HomePageState extends State<HomePage> {
 
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
-          final currentPage = provider.bottomNavIndex == 0 ? 0 : 1;
-          if (_pageController.hasClients && _pageController.page?.round() != currentPage) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                _isSwitchingPage = true;
-                _pageController.jumpToPage(currentPage);
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  if (mounted) {
-                    _isSwitchingPage = false;
-                    provider.setBottomNavVisible(true);
-                  }
-                });
-              }
-            });
-          }
+          _onNavIndexChanged(provider);
 
           return NotificationListener<ScrollNotification>(
             onNotification: (notification) {

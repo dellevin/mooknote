@@ -323,24 +323,31 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('确认删除'),
-          content: const Text('确定要删除这条书评吗？'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定要删除这条书评吗？删除后可在回收站恢复。',
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeBookReview(review.id);
                 Navigator.pop(context);
                 _loadReviews();
                 ToastUtil.show(context, '已删除');
               },
-              child: Text('删除', style: TextStyle(color: colors.error)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('删除'),
             ),
           ],
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         );
       },
     );

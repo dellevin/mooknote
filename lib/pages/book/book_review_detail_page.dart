@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 
 /// 书评详情页
@@ -55,12 +56,15 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
       appBar: AppBar(
         title: const Text('书评详情'),
         actions: [
-          // 编辑按钮
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => _navigateToEdit(context),
           ),
-          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.delete_outline, size: 20, color: colors.error.withValues(alpha: 0.7)),
+            onPressed: _deleteReview,
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SingleChildScrollView(
@@ -166,6 +170,41 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
         ),
       ],
     );
+  }
+
+  Future<void> _deleteReview() async {
+    final colors = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除这条书评吗？删除后可在回收站恢复。',
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+    if (confirmed == true) {
+      await context.read<AppProvider>().removeBookReview(_review.id);
+      if (mounted) { ToastUtil.show(context, '已删除'); Navigator.pop(context); }
+    }
   }
 
   String _formatDate(DateTime date) {

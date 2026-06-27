@@ -283,7 +283,7 @@ class _NotePlusFormPageState extends State<NotePlusFormPage> {
         top: false,
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
+            color: colors.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(14),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),

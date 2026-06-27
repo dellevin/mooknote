@@ -12,7 +12,7 @@ class RecycleBinPage extends StatefulWidget {
   State<RecycleBinPage> createState() => _RecycleBinPageState();
 }
 
-enum _ItemType { movie, book, note }
+enum _ItemType { movie, book, note, movieReview, bookReview }
 
 class _DeletedItem {
   final _ItemType type;
@@ -45,6 +45,22 @@ class _DeletedItem {
         subtitle = '删除于 ${n.updatedAt.year}.${n.updatedAt.month.toString().padLeft(2, '0')}.${n.updatedAt.day.toString().padLeft(2, '0')}',
         icon = Icons.description_outlined,
         typeLabel = '笔记';
+
+  _DeletedItem.movieReview(MovieReview r)
+      : type = _ItemType.movieReview,
+        id = r.id,
+        title = r.content.isNotEmpty ? r.content : '影评',
+        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.rate_review_outlined,
+        typeLabel = '影评';
+
+  _DeletedItem.bookReview(BookReview r)
+      : type = _ItemType.bookReview,
+        id = r.id,
+        title = r.content.isNotEmpty ? r.content : '书评',
+        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.rate_review_outlined,
+        typeLabel = '书评';
 }
 
 class _RecycleBinPageState extends State<RecycleBinPage> {
@@ -67,12 +83,16 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     final movies = await provider.getDeletedMovies();
     final books = await provider.getDeletedBooks();
     final notes = await provider.getDeletedNotes();
+    final movieReviews = await provider.getDeletedMovieReviews();
+    final bookReviews = await provider.getDeletedBookReviews();
     if (!mounted) return;
     setState(() {
       _allItems = [
         for (final m in movies) _DeletedItem.movie(m),
         for (final b in books) _DeletedItem.book(b),
         for (final n in notes) _DeletedItem.note(n),
+        for (final r in movieReviews) _DeletedItem.movieReview(r),
+        for (final r in bookReviews) _DeletedItem.bookReview(r),
       ];
       _isLoading = false;
     });
@@ -138,11 +158,14 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       ),
       child: Wrap(
         spacing: 8,
+        runSpacing: 8,
         children: [
           _filterChip('全部', null),
           _filterChip('影视', _ItemType.movie),
           _filterChip('书籍', _ItemType.book),
           _filterChip('笔记', _ItemType.note),
+          _filterChip('影评', _ItemType.movieReview),
+          _filterChip('书评', _ItemType.bookReview),
         ],
       ),
     );
@@ -327,6 +350,12 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       case _ItemType.note:
         await provider.restoreNote(item.id);
         if (mounted) ToastUtil.show(context, '笔记已恢复');
+      case _ItemType.movieReview:
+        await provider.restoreMovieReview(item.id);
+        if (mounted) ToastUtil.show(context, '影评已恢复');
+      case _ItemType.bookReview:
+        await provider.restoreBookReview(item.id);
+        if (mounted) ToastUtil.show(context, '书评已恢复');
     }
     _loadDeletedItems();
   }
@@ -342,6 +371,10 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         await provider.permanentDeleteBook(item.id);
       case _ItemType.note:
         await provider.permanentDeleteNote(item.id);
+      case _ItemType.movieReview:
+        await provider.permanentDeleteMovieReview(item.id);
+      case _ItemType.bookReview:
+        await provider.permanentDeleteBookReview(item.id);
     }
     _loadDeletedItems();
     if (mounted) ToastUtil.show(context, '已彻底删除');

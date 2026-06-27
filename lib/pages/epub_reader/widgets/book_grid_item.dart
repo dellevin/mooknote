@@ -36,7 +36,7 @@ class BookGridItem extends StatelessWidget {
 
   // ─── mode helpers ─────────────────────────────────────────────────────────
 
-  /// Relaxed: cover + title + author + progress bar.
+  /// Relaxed: cover + title + author, 右上角进度百分比。
   Widget _buildRelaxed(BuildContext context) {
     final title = book['title'] as String? ?? '';
     final author = book['author'] as String? ?? '';
@@ -45,8 +45,10 @@ class BookGridItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildCoverStack(context, fit: StackFit.expand)),
-        const SizedBox(height: 12),
+        Expanded(child: _buildCoverStack(context, fit: StackFit.expand, extras: [
+          if (progress > 0) _buildProgressBadge(context),
+        ])),
+        const SizedBox(height: 8),
         Text(
           title,
           maxLines: 2,
@@ -55,8 +57,8 @@ class BookGridItem extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 4),
-        if (author.isNotEmpty)
+        if (author.isNotEmpty) ...[
+          const SizedBox(height: 2),
           Text(
             author,
             maxLines: 1,
@@ -66,17 +68,7 @@ class BookGridItem extends StatelessWidget {
               fontSize: 12,
             ),
           ),
-        if (progress > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 3,
-              ),
-            ),
-          ),
+        ],
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 /// 块类型枚举
@@ -220,9 +221,15 @@ class NotePlusDocument {
   /// 从 JSON（DB 行）创建
   factory NotePlusDocument.fromJson(Map<String, dynamic> json) {
     final blocksJson = json['blocks_json'] as String? ?? '[]';
-    final blocksList = (jsonDecode(blocksJson) as List<dynamic>)
-        .map((b) => NoteBlock.fromJson(b as Map<String, dynamic>))
-        .toList();
+    List<NoteBlock> blocksList;
+    try {
+      blocksList = (jsonDecode(blocksJson) as List<dynamic>)
+          .map((b) => NoteBlock.fromJson(b as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[NotePlusDocument] blocks_json 解析失败，使用默认空文档: $e');
+      blocksList = [];
+    }
 
     return NotePlusDocument(
       id: json['id'] as String?,

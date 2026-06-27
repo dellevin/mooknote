@@ -133,4 +133,32 @@ class ReaderDao {
     final db = await _db.database;
     return db.delete('book_annotations', where: 'id = ?', whereArgs: [id]);
   }
+
+  // ─── bookmarks ──────────────────────────────────────────────────
+
+  /// 获取某本书的所有书签
+  Future<List<Map<String, dynamic>>> getBookmarksByBookId(String bookId) async {
+    final db = await _db.database;
+    return db.query(
+      'book_annotations',
+      where: 'book_id = ? AND type = ?',
+      whereArgs: [bookId, 'bookmark'],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  /// 插入书签
+  Future<int> insertBookmark(Map<String, dynamic> bookmark) async {
+    final db = await _db.database;
+    return db.insert('book_annotations', {
+      ...bookmark,
+      'type': 'bookmark',
+    });
+  }
+
+  /// 删除书签
+  Future<int> deleteBookmark(int id) async {
+    final db = await _db.database;
+    return db.delete('book_annotations', where: 'id = ?', whereArgs: [id]);
+  }
 }

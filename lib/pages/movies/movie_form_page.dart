@@ -50,6 +50,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
   List<String> _alternateTitles = [];
   String? _posterPath;
   String _status = 'want_to_watch';
+  String _category = 'movie';
   DateTime? _releaseDate;
   DateTime? _watchDate;
   bool _isDownloading = false;
@@ -85,6 +86,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       _alternateTitles = List.from(movie.alternateTitles);
       _posterPath = movie.posterPath;
       _status = movie.status;
+      _category = movie.category;
       _releaseDate = movie.releaseDate;
       _watchDate = movie.watchDate;
     } else if (widget.initialStatus != null) {
@@ -831,10 +833,59 @@ class _MovieFormPageState extends State<MovieFormPage> {
               ],
             ],
           ),
+          const SizedBox(height: 12),
+          // 分类
+          Row(
+            children: [
+              Text('分类', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _categories.map((c) {
+                      final isSelected = _category == c.$2;
+                      return GestureDetector(
+                        onTap: () => setState(() => _category = c.$2),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: EdgeInsets.only(right: c == _categories.last ? 0 : 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: isSelected ? colors.primary : colors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            c.$1,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                              color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
+
+  /// 影视分类选项
+  static const _categories = [
+    ('电影', 'movie'),
+    ('电视剧', 'tv'),
+    ('动漫', 'anime'),
+    ('综艺', 'variety'),
+    ('纪录片', 'documentary'),
+    ('微短剧', 'short'),
+  ];
 
   /// 构建状态选项
   Widget _buildStatusOption(String label, String value) {
@@ -1292,6 +1343,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         summary: _summaryController.text.trim(),
         rating: rating,
         status: _status,
+        category: _category,
         watchDate: _watchDate,
         createdAt: now,
         updatedAt: now,
@@ -1311,6 +1363,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         summary: _summaryController.text.trim(),
         rating: rating,
         status: _status,
+        category: _category,
         watchDate: _watchDate,
         updatedAt: now,
       );

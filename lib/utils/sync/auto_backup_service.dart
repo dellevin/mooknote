@@ -105,35 +105,54 @@ class AutoBackupService {
   /// 获取备份目录（下载目录/mooknote）
   Future<Directory?> _getBackupDirectory() async {
     try {
-      // 尝试获取下载目录
-      Directory? downloadDir;
-      
       if (Platform.isAndroid) {
-        // Android: 使用外部存储的下载目录
+        // 优先级 1: 官方 API 获取下载目录
+        try {
+          final dirs = await getExternalStorageDirectories(
+            type: StorageDirectory.downloads,
+          );
+          if (dirs != null && dirs.isNotEmpty) {
+            return Directory('${dirs.first.path}/$_backupDirName');
+          }
+        } catch (_) {}
+
+        // 优先级 2: 标准路径直接拼
+        final standardPath = '/storage/emulated/0/Download/$_backupDirName';
+        final standardDir = Directory(standardPath);
+        if (await standardDir.parent.exists()) {
+          return standardDir;
+        }
+
+        // 优先级 3: 从外部存储路径推导（旧逻辑兜底）
         final externalDir = await getExternalStorageDirectory();
         if (externalDir != null) {
-          // 通常路径是 /storage/emulated/0/Android/data/.../files
-          // 我们需要找到真正的下载目录
-          final path = externalDir.path;
-          final downloadPath = path.replaceAll(
-            '/Android/data/${externalDir.uri.pathSegments[externalDir.uri.pathSegments.length - 3]}/files',
-            '/Download',
-          );
-          downloadDir = Directory('$downloadPath/$_backupDirName');
+          final segments = externalDir.uri.pathSegments;
+          if (segments.length >= 3) {
+            final pkg = segments[segments.length - 3];
+            final downloadPath = externalDir.path.replaceAll(
+              '/Android/data/$pkg/files',
+              '/Download',
+            );
+            return Directory('$downloadPath/$_backupDirName');
+          }
         }
+
+        // 优先级 4: 降级到 app 内部目录
+        final appDir = await getApplicationDocumentsDirectory();
+        return Directory('${appDir.path}/$_backupDirName');
+
       } else if (Platform.isIOS) {
-        // iOS: 使用文档目录
         final docDir = await getApplicationDocumentsDirectory();
-        downloadDir = Directory('${docDir.path}/$_backupDirName');
+        return Directory('${docDir.path}/$_backupDirName');
       } else {
-        // 桌面端: 使用下载目录
+        // 桌面端
         final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
         if (home != null) {
-          downloadDir = Directory('$home/Downloads/$_backupDirName');
+          return Directory('$home/Downloads/$_backupDirName');
         }
+        final docDir = await getApplicationDocumentsDirectory();
+        return Directory('${docDir.path}/$_backupDirName');
       }
-      
-      return downloadDir;
     } catch (e) {
       debugPrint('AutoBackup: 获取备份目录失败 - $e');
       return null;

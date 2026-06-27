@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/book/book_dao.dart';
 import '../../utils/epub/reader_dao.dart';
+import '../../utils/toast_util.dart';
 import '../../models/data_models.dart';
 
 /// 选择关联书籍页面（带搜索功能）
@@ -63,9 +64,7 @@ class _BookLinkPageState extends State<BookLinkPage> {
   Future<void> _selectBook(Book book) async {
     await _readerDao.linkToBook(widget.readerBookId, book.id);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已关联《${book.title}》')),
-      );
+      ToastUtil.show(context, '已关联《${book.title}》');
       Navigator.pop(context, true);
     }
   }

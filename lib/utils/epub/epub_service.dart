@@ -22,9 +22,9 @@ class EpubService {
 
     // 复制 EPUB 到永久存储（FilePicker 临时文件会被清理）
     final appDir = await getApplicationDocumentsDirectory();
-    final booksDir = Directory(p.join(appDir.path, 'epub_books'));
-    if (!await booksDir.exists()) await booksDir.create(recursive: true);
-    final permanentPath = p.join(booksDir.path, '$bookId.epub');
+    final bookDir = Directory(p.join(appDir.path, 'epub_books', bookId));
+    if (!await bookDir.exists()) await bookDir.create(recursive: true);
+    final permanentPath = p.join(bookDir.path, 'book.epub');
     await File(sourcePath).copy(permanentPath);
 
     // 从永久副本解析
@@ -97,9 +97,9 @@ class EpubService {
       final coverFile = File(p.join(extractDir, coverRelPath));
       if (!await coverFile.exists()) return null;
 
-      // 保存到应用文档目录
+      // 保存到 epub_books/{bookId}/ 目录下
       final appDir = await getApplicationDocumentsDirectory();
-      final coverDir = p.join(appDir.path, 'images', 'books', bookId);
+      final coverDir = p.join(appDir.path, 'epub_books', bookId);
       await Directory(coverDir).create(recursive: true);
       final ext = p.extension(coverFile.path).toLowerCase();
       final destPath = p.join(coverDir, 'cover$ext');
@@ -142,19 +142,11 @@ class EpubService {
       if (await dir.exists()) await dir.delete(recursive: true);
     } catch (_) {}
 
-    // 清理封面
+    // 清理 epub_books/{bookId}/ 目录（epub + 封面）
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final coverDir = p.join(appDir.path, 'images', 'books', bookId);
-      final dir = Directory(coverDir);
-      if (await dir.exists()) await dir.delete(recursive: true);
-    } catch (_) {}
-
-    // 清理永久 EPUB 文件
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final epubFile = File(p.join(appDir.path, 'epub_books', '$bookId.epub'));
-      if (await epubFile.exists()) await epubFile.delete();
+      final bookDir = Directory(p.join(appDir.path, 'epub_books', bookId));
+      if (await bookDir.exists()) await bookDir.delete(recursive: true);
     } catch (_) {}
 
     // 软删除数据库记录

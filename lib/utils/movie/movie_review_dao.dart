@@ -100,4 +100,36 @@ class MovieReviewDao {
     );
     return List.generate(maps.length, (i) => MovieReview.fromJson(maps[i]));
   });
+
+  /// 获取所有已删除的影评
+  Future<List<MovieReview>> getDeletedReviews() => _wrap('getDeletedReviews', () async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movie_reviews',
+      where: 'is_deleted = 1',
+      orderBy: 'updated_at DESC',
+    );
+    return List.generate(maps.length, (i) => MovieReview.fromJson(maps[i]));
+  });
+
+  /// 恢复已删除的影评
+  Future<void> restoreReview(String id) => _wrap('restoreReview', () async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'movie_reviews',
+      {'is_deleted': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
+
+  /// 彻底删除影评
+  Future<void> permanentDeleteReview(String id) => _wrap('permanentDeleteReview', () async {
+    final db = await _dbHelper.database;
+    await db.delete(
+      'movie_reviews',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
 }

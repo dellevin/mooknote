@@ -29,6 +29,11 @@ class TocDrawer extends StatefulWidget {
   final VoidCallback? onCoverTap;
   final ThemeData themeData;
 
+  // 书签相关
+  final List<Map<String, dynamic>> bookmarks;
+  final void Function(Map<String, dynamic> bookmark)? onBookmarkTap;
+  final void Function(int bookmarkId)? onBookmarkDelete;
+
   const TocDrawer({
     super.key,
     required this.bookTitle,
@@ -40,20 +45,25 @@ class TocDrawer extends StatefulWidget {
     required this.onTocItemSelected,
     this.onCoverTap,
     required this.themeData,
+    this.bookmarks = const [],
+    this.onBookmarkTap,
+    this.onBookmarkDelete,
   });
 
   @override
   State<TocDrawer> createState() => _TocDrawerState();
 }
 
-class _TocDrawerState extends State<TocDrawer> {
-  final ScrollController _scrollController = ScrollController();
+class _TocDrawerState extends State<TocDrawer> with SingleTickerProviderStateMixin {
+  final ScrollController _tocScrollController = ScrollController();
   final Set<TocEntry> _expandedItems = {};
   List<_TocRowItem> _visibleItems = [];
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _initExpansionState();
     _regenerateVisibleItems();
 
@@ -80,7 +90,8 @@ class _TocDrawerState extends State<TocDrawer> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _tocScrollController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -161,10 +172,10 @@ class _TocDrawerState extends State<TocDrawer> {
       (row) => widget.activeTocItems.contains(row.item),
     );
 
-    if (index != -1 && _scrollController.hasClients) {
+    if (index != -1 && _tocScrollController.hasClients) {
       final offset = (index * 56.0) - (56.0 * 4);
-      _scrollController.jumpTo(
-        offset.clamp(0.0, _scrollController.position.maxScrollExtent),
+      _tocScrollController.jumpTo(
+        offset.clamp(0.0, _tocScrollController.position.maxScrollExtent),
       );
     }
   }
@@ -172,6 +183,7 @@ class _TocDrawerState extends State<TocDrawer> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.themeData.brightness == Brightness.dark;
+    final colors = widget.themeData.colorScheme;
 
     return Drawer(
       backgroundColor: widget.themeData.scaffoldBackgroundColor,
@@ -179,24 +191,59 @@ class _TocDrawerState extends State<TocDrawer> {
         child: Column(
           children: [
             _buildHeader(context, isDark),
+            // Tab bar
+            Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: colors.outlineVariant, width: 0.5),
+                ),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: colors.onSurface,
+                unselectedLabelColor: colors.onSurfaceVariant,
+                labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+                indicatorColor: colors.onSurface,
+                indicatorSize: TabBarIndicatorSize.label,
+                indicatorWeight: 2,
+                dividerColor: Colors.transparent,
+                tabs: const [
+                  Tab(text: '目录'),
+                  Tab(text: '书签'),
+                ],
+              ),
+            ),
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: _visibleItems.length + 1,
-                itemExtent: 56.0,
-                itemBuilder: (context, index) {
-                  if (index == _visibleItems.length) {
-                    return const SizedBox(height: 56);
-                  }
-
-                  final row = _visibleItems[index];
-                  return _buildRowItem(context, row, isDark);
-                },
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTocTab(context, isDark),
+                  _buildBookmarkTab(context, isDark),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // ─── 目录 Tab ────────────────────────────────────────────────
+
+  Widget _buildTocTab(BuildContext context, bool isDark) {
+    return ListView.builder(
+      controller: _tocScrollController,
+      itemCount: _visibleItems.length + 1,
+      itemExtent: 56.0,
+      itemBuilder: (context, index) {
+        if (index == _visibleItems.length) {
+          return const SizedBox(height: 56);
+        }
+
+        final row = _visibleItems[index];
+        return _buildRowItem(context, row, isDark);
+      },
     );
   }
 
@@ -266,6 +313,129 @@ class _TocDrawerState extends State<TocDrawer> {
     );
   }
 
+  // ─── 书签 Tab ────────────────────────────────────────────────
+
+  Widget _buildBookmarkTab(BuildContext context, bool isDark) {
+    final colors = widget.themeData.colorScheme;
+
+    if (widget.bookmarks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bookmark_outline, size: 48, color: colors.onSurfaceVariant.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+            Text('暂无书签', style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant.withValues(alpha: 0.5))),
+            const SizedBox(height: 4),
+            Text('阅读时点击顶部书签图标添加', style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant.withValues(alpha: 0.3))),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 56),
+      itemCount: widget.bookmarks.length,
+      itemBuilder: (context, index) {
+        final bm = widget.bookmarks[index];
+        return _buildBookmarkItem(context, bm);
+      },
+    );
+  }
+
+  Widget _buildBookmarkItem(BuildContext context, Map<String, dynamic> bookmark) {
+    final colors = widget.themeData.colorScheme;
+    final content = bookmark['content'] as String? ?? '';
+    final cfi = bookmark['cfi'] as String? ?? '';
+    final createdAt = bookmark['created_at'] as String? ?? '';
+    final bookmarkId = bookmark['id'] as int;
+
+    // 解析页码信息
+    String pageInfo = '';
+    if (cfi.isNotEmpty) {
+      final parts = cfi.split(':');
+      if (parts.length >= 2) {
+        final chapterIdx = int.tryParse(parts[0]) ?? 0;
+        pageInfo = '第 ${chapterIdx + 1} 章';
+      }
+    }
+
+    // 解析时间
+    String timeStr = '';
+    if (createdAt.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(createdAt).toLocal();
+        timeStr = '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+      } catch (_) {}
+    }
+
+    return Dismissible(
+      key: ValueKey(bookmarkId),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        color: colors.error,
+        child: Icon(Icons.delete_outline, color: colors.onError, size: 20),
+      ),
+      onDismissed: (_) {
+        widget.onBookmarkDelete?.call(bookmarkId);
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            widget.onBookmarkTap?.call(bookmark);
+            Navigator.of(context).pop();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: colors.outlineVariant, width: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.bookmark, size: 18, color: colors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        content.isNotEmpty ? content : pageInfo,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: widget.themeData.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (pageInfo.isNotEmpty && content.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          pageInfo,
+                          style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (timeStr.isNotEmpty)
+                  Text(
+                    timeStr,
+                    style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant.withValues(alpha: 0.4)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Header ──────────────────────────────────────────────────
+
   Widget _buildHeader(BuildContext context, bool isDark) {
     const authorText = '';
 
@@ -273,12 +443,6 @@ class _TocDrawerState extends State<TocDrawer> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: widget.themeData.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: widget.themeData.colorScheme.outline,
-            width: 1,
-          ),
-        ),
       ),
       child: GestureDetector(
         onTap: () {

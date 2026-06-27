@@ -598,6 +598,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 const SizedBox(width: 16),
               ],
               _buildStatusTag(movie),
+              const SizedBox(width: 6),
+              _buildCategoryTag(movie),
             ],
           ),
           const SizedBox(height: 8),
@@ -674,6 +676,35 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           fontSize: 12,
           color: textColor,
           fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryTag(Movie movie) {
+    final colors = Theme.of(context).colorScheme;
+    const labels = {
+      'movie': '电影',
+      'tv': '电视剧',
+      'anime': '动漫',
+      'variety': '综艺',
+      'documentary': '纪录片',
+      'short': '微短剧',
+    };
+    final label = labels[movie.category];
+    if (label == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: colors.onSurface.withValues(alpha: 0.5),
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

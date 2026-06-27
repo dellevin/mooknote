@@ -7,7 +7,9 @@ import '../../utils/epub/epub_parser.dart';
 import '../../utils/epub/reader_models.dart';
 import '../../utils/book/book_dao.dart';
 import '../../models/data_models.dart';
+import '../book/book_detail_page.dart';
 import 'book_link_page.dart';
+import 'epub_edit_page.dart';
 import 'reader_screen.dart';
 
 /// EPUB 书籍详情页
@@ -68,80 +70,14 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     ).then((_) => _refreshBook());
   }
 
-  // ─── 编辑对话框 ─────────────────────────────────────────────
-
-  void _showEditDialog() {
-    final titleCtrl = TextEditingController(text: _book['title'] as String? ?? '');
-    final authorCtrl = TextEditingController(text: _book['author'] as String? ?? '');
-    final colors = Theme.of(context).colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('编辑书籍信息',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: InputDecoration(
-                labelText: '标题',
-                labelStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: authorCtrl,
-              decoration: InputDecoration(
-                labelText: '作者',
-                labelStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              style: const TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        actions: [
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: colors.onPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            onPressed: () async {
-              final newTitle = titleCtrl.text.trim();
-              final newAuthor = authorCtrl.text.trim();
-              if (newTitle.isEmpty) return;
-              await _dao.updateReaderBook(widget.bookId, {
-                'title': newTitle,
-                'author': newAuthor,
-                'updated_at': DateTime.now().toIso8601String(),
-              });
-              if (ctx.mounted) Navigator.pop(ctx);
-              await _refreshBook();
-            },
-            child: const Text('保存'),
-          ),
-        ],
+  void _navigateToEdit() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EpubEditPage(bookId: widget.bookId, book: _book),
       ),
     );
+    if (changed == true && mounted) await _refreshBook();
   }
 
   // ─── Build ──────────────────────────────────────────────────
@@ -166,7 +102,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.edit_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-            onPressed: _showEditDialog,
+            onPressed: _navigateToEdit,
           ),
           const SizedBox(width: 4),
         ],
@@ -316,21 +252,35 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   Widget _buildLinkedBookCard(ColorScheme colors) {
     final linkedBookId = _book['book_id'] as String? ?? '';
     if (linkedBookId.isEmpty) {
-      return InkWell(
+      return GestureDetector(
         onTap: _navigateToLinkPage,
-        borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest,
+            color: colors.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: colors.outlineVariant, width: 0.5),
           ),
           child: Row(children: [
-            Icon(Icons.link_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
-            const SizedBox(width: 10),
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colors.outlineVariant, width: 0.5),
+              ),
+              child: Icon(Icons.link_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text('选择关联书籍',
-                  style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.5))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('关联书籍', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  const SizedBox(height: 4),
+                  Text('点击选择要关联的书籍', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                ],
+              ),
             ),
             Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
           ]),
@@ -342,32 +292,94 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
       future: _bookDao.getBookById(linkedBookId),
       builder: (context, snapshot) {
         final linkedTitle = snapshot.data?.title ?? '未知书籍';
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(children: [
-            Icon(Icons.link_outlined, size: 18, color: colors.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('已关联', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-                  Text(linkedTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                ],
+        final linkedAuthor = snapshot.data?.authors.take(2).join(' / ') ?? '';
+        return GestureDetector(
+          onTap: () => _showLinkedBookActions(colors, linkedTitle),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.outlineVariant, width: 0.5),
+            ),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.outlineVariant, width: 0.5),
+                ),
+                child: Icon(Icons.link, size: 20, color: colors.primary),
               ),
-            ),
-            GestureDetector(
-              onTap: _unlinkBook,
-              child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
-            ),
-          ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(linkedTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                    const SizedBox(height: 4),
+                    Text(
+                      linkedAuthor.isNotEmpty ? '已关联 · $linkedAuthor' : '已关联',
+                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+            ]),
+          ),
         );
       },
+    );
+  }
+
+  void _showLinkedBookActions(ColorScheme colors, String title) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Align(alignment: Alignment.centerLeft,
+                child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 0.5, color: colors.outlineVariant),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Container(width: 36, height: 36,
+                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.menu_book_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
+            title: Text('查看书籍详情', style: TextStyle(fontSize: 13, color: colors.onSurface)),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final bookId = _book['book_id'] as String? ?? '';
+              if (bookId.isEmpty) return;
+              final book = await _bookDao.getBookById(bookId);
+              if (book != null && mounted) {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: book)));
+              }
+            },
+          ),
+          Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Container(width: 36, height: 36,
+                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.link_off, size: 18, color: colors.error)),
+            title: Text('取消关联', style: TextStyle(fontSize: 13, color: colors.error)),
+            onTap: () { Navigator.pop(ctx); _unlinkBook(); },
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
     );
   }
 

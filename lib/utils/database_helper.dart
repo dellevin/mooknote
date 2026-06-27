@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
@@ -7,7 +8,7 @@ import '../models/data_models.dart';
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
-  static bool _isReopening = false;
+  static Completer<void>? _reopenCompleter;
 
   DatabaseHelper._init();
 
@@ -19,24 +20,30 @@ class DatabaseHelper {
 
   /// 重新打开数据库（用于 WebDAV 同步后）
   Future<void> reopenDatabase() async {
-    // 防止并发重开
-    if (_isReopening) return;
-    _isReopening = true;
+    // 如果已有重开在进行，等待它完成即可
+    if (_reopenCompleter != null) {
+      return _reopenCompleter!.future;
+    }
+    _reopenCompleter = Completer<void>();
     try {
       if (_database != null) {
         await _database!.close();
         _database = null;
       }
       _database = await _initDB('mooknote.db');
+      _reopenCompleter!.complete();
+    } catch (e) {
+      _reopenCompleter!.completeError(e);
+      rethrow;
     } finally {
-      _isReopening = false;
+      _reopenCompleter = null;
     }
   }
 
   Future<Database> get database async {
-    // 等待重开完成
-    while (_isReopening) {
-      await Future.delayed(const Duration(milliseconds: 50));
+    // 如果正在重开，等待完成（无忙等待）
+    if (_reopenCompleter != null) {
+      await _reopenCompleter!.future;
     }
     if (_database != null) return _database!;
     _database = await _initDB('mooknote.db');
@@ -49,7 +56,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 24,
+      version: 25,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -213,6 +220,13 @@ class DatabaseHelper {
       final cols = await db.rawQuery('PRAGMA table_info(reader_books)');
       if (!cols.any((col) => col['name'] == 'book_id')) {
         await db.execute("ALTER TABLE reader_books ADD COLUMN book_id TEXT DEFAULT ''");
+      }
+    }
+    if (oldVersion < 25) {
+      // movies 添加 category 列（影视分类）
+      final cols = await db.rawQuery('PRAGMA table_info(movies)');
+      if (!cols.any((col) => col['name'] == 'category')) {
+        await db.execute("ALTER TABLE movies ADD COLUMN category TEXT NOT NULL DEFAULT 'movie'");
       }
     }
   }
@@ -531,12 +545,13 @@ class DatabaseHelper {
         summary TEXT,
         rating REAL,
         status TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'movie',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0
       )
     ''');
-    
+
     // 迁移旧数据（尽可能保留）
     for (final row in oldData) {
       try {
@@ -585,6 +600,7 @@ class DatabaseHelper {
         summary TEXT,
         rating REAL,
         status TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'movie',
         watch_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
