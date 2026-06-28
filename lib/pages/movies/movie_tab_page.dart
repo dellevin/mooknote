@@ -27,6 +27,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
+  int _prevMovieCount = -1;
+  int _prevLayoutStyle = -1;
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
 
@@ -61,8 +63,15 @@ class _MovieTabPageState extends State<MovieTabPage> {
       }
     }
 
-    // 数据变化时刷新列表（排序/评分/新增等）
-    _loadFirst();
+    // 仅在数据或布局实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
+    final statusChanged = provider.movieStatusIndex != _lastStatusIndex;
+    final layoutChanged = provider.movieLayoutStyle != _prevLayoutStyle;
+    final countChanged = provider.movies.length != _prevMovieCount;
+    if (statusChanged || layoutChanged || countChanged) {
+      _prevLayoutStyle = provider.movieLayoutStyle;
+      _prevMovieCount = provider.movies.length;
+      _loadFirst();
+    }
   }
 
   void _onScroll() {

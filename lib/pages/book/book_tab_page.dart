@@ -28,6 +28,7 @@ class _BookTabPageState extends State<BookTabPage> {
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
+  int _prevBookCount = -1;
 
   static const _statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read'};
 
@@ -63,8 +64,13 @@ class _BookTabPageState extends State<BookTabPage> {
       }
     }
 
-    // 数据变化时刷新列表（排序/评分/新增等）
-    _loadFirst();
+    // 仅在数据实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
+    final statusChanged = provider.bookStatusIndex != _lastStatusIndex;
+    final countChanged = provider.books.length != _prevBookCount;
+    if (statusChanged || countChanged) {
+      _prevBookCount = provider.books.length;
+      _loadFirst();
+    }
   }
 
   void _onScroll() {

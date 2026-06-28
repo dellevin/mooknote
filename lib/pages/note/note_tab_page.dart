@@ -25,6 +25,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   int _layoutStyle = 0;
   bool _initialized = false;
   int _lastScrollSignal = 0;
+  int _prevNoteCount = -1;
 
   @override
   void initState() {
@@ -57,8 +58,12 @@ class _NoteTabPageState extends State<NoteTabPage> {
       }
     }
 
-    // 数据变化时刷新列表（排序/评分/新增等）
-    _loadFirst();
+    // 仅在数据实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
+    final countChanged = provider.notes.length != _prevNoteCount;
+    if (countChanged) {
+      _prevNoteCount = provider.notes.length;
+      _loadFirst();
+    }
   }
 
   void _onScroll() {

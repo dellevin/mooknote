@@ -135,7 +135,7 @@ class UserPrefs {
   bool get showSidebarTags => prefs.getBool('showSidebarTags') ?? true;
   Future<bool> setShowSidebarTags(bool value) => prefs.setBool('showSidebarTags', value);
 
-  bool get showSidebarMdReader => prefs.getBool('showSidebarMdReader') ?? true;
+  bool get showSidebarMdReader => prefs.getBool('showSidebarMdReader') ?? false;
   Future<bool> setShowSidebarMdReader(bool value) => prefs.setBool('showSidebarMdReader', value);
 
   bool get showSidebarEpub => prefs.getBool('showSidebarEpub') ?? true;
