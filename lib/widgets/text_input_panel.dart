@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// 右侧滑入文本输入弹窗（单行编辑用，如影视名称、书籍名称）
+/// 右侧滑入文本输入弹窗（单行/多行编辑用，如影视名称、书籍名称、简介）
 class TextInputPanel extends StatefulWidget {
   final String title;
   final String initialValue;
   final String hint;
   final TextInputType keyboardType;
+  final int maxLines;
 
   const TextInputPanel({
     super.key,
@@ -13,6 +14,7 @@ class TextInputPanel extends StatefulWidget {
     this.initialValue = '',
     this.hint = '',
     this.keyboardType = TextInputType.text,
+    this.maxLines = 1,
   });
 
   static Future<String?> show({
@@ -21,6 +23,7 @@ class TextInputPanel extends StatefulWidget {
     String initialValue = '',
     String hint = '',
     TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
   }) {
     return showGeneralDialog<String>(
       context: context,
@@ -40,6 +43,7 @@ class TextInputPanel extends StatefulWidget {
               initialValue: initialValue,
               hint: hint,
               keyboardType: keyboardType,
+              maxLines: maxLines,
             ),
           ),
         );
@@ -107,7 +111,8 @@ class _TextInputPanelState extends State<TextInputPanel> {
               child: TextField(
                 controller: _controller,
                 autofocus: true,
-                keyboardType: widget.keyboardType,
+                keyboardType: widget.maxLines > 1 ? TextInputType.multiline : widget.keyboardType,
+                maxLines: widget.maxLines,
                 style: TextStyle(fontSize: 15, color: colors.onSurface),
                 cursorColor: colors.primary,
                 decoration: InputDecoration(

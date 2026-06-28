@@ -18,11 +18,28 @@ class _PersonListPageState extends State<PersonListPage> {
   String _filter = 'all'; // all / 导演 / 编剧 / 主演 / 作者
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _loading = true);
+    final provider = context.read<AppProvider>();
+    await Future.wait([
+      provider.loadMovies(),
+      provider.loadBooks(),
+    ]);
+    if (mounted) setState(() => _loading = false);
   }
 
   List<_PersonEntry> _buildPersons() {
@@ -61,7 +78,6 @@ class _PersonListPageState extends State<PersonListPage> {
     final colors = Theme.of(context).colorScheme;
     final allPersons = _buildPersons();
 
-    // 过滤
     var filtered = allPersons.where((p) {
       if (_filter != 'all' && !p.roles.contains(_filter)) return false;
       if (_searchQuery.isNotEmpty && !p.name.toLowerCase().contains(_searchQuery.toLowerCase())) return false;
@@ -70,7 +86,17 @@ class _PersonListPageState extends State<PersonListPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('角色信息')),
+      appBar: AppBar(
+        title: const Text('角色信息'),
+        actions: [
+          IconButton(
+            icon: _loading
+                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurface.withValues(alpha: 0.5)))
+                : const Icon(Icons.refresh),
+            onPressed: _loading ? null : _refresh,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // 搜索栏
@@ -184,7 +210,6 @@ class _PersonListPageState extends State<PersonListPage> {
       '作者': const Color(0xFF7E57C2),
     };
     final totalWorks = person.movies.length + person.books.length;
-
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
       leading: CircleAvatar(
@@ -223,7 +248,7 @@ class _PersonListPageState extends State<PersonListPage> {
   }
 }
 
-// ─── 人物详情页 ───
+// ─── 人物详情页（只读展示）───
 
 class _PersonDetailPage extends StatelessWidget {
   final _PersonEntry person;
@@ -239,7 +264,6 @@ class _PersonDetailPage extends StatelessWidget {
       '作者': const Color(0xFF7E57C2),
     };
 
-    // 按类型分组作品
     final movieItems = <_WorkItem>[];
     final bookItems = <_WorkItem>[];
 
@@ -318,7 +342,6 @@ class _PersonDetailPage extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // 封面
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: SizedBox(
@@ -333,7 +356,6 @@ class _PersonDetailPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // 标题 + 角色
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(item.title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),

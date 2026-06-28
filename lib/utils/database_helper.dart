@@ -56,7 +56,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 25,
+      version: 26,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );

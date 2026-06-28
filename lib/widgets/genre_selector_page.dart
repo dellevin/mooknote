@@ -105,6 +105,47 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
     }
   }
 
+  void _editItem(int index, String oldValue) {
+    final editController = TextEditingController(text: oldValue);
+    showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('编辑', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: TextField(
+            controller: editController,
+            autofocus: true,
+            style: TextStyle(fontSize: 15, color: colors.onSurface),
+            cursorColor: colors.primary,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: colors.surfaceContainerHigh,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, editController.text.trim()),
+              style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    ).then((newValue) {
+      if (newValue != null && newValue.isNotEmpty && newValue != oldValue && mounted) {
+        setState(() => _selected[index] = newValue);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -164,7 +205,8 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
                     padding: EdgeInsets.zero,
                     itemCount: _selected.length,
                     itemBuilder: (_, i) {
-                      final tag = _selected[_selected.length - 1 - i];
+                      final idx = _selected.length - 1 - i;
+                      final tag = _selected[idx];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Container(
@@ -176,10 +218,23 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
                             dense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                             leading: Icon(Icons.check_circle, size: 20, color: colors.primary),
-                            title: Text(tag, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                            trailing: GestureDetector(
-                              onTap: () => _toggle(tag),
-                              child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+                            title: GestureDetector(
+                              onTap: () => _editItem(idx, tag),
+                              child: Text(tag, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _editItem(idx, tag),
+                                  child: Icon(Icons.edit, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () => _toggle(tag),
+                                  child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+                                ),
+                              ],
                             ),
                           ),
                         ),

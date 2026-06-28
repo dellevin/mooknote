@@ -122,6 +122,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+
   // ─── 分页加载（供列表页触底加载使用）────────────────────────
   static const int _pageSize = 20;
 
