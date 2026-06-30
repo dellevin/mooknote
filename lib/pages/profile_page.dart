@@ -343,7 +343,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: recent.take(8).length,
+              itemCount: recent.take(10).length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) => _buildCoverCard(
                 title: recent[i].title,
@@ -389,7 +389,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: recent.take(8).length,
+              itemCount: recent.take(10).length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) => _buildCoverCard(
                 title: recent[i].title,
@@ -422,7 +422,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: recent.take(8).length,
+            itemCount: recent.take(10).length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (_, i) => _buildNoteCard(
               title: recent[i].title,
@@ -993,10 +993,8 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.tune_outlined,
             title: '功能设置',
             subtitle: '启动标签、模块开关、侧边栏功能',
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const FeatureSettingsPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FeatureSettingsPage())),
           ),
           Divider(
               height: 0.5,
@@ -2775,4 +2773,3 @@ class _WebViewPageState extends State<WebViewPage> {
     );
   }
 }
-
