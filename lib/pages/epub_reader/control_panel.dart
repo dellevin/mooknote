@@ -40,6 +40,7 @@ class ControlPanel extends StatefulWidget {
   final void Function(int bgColor, int textColor) onCustomColorChanged;
   final bool currentPageHasBookmark;
   final VoidCallback onBookmarkToggle;
+  final VoidCallback onSearchTap;
 
   const ControlPanel({
     super.key,
@@ -78,6 +79,7 @@ class ControlPanel extends StatefulWidget {
     required this.onCustomColorChanged,
     required this.currentPageHasBookmark,
     required this.onBookmarkToggle,
+    required this.onSearchTap,
   });
 
   bool get isVertical => direction == 1;
@@ -313,6 +315,10 @@ class _ControlPanelState extends State<ControlPanel> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: widget.onSearchTap,
+                  ),
                   IconButton(
                     icon: Icon(
                       widget.currentPageHasBookmark

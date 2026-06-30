@@ -18,6 +18,7 @@ import 'control_panel.dart';
 import 'toc_drawer.dart';
 import 'image_viewer.dart';
 import 'footnote_popup.dart';
+import 'search_sheet.dart';
 
 part 'mixins/spine_navigation_mixin.dart';
 part 'mixins/page_navigation_mixin.dart';
@@ -94,6 +95,9 @@ class _ReaderScreenState extends State<ReaderScreen>
   String displayProgress = '';
   @override
   Timer? progressDebouncer;
+  final Map<int, int> _chapterPageCounts = {};
+  @override
+  Map<int, int> get chapterPageCounts => _chapterPageCounts;
 
   // Theme state (used by _ThemeMixin)
   @override
@@ -322,16 +326,19 @@ class _ReaderScreenState extends State<ReaderScreen>
       if (mounted) ToastUtil.show(context, '已移除书签');
     } else {
       // 添加书签
-      final chapterTitle = bookSession.spine.isNotEmpty &&
-              currentSpineItemIndex < bookSession.spine.length
-          ? bookSession.spine[currentSpineItemIndex].href
-          : '';
       // 尝试从 TOC 找更友好的标题
-      String title = chapterTitle;
+      String title = '';
       for (final toc in bookSession.toc) {
         if (toc.spineIndex == currentSpineItemIndex) {
           title = toc.label;
           break;
+        }
+      }
+      // 如果 TOC 没有标题（或者标题是原始文件路径），用页内文字内容
+      if (title.isEmpty || title.contains('.htm') || title.contains('.xhtml')) {
+        title = await _getPageTextPreview();
+        if (title.isEmpty) {
+          title = '第${currentSpineItemIndex + 1}章';
         }
       }
 
@@ -346,6 +353,21 @@ class _ReaderScreenState extends State<ReaderScreen>
       if (mounted) ToastUtil.show(context, '已添加书签');
     }
     await _loadBookmarks();
+  }
+
+  /// 获取当前页的文字预览（前 20 个字符）
+  Future<String> _getPageTextPreview() async {
+    try {
+      final result = await rendererController.webViewController?.runJavaScriptReturningResult(
+        "(function(){var f=document.getElementById('frame-curr');if(!f||!f.contentDocument)return '';var t=f.contentDocument.body.textContent||'';return t.trim().substring(0,20)})();"
+      );
+      if (result != null) {
+        final s = result.toString();
+        return (s.startsWith('"') && s.endsWith('"') && s.length >= 2
+            ? s.substring(1, s.length - 1) : s).trim();
+      }
+    } catch (_) {}
+    return '';
   }
 
   void _jumpToBookmark(Map<String, dynamic> bookmark) {
@@ -382,6 +404,23 @@ class _ReaderScreenState extends State<ReaderScreen>
 
   void openDrawer() {
     scaffoldKey.currentState?.openDrawer();
+  }
+
+  void _openSearch() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => SearchSheet(
+        bookSession: bookSession,
+        streamService: _streamService,
+        onNavigate: (spineIndex, keyword, scrollRatio) {
+          Navigator.pop(ctx);
+          setState(() => currentSpineItemIndex = spineIndex);
+          loadCarousel(restoreScrollRatio: scrollRatio);
+        },
+      ),
+    );
   }
 
   @override
@@ -602,6 +641,7 @@ class _ReaderScreenState extends State<ReaderScreen>
                       },
                       currentPageHasBookmark: _currentPageHasBookmark,
                       onBookmarkToggle: _toggleBookmark,
+                      onSearchTap: _openSearch,
                     ),
                   ],
                 ),

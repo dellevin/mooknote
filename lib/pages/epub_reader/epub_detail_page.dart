@@ -6,6 +6,7 @@ import '../../utils/epub/reader_dao.dart';
 import '../../utils/epub/epub_parser.dart';
 import '../../utils/epub/reader_models.dart';
 import '../../utils/book/book_dao.dart';
+import '../../utils/book/book_excerpt_dao.dart';
 import '../../models/data_models.dart';
 import '../book/book_detail_page.dart';
 import 'book_link_page.dart';
@@ -35,12 +36,17 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   late Map<String, dynamic> _book;
   EpubBookInfo? _bookInfo;
   bool _descriptionExpanded = false;
+  Future<List<BookExcerpt>>? _excerptsFuture;
 
   @override
   void initState() {
     super.initState();
     _book = widget.book;
     _loadBookInfo();
+    final linkedBookId = _book['book_id'] as String? ?? '';
+    if (linkedBookId.isNotEmpty) {
+      _excerptsFuture = BookExcerptDao().getExcerptsByBookId(linkedBookId);
+    }
   }
 
   Future<void> _loadBookInfo() async {
@@ -196,6 +202,16 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               child: _buildLinkedBookCard(colors),
             ),
 
+            // ── 书籍摘抄（仅关联书籍时显示）──
+            if ((_book['book_id'] as String? ?? '').isNotEmpty) ...[
+              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+              _buildSectionHeader('书籍摘抄', colors),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: _buildExcerptsList(colors),
+              ),
+            ],
+
             // ── 其他作品（同作者）──
             if (author.isNotEmpty) ...[
               Divider(height: 0.5, thickness: 0.5, color: colors.outline),
@@ -338,6 +354,94 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
             ]),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildExcerptsList(ColorScheme colors) {
+    if (_excerptsFuture == null) return const SizedBox.shrink();
+    return FutureBuilder<List<BookExcerpt>>(
+      future: _excerptsFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.format_quote, size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
+                const SizedBox(width: 8),
+                Text('暂无摘抄', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+              ],
+            ),
+          );
+        }
+        final excerpts = snapshot.data!;
+        final showCount = excerpts.length > 5 ? 5 : excerpts.length;
+        return Column(
+          children: [
+            for (int i = 0; i < showCount; i++)
+              Padding(
+                padding: EdgeInsets.only(bottom: i < showCount - 1 ? 8 : 0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 16,
+                        margin: const EdgeInsets.only(top: 2, right: 10),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              excerpts[i].content,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75), height: 1.6),
+                            ),
+                            if (excerpts[i].chapter.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  excerpts[i].chapter,
+                                  style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (excerpts.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '共 ${excerpts.length} 条摘抄',
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+                ),
+              ),
+          ],
         );
       },
     );

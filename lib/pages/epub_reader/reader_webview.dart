@@ -78,6 +78,10 @@ class ReaderWebViewController {
   Future<void> waitForEvents(List<int> tokens, [int timeoutMs = 10000]) async {
     await _webViewState?._bridge.waitForEvents(tokens, timeoutMs);
   }
+
+  Future<dynamic> runJavaScriptReturningResult(String js) async {
+    return await _webViewState?._controller?.evaluateJavascript(source: js);
+  }
 }
 
 final InAppWebViewSettings defaultSettings = InAppWebViewSettings(

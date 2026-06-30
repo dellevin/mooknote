@@ -134,6 +134,17 @@ class ReaderDao {
     return db.delete('book_annotations', where: 'id = ?', whereArgs: [id]);
   }
 
+  /// 更新批注感悟
+  Future<int> updateAnnotationNote(int id, String note) async {
+    final db = await _db.database;
+    return db.update(
+      'book_annotations',
+      {'reader_note': note, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // ─── bookmarks ──────────────────────────────────────────────────
 
   /// 获取某本书的所有书签
