@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/data_models.dart';
 import 'slide_up_page_route.dart';
 import '../pages/movies/movie_form_page.dart';
@@ -13,7 +15,7 @@ import '../pages/note_plus/note_plus_detail_page.dart';
 
 /// 路由生成器
 class AppRouter {
-  static Route<dynamic> generateRoute(RouteSettings settings) {
+  static Route<dynamic>? generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/movie-form':
         final args = settings.arguments;
@@ -63,6 +65,11 @@ class AppRouter {
         final url = settings.arguments is String ? settings.arguments as String : null;
         if (url == null) {
           return _buildUnknownRoute(settings.name);
+        }
+        if (Platform.isWindows) {
+          // Windows 无 webview 支持，用系统浏览器打开
+          launchUrl(Uri.parse(url));
+          return null;
         }
         return SlideUpPageRoute(page: DoubanWebViewPage(url: url));
 

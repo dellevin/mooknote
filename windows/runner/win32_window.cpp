@@ -197,6 +197,12 @@ Win32Window::MessageHandler(HWND hwnd,
 
       return 0;
     }
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      info->ptMinTrackSize.x = 360;
+      info->ptMinTrackSize.y = 640;
+      return 0;
+    }
     case WM_SIZE: {
       RECT rect = GetClientArea();
       if (child_content_ != nullptr) {

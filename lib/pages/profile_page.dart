@@ -977,17 +977,19 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         children: [
           _buildSectionHeader('显示设置'),
-          _buildNavigationItem(
-            icon: Icons.apps_outlined,
-            title: '应用图标',
-            subtitle: '更换桌面应用图标',
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
+          if (!Platform.isWindows)
+            _buildNavigationItem(
+              icon: Icons.apps_outlined,
+              title: '应用图标',
+              subtitle: '更换桌面应用图标',
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
+            ),
+          if (!Platform.isWindows)
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
               color: colors.outlineVariant),
           _buildNavigationItem(
             icon: Icons.tune_outlined,

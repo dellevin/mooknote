@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
@@ -21,6 +23,11 @@ final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<v
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Windows 桌面：使用 FFI 初始化 sqflite
+  if (Platform.isWindows) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
   await UserPrefs.init();
   final appProvider = AppProvider();
   runApp(MyApp(appProvider: appProvider));
