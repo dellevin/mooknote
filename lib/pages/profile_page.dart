@@ -343,7 +343,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: recent.take(10).length,
+              itemCount: recent.take(15).length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) => _buildCoverCard(
                 title: recent[i].title,
@@ -389,7 +389,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: recent.take(10).length,
+              itemCount: recent.take(15).length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) => _buildCoverCard(
                 title: recent[i].title,
