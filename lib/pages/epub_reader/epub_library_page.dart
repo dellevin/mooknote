@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../utils/epub/reader_dao.dart';
 import '../../utils/epub/epub_service.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/responsive.dart';
 import 'epub_detail_page.dart';
 import 'widgets/book_grid_item.dart';
 
@@ -228,22 +229,27 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   }
 
   Widget _buildGridView(ColorScheme colors) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.55,
-      ),
-      itemCount: _books.length,
-      itemBuilder: (context, index) {
-        final book = _books[index];
-        return BookGridItem(
-          book: book,
-          viewMode: ViewMode.relaxed,
-          onTap: () => _openBook(book),
-          onLongPress: () => _deleteBook(book),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 120);
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.55,
+          ),
+          itemCount: _books.length,
+          itemBuilder: (context, index) {
+            final book = _books[index];
+            return BookGridItem(
+              book: book,
+              viewMode: ViewMode.relaxed,
+              onTap: () => _openBook(book),
+              onLongPress: () => _deleteBook(book),
+            );
+          },
         );
       },
     );

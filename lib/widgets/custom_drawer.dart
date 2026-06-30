@@ -18,7 +18,8 @@ import 'fade_in_local_image.dart';
 
 /// 自定义侧边栏
 class CustomDrawer extends StatefulWidget {
-  const CustomDrawer({super.key});
+  final bool embedded;
+  const CustomDrawer({super.key, this.embedded = false});
 
   @override
   State<CustomDrawer> createState() => _CustomDrawerState();
@@ -62,36 +63,39 @@ class _CustomDrawerState extends State<CustomDrawer> {
         userPrefs.showSidebarMdReader ||
         userPrefs.showSidebarEpub;
 
-    return Drawer(
-      backgroundColor: colors.surfaceContainerHigh,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildProfileCard(context),
-              if (showHeatmap) ...[
-                const SizedBox(height: 16),
-                _buildCalendarSection(context),
-              ],
-              if (showRecent) ...[
-                const SizedBox(height: 16),
-                _buildRecentSection(context),
-              ],
-              if (showTools) ...[
-                const SizedBox(height: 16),
-                _buildToolsCard(context),
-              ],
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                child: Center(
-                  child: Text('v$_version', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.2))),
-                ),
-              ),
+    final content = SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildProfileCard(context),
+            if (showHeatmap) ...[
+              const SizedBox(height: 16),
+              _buildCalendarSection(context),
             ],
-          ),
+            if (showRecent) ...[
+              const SizedBox(height: 16),
+              _buildRecentSection(context),
+            ],
+            if (showTools) ...[
+              const SizedBox(height: 16),
+              _buildToolsCard(context),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              child: Center(
+                child: Text('v$_version', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.2))),
+              ),
+            ),
+          ],
         ),
       ),
+    );
+
+    if (widget.embedded) return content;
+    return Drawer(
+      backgroundColor: colors.surfaceContainerHigh,
+      child: content,
     );
   }
 
@@ -215,7 +219,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           final idx = i ~/ 2;
           final (icon, title, page) = items[idx];
           return _buildToolItem(icon, title, () {
-            Navigator.pop(context);
+            if (!widget.embedded) Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => page));
           }, topRounded: idx == 0, bottomRounded: idx == items.length - 1);
         }),
@@ -329,8 +333,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         const totalWeeks = 20;
         const weekDays = 7;
-        const cellSize = 10.0;
         const cellGap = 1.5;
+        // 可用宽度 = drawer宽度 - margin(16*2) - container padding(18*2)
+        final drawerWidth = widget.embedded ? 260.0 : MediaQuery.sizeOf(context).width;
+        final availableWidth = drawerWidth - 32 - 36;
+        final cellSize = ((availableWidth - (totalWeeks - 1) * cellGap) / totalWeeks).clamp(6.0, 10.0);
 
         final cells = List.generate(weekDays, (_) => List.generate(totalWeeks, (_) => 0));
         for (int week = 0; week < totalWeeks; week++) {
@@ -376,7 +383,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                         children: List.generate(totalWeeks, (week) {
                           final label = keepWeeks.contains(week) ? monthLabels[week] : null;
                           return SizedBox(
-                            width: cellSize + cellGap,
+                            width: week < totalWeeks - 1 ? cellSize + cellGap : cellSize,
                             child: label != null ? Text(label, style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))) : null,
                           );
                         }),
@@ -482,7 +489,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   void _openRecentItem(BuildContext context, _RecentItem item) {
-    Navigator.pop(context);
+    if (!widget.embedded) Navigator.pop(context);
     switch (item.type) {
       case 'movie':
         Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));

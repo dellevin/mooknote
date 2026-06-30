@@ -15,8 +15,9 @@ import 'movie_share_page.dart';
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
   final Movie movie;
+  final bool embedded;
 
-  const MovieDetailPage({super.key, required this.movie});
+  const MovieDetailPage({super.key, required this.movie, this.embedded = false});
 
   @override
   State<MovieDetailPage> createState() => _MovieDetailPageState();
@@ -119,8 +120,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 child: Row(children: [
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
-                    onPressed: () => Navigator.pop(context),
+                    icon: widget.embedded
+                        ? Icon(Icons.close, color: colors.onSurface, size: 18)
+                        : Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
+                    onPressed: widget.embedded
+                        ? () => context.read<AppProvider>().selectMovie(null)
+                        : () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -186,8 +191,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 child: Row(children: [
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-                    onPressed: () => Navigator.pop(context),
+                    icon: widget.embedded
+                        ? const Icon(Icons.close, color: Colors.white, size: 18)
+                        : const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                    onPressed: widget.embedded
+                        ? () => context.read<AppProvider>().selectMovie(null)
+                        : () => Navigator.pop(context),
                   ),
                   ValueListenableBuilder<bool>(
                     valueListenable: _showTitle,
@@ -1180,9 +1189,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               final provider = context.read<AppProvider>();
               await provider.removeMovie(widget.movie.id);
               if (!mounted) return;
-              final navigator = Navigator.of(context);
-              navigator.pop();
-              navigator.pop();
+              if (widget.embedded) {
+                Navigator.of(context).pop(); // close dialog
+                provider.selectMovie(null);
+              } else {
+                final navigator = Navigator.of(context);
+                navigator.pop();
+                navigator.pop();
+              }
               if (mounted) {
                 ToastUtil.show(context, '已删除');
               }

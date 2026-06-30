@@ -9,8 +9,9 @@ import 'note_share_page.dart';
 /// 笔记详情页
 class NoteDetailPage extends StatefulWidget {
   final Note note;
+  final bool embedded;
 
-  const NoteDetailPage({super.key, required this.note});
+  const NoteDetailPage({super.key, required this.note, this.embedded = false});
 
   @override
   State<NoteDetailPage> createState() => _NoteDetailPageState();
@@ -30,6 +31,12 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: widget.embedded
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => context.read<AppProvider>().selectNote(null),
+              )
+            : null,
         titleSpacing: 0,
         title: Text(
           note.title.isNotEmpty
@@ -374,7 +381,11 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
             onPressed: () {
               Navigator.pop(ctx);
               context.read<AppProvider>().removeNote(widget.note.id);
-              Navigator.pop(context);
+              if (widget.embedded) {
+                context.read<AppProvider>().selectNote(null);
+              } else {
+                Navigator.pop(context);
+              }
             },
             child: Text('删除', style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),

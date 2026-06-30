@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../utils/responsive.dart';
 import '../widgets/custom_drawer.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/add_sheet.dart';
 import 'main_content_page.dart';
 import 'profile_page.dart';
 
@@ -57,6 +59,63 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (Breakpoint.isTablet(context)) {
+      return _buildTabletLayout(context);
+    }
+    return _buildPhoneLayout(context);
+  }
+
+  Widget _buildTabletLayout(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        _onNavIndexChanged(provider);
+        return Scaffold(
+          body: Row(
+            children: [
+              SizedBox(
+                width: 260,
+                child: Material(
+                  color: colors.surfaceContainerHigh,
+                  child: const CustomDrawer(embedded: true),
+                ),
+              ),
+              NavigationRail(
+                selectedIndex: provider.bottomNavIndex == 0 ? 0 : 1,
+                backgroundColor: colors.surface,
+                labelType: NavigationRailLabelType.all,
+                leading: Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 12),
+                  child: FloatingActionButton.small(
+                    onPressed: () => showAddSheet(context, provider),
+                    child: const Icon(Icons.add),
+                  ),
+                ),
+                onDestinationSelected: (index) {
+                  provider.setBottomNavIndex(index == 0 ? 0 : 2);
+                },
+                destinations: const [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home),
+                    label: Text('首页'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.person_outline),
+                    selectedIcon: Icon(Icons.person),
+                    label: Text('我的'),
+                  ),
+                ],
+              ),
+              Expanded(child: _buildPageView(provider)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPhoneLayout(BuildContext context) {
     return Scaffold(
       drawer: context.watch<AppProvider>().bottomNavIndex != 1
           ? const CustomDrawer()

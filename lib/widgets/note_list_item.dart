@@ -6,21 +6,25 @@ import '../models/data_models.dart';
 /// 笔记列表项组件 - 卡片式设计，内容展示在卡片内
 class NoteListItem extends StatelessWidget {
   final Note note;
+  final bool selected;
+  final VoidCallback? onTap;
 
-  const NoteListItem({super.key, required this.note});
+  const NoteListItem({super.key, required this.note, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: _NoteListItemContent(note: note),
+      child: _NoteListItemContent(note: note, selected: selected, onTap: onTap),
     );
   }
 }
 
 class _NoteListItemContent extends StatelessWidget {
   final Note note;
+  final bool selected;
+  final VoidCallback? onTap;
 
-  const _NoteListItemContent({required this.note});
+  const _NoteListItemContent({required this.note, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +32,7 @@ class _NoteListItemContent extends StatelessWidget {
     final previewText = _getPreviewText(note);
 
     return GestureDetector(
-      onTap: () async {
+      onTap: onTap ?? () async {
         final provider = context.read<AppProvider>();
         await Navigator.pushNamed(context, '/note-detail', arguments: note);
         await provider.loadNotes();
@@ -40,6 +44,7 @@ class _NoteListItemContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
+          border: selected ? Border.all(color: colors.primary, width: 1.5) : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -42,6 +42,11 @@ class AppProvider extends ChangeNotifier {
   // 底部导航栏是否可见
   bool _bottomNavVisible = true;
 
+  // 平板 Master-Detail 选中项
+  Movie? _selectedMovie;
+  Book? _selectedBook;
+  Note? _selectedNote;
+
   // 主题模式
   ThemeMode _themeMode = ThemeMode.system;
 
@@ -144,6 +149,9 @@ class AppProvider extends ChangeNotifier {
   // Getters
   int get mainTabIndex => _mainTabIndex;
   int get bottomNavIndex => _bottomNavIndex;
+  Movie? get selectedMovie => _selectedMovie;
+  Book? get selectedBook => _selectedBook;
+  Note? get selectedNote => _selectedNote;
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
   int get bookStatusIndex => _bookStatusIndex;
@@ -181,6 +189,21 @@ class AppProvider extends ChangeNotifier {
     }
     _bottomNavIndex = index;
     _bottomNavVisible = true;
+    notifyListeners();
+  }
+
+  void selectMovie(Movie? movie) {
+    _selectedMovie = movie;
+    notifyListeners();
+  }
+
+  void selectBook(Book? book) {
+    _selectedBook = book;
+    notifyListeners();
+  }
+
+  void selectNote(Note? note) {
+    _selectedNote = note;
     notifyListeners();
   }
 

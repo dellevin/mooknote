@@ -6,6 +6,10 @@ import '../../utils/user_prefs.dart';
 import '../../widgets/note_list_item.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../utils/responsive.dart';
+import '../../widgets/master_detail_scaffold.dart';
+import '../../widgets/detail_placeholder.dart';
+import 'note_detail_page.dart';
 
 /// 笔记标签页（分页 + 触底加载）
 class NoteTabPage extends StatefulWidget {
@@ -90,6 +94,14 @@ class _NoteTabPageState extends State<NoteTabPage> {
     setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
 
+  void _onNoteTap(Note note) {
+    if (Breakpoint.isWideContent(context)) {
+      context.read<AppProvider>().selectNote(note);
+    } else {
+      Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) => _loadFirst());
+    }
+  }
+
   Future<void> _refresh() async {
     await context.read<AppProvider>().loadNotes();
     await _loadFirst();
@@ -98,20 +110,28 @@ class _NoteTabPageState extends State<NoteTabPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isWideContent = Breakpoint.isWideContent(context);
     return Consumer<AppProvider>(builder: (context, provider, _) {
       if (_items.isEmpty && _isLoading) return _buildSkeleton();
       if (_items.isEmpty) {
         return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
             child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildEmptyState(context)]));
       }
-      return _buildContent();
+      final masterContent = _buildContent(isWideContent);
+      if (!isWideContent) return masterContent;
+      return MasterDetailScaffold(
+        master: masterContent,
+        detail: provider.selectedNote != null
+            ? NoteDetailPage(note: provider.selectedNote!, embedded: true)
+            : const DetailPlaceholder(icon: Icons.note_outlined, message: '选择一条笔记查看详情'),
+      );
     });
   }
 
-  Widget _buildContent() {
-    if (_layoutStyle == 1) return _buildWaterfallView();
-    if (_layoutStyle == 2) return _buildTimelineView();
-    return _buildListView();
+  Widget _buildContent(bool isWideContent) {
+    if (_layoutStyle == 1) return _buildWaterfallView(isWideContent);
+    if (_layoutStyle == 2) return _buildTimelineView(isWideContent);
+    return _buildListView(isWideContent);
   }
 
   Widget _buildSkeleton() {
@@ -142,20 +162,21 @@ class _NoteTabPageState extends State<NoteTabPage> {
     );
   }
 
-  Widget _buildListView() {
+  Widget _buildListView(bool isWideContent) {
     final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
       child: ListView.builder(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 10, 12, 100),
         itemCount: _items.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _items.length) return _buildLoadMore();
-          return NoteListItem(note: _items[index]);
+          final selectedId = context.read<AppProvider>().selectedNote?.id;
+          return NoteListItem(note: _items[index], selected: isWideContent && selectedId == _items[index].id, onTap: () => _onNoteTap(_items[index]));
         },
       ),
     );
   }
 
-  Widget _buildTimelineView() {
+  Widget _buildTimelineView(bool isWideContent) {
     final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
       child: ListView.builder(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
@@ -171,7 +192,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Widget _buildTimelineItem(Note note) {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) => _loadFirst()),
+      onTap: () => _onNoteTap(note),
       onLongPress: () => _showNoteActions(note),
       child: IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         SizedBox(width: 40, child: Column(children: [
@@ -208,19 +229,22 @@ class _NoteTabPageState extends State<NoteTabPage> {
   String _formatFullDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
-  Widget _buildWaterfallView() {
-    final leftItems = <Note>[];
-    final rightItems = <Note>[];
-    for (int i = 0; i < _items.length; i++) {
-      (i % 2 == 0 ? leftItems : rightItems).add(_items[i]);
-    }
-    return SingleChildScrollView(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: Column(children: leftItems.map(_buildWaterfallCard).toList())),
-        const SizedBox(width: 8),
-        Expanded(child: Column(children: rightItems.map(_buildWaterfallCard).toList())),
-      ]),
-    );
+  Widget _buildWaterfallView(bool isWideContent) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final colCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 160, minCount: 2, maxCount: 4);
+      final columns = List.generate(colCount, (_) => <Note>[]);
+      for (int i = 0; i < _items.length; i++) {
+        columns[i % colCount].add(_items[i]);
+      }
+      return SingleChildScrollView(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (int c = 0; c < colCount; c++) ...[
+            if (c > 0) const SizedBox(width: 8),
+            Expanded(child: Column(children: columns[c].map(_buildWaterfallCard).toList())),
+          ],
+        ]),
+      );
+    });
   }
 
   Widget _buildWaterfallCard(Note note) {
@@ -230,7 +254,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final hasImage = images.isNotEmpty;
     final extraCount = images.length - 1;
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) => _loadFirst()),
+      onTap: () => _onNoteTap(note),
       onLongPress: () => _showNoteActions(note),
       child: Container(margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(10),

@@ -9,18 +9,25 @@ import '../utils/toast_util.dart';
 /// 书籍列表项组件 - 网格布局设计
 class BookListItem extends StatelessWidget {
   final Book book;
+  final bool selected;
+  final VoidCallback? onTap;
 
-  const BookListItem({super.key, required this.book});
+  const BookListItem({super.key, required this.book, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () {
-        Navigator.pushNamed(context, '/book-detail', arguments: book);
-      },
+    return GestureDetector(
+      onTap: onTap ?? () => Navigator.pushNamed(context, '/book-detail', arguments: book),
       onLongPress: () => _showDeleteDialog(context),
-      child: Column(
+      child: Container(
+        decoration: selected
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: colors.primary, width: 2),
+              )
+            : null,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
@@ -43,6 +50,7 @@ class BookListItem extends StatelessWidget {
           else
             const SizedBox(height: 16),
         ],
+      ),
       ),
     );
   }

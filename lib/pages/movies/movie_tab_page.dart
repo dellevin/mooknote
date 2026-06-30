@@ -8,6 +8,10 @@ import '../../widgets/movie_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../utils/responsive.dart';
+import '../../widgets/master_detail_scaffold.dart';
+import '../../widgets/detail_placeholder.dart';
+import 'movie_detail_page.dart';
 
 /// 观影标签页（分页 + 触底加载）
 class MovieTabPage extends StatefulWidget {
@@ -119,15 +123,36 @@ class _MovieTabPageState extends State<MovieTabPage> {
     await _loadFirst();
   }
 
+  void _onMovieTap(Movie movie) {
+    if (Breakpoint.isWideContent(context)) {
+      context.read<AppProvider>().selectMovie(movie);
+    } else {
+      Navigator.pushNamed(context, '/movie-detail', arguments: movie);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Column(
+    final isWideContent = Breakpoint.isWideContent(context);
+    final provider = context.watch<AppProvider>();
+
+    final masterContent = Column(
       children: [
         const MovieStatusBar(),
-        Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+        Divider(height: 0.5, thickness: 0.5, color: colors.outlineVariant),
         Expanded(child: _buildBody(context)),
       ],
+    );
+
+    if (!isWideContent) return masterContent;
+
+    final selectedMovie = provider.selectedMovie;
+    return MasterDetailScaffold(
+      master: masterContent,
+      detail: selectedMovie != null
+          ? MovieDetailPage(movie: selectedMovie, embedded: true)
+          : const DetailPlaceholder(icon: Icons.movie_outlined, message: '选择一部影片查看详情'),
     );
   }
 
@@ -166,16 +191,28 @@ class _MovieTabPageState extends State<MovieTabPage> {
   }
 
   Widget _buildGridView() {
-    return GridView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
-      ),
-      itemCount: _items.length + (_hasMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= _items.length) return _buildLoadMoreIndicator();
-        return MovieListItem(movie: _items[index]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        final isWideContent = Breakpoint.isWideContent(context);
+        final provider = context.read<AppProvider>();
+        return GridView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
+          ),
+          itemCount: _items.length + (_hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= _items.length) return _buildLoadMoreIndicator();
+            final item = _items[index];
+            return MovieListItem(
+              movie: item,
+              selected: isWideContent && provider.selectedMovie?.id == item.id,
+              onTap: () => _onMovieTap(item),
+            );
+          },
+        );
       },
     );
   }
@@ -206,7 +243,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   Widget _buildListCard(Movie movie) {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: movie),
+      onTap: () => _onMovieTap(movie),
       onLongPress: () => _showDeleteDialog(context, movie),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -267,7 +304,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   Widget _buildCoverCard(Movie movie) {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: movie),
+      onTap: () => _onMovieTap(movie),
       onLongPress: () => _showDeleteDialog(context, movie),
       child: Container(
         height: 200,

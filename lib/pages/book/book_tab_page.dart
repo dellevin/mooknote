@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../utils/responsive.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/book_status_bar.dart';
 import '../../widgets/book_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/master_detail_scaffold.dart';
+import '../../widgets/detail_placeholder.dart';
+import 'book_detail_page.dart';
 
 /// 阅读标签页（分页 + 触底加载）
 class BookTabPage extends StatefulWidget {
@@ -29,6 +33,14 @@ class _BookTabPageState extends State<BookTabPage> {
   AppProvider? _provider;
   int _lastScrollSignal = 0;
   int _prevBookCount = -1;
+
+  void _onBookTap(Book book) {
+    if (Breakpoint.isWideContent(context)) {
+      context.read<AppProvider>().selectBook(book);
+    } else {
+      Navigator.pushNamed(context, '/book-detail', arguments: book);
+    }
+  }
 
   static const _statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read'};
 
@@ -108,10 +120,22 @@ class _BookTabPageState extends State<BookTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
+    final isWideContent = Breakpoint.isWideContent(context);
+    final provider = context.watch<AppProvider>();
+    final masterContent = Column(children: [
       const BookStatusBar(),
       Expanded(child: _buildBody(context)),
     ]);
+
+    if (!isWideContent) return masterContent;
+
+    final selectedBook = provider.selectedBook;
+    return MasterDetailScaffold(
+      master: masterContent,
+      detail: selectedBook != null
+          ? BookDetailPage(book: selectedBook, embedded: true)
+          : const DetailPlaceholder(icon: Icons.menu_book_outlined, message: '选择一本书查看详情'),
+    );
   }
 
   Widget _buildBody(BuildContext context) {
@@ -132,15 +156,24 @@ class _BookTabPageState extends State<BookTabPage> {
   }
 
   Widget _buildGridView() {
-    return GridView.builder(controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16),
-      itemCount: _items.length + (_hasMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= _items.length) return _buildLoadMore();
-        return BookListItem(book: _items[index]);
-      },
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+      return GridView.builder(controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16),
+        itemCount: _items.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _items.length) return _buildLoadMore();
+          final item = _items[index];
+          final provider = context.read<AppProvider>();
+          return BookListItem(
+            book: item,
+            selected: Breakpoint.isWideContent(context) && provider.selectedBook?.id == item.id,
+            onTap: () => _onBookTap(item),
+          );
+        },
+      );
+    });
   }
 
   Widget _buildListView() {
@@ -165,7 +198,7 @@ class _BookTabPageState extends State<BookTabPage> {
   Widget _buildListCard(Book book) {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/book-detail', arguments: book),
+      onTap: () => _onBookTap(book),
       onLongPress: () => _showDeleteDialog(context, book),
       child: Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),

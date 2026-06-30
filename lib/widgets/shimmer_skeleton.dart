@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/responsive.dart';
 
 /// 骨架屏加载组件 — 闪烁占位动画
 class ShimmerSkeleton extends StatefulWidget {
@@ -65,31 +66,36 @@ class MovieSkeletonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.55,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: 9,
-      itemBuilder: (_, __) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ShimmerSkeleton(
-              width: double.infinity,
-              height: double.infinity,
-              borderRadius: 8,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
           ),
-          const SizedBox(height: 8),
-          const ShimmerSkeleton(width: double.infinity, height: 14),
-          const SizedBox(height: 4),
-          const ShimmerSkeleton(width: 70, height: 12),
-        ],
-      ),
+          itemCount: count * 3,
+          itemBuilder: (_, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ShimmerSkeleton(
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const ShimmerSkeleton(width: double.infinity, height: 14),
+              const SizedBox(height: 4),
+              const ShimmerSkeleton(width: 70, height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -100,31 +106,36 @@ class BookSkeletonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.55,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: 9,
-      itemBuilder: (_, __) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ShimmerSkeleton(
-              width: double.infinity,
-              height: double.infinity,
-              borderRadius: 4,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
           ),
-          const SizedBox(height: 8),
-          const ShimmerSkeleton(width: double.infinity, height: 14),
-          const SizedBox(height: 4),
-          const ShimmerSkeleton(width: 70, height: 12),
-        ],
-      ),
+          itemCount: count * 3,
+          itemBuilder: (_, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ShimmerSkeleton(
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const ShimmerSkeleton(width: double.infinity, height: 14),
+              const SizedBox(height: 4),
+              const ShimmerSkeleton(width: 70, height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }

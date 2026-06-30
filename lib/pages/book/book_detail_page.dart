@@ -17,8 +17,9 @@ import '../epub_reader/reader_screen.dart';
 /// 书籍详情页 - 极简主义设计
 class BookDetailPage extends StatefulWidget {
   final Book book;
+  final bool embedded;
 
-  const BookDetailPage({super.key, required this.book});
+  const BookDetailPage({super.key, required this.book, this.embedded = false});
 
   @override
   State<BookDetailPage> createState() => _BookDetailPageState();
@@ -152,8 +153,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   child: Row(children: [
                     const SizedBox(width: 4),
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(widget.embedded ? Icons.close : Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                      onPressed: widget.embedded
+                          ? () => context.read<AppProvider>().selectBook(null)
+                          : () => Navigator.pop(context),
                     ),
                     ValueListenableBuilder<bool>(
                       valueListenable: _showTitle,
@@ -370,8 +373,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
           child: Row(children: [
             const SizedBox(width: 4),
             IconButton(
-              icon: Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
-              onPressed: () => Navigator.pop(context),
+              icon: Icon(widget.embedded ? Icons.close : Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
+              onPressed: widget.embedded
+                  ? () => context.read<AppProvider>().selectBook(null)
+                  : () => Navigator.pop(context),
             ),
             const SizedBox(width: 4),
             Expanded(
@@ -1228,7 +1233,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
               await context.read<AppProvider>().removeBook(widget.book.id);
               if (!mounted) return;
               Navigator.pop(context);
-              Navigator.pop(context);
+              if (widget.embedded) {
+                context.read<AppProvider>().selectBook(null);
+              } else {
+                Navigator.pop(context);
+              }
               ToastUtil.show(context, '已删除');
             },
             style: ElevatedButton.styleFrom(
