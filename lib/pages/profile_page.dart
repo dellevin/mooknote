@@ -113,6 +113,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       _buildBookModule(books),
                       const SizedBox(height: 20),
                     ],
+                    if (_userPrefs.showNoteTab) ...[
+                      _buildModuleHeader('笔记'),
+                      _buildNoteModule(notes),
+                      const SizedBox(height: 20),
+                    ],
                     _buildTagsSection(movies, books, notes),
                     const SizedBox(height: 20),
                     _buildToolsGrid(context),
@@ -398,6 +403,80 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         else
           _buildEmptyHint('暂无阅读记录'),
       ],
+    );
+  }
+
+  // ─── 笔记模块 ──────────────────────────────────────────────────────
+
+  Widget _buildNoteModule(List<Note> notes) {
+    final recent = notes.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (recent.isEmpty) return _buildEmptyHint('暂无笔记记录');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 130,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: recent.take(8).length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) => _buildNoteCard(
+              title: recent[i].title,
+              content: recent[i].content,
+              onTap: () => Navigator.pushNamed(context, '/note-detail',
+                  arguments: recent[i]),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNoteCard({
+    required String title,
+    required String content,
+    VoidCallback? onTap,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 115,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (title.isNotEmpty) ...[
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
+              const SizedBox(height: 6),
+            ],
+            Expanded(
+              child: Text(content,
+                  maxLines: title.isNotEmpty ? 5 : 6,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 11,
+                      height: 1.5,
+                      color: colors.onSurface.withValues(alpha: 0.55))),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2139,13 +2218,41 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     return count;
   }
 
+  /// 获取当前启用的标签页列表，返回 (索引, 标签, 图标) 列表
+  List<(int, String, IconData)> get _enabledTabs {
+    final all = [
+      (0, '影视', Icons.movie_outlined),
+      (1, '阅读', Icons.menu_book_outlined),
+      (2, '笔记', Icons.note_outlined),
+    ];
+    return all.where((t) {
+      return switch (t.$1) {
+        0 => _showMovieTab,
+        1 => _showBookTab,
+        2 => _showNoteTab,
+        _ => false,
+      };
+    }).toList();
+  }
+
+  void _fixDefaultTabIndex() {
+    final enabled = _enabledTabs;
+    if (!enabled.any((t) => t.$1 == _defaultTabIndex) && enabled.isNotEmpty) {
+      _defaultTabIndex = enabled.first.$1;
+      _userPrefs.setDefaultMainTabIndex(_defaultTabIndex);
+    }
+  }
+
   Future<void> _toggleMovieTab(bool value) async {
     if (!value && _enabledTabCount <= 1) {
       ToastUtil.show(context, '至少保留一个标签页');
       return;
     }
     await _userPrefs.setShowMovieTab(value);
-    setState(() => _showMovieTab = value);
+    setState(() {
+      _showMovieTab = value;
+      _fixDefaultTabIndex();
+    });
   }
 
   Future<void> _toggleBookTab(bool value) async {
@@ -2154,7 +2261,10 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       return;
     }
     await _userPrefs.setShowBookTab(value);
-    setState(() => _showBookTab = value);
+    setState(() {
+      _showBookTab = value;
+      _fixDefaultTabIndex();
+    });
   }
 
   Future<void> _toggleNoteTab(bool value) async {
@@ -2163,7 +2273,10 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       return;
     }
     await _userPrefs.setShowNoteTab(value);
-    setState(() => _showNoteTab = value);
+    setState(() {
+      _showNoteTab = value;
+      _fixDefaultTabIndex();
+    });
   }
 
   Future<void> _toggleNotePlusTab(bool value) async {
@@ -2272,49 +2385,50 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
 
   Widget _buildDefaultTabSelector() {
     final colors = Theme.of(context).colorScheme;
-    final labels = ['影视', '阅读', '笔记'];
-    final icons = [
-      Icons.movie_outlined,
-      Icons.menu_book_outlined,
-      Icons.note_outlined
-    ];
+    final enabled = _enabledTabs;
+    final currentLabel = enabled
+        .firstWhere((t) => t.$1 == _defaultTabIndex,
+            orElse: () => enabled.first)
+        .$2;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.home_outlined,
-              color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-      title: Text('默认启动标签',
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: colors.onSurface)),
-      subtitle: Text('打开应用时默认显示的页面',
-          style: TextStyle(
-              fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(labels[_defaultTabIndex],
-              style: TextStyle(
-                  fontSize: 14,
-                  color: colors.onSurface.withValues(alpha: 0.4))),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right,
-              color: colors.onSurface.withValues(alpha: 0.25), size: 20),
-        ],
+    return InkWell(
+      onTap: _showDefaultTabPicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.home_outlined,
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('默认启动标签',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurface)),
+            ),
+            Text(currentLabel,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withValues(alpha: 0.5))),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+          ],
+        ),
       ),
-      onTap: () => _showDefaultTabPicker(labels, icons),
     );
   }
 
-  void _showDefaultTabPicker(List<String> labels, List<IconData> icons) {
+  void _showDefaultTabPicker() {
     final colors = Theme.of(context).colorScheme;
+    final enabled = _enabledTabs;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -2344,7 +2458,7 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
                             fontWeight: FontWeight.w600,
                             color: colors.onSurface)))),
             const SizedBox(height: 16),
-            for (int i = 0; i < labels.length; i++)
+            for (final t in enabled)
               ListTile(
                 leading: Container(
                     width: 36,
@@ -2352,19 +2466,19 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
                     decoration: BoxDecoration(
                         color: colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10)),
-                    child: Icon(icons[i],
+                    child: Icon(t.$3,
                         color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(labels[i],
+                title: Text(t.$2,
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: colors.onSurface)),
-                trailing: _defaultTabIndex == i
+                trailing: _defaultTabIndex == t.$1
                     ? Icon(Icons.check, color: colors.onSurface, size: 20)
                     : null,
                 onTap: () async {
-                  await _userPrefs.setDefaultMainTabIndex(i);
-                  setState(() => _defaultTabIndex = i);
+                  await _userPrefs.setDefaultMainTabIndex(t.$1);
+                  setState(() => _defaultTabIndex = t.$1);
                   Navigator.pop(ctx);
                 },
               ),
