@@ -13,6 +13,16 @@ DateTime? _safeParseDate(String? str, {DateTime? fallback}) {
   return DateTime.tryParse(str)?.toLocal() ?? fallback;
 }
 
+/// 安全将动态值转为 double，失败时返回 fallback
+double? _safeParseDouble(dynamic value, {double? fallback}) {
+  if (value == null) return fallback;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 解析字符串列表（通用工具函数，不限于 Movie）
 List<String> parseStringListGeneric(dynamic data) {
   if (data == null) return [];
@@ -86,14 +96,14 @@ class Movie {
       genres: _parseStringList(json['genres']),
       alternateTitles: _parseStringList(json['alternate_titles']),
       summary: json['summary'],
-      rating: json['rating']?.toDouble(),
+      rating: _safeParseDouble(json['rating']),
       status: json['status'] ?? 'want_to_watch',
       category: json['category'] ?? 'movie',
       watchDate: _safeParseDate(json['watch_date']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      coverOffset: (json['cover_offset'] ?? 0.0).toDouble(),
+      coverOffset: _safeParseDouble(json['cover_offset'], fallback: 0.0)!,
     );
   }
 
@@ -224,14 +234,14 @@ class Book {
       publisher: json['publisher'],
       genres: Movie.parseStringList(json['genres']),
       summary: json['summary'],
-      rating: json['rating']?.toDouble(),
+      rating: _safeParseDouble(json['rating']),
       status: json['status'] ?? 'want_to_read',
       isbn: json['isbn'],
       publishDate: _safeParseDate(json['publish_date']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
-      coverOffset: (json['cover_offset'] ?? 0.0).toDouble(),
+      coverOffset: _safeParseDouble(json['cover_offset'], fallback: 0.0)!,
     );
   }
 

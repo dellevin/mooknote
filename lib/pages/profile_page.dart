@@ -67,7 +67,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   Future<void> _loadUserData() async {
     try {
-      await UserPrefs.init();
       setState(() {
         _nickname = _userPrefs.nickname;
         _motto = _userPrefs.motto;

@@ -9,6 +9,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
   static Completer<void>? _reopenCompleter;
+  static Completer<Database>? _initCompleter;
 
   DatabaseHelper._init();
 
@@ -41,13 +42,28 @@ class DatabaseHelper {
   }
 
   Future<Database> get database async {
-    // 如果正在重开，等待完成（无忙等待）
+    // 如果正在重开，等待完成
     if (_reopenCompleter != null) {
       await _reopenCompleter!.future;
     }
     if (_database != null) return _database!;
-    _database = await _initDB('mooknote.db');
-    return _database!;
+
+    // 如果已有初始化在进行，等待它完成
+    if (_initCompleter != null) {
+      return _initCompleter!.future;
+    }
+
+    _initCompleter = Completer<Database>();
+    try {
+      _database = await _initDB('mooknote.db');
+      _initCompleter!.complete(_database!);
+      return _database!;
+    } catch (e) {
+      _initCompleter!.completeError(e);
+      rethrow;
+    } finally {
+      _initCompleter = null;
+    }
   }
 
   Future<Database> _initDB(String filePath) async {

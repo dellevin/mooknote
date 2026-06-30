@@ -194,6 +194,7 @@ class AppProvider extends ChangeNotifier {
   void setThemeMode(ThemeMode mode) {
     if (_themeMode != mode) {
       _themeMode = mode;
+      UserPrefs().setThemeMode(mode.index); // 0=system, 1=light, 2=dark
       notifyListeners();
     }
   }
