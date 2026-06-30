@@ -201,7 +201,6 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildFilterRow() {
-    final colors = Theme.of(context).colorScheme;
     final keyword = _searchController.text.trim();
     final provider = context.read<AppProvider>();
     int movieCount = 0, bookCount = 0, noteCount = 0;

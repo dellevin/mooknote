@@ -291,18 +291,6 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
     ).then((_) => _loadReviews());
   }
 
-  void _navigateToEditReview(MovieReview review) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MovieReviewFormPage(
-          movieId: widget.movie.id,
-          review: review,
-        ),
-      ),
-    ).then((_) => _loadReviews());
-  }
-
   void _navigateToReviewDetail(MovieReview review) {
     Navigator.push(
       context,

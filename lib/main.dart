@@ -187,8 +187,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final iconName = UserPrefs().appIconName;
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: widget.appProvider),
@@ -221,30 +219,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             navigatorKey: _navigatorKey,
             navigatorObservers: [routeObserver],
             onGenerateRoute: AppRouter.generateRoute,
-            builder: (context, child) {
-              return _AppIconWrapper(iconName: iconName, child: child!);
-            },
           );
           },
         );
         },
       ),
     );
-  }
-}
-
-class _AppIconWrapper extends StatefulWidget {
-  final Widget child;
-  final String iconName;
-  const _AppIconWrapper({required this.child, required this.iconName});
-
-  @override
-  State<_AppIconWrapper> createState() => _AppIconWrapperState();
-}
-
-class _AppIconWrapperState extends State<_AppIconWrapper> {
-  @override
-  Widget build(BuildContext context) {
-    return widget.child;
   }
 }

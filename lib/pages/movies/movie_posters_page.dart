@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -133,7 +131,6 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   }
 
   Widget _buildPosterItem(MoviePoster poster, int index) {
-    final colors = Theme.of(context).colorScheme;
     // 根据索引生成不同的高度，实现瀑布流效果
     final heights = [180.0, 220.0, 160.0, 200.0, 240.0, 190.0];
     final height = heights[index % heights.length];

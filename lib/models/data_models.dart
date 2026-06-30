@@ -10,7 +10,7 @@ const _copyWithNull = _CopyWithNullSentinel();
 /// 安全解析日期字符串，失败时返回 fallback
 DateTime? _safeParseDate(String? str, {DateTime? fallback}) {
   if (str == null || str.isEmpty) return fallback;
-  return DateTime.tryParse(str) ?? fallback;
+  return DateTime.tryParse(str)?.toLocal() ?? fallback;
 }
 
 /// 解析字符串列表（通用工具函数，不限于 Movie）

@@ -10,7 +10,6 @@ import '../../utils/epub/epub_stream_service.dart';
 import '../../utils/epub/epub_parser.dart';
 import '../../utils/epub/reader_settings.dart';
 import '../../utils/epub/reader_models.dart';
-import '../../utils/epub/volume_control_service.dart';
 import '../../utils/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
 import 'book_session.dart';
@@ -125,7 +124,6 @@ class _ReaderScreenState extends State<ReaderScreen>
 
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-  StreamSubscription<String>? volumeSubscription;
   bool tocDrawerOpen = false;
   bool styleDrawerOpen = false;
   AppLifecycleState? lastLifecycleState = AppLifecycleState.resumed;
@@ -195,9 +193,6 @@ class _ReaderScreenState extends State<ReaderScreen>
     progressDebouncer?.cancel();
     removeFootnoteOverlay(animate: false);
     restoreSystemUI();
-    volumeSubscription?.cancel();
-    VolumeControlService.disableInterception();
-    // 立即保存进度（同步写入，不被 dispose 打断）
     bookSession.flushProgress(
       currentChapterIndex: currentSpineItemIndex,
       currentPageInChapter: currentPageInChapter,
@@ -221,31 +216,8 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   void setupVolumeControl() {
-    final resume = readerSettings.volumeKeyTurnsPage &&
-        !tocDrawerOpen &&
-        !styleDrawerOpen &&
-        lastLifecycleState == AppLifecycleState.resumed;
-
-    if (resume) {
-      VolumeControlService.enableInterception();
-      volumeSubscription ??= VolumeControlService.volumeKeyEvents.listen((
-        event,
-      ) {
-        if (readerSettings.volumeKeyTurnsPage) {
-          if (footnoteOverlayEntry != null) {
-            removeFootnoteOverlay();
-            return;
-          }
-          if (event == 'up') {
-            rendererController.performPreviousPageTurn();
-          } else if (event == 'down') {
-            rendererController.performNextPageTurn();
-          }
-        }
-      });
-    } else {
-      VolumeControlService.disableInterception();
-    }
+    // VolumeControlService removed — native implementation never existed.
+    // TODO: reimplement if native volume-key interception is added.
   }
 
   void hideBottomNavigationBar() {

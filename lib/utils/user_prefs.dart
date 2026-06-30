@@ -35,7 +35,7 @@ class UserPrefs {
   /// 首次使用日期
   DateTime get firstUseDate {
     final str = prefs.getString('firstUseDate');
-    if (str != null) return DateTime.tryParse(str) ?? DateTime.now();
+    if (str != null) return DateTime.tryParse(str)?.toLocal() ?? DateTime.now();
     return DateTime.now();
   }
 

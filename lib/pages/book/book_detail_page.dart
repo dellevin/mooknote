@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/fade_in_local_image.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -335,27 +333,25 @@ class _BookDetailPageState extends State<BookDetailPage> {
     required Color backgroundColor,
     required Color foregroundColor,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: backgroundColor.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IconButton(
-          icon: Icon(icon, size: 18, color: foregroundColor),
-          onPressed: onPressed,
-          padding: EdgeInsets.zero,
-          tooltip: tooltip,
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: backgroundColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 18, color: foregroundColor),
         ),
       ),
     );
@@ -1252,35 +1248,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  Future<void> _downloadCover(Book book) async {
-    if (book.coverPath == null || book.coverPath!.isEmpty) {
-      ToastUtil.show(context, '没有可下载的封面');
-      return;
-    }
 
-    try {
-      final sourceFile = File(book.coverPath!);
-      if (!await sourceFile.exists()) {
-        ToastUtil.show(context, '封面文件不存在');
-        return;
-      }
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '${book.title}_${timestamp}_封面.jpg';
-
-      final tempDir = await Directory.systemTemp.createTemp();
-      final tempFile = File('${tempDir.path}/$fileName');
-      await sourceFile.copy(tempFile.path);
-
-      await Share.shareXFiles(
-        [XFile(tempFile.path)],
-        subject: '${book.title} 封面',
-        text: '下载自 MookNote',
-      );
-    } catch (e) {
-      ToastUtil.show(context, '下载失败: $e');
-    }
-  }
 
   void _showSharePoster(Book book) {
     Navigator.push(

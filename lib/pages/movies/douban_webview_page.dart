@@ -15,7 +15,6 @@ class DoubanWebViewPage extends StatefulWidget {
 class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
   late WebViewController _controller;
   bool _isLoading = true;
-  bool _canExtract = false;
   bool _isExtracting = false; // 防止重复提取
 
   @override
@@ -47,7 +46,6 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
             if (mounted) {
               setState(() {
                 _isLoading = false;
-                _canExtract = url.contains('douban.com/subject');
               });
             }
           },

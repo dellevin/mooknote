@@ -241,10 +241,10 @@ class NotePlusDocument {
       tags: _parseStringList(json['tags'] as String?),
       images: _parseStringList(json['images'] as String?),
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
+          ? (DateTime.tryParse(json['created_at'] as String)?.toLocal() ?? DateTime.now())
           : DateTime.now(),
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now()
+          ? (DateTime.tryParse(json['updated_at'] as String)?.toLocal() ?? DateTime.now())
           : DateTime.now(),
       isDeleted: (json['is_deleted'] as int?) == 1,
     );

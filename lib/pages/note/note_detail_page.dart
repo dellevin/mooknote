@@ -335,27 +335,25 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     required Color backgroundColor,
     required Color foregroundColor,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: backgroundColor.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IconButton(
-          icon: Icon(icon, size: 18, color: foregroundColor),
-          onPressed: onPressed,
-          padding: EdgeInsets.zero,
-          tooltip: tooltip,
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: backgroundColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 18, color: foregroundColor),
         ),
       ),
     );

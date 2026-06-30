@@ -80,8 +80,6 @@ class _MovieTabPageState extends State<MovieTabPage> {
     }
   }
 
-  String get _currentStatus => _statusMap[context.read<AppProvider>().movieStatusIndex] ?? 'watched';
-
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
     final statusIdx = provider.movieStatusIndex;

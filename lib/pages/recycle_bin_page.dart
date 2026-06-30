@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import '../models/note_plus_models.dart';
 import '../utils/toast_util.dart';
 
 /// 回收站页面
@@ -12,7 +13,7 @@ class RecycleBinPage extends StatefulWidget {
   State<RecycleBinPage> createState() => _RecycleBinPageState();
 }
 
-enum _ItemType { movie, book, note, movieReview, bookReview }
+enum _ItemType { movie, book, note, movieReview, bookReview, bookExcerpt, notePlus }
 
 class _DeletedItem {
   final _ItemType type;
@@ -61,6 +62,22 @@ class _DeletedItem {
         subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
         icon = Icons.rate_review_outlined,
         typeLabel = '书评';
+
+  _DeletedItem.bookExcerpt(BookExcerpt e)
+      : type = _ItemType.bookExcerpt,
+        id = e.id,
+        title = e.content.isNotEmpty ? e.content : '摘抄',
+        subtitle = '删除于 ${e.updatedAt.year}.${e.updatedAt.month.toString().padLeft(2, '0')}.${e.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.format_quote_outlined,
+        typeLabel = '书摘';
+
+  _DeletedItem.notePlus(NotePlusDocument d)
+      : type = _ItemType.notePlus,
+        id = d.id,
+        title = d.title.isNotEmpty ? d.title : '未命名文档',
+        subtitle = '删除于 ${d.updatedAt.year}.${d.updatedAt.month.toString().padLeft(2, '0')}.${d.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.edit_note_outlined,
+        typeLabel = '高级笔记';
 }
 
 class _RecycleBinPageState extends State<RecycleBinPage> {
@@ -85,6 +102,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     final notes = await provider.getDeletedNotes();
     final movieReviews = await provider.getDeletedMovieReviews();
     final bookReviews = await provider.getDeletedBookReviews();
+    final bookExcerpts = await provider.getDeletedBookExcerpts();
+    final notePlusDocs = await provider.getDeletedNotePlusDocs();
     if (!mounted) return;
     setState(() {
       _allItems = [
@@ -93,6 +112,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         for (final n in notes) _DeletedItem.note(n),
         for (final r in movieReviews) _DeletedItem.movieReview(r),
         for (final r in bookReviews) _DeletedItem.bookReview(r),
+        for (final e in bookExcerpts) _DeletedItem.bookExcerpt(e),
+        for (final d in notePlusDocs) _DeletedItem.notePlus(d),
       ];
       _isLoading = false;
     });
@@ -166,6 +187,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
           _filterChip('笔记', _ItemType.note),
           _filterChip('影评', _ItemType.movieReview),
           _filterChip('书评', _ItemType.bookReview),
+          _filterChip('书摘', _ItemType.bookExcerpt),
+          _filterChip('高级笔记', _ItemType.notePlus),
         ],
       ),
     );
@@ -356,6 +379,12 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       case _ItemType.bookReview:
         await provider.restoreBookReview(item.id);
         if (mounted) ToastUtil.show(context, '书评已恢复');
+      case _ItemType.bookExcerpt:
+        await provider.restoreBookExcerpt(item.id);
+        if (mounted) ToastUtil.show(context, '书摘已恢复');
+      case _ItemType.notePlus:
+        await provider.restoreNotePlusDoc(item.id);
+        if (mounted) ToastUtil.show(context, '高级笔记已恢复');
     }
     _loadDeletedItems();
   }
@@ -375,6 +404,10 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         await provider.permanentDeleteMovieReview(item.id);
       case _ItemType.bookReview:
         await provider.permanentDeleteBookReview(item.id);
+      case _ItemType.bookExcerpt:
+        await provider.permanentDeleteBookExcerpt(item.id);
+      case _ItemType.notePlus:
+        await provider.permanentDeleteNotePlusDoc(item.id);
     }
     _loadDeletedItems();
     if (mounted) ToastUtil.show(context, '已彻底删除');

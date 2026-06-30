@@ -201,16 +201,6 @@ class NotePlusProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 更新文档所属文件夹
-  Future<void> updateDocumentFolder(String id, String folder) async {
-    final idx = _documents.indexWhere((d) => d.id == id);
-    if (idx < 0) return;
-    final doc = _documents[idx].copyWith(parentId: folder, updatedAt: DateTime.now());
-    await _dao.update(doc);
-    _documents[idx] = doc;
-    notifyListeners();
-  }
-
   // ========== Block 操作 ==========
 
   void setFocusedBlock(int index) {

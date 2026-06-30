@@ -291,18 +291,6 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
     ).then((_) => _loadReviews());
   }
 
-  void _navigateToEditReview(BookReview review) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookReviewFormPage(
-          bookId: widget.book.id,
-          review: review,
-        ),
-      ),
-    ).then((_) => _loadReviews());
-  }
-
   void _navigateToReviewDetail(BookReview review) {
     Navigator.push(
       context,

@@ -209,20 +209,17 @@ class _NoteTabPageState extends State<NoteTabPage> {
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
   Widget _buildWaterfallView() {
-    final colors = Theme.of(context).colorScheme;
     final leftItems = <Note>[];
     final rightItems = <Note>[];
     for (int i = 0; i < _items.length; i++) {
       (i % 2 == 0 ? leftItems : rightItems).add(_items[i]);
     }
-    return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
-      child: SingleChildScrollView(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Column(children: [...leftItems.map(_buildWaterfallCard), if (_hasMore) _buildLoadMore()])),
-          const SizedBox(width: 8),
-          Expanded(child: Column(children: rightItems.map(_buildWaterfallCard).toList())),
-        ]),
-      ),
+    return SingleChildScrollView(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: Column(children: leftItems.map(_buildWaterfallCard).toList())),
+        const SizedBox(width: 8),
+        Expanded(child: Column(children: rightItems.map(_buildWaterfallCard).toList())),
+      ]),
     );
   }
 
@@ -313,9 +310,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
             title: Text(note.isPinned ? '取消置顶' : '置顶', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
             subtitle: Text(note.isPinned ? '取消置顶后按时间排序' : '置顶后始终显示在最前', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(ctx);
-              context.read<AppProvider>().toggleNotePin(note.id, !note.isPinned);
+              await context.read<AppProvider>().toggleNotePin(note.id, !note.isPinned);
+              _loadFirst();
             },
           ),
           Divider(height: 0.5, color: colors.outlineVariant),

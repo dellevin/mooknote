@@ -3,16 +3,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import '../../widgets/fade_in_local_image.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
-import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/toast_util.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
@@ -113,7 +108,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               ),
             ),
           ),
-          // 导航栏
+          // 详情页面的标准顶部导航栏
           Positioned(
             top: 0, left: 0, right: 0,
             child: Container(
@@ -387,27 +382,25 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     required Color backgroundColor,
     required Color foregroundColor,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: backgroundColor.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IconButton(
-          icon: Icon(icon, size: 18, color: foregroundColor),
-          onPressed: onPressed,
-          padding: EdgeInsets.zero,
-          tooltip: tooltip,
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: backgroundColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 18, color: foregroundColor),
         ),
       ),
     );
@@ -1184,11 +1177,15 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await context.read<AppProvider>().removeMovie(widget.movie.id);
+              final provider = context.read<AppProvider>();
+              await provider.removeMovie(widget.movie.id);
               if (!mounted) return;
-              Navigator.pop(context);
-              Navigator.pop(context);
-              ToastUtil.show(context, '已删除');
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              navigator.pop();
+              if (mounted) {
+                ToastUtil.show(context, '已删除');
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,
@@ -1205,27 +1202,6 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
-  }
-
-  Future<bool> _requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final sdkInt = await _getAndroidSdkInt();
-      if (sdkInt >= 33) {
-        final status = await Permission.photos.request();
-        return status.isGranted;
-      } else {
-        var status = await Permission.storage.request();
-        if (status.isDenied) {
-          status = await Permission.storage.request();
-        }
-        return status.isGranted;
-      }
-    }
-    return true;
-  }
-
-  Future<int> _getAndroidSdkInt() async {
-    return 30;
   }
 
   void _showSharePoster(Movie movie) {

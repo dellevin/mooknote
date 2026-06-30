@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -11,7 +10,6 @@ import '../pages/person_list_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
 import '../pages/epub_reader/epub_library_page.dart';
 import '../pages/tag_management_page.dart';
-import '../pages/profile_page.dart';
 import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
 import '../pages/note/note_detail_page.dart';

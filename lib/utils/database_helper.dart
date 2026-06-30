@@ -580,11 +580,6 @@ class DatabaseHelper {
 
   // 创建数据库表
   Future<void> _createDB(Database db, int version) async {
-    const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
-    const textType = 'TEXT NOT NULL';
-    const integerType = 'INTEGER NOT NULL';
-    const booleanType = 'INTEGER NOT NULL';
-
     // 影视表
     await db.execute('''
       CREATE TABLE movies (
@@ -783,9 +778,4 @@ class DatabaseHelper {
     }
   }
 
-  // 重新打开（关闭后重新初始化）
-  Future reopen() async {
-    await close();
-    await database;
-  }
 }
