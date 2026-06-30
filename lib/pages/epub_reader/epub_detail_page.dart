@@ -195,6 +195,14 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               child: _buildLinkedBookCard(colors),
             ),
+
+            // ── 其他作品（同作者）──
+            if (author.isNotEmpty) ...[
+              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+              _buildSectionHeader('其他作品', colors),
+              _buildOtherWorks(author, colors),
+              const SizedBox(height: 24),
+            ],
           ],
         ),
       ),
@@ -394,6 +402,77 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   Future<void> _unlinkBook() async {
     await _dao.unlinkBook(widget.bookId);
     await _refreshBook();
+  }
+
+  Widget _buildOtherWorks(String author, ColorScheme colors) {
+    final linkedBookId = _book['book_id'] as String? ?? '';
+    return FutureBuilder<List<Book>>(
+      future: _bookDao.getBooksByAuthor(author),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: Text('暂未收藏该作者其他作品',
+                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+          );
+        }
+        final books = snapshot.data!.where((b) => b.id != linkedBookId).toList();
+        if (books.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: Text('暂未收藏该作者其他作品',
+                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+          );
+        }
+        return SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: books.length,
+            itemBuilder: (context, index) {
+              final book = books[index];
+              return GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => BookDetailPage(book: book))),
+                child: Container(
+                  width: 90,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 90, height: 126,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: book.coverPath != null && book.coverPath!.isNotEmpty
+                              ? Image.file(File(book.coverPath!), fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => _buildBookCoverPlaceholder(colors))
+                              : _buildBookCoverPlaceholder(colors),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: colors.onSurface)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBookCoverPlaceholder(ColorScheme colors) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(Icons.menu_book_outlined, size: 28, color: colors.onSurface.withValues(alpha: 0.2)),
+    );
   }
 
   Widget _buildCover(String? coverPath, ColorScheme colors) {

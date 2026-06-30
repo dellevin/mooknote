@@ -34,22 +34,32 @@ class MainActivity : FlutterActivity() {
 
     private fun switchLauncherIcon(iconName: String) {
         val pm = packageManager
+        val mainActivity = ComponentName(this, "${packageName}.MainActivity")
         val icon1 = ComponentName(this, "${packageName}.MainActivityIcon1")
         val icon2 = ComponentName(this, "${packageName}.MainActivityIcon2")
         val icon3 = ComponentName(this, "${packageName}.MainActivityIcon3")
 
-        // 先全部禁用
+        // 先禁用所有别名
         pm.setComponentEnabledSetting(icon1, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
         pm.setComponentEnabledSetting(icon2, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
         pm.setComponentEnabledSetting(icon3, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
 
-        // 启用选中的
-        val target = when (iconName) {
-            "app_icon2" -> icon2
-            "app_icon_m" -> icon3
-            else -> icon1
+        when (iconName) {
+            "app_icon2" -> {
+                // 切换到图标2：禁用主Activity的LAUNCHER，启用别名
+                pm.setComponentEnabledSetting(mainActivity, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                pm.setComponentEnabledSetting(icon2, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+            }
+            "app_icon_m" -> {
+                // 切换到图标3：禁用主Activity的LAUNCHER，启用别名
+                pm.setComponentEnabledSetting(mainActivity, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                pm.setComponentEnabledSetting(icon3, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+            }
+            else -> {
+                // 切换回默认图标：启用主Activity，禁用所有别名（已在上面禁用）
+                pm.setComponentEnabledSetting(mainActivity, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+            }
         }
-        pm.setComponentEnabledSetting(target, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
     }
 
     private fun getCurrentIcon(): String {
