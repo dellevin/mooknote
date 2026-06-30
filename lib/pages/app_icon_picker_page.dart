@@ -57,7 +57,7 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
         title: const Text('应用图标'),
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _icons.length,
         itemBuilder: (context, index) {
           final icon = _icons[index];
@@ -66,8 +66,8 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
           return InkWell(
             onTap: () => _selectIcon(icon['name']!),
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(12),
@@ -79,45 +79,45 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
               child: Row(
                 children: [
                   Container(
-                    width: 64,
-                    height: 64,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(10),
                       border:
                           Border.all(color: colors.outlineVariant, width: 0.5),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Image.asset(
                       'assets/icon/${icon['name']}.png',
-                      width: 64,
-                      height: 64,
+                      width: 40,
+                      height: 40,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        width: 64,
-                        height: 64,
+                        width: 40,
+                        height: 40,
                         color: colors.surfaceContainerHighest,
                         child: Icon(Icons.image_not_supported,
-                            size: 24,
+                            size: 18,
                             color: colors.onSurface.withValues(alpha: 0.3)),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       icon['label']!,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: colors.onSurface,
                       ),
                     ),
                   ),
                   if (isSelected)
-                    Icon(Icons.check_circle, size: 22, color: colors.primary)
+                    Icon(Icons.check_circle, size: 20, color: colors.primary)
                   else
                     Icon(Icons.radio_button_unchecked,
-                        size: 22,
+                        size: 20,
                         color: colors.onSurface.withValues(alpha: 0.2)),
                 ],
               ),

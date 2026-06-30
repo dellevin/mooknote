@@ -990,25 +990,13 @@ class _SettingsPageState extends State<SettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildNavigationItem(
-            icon: Icons.view_list_outlined,
-            title: '主界面设置',
-            subtitle: '启动标签、模块显示开关',
+            icon: Icons.tune_outlined,
+            title: '功能设置',
+            subtitle: '启动标签、模块开关、侧边栏功能',
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const MainContentSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.view_sidebar_outlined,
-            title: '侧边栏功能设置',
-            subtitle: '控制侧边栏显示的功能模块',
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SidebarSettingsPage())),
+                    builder: (_) => const FeatureSettingsPage())),
           ),
           Divider(
               height: 0.5,
@@ -1040,11 +1028,6 @@ class _SettingsPageState extends State<SettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildFontSelector(),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
           _buildSectionHeader('其他设置'),
           _buildActionItem(
             icon: Icons.person_outline,
@@ -1623,7 +1606,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // ─── 字体选择器 ───
 
-  static const _fontLabels = ['系统默认', '霞鹜文楷', 'OPPO Sans', '思源宋体', '得意黑'];
+  static const _fontLabels = ['默认字体', '霞鹜文楷', 'OPPO Sans', '思源宋体', '得意黑'];
   static const _fontValues = [
     '',
     'LXGWWenKai',
@@ -2039,7 +2022,8 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final db = await DatabaseHelper.instance.database;
       // 收集数据库中所有引用的 epub_books 子目录名
-      final rows = await db.query('reader_books', columns: ['id', 'file_path', 'cover_path']);
+      final rows = await db
+          .query('reader_books', columns: ['id', 'file_path', 'cover_path']);
       final usedDirs = <String>{};
       for (final r in rows) {
         final id = r['id'] as String?;
@@ -2175,23 +2159,35 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// ─── 主界面设置 ───
+// ─── 功能设置 ───
 
-class MainContentSettingsPage extends StatefulWidget {
-  const MainContentSettingsPage({super.key});
+class FeatureSettingsPage extends StatefulWidget {
+  const FeatureSettingsPage({super.key});
 
   @override
-  State<MainContentSettingsPage> createState() =>
-      _MainContentSettingsPageState();
+  State<FeatureSettingsPage> createState() => _FeatureSettingsPageState();
 }
 
-class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
+class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
+
+  // 主界面
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
   bool _showNotePlusTab = false;
   int _defaultTabIndex = 0;
+
+  // 侧边栏
+  bool _showHeatmap = true;
+  bool _showRecent = true;
+  bool _showEncounter = true;
+  bool _showStroll = true;
+  bool _showCalendar = true;
+  bool _showPerson = true;
+  bool _showTags = true;
+  bool _showMdReader = true;
+  bool _showEpub = true;
 
   @override
   void initState() {
@@ -2206,6 +2202,15 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
       _showNoteTab = _userPrefs.showNoteTab;
       _showNotePlusTab = _userPrefs.showNotePlusTab;
       _defaultTabIndex = _userPrefs.defaultMainTabIndex;
+      _showHeatmap = _userPrefs.showSidebarHeatmap;
+      _showRecent = _userPrefs.showSidebarRecent;
+      _showEncounter = _userPrefs.showSidebarEncounter;
+      _showStroll = _userPrefs.showSidebarStroll;
+      _showCalendar = _userPrefs.showSidebarCalendar;
+      _showPerson = _userPrefs.showSidebarPerson;
+      _showTags = _userPrefs.showSidebarTags;
+      _showMdReader = _userPrefs.showSidebarMdReader;
+      _showEpub = _userPrefs.showSidebarEpub;
     });
   }
 
@@ -2217,7 +2222,6 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     return count;
   }
 
-  /// 获取当前启用的标签页列表，返回 (索引, 标签, 图标) 列表
   List<(int, String, IconData)> get _enabledTabs {
     final all = [
       (0, '影视', Icons.movie_outlined),
@@ -2288,9 +2292,10 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('主界面设置')),
+      appBar: AppBar(title: const Text('功能设置')),
       body: ListView(
         children: [
+          // ── 启动设置 ──
           _buildSectionHeader('启动设置'),
           _buildDefaultTabSelector(),
           Divider(
@@ -2298,6 +2303,8 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
+
+          // ── 模块开关 ──
           _buildSectionHeader('模块开关'),
           _buildSwitchItem(Icons.movie_outlined, '观影', '记录和管理观影记录',
               _showMovieTab, _toggleMovieTab),
@@ -2322,14 +2329,100 @@ class _MainContentSettingsPageState extends State<MainContentSettingsPage> {
               color: colors.outlineVariant),
           _buildSwitchItem(Icons.edit_note, 'Note Plus', '块编辑器，支持富文本文档',
               _showNotePlusTab, _toggleNotePlusTab),
+
+          // ── 侧边栏：信息模块 ──
+          _buildSectionHeader('侧边栏 · 信息模块'),
+          _buildSwitchItem(
+              Icons.calendar_today, '热力图', '显示创作活跃度热力图', _showHeatmap,
+              (v) async {
+            await _userPrefs.setShowSidebarHeatmap(v);
+            setState(() => _showHeatmap = v);
+          }),
           Divider(
               height: 0.5,
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
+          _buildSwitchItem(Icons.schedule, '最近添加', '显示最近添加的记录', _showRecent,
+              (v) async {
+            await _userPrefs.setShowSidebarRecent(v);
+            setState(() => _showRecent = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.favorite_border, '统计', '与应用相遇的天数和数据概览', _showEncounter,
+              (v) async {
+            await _userPrefs.setShowSidebarEncounter(v);
+            setState(() => _showEncounter = v);
+          }),
+
+          // ── 侧边栏：快捷功能 ──
+          _buildSectionHeader('侧边栏 · 快捷功能'),
+          _buildSwitchItem(Icons.explore_outlined, '漫步', '随机发现内容', _showStroll,
+              (v) async {
+            await _userPrefs.setShowSidebarStroll(v);
+            setState(() => _showStroll = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.calendar_month_outlined, '书影日历', '按日历查看记录', _showCalendar,
+              (v) async {
+            await _userPrefs.setShowSidebarCalendar(v);
+            setState(() => _showCalendar = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.people_outline, '角色信息', '管理影视和书籍中的角色', _showPerson,
+              (v) async {
+            await _userPrefs.setShowSidebarPerson(v);
+            setState(() => _showPerson = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.label_outline, '标签管理', '管理所有标签', _showTags,
+              (v) async {
+            await _userPrefs.setShowSidebarTags(v);
+            setState(() => _showTags = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.description_outlined, 'MD阅读', 'Markdown 文件阅读器',
+              _showMdReader, (v) async {
+            await _userPrefs.setShowSidebarMdReader(v);
+            setState(() => _showMdReader = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.auto_stories_outlined, 'EPUB阅读', 'EPUB 电子书阅读器', _showEpub,
+              (v) async {
+            await _userPrefs.setShowSidebarEpub(v);
+            setState(() => _showEpub = v);
+          }),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-            child: Text('至少保留一个模块，关闭后对应标签页将不再显示。',
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Text('关闭后对应功能将从界面中隐藏。',
                 style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.3))),
@@ -2683,194 +2776,3 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 }
 
-// ─── 侧边栏功能设置 ───
-
-class SidebarSettingsPage extends StatefulWidget {
-  const SidebarSettingsPage({super.key});
-
-  @override
-  State<SidebarSettingsPage> createState() => _SidebarSettingsPageState();
-}
-
-class _SidebarSettingsPageState extends State<SidebarSettingsPage> {
-  final UserPrefs _userPrefs = UserPrefs();
-  bool _showHeatmap = true;
-  bool _showRecent = true;
-  bool _showEncounter = true;
-  bool _showStroll = true;
-  bool _showCalendar = true;
-  bool _showPerson = true;
-  bool _showTags = true;
-  bool _showMdReader = true;
-  bool _showEpub = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  void _loadSettings() {
-    setState(() {
-      _showHeatmap = _userPrefs.showSidebarHeatmap;
-      _showRecent = _userPrefs.showSidebarRecent;
-      _showEncounter = _userPrefs.showSidebarEncounter;
-      _showStroll = _userPrefs.showSidebarStroll;
-      _showCalendar = _userPrefs.showSidebarCalendar;
-      _showPerson = _userPrefs.showSidebarPerson;
-      _showTags = _userPrefs.showSidebarTags;
-      _showMdReader = _userPrefs.showSidebarMdReader;
-      _showEpub = _userPrefs.showSidebarEpub;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('侧边栏功能设置')),
-      body: ListView(
-        children: [
-          _buildSectionHeader('信息模块'),
-          _buildSwitchItem(
-              Icons.calendar_today, '热力图', '显示创作活跃度热力图', _showHeatmap,
-              (v) async {
-            await _userPrefs.setShowSidebarHeatmap(v);
-            setState(() => _showHeatmap = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(Icons.schedule, '最近添加', '显示最近添加的记录', _showRecent,
-              (v) async {
-            await _userPrefs.setShowSidebarRecent(v);
-            setState(() => _showRecent = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(
-              Icons.favorite_border, '统计', '与应用相遇的天数和数据概览', _showEncounter,
-              (v) async {
-            await _userPrefs.setShowSidebarEncounter(v);
-            setState(() => _showEncounter = v);
-          }),
-          _buildSectionHeader('快捷功能'),
-          _buildSwitchItem(Icons.explore_outlined, '漫步', '随机发现内容', _showStroll,
-              (v) async {
-            await _userPrefs.setShowSidebarStroll(v);
-            setState(() => _showStroll = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(
-              Icons.calendar_month_outlined, '书影日历', '按日历查看记录', _showCalendar,
-              (v) async {
-            await _userPrefs.setShowSidebarCalendar(v);
-            setState(() => _showCalendar = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(
-              Icons.people_outline, '角色信息', '管理影视和书籍中的角色', _showPerson,
-              (v) async {
-            await _userPrefs.setShowSidebarPerson(v);
-            setState(() => _showPerson = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(Icons.label_outline, '标签管理', '管理所有标签', _showTags,
-              (v) async {
-            await _userPrefs.setShowSidebarTags(v);
-            setState(() => _showTags = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(Icons.description_outlined, 'MD阅读', 'Markdown 文件阅读器',
-              _showMdReader, (v) async {
-            await _userPrefs.setShowSidebarMdReader(v);
-            setState(() => _showMdReader = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(
-              Icons.auto_stories_outlined, 'EPUB阅读', 'EPUB 电子书阅读器', _showEpub,
-              (v) async {
-            await _userPrefs.setShowSidebarEpub(v);
-            setState(() => _showEpub = v);
-          }),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Text('关闭后对应功能将从侧边栏中隐藏。',
-                style: TextStyle(
-                    fontSize: 11,
-                    color: colors.onSurface.withValues(alpha: 0.3))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-      child: Text(title,
-          style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface)),
-    );
-  }
-
-  Widget _buildSwitchItem(IconData icon, String title, String subtitle,
-      bool value, ValueChanged<bool> onChanged) {
-    final colors = Theme.of(context).colorScheme;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon,
-              color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-      title: Text(title,
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: colors.onSurface)),
-      subtitle: Text(subtitle,
-          style: TextStyle(
-              fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-      trailing: Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: colors.primary,
-          activeTrackColor: colors.primary.withValues(alpha: 0.3),
-          inactiveThumbColor: colors.surface,
-          inactiveTrackColor: colors.outline),
-    );
-  }
-}

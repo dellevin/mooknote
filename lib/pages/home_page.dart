@@ -87,12 +87,15 @@ class _HomePageState extends State<HomePage> {
               children: [
                 _buildPageView(provider),
 
+                // 底部导航栏区域
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
                   child: AnimatedSlide(
-                    offset: provider.bottomNavVisible ? Offset.zero : const Offset(-1, 0),
+                    offset: provider.bottomNavVisible
+                        ? Offset.zero
+                        : const Offset(-1, 0),
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                     child: const CustomBottomNavBar(),

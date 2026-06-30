@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:dynamic_color/dynamic_color.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
@@ -192,36 +192,72 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.appProvider),
         ChangeNotifierProvider(create: (_) => NotePlusProvider()),
       ],
-      child: Consumer<AppProvider>(
-        builder: (context, provider, _) {
-          AppTheme.setFontFamily(provider.fontFamily);
-          return DynamicColorBuilder(
-            builder: (lightDynamic, darkDynamic) {
-              final monetColor = lightDynamic?.primary;
-              AppTheme.setMonetColor(monetColor);
-              return MaterialApp(
+      child: DynamicColorBuilder(
+        builder: (lightScheme, darkScheme) {
+          final monetColor = lightScheme?.primary;
+          AppTheme.setMonetColor(monetColor);
+
+          return Consumer<AppProvider>(
+            builder: (context, provider, _) {
+              AppTheme.setFontFamily(provider.fontFamily);
+              final light = AppTheme.getLightTheme(
+                provider.colorSchemeIndex,
+                monetColor: monetColor,
+              );
+              ThemeData dark;
+              if (provider.colorSchemeIndex == -1 && monetColor != null) {
+                final scheme = ColorScheme.fromSeed(
+                  seedColor: monetColor,
+                  brightness: Brightness.dark,
+                );
+                dark = ThemeData(
+                  useMaterial3: true,
+                  brightness: Brightness.dark,
+                  colorScheme: scheme,
+                  scaffoldBackgroundColor: scheme.surface,
+                  appBarTheme: AppBarTheme(
+                    backgroundColor: scheme.surface,
+                    foregroundColor: scheme.onSurface,
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
+                  ),
+                  cardTheme: CardThemeData(
+                    color: scheme.surfaceContainerHighest,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              } else {
+                dark = AppTheme.darkTheme;
+              }
+
+              final child = MaterialApp(
                 title: 'MookNote',
                 debugShowCheckedModeBanner: false,
-                theme: AppTheme.getLightTheme(provider.colorSchemeIndex, monetColor: monetColor),
-                darkTheme: AppTheme.darkTheme,
+                theme: light,
+                darkTheme: dark,
                 themeMode: provider.themeMode,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              quill.FlutterQuillLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('zh', 'CN'),
-              Locale('en', 'US'),
-            ],
-            home: const HomePage(),
-            navigatorKey: _navigatorKey,
-            navigatorObservers: [routeObserver],
-            onGenerateRoute: AppRouter.generateRoute,
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                  quill.FlutterQuillLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale('zh', 'CN'),
+                  Locale('en', 'US'),
+                ],
+                home: const HomePage(),
+                navigatorKey: _navigatorKey,
+                navigatorObservers: [routeObserver],
+                onGenerateRoute: AppRouter.generateRoute,
+              );
+
+              return child;
+            },
           );
-          },
-        );
         },
       ),
     );
