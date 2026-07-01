@@ -416,8 +416,12 @@ class _ReaderScreenState extends State<ReaderScreen>
         streamService: _streamService,
         onNavigate: (spineIndex, keyword, scrollRatio) {
           Navigator.pop(ctx);
-          setState(() => currentSpineItemIndex = spineIndex);
-          loadCarousel(restoreScrollRatio: scrollRatio);
+          if (spineIndex >= 0 && spineIndex < bookSession.spine.length) {
+            setState(() => currentSpineItemIndex = spineIndex);
+            loadCarousel(restoreScrollRatio: scrollRatio);
+          } else if (mounted) {
+            ToastUtil.show(context, '章节位置无效');
+          }
         },
       ),
     );
