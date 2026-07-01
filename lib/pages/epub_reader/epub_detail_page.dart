@@ -842,7 +842,26 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                 decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.link_off, size: 18, color: colors.error)),
             title: Text('取消关联', style: TextStyle(fontSize: 13, color: colors.error)),
-            onTap: () { Navigator.pop(ctx); _unlinkBook(); },
+            onTap: () {
+              Navigator.pop(ctx);
+              showDialog(
+                context: context,
+                builder: (confirmCtx) => AlertDialog(
+                  title: const Text('取消关联', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  content: Text(
+                    '取消关联会清除掉阅读界面的蓝色划线且重新关联后不可恢复，确定要取消关联吗？',
+                    style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6)),
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(confirmCtx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+                    TextButton(
+                      onPressed: () { Navigator.pop(confirmCtx); _unlinkBook(); },
+                      child: Text('确定', style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 8),
         ]),

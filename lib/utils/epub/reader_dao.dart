@@ -88,6 +88,12 @@ class ReaderDao {
   /// 取消关联
   Future<int> unlinkBook(String readerBookId) async {
     final db = await _db.database;
+    // 同步删除该书的摘抄蓝色高亮标注
+    await db.delete(
+      'book_annotations',
+      where: 'book_id = ? AND color = ?',
+      whereArgs: [readerBookId, 'excerpt'],
+    );
     return db.update(
       'reader_books',
       {'book_id': '', 'updated_at': DateTime.now().toIso8601String()},
