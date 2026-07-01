@@ -145,6 +145,49 @@ class ReaderDao {
     );
   }
 
+  // ─── highlights / annotations (epub) ──────────────────────
+
+  /// 保存 EPUB 高亮批注
+  Future<int> saveHighlight(Map<String, dynamic> annotation) async {
+    final db = await _db.database;
+    return db.insert('book_annotations', {
+      ...annotation,
+      'type': 'highlight',
+    });
+  }
+
+  /// 获取某 book_id（books.id）的所有 EPUB 高亮
+  Future<List<Map<String, dynamic>>> getHighlightsByBookId(
+      String bookId) async {
+    final db = await _db.database;
+    return db.query(
+      'book_annotations',
+      where: 'book_id = ? AND type = ?',
+      whereArgs: [bookId, 'highlight'],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  /// 删除高亮
+  Future<int> deleteHighlight(int id) async {
+    final db = await _db.database;
+    return db.delete(
+      'book_annotations',
+      where: 'id = ? AND type = ?',
+      whereArgs: [id, 'highlight'],
+    );
+  }
+
+  /// 删除摘抄对应的蓝色高亮标注（通过内容匹配）
+  Future<void> deleteExcerptHighlightByContent(String readerBookId, String content) async {
+    final db = await _db.database;
+    await db.delete(
+      'book_annotations',
+      where: 'book_id = ? AND content = ? AND color = ?',
+      whereArgs: [readerBookId, content, 'excerpt'],
+    );
+  }
+
   // ─── bookmarks ──────────────────────────────────────────────────
 
   /// 获取某本书的所有书签

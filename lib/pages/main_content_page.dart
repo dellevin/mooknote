@@ -423,6 +423,7 @@ class _MainContentPageState extends State<MainContentPage> {
 
         return PageView(
           controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(), // 仅点击标签栏切换，禁止滑动切换
           onPageChanged: (index) {
             if (!_isTabTap && index < tabs.length) {
               provider.setMainTabIndex(tabs[index].originalIndex);

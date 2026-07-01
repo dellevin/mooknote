@@ -139,10 +139,18 @@ class BookSession {
     _tocItemFallback.clear();
     for (int i = 0; i < _spine.length; i++) {
       _tocItemFallback.add(fallback);
-      final anchors = _spineToAnchorsMap[_spine[i].href] ?? [];
+      final spineHref = _spine[i].href;
+      final anchors = _spineToAnchorsMap[spineHref] ?? [];
       if (anchors.isNotEmpty) {
-        final lastHref = '${_spine[i].href}#${anchors.last}';
-        final idx = _hrefToTocIndexMap[lastHref];
+        // 先查 spine href + anchor，再回退到纯 spine href
+        final lastHref = '$spineHref#${anchors.last}';
+        final idx = _hrefToTocIndexMap[lastHref] ?? _hrefToTocIndexMap[spineHref];
+        if (idx != null) {
+          fallback = _flatToc[idx];
+        }
+      } else {
+        // 没有锚点，直接用 spine href 查
+        final idx = _hrefToTocIndexMap[spineHref];
         if (idx != null) {
           fallback = _flatToc[idx];
         }
@@ -279,6 +287,38 @@ class BookSession {
       return _tocItemFallback[currentSpineItemIndex];
     }
     return null;
+  }
+
+  /// 通过 spine 索引直接获取章节标题（不依赖 scroll anchors，用文件名匹配）
+  String getChapterTitleForSpine(int spineIndex) {
+    if (spineIndex < 0 || spineIndex >= _spine.length) return '';
+
+    final spineHref = _spine[spineIndex].href;
+    final spineFileName = spineHref.split('/').last.toLowerCase();
+
+    // 1. 精确匹配 href
+    for (final entry in _flatToc) {
+      final tocHref = entry.href.split('#')[0];
+      if (tocHref == spineHref) return entry.label;
+    }
+
+    // 2. 文件名匹配（防止路径前缀不一致）
+    for (final entry in _flatToc) {
+      final tocFileName = entry.href.split('#')[0].split('/').last.toLowerCase();
+      if (tocFileName == spineFileName && entry.label.isNotEmpty) {
+        return entry.label;
+      }
+    }
+
+    // 3. 回退到 _tocItemFallback
+    if (spineIndex < _tocItemFallback.length) {
+      final label = _tocItemFallback[spineIndex].label;
+      if (label.isNotEmpty && label != (bookData['title'] as String? ?? '')) {
+        return label;
+      }
+    }
+
+    return '';
   }
 
   /// Find spine index from a URL string (virtual epub:// or relative path).

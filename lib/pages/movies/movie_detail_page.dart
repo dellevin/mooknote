@@ -1147,6 +1147,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   void _navigateToEdit(BuildContext context) {
     final provider = context.read<AppProvider>();
     Navigator.pushNamed(context, '/movie-form', arguments: widget.movie).then((_) {
+      provider.setEditRefresh();
       provider.loadMovies();
     });
   }

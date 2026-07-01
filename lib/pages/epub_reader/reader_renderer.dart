@@ -158,6 +158,7 @@ class ReaderRenderer extends StatefulWidget {
   final Function(String innerHtml, Rect rect, String baseUrl) onFootnoteTap;
   final Function(String url) onLinkTap;
   final bool Function(String url) shouldHandleLinkTap;
+  final Function(String selectedText, Rect rect, int spineIndex, double scrollRatio, Offset? startHandle, Offset? endHandle, Map<String, dynamic>? selectionInfo)? onTextSelection;
   final bool shouldShowWebView;
   final EpubTheme initializeTheme;
   final String statusBarLeftContent;
@@ -186,6 +187,7 @@ class ReaderRenderer extends StatefulWidget {
     required this.onFootnoteTap,
     required this.onLinkTap,
     required this.shouldHandleLinkTap,
+    this.onTextSelection,
     required this.shouldShowWebView,
     required this.initializeTheme,
     required this.statusBarLeftContent,
@@ -360,6 +362,11 @@ class _ReaderRendererState extends State<ReaderRenderer>
       details.localPosition.dx,
       details.localPosition.dy,
     );
+    // 编程式选中最接近长按位置的文字（触发 onTextSelection 回调）
+    await _webViewController.selectWordAt(
+      details.localPosition.dx,
+      details.localPosition.dy,
+    );
   }
 
   @override
@@ -495,6 +502,7 @@ class _ReaderRendererState extends State<ReaderRenderer>
           onFootnoteTap: widget.onFootnoteTap,
           onLinkTap: widget.onLinkTap,
           shouldHandleLinkTap: widget.shouldHandleLinkTap,
+          onTextSelection: widget.onTextSelection,
         ),
         shouldShowWebView: widget.shouldShowWebView,
         coverRelativePath: widget.bookSession.book['cover_path'] as String?,

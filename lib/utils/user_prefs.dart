@@ -242,6 +242,10 @@ class UserPrefs {
   String get dismissedVersion => prefs.getString('dismissedVersion') ?? '';
   Future<bool> setDismissedVersion(String value) => prefs.setString('dismissedVersion', value);
 
+  /// 更新提醒 snooze 到指定时间戳（ms），24 小时内不弹
+  int get dismissedUpdateUntil => prefs.getInt('dismissedUpdateUntil') ?? 0;
+  Future<bool> setDismissedUpdateUntil(int value) => prefs.setInt('dismissedUpdateUntil', value);
+
   // ========== EPUB 阅读器 ==========
 
   /// EPUB 阅读器字体大小
@@ -251,4 +255,8 @@ class UserPrefs {
   /// EPUB 书架视图模式: 0=宽松, 1=紧凑
   int get epubViewMode => prefs.getInt('epubViewMode') ?? 0;
   Future<bool> setEpubViewMode(int value) => prefs.setInt('epubViewMode', value);
+
+  /// EPUB 句读列表视图模式: 0=瀑布流, 1=列表
+  int get highlightsViewMode => prefs.getInt('highlightsViewMode') ?? 0;
+  Future<bool> setHighlightsViewMode(int value) => prefs.setInt('highlightsViewMode', value);
 }

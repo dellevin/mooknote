@@ -1,9 +1,10 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../utils/database_helper.dart';
 import '../../utils/epub/epub_theme.dart';
 import '../../utils/epub/epub_webview_handler.dart';
 import '../../utils/epub/epub_stream_service.dart';
@@ -14,11 +15,14 @@ import '../../utils/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
 import 'book_session.dart';
 import 'reader_renderer.dart';
+import 'reader_webview.dart';
 import 'control_panel.dart';
 import 'toc_drawer.dart';
 import 'image_viewer.dart';
 import 'footnote_popup.dart';
 import 'search_sheet.dart';
+import 'epub_selection_toolbar.dart';
+import 'selection_handles.dart';
 
 part 'mixins/spine_navigation_mixin.dart';
 part 'mixins/page_navigation_mixin.dart';
@@ -27,6 +31,7 @@ part 'mixins/theme_mixin.dart';
 part 'mixins/link_handling_mixin.dart';
 part 'mixins/image_viewer_mixin.dart';
 part 'mixins/footnote_mixin.dart';
+part 'mixins/text_selection_mixin.dart';
 
 /// Reads EPUB directly from compressed file without extraction.
 class ReaderScreen extends StatefulWidget {
@@ -35,6 +40,9 @@ class ReaderScreen extends StatefulWidget {
   final String title;
   final String? coverPath;
   final Map<String, dynamic>? bookData;
+  final int? initialSpineIndex;
+  final String? scrollToXPath;
+  final String? scrollToText;
 
   const ReaderScreen({
     super.key,
@@ -43,6 +51,9 @@ class ReaderScreen extends StatefulWidget {
     required this.title,
     this.coverPath,
     this.bookData,
+    this.initialSpineIndex,
+    this.scrollToXPath,
+    this.scrollToText,
   });
 
   @override
@@ -58,7 +69,8 @@ class _ReaderScreenState extends State<ReaderScreen>
         _ThemeMixin,
         _LinkHandlingMixin,
         _ImageViewerMixin,
-        _FootnoteMixin {
+        _FootnoteMixin,
+        _TextSelectionMixin {
   @override
   late final EpubWebViewHandler webViewHandler;
 
@@ -137,6 +149,7 @@ class _ReaderScreenState extends State<ReaderScreen>
 
   // Services
   final EpubStreamService _streamService = EpubStreamService();
+  @override
   final ReaderDao _readerDao = ReaderDao();
   final EpubParser _epubParser = EpubParser();
 
@@ -169,6 +182,8 @@ class _ReaderScreenState extends State<ReaderScreen>
     // Load settings first, then book
     ReaderSettings.load().then((settings) {
       readerSettings = settings;
+      _pendingScrollXPath = widget.scrollToXPath;
+      _pendingScrollText = widget.scrollToText;
       if (mounted) {
         setupVolumeControl();
         _loadBook();
@@ -288,7 +303,7 @@ class _ReaderScreenState extends State<ReaderScreen>
 
       if (mounted) {
         setState(() {
-          currentSpineItemIndex = bookSession.initialChapterIndex;
+          currentSpineItemIndex = widget.initialSpineIndex ?? bookSession.initialChapterIndex;
         });
         updateProgressDebounced();
         _loadBookmarks();
@@ -512,7 +527,10 @@ class _ReaderScreenState extends State<ReaderScreen>
                       onPerformPageTurn: handlePageTurn,
                       onToggleControls: toggleControls,
                       onInitialized: () async {
-                        final ratio = bookSession.initialScrollPosition;
+                        // 从详情页跳转时不恢复滚动位置
+                        final ratio = widget.initialSpineIndex != null
+                            ? null
+                            : bookSession.initialScrollPosition;
                         await loadCarousel(restoreScrollRatio: ratio);
                       },
                       onPageCountReady: (totalPages) async {
@@ -536,6 +554,7 @@ class _ReaderScreenState extends State<ReaderScreen>
                       onFootnoteTap: handleFootnoteTap,
                       onLinkTap: handleLinkTap,
                       shouldHandleLinkTap: shouldHandleLinkTap,
+                      onTextSelection: handleTextSelection,
                       shouldShowWebView: shouldShowWebView,
                       initializeTheme: epubTheme,
                       statusBarLeftContent: activateTocTitle,
@@ -670,6 +689,23 @@ class _ReaderScreenState extends State<ReaderScreen>
                 ),
               ),
             ),
+            // 文本选中工具条
+            if (isSelectionToolbarVisible)
+              EpubSelectionToolbar(
+                selectionRect: _selectionRect!,
+                onCopy: _onCopyButton,
+                onHighlight: _onHighlightButton,
+                onExcerpt: _onExcerptButton,
+                onDismiss: _dismissSelectionToolbar,
+              ),
+            // 选区手柄（起点和终点）
+            if (isSelectionToolbarVisible)
+              SelectionHandles(
+                startPosition: _startHandle,
+                endPosition: _endHandle,
+                onDragStart: onDragStartHandle,
+                onDragEnd: onDragEndHandle,
+              ),
           ],
         ),
       ),

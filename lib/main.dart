@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'pages/home_page.dart';
 import 'utils/theme/app_theme.dart';
@@ -102,19 +103,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     var ctx = _navigatorKey.currentContext;
     if (ctx == null || !ctx.mounted) return;
     try {
-      final hasUpdate = await ChangelogService.hasUpdate();
-      if (!hasUpdate) return;
-      final latestVersion = await ChangelogService.fetchLatestVersion();
-      if (latestVersion == null) return;
-      final dismissed = UserPrefs().dismissedVersion;
-      if (dismissed == latestVersion) return;
+      final items = await ChangelogService.fetchChangelog();
+      if (items.isEmpty) return;
+      final latest = items.first;
+      final info = await PackageInfo.fromPlatform();
+      final localVersion = 'v${info.version}';
+      if (ChangelogService.compareVersion(latest.version, localVersion) <= 0) return;
+      // 24 小时内 snooze 不弹
+      if (DateTime.now().millisecondsSinceEpoch < UserPrefs().dismissedUpdateUntil) return;
       ctx = _navigatorKey.currentContext;
       if (ctx == null || !ctx.mounted) return;
-      _showUpdateDialog(ctx, latestVersion);
+      _showUpdateDialog(ctx, latest.version, latest.features, localVersion);
     } catch (_) {}
   }
 
-  void _showUpdateDialog(BuildContext context, String version) {
+  void _showUpdateDialog(BuildContext context, String version, List<String> features, String localVersion) {
     if (!context.mounted) return;
     final colors = Theme.of(context).colorScheme;
     showDialog(
@@ -122,17 +125,69 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('新版本 $version 已发布，是否下载更新？',
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Icon(Icons.system_update, size: 22, color: colors.primary),
+            const SizedBox(width: 8),
+            Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('当前版本：$localVersion',
+                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                const SizedBox(height: 4),
+                Text('最新版本：$version',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.primary)),
+                if (features.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('更新内容', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  const SizedBox(height: 8),
+                  ...features.map((f) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            f,
+                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7), height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ],
+            ),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
-              UserPrefs().setDismissedVersion(version);
+              final until = DateTime.now().add(const Duration(hours: 24)).millisecondsSinceEpoch;
+              UserPrefs().setDismissedUpdateUntil(until);
               Navigator.pop(ctx);
             },
-            child: Text('不再显示', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('24小时内不显示', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () async {

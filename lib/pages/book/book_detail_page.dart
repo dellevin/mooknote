@@ -12,6 +12,7 @@ import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
 import '../../utils/epub/reader_dao.dart';
+import '../epub_reader/epub_highlights_page.dart';
 import '../epub_reader/reader_screen.dart';
 
 /// 书籍详情页 - 极简主义设计
@@ -1007,6 +1008,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
             unit: '条摘抄',
             onTap: () => _navigateToExcerpts(book),
           ),
+          const SizedBox(height: 12),
+          _buildExtraSectionItem(
+            icon: Icons.highlight_outlined,
+            title: '句读',
+            subtitleFuture: _getEpubHighlightCount(book.id),
+            emptyText: '暂无句读',
+            unit: '条句读',
+            onTap: () => _navigateToEpubHighlights(book),
+          ),
         ],
       ),
     );
@@ -1035,6 +1045,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
             emptyText: '暂无摘抄',
             unit: '条摘抄',
             onTap: () => _navigateToExcerpts(book),
+          ),
+          const SizedBox(height: 12),
+          _buildFrostedExtraItem(
+            icon: Icons.highlight_outlined,
+            title: '句读',
+            subtitleFuture: _getEpubHighlightCount(book.id),
+            emptyText: '暂无句读',
+            unit: '条句读',
+            onTap: () => _navigateToEpubHighlights(book),
           ),
         ],
       ),
@@ -1184,6 +1203,33 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
+  /// 获取关联 EPUB 的句读（高亮）数量
+  Future<int> _getEpubHighlightCount(String bookId) async {
+    final readerBook = await ReaderDao().getReaderBookByBookId(bookId);
+    if (readerBook == null) return 0;
+    final highlights = await ReaderDao().getHighlightsByBookId(readerBook['id'] as String);
+    return highlights.where((h) => h['color'] != 'excerpt').length;
+  }
+
+  /// 跳转到 EPUB 句读管理页
+  void _navigateToEpubHighlights(Book book) async {
+    final readerBook = await ReaderDao().getReaderBookByBookId(book.id);
+    if (!mounted) return;
+    if (readerBook == null) {
+      ToastUtil.show(context, '该书籍尚未关联EPUB数据，请关联后使用');
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EpubHighlightsPage(
+          bookId: readerBook['id'] as String,
+          book: readerBook,
+        ),
+      ),
+    );
+  }
+
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
@@ -1191,6 +1237,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   void _navigateToEdit(BuildContext context) {
     final provider = context.read<AppProvider>();
     Navigator.pushNamed(context, '/book-form', arguments: widget.book).then((_) {
+      provider.setEditRefresh();
       provider.loadBooks();
     });
   }

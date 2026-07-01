@@ -31,8 +31,10 @@ class _MovieTabPageState extends State<MovieTabPage> {
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
+  int _lastEditRefreshCounter = 0;
   int _prevMovieCount = -1;
   int _prevLayoutStyle = -1;
+  double _swipeOffset = 0.0; // 当前拖动偏移量（用于左右滑动切换状态）
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
 
@@ -71,10 +73,14 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final statusChanged = provider.movieStatusIndex != _lastStatusIndex;
     final layoutChanged = provider.movieLayoutStyle != _prevLayoutStyle;
     final countChanged = provider.movies.length != _prevMovieCount;
-    if (statusChanged || layoutChanged || countChanged) {
+    final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
+    if (statusChanged || layoutChanged || countChanged || editRefreshed) {
       _prevLayoutStyle = provider.movieLayoutStyle;
       _prevMovieCount = provider.movies.length;
       _loadFirst();
+    }
+    if (editRefreshed) {
+      _lastEditRefreshCounter = provider.editRefreshCounter;
     }
   }
 
@@ -166,25 +172,52 @@ class _MovieTabPageState extends State<MovieTabPage> {
           WidgetsBinding.instance.addPostFrameCallback((_) => _loadFirst());
         }
 
-        if (_items.isEmpty && _isLoading) return _buildSkeleton();
-
-        if (_items.isEmpty) {
+        final content = () {
+          if (_items.isEmpty && _isLoading) return _buildSkeleton();
+          if (_items.isEmpty) {
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              color: colors.primary,
+              backgroundColor: colors.surface,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [_buildEmptyState(context, provider.movieStatusIndex)],
+              ),
+            );
+          }
           return RefreshIndicator(
             onRefresh: _refresh,
             color: colors.primary,
             backgroundColor: colors.surface,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [_buildEmptyState(context, provider.movieStatusIndex)],
-            ),
+            child: provider.movieLayoutStyle == 1 ? _buildListView() : provider.movieLayoutStyle == 2 ? _buildCoverCardView() : _buildGridView(),
           );
-        }
+        }();
 
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          color: colors.primary,
-          backgroundColor: colors.surface,
-          child: provider.movieLayoutStyle == 1 ? _buildListView() : provider.movieLayoutStyle == 2 ? _buildCoverCardView() : _buildGridView(),
+        // 用 GestureDetector 包裹，左右滑动切换状态（用 Transform 而非 AnimatedContainer padding 避免负数崩溃）
+        return GestureDetector(
+          onHorizontalDragStart: (_) => _swipeOffset = 0.0,
+          onHorizontalDragUpdate: (details) => setState(() => _swipeOffset += details.primaryDelta ?? 0),
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity;
+            if ((velocity ?? 0).abs() < 80) {
+              setState(() => _swipeOffset = 0.0);
+              return;
+            }
+            final direction = (velocity ?? 0) > 0 ? -1 : 1; // 右滑→上一个，左滑→下一个
+            final currentIndex = provider.movieStatusIndex;
+            final newIndex = (currentIndex + direction + 3) % 3;
+            setState(() => _swipeOffset = 0.0);
+            provider.setMovieStatusIndex(newIndex);
+          },
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: _swipeOffset.clamp(-100.0, 100.0)),
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Transform.translate(offset: Offset(value, 0), child: child);
+            },
+            child: content,
+          ),
         );
       },
     );

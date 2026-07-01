@@ -24,6 +24,9 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
   // === Cross-mixin: _ThemeMixin ===
   EpubTheme getEpubTheme();
 
+  // === Cross-mixin: _TextSelectionMixin ===
+  Future<void> restoreHighlightsForCurrentSpine();
+
   List<String> getAnchorsForSpine(String spinePath) {
     return bookSession.getAnchorsForSpine(spinePath);
   }
@@ -109,6 +112,9 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     setState(() {
       isWebViewLoading = false;
     });
+
+    // 恢复当前 spine 的高亮（跨 mixin: _TextSelectionMixin）
+    await restoreHighlightsForCurrentSpine();
   }
 
   Future<void> preloadNextOf(int currentIndex) async {

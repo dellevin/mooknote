@@ -71,7 +71,11 @@ class AppProvider extends ChangeNotifier {
   // 回到顶部信号（点击首页图标时递增）
   int _scrollToTopSignal = 0;
   int get scrollToTopSignal => _scrollToTopSignal;
-  
+
+  // 编辑后刷新信号（影视/书籍编辑返回时递增）
+  int _editRefreshCounter = 0;
+  int get editRefreshCounter => _editRefreshCounter;
+
   // 初始化数据库
   Future<void> initDatabase() async {
     debugPrint('[AppProvider] initDatabase');
@@ -127,6 +131,12 @@ class AppProvider extends ChangeNotifier {
   // 加载笔记数据
   Future<void> loadNotes({int sortMode = 0}) async {
     _notes = await _noteDao.getAllNotes(sortMode: sortMode);
+    notifyListeners();
+  }
+
+  /// 编辑返回后触发列表页重载
+  void setEditRefresh() {
+    _editRefreshCounter++;
     notifyListeners();
   }
 

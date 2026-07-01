@@ -32,7 +32,9 @@ class _BookTabPageState extends State<BookTabPage> {
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
+  int _lastEditRefreshCounter = 0;
   int _prevBookCount = -1;
+  double _dragDelta = 0.0; // 当前拖动偏移量
 
   void _onBookTap(Book book) {
     if (Breakpoint.isWideContent(context)) {
@@ -79,9 +81,13 @@ class _BookTabPageState extends State<BookTabPage> {
     // 仅在数据实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
     final statusChanged = provider.bookStatusIndex != _lastStatusIndex;
     final countChanged = provider.books.length != _prevBookCount;
-    if (statusChanged || countChanged) {
+    final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
+    if (statusChanged || countChanged || editRefreshed) {
       _prevBookCount = provider.books.length;
       _loadFirst();
+    }
+    if (editRefreshed) {
+      _lastEditRefreshCounter = provider.editRefreshCounter;
     }
   }
 
@@ -140,19 +146,49 @@ class _BookTabPageState extends State<BookTabPage> {
 
   Widget _buildBody(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Consumer<AppProvider>(builder: (context, provider, _) {
-      if (_initialized && provider.bookStatusIndex != _lastStatusIndex) {
-        _lastStatusIndex = provider.bookStatusIndex;
-        WidgetsBinding.instance.addPostFrameCallback((_) => _loadFirst());
-      }
-      if (_items.isEmpty && _isLoading) return _buildSkeleton();
-      if (_items.isEmpty) {
-        return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
-            child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildEmptyState(context, provider.bookStatusIndex)]));
-      }
-      return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
-          child: _layoutStyle == 1 ? _buildListView() : _buildGridView());
-    });
+
+    // 用 GestureDetector 包裹，左右滑动切换状态
+    return GestureDetector(
+      onHorizontalDragStart: (_) => _dragDelta = 0.0,
+      onHorizontalDragUpdate: (details) => setState(() => _dragDelta += details.primaryDelta ?? 0),
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity;
+        if ((velocity ?? 0).abs() < 80) {
+          setState(() => _dragDelta = 0.0);
+          return;
+        }
+        final direction = (velocity ?? 0) > 0 ? -1 : 1; // 右滑→上一个，左滑→下一个
+        final provider = context.read<AppProvider>();
+        final currentIndex = provider.bookStatusIndex;
+        final newIndex = (currentIndex + direction + 3) % 3;
+        setState(() => _dragDelta = 0.0);
+        provider.setBookStatusIndex(newIndex);
+      },
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: _dragDelta.clamp(-100.0, 100.0)),
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        builder: (context, value, child) {
+          return Transform.translate(offset: Offset(value, 0), child: child);
+        },
+        child: Consumer<AppProvider>(builder: (context, provider, _) {
+          if (_initialized && provider.bookStatusIndex != _lastStatusIndex) {
+            _lastStatusIndex = provider.bookStatusIndex;
+            WidgetsBinding.instance.addPostFrameCallback((_) => _loadFirst());
+          }
+          final content = () {
+            if (_items.isEmpty && _isLoading) return _buildSkeleton();
+            if (_items.isEmpty) {
+              return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
+                  child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildEmptyState(context, provider.bookStatusIndex)]));
+            }
+            return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
+                child: _layoutStyle == 1 ? _buildListView() : _buildGridView());
+          }();
+          return content;
+        }),
+      ),
+    );
   }
 
   Widget _buildGridView() {
