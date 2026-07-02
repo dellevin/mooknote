@@ -25,13 +25,13 @@ HomePage
 
 | 页面 | 文件 | 说明 |
 |------|------|------|
-| MovieTabPage | `pages/movies/movie_tab_page.dart` | 影视列表（按状态筛选）|
+| MovieTabPage | `pages/movies/movie_tab_page.dart` | 影视列表（支持影视墙模式）|
 | MovieFormPage | `pages/movies/movie_form_page.dart` | 新增/编辑影视 |
 | MovieDetailPage | `pages/movies/movie_detail_page.dart` | 影视详情 |
-| MovieReviewsPage | `pages/movies/movie_reviews_page.dart` | 影评列表 |
+| MovieReviewsPage | `pages/movies/movie_reviews_page.dart` | 影评列表（右下角浮动添加按钮）|
 | MovieReviewFormPage | `pages/movies/movie_review_form_page.dart` | 新增/编辑影评 |
 | MovieReviewDetailPage | `pages/movies/movie_review_detail_page.dart` | 影评详情 |
-| MoviePostersPage | `pages/movies/movie_posters_page.dart` | 海报墙 |
+| MoviePostersPage | `pages/movies/movie_posters_page.dart` | 海报墙（右下角浮动添加按钮）|
 | PosterGalleryPage | `pages/movies/poster_gallery_page.dart` | 海报画廊浏览 |
 | MovieSharePage | `pages/movies/movie_share_page.dart` | 影视分享 |
 | DoubanWebViewPage | `pages/movies/douban_webview_page.dart` | 豆瓣 WebView |
@@ -40,13 +40,13 @@ HomePage
 
 | 页面 | 文件 | 说明 |
 |------|------|------|
-| BookTabPage | `pages/book/book_tab_page.dart` | 书籍列表 |
+| BookTabPage | `pages/book/book_tab_page.dart` | 书籍列表（支持书架模式）|
 | BookFormPage | `pages/book/book_form_page.dart` | 新增/编辑书籍 |
 | BookDetailPage | `pages/book/book_detail_page.dart` | 书籍详情 |
-| BookReviewsPage | `pages/book/book_reviews_page.dart` | 书评列表 |
+| BookReviewsPage | `pages/book/book_reviews_page.dart` | 书评列表（右下角浮动添加按钮）|
 | BookReviewFormPage | `pages/book/book_review_form_page.dart` | 新增/编辑书评 |
 | BookReviewDetailPage | `pages/book/book_review_detail_page.dart` | 书评详情 |
-| BookExcerptsPage | `pages/book/book_excerpts_page.dart` | 摘抄列表 |
+| BookExcerptsPage | `pages/book/book_excerpts_page.dart` | 摘抄列表（右下角浮动添加按钮）|
 | BookExcerptFormPage | `pages/book/book_excerpt_form_page.dart` | 新增/编辑摘抄 |
 | BookSharePage | `pages/book/book_share_page.dart` | 书籍分享 |
 
@@ -78,6 +78,8 @@ HomePage
 | WebDAVSyncPage | `pages/sync/webdav_sync_page.dart` | WebDAV 同步 |
 | MdReaderTabPage | `pages/markdown_reader/md_reader_tab_page.dart` | Markdown 阅读器目录 |
 | MdViewerPage | `pages/markdown_reader/md_viewer_page.dart` | Markdown 查看器 |
+| EpubReaderPage | `pages/epub_reader/epub_reader_page.dart` | EPUB 阅读器 |
+| EpubDetailPage | `pages/epub_reader/epub_detail_page.dart` | EPUB 详情（书摘、高亮）|
 
 ## 路由
 
@@ -96,5 +98,16 @@ HomePage
 ## 过渡动画
 
 所有路由使用 `SlideUpPageRoute`（`lib/utils/slide_up_page_route.dart`），实现从底部滑入的过渡效果。
+
+## 添加按钮统一规范
+
+为保证界面一致性，以下页面使用 `FloatingActionButton.extended` 作为右下角添加按钮：
+
+| 页面 | 添加按钮文案 | 图标 |
+|------|------------|------|
+| BookExcerptsPage | 添加摘抄 | `Icons.add` |
+| BookReviewsPage | 添加书评 | `Icons.add` |
+| MovieReviewsPage | 添加影评 | `Icons.add` |
+| MoviePostersPage | 添加海报 | `Icons.add_photo_alternate` |
 
 [返回首页](Home.md)

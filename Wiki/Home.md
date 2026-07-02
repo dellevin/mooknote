@@ -7,10 +7,12 @@
 - **影视管理** — 增删改查、影评、海报墙、豆瓣链接爬取
 - **书籍管理** — 增删改查、书评、摘抄
 - **笔记管理** — Markdown 笔记、标签、图片
+- **EPUB 阅读** — 本地 EPUB 阅读、书摘、高亮
 - **数据同步** — 服务端实时同步、WebDAV 同步、自动本地备份
 - **回收站** — 软删除 + 恢复/彻底删除
 - **标签管理** — 影视类型、书籍类型、笔记标签统一管理
 - **统计分析** — 观影/阅读数据统计
+- **布局设置** — 影视墙/书架模式、网格/列表/大图卡片布局
 
 ## 技术栈
 
@@ -33,6 +35,6 @@
 - [图片存储](Image-Storage.md) — 图片路径管理、存储结构
 - [同步系统](Sync-System.md) — 服务端同步、WebDAV、自动备份
 - [服务端 API](Server-API.md) — Flask 后端、API 端点、激活码机制
-- [页面与路由](Pages-and-Navigation.md) — 页面结构、路由表、过渡动画
-- [主题与 UI](Theme-and-UI.md) — 主题配置、共享组件
-- [用户偏好](User-Preferences.md) — SharedPreferences 配置项
+- [页面与路由](Pages-and-Navigation.md) — 页面结构、路由表、过渡动画、添加按钮规范
+- [主题与 UI](Theme-and-UI.md) — 主题配置、布局设置界面、标签选择面板、共享组件
+- [用户偏好](User-Preferences.md) — SharedPreferences 配置项、布局设置、排序方式
