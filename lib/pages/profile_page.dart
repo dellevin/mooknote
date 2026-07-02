@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -668,16 +669,21 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       ),
       (Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
       (
+        Icons.delete_outline,
+        '回收',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
+      ),
+      (
         Icons.settings_outlined,
         '设置',
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const SettingsPage()))
       ),
       (
-        Icons.delete_outline,
-        '回收',
-        () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
+        Icons.feedback_outlined,
+        '反馈',
+        () => _showFeedbackDialog(context)
       ),
     ];
 
@@ -751,6 +757,96 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return count.toString();
+  }
+
+  // ─── 反馈弹窗 ────────────────────────────────────────────────────────
+
+  void _showFeedbackDialog(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final email = 'dellevin99@gmail.com';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('反馈',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)))),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.email_outlined,
+                      size: 20, color: colors.primary.withValues(alpha: 0.8)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('作者邮箱',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: colors.onSurface.withValues(alpha: 0.5))),
+                        const SizedBox(height: 2),
+                        Text(email,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface)),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: email));
+                      ToastUtil.show(context, '已复制到剪贴板');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.copy, size: 14, color: colors.primary),
+                          const SizedBox(width: 4),
+                          Text('复制', style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ]),
+      ),
+    );
   }
 
   // ─── 头像 ────────────────────────────────────────────────────────────
@@ -990,7 +1086,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 height: 0.5,
                 indent: 24,
                 endIndent: 24,
-              color: colors.outlineVariant),
+                color: colors.outlineVariant),
           _buildNavigationItem(
             icon: Icons.tune_outlined,
             title: '功能设置',
@@ -2596,6 +2692,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   int _noteLayout = 0;
   int _movieLayout = 0;
   int _bookLayout = 0;
+  bool _movieWallMode = false;
+  bool _bookshelfMode = false;
 
   @override
   void initState() {
@@ -2603,6 +2701,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     _noteLayout = _userPrefs.noteLayoutStyle;
     _movieLayout = _userPrefs.movieLayoutStyle;
     _bookLayout = _userPrefs.bookLayoutStyle;
+    _movieWallMode = _userPrefs.movieWallMode;
+    _bookshelfMode = _userPrefs.bookshelfMode;
   }
 
   @override
@@ -2612,61 +2712,166 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('布局设置')),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
-          _buildSection(
-              '影视布局',
-              [
-                ButtonSegment(
-                    value: 0,
-                    icon: Icon(Icons.grid_view_outlined, size: 16),
-                    label: Text('海报网格', style: TextStyle(fontSize: 12))),
-                ButtonSegment(
-                    value: 1,
-                    icon: Icon(Icons.view_list_outlined, size: 16),
-                    label: Text('列表', style: TextStyle(fontSize: 12))),
-                ButtonSegment(
-                    value: 2,
-                    icon: Icon(Icons.crop_landscape_outlined, size: 16),
-                    label: Text('大图卡片', style: TextStyle(fontSize: 12))),
-              ],
-              _movieLayout,
-              (v) => _setLayout('movie', v)),
-          _buildSection(
-              '阅读布局',
-              [
-                ButtonSegment(
-                    value: 0,
-                    icon: Icon(Icons.grid_view_outlined, size: 16),
-                    label: Text('封面网格', style: TextStyle(fontSize: 12))),
-                ButtonSegment(
-                    value: 1,
-                    icon: Icon(Icons.view_list_outlined, size: 16),
-                    label: Text('列表', style: TextStyle(fontSize: 12))),
-              ],
-              _bookLayout,
-              (v) => _setLayout('book', v)),
-          _buildSection(
-              '笔记布局',
-              [
-                ButtonSegment(
-                    value: 0,
-                    icon: Icon(Icons.view_list_outlined, size: 16),
-                    label: Text('列表', style: TextStyle(fontSize: 12))),
-                ButtonSegment(
-                    value: 1,
-                    icon: Icon(Icons.grid_view_outlined, size: 16),
-                    label: Text('瀑布流', style: TextStyle(fontSize: 12))),
-                ButtonSegment(
-                    value: 2,
-                    icon: Icon(Icons.timeline_outlined, size: 16),
-                    label: Text('时间线', style: TextStyle(fontSize: 12))),
-              ],
-              _noteLayout,
-              (v) => _setLayout('note', v)),
+          // ── 影视 ──
+          _buildCategoryHeader(Icons.movie_outlined, '影视', colors.primary),
+          _buildWallSwitch(
+            icon: Icons.wallpaper_outlined,
+            title: '影视墙模式',
+            subtitle: '显示全部影片，不区分状态',
+            value: _movieWallMode,
+            onChanged: (v) => _setWallMode('movie', v),
+          ),
+          _buildLayoutSelector(
+            selected: _movieLayout,
+            options: [
+              (0, Icons.grid_view_outlined, '海报网格'),
+              (1, Icons.view_list_outlined, '列表'),
+              (2, Icons.crop_landscape_outlined, '大图卡片'),
+            ],
+            onChanged: (v) => _setLayout('movie', v),
+          ),
+          const SizedBox(height: 8),
+          Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+              color: colors.outlineVariant.withValues(alpha: 0.5)),
+          const SizedBox(height: 8),
+
+          // ── 阅读 ──
+          _buildCategoryHeader(Icons.menu_book_outlined, '阅读', colors.primary),
+          _buildWallSwitch(
+            icon: Icons.auto_stories_outlined,
+            title: '书架模式',
+            subtitle: '显示全部书籍，不区分状态',
+            value: _bookshelfMode,
+            onChanged: (v) => _setWallMode('book', v),
+          ),
+          _buildLayoutSelector(
+            selected: _bookLayout,
+            options: [
+              (0, Icons.grid_view_outlined, '海报网格'),
+              (1, Icons.view_list_outlined, '列表'),
+            ],
+            onChanged: (v) => _setLayout('book', v),
+          ),
+          const SizedBox(height: 8),
+          Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+              color: colors.outlineVariant.withValues(alpha: 0.5)),
+          const SizedBox(height: 8),
+
+          // ── 笔记 ──
+          _buildCategoryHeader(Icons.note_outlined, '笔记', colors.primary),
+          _buildLayoutSelector(
+            selected: _noteLayout,
+            options: [
+              (0, Icons.view_list_outlined, '列表'),
+              (1, Icons.grid_view_outlined, '瀑布流'),
+              (2, Icons.timeline_outlined, '时间线'),
+            ],
+            onChanged: (v) => _setLayout('note', v),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildCategoryHeader(IconData icon, String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 10),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWallSwitch({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon,
+                  size: 20, color: colors.primary.withValues(alpha: 0.8)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurface.withValues(alpha: 0.5))),
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: colors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _setWallMode(String type, bool value) async {
+    switch (type) {
+      case 'movie':
+        await _userPrefs.setMovieWallMode(value);
+        setState(() => _movieWallMode = value);
+        if (mounted) context.read<AppProvider>().setMovieWallMode(value);
+      case 'book':
+        await _userPrefs.setBookshelfMode(value);
+        setState(() => _bookshelfMode = value);
+        if (mounted) context.read<AppProvider>().setBookshelfMode(value);
+    }
   }
 
   void _setLayout(String type, int value) async {
@@ -2684,46 +2889,64 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     }
   }
 
-  Widget _buildSection(String title, List<ButtonSegment<int>> segments,
-      int selected, ValueChanged<int> onChanged) {
+  Widget _buildLayoutSelector({
+    required int selected,
+    required List<(int, IconData, String)> options,
+    required ValueChanged<int> onChanged,
+  }) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(title,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface)),
-          ),
-          SegmentedButton<int>(
-            segments: segments,
-            selected: {selected},
-            onSelectionChanged: (s) => onChanged(s.first),
-            showSelectedIcon: false,
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith((s) =>
-                  s.contains(WidgetState.selected)
-                      ? colors.onSurface
-                      : colors.surfaceContainerHighest),
-              foregroundColor: WidgetStateProperty.resolveWith((s) =>
-                  s.contains(WidgetState.selected)
-                      ? colors.surface
-                      : colors.onSurface.withValues(alpha: 0.6)),
-              side: WidgetStateProperty.all(BorderSide.none),
-              shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10))),
-              padding: WidgetStateProperty.all(
-                  const EdgeInsets.symmetric(vertical: 10)),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.standard,
+      child: Row(
+        children: options.map((opt) {
+          final isSelected = selected == opt.$1;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(opt.$1),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? colors.primary
+                      : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? colors.primary
+                        : colors.outlineVariant.withValues(alpha: 0.5),
+                    width: isSelected ? 0 : 0.5,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      opt.$2,
+                      size: 22,
+                      color: isSelected
+                          ? colors.onPrimary
+                          : colors.onSurface.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      opt.$3,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected
+                            ? colors.onPrimary
+                            : colors.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }

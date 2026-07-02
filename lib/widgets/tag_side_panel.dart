@@ -107,9 +107,16 @@ class _TagSidePanelState extends State<TagSidePanel> {
                 children: [
                   Text('标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('保存', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onPrimary)),
+                    ),
                   ),
                 ],
               ),
@@ -160,29 +167,34 @@ class _TagSidePanelState extends State<TagSidePanel> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _selected.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: GestureDetector(
-                        onTap: () => _toggleTag(tag),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(tag, style: TextStyle(fontSize: 13, color: colors.onPrimary)),
-                            const SizedBox(width: 4),
-                            Icon(Icons.close, size: 14, color: colors.onPrimary),
-                          ],
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    children: _selected.map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: colors.primary,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                        child: GestureDetector(
+                          onTap: () => _toggleTag(tag),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(tag, style: TextStyle(fontSize: 13, color: colors.onPrimary)),
+                              const SizedBox(width: 4),
+                              Icon(Icons.close, size: 14, color: colors.onPrimary),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ],
@@ -201,6 +213,8 @@ class _TagSidePanelState extends State<TagSidePanel> {
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
+                  alignment: WrapAlignment.start,
+                  crossAxisAlignment: WrapCrossAlignment.start,
                   children: widget.allAvailableTags.map((tag) {
                     final isSelected = _selected.contains(tag);
                     return GestureDetector(

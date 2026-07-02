@@ -96,13 +96,13 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
-          // 添加按钮
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _navigateToAddReview(),
-          ),
           const SizedBox(width: 8),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _navigateToAddReview(),
+        icon: const Icon(Icons.add, size: 20),
+        label: const Text('添加影评'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

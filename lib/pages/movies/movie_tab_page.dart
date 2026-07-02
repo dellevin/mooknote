@@ -92,12 +92,15 @@ class _MovieTabPageState extends State<MovieTabPage> {
 
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
+    final isWallMode = provider.movieWallMode;
     final statusIdx = provider.movieStatusIndex;
     _lastStatusIndex = statusIdx;
     _initialized = true;
-    final status = _statusMap[statusIdx] ?? 'watched';
+    // 影视墙模式：不筛选状态，使用用户选择的排序（默认创建时间）
+    final status = isWallMode ? null : (_statusMap[statusIdx] ?? 'watched');
+    final sortMode = UserPrefs().movieSortMode;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadMoviesPaged(status: status, offset: 0, sortMode: UserPrefs().movieSortMode);
+    final list = await provider.loadMoviesPaged(status: status, offset: 0, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
       _items.clear();
@@ -112,8 +115,10 @@ class _MovieTabPageState extends State<MovieTabPage> {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
-    final status = _statusMap[provider.movieStatusIndex] ?? 'watched';
-    final list = await provider.loadMoviesPaged(status: status, offset: _offset, sortMode: UserPrefs().movieSortMode);
+    final isWallMode = provider.movieWallMode;
+    final status = isWallMode ? null : (_statusMap[provider.movieStatusIndex] ?? 'watched');
+    final sortMode = UserPrefs().movieSortMode;
+    final list = await provider.loadMoviesPaged(status: status, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
       _items.addAll(list);
@@ -142,11 +147,12 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final colors = Theme.of(context).colorScheme;
     final isWideContent = Breakpoint.isWideContent(context);
     final provider = context.watch<AppProvider>();
+    final isWallMode = provider.movieWallMode;
 
     final masterContent = Column(
       children: [
-        const MovieStatusBar(),
-        Divider(height: 0.5, thickness: 0.5, color: colors.outlineVariant),
+        if (!isWallMode) const MovieStatusBar(),
+        if (!isWallMode) Divider(height: 0.5, thickness: 0.5, color: colors.outlineVariant),
         Expanded(child: _buildBody(context)),
       ],
     );
@@ -470,13 +476,15 @@ class _MovieTabPageState extends State<MovieTabPage> {
 
   Widget _buildEmptyState(BuildContext context, int statusIndex) {
     final colors = Theme.of(context).colorScheme;
-    final statusText = ['已看', '在看', '想看'][statusIndex];
+    final provider = context.read<AppProvider>();
+    final isWallMode = provider.movieWallMode;
+    final statusText = isWallMode ? '' : ['已看', '在看', '想看'][statusIndex];
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.movie_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
-      Text('暂无$statusText的影片', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(isWallMode ? '暂无影片' : '暂无$statusText的影片', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));
   }
 }

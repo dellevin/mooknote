@@ -61,9 +61,15 @@ class AppProvider extends ChangeNotifier {
 
   // 影视列表布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
   int _movieLayoutStyle = 0;
-  
+
+  // 影视墙模式（不显示分类，按创建时间排序）
+  bool _movieWallMode = false;
+
   // 阅读选中的状态 (0: 读完，1: 在读，2: 准备读)
   int _bookStatusIndex = 0;
+
+  // 书架模式（不显示分类，按创建时间排序）
+  bool _bookshelfMode = false;
   
   // 侧边菜单是否打开
   bool _drawerOpen = false;
@@ -95,6 +101,8 @@ class AppProvider extends ChangeNotifier {
   void initMainTabIndex() {
     final userPrefs = UserPrefs();
     _movieLayoutStyle = userPrefs.movieLayoutStyle;
+    _movieWallMode = userPrefs.movieWallMode;
+    _bookshelfMode = userPrefs.bookshelfMode;
     final defaultIndex = userPrefs.defaultMainTabIndex;
     // 确保选中的标签是启用的
     final showMovie = userPrefs.showMovieTab;
@@ -164,7 +172,9 @@ class AppProvider extends ChangeNotifier {
   Note? get selectedNote => _selectedNote;
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
+  bool get movieWallMode => _movieWallMode;
   int get bookStatusIndex => _bookStatusIndex;
+  bool get bookshelfMode => _bookshelfMode;
   bool get drawerOpen => _drawerOpen;
   bool get bottomNavVisible => _bottomNavVisible;
   ThemeMode get themeMode => _themeMode;
@@ -276,8 +286,20 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setMovieWallMode(bool enabled) {
+    _movieWallMode = enabled;
+    UserPrefs().setMovieWallMode(enabled);
+    notifyListeners();
+  }
+
   void setBookStatusIndex(int index) {
     _bookStatusIndex = index;
+    notifyListeners();
+  }
+
+  void setBookshelfMode(bool enabled) {
+    _bookshelfMode = enabled;
+    UserPrefs().setBookshelfMode(enabled);
     notifyListeners();
   }
 

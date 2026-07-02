@@ -679,8 +679,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
     try {
     final now = DateTime.now();
 
-    if (_isEditing) {
-      // 更新现有笔记
+    if (_isEditing && widget.note != null) {
+      // 更新现有笔记（编辑已有笔记）
       final updatedNote = widget.note!.copyWith(
         title: _titleController.text.trim(),
         content: content,
@@ -689,8 +689,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
         updatedAt: now,
       );
       await context.read<AppProvider>().updateNote(updatedNote);
+    } else if (_savedNote != null) {
+      // 自动保存过的新笔记，更新它
+      final updatedNote = _savedNote!.copyWith(
+        title: _titleController.text.trim(),
+        content: content,
+        tags: _tags,
+        images: _images,
+        updatedAt: now,
+      );
+      await context.read<AppProvider>().updateNote(updatedNote);
     } else {
-      // 添加新笔记 - 先创建笔记获取ID
+      // 添加新笔记
       final noteId = now.millisecondsSinceEpoch.toString();
 
       // 如果有图片，需要移动到正确的ID目录

@@ -209,8 +209,6 @@ server/                            # Python Flask 后端
 └── static/                        # 静态资源
 ```
 
-*共 134 个 Dart 源文件，8 个 Python 源文件。*
-
 ## 数据存储
 
 - **数据库位置**：`<应用文档目录>/mooknote.db`

@@ -296,17 +296,23 @@ class _MainContentPageState extends State<MainContentPage> {
                         Future.delayed(const Duration(milliseconds: 400), () => _isTabTap = false);
                       },
                       onLongPress: tab.label == '影视'
-                          ? () => _showSortMenu(context, '影视排序', UserPrefs().movieSortMode, [
-                              (0, '按更新时间排序', Icons.update),
-                              (1, '按创建时间排序', Icons.calendar_today_outlined),
-                              (2, '按评分排序', Icons.star_outline),
-                            ], (v) { UserPrefs().setMovieSortMode(v); context.read<AppProvider>().loadMovies(); })
+                          ? () {
+                              final isWallMode = UserPrefs().movieWallMode;
+                              _showSortMenu(context, isWallMode ? '影视墙排序' : '影视排序', UserPrefs().movieSortMode, [
+                                (0, '按更新时间排序', Icons.update),
+                                (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                (2, '按评分排序', Icons.star_outline),
+                              ], (v) { UserPrefs().setMovieSortMode(v); context.read<AppProvider>().loadMovies(); });
+                            }
                           : tab.label == '阅读'
-                              ? () => _showSortMenu(context, '书籍排序', UserPrefs().bookSortMode, [
-                                  (0, '按更新时间排序', Icons.update),
-                                  (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                  (2, '按评分排序', Icons.star_outline),
-                                ], (v) { UserPrefs().setBookSortMode(v); context.read<AppProvider>().loadBooks(); })
+                              ? () {
+                                  final isWallMode = UserPrefs().bookshelfMode;
+                                  _showSortMenu(context, isWallMode ? '书架排序' : '书籍排序', UserPrefs().bookSortMode, [
+                                    (0, '按更新时间排序', Icons.update),
+                                    (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                    (2, '按评分排序', Icons.star_outline),
+                                  ], (v) { UserPrefs().setBookSortMode(v); context.read<AppProvider>().loadBooks(); });
+                                }
                               : tab.label == '笔记'
                                   ? () => _showSortMenu(context, '笔记排序', UserPrefs().noteSortMode, [
                                       (0, '按更新时间排序', Icons.update),

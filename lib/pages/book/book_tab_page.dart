@@ -99,12 +99,15 @@ class _BookTabPageState extends State<BookTabPage> {
 
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
+    final isWallMode = provider.bookshelfMode;
     final statusIdx = provider.bookStatusIndex;
     _lastStatusIndex = statusIdx;
     _initialized = true;
-    final status = _statusMap[statusIdx] ?? 'read';
+    // 书架模式：不筛选状态，使用用户选择的排序（默认创建时间）
+    final status = isWallMode ? null : (_statusMap[statusIdx] ?? 'read');
+    final sortMode = UserPrefs().bookSortMode;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadBooksPaged(status: status, offset: 0, sortMode: UserPrefs().bookSortMode);
+    final list = await provider.loadBooksPaged(status: status, offset: 0, sortMode: sortMode);
     if (!mounted) return;
     setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -113,8 +116,10 @@ class _BookTabPageState extends State<BookTabPage> {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
-    final status = _statusMap[provider.bookStatusIndex] ?? 'read';
-    final list = await provider.loadBooksPaged(status: status, offset: _offset, sortMode: UserPrefs().bookSortMode);
+    final isWallMode = provider.bookshelfMode;
+    final status = isWallMode ? null : (_statusMap[provider.bookStatusIndex] ?? 'read');
+    final sortMode = UserPrefs().bookSortMode;
+    final list = await provider.loadBooksPaged(status: status, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
   }
@@ -128,8 +133,9 @@ class _BookTabPageState extends State<BookTabPage> {
   Widget build(BuildContext context) {
     final isWideContent = Breakpoint.isWideContent(context);
     final provider = context.watch<AppProvider>();
+    final isWallMode = provider.bookshelfMode;
     final masterContent = Column(children: [
-      const BookStatusBar(),
+      if (!isWallMode) const BookStatusBar(),
       Expanded(child: _buildBody(context)),
     ]);
 
@@ -289,13 +295,15 @@ class _BookTabPageState extends State<BookTabPage> {
 
   Widget _buildEmptyState(BuildContext context, int statusIndex) {
     final colors = Theme.of(context).colorScheme;
-    final statusText = ['已读', '在读', '想读'][statusIndex];
+    final provider = context.read<AppProvider>();
+    final isWallMode = provider.bookshelfMode;
+    final statusText = isWallMode ? '' : ['已读', '在读', '想读'][statusIndex];
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.menu_book_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
-      Text('暂无$statusText的书籍', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(isWallMode ? '暂无书籍' : '暂无$statusText的书籍', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));
   }
 }

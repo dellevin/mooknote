@@ -49,13 +49,11 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('海报墙'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_photo_alternate),
-            onPressed: _pickPoster,
-          ),
-          const SizedBox(width: 8),
-        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _pickPoster,
+        icon: const Icon(Icons.add_photo_alternate, size: 20),
+        label: const Text('添加海报'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

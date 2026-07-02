@@ -442,19 +442,22 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
             Row(
               children: [
                 Icon(Icons.menu_book_outlined, size: 14, color: colors.primary.withValues(alpha: 0.6)),
-                const Spacer(),
+                const SizedBox(width: 6),
                 if (excerpt.chapter.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      excerpt.chapter,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 9, color: colors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        excerpt.chapter,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(fontSize: 9, color: colors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ),
               ],

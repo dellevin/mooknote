@@ -165,6 +165,14 @@ class UserPrefs {
   int get bookLayoutStyle => prefs.getInt('bookLayoutStyle') ?? 0;
   Future<bool> setBookLayoutStyle(int value) => prefs.setInt('bookLayoutStyle', value);
 
+  /// 影视墙模式（不显示分类，按创建时间排序）
+  bool get movieWallMode => prefs.getBool('movieWallMode') ?? false;
+  Future<bool> setMovieWallMode(bool value) => prefs.setBool('movieWallMode', value);
+
+  /// 书架模式（不显示分类，按创建时间排序）
+  bool get bookshelfMode => prefs.getBool('bookshelfMode') ?? false;
+  Future<bool> setBookshelfMode(bool value) => prefs.setBool('bookshelfMode', value);
+
   // ========== 应用图标设置 ==========
 
   // ========== Markdown 阅读器 ==========

@@ -96,13 +96,13 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
-          // 添加按钮
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _navigateToAddReview(),
-          ),
           const SizedBox(width: 8),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _navigateToAddReview(),
+        icon: const Icon(Icons.add, size: 20),
+        label: const Text('添加书评'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
