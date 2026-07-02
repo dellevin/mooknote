@@ -266,6 +266,7 @@ class _BookFormPageState extends State<BookFormPage> {
               _buildStatusOption('想读', 'want_to_read'),
               _buildStatusOption('在读', 'reading'),
               _buildStatusOption('已读', 'read'),
+              _buildStatusOption('弃读', 'abandoned'),
             ]),
           ),
         ]),

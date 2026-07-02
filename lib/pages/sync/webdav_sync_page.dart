@@ -21,9 +21,12 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   bool _isLoading = false;
   bool _isConfigured = false;
   bool _obscurePassword = true;
-  bool _isAutoSyncEnabled = false;
-  int _autoSyncInterval = 5;
   SyncDirection _syncDirection = SyncDirection.upload;
+
+  // 远程备份信息
+  DateTime? _remoteModifiedTime;
+  int? _remoteFileSize;
+  bool _isLoadingRemoteInfo = false;
 
   @override
   void initState() {
@@ -50,14 +53,24 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         _pathController.text = config['path'] ?? '/mooknote';
         _isConfigured = true;
       });
+      _loadRemoteInfo();
     }
 
     final autoSyncEnabled = await WebDAVService.instance.isAutoSyncEnabled();
     final autoSyncInterval = await WebDAVService.instance.getAutoSyncInterval();
-    setState(() {
-      _isAutoSyncEnabled = autoSyncEnabled;
-      _autoSyncInterval = autoSyncInterval;
-    });
+    debugPrint('WebDAV auto sync: enabled=$autoSyncEnabled, interval=$autoSyncInterval');
+  }
+
+  Future<void> _loadRemoteInfo() async {
+    setState(() => _isLoadingRemoteInfo = true);
+    final info = await WebDAVService.instance.getRemoteBackupInfo();
+    if (mounted) {
+      setState(() {
+        _remoteModifiedTime = info?['modifiedTime'] as DateTime?;
+        _remoteFileSize = info?['size'] as int?;
+        _isLoadingRemoteInfo = false;
+      });
+    }
   }
 
   Future<void> _saveConfig() async {
@@ -118,6 +131,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       if (!mounted) return;
 
       if (result.success) {
+        // 同步成功后刷新远程文件信息
+        _loadRemoteInfo();
         final details = '上传: ${result.uploadedFiles} 文件, ${result.uploadedImages} 图片\n'
             '下载: ${result.downloadedFiles} 文件, ${result.downloadedImages} 图片';
 
@@ -189,76 +204,79 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     );
   }
 
-  Future<void> _toggleAutoSync(bool value) async {
-    setState(() => _isLoading = true);
-    try {
-      if (value) {
-        await WebDAVService.instance.startAutoSync();
-        if (mounted) ToastUtil.show(context, '自动同步已开启，每 $_autoSyncInterval 分钟同步一次');
-      } else {
-        await WebDAVService.instance.stopAutoSync();
-        if (mounted) ToastUtil.show(context, '自动同步已关闭');
-      }
-      setState(() => _isAutoSyncEnabled = value);
-    } catch (e) {
-      if (mounted) ToastUtil.show(context, '设置失败: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _showIntervalPicker() async {
-    final intervals = [1, 3, 5, 10, 15, 30, 60];
-    final selected = await showModalBottomSheet<int>(
+  Future<void> _showUploadConfirm() async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 12),
-              Text('同步间隔',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-              const SizedBox(height: 8),
-              ...intervals.map((i) => ListTile(
-                    title: Text('$i 分钟',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: _autoSyncInterval == i ? FontWeight.w600 : FontWeight.w400,
-                            color: colors.onSurface)),
-                    trailing: _autoSyncInterval == i
-                        ? Icon(Icons.check, color: colors.primary, size: 20)
-                        : null,
-                    onTap: () => Navigator.pop(ctx, i),
-                  )),
-              const SizedBox(height: 8),
-            ],
-          ),
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('确认上传',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('该操作会覆盖掉远程数据，请谨慎操作，点击确定继续上传',
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('确定'),
+            ),
+          ],
         );
       },
     );
+    if (confirmed == true) {
+      setState(() => _syncDirection = SyncDirection.upload);
+      _syncData();
+    }
+  }
 
-    if (selected != null && selected != _autoSyncInterval) {
-      setState(() => _isLoading = true);
-      try {
-        await WebDAVService.instance.setAutoSyncInterval(selected);
-        setState(() => _autoSyncInterval = selected);
-        if (mounted) ToastUtil.show(context, '同步间隔已设置为 $selected 分钟');
-      } catch (e) {
-        if (mounted) ToastUtil.show(context, '设置失败: $e');
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
+  Future<void> _showDownloadConfirm() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('确认下载',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('该操作会拉取远程数据覆盖掉本地数据，请谨慎操作，点击确定将数据拉取到本地',
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      setState(() => _syncDirection = SyncDirection.download);
+      _syncData();
     }
   }
 
@@ -325,7 +343,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         _passwordController.clear();
         _pathController.text = '/mooknote';
         _isConfigured = false;
-        _isAutoSyncEnabled = false;
       });
       if (mounted) ToastUtil.show(context, '配置已清除');
     }
@@ -339,18 +356,18 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('WebDAV 备份')),
-      body: _isLoading && !_isConfigured
-          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                const SizedBox(height: 4),
+      body: Stack(
+        children: [
+          ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              const SizedBox(height: 4),
 
-                // 已连接提示
-                if (_isConfigured) _buildConnectedBanner(colors),
+              // 已连接提示
+              if (_isConfigured) _buildConnectedBanner(colors),
 
-                // 服务器配置
-                _buildSectionLabel(colors, '服务器配置'),
+              // 服务器配置
+              _buildSectionLabel(colors, '服务器配置'),
                 const SizedBox(height: 12),
                 _buildInput(
                   colors: colors,
@@ -391,61 +408,39 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
 
                 // 测试并保存
                 _buildBtn(colors, '测试并保存', onTap: _isLoading ? null : _saveConfig),
+                if (_isConfigured) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: GestureDetector(
+                      onTap: _isLoading ? null : _clearConfig,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text('清除配置',
+                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 28),
 
                 if (_isConfigured) ...[
-                  // 手动同步
-                  _buildSectionLabel(colors, '手动同步'),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildDirectionChip(
-                              colors, '上传到云端', SyncDirection.upload, Icons.upload)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: _buildDirectionChip(
-                              colors, '下载到本地', SyncDirection.download, Icons.download)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildBtn(colors, '立即同步', onTap: _isLoading ? null : _syncData, loading: _isLoading),
-
+                  // 远程备份信息卡片（包含操作按钮）
+                  _buildRemoteInfoCard(colors),
                   const SizedBox(height: 24),
-
-                  // 自动同步
-                  _buildSectionLabel(colors, '自动同步'),
-                  const SizedBox(height: 10),
-                  _buildSwitchRow(
-                    colors: colors,
-                    icon: Icons.sync,
-                    label: '自动同步',
-                    sub: _isAutoSyncEnabled ? '每 $_autoSyncInterval 分钟自动同步' : '关闭',
-                    value: _isAutoSyncEnabled,
-                    onChanged: _isLoading ? null : _toggleAutoSync,
-                  ),
-                  if (_isAutoSyncEnabled) ...[
-                    const SizedBox(height: 4),
-                    _buildTappableRow(
-                      colors: colors,
-                      label: '同步间隔',
-                      value: '$_autoSyncInterval 分钟',
-                      onTap: _isLoading ? null : _showIntervalPicker,
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  // 清除配置
-                  _buildTextBtn(colors, '清除配置', onTap: _isLoading ? null : _clearConfig),
-                  const SizedBox(height: 4),
                 ],
 
-                const SizedBox(height: 24),
-                _buildTips(colors),
-                const SizedBox(height: 40),
-              ],
+              const SizedBox(height: 24),
+              _buildTips(colors),
+              const SizedBox(height: 40),
+            ],
+          ),
+          if (_isLoading)
+            Container(
+              color: colors.surface.withValues(alpha: 0.7),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
             ),
+        ],
+      ),
     );
   }
 
@@ -558,126 +553,92 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     );
   }
 
-  Widget _buildTextBtn(ColorScheme colors, String text, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-              text,
-              style: TextStyle(
-                  fontSize: 14,
-                  color: onTap == null
-                      ? colors.onSurface.withValues(alpha: 0.25)
-                      : colors.onSurface.withValues(alpha: 0.4))),
-        ),
-      ),
-    );
-  }
+  Widget _buildRemoteInfoCard(ColorScheme colors) {
+    String timeText;
+    String sizeText = '';
 
-  Widget _buildSwitchRow({
-    required ColorScheme colors,
-    required IconData icon,
-    required String label,
-    required String sub,
-    required bool value,
-    required ValueChanged<bool>? onChanged,
-  }) {
+    if (_isLoadingRemoteInfo) {
+      timeText = '加载中...';
+    } else if (_remoteModifiedTime != null) {
+      final dt = _remoteModifiedTime!;
+      timeText = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      if (_remoteFileSize != null) {
+        sizeText = _formatFileSize(_remoteFileSize!);
+      }
+    } else {
+      timeText = '暂无备份文件';
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5), width: 0.5),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon,
-              size: 18,
-              color: value ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              value ? sub : label,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: value ? colors.onSurface.withValues(alpha: 0.6) : colors.onSurface),
-            ),
+          Row(
+            children: [
+              Icon(Icons.cloud_outlined, size: 18, color: colors.primary),
+              const SizedBox(width: 8),
+              Text('云端备份', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              const Spacer(),
+              if (_isLoadingRemoteInfo)
+                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
+            ],
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: colors.primary,
-            activeTrackColor: colors.primary.withValues(alpha: 0.3),
-            inactiveThumbColor: colors.surface,
-            inactiveTrackColor: colors.onSurface.withValues(alpha: 0.15),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('上传时间', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                    const SizedBox(height: 4),
+                    Text(timeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                  ],
+                ),
+              ),
+              if (sizeText.isNotEmpty)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('文件大小', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                      const SizedBox(height: 4),
+                      Text(sizeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildBtn(colors, '上传', onTap: _isLoading ? null : () => _showUploadConfirm(), loading: _isLoading),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildBtn(colors, '下载', onTap: _isLoading ? null : () => _showDownloadConfirm(), loading: _isLoading),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTappableRow({
-    required ColorScheme colors,
-    required String label,
-    required String value,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 28),
-            Text(label,
-                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
-            const Spacer(),
-            Text(value,
-                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right,
-                size: 16, color: colors.onSurface.withValues(alpha: 0.25)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDirectionChip(ColorScheme colors, String label, SyncDirection dir, IconData icon) {
-    final selected = _syncDirection == dir;
-    return GestureDetector(
-      onTap: () => setState(() => _syncDirection = dir),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? colors.primary : colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon,
-                size: 16,
-                color: selected
-                    ? colors.onPrimary
-                    : colors.onSurface.withValues(alpha: 0.4)),
-            const SizedBox(width: 6),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: selected
-                        ? colors.onPrimary
-                        : colors.onSurface.withValues(alpha: 0.6))),
-          ],
-        ),
-      ),
-    );
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
   }
 
   Widget _buildTips(ColorScheme colors) {

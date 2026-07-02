@@ -26,7 +26,7 @@ class BookStatusBar extends StatelessWidget {
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final tabWidth = constraints.maxWidth / 3;
+                final tabWidth = constraints.maxWidth / 4;
                 return SizedBox(
                   height: 40,
                   child: Stack(
@@ -57,6 +57,8 @@ class BookStatusBar extends StatelessWidget {
                               () => provider.setBookStatusIndex(1)),
                           _buildTab(colors, '想读', Icons.bookmark_outlined, currentIndex == 2,
                               () => provider.setBookStatusIndex(2)),
+                          _buildTab(colors, '弃读', Icons.cancel_outlined, currentIndex == 3,
+                              () => provider.setBookStatusIndex(3)),
                         ],
                       ),
                     ],

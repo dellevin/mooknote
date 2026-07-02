@@ -13,7 +13,7 @@ void showQuickAddSheet(BuildContext context, AppProvider provider) {
       Navigator.pushNamed(context, '/movie-form',
           arguments: {'initialStatus': currentStatus});
     case 1:
-      final statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read'};
+      final statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read', 3: 'abandoned'};
       final currentStatus =
           statusMap[provider.bookStatusIndex] ?? 'want_to_read';
       Navigator.pushNamed(context, '/book-form',
@@ -93,6 +93,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
                     0: 'read',
                     1: 'reading',
                     2: 'want_to_read',
+                    3: 'abandoned',
                   };
                   final s =
                       statusMap[provider.bookStatusIndex] ?? 'want_to_read';

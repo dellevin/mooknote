@@ -490,7 +490,57 @@ class WebDAVService {
     }
   }
 
-  /// 获取远程文件的修改时间
+  /// 获取远程备份文件信息（修改时间和大小）
+  Future<Map<String, dynamic>?> getRemoteBackupInfo() async {
+    final config = await getConfig();
+    if (config == null) return null;
+
+    final url = config['url']!;
+    final username = config['username']!;
+    final password = config['password']!;
+    final path = config['path']!;
+
+    final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    final zipUrl = '$baseUrl$path/mooknote_backup.zip';
+
+    final client = http.Client();
+    try {
+      var request = http.Request('HEAD', Uri.parse(zipUrl));
+      request.headers['Authorization'] = _basicAuth(username, password);
+
+      var response = await client.send(request);
+
+      // 处理重定向
+      if (response.statusCode == 301 || response.statusCode == 302 ||
+          response.statusCode == 307 || response.statusCode == 308) {
+        final location = response.headers['location'];
+        if (location != null) {
+          request = http.Request('HEAD', Uri.parse(location));
+          request.headers['Authorization'] = _basicAuth(username, password);
+          response = await client.send(request);
+        }
+      }
+
+      if (response.statusCode == 200) {
+        final lastModified = response.headers['last-modified'];
+        final contentLength = response.headers['content-length'];
+        DateTime? modifiedTime;
+        if (lastModified != null) {
+          modifiedTime = HttpDate.parse(lastModified).toLocal();
+        }
+        return {
+          'modifiedTime': modifiedTime,
+          'size': contentLength != null ? int.tryParse(contentLength) : null,
+        };
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[WebDAV] 获取远程备份信息失败: $e');
+      return null;
+    } finally {
+      client.close();
+    }
+  }
   Future<DateTime?> _getRemoteFileModifiedTime(
     http.Client client,
     String url,

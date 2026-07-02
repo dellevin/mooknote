@@ -580,6 +580,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       'read' => ('已读', colors.primary, colors.onPrimary),
       'reading' => ('在读', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
       'want_to_read' => ('想读', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      'abandoned' => ('弃读', colors.error.withValues(alpha: 0.15), colors.error),
       _ => ('', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.3)),
     };
     if (label.isEmpty) return const SizedBox.shrink();
@@ -701,6 +702,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
         label = '想读';
         bgColor = colors.surfaceContainerHighest;
         textColor = colors.onSurface.withValues(alpha: 0.4);
+        break;
+      case 'abandoned':
+        label = '弃读';
+        bgColor = colors.error.withValues(alpha: 0.15);
+        textColor = colors.error;
         break;
       default:
         label = '未知';

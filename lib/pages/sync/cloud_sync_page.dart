@@ -24,6 +24,15 @@ class CloudSyncPage extends StatelessWidget {
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())),
           ),
+          const SizedBox(height: 12),
+          _buildOption(
+            colors: colors,
+            icon: Icons.cloud_sync_outlined,
+            title: '服务器云同步',
+            subtitle: '自建云同步服务器，多端同步更改',
+            onTap: () {},
+            enabled: false,
+          ),
           const SizedBox(height: 20),
           _buildInfo(colors),
         ],

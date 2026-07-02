@@ -44,7 +44,7 @@ class _BookTabPageState extends State<BookTabPage> {
     }
   }
 
-  static const _statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read'};
+  static const _statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read', 3: 'abandoned'};
 
   @override
   void initState() {
@@ -166,7 +166,7 @@ class _BookTabPageState extends State<BookTabPage> {
         final direction = (velocity ?? 0) > 0 ? -1 : 1; // 右滑→上一个，左滑→下一个
         final provider = context.read<AppProvider>();
         final currentIndex = provider.bookStatusIndex;
-        final newIndex = (currentIndex + direction + 3) % 3;
+        final newIndex = (currentIndex + direction + 4) % 4;
         setState(() => _dragDelta = 0.0);
         provider.setBookStatusIndex(newIndex);
       },
@@ -297,7 +297,7 @@ class _BookTabPageState extends State<BookTabPage> {
     final colors = Theme.of(context).colorScheme;
     final provider = context.read<AppProvider>();
     final isWallMode = provider.bookshelfMode;
-    final statusText = isWallMode ? '' : ['已读', '在读', '想读'][statusIndex];
+    final statusText = isWallMode ? '' : ['已读', '在读', '想读', '弃读'][statusIndex];
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),

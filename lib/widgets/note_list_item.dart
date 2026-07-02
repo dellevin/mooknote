@@ -39,75 +39,53 @@ class _NoteListItemContent extends StatelessWidget {
       },
       onLongPress: () => _showActions(context),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: selected ? Border.all(color: colors.primary, width: 1.5) : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 标题（带置顶图标）
-            if (note.title.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  if (note.isPinned)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Icon(Icons.push_pin, size: 14, color: colors.primary),
-                    ),
-                  Expanded(
-                    child: Text(
-                      note.title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                        height: 1.3,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+            // 标题行（带置顶图标 + 时间）
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (note.isPinned)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(Icons.push_pin, size: 14, color: colors.primary),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    _formatDate(note.createdAt),
+                Expanded(
+                  child: Text(
+                    note.title.isNotEmpty ? note.title : previewText.isNotEmpty ? previewText : '(无内容)',
                     style: TextStyle(
-                      fontSize: 11,
-                      color: colors.onSurface.withValues(alpha: 0.35),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                      height: 1.3,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _formatDate(note.createdAt),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurface.withValues(alpha: 0.35),
+                  ),
+                ),
+              ],
+            ),
 
-            // 内容预览（无标题时才显示置顶和时间，替换原本只有置顶的逻辑）
+            // 内容预览
             if (previewText.isNotEmpty) ...[
               const SizedBox(height: 6),
-              if (note.title.isEmpty)
-                Row(
-                  children: [
-                    if (note.isPinned)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Icon(Icons.push_pin, size: 14, color: colors.primary),
-                      ),
-                    const Spacer(),
-                    Text(
-                      _formatDate(note.createdAt),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colors.onSurface.withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ],
-                ),
-              if (note.title.isEmpty)
-                const SizedBox(height: 2),
               Text(
                 previewText,
                 style: TextStyle(
@@ -115,12 +93,12 @@ class _NoteListItemContent extends StatelessWidget {
                   color: colors.onSurface.withValues(alpha: 0.5),
                   height: 1.5,
                 ),
-                maxLines: 3,
+                maxLines: note.title.isNotEmpty ? 2 : 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
 
-            // 标签（换行显示）
+            // 标签
             if (note.tags.isNotEmpty) ...[
               const SizedBox(height: 8),
               Wrap(
