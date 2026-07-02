@@ -72,7 +72,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 26,
+      version: 27,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -244,6 +244,40 @@ class DatabaseHelper {
       if (!cols.any((col) => col['name'] == 'category')) {
         await db.execute("ALTER TABLE movies ADD COLUMN category TEXT NOT NULL DEFAULT 'movie'");
       }
+    }
+    if (oldVersion < 26) {
+      await _upgradeBooksTableV26(db);
+    }
+    if (oldVersion < 27) {
+      await _upgradeBooksTableV27(db);
+    }
+  }
+
+  /// 升级books表到V27（添加阅读始末日期字段）
+  Future<void> _upgradeBooksTableV27(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(books)');
+    final hasStartDate = columns.any((col) => col['name'] == 'start_date');
+    final hasFinishDate = columns.any((col) => col['name'] == 'finish_date');
+
+    if (!hasStartDate) {
+      await db.execute('ALTER TABLE books ADD COLUMN start_date TEXT');
+    }
+    if (!hasFinishDate) {
+      await db.execute('ALTER TABLE books ADD COLUMN finish_date TEXT');
+    }
+  }
+
+  /// 升级books表到V26（添加阅读始末日期字段）
+  Future<void> _upgradeBooksTableV26(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(books)');
+    final hasStartDate = columns.any((col) => col['name'] == 'start_date');
+    final hasFinishDate = columns.any((col) => col['name'] == 'finish_date');
+
+    if (!hasStartDate) {
+      await db.execute('ALTER TABLE books ADD COLUMN start_date TEXT');
+    }
+    if (!hasFinishDate) {
+      await db.execute('ALTER TABLE books ADD COLUMN finish_date TEXT');
     }
   }
 
@@ -635,6 +669,8 @@ class DatabaseHelper {
         status TEXT NOT NULL,
         isbn TEXT,
         publish_date TEXT,
+        start_date TEXT,
+        finish_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,

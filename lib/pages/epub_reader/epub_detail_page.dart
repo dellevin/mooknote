@@ -44,12 +44,14 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   bool _descriptionExpanded = false;
   Future<List<BookExcerpt>>? _excerptsFuture;
   Future<List<Map<String, dynamic>>>? _highlightsFuture;
+  String? _linkedBookCoverPath;
 
   @override
   void initState() {
     super.initState();
     _book = widget.book;
     _loadBookInfo();
+    _loadLinkedBookCover();
     final linkedBookId = _book['book_id'] as String? ?? '';
     if (linkedBookId.isNotEmpty) {
       _excerptsFuture = BookExcerptDao().getExcerptsByBookId(linkedBookId);
@@ -64,12 +66,22 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     if (mounted && info != null) setState(() => _bookInfo = info);
   }
 
+  Future<void> _loadLinkedBookCover() async {
+    final linkedBookId = _book['book_id'] as String? ?? '';
+    if (linkedBookId.isEmpty) return;
+    final book = await _bookDao.getBookById(linkedBookId);
+    if (mounted && book != null && book.coverPath != null && book.coverPath!.isNotEmpty) {
+      setState(() => _linkedBookCoverPath = book.coverPath);
+    }
+  }
+
   Future<void> _refreshBook() async {
     final updated = await _dao.getReaderBookById(widget.bookId);
     if (mounted && updated != null) {
       final linkedBookId = updated['book_id'] as String? ?? '';
       setState(() {
         _book = updated;
+        _linkedBookCoverPath = null;
         _highlightsFuture = _dao.getHighlightsByBookId(widget.bookId);
         if (linkedBookId.isNotEmpty) {
           _excerptsFuture = BookExcerptDao().getExcerptsByBookId(linkedBookId);
@@ -77,10 +89,12 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
           _excerptsFuture = null;
         }
       });
+      _loadLinkedBookCover();
     }
   }
 
   void _navigateToReader() {
+    final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -88,7 +102,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
           bookId: _book['id'] as String,
           filePath: _book['file_path'] as String,
           title: _book['title'] as String? ?? '',
-          coverPath: _book['cover_path'] as String?,
+          coverPath: coverPath,
           bookData: _book,
         ),
       ),
@@ -113,7 +127,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     final progress = (_book['reading_percentage'] as num?)?.toDouble() ?? 0.0;
     final title = _book['title'] as String? ?? '';
     final author = _book['author'] as String? ?? '';
-    final coverPath = _book['cover_path'] as String?;
+    final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -755,6 +769,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     final chapter = int.tryParse(highlight['chapter'] as String? ?? '') ?? 0;
     final xpath = _extractStartXPath(highlight['cfi'] as String? ?? '');
     final text = highlight['content'] as String? ?? '';
+    final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -762,7 +777,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
           bookId: _book['id'] as String,
           filePath: _book['file_path'] as String,
           title: _book['title'] as String? ?? '',
-          coverPath: _book['cover_path'] as String?,
+          coverPath: coverPath,
           bookData: _book,
           initialSpineIndex: chapter,
           scrollToXPath: xpath,

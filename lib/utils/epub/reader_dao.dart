@@ -6,14 +6,27 @@ class ReaderDao {
 
   // ─── reader_books ─────────────────────────────────────────────────
 
-  /// 获取所有未删除的阅读记录
+  /// 获取所有未删除的阅读记录（包含关联书籍封面）
   Future<List<Map<String, dynamic>>> getAllReaderBooks() async {
     final db = await _db.database;
-    return db.query(
-      'reader_books',
-      where: 'is_deleted = 0',
-      orderBy: 'updated_at DESC',
-    );
+    final results = await db.rawQuery('''
+      SELECT rb.*,
+             COALESCE(b.cover_path, rb.cover_path) as display_cover_path
+      FROM reader_books rb
+      LEFT JOIN books b ON rb.book_id = b.id AND b.is_deleted = 0
+      WHERE rb.is_deleted = 0
+      ORDER BY rb.updated_at DESC
+    ''');
+    return results.map((row) {
+      final map = Map<String, dynamic>.from(row);
+      // 如果有关联封面，覆盖 cover_path 供 UI 使用
+      final displayCover = map['display_cover_path'] as String?;
+      if (displayCover != null && displayCover.isNotEmpty) {
+        map['cover_path'] = displayCover;
+      }
+      map.remove('display_cover_path');
+      return map;
+    }).toList();
   }
 
   /// 根据 ID 获取阅读记录

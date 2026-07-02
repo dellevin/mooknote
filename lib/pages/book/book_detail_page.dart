@@ -93,6 +93,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
                   if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                   if (book.publishDate != null) _buildPublishDateSection(book),
+                  if (book.startDate != null || book.finishDate != null) _buildReadingDatesSection(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
@@ -192,6 +193,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
                         if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                         if (book.publishDate != null) _buildPublishDateSection(book),
+                        if (book.startDate != null || book.finishDate != null) _buildReadingDatesSection(book),
                         // 类型标签毛玻璃
                         if (book.genres.isNotEmpty) _buildGenresSection(book),
                         // 简介：内部已有毛玻璃卡片
@@ -851,6 +853,59 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReadingDatesSection(Book book) {
+    final isOverlay = _detailStyle == 1;
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(
+              '阅读日期',
+              style: TextStyle(
+                fontSize: 13,
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                if (book.startDate != null)
+                  _buildDateChip('开始', book.startDate!, isOverlay),
+                if (book.finishDate != null)
+                  _buildDateChip('读完', book.finishDate!, isOverlay),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateChip(String label, DateTime date, bool isOverlay) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isOverlay ? Colors.white.withValues(alpha: 0.12) : colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '$label ${_formatDate(date)}',
+        style: TextStyle(
+          fontSize: 13,
+          color: isOverlay ? Colors.white.withValues(alpha: 0.85) : colors.onSurface.withValues(alpha: 0.7),
+        ),
       ),
     );
   }

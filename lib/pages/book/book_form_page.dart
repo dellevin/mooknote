@@ -48,6 +48,8 @@ class _BookFormPageState extends State<BookFormPage> {
   String? _coverPath;
   String _status = 'want_to_read';
   DateTime? _publishDate;
+  DateTime? _startDate;
+  DateTime? _finishDate;
   bool _isDownloading = false;
 
   @override
@@ -77,6 +79,8 @@ class _BookFormPageState extends State<BookFormPage> {
       _coverPath = book.coverPath;
       _status = book.status;
       _publishDate = book.publishDate;
+      _startDate = book.startDate;
+      _finishDate = book.finishDate;
     } else if (widget.initialStatus != null) {
       _status = widget.initialStatus!;
     }
@@ -206,6 +210,14 @@ class _BookFormPageState extends State<BookFormPage> {
                           : null,
                       onTap: () => _selectPublishDate(),
                     ),
+                  ),
+
+                  // 开始阅读日期 + 读完日期（同一行）
+                  _halfCard('开始阅读', _startDate != null ? '${_startDate!.year}.${_startDate!.month.toString().padLeft(2, '0')}.${_startDate!.day.toString().padLeft(2, '0')}' : '', Icons.play_circle_outlined,
+                    onTap: () => _selectStartDate(),
+                  ),
+                  _halfCard('读完日期', _finishDate != null ? '${_finishDate!.year}.${_finishDate!.month.toString().padLeft(2, '0')}.${_finishDate!.day.toString().padLeft(2, '0')}' : '', Icons.check_circle_outlined,
+                    onTap: () => _selectFinishDate(),
                   ),
 
                   // 书籍简介
@@ -536,6 +548,16 @@ class _BookFormPageState extends State<BookFormPage> {
     if (picked != null) setState(() => _publishDate = picked);
   }
 
+  Future<void> _selectStartDate() async {
+    final picked = await showDatePicker(context: context, initialDate: _startDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    if (picked != null) setState(() => _startDate = picked);
+  }
+
+  Future<void> _selectFinishDate() async {
+    final picked = await showDatePicker(context: context, initialDate: _finishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    if (picked != null) setState(() => _finishDate = picked);
+  }
+
   Future<void> _editSummary() async {
     final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => _SummaryEditorPage(initialText: _summaryController.text)));
     if (result != null) setState(() => _summaryController.text = result);
@@ -551,6 +573,8 @@ class _BookFormPageState extends State<BookFormPage> {
     if (_coverPath != null) return true;
     if (_authors.isNotEmpty || _alternateTitles.isNotEmpty || _genres.isNotEmpty) return true;
     if (_publishDate != null) return true;
+    if (_startDate != null) return true;
+    if (_finishDate != null) return true;
     return false;
   }
 
@@ -594,7 +618,7 @@ class _BookFormPageState extends State<BookFormPage> {
           authors: _authors, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-          publishDate: _publishDate, createdAt: now, updatedAt: now,
+          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, createdAt: now, updatedAt: now,
         );
         await context.read<AppProvider>().addBook(newBook);
       } else {
@@ -603,7 +627,7 @@ class _BookFormPageState extends State<BookFormPage> {
           authors: _authors, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-          publishDate: _publishDate, updatedAt: now,
+          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, updatedAt: now,
         );
         await context.read<AppProvider>().updateBook(updatedBook);
       }

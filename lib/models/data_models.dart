@@ -200,6 +200,8 @@ class Book {
   final String status; // read/reading/want_to_read
   final String? isbn; // ISBN编号
   final DateTime? publishDate; // 出版时间
+  final DateTime? startDate; // 开始阅读日期
+  final DateTime? finishDate; // 读完日期
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -218,6 +220,8 @@ class Book {
     required this.status,
     this.isbn,
     this.publishDate,
+    this.startDate,
+    this.finishDate,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -238,6 +242,8 @@ class Book {
       status: json['status'] ?? 'want_to_read',
       isbn: json['isbn'],
       publishDate: _safeParseDate(json['publish_date']),
+      startDate: _safeParseDate(json['start_date']),
+      finishDate: _safeParseDate(json['finish_date']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
@@ -259,6 +265,8 @@ class Book {
       'status': status,
       'isbn': isbn,
       'publish_date': publishDate?.toUtc().toIso8601String(),
+      'start_date': startDate?.toUtc().toIso8601String(),
+      'finish_date': finishDate?.toUtc().toIso8601String(),
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -286,6 +294,8 @@ class Book {
     String? status,
     Object? isbn = _copyWithNull,
     DateTime? publishDate,
+    DateTime? startDate,
+    DateTime? finishDate,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -304,6 +314,8 @@ class Book {
       status: status ?? this.status,
       isbn: isbn is _CopyWithNullSentinel ? this.isbn : (isbn as String?),
       publishDate: publishDate ?? this.publishDate,
+      startDate: startDate ?? this.startDate,
+      finishDate: finishDate ?? this.finishDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
