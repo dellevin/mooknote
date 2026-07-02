@@ -2173,29 +2173,40 @@ class _SettingsPageState extends State<SettingsPage> {
     int deletedCount = 0;
     try {
       final db = await DatabaseHelper.instance.database;
-      // 收集数据库中所有引用的 epub_books 子目录名
+      // 收集数据库中所有引用的 epub_books 子目录名（包括软删除的）
       final rows = await db
-          .query('reader_books', columns: ['id', 'file_path', 'cover_path']);
+          .query('reader_books', columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
       final usedDirs = <String>{};
       for (final r in rows) {
+        // 只收集未删除的记录对应的目录
+        final isDeleted = r['is_deleted'] == 1 || r['is_deleted'] == true;
+        if (isDeleted) continue;
         final id = r['id'] as String?;
         if (id != null && id.isNotEmpty) usedDirs.add(id);
         _collectEpubDirName(r['file_path'] as String?, usedDirs);
         _collectEpubDirName(r['cover_path'] as String?, usedDirs);
       }
 
+      // 检查 /data/user/0/top.iletter.mooknote/app_flutter/epub_books 路径
       final appDir = await getApplicationDocumentsDirectory();
-      final epubDir = Directory('${appDir.path}/epub_books');
-      if (!await epubDir.exists()) return 0;
+      final possiblePaths = [
+        '${appDir.path}/epub_books',
+        '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
+      ];
 
-      await for (final entity in epubDir.list(followLinks: false)) {
-        if (entity is Directory) {
-          final dirName = path.basename(entity.path);
-          if (!usedDirs.contains(dirName)) {
-            try {
-              await entity.delete(recursive: true);
-              deletedCount++;
-            } catch (_) {}
+      for (final epubPath in possiblePaths) {
+        final epubDir = Directory(epubPath);
+        if (!await epubDir.exists()) continue;
+
+        await for (final entity in epubDir.list(followLinks: false)) {
+          if (entity is Directory) {
+            final dirName = path.basename(entity.path);
+            if (!usedDirs.contains(dirName)) {
+              try {
+                await entity.delete(recursive: true);
+                deletedCount++;
+              } catch (_) {}
+            }
           }
         }
       }
