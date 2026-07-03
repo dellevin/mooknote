@@ -15,6 +15,7 @@ import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
 import '../utils/theme/app_theme.dart';
+import '../utils/font_download_manager.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {
@@ -255,6 +256,10 @@ class AppProvider extends ChangeNotifier {
     _colorSchemeIndex = prefs.colorSchemeIndex;
     _fontFamily = prefs.fontFamily;
     AppTheme.setFontFamily(_fontFamily);
+    // 异步预加载已缓存的字体（不阻塞 UI）
+    if (_fontFamily.isNotEmpty) {
+      FontDownloadManager().preloadCachedFont(_fontFamily);
+    }
     notifyListeners();
   }
 

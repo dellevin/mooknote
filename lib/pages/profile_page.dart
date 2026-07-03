@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../main.dart' show routeObserver;
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
@@ -25,6 +26,7 @@ import 'sync/cloud_sync_page.dart';
 import 'app_icon_picker_page.dart';
 import 'tag_management_page.dart';
 import 'stroll_page.dart';
+import 'font_picker_page.dart';
 
 /// 个人中心页面
 class ProfilePage extends StatefulWidget {
@@ -680,11 +682,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const SettingsPage()))
       ),
-      (
-        Icons.feedback_outlined,
-        '反馈',
-        () => _showFeedbackDialog(context)
-      ),
+      (Icons.feedback_outlined, '反馈', () => _showFeedbackDialog(context)),
     ];
 
     return Padding(
@@ -808,7 +806,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         Text('作者邮箱',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: colors.onSurface.withValues(alpha: 0.5))),
+                                color:
+                                    colors.onSurface.withValues(alpha: 0.5))),
                         const SizedBox(height: 2),
                         Text(email,
                             style: TextStyle(
@@ -824,7 +823,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       ToastUtil.show(context, '已复制到剪贴板');
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: colors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
@@ -834,7 +834,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         children: [
                           Icon(Icons.copy, size: 14, color: colors.primary),
                           const SizedBox(width: 4),
-                          Text('复制', style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+                          Text('复制',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -864,7 +868,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         Text('QQ 群',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: colors.onSurface.withValues(alpha: 0.5))),
+                                color:
+                                    colors.onSurface.withValues(alpha: 0.5))),
                         const SizedBox(height: 2),
                         Text('1087203310',
                             style: TextStyle(
@@ -880,7 +885,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       ToastUtil.show(context, '已复制到剪贴板');
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: colors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
@@ -890,7 +896,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         children: [
                           Icon(Icons.copy, size: 14, color: colors.primary),
                           const SizedBox(width: 4),
-                          Text('复制', style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+                          Text('复制',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -1224,6 +1234,17 @@ class _SettingsPageState extends State<SettingsPage> {
             title: '清除缓存数据',
             subtitle: '清理未在数据库中引用的文件',
             onTap: () => _showClearCacheDialog(context),
+          ),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildActionItem(
+            icon: Icons.folder_outlined,
+            title: '获取系统权限',
+            subtitle: '前往系统设置开启存储权限',
+            onTap: _showStoragePermissionDialog,
           ),
           Divider(
               height: 0.5,
@@ -1758,28 +1779,20 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // ─── 字体选择器 ───
 
-  static const _fontLabels = ['默认字体', '霞鹜文楷', 'OPPO Sans', '思源宋体', '得意黑'];
-  static const _fontValues = [
-    '',
-    'LXGWWenKai',
-    'OPPOSans',
-    'NotoSerifSC',
-    'SmileySans'
-  ];
-  static const _fontIcons = [
-    Icons.font_download_outlined,
-    Icons.brush_outlined,
-    Icons.phone_android,
-    Icons.text_fields,
-    Icons.emoji_emotions_outlined
-  ];
-
   Widget _buildFontSelector() {
     final colors = Theme.of(context).colorScheme;
-    final idx = _fontValues.indexOf(_fontFamily);
-    final label = idx >= 0 ? _fontLabels[idx] : '系统默认';
+    final label = _fontFamily.isEmpty ? '系统默认' : _fontFamily;
     return InkWell(
-      onTap: _showFontPicker,
+      onTap: () async {
+        final result = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const FontPickerPage(initialFamily: '')),
+        );
+        if (result != null && mounted) {
+          _setFontFamily(result);
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(children: [
@@ -1809,76 +1822,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ])),
           Icon(Icons.chevron_right,
               size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
-        ]),
-      ),
-    );
-  }
-
-  void _showFontPicker() {
-    final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16))),
-        padding: const EdgeInsets.only(bottom: 20),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 16),
-              decoration: BoxDecoration(
-                  color: colors.onSurface.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2))),
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('字体',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface)))),
-          const SizedBox(height: 8),
-          for (int i = 0; i < _fontLabels.length; i++) ...[
-            if (i > 0)
-              Divider(
-                  height: 0.5,
-                  indent: 24,
-                  endIndent: 24,
-                  color: colors.outlineVariant),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-              leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(_fontIcons[i],
-                      size: 20,
-                      color: _fontFamily == _fontValues[i]
-                          ? colors.primary
-                          : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(_fontLabels[i],
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: _fontFamily == _fontValues[i]
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: colors.onSurface)),
-              trailing: _fontFamily == _fontValues[i]
-                  ? Icon(Icons.check, size: 20, color: colors.primary)
-                  : null,
-              onTap: () {
-                Navigator.pop(ctx);
-                _setFontFamily(_fontValues[i]);
-              },
-            ),
-          ],
         ]),
       ),
     );
@@ -2040,6 +1983,46 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _showStoragePermissionDialog() {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('需要存储权限',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
+        content: Text(
+          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能扫描字体文件。\n\n是否前往设置？',
+          style: TextStyle(
+              fontSize: 14,
+              color: colors.onSurface.withValues(alpha: 0.6),
+              height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('取消',
+                style:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // 跳转到应用设置页（用户可在权限中找到"所有文件访问"）
+              openAppSettings();
+            },
+            child: Text('前往设置', style: TextStyle(color: colors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showClearCacheDialog(BuildContext pageContext) {
     final colors = Theme.of(context).colorScheme;
     showDialog(
@@ -2174,8 +2157,8 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final db = await DatabaseHelper.instance.database;
       // 收集数据库中所有引用的 epub_books 子目录名（包括软删除的）
-      final rows = await db
-          .query('reader_books', columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
+      final rows = await db.query('reader_books',
+          columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
       final usedDirs = <String>{};
       for (final r in rows) {
         // 只收集未删除的记录对应的目录
