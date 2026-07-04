@@ -20,7 +20,10 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   final ReaderDao _dao = ReaderDao();
   final EpubService _service = EpubService();
   List<Map<String, dynamic>> _books = [];
+  List<Map<String, dynamic>> _filteredBooks = [];
   bool _isLoading = true;
+  bool _isSearching = false;
+  final TextEditingController _searchCtrl = TextEditingController();
   ViewMode _viewMode = UserPrefs().epubViewMode == 1
       ? ViewMode.compact
       : ViewMode.relaxed;
@@ -38,8 +41,36 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
       setState(() {
         _books = books;
         _isLoading = false;
+        _applyFilter();
       });
     }
+  }
+
+  void _applyFilter() {
+    final query = _searchCtrl.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      _filteredBooks = _books;
+    } else {
+      _filteredBooks = _books.where((b) {
+        final title = (b['title'] as String? ?? '').toLowerCase();
+        final author = (b['author'] as String? ?? '').toLowerCase();
+        return title.contains(query) || author.contains(query);
+      }).toList();
+    }
+  }
+
+  void _onSearchChanged() {
+    setState(() => _applyFilter());
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchCtrl.clear();
+        _applyFilter();
+      }
+    });
   }
 
   Future<void> _pickAndImport() async {
@@ -139,6 +170,12 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   }
 
   @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
@@ -146,13 +183,30 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
       appBar: AppBar(
         backgroundColor: colors.surface,
         elevation: 0,
-        title: Text('EPUB 阅读',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: _isSearching
+            ? TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                style: TextStyle(fontSize: 16, color: colors.onSurface),
+                decoration: InputDecoration(
+                  hintText: '搜索书名或作者',
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.35)),
+                  border: InputBorder.none,
+                ),
+                onChanged: (_) => _onSearchChanged(),
+              )
+            : Text('EPUB 阅读',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, size: 20),
-          onPressed: () => Navigator.pop(context),
+          icon: Icon(_isSearching ? Icons.close : Icons.arrow_back, size: 20),
+          onPressed: _isSearching ? _toggleSearch : () => Navigator.pop(context),
         ),
         actions: [
+          if (!_isSearching)
+            IconButton(
+              icon: Icon(Icons.search, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+              onPressed: _toggleSearch,
+            ),
           IconButton(
             icon: Icon(
               _viewMode == ViewMode.relaxed
@@ -174,7 +228,9 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : _books.isEmpty
               ? _buildEmpty(colors)
-              : _buildGrid(colors),
+              : _filteredBooks.isEmpty
+                  ? Center(child: Text('无搜索结果', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))))
+                  : _buildGrid(colors),
     );
   }
 
@@ -240,9 +296,9 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
             mainAxisSpacing: 16,
             childAspectRatio: 0.55,
           ),
-          itemCount: _books.length,
+          itemCount: _filteredBooks.length,
           itemBuilder: (context, index) {
-            final book = _books[index];
+            final book = _filteredBooks[index];
             return BookGridItem(
               book: book,
               viewMode: ViewMode.relaxed,

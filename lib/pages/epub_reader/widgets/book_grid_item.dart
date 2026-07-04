@@ -36,8 +36,9 @@ class BookGridItem extends StatelessWidget {
 
   // ─── mode helpers ─────────────────────────────────────────────────────────
 
-  /// Relaxed: cover + title + author, 右上角进度百分比。
+  /// Relaxed: 封面卡片 + 标题 + 作者，底部进度条。
   Widget _buildRelaxed(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final title = book['title'] as String? ?? '';
     final author = book['author'] as String? ?? '';
     final progress = _readingProgress;
@@ -45,27 +46,67 @@ class BookGridItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildCoverStack(context, fit: StackFit.expand, extras: [
-          if (progress > 0) _buildProgressBadge(context),
-        ])),
-        const SizedBox(height: 8),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.shadow.withValues(alpha: 0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _buildCoverStack(context, fit: StackFit.expand, extras: [
+              // 底部渐变背景 + 进度条
+              if (progress > 0)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black54],
+                      ),
+                    ),
+                    alignment: Alignment.bottomCenter,
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 2.5,
+                      backgroundColor: Colors.white24,
+                      valueColor: const AlwaysStoppedAnimation(Colors.white70),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 6),
         Text(
           title,
-          maxLines: 2,
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: TextStyle(
+            fontSize: 13,
             fontWeight: FontWeight.w500,
+            color: colors.onSurface,
           ),
         ),
         if (author.isNotEmpty) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           Text(
             author,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: 11,
+              color: colors.onSurface.withValues(alpha: 0.45),
             ),
           ),
         ],
@@ -139,7 +180,7 @@ class BookGridItem extends StatelessWidget {
       fit: fit,
       children: [
         Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
           clipBehavior: Clip.antiAlias,
           child: hasCover
               ? Image.file(

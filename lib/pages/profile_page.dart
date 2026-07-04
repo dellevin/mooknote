@@ -2022,30 +2022,58 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showClearCacheDialog(BuildContext pageContext) {
+  void _showClearCacheDialog(BuildContext pageContext) async {
     final colors = Theme.of(context).colorScheme;
+    // 先扫描分析
+    showDialog(
+      context: pageContext,
+      barrierDismissible: false,
+      builder: (_) => Center(child: CircularProgressIndicator(color: colors.primary)),
+    );
+
+    final appProvider = pageContext.read<AppProvider>();
+    final dbImagePaths = await _getAllDbImagePaths(appProvider);
+
+    final imageInfo = await _scanImageDirectory(dbImagePaths);
+    final epubInfo = await _scanOrphanedEpubBooks(appProvider);
+    final tempInfo = await _scanTempDirectory();
+    final emptyDirInfo = await _scanEmptyDirectories();
+
+    if (!pageContext.mounted) return;
+    Navigator.pop(pageContext); // 关闭 loading
+
+    final totalSize = imageInfo.$2 + epubInfo.$2 + tempInfo.$2 + emptyDirInfo.$2;
+    final totalCount = imageInfo.$1 + epubInfo.$1 + tempInfo.$1 + emptyDirInfo.$1;
+    if (totalCount == 0) {
+      ToastUtil.show(pageContext, '没有需要清理的缓存');
+      return;
+    }
+
     showDialog(
       context: pageContext,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('清除缓存数据',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface)),
-        content: Text('这将删除所有未在数据库中引用的文件。确定要继续吗？',
-            style: TextStyle(
-                fontSize: 14,
-                color: colors.onSurface.withValues(alpha: 0.6),
-                height: 1.5)),
+        title: Text('缓存分析',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('共发现 $totalCount 项可清理缓存，合计 ${_formatSize(totalSize)}',
+                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+            const SizedBox(height: 14),
+            if (imageInfo.$1 > 0) _buildCacheItem('孤立图片', imageInfo.$1, imageInfo.$2, Icons.image_outlined, colors),
+            if (epubInfo.$1 > 0) _buildCacheItem('孤立电子书', epubInfo.$1, epubInfo.$2, Icons.menu_book_outlined, colors),
+            if (tempInfo.$1 > 0) _buildCacheItem('临时文件', tempInfo.$1, tempInfo.$2, Icons.folder_outlined, colors),
+            if (emptyDirInfo.$1 > 0) _buildCacheItem('空文件夹', emptyDirInfo.$1, emptyDirInfo.$2, Icons.folder_off_outlined, colors),
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('取消',
-                  style: TextStyle(
-                      color: colors.onSurface.withValues(alpha: 0.6)))),
+              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
@@ -2055,17 +2083,38 @@ class _SettingsPageState extends State<SettingsPage> {
                 backgroundColor: colors.error,
                 foregroundColor: colors.onError,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('清除'),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('确认清除'),
           ),
         ],
-        actionsPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
+  }
+
+  Widget _buildCacheItem(String label, int count, int size, IconData icon, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
+          ),
+          Text('$count项  ${_formatSize(size)}',
+              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+        ],
+      ),
+    );
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Future<void> _clearCacheData(BuildContext context) async {
@@ -2297,6 +2346,154 @@ class _SettingsPageState extends State<SettingsPage> {
               count++;
             } catch (_) {}
           }
+        }
+      }
+    } catch (_) {}
+    return count;
+  }
+
+  // ─── 扫描方法（只统计不删除） ──────────────────────────────────────────────
+
+  /// 返回 (文件数, 总字节数)
+  Future<(int, int)> _scanImageDirectory(Set<String> dbImagePaths) async {
+    int count = 0, totalSize = 0;
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory('${appDir.path}/images');
+      if (!await imagesDir.exists()) return (0, 0);
+      await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
+        if (entity is File &&
+            !dbImagePaths.contains(entity.path) &&
+            !path.basename(entity.path).startsWith('avatar')) {
+          try {
+            totalSize += await entity.length();
+            count++;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    return (count, totalSize);
+  }
+
+  Future<(int, int)> _scanOrphanedEpubBooks(AppProvider provider) async {
+    int count = 0, totalSize = 0;
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query('reader_books', columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
+      final usedDirs = <String>{};
+      for (final r in rows) {
+        final isDeleted = r['is_deleted'] == 1 || r['is_deleted'] == true;
+        if (isDeleted) continue;
+        final id = r['id'] as String?;
+        if (id != null && id.isNotEmpty) usedDirs.add(id);
+        _collectEpubDirName(r['file_path'] as String?, usedDirs);
+        _collectEpubDirName(r['cover_path'] as String?, usedDirs);
+      }
+      final appDir = await getApplicationDocumentsDirectory();
+      final possiblePaths = [
+        '${appDir.path}/epub_books',
+        '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
+      ];
+      for (final epubPath in possiblePaths) {
+        final epubDir = Directory(epubPath);
+        if (!await epubDir.exists()) continue;
+        await for (final entity in epubDir.list(followLinks: false)) {
+          if (entity is Directory) {
+            final dirName = path.basename(entity.path);
+            if (!usedDirs.contains(dirName)) {
+              try {
+                totalSize += await _dirSize(entity);
+                count++;
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return (count, totalSize);
+  }
+
+  Future<(int, int)> _scanTempDirectory() async {
+    int count = 0, totalSize = 0;
+    final now = DateTime.now();
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await for (final entity in tempDir.list(followLinks: false)) {
+          if (entity is File) {
+            final name = path.basename(entity.path);
+            if (name.startsWith('book_poster_') ||
+                name.startsWith('movie_poster_') ||
+                name.startsWith('note_share_') ||
+                name.startsWith('mooknote_download') ||
+                name.startsWith('mooknote_bidir')) {
+              try {
+                final stat = await entity.stat();
+                if (now.difference(stat.modified).inHours >= 1) {
+                  totalSize += await entity.length();
+                  count++;
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    try {
+      final cacheDir = await getApplicationCacheDirectory();
+      if (await cacheDir.exists()) {
+        await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            try {
+              totalSize += await entity.length();
+              count++;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+    return (count, totalSize);
+  }
+
+  Future<(int, int)> _scanEmptyDirectories() async {
+    int count = 0;
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final cacheDir = await getApplicationCacheDirectory();
+      final dirs = [
+        Directory('${appDir.path}/images'),
+        Directory('${appDir.path}/epub_books'),
+        cacheDir,
+      ];
+      for (final dir in dirs) {
+        if (!await dir.exists()) continue;
+        count += await _countEmptyDirsRecursive(dir);
+      }
+    } catch (_) {}
+    return (count, 0);
+  }
+
+  Future<int> _dirSize(Directory dir) async {
+    int size = 0;
+    try {
+      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          try { size += await entity.length(); } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    return size;
+  }
+
+  Future<int> _countEmptyDirsRecursive(Directory dir) async {
+    int count = 0;
+    try {
+      final children = await dir.list(followLinks: false).toList();
+      for (final child in children) {
+        if (child is Directory) {
+          count += await _countEmptyDirsRecursive(child);
+          final remaining = await child.list(followLinks: false).toList();
+          if (remaining.isEmpty) count++;
         }
       }
     } catch (_) {}

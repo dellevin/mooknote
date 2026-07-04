@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../utils/epub/reader_dao.dart';
 import '../../utils/epub/epub_parser.dart';
@@ -126,8 +125,24 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     final colors = Theme.of(context).colorScheme;
     final progress = (_book['reading_percentage'] as num?)?.toDouble() ?? 0.0;
     final title = _book['title'] as String? ?? '';
-    final author = _book['author'] as String? ?? '';
     final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
+    // 作者：优先用 authors（JSON 数组），否则用 author
+    final authorsJson = _book['authors'] as String? ?? '';
+    String author;
+    if (authorsJson.isNotEmpty) {
+      try {
+        author = List<String>.from(jsonDecode(authorsJson)).join('、');
+      } catch (_) {
+        author = _book['author'] as String? ?? '';
+      }
+    } else {
+      author = _book['author'] as String? ?? '';
+    }
+    // 简介：优先用 summary 字段，否则用 EPUB 解析的 description
+    final summary = _book['summary'] as String? ?? '';
+    final description = summary.isNotEmpty ? summary : (_bookInfo?.description ?? '');
+    final publisher = _book['publisher'] as String? ?? '';
+    final isbn = _book['isbn'] as String? ?? '';
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -213,16 +228,43 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
             Divider(height: 0.5, thickness: 0.5, color: colors.outline),
 
             // ── 描述 ──
-            if (_bookInfo?.description != null && _bookInfo!.description!.isNotEmpty) ...[
+            if (description.isNotEmpty) ...[
               _buildSectionHeader('简介', colors),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: GestureDetector(
                   onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
-                  child: Text(_stripHtmlTags(_bookInfo!.description!),
+                  child: Text(_stripHtmlTags(description),
                       maxLines: _descriptionExpanded ? null : 4,
                       overflow: _descriptionExpanded ? null : TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 14, height: 1.7, color: colors.onSurface)),
+                ),
+              ),
+              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+            ],
+
+            // ── 出版信息 ──
+            if (publisher.isNotEmpty || isbn.isNotEmpty) ...[
+              _buildSectionHeader('出版信息', colors),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 6,
+                  children: [
+                    if (publisher.isNotEmpty)
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.business_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                        const SizedBox(width: 4),
+                        Text(publisher, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
+                      ]),
+                    if (isbn.isNotEmpty)
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.qr_code_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                        const SizedBox(width: 4),
+                        Text(isbn, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
+                      ]),
+                  ],
                 ),
               ),
               Divider(height: 0.5, thickness: 0.5, color: colors.outline),

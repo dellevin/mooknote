@@ -64,6 +64,13 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
         title: Text('句读', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
         actions: [
           IconButton(
+            icon: _isLoading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(Icons.refresh_rounded, size: 22),
+            tooltip: '刷新',
+            onPressed: _isLoading ? null : _loadHighlights,
+          ),
+          IconButton(
             icon: Icon(
               _isListMode ? Icons.grid_view_rounded : Icons.view_agenda_outlined,
               size: 22,

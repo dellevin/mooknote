@@ -72,7 +72,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 29,
+      version: 30,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -260,6 +260,22 @@ class DatabaseHelper {
       final bookCols = await db.rawQuery('PRAGMA table_info(books)');
       if (!bookCols.any((col) => col['name'] == 'translators')) {
         await db.execute('ALTER TABLE books ADD COLUMN translators TEXT');
+      }
+    }
+    if (oldVersion < 30) {
+      // reader_books 添加简介、出版社、ISBN、多作者字段
+      final cols = await db.rawQuery('PRAGMA table_info(reader_books)');
+      if (!cols.any((col) => col['name'] == 'summary')) {
+        await db.execute("ALTER TABLE reader_books ADD COLUMN summary TEXT DEFAULT ''");
+      }
+      if (!cols.any((col) => col['name'] == 'publisher')) {
+        await db.execute("ALTER TABLE reader_books ADD COLUMN publisher TEXT DEFAULT ''");
+      }
+      if (!cols.any((col) => col['name'] == 'isbn')) {
+        await db.execute("ALTER TABLE reader_books ADD COLUMN isbn TEXT DEFAULT ''");
+      }
+      if (!cols.any((col) => col['name'] == 'authors')) {
+        await db.execute("ALTER TABLE reader_books ADD COLUMN authors TEXT DEFAULT ''");
       }
     }
   }
@@ -783,6 +799,7 @@ class DatabaseHelper {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         author TEXT DEFAULT '',
+        authors TEXT DEFAULT '',
         cover_path TEXT,
         file_path TEXT NOT NULL,
         file_name TEXT NOT NULL,
@@ -790,6 +807,9 @@ class DatabaseHelper {
         last_read_cfi TEXT DEFAULT '',
         reading_percentage REAL DEFAULT 0.0,
         book_id TEXT DEFAULT '',
+        summary TEXT DEFAULT '',
+        publisher TEXT DEFAULT '',
+        isbn TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0

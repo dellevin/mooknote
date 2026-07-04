@@ -112,9 +112,17 @@ class FootnotePopupOverlayState extends State<FootnotePopupOverlay>
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Strip HTML tags for simple text display
+    // Strip HTML tags and decode entities for simple text display
     final plainText = widget.rawHtml
         .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAllMapped(RegExp(r'&#(\d+);'), (m) => String.fromCharCode(int.parse(m[1]!)))
+        .replaceAllMapped(RegExp(r'&#x([0-9a-fA-F]+);'), (m) => String.fromCharCode(int.parse(m[1]!, radix: 16)))
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
