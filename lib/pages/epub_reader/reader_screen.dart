@@ -144,6 +144,11 @@ class _ReaderScreenState extends State<ReaderScreen>
   bool styleDrawerOpen = false;
   AppLifecycleState? lastLifecycleState = AppLifecycleState.resumed;
 
+  // 等待分栏布局完成
+  Completer<void>? _pageCountReadyCompleter;
+  @override
+  Completer<void>? get pageCountReadyCompleter => _pageCountReadyCompleter;
+
   // 书签
   final List<Map<String, dynamic>> _bookmarks = [];
 
@@ -531,9 +536,17 @@ class _ReaderScreenState extends State<ReaderScreen>
                         final ratio = widget.initialSpineIndex != null
                             ? null
                             : bookSession.initialScrollPosition;
+                        // 如果有跳转目标，创建 Completer 等待分栏布局完成
+                        if (widget.initialSpineIndex != null && (widget.scrollToXPath != null || widget.scrollToText != null)) {
+                          _pageCountReadyCompleter = Completer<void>();
+                        }
                         await loadCarousel(restoreScrollRatio: ratio);
                       },
                       onPageCountReady: (totalPages) async {
+                        // 通知分栏布局已完成
+                        if (_pageCountReadyCompleter != null && !_pageCountReadyCompleter!.isCompleted) {
+                          _pageCountReadyCompleter!.complete();
+                        }
                         setState(() {
                           totalPagesInChapter = totalPages;
                           if (currentPageInChapter >= totalPagesInChapter) {
@@ -696,6 +709,8 @@ class _ReaderScreenState extends State<ReaderScreen>
                 onCopy: _onCopyButton,
                 onHighlight: _onHighlightButton,
                 onExcerpt: _onExcerptButton,
+                onRemoveHighlight: _existingHighlightId != null && !_existingIsExcerpt ? _onRemoveHighlightButton : null,
+                onRemoveExcerpt: _existingHighlightId != null && _existingIsExcerpt ? _onRemoveExcerptButton : null,
                 onDismiss: _dismissSelectionToolbar,
               ),
             // 选区手柄（起点和终点）

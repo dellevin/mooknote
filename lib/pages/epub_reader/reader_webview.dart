@@ -509,6 +509,8 @@ class _ReaderWebViewState extends State<ReaderWebView> {
         }
 
         /// 计算节点在分栏排版中的页码
+        /// 与 Lumina 的 calculatePageIndexOfAnchor 使用相同算法：
+        /// getBoundingClientRect + scrollOffset，配合 128px column-gap
         function calcPageIndex(doc, node) {
           if (!node) return -1;
           var el = node.nodeType === 3 ? node.parentNode : node;
@@ -516,17 +518,24 @@ class _ReaderWebViewState extends State<ReaderWebView> {
           if (!f) return -1;
           var iframeWidth = f.clientWidth;
           var iframeHeight = f.clientHeight;
-          // 获取元素相对于 iframe 内容的偏移
-          var rect = el.getBoundingClientRect();
-          var scrollLeft = doc.documentElement.scrollLeft || doc.body.scrollLeft || 0;
-          var scrollTop = doc.documentElement.scrollTop || doc.body.scrollTop || 0;
-          // 水平分栏
-          var pageX = iframeWidth > 0 ? Math.floor((rect.left + scrollLeft) / iframeWidth) : 0;
-          // 垂直分栏
-          var pageY = iframeHeight > 0 ? Math.floor((rect.top + scrollTop) / iframeHeight) : 0;
-          // 判断是水平还是垂直分栏：看 scrollWidth 是否大于 clientWidth
-          var hasHorizontalPagination = doc.documentElement.scrollWidth > doc.documentElement.clientWidth + 10;
-          return hasHorizontalPagination ? pageX : pageY;
+          if (iframeWidth <= 0 || iframeHeight <= 0) return -1;
+          var bodyRect = doc.body.getBoundingClientRect();
+          var clientRects = el.getClientRects();
+          var rect = clientRects.length > 0 ? clientRects[0] : el.getBoundingClientRect();
+          if (!rect || rect.width === 0 && rect.height === 0) return -1;
+          // 判断是水平还是垂直分栏（与 Lumina 一致：direction===1 为垂直）
+          var isVertical = doc.body.classList.contains('lumina-is-vertical');
+          var page;
+          if (isVertical) {
+            var offsetY = rect.top + doc.body.scrollTop - bodyRect.top + rect.height / 5 + 1;
+            page = Math.floor((offsetY + 128) / (iframeHeight + 128));
+            console.log('[MN] calcPage V: rect.top=' + rect.top + ' scrollTop=' + doc.body.scrollTop + ' bodyRect.top=' + bodyRect.top + ' offsetY=' + offsetY + ' iframeH=' + iframeHeight + ' page=' + page);
+          } else {
+            var offsetX = rect.left + doc.body.scrollLeft - bodyRect.left + rect.width / 5 + 1;
+            page = Math.floor((offsetX + 128) / (iframeWidth + 128));
+            console.log('[MN] calcPage H: rect.left=' + rect.left + ' scrollLeft=' + doc.body.scrollLeft + ' bodyRect.left=' + bodyRect.left + ' offsetX=' + offsetX + ' iframeW=' + iframeWidth + ' page=' + page);
+          }
+          return page;
         }
 
         /// 文本搜索回退：遍历所有文本节点，拼接后搜索目标文本，定位并高亮
@@ -606,9 +615,9 @@ class _ReaderWebViewState extends State<ReaderWebView> {
             var mark = doc.createElement('mooknote-mark');
             mark.setAttribute('data-hl-id', id);
             mark.setAttribute('data-hl-type', markType);
-            mark.style.backgroundColor = bg;
-            mark.style.color = 'inherit';
-            mark.style.borderRadius = '2px';
+            mark.style.setProperty('background-color', bg, 'important');
+            mark.style.setProperty('color', 'inherit', 'important');
+            mark.style.setProperty('border-radius', '2px', 'important');
             try {
               range.surroundContents(mark);
               return true;
@@ -631,9 +640,9 @@ class _ReaderWebViewState extends State<ReaderWebView> {
             var mk = doc.createElement('mooknote-mark');
             mk.setAttribute('data-hl-id', id);
             mk.setAttribute('data-hl-type', markType);
-            mk.style.backgroundColor = bg;
-            mk.style.color = 'inherit';
-            mk.style.borderRadius = '2px';
+            mk.style.setProperty('background-color', bg, 'important');
+            mk.style.setProperty('color', 'inherit', 'important');
+            mk.style.setProperty('border-radius', '2px', 'important');
 
             wrapNode.parentNode.insertBefore(mk, wrapNode);
             mk.appendChild(wrapNode);
@@ -724,13 +733,17 @@ class _ReaderWebViewState extends State<ReaderWebView> {
           removeHighlight: function(id) {
             var doc = getFrameDoc();
             if (!doc) return;
-            var mark = doc.querySelector('[data-hl-id="' + id + '"]');
-            if (mark && mark.tagName === 'MOOKNOTE-MARK') {
-              var parent = mark.parentNode;
-              while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-              parent.removeChild(mark);
-              parent.normalize();
+            var marks = doc.querySelectorAll('[data-hl-id="' + id + '"]');
+            for (var i = 0; i < marks.length; i++) {
+              var mark = marks[i];
+              if (mark.tagName === 'MOOKNOTE-MARK') {
+                var parent = mark.parentNode;
+                while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                parent.removeChild(mark);
+              }
             }
+            // 合并相邻文本节点
+            if (doc.body) doc.body.normalize();
           },
 
           clearAllHighlights: function() {

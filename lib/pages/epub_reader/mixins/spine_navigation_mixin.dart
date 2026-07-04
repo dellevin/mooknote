@@ -178,6 +178,9 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
       currentPageInChapter: currentPageInChapter,
       totalPagesInChapter: totalPagesInChapter,
     );
+
+    // 恢复新章节的高亮
+    await restoreHighlightsForCurrentSpine();
   }
 
   Future<void> previousSpineItemFirstPage() async {
@@ -200,6 +203,9 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
       currentPageInChapter: currentPageInChapter,
       totalPagesInChapter: totalPagesInChapter,
     );
+
+    // 恢复新章节的高亮
+    await restoreHighlightsForCurrentSpine();
   }
 
   Future<void> nextSpineItem() async {
@@ -222,6 +228,9 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
       currentPageInChapter: currentPageInChapter,
       totalPagesInChapter: totalPagesInChapter,
     );
+
+    // 恢复新章节的高亮
+    await restoreHighlightsForCurrentSpine();
   }
 
   Future<void> navigateToTocItem(TocEntry item) async {

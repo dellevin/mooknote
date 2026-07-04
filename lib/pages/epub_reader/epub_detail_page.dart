@@ -801,7 +801,11 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EpubHighlightsPage(bookId: widget.bookId, book: _book),
+        builder: (_) => EpubHighlightsPage(
+          bookId: widget.bookId,
+          book: _book,
+          onNavigateToHighlight: _navigateToHighlight,
+        ),
       ),
     ).then((_) => _refreshBook());
   }

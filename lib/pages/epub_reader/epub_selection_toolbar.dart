@@ -15,6 +15,12 @@ class EpubSelectionToolbar extends StatelessWidget {
   /// 点击摘抄到笔记的回调
   final VoidCallback onExcerpt;
 
+  /// 点击取消高亮按钮的回调
+  final VoidCallback? onRemoveHighlight;
+
+  /// 点击取消摘抄按钮的回调
+  final VoidCallback? onRemoveExcerpt;
+
   /// 点击外部区域关闭
   final VoidCallback onDismiss;
 
@@ -24,6 +30,8 @@ class EpubSelectionToolbar extends StatelessWidget {
     required this.onCopy,
     required this.onHighlight,
     required this.onExcerpt,
+    this.onRemoveHighlight,
+    this.onRemoveExcerpt,
     required this.onDismiss,
   });
 
@@ -44,7 +52,10 @@ class EpubSelectionToolbar extends StatelessWidget {
         : selectionBottom + margin;
 
     // 水平居中于选区，但不超出屏幕
-    const toolbarWidth = 220.0;
+    final showRemoveHL = onRemoveHighlight != null;
+    final showRemoveExcerpt = onRemoveExcerpt != null;
+    final buttonCount = 2 + (showRemoveHL || !showRemoveExcerpt ? 1 : 0) + (showRemoveExcerpt ? 1 : 0);
+    final toolbarWidth = buttonCount * 72.0;
     double left = selectionRect.center.dx - toolbarWidth / 2;
     left = left.clamp(12.0, mediaQuery.size.width - toolbarWidth - 12.0);
 
@@ -73,27 +84,45 @@ class EpubSelectionToolbar extends StatelessWidget {
                 children: [
                   _buildButton(
                     context,
-                    icon: Icons.highlight_outlined,
-                    label: '高亮',
-                    onTap: onHighlight,
-                    color: colors.primary,
-                  ),
-                  _divider(colors),
-                  _buildButton(
-                    context,
                     icon: Icons.copy_outlined,
                     label: '复制',
                     onTap: onCopy,
                     color: colors.primary,
                   ),
                   _divider(colors),
-                  _buildButton(
-                    context,
-                    icon: Icons.edit_note_outlined,
-                    label: '摘抄',
-                    onTap: onExcerpt,
-                    color: colors.primary,
-                  ),
+                  if (showRemoveHL)
+                    _buildButton(
+                      context,
+                      icon: Icons.highlight_off_outlined,
+                      label: '取消高亮',
+                      onTap: onRemoveHighlight!,
+                      color: colors.error,
+                    )
+                  else
+                    _buildButton(
+                      context,
+                      icon: Icons.highlight_outlined,
+                      label: '高亮',
+                      onTap: onHighlight,
+                      color: colors.primary,
+                    ),
+                  _divider(colors),
+                  if (showRemoveExcerpt)
+                    _buildButton(
+                      context,
+                      icon: Icons.edit_off_outlined,
+                      label: '取消摘抄',
+                      onTap: onRemoveExcerpt!,
+                      color: colors.error,
+                    )
+                  else
+                    _buildButton(
+                      context,
+                      icon: Icons.edit_note_outlined,
+                      label: '摘抄',
+                      onTap: onExcerpt,
+                      color: colors.primary,
+                    ),
                 ],
               ),
             ),

@@ -12,6 +12,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
   BookSession get bookSession;
   ReaderRendererController get rendererController;
   int get currentSpineItemIndex;
+  Completer<void>? get pageCountReadyCompleter;
 
   // ─── 选中工具条状态 ──────────────────────────────────────────────
   String? _selectionText;
@@ -22,6 +23,10 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
   Map<String, dynamic>? _selectionInfo;
   String? _pendingScrollXPath;
   String? _pendingScrollText;
+
+  // 已有高亮/摘抄信息（选中文字时检测）
+  int? _existingHighlightId;
+  bool _existingIsExcerpt = false;
 
   bool get isSelectionToolbarVisible =>
       _selectionText != null && _selectionRect != null;
@@ -43,6 +48,8 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
       _dismissSelectionToolbar();
       return;
     }
+    // 检测选中文本是否已有高亮/摘抄
+    _detectExistingHighlight(selectedText, currentSpineItemIndex);
     setState(() {
       _selectionText = selectedText;
       _selectionRect = rect;
@@ -51,6 +58,22 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
       _endHandle = endHandle;
       _selectionInfo = selectionInfo;
     });
+  }
+
+  /// 检测选中文本是否已有高亮或摘抄
+  Future<void> _detectExistingHighlight(String text, int spineIndex) async {
+    final existing = await _readerDao.getHighlightsByBookId(widget.bookId);
+    final match = existing.where((h) =>
+        h['chapter'] == spineIndex.toString() &&
+        h['content'] == text).toList();
+    if (match.isEmpty) {
+      _existingHighlightId = null;
+      _existingIsExcerpt = false;
+    } else {
+      final h = match.first;
+      _existingHighlightId = h['id'] as int?;
+      _existingIsExcerpt = h['color'] == 'excerpt';
+    }
   }
 
   /// 关闭工具条并清除 WebView 选区
@@ -64,6 +87,8 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
       _startHandle = null;
       _endHandle = null;
       _selectionInfo = null;
+      _existingHighlightId = null;
+      _existingIsExcerpt = false;
     });
   }
 
@@ -236,6 +261,60 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     _dismissSelectionToolbar();
   }
 
+  // ─── 取消高亮/摘抄 ─────────────────────────────────────────────
+
+  /// 取消高亮：删除 DB 记录 + 移除 DOM 标注 → 关闭工具条
+  Future<void> _onRemoveHighlightButton() async {
+    final id = _existingHighlightId;
+    if (id == null) return;
+    final controller = _webViewControllerMixin;
+    await _readerDao.deleteHighlight(id);
+    if (controller != null) {
+      // 先清除浏览器选区，防止活跃选区干扰 DOM 操作
+      await controller.clearSelection();
+      await Future.delayed(const Duration(milliseconds: 50));
+      await controller.removeHighlight(id.toString());
+    }
+    if (!mounted) return;
+    ToastUtil.show(context, '已取消高亮');
+    _dismissSelectionToolbar();
+  }
+
+  /// 取消摘抄：删除 book_excerpts 记录 + 删除蓝色标注 → 关闭工具条
+  Future<void> _onRemoveExcerptButton() async {
+    final text = _selectionText;
+    final id = _existingHighlightId;
+    if (text == null || id == null) return;
+
+    final linkedBookId = bookSession.book['book_id'] as String? ?? '';
+
+    // 1. 删除 book_excerpts 中的摘抄记录
+    if (linkedBookId.isNotEmpty) {
+      final db = await DatabaseHelper.instance.database;
+      await db.delete(
+        'book_excerpts',
+        where: 'book_id = ? AND content = ?',
+        whereArgs: [linkedBookId, text],
+      );
+    }
+
+    // 2. 删除 book_annotations 中的蓝色标注
+    await _readerDao.deleteHighlight(id);
+
+    // 3. 移除 DOM 中的高亮标记
+    final controller = _webViewControllerMixin;
+    if (controller != null) {
+      // 先清除浏览器选区，防止活跃选区干扰 DOM 操作
+      await controller.clearSelection();
+      await Future.delayed(const Duration(milliseconds: 50));
+      await controller.removeHighlight(id.toString());
+    }
+
+    if (!mounted) return;
+    ToastUtil.show(context, '已取消摘抄');
+    _dismissSelectionToolbar();
+  }
+
   // ─── 高亮恢复 ───────────────────────────────────────────────────
 
   /// spine 加载完成后调用：先跳转到高亮位置，再恢复高亮
@@ -250,14 +329,24 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
       final text = _pendingScrollText ?? '';
       _pendingScrollXPath = null;
       _pendingScrollText = null;
-      await Future.delayed(const Duration(milliseconds: 300));
-      var pageIndex = await controller.getPageIndexForXPath(xpath);
-      debugPrint('[MN] scrollToXPath: $xpath → page $pageIndex');
-      // XPath 找不到时用文本搜索回退
-      if (pageIndex < 0 && text.isNotEmpty) {
-        debugPrint('[MN] XPath failed, trying text search...');
+
+      // 等待分栏布局完成（onPageCountReady 触发后）
+      final completer = pageCountReadyCompleter;
+      if (completer != null && !completer.isCompleted) {
+        await completer.future.timeout(const Duration(seconds: 5), onTimeout: () {});
+      }
+      // 分栏完成后额外等待一帧确保布局稳定
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // 用文本搜索定位（比 XPath 更可靠）
+      int pageIndex = -1;
+      if (text.isNotEmpty) {
         pageIndex = await controller.getPageIndexForText(text);
-        debugPrint('[MN] text search → page $pageIndex');
+        debugPrint('[MN] scrollToText: page $pageIndex');
+      }
+      if (pageIndex < 0 && xpath.isNotEmpty) {
+        pageIndex = await controller.getPageIndexForXPath(xpath);
+        debugPrint('[MN] scrollToXPath: $xpath → page $pageIndex');
       }
       if (pageIndex >= 0) {
         await controller.jumpToPage(pageIndex);

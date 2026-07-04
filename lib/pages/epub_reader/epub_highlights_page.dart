@@ -1,19 +1,23 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../utils/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import 'highlight_detail_sheet.dart';
+import 'reader_screen.dart';
 
 /// EPUB 句读（高亮）管理页面 —— 支持瀑布流/列表模式切换
 class EpubHighlightsPage extends StatefulWidget {
   final String bookId;
   final Map<String, dynamic> book;
+  final void Function(Map<String, dynamic> highlight)? onNavigateToHighlight;
 
   const EpubHighlightsPage({
     super.key,
     required this.bookId,
     required this.book,
+    this.onNavigateToHighlight,
   });
 
   @override
@@ -245,7 +249,46 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
       highlight: highlight,
       book: widget.book,
       onDelete: () => _deleteHighlight(highlight['id'] as int),
+      onNavigate: () => _navigateToHighlight(highlight),
     );
+  }
+
+  void _navigateToHighlight(Map<String, dynamic> highlight) {
+    final chapter = int.tryParse(highlight['chapter'] as String? ?? '') ?? 0;
+    final xpath = _extractStartXPath(highlight['cfi'] as String? ?? '');
+    final text = highlight['content'] as String? ?? '';
+
+    if (widget.onNavigateToHighlight != null) {
+      widget.onNavigateToHighlight!(highlight);
+      return;
+    }
+
+    // 默认行为：先关闭当前页面，再打开阅读器跳转
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReaderScreen(
+          bookId: widget.book['id'] as String,
+          filePath: widget.book['file_path'] as String,
+          title: widget.book['title'] as String? ?? '',
+          bookData: widget.book,
+          initialSpineIndex: chapter,
+          scrollToXPath: xpath,
+          scrollToText: text,
+        ),
+      ),
+    );
+  }
+
+  String? _extractStartXPath(String cfi) {
+    if (cfi.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(cfi) as Map<String, dynamic>;
+      return decoded['startXPath'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 
   String _formatDate(String isoString) {
