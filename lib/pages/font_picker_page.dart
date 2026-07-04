@@ -5,10 +5,11 @@ import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import '../utils/font_download_manager.dart';
 import '../utils/toast_util.dart';
+import '../utils/user_prefs.dart';
 
 /// 字体选择页面
 ///
-/// 用户输入或选择字体目录，遍历目录下的字体文件，点击即可加载使用。
+/// 用户选择字体目录，遍历目录下的字体文件，点击即可加载使用。
 class FontPickerPage extends StatefulWidget {
   final String? initialFamily;
   const FontPickerPage({super.key, this.initialFamily});
@@ -18,27 +19,24 @@ class FontPickerPage extends StatefulWidget {
 }
 
 class _FontPickerPageState extends State<FontPickerPage> {
-  final TextEditingController _pathController = TextEditingController();
   final FontDownloadManager _fontManager = FontDownloadManager();
 
   List<FontFileInfo> _fonts = [];
   String? _loadingPath;
   String? _selectedFamily;
   bool _isScanning = false;
+  String? _currentDirPath;
 
   @override
   void initState() {
     super.initState();
     _selectedFamily = widget.initialFamily;
-    // 默认填入内置字体目录
-    _pathController.text = '/sdcard/Documents/mooknote/fonts';
-    _checkPermissionAndScan();
-  }
-
-  @override
-  void dispose() {
-    _pathController.dispose();
-    super.dispose();
+    // 恢复上次选择的目录
+    final savedDir = UserPrefs().lastFontDir;
+    if (savedDir != null && savedDir.isNotEmpty) {
+      _currentDirPath = savedDir;
+      _scanDirectory(savedDir);
+    }
   }
 
   /// 请求存储权限（Android 11+ 需要 MANAGE_EXTERNAL_STORAGE）
@@ -56,18 +54,6 @@ class _FontPickerPageState extends State<FontPickerPage> {
 
     status = await Permission.storage.request();
     return status.isGranted;
-  }
-
-  /// 检查权限并扫描
-  Future<void> _checkPermissionAndScan() async {
-    final hasPermission = await _requestStoragePermission();
-    if (!hasPermission) {
-      if (mounted) {
-        _showPermissionDialog();
-      }
-      return;
-    }
-    await _scanDirectory();
   }
 
   /// 显示权限提示弹窗
@@ -103,12 +89,8 @@ class _FontPickerPageState extends State<FontPickerPage> {
   }
 
   /// 扫描目录字体
-  Future<void> _scanDirectory() async {
-    final dirPath = _pathController.text.trim();
-    if (dirPath.isEmpty) {
-      if (mounted) ToastUtil.show(context, '请输入目录路径');
-      return;
-    }
+  Future<void> _scanDirectory(String dirPath) async {
+    if (dirPath.isEmpty) return;
 
     setState(() => _isScanning = true);
     try {
@@ -130,18 +112,30 @@ class _FontPickerPageState extends State<FontPickerPage> {
     }
   }
 
-  /// 使用 file_picker 选择目录
-  Future<void> _pickDirectory() async {
+  /// 扫描当前目录字体
+  Future<void> _rescanDirectory() async {
+    if (_currentDirPath == null || _currentDirPath!.isEmpty) {
+      ToastUtil.show(context, '请先选择字体目录');
+      return;
+    }
+    await _scanDirectory(_currentDirPath!);
+  }
+
+  /// 点击选择目录按钮
+  Future<void> _onSelectDirectory() async {
     final hasPermission = await _requestStoragePermission();
     if (!hasPermission) {
       if (mounted) _showPermissionDialog();
       return;
     }
+
     try {
       final result = await FilePicker.platform.getDirectoryPath();
       if (result != null && result.isNotEmpty) {
-        _pathController.text = result;
-        await _scanDirectory();
+        _currentDirPath = result;
+        // 保存到 SharedPreferences
+        await UserPrefs().setLastFontDir(result);
+        await _scanDirectory(result);
       }
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择目录失败: $e');
@@ -195,7 +189,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
       ),
       body: Column(
         children: [
-          // 路径输入区
+          // 选择目录按钮区
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             decoration: BoxDecoration(
@@ -219,40 +213,49 @@ class _FontPickerPageState extends State<FontPickerPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _pathController,
-                        style: TextStyle(fontSize: 13, color: colors.onSurface),
-                        decoration: InputDecoration(
-                          hintText: '输入字体目录路径',
-                          hintStyle: TextStyle(
-                            fontSize: 13,
-                            color: colors.onSurface.withValues(alpha: 0.3),
-                          ),
-                          filled: true,
-                          fillColor: colors.surfaceContainerHighest,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
+                      child: InkWell(
+                        onTap: _onSelectDirectory,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
                           ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              Icons.folder_open_outlined,
-                              size: 18,
-                              color: colors.onSurface.withValues(alpha: 0.5),
-                            ),
-                            onPressed: _pickDirectory,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.folder_open_outlined,
+                                size: 18,
+                                color: colors.onSurface.withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _currentDirPath ?? '点击选择字体目录',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: _currentDirPath != null
+                                        ? colors.onSurface
+                                        : colors.onSurface.withValues(alpha: 0.3),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: colors.onSurface.withValues(alpha: 0.3),
+                              ),
+                            ],
                           ),
                         ),
-                        onSubmitted: (_) => _scanDirectory(),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: _scanDirectory,
+                      onPressed: _rescanDirectory,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
                         foregroundColor: colors.onPrimary,

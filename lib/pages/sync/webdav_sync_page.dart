@@ -112,6 +112,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           path: path,
         );
         setState(() => _isConfigured = true);
+        // 保存成功后立即加载远程备份信息
+        _loadRemoteInfo();
         ToastUtil.show(context, result['message'] ?? '连接成功，配置已保存');
       } else {
         ToastUtil.show(context, result['message'] ?? '连接失败，请检查配置');

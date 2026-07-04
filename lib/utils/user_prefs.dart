@@ -267,4 +267,10 @@ class UserPrefs {
   /// EPUB 句读列表视图模式: 0=瀑布流, 1=列表
   int get highlightsViewMode => prefs.getInt('highlightsViewMode') ?? 0;
   Future<bool> setHighlightsViewMode(int value) => prefs.setInt('highlightsViewMode', value);
+
+  // ========== 字体选择器 ==========
+
+  /// 字体选择器上次使用的目录路径
+  String? get lastFontDir => prefs.getString('lastFontDir');
+  Future<bool> setLastFontDir(String value) => prefs.setString('lastFontDir', value);
 }
