@@ -270,13 +270,25 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除句读', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        content: Text('确定删除这条句读？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定删除这条句读？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
             onPressed: () { Navigator.pop(ctx); _deleteHighlight(id); },
-            child: Text('删除', style: TextStyle(color: colors.error)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: const Text('删除'),
           ),
         ],
       ),

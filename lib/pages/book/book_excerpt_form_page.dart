@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import 'book_excerpt_share_page.dart';
 import 'package:uuid/uuid.dart';
 
 /// 摘抄表单页面 - 新增/编辑摘抄
@@ -52,19 +53,9 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
   }
 
   void _loadBookTitle() {
-    setState(() {
-      _bookTitle = _resolveBookTitle(widget.bookId);
-    });
-  }
-
-  String _resolveBookTitle(String bookId) {
-    try {
-      final provider = AppProvider();
-      for (final b in provider.books) {
-        if (b.id == bookId) return b.title;
-      }
-    } catch (_) {}
-    return '';
+    final provider = context.read<AppProvider>();
+    final book = provider.books.where((b) => b.id == widget.bookId).firstOrNull;
+    if (book != null) setState(() => _bookTitle = book.title);
   }
 
   @override
@@ -88,11 +79,18 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
               padding: EdgeInsets.all(14),
               child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
             )
-          else
+          else ...[
+            if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.ios_share),
+                tooltip: '分享',
+                onPressed: _shareExcerpt,
+              ),
             TextButton(
               onPressed: _saveExcerpt,
               child: Text('保存', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
             ),
+          ],
           const SizedBox(width: 4),
         ],
       ),
@@ -300,5 +298,15 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _shareExcerpt() {
+    if (widget.excerpt == null) return;
+    final provider = context.read<AppProvider>();
+    final book = provider.books.where((b) => b.id == widget.bookId).firstOrNull;
+    if (book == null) return;
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => BookExcerptSharePage(excerpt: widget.excerpt!, book: book),
+    ));
   }
 }

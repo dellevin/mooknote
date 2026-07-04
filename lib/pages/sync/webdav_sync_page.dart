@@ -588,7 +588,12 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
               Text('云端备份', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
               const Spacer(),
               if (_isLoadingRemoteInfo)
-                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
+                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+              else
+                GestureDetector(
+                  onTap: _loadRemoteInfo,
+                  child: Icon(Icons.refresh, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
+                ),
             ],
           ),
           const SizedBox(height: 12),

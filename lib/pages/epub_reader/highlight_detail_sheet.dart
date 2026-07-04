@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../utils/toast_util.dart';
+import 'highlight_share_page.dart';
 
 /// 句读详情弹窗 —— 类似分享卡片的样式
 /// 从 epub_detail_page 和 epub_highlights_page 共用
@@ -50,7 +51,7 @@ void showHighlightDetailSheet(
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -128,13 +129,30 @@ void showHighlightDetailSheet(
                         ),
                       ],
                     ),
-                  const SizedBox(height: 24),
-                  // 分隔线
-                  Container(height: 0.5, color: colors.outlineVariant),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   // 操作按钮
                   Row(
                     children: [
+                      _buildActionButton(
+                        colors,
+                        icon: Icons.ios_share_outlined,
+                        label: '分享',
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          String chapterLabel = '';
+                          if (chapterNum != null) chapterLabel = '第${chapterNum + 1}章';
+                          String dateLabel = '';
+                          if (createdAt.isNotEmpty) dateLabel = _formatDate(createdAt);
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => HighlightSharePage(
+                              content: content,
+                              bookTitle: bookTitle,
+                              chapter: chapterLabel,
+                              dateStr: dateLabel,
+                            ),
+                          ));
+                        },
+                      ),
                       _buildActionButton(
                         colors,
                         icon: Icons.content_copy_outlined,
@@ -264,7 +282,7 @@ void showExcerptDetailSheet(
             ),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -330,24 +348,22 @@ void showExcerptDetailSheet(
                     // 感悟
                     if (comment.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border(
-                            left: BorderSide(color: colors.primary.withValues(alpha: 0.4), width: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.chat_bubble_outline, size: 14, color: colors.primary.withValues(alpha: 0.5)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              comment,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: colors.onSurface.withValues(alpha: 0.5),
+                                height: 1.6,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          comment,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: colors.onSurface.withValues(alpha: 0.6),
-                            height: 1.6,
-                          ),
-                        ),
+                        ],
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -362,13 +378,26 @@ void showExcerptDetailSheet(
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    // 分隔线
-                    Container(height: 0.5, color: colors.outlineVariant),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     // 操作按钮
                     Row(
                       children: [
+                        _buildActionButton(
+                          colors,
+                          icon: Icons.ios_share_outlined,
+                          label: '分享',
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => HighlightSharePage(
+                                content: content,
+                                bookTitle: bookTitle,
+                                chapter: chapter,
+                                dateStr: _formatDateFromDateTime(createdAt),
+                              ),
+                            ));
+                          },
+                        ),
                         _buildActionButton(
                           colors,
                           icon: Icons.content_copy_outlined,

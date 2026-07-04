@@ -456,9 +456,9 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
             Row(
               children: [
                 Icon(Icons.menu_book_outlined, size: 14, color: colors.primary.withValues(alpha: 0.6)),
-                const SizedBox(width: 6),
+                const Spacer(),
                 if (excerpt.chapter.isNotEmpty)
-                  Expanded(
+                  Flexible(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -469,7 +469,6 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                         excerpt.chapter,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
                         style: TextStyle(fontSize: 9, color: colors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
                       ),
                     ),
