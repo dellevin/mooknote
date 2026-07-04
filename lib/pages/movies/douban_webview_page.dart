@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 /// 豆瓣影视WebView页面 - 用于抓取影视信息
 class DoubanWebViewPage extends StatefulWidget {
@@ -13,46 +13,9 @@ class DoubanWebViewPage extends StatefulWidget {
 }
 
 class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
-  late WebViewController _controller;
+  InAppWebViewController? _controller;
   bool _isLoading = true;
   bool _isExtracting = false; // 防止重复提取
-
-  @override
-  void initState() {
-    super.initState();
-    _initWebView();
-  }
-
-  @override
-  void dispose() {
-    // 清理 WebView 资源
-    _controller.loadRequest(Uri.parse('about:blank'));
-    super.dispose();
-  }
-
-  void _initWebView() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            if (mounted) {
-              setState(() {
-                _isLoading = true;
-              });
-            }
-          },
-          onPageFinished: (String url) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +37,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
           _buildActionButton(
             colors: colors,
             icon: Icons.refresh,
-            onPressed: () => _controller.reload(),
+            onPressed: () => _controller?.reload(),
             tooltip: '刷新',
           ),
           const SizedBox(width: 8),
@@ -82,7 +45,29 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
       ),
       body: Stack(
         children: [
-          WebViewWidget(controller: _controller),
+          InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+            ),
+            onWebViewCreated: (controller) {
+              _controller = controller;
+            },
+            onLoadStart: (_, __) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = true;
+                });
+              }
+            },
+            onLoadStop: (_, __) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            },
+          ),
           // 加载指示器
           if (_isLoading) const Center(
             child: CircularProgressIndicator(),
@@ -105,7 +90,8 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
         child: InkWell(
           onTap: () {
             // 停止加载并返回
-            _controller.loadRequest(Uri.parse('about:blank'));
+            _controller?.loadUrl(
+                urlRequest: URLRequest(url: WebUri('about:blank')));
             Navigator.pop(context);
           },
           borderRadius: BorderRadius.circular(8),
@@ -250,7 +236,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
   /// 提取影视信息
   Future<Map<String, dynamic>?> _extractMovieInfo() async {
     // 检查是否已提取过，避免重复点击
-    if (_isExtracting) return null;
+    if (_isExtracting || _controller == null) return null;
 
     try {
       _isExtracting = true;
@@ -265,7 +251,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
       );
 
       // 执行JavaScript代码提取页面信息
-      final result = await _controller.runJavaScriptReturningResult(r'''
+      final result = await _controller!.evaluateJavascript(source: r'''
         (function() {
           const info = {};
 
@@ -384,9 +370,11 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
       if (mounted) Navigator.pop(context);
 
       // 解析提取的信息
-      // result 是 JavaScript 执行结果，已经是 JSON 字符串（带引号的）
-      final String jsonStr = result.toString();
-      // 去除 Dart 字符串转义后外层可能多余的引号
+      // evaluateJavascript 返回 JS 值，JSON.stringify 的结果是字符串
+      final String jsonStr = result?.toString() ?? '';
+      if (jsonStr.isEmpty) return null;
+
+      // result 是 JSON.stringify 的输出，可能带外层引号
       final String cleanJson = jsonStr.startsWith('"') && jsonStr.endsWith('"')
           ? jsonDecode(jsonStr) as String
           : jsonStr;

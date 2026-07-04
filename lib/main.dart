@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -18,7 +17,6 @@ import 'utils/changelog_service.dart';
 import 'utils/sync/auto_backup_service.dart';
 import 'utils/usage_stats_service.dart';
 import 'providers/app_provider.dart';
-import 'providers/note_plus_provider.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -252,7 +250,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: widget.appProvider),
-        ChangeNotifierProvider(create: (_) => NotePlusProvider()),
       ],
       child: DynamicColorBuilder(
         builder: (lightScheme, darkScheme) {
@@ -305,7 +302,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,
-                  quill.FlutterQuillLocalizations.delegate,
                 ],
                 supportedLocales: const [
                   Locale('zh', 'CN'),

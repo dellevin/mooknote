@@ -1,7 +1,6 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
-import '../models/note_plus_models.dart';
 import '../utils/movie/movie_dao.dart';
 import '../utils/book/book_dao.dart';
 import '../utils/note/note_dao.dart';
@@ -9,7 +8,6 @@ import '../utils/movie/movie_review_dao.dart';
 import '../utils/movie/movie_poster_dao.dart';
 import '../utils/book/book_review_dao.dart';
 import '../utils/book/book_excerpt_dao.dart';
-import '../utils/note_plus/note_plus_dao.dart';
 import '../utils/tag/tag_dao.dart';
 import '../utils/database_helper.dart';
 import '../utils/image_path_helper.dart';
@@ -27,7 +25,6 @@ class AppProvider extends ChangeNotifier {
   final MoviePosterDao _posterDao = MoviePosterDao();
   final BookReviewDao _bookReviewDao = BookReviewDao();
   final BookExcerptDao _bookExcerptDao = BookExcerptDao();
-  final NotePlusDao _notePlusDao = NotePlusDao();
   final TagDao _tagDao = TagDao();
   // 数据列表
   List<Movie> _movies = [];
@@ -560,7 +557,6 @@ class AppProvider extends ChangeNotifier {
     final deletedMovieReviews = await getDeletedMovieReviews();
     final deletedBookReviews = await getDeletedBookReviews();
     final deletedBookExcerpts = await getDeletedBookExcerpts();
-    final deletedNotePlusDocs = await _notePlusDao.getDeleted();
 
     for (final movie in deletedMovies) {
       await permanentDeleteMovie(movie.id);
@@ -579,9 +575,6 @@ class AppProvider extends ChangeNotifier {
     }
     for (final excerpt in deletedBookExcerpts) {
       await _bookExcerptDao.permanentDeleteExcerpt(excerpt.id);
-    }
-    for (final doc in deletedNotePlusDocs) {
-      await _notePlusDao.permanentDelete(doc.id);
     }
 
     await loadMovies();
@@ -629,19 +622,6 @@ class AppProvider extends ChangeNotifier {
     await _bookExcerptDao.permanentDeleteExcerpt(id);
   }
 
-  // ========== Note Plus 回收站 ==========
-
-  Future<List<NotePlusDocument>> getDeletedNotePlusDocs() async {
-    return await _notePlusDao.getDeleted();
-  }
-
-  Future<void> restoreNotePlusDoc(String id) async {
-    await _notePlusDao.restore(id);
-  }
-
-  Future<void> permanentDeleteNotePlusDoc(String id) async {
-    await _notePlusDao.permanentDelete(id);
-  }
 
   // ========== 标签管理方法 ==========
 

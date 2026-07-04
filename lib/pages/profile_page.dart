@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../main.dart' show routeObserver;
@@ -2321,7 +2320,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
-  bool _showNotePlusTab = false;
   int _defaultTabIndex = 0;
 
   // 侧边栏
@@ -2346,7 +2344,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showMovieTab = _userPrefs.showMovieTab;
       _showBookTab = _userPrefs.showBookTab;
       _showNoteTab = _userPrefs.showNoteTab;
-      _showNotePlusTab = _userPrefs.showNotePlusTab;
       _defaultTabIndex = _userPrefs.defaultMainTabIndex;
       _showHeatmap = _userPrefs.showSidebarHeatmap;
       _showRecent = _userPrefs.showSidebarRecent;
@@ -2428,10 +2425,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     });
   }
 
-  Future<void> _toggleNotePlusTab(bool value) async {
-    await _userPrefs.setShowNotePlusTab(value);
-    setState(() => _showNotePlusTab = value);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -2473,9 +2466,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.edit_note, 'Note Plus', '块编辑器，支持富文本文档',
-              _showNotePlusTab, _toggleNotePlusTab),
-
           // ── 侧边栏：信息模块 ──
           _buildSectionHeader('侧边栏 · 信息模块'),
           _buildSwitchItem(
@@ -2998,53 +2988,6 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           );
         }).toList(),
       ),
-    );
-  }
-}
-
-/// WebView 页面
-class WebViewPage extends StatefulWidget {
-  final String url;
-  const WebViewPage({super.key, required this.url});
-
-  @override
-  State<WebViewPage> createState() => _WebViewPageState();
-}
-
-class _WebViewPageState extends State<WebViewPage> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageStarted: (_) => setState(() => _isLoading = true),
-        onPageFinished: (_) => setState(() => _isLoading = false),
-        onWebResourceError: (_) => setState(() => _isLoading = false),
-      ))
-      ..loadRequest(Uri.parse(widget.url));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text(''), actions: [
-        IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.reload())
-      ]),
-      body: Stack(children: [
-        WebViewWidget(controller: _controller),
-        if (_isLoading)
-          Center(
-              child: CircularProgressIndicator(
-                  color: colors.onSurface.withValues(alpha: 0.4)))
-      ]),
     );
   }
 }

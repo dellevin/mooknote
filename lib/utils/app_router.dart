@@ -10,8 +10,6 @@ import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
 import '../pages/note/note_detail_page.dart';
 import '../pages/movies/douban_webview_page.dart';
-import '../pages/note_plus/note_plus_form_page.dart';
-import '../pages/note_plus/note_plus_detail_page.dart';
 
 /// 路由生成器
 class AppRouter {
@@ -72,20 +70,6 @@ class AppRouter {
           return null;
         }
         return SlideUpPageRoute(page: DoubanWebViewPage(url: url));
-
-      case '/note-plus-form':
-        final id = settings.arguments is String ? settings.arguments as String : null;
-        if (id == null) {
-          return _buildUnknownRoute(settings.name);
-        }
-        return SlideUpPageRoute(page: NotePlusFormPage(documentId: id));
-
-      case '/note-plus-detail':
-        final id = settings.arguments is String ? settings.arguments as String : null;
-        if (id == null) {
-          return _buildUnknownRoute(settings.name);
-        }
-        return SlideUpPageRoute(page: NotePlusDetailPage(documentId: id));
 
       default:
         return _buildUnknownRoute(settings.name);

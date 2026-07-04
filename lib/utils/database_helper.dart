@@ -72,7 +72,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 27,
+      version: 28,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -174,10 +174,10 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE tags ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0');
     }
     if (oldVersion < 18) {
-      await _createNotePlusTable(db);
+      // note_plus table creation removed (feature dropped in v28)
     }
     if (oldVersion < 19) {
-      await _createNotePlusTable(db);
+      // note_plus table creation removed (feature dropped in v28)
     }
     if (oldVersion < 20) {
       // 确保 note_plus 表有 parent_id 列（从旧版 folder 迁移）
@@ -250,6 +250,10 @@ class DatabaseHelper {
     }
     if (oldVersion < 27) {
       await _upgradeBooksTableV27(db);
+    }
+    if (oldVersion < 28) {
+      // 移除 Note Plus 功能，删除 note_plus 表
+      await db.execute('DROP TABLE IF EXISTS note_plus');
     }
   }
 
@@ -765,9 +769,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Note Plus 块编辑器文档表
-    await _createNotePlusTable(db);
-
     // EPUB 阅读器书籍表
     await db.execute('''
       CREATE TABLE IF NOT EXISTS reader_books (
@@ -800,24 +801,6 @@ class DatabaseHelper {
         reader_note TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
-      )
-    ''');
-  }
-
-  /// 创建 Note Plus 文档表
-  Future<void> _createNotePlusTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS note_plus (
-        id TEXT PRIMARY KEY,
-        title TEXT DEFAULT '',
-        parent_id TEXT DEFAULT '',
-        sort_index INTEGER DEFAULT 0,
-        blocks_json TEXT NOT NULL,
-        tags TEXT,
-        images TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
       )
     ''');
   }

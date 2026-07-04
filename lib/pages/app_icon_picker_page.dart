@@ -88,7 +88,7 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Image.asset(
-                      'assets/icon/${icon['name']}.png',
+                      'assets/icon/${icon['name']}${icon['name'] == 'app_icon_m' ? '.png' : '.webp'}',
                       width: 40,
                       height: 40,
                       fit: BoxFit.cover,
