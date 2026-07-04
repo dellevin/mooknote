@@ -192,6 +192,7 @@ class Book {
   final String title; // 书籍名称
   final String? coverPath; // 本地封面路径
   final List<String> authors; // 作者列表
+  final List<String> translators; // 译者列表
   final List<String> alternateTitles; // 别名
   final String? publisher; // 出版社
   final List<String> genres; // 类型
@@ -212,6 +213,7 @@ class Book {
     required this.title,
     this.coverPath,
     this.authors = const [],
+    this.translators = const [],
     this.alternateTitles = const [],
     this.publisher,
     this.genres = const [],
@@ -234,6 +236,7 @@ class Book {
       title: json['title'] ?? '',
       coverPath: json['cover_path'],
       authors: Movie.parseStringList(json['authors']),
+      translators: Movie.parseStringList(json['translators']),
       alternateTitles: Movie.parseStringList(json['alternate_titles']),
       publisher: json['publisher'],
       genres: Movie.parseStringList(json['genres']),
@@ -257,6 +260,7 @@ class Book {
       'title': title,
       'cover_path': coverPath,
       'authors': jsonEncode(authors),
+      'translators': jsonEncode(translators),
       'alternate_titles': jsonEncode(alternateTitles),
       'publisher': publisher,
       'genres': jsonEncode(genres),
@@ -286,6 +290,7 @@ class Book {
     String? title,
     Object? coverPath = _copyWithNull,
     List<String>? authors,
+    List<String>? translators,
     List<String>? alternateTitles,
     String? publisher,
     List<String>? genres,
@@ -306,6 +311,7 @@ class Book {
       title: title ?? this.title,
       coverPath: coverPath is _CopyWithNullSentinel ? this.coverPath : (coverPath as String?),
       authors: authors ?? this.authors,
+      translators: translators ?? this.translators,
       alternateTitles: alternateTitles ?? this.alternateTitles,
       publisher: publisher ?? this.publisher,
       genres: genres ?? this.genres,

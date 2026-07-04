@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
-import 'dart:math';
+import 'package:crypto/crypto.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'user_prefs.dart';
 import 'server_config.dart';
 
@@ -59,16 +61,40 @@ class UsageStatsService with WidgetsBindingObserver {
   /// 确保设备有匿名ID
   Future<void> _ensureDeviceId() async {
     if (_prefs.deviceId.isEmpty) {
-      final id = _generateDeviceId();
+      final id = await _generateDeviceId();
       await _prefs.setDeviceId(id);
     }
   }
 
-  /// 生成匿名设备标识
-  String _generateDeviceId() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  /// 基于设备硬件信息生成匿名设备标识（SHA-256 哈希）
+  Future<String> _generateDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String rawId;
+
+    if (Platform.isAndroid) {
+      final info = await deviceInfo.androidInfo;
+      rawId = info.id; // Settings.Secure.ANDROID_ID
+    } else if (Platform.isIOS) {
+      final info = await deviceInfo.iosInfo;
+      rawId = info.identifierForVendor ?? '';
+    } else if (Platform.isWindows) {
+      final info = await deviceInfo.windowsInfo;
+      rawId = '${info.computerName}-${info.numberOfCores}';
+    } else if (Platform.isMacOS) {
+      final info = await deviceInfo.macOsInfo;
+      rawId = '${info.computerName}-${info.systemGUID ?? ''}';
+    } else if (Platform.isLinux) {
+      final info = await deviceInfo.linuxInfo;
+      rawId = '${info.name}-${info.id}';
+    } else {
+      rawId = DateTime.now().millisecondsSinceEpoch.toString();
+    }
+
+    final bytes = utf8.encode(rawId);
+    final hash = sha256.convert(bytes);
+    final hex = hash.toString();
+
+    // 格式化为 UUID 样式
     return '${hex.substring(0, 8)}-'
         '${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-'
@@ -83,6 +109,12 @@ class UsageStatsService with WidgetsBindingObserver {
     if (deviceId.isEmpty) return;
 
     try {
+      String appVersion = '';
+      try {
+        final pkgInfo = await PackageInfo.fromPlatform();
+        appVersion = '${pkgInfo.version}+${pkgInfo.buildNumber}';
+      } catch (_) {}
+
       await http
           .post(
             Uri.parse('$serverUrl/api/heartbeat'),
@@ -93,6 +125,7 @@ class UsageStatsService with WidgetsBindingObserver {
                   Platform.operatingSystem, // android/ios/windows/macos/linux
               'device_name':
                   '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
+              'app_version': appVersion,
             }),
           )
           .timeout(const Duration(seconds: 5));

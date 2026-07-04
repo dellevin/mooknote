@@ -43,6 +43,7 @@ class _BookFormPageState extends State<BookFormPage> {
   late TextEditingController _isbnController;
 
   List<String> _authors = [];
+  List<String> _translators = [];
   List<String> _alternateTitles = [];
   List<String> _genres = [];
   String? _coverPath;
@@ -74,6 +75,7 @@ class _BookFormPageState extends State<BookFormPage> {
 
     if (book != null) {
       _authors = List.from(book.authors);
+      _translators = List.from(book.translators);
       _alternateTitles = List.from(book.alternateTitles);
       _genres = List.from(book.genres);
       _coverPath = book.coverPath;
@@ -165,13 +167,21 @@ class _BookFormPageState extends State<BookFormPage> {
                     },
                   ),
 
-                  // 作者 + 出版社
+                  // 作者 + 译者
                   _halfCard('作者', _authors.isEmpty ? '' : '${_authors.length}人：${_authors.join('、')}', Icons.person_outline,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.authors).toList();
                       final r = await GenreSelectorPage.show(context: context, title: '选择作者', existingTagsFuture: compute(_collectUnique, data), initialSelected: _authors, hint: '如：余华、莫言');
                       if (r != null) setState(() => _authors = r);
+                    },
+                  ),
+                  _halfCard('译者', _translators.isEmpty ? '' : '${_translators.length}人：${_translators.join('、')}', Icons.translate,
+                    onTap: () async {
+                      final provider = context.read<AppProvider>();
+                      final data = provider.books.map((b) => b.translators).toList();
+                      final r = await GenreSelectorPage.show(context: context, title: '选择译者', existingTagsFuture: compute(_collectUnique, data), initialSelected: _translators, hint: '如：李继宏、许钧');
+                      if (r != null) setState(() => _translators = r);
                     },
                   ),
                   _halfCard('出版社', _publisherController.text, Icons.business_outlined,
@@ -572,7 +582,7 @@ class _BookFormPageState extends State<BookFormPage> {
     if (_isbnController.text.trim().isNotEmpty) return true;
     if (_publisherController.text.trim().isNotEmpty) return true;
     if (_coverPath != null) return true;
-    if (_authors.isNotEmpty || _alternateTitles.isNotEmpty || _genres.isNotEmpty) return true;
+    if (_authors.isNotEmpty || _translators.isNotEmpty || _alternateTitles.isNotEmpty || _genres.isNotEmpty) return true;
     if (_publishDate != null) return true;
     if (_startDate != null) return true;
     if (_finishDate != null) return true;
@@ -616,7 +626,7 @@ class _BookFormPageState extends State<BookFormPage> {
         }
         final newBook = Book(
           id: newBookId, title: _titleController.text.trim(), coverPath: finalCoverPath,
-          authors: _authors, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
+          authors: _authors, translators: _translators, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
           publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, createdAt: now, updatedAt: now,
@@ -625,7 +635,7 @@ class _BookFormPageState extends State<BookFormPage> {
       } else {
         final updatedBook = widget.book!.copyWith(
           title: _titleController.text.trim(), coverPath: _coverPath,
-          authors: _authors, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
+          authors: _authors, translators: _translators, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
           publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, updatedAt: now,

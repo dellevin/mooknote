@@ -340,7 +340,7 @@ class _StrollPageState extends State<StrollPage> {
   /// 有图片的卡片：全屏沉浸式
   Widget _buildImmersiveCard(_StrollItem item, ColorScheme colors) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 56, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 80, horizontal: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 8))],
@@ -382,7 +382,7 @@ class _StrollPageState extends State<StrollPage> {
   /// 无图片的卡片：内容从顶部开始
   Widget _buildContentCard(_StrollItem item, ColorScheme colors) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 56, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 80, horizontal: 8),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(20),

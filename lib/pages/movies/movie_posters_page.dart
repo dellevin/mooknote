@@ -91,24 +91,6 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
             ),
           ),
           const SizedBox(height: 24),
-          InkWell(
-            onTap: _pickPoster,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: colors.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '添加记录',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: colors.onPrimary,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

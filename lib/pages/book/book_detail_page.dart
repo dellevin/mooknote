@@ -89,6 +89,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   _buildBasicInfo(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   _buildAuthorsSection(book),
+                  if (book.translators.isNotEmpty) _buildTranslatorsSection(book),
                   if (book.genres.isNotEmpty) _buildGenresSection(book),
                   if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
                   if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
@@ -190,6 +191,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         const SizedBox(height: 20),
                         // 信息区块：无毛玻璃
                         _buildAuthorsSection(book),
+                  if (book.translators.isNotEmpty) _buildTranslatorsSection(book),
                         if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
                         if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                         if (book.publishDate != null) _buildPublishDateSection(book),
@@ -752,6 +754,39 @@ class _BookDetailPageState extends State<BookDetailPage> {
           Expanded(
             child: Text(
               book.authors.join('，'),
+              style: TextStyle(
+                fontSize: 15,
+                color: isOverlay ? Colors.white : colors.onSurface,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTranslatorsSection(Book book) {
+    final isOverlay = _detailStyle == 1;
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(
+              '译者',
+              style: TextStyle(
+                fontSize: 13,
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              book.translators.join('，'),
               style: TextStyle(
                 fontSize: 15,
                 color: isOverlay ? Colors.white : colors.onSurface,

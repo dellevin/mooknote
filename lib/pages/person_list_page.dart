@@ -66,6 +66,7 @@ class _PersonListPageState extends State<PersonListPage> {
     }
     for (final b in provider.books.where((b) => !b.isDeleted)) {
       for (final a in b.authors) addRole(a, '作者', book: b);
+      for (final t in b.translators) addRole(t, '译者', book: b);
     }
 
     var list = map.values.toList();
@@ -119,7 +120,7 @@ class _PersonListPageState extends State<PersonListPage> {
                       style: TextStyle(fontSize: 15, color: colors.onSurface),
                       cursorColor: colors.primary,
                       decoration: InputDecoration(
-                        hintText: '搜索导演、编剧、演员、作者',
+                        hintText: '搜索导演、编剧、演员、作者、译者',
                         hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -156,7 +157,7 @@ class _PersonListPageState extends State<PersonListPage> {
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
             child: Row(
               children: [
-                for (final f in ['all', '导演', '编剧', '主演', '作者'])
+                for (final f in ['all', '导演', '编剧', '主演', '作者', '译者'])
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: GestureDetector(
@@ -208,6 +209,7 @@ class _PersonListPageState extends State<PersonListPage> {
       '编剧': const Color(0xFF009688),
       '主演': const Color(0xFFE91E63),
       '作者': const Color(0xFF7E57C2),
+      '译者': const Color(0xFFFF7043),
     };
     final totalWorks = person.movies.length + person.books.length;
     return ListTile(
@@ -262,6 +264,7 @@ class _PersonDetailPage extends StatelessWidget {
       '编剧': const Color(0xFF009688),
       '主演': const Color(0xFFE91E63),
       '作者': const Color(0xFF7E57C2),
+      '译者': const Color(0xFFFF7043),
     };
 
     final movieItems = <_WorkItem>[];
@@ -275,7 +278,10 @@ class _PersonDetailPage extends StatelessWidget {
       movieItems.add(_WorkItem(title: m.title, roles: roles, path: m.posterPath, data: m));
     }
     for (final b in person.books) {
-      bookItems.add(_WorkItem(title: b.title, roles: const ['作者'], path: b.coverPath, data: b));
+      final roles = <String>[];
+      if (b.authors.contains(person.name)) roles.add('作者');
+      if (b.translators.contains(person.name)) roles.add('译者');
+      bookItems.add(_WorkItem(title: b.title, roles: roles, path: b.coverPath, data: b));
     }
 
     return Scaffold(

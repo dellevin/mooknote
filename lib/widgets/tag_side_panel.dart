@@ -210,12 +210,14 @@ class _TagSidePanelState extends State<TagSidePanel> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.start,
-                  crossAxisAlignment: WrapCrossAlignment.start,
-                  children: widget.allAvailableTags.map((tag) {
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.start,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    children: widget.allAvailableTags.map((tag) {
                     final isSelected = _selected.contains(tag);
                     return GestureDetector(
                       onTap: () => _toggleTag(tag),
@@ -240,6 +242,7 @@ class _TagSidePanelState extends State<TagSidePanel> {
                       ),
                     );
                   }).toList(),
+                  ),
                 ),
               ),
             ),

@@ -72,7 +72,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 28,
+      version: 29,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -254,6 +254,13 @@ class DatabaseHelper {
     if (oldVersion < 28) {
       // 移除 Note Plus 功能，删除 note_plus 表
       await db.execute('DROP TABLE IF EXISTS note_plus');
+    }
+    if (oldVersion < 29) {
+      // 为书籍表添加译者字段
+      final bookCols = await db.rawQuery('PRAGMA table_info(books)');
+      if (!bookCols.any((col) => col['name'] == 'translators')) {
+        await db.execute('ALTER TABLE books ADD COLUMN translators TEXT');
+      }
     }
   }
 
@@ -665,6 +672,7 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         cover_path TEXT,
         authors TEXT,
+        translators TEXT,
         alternate_titles TEXT,
         publisher TEXT,
         genres TEXT,
