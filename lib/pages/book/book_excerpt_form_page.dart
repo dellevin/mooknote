@@ -190,40 +190,108 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
     );
   }
 
-  // ── 摘抄内容输入框 ──
+  // ── 摘抄内容 ── 点击跳转全屏编辑 ──
+
+  Future<void> _editContent() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => _FullTextEditPage(title: '摘抄内容', initialText: _contentController.text, hintText: '在这里粘贴或输入书中的原文段落…')),
+    );
+    if (result != null) {
+      _contentController.text = result;
+      setState(() {});
+    }
+  }
+
+  // ── 我的感悟 ── 点击跳转全屏编辑 ──
+
+  Future<void> _editComment() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => _FullTextEditPage(title: '我的感悟', initialText: _commentController.text, hintText: '记录思考、联想或评论…')),
+    );
+    if (result != null) {
+      _commentController.text = result;
+      setState(() {});
+    }
+  }
 
   Widget _buildContentInput(ColorScheme colors) {
-    return TextFormField(
-      controller: _contentController,
-      maxLines: null,
-      minLines: 6,
-      style: TextStyle(fontSize: 15, height: 1.8, color: colors.onSurface),
-      textAlignVertical: TextAlignVertical.top,
-      decoration: _inputDecoration(
-        colors,
-        hintText: '在这里粘贴或输入书中的原文段落…',
-        charCount: _contentChars,
+    return GestureDetector(
+      onTap: _editContent,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 140),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _contentController.text.isEmpty ? '在这里粘贴或输入书中的原文段落…' : _contentController.text,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.8,
+                color: _contentController.text.isEmpty ? colors.onSurface.withValues(alpha: 0.25) : colors.onSurface,
+              ),
+              maxLines: 6,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('$_contentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                const SizedBox(width: 4),
+                Icon(Icons.edit_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.25)),
+              ],
+            ),
+          ],
+        ),
       ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) return '请输入摘抄内容';
-        return null;
-      },
     );
   }
 
-  // ── 感悟输入框 ──
-
   Widget _buildCommentInput(ColorScheme colors) {
-    return TextFormField(
-      controller: _commentController,
-      maxLines: null,
-      minLines: 3,
-      style: TextStyle(fontSize: 15, height: 1.8, color: colors.onSurface),
-      textAlignVertical: TextAlignVertical.top,
-      decoration: _inputDecoration(
-        colors,
-        hintText: '记录思考、联想或评论…',
-        charCount: _commentChars,
+    return GestureDetector(
+      onTap: _editComment,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 80),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _commentController.text.isEmpty ? '记录思考、联想或评论…' : _commentController.text,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.8,
+                color: _commentController.text.isEmpty ? colors.onSurface.withValues(alpha: 0.25) : colors.onSurface,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('$_commentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                const SizedBox(width: 4),
+                Icon(Icons.edit_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.25)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -271,6 +339,10 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
 
   Future<void> _saveExcerpt() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_contentController.text.trim().isEmpty) {
+      ToastUtil.show(context, '请输入摘抄内容');
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final now = DateTime.now();
@@ -308,5 +380,62 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => BookExcerptSharePage(excerpt: widget.excerpt!, book: book),
     ));
+  }
+}
+
+/// 全屏文本编辑页面
+class _FullTextEditPage extends StatefulWidget {
+  final String title;
+  final String initialText;
+  final String hintText;
+  const _FullTextEditPage({required this.title, required this.initialText, required this.hintText});
+  @override
+  State<_FullTextEditPage> createState() => _FullTextEditPageState();
+}
+
+class _FullTextEditPageState extends State<_FullTextEditPage> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, _controller.text.trim()),
+            child: Text('完成', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: TextField(
+        controller: _controller,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8),
+        decoration: InputDecoration(
+          hintText: widget.hintText,
+          hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+          contentPadding: const EdgeInsets.all(20),
+          border: InputBorder.none,
+        ),
+      ),
+    );
   }
 }
