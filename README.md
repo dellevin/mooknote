@@ -260,7 +260,7 @@ flutter pub get
 ```bash
 # 构建 Release APK
 flutter build apk --release
-# 推荐只 arm64-v8a
+# 只构建 arm64-v8a
 flutter build apk --release --target-platform android-arm64
 # 构建 App Bundle（Google Play）
 flutter build appbundle --release
