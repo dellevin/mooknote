@@ -104,6 +104,10 @@ class UserPrefs {
   bool get showNoteTab => prefs.getBool('showNoteTab') ?? true;
   Future<bool> setShowNoteTab(bool value) => prefs.setBool('showNoteTab', value);
 
+  /// 是否显示游戏标签
+  bool get showGameTab => prefs.getBool('showGameTab') ?? false;
+  Future<bool> setShowGameTab(bool value) => prefs.setBool('showGameTab', value);
+
   /// 默认启动标签 (0: 影视, 1: 阅读, 2: 笔记)
   int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? 0;
   Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);
@@ -168,6 +172,18 @@ class UserPrefs {
   /// 书架模式（不显示分类，按创建时间排序）
   bool get bookshelfMode => prefs.getBool('bookshelfMode') ?? false;
   Future<bool> setBookshelfMode(bool value) => prefs.setBool('bookshelfMode', value);
+
+  /// 游戏排序方式 (0: 更新时间, 1: 创建时间, 2: 评分)
+  int get gameSortMode => prefs.getInt('gameSortMode') ?? 0;
+  Future<bool> setGameSortMode(int value) => prefs.setInt('gameSortMode', value);
+
+  /// 游戏布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
+  int get gameLayoutStyle => prefs.getInt('gameLayoutStyle') ?? 0;
+  Future<bool> setGameLayoutStyle(int value) => prefs.setInt('gameLayoutStyle', value);
+
+  /// 游戏墙模式
+  bool get gameWallMode => prefs.getBool('gameWallMode') ?? false;
+  Future<bool> setGameWallMode(bool value) => prefs.setBool('gameWallMode', value);
 
   // ========== 应用图标设置 ==========
 

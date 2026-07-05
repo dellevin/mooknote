@@ -637,6 +637,272 @@ class BookReview {
   String get typeText => reviewType == 1 ? '短评' : '长评';
 }
 
+/// 游戏条目模型
+class Game {
+  final String id;
+  final String title; // 游戏名称
+  final String? coverPath; // 本地封面路径
+  final double? rating; // 评分 1-10
+  final String status; // completed/playing/want_to_play/abandoned
+  final String category; // 游戏分类: digital/cartridge/disc
+  final List<String> platforms; // 平台列表
+  final List<String> versions; // 版本列表
+  final List<String> genres; // 类型
+  final int playTimeHours; // 游玩时长（小时）
+  final int playTimeMinutes; // 游玩时长（分钟）
+  final List<String> purchasePlatforms; // 购买平台
+  final DateTime? purchaseDate; // 购买日期
+  final String? purchasePrice; // 购买价格
+  final String? summary; // 游戏简介
+  final double coverOffset; // 封面偏移量
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+
+  Game({
+    required this.id,
+    required this.title,
+    this.coverPath,
+    this.rating,
+    required this.status,
+    this.category = 'digital',
+    this.platforms = const [],
+    this.versions = const [],
+    this.genres = const [],
+    this.playTimeHours = 0,
+    this.playTimeMinutes = 0,
+    this.purchasePlatforms = const [],
+    this.purchaseDate,
+    this.purchasePrice,
+    this.summary,
+    this.coverOffset = 0.0,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
+  });
+
+  factory Game.fromJson(Map<String, dynamic> json) {
+    return Game(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      coverPath: json['cover_path'],
+      rating: _safeParseDouble(json['rating']),
+      status: json['status'] ?? 'want_to_play',
+      category: json['category'] ?? 'digital',
+      platforms: parseStringListGeneric(json['platforms']),
+      versions: parseStringListGeneric(json['versions']),
+      genres: parseStringListGeneric(json['genres']),
+      playTimeHours: json['play_time_hours'] ?? 0,
+      playTimeMinutes: json['play_time_minutes'] ?? 0,
+      purchasePlatforms: parseStringListGeneric(json['purchase_platforms']),
+      purchaseDate: _safeParseDate(json['purchase_date']),
+      purchasePrice: json['purchase_price'],
+      summary: json['summary'],
+      coverOffset: _safeParseDouble(json['cover_offset'], fallback: 0.0)!,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'cover_path': coverPath,
+      'rating': rating,
+      'status': status,
+      'category': category,
+      'platforms': jsonEncode(platforms),
+      'versions': jsonEncode(versions),
+      'genres': jsonEncode(genres),
+      'play_time_hours': playTimeHours,
+      'play_time_minutes': playTimeMinutes,
+      'purchase_platforms': jsonEncode(purchasePlatforms),
+      'purchase_date': purchaseDate?.toUtc().toIso8601String(),
+      'purchase_price': purchasePrice,
+      'summary': summary,
+      'cover_offset': coverOffset,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+    };
+  }
+
+  /// 获取封面文件
+  File? get coverFile {
+    if (coverPath == null || coverPath!.isEmpty) return null;
+    return File(coverPath!);
+  }
+
+  /// 复制并修改
+  Game copyWith({
+    String? id,
+    String? title,
+    Object? coverPath = _copyWithNull,
+    Object? rating = _copyWithNull,
+    String? status,
+    String? category,
+    List<String>? platforms,
+    List<String>? versions,
+    List<String>? genres,
+    int? playTimeHours,
+    int? playTimeMinutes,
+    List<String>? purchasePlatforms,
+    DateTime? purchaseDate,
+    Object? purchasePrice = _copyWithNull,
+    Object? summary = _copyWithNull,
+    double? coverOffset,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  }) {
+    return Game(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      coverPath: coverPath is _CopyWithNullSentinel ? this.coverPath : (coverPath as String?),
+      rating: rating is _CopyWithNullSentinel ? this.rating : (rating as double?),
+      status: status ?? this.status,
+      category: category ?? this.category,
+      platforms: platforms ?? this.platforms,
+      versions: versions ?? this.versions,
+      genres: genres ?? this.genres,
+      playTimeHours: playTimeHours ?? this.playTimeHours,
+      playTimeMinutes: playTimeMinutes ?? this.playTimeMinutes,
+      purchasePlatforms: purchasePlatforms ?? this.purchasePlatforms,
+      purchaseDate: purchaseDate ?? this.purchaseDate,
+      purchasePrice: purchasePrice is _CopyWithNullSentinel ? this.purchasePrice : (purchasePrice as String?),
+      summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
+      coverOffset: coverOffset ?? this.coverOffset,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+}
+
+/// 游戏评价模型
+class GameReview {
+  final String id;
+  final String gameId;
+  final String content;
+  final String reviewer;
+  final String source;
+  final int reviewType; // 1: 短评, 2: 长评
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  GameReview({
+    required this.id,
+    required this.gameId,
+    required this.content,
+    this.reviewer = '',
+    this.source = '',
+    this.reviewType = 1,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory GameReview.fromJson(Map<String, dynamic> json) {
+    return GameReview(
+      id: json['id']?.toString() ?? '',
+      gameId: json['game_id']?.toString() ?? '',
+      content: json['content'] ?? '',
+      reviewer: json['reviewer'] ?? '',
+      source: json['source'] ?? '',
+      reviewType: json['review_type'] ?? 1,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'game_id': gameId,
+      'content': content,
+      'reviewer': reviewer,
+      'source': source,
+      'review_type': reviewType,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  GameReview copyWith({
+    String? id,
+    String? gameId,
+    String? content,
+    String? reviewer,
+    String? source,
+    int? reviewType,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return GameReview(
+      id: id ?? this.id,
+      gameId: gameId ?? this.gameId,
+      content: content ?? this.content,
+      reviewer: reviewer ?? this.reviewer,
+      source: source ?? this.source,
+      reviewType: reviewType ?? this.reviewType,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  String get summary => content.length <= 50 ? content : '${content.substring(0, 50)}...';
+  String get typeText => reviewType == 1 ? '短评' : '长评';
+}
+
+/// 游戏截图模型
+class GameScreenshot {
+  final String id;
+  final String gameId;
+  final String screenshotPath;
+  final bool isDeleted;
+  final DateTime createdAt;
+
+  GameScreenshot({
+    required this.id,
+    required this.gameId,
+    required this.screenshotPath,
+    this.isDeleted = false,
+    required this.createdAt,
+  });
+
+  factory GameScreenshot.fromJson(Map<String, dynamic> json) {
+    return GameScreenshot(
+      id: json['id']?.toString() ?? '',
+      gameId: json['game_id']?.toString() ?? '',
+      screenshotPath: json['screenshot_path'] ?? '',
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'game_id': gameId,
+      'screenshot_path': screenshotPath,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toUtc().toIso8601String(),
+    };
+  }
+
+  File? get screenshotFile {
+    if (screenshotPath.isEmpty) return null;
+    return File(screenshotPath);
+  }
+}
+
 /// 书籍摘抄模型
 class BookExcerpt {
   final String id;

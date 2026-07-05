@@ -1085,6 +1085,14 @@ class _SettingsPageState extends State<SettingsPage> {
         if (poster.posterPath.isNotEmpty) paths.add(poster.posterPath);
       }
     }
+    for (final game in provider.games) {
+      if (game.coverPath?.isNotEmpty == true) paths.add(game.coverPath!);
+    }
+    for (final gameId in provider.games.map((g) => g.id)) {
+      for (final screenshot in await provider.getGameScreenshots(gameId)) {
+        if (screenshot.screenshotPath.isNotEmpty) paths.add(screenshot.screenshotPath);
+      }
+    }
     return paths;
   }
 

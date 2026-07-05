@@ -140,6 +140,46 @@ class BookSkeletonGrid extends StatelessWidget {
   }
 }
 
+/// 游戏骨架屏
+class GameSkeletonGrid extends StatelessWidget {
+  const GameSkeletonGrid({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: count * 3,
+          itemBuilder: (_, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ShimmerSkeleton(
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const ShimmerSkeleton(width: double.infinity, height: 14),
+              const SizedBox(height: 4),
+              const ShimmerSkeleton(width: 70, height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// 笔记列表骨架屏
 class NoteSkeletonList extends StatelessWidget {
   const NoteSkeletonList({super.key});

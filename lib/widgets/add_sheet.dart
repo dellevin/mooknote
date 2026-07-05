@@ -20,6 +20,12 @@ void showQuickAddSheet(BuildContext context, AppProvider provider) {
           arguments: {'initialStatus': currentStatus});
     case 2:
       Navigator.pushNamed(context, '/note-form');
+    case 3:
+      final statusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
+      final currentStatus =
+          statusMap[provider.gameStatusIndex] ?? 'want_to_play';
+      Navigator.pushNamed(context, '/game-form',
+          arguments: {'initialStatus': currentStatus});
     default:
       showAddSheet(context, provider);
   }
@@ -109,6 +115,25 @@ void showAddSheet(BuildContext context, AppProvider provider) {
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.pushNamed(outerContext, '/note-form');
+                },
+              ),
+              _buildOption(
+                colors: bc,
+                icon: Icons.sports_esports_outlined,
+                title: '添加游戏',
+                subtitle: '记录你玩过的游戏',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final statusMap = {
+                    0: 'completed',
+                    1: 'playing',
+                    2: 'want_to_play',
+                    3: 'abandoned',
+                  };
+                  final s =
+                      statusMap[provider.gameStatusIndex] ?? 'want_to_play';
+                  Navigator.pushNamed(outerContext, '/game-form',
+                      arguments: {'initialStatus': s});
                 },
               ),
             ],

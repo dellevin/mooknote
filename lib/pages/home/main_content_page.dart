@@ -6,6 +6,7 @@ import '../../services/sync/webdav_service.dart';
 import '../movies/movie_tab_page.dart';
 import '../book/book_tab_page.dart';
 import '../note/note_tab_page.dart';
+import '../game/game_tab_page.dart';
 import '../online_search/search_page.dart';
 import '../online_search/online_search_page.dart';
 import '../sync/webdav_sync_page.dart';
@@ -24,6 +25,7 @@ class _MainContentPageState extends State<MainContentPage> {
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
+  bool _showGameTab = true;
 
   late PageController _pageController;
   bool _isTabTap = false;
@@ -47,6 +49,7 @@ class _MainContentPageState extends State<MainContentPage> {
       _showMovieTab = _userPrefs.showMovieTab;
       _showBookTab = _userPrefs.showBookTab;
       _showNoteTab = _userPrefs.showNoteTab;
+      _showGameTab = _userPrefs.showGameTab;
     });
   }
 
@@ -61,6 +64,7 @@ class _MainContentPageState extends State<MainContentPage> {
     if (_showMovieTab) tabs.add(_TabItem('影视', 0));
     if (_showBookTab) tabs.add(_TabItem('阅读', 1));
     if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
+    if (_showGameTab) tabs.add(_TabItem('游戏', 3));
     return tabs;
   }
 
@@ -134,6 +138,7 @@ class _MainContentPageState extends State<MainContentPage> {
       case 0: return '影视';
       case 1: return '阅读';
       case 2: return '笔记';
+      case 3: return '游戏';
       default: return 'MookNote';
     }
   }
@@ -222,6 +227,7 @@ class _MainContentPageState extends State<MainContentPage> {
       await provider.loadMovies();
       await provider.loadBooks();
       await provider.loadNotes();
+      await provider.loadGames();
     }
     if (context.mounted) {
       _showResultDialog(context, title: result.success ? '同步成功' : '同步失败', message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'), isSuccess: result.success, details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages});
@@ -313,7 +319,16 @@ class _MainContentPageState extends State<MainContentPage> {
                                       (0, '按更新时间排序', Icons.update),
                                       (1, '按创建时间排序', Icons.calendar_today_outlined),
                                     ], (v) { UserPrefs().setNoteSortMode(v); context.read<AppProvider>().loadNotes(); })
-                                  : null,
+                                  : tab.label == '游戏'
+                                      ? () {
+                                          final isWallMode = UserPrefs().gameWallMode;
+                                          _showSortMenu(context, isWallMode ? '游戏墙排序' : '游戏排序', UserPrefs().gameSortMode, [
+                                            (0, '按更新时间排序', Icons.update),
+                                            (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                            (2, '按评分排序', Icons.star_outline),
+                                          ], (v) { UserPrefs().setGameSortMode(v); context.read<AppProvider>().loadGames(); });
+                                        }
+                                      : null,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
@@ -434,6 +449,7 @@ class _MainContentPageState extends State<MainContentPage> {
             if (_showMovieTab) const MovieTabPage(),
             if (_showBookTab) const BookTabPage(),
             if (_showNoteTab) const NoteTabPage(),
+            if (_showGameTab) const GameTabPage(),
           ],
         );
       },
@@ -445,6 +461,7 @@ class _MainContentPageState extends State<MainContentPage> {
       case '影视': return Icons.movie_outlined;
       case '阅读': return Icons.menu_book_outlined;
       case '笔记': return Icons.note_outlined;
+      case '游戏': return Icons.sports_esports_outlined;
       default: return Icons.circle;
     }
   }

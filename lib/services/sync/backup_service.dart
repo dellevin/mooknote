@@ -33,6 +33,9 @@ class BackupService {
     final tags = await db.query('tags');
     final readerBooks = await db.query('reader_books');
     final bookAnnotations = await db.query('book_annotations');
+    final games = await db.query('games');
+    final gameReviews = await db.query('game_reviews');
+    final gameScreenshots = await db.query('game_screenshots');
 
     // 收集图片路径
     final imagePaths = <String>{};
@@ -63,6 +66,15 @@ class BackupService {
     // reader_books 的封面在 epub_books/ 目录下，由 epub_books 归档处理
     // 不加入 imagePaths，避免 basename 碰撞导致所有封面变成同一个路径
 
+    for (final g in games) {
+      final p = g['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) imagePaths.add(p);
+    }
+    for (final s in gameScreenshots) {
+      final p = s['screenshot_path'] as String?;
+      if (p != null && p.isNotEmpty) imagePaths.add(p);
+    }
+
     final userPrefs = UserPrefs();
     final userInfo = {
       'nickname': userPrefs.nickname,
@@ -91,6 +103,9 @@ class BackupService {
         'tags': tags,
         'reader_books': readerBooks,
         'book_annotations': bookAnnotations,
+        'games': games,
+        'game_reviews': gameReviews,
+        'game_screenshots': gameScreenshots,
       },
     };
 
@@ -315,6 +330,9 @@ class BackupService {
       final tagsCols = await _getTableColumns(db, 'tags');
       final readerBooksCols = await _getTableColumns(db, 'reader_books');
       final bookAnnotationsCols = await _getTableColumns(db, 'book_annotations');
+      final gamesCols = await _getTableColumns(db, 'games');
+      final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
+      final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
@@ -322,10 +340,13 @@ class BackupService {
         await txn.delete('book_reviews');
         await txn.delete('book_excerpts');
         await txn.delete('book_annotations');
+        await txn.delete('game_reviews');
+        await txn.delete('game_screenshots');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
         await txn.delete('reader_books');
+        await txn.delete('games');
         await txn.delete('tags');
 
         if (data.containsKey('movies')) {
@@ -373,6 +394,21 @@ class BackupService {
         if (data.containsKey('book_annotations')) {
           for (final a in data['book_annotations'] as List) {
             await txn.insert('book_annotations', _convertToDbMapSafe(a, bookAnnotationsCols));
+          }
+        }
+        if (data.containsKey('games')) {
+          for (final g in data['games'] as List) {
+            await txn.insert('games', _updateImagePath(_convertToDbMapSafe(g, gamesCols), 'cover_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('game_reviews')) {
+          for (final r in data['game_reviews'] as List) {
+            await txn.insert('game_reviews', _convertToDbMapSafe(r, gameReviewsCols));
+          }
+        }
+        if (data.containsKey('game_screenshots')) {
+          for (final s in data['game_screenshots'] as List) {
+            await txn.insert('game_screenshots', _updateImagePath(_convertToDbMapSafe(s, gameScreenshotsCols), 'screenshot_path', imagePathMap));
           }
         }
         if (data.containsKey('tags')) {
@@ -450,6 +486,9 @@ class BackupService {
       final tagsCols = await _getTableColumns(db, 'tags');
       final readerBooksCols = await _getTableColumns(db, 'reader_books');
       final bookAnnotationsCols = await _getTableColumns(db, 'book_annotations');
+      final gamesCols = await _getTableColumns(db, 'games');
+      final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
+      final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
@@ -457,10 +496,13 @@ class BackupService {
         await txn.delete('book_reviews');
         await txn.delete('book_excerpts');
         await txn.delete('book_annotations');
+        await txn.delete('game_reviews');
+        await txn.delete('game_screenshots');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
         await txn.delete('reader_books');
+        await txn.delete('games');
         await txn.delete('tags'); // 修复: 之前漏删 tags 表
 
         if (data.containsKey('movies')) {
@@ -508,6 +550,21 @@ class BackupService {
         if (data.containsKey('book_annotations')) {
           for (final a in data['book_annotations'] as List) {
             await txn.insert('book_annotations', _convertToDbMapSafe(a, bookAnnotationsCols));
+          }
+        }
+        if (data.containsKey('games')) {
+          for (final g in data['games'] as List) {
+            await txn.insert('games', _updateImagePath(_convertToDbMapSafe(g, gamesCols), 'cover_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('game_reviews')) {
+          for (final r in data['game_reviews'] as List) {
+            await txn.insert('game_reviews', _convertToDbMapSafe(r, gameReviewsCols));
+          }
+        }
+        if (data.containsKey('game_screenshots')) {
+          for (final s in data['game_screenshots'] as List) {
+            await txn.insert('game_screenshots', _updateImagePath(_convertToDbMapSafe(s, gameScreenshotsCols), 'screenshot_path', imagePathMap));
           }
         }
         if (data.containsKey('tags')) {
@@ -605,6 +662,9 @@ class BackupService {
     if (data.containsKey('tags')) stats['标签'] = (data['tags'] as List).length;
     if (data.containsKey('reader_books')) stats['阅读'] = (data['reader_books'] as List).length;
     if (data.containsKey('book_annotations')) stats['批注'] = (data['book_annotations'] as List).length;
+    if (data.containsKey('games')) stats['游戏'] = (data['games'] as List).length;
+    if (data.containsKey('game_reviews')) stats['游戏评价'] = (data['game_reviews'] as List).length;
+    if (data.containsKey('game_screenshots')) stats['游戏截图'] = (data['game_screenshots'] as List).length;
     if (imageCount > 0) stats['图片'] = imageCount;
     return stats;
   }

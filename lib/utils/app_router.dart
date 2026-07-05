@@ -6,9 +6,11 @@ import 'slide_up_page_route.dart';
 import '../pages/movies/movie_form_page.dart';
 import '../pages/book/book_form_page.dart';
 import '../pages/note/note_form_page.dart';
+import '../pages/game/game_form_page.dart';
 import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
 import '../pages/note/note_detail_page.dart';
+import '../pages/game/game_detail_page.dart';
 import '../pages/movies/douban_webview_page.dart';
 
 /// 路由生成器
@@ -58,6 +60,22 @@ class AppRouter {
           return _buildUnknownRoute(settings.name);
         }
         return SlideUpPageRoute(page: NoteDetailPage(note: note));
+
+      case '/game-form':
+        final args = settings.arguments;
+        final Game? game = args is Game ? args : null;
+        final String? initialStatus =
+            args is Map<String, dynamic> ? (args['initialStatus'] as String?) : null;
+        return SlideUpPageRoute(
+          page: GameFormPage(game: game, initialStatus: initialStatus),
+        );
+
+      case '/game-detail':
+        final game = settings.arguments is Game ? settings.arguments as Game : null;
+        if (game == null) {
+          return _buildUnknownRoute(settings.name);
+        }
+        return SlideUpPageRoute(page: GameDetailPage(game: game));
 
       case '/douban-webview':
         final url = settings.arguments is String ? settings.arguments as String : null;

@@ -144,6 +144,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           await provider.loadMovies();
           await provider.loadBooks();
           await provider.loadNotes();
+          await provider.loadGames();
           if (mounted) _showResultDialog('同步成功', details);
         } else {
           _showResultDialog('同步成功', details);

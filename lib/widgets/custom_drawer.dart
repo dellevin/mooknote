@@ -13,6 +13,7 @@ import '../pages/settings/tag_management_page.dart';
 import '../pages/movies/movie_detail_page.dart';
 import '../pages/book/book_detail_page.dart';
 import '../pages/note/note_detail_page.dart';
+import '../pages/game/game_detail_page.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
 
@@ -32,6 +33,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   List<Movie>? _cachedMovies;
   List<Book>? _cachedBooks;
   List<Note>? _cachedNotes;
+  List<Game>? _cachedGames;
   Map<DateTime, int>? _cachedDailyCounts;
   int? _cachedMaxCount;
 
@@ -112,6 +114,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final movieCount = provider.movies.where((m) => !m.isDeleted).length;
         final bookCount = provider.books.length;
         final noteCount = provider.notes.length;
+        final gameCount = provider.games.where((g) => !g.isDeleted).length;
 
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -162,6 +165,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               _buildProfileStatRow(Icons.menu_book_outlined, bookCount, '阅读'),
               const SizedBox(height: 12),
               _buildProfileStatRow(Icons.note_outlined, noteCount, '笔记'),
+              const SizedBox(height: 12),
+              _buildProfileStatRow(Icons.sports_esports_outlined, gameCount, '游戏'),
             ],
           ),
         );
@@ -258,10 +263,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   // ─── 热力图缓存计算 ───
 
-  (int, Map<DateTime, int>) _computeDailyCounts(List<Movie> movies, List<Book> books, List<Note> notes) {
+  (int, Map<DateTime, int>) _computeDailyCounts(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
     if (identical(movies, _cachedMovies) &&
         identical(books, _cachedBooks) &&
         identical(notes, _cachedNotes) &&
+        identical(games, _cachedGames) &&
         _cachedDailyCounts != null) {
       return (_cachedMaxCount!, _cachedDailyCounts!);
     }
@@ -279,6 +285,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
       final date = DateTime(note.createdAt.year, note.createdAt.month, note.createdAt.day);
       dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
     }
+    for (final game in games.where((g) => !g.isDeleted)) {
+      final date = DateTime(game.createdAt.year, game.createdAt.month, game.createdAt.day);
+      dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
+    }
 
     int maxCount = 0;
     for (final c in dailyCounts.values) {
@@ -289,15 +299,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
     _cachedMovies = movies;
     _cachedBooks = books;
     _cachedNotes = notes;
+    _cachedGames = games;
     _cachedDailyCounts = dailyCounts;
     _cachedMaxCount = maxCount;
     return (maxCount, dailyCounts);
   }
 
-  List<_RecentItem> _computeRecentItems(List<Movie> movies, List<Book> books, List<Note> notes) {
+  List<_RecentItem> _computeRecentItems(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
     if (identical(movies, _cachedMovies) &&
         identical(books, _cachedBooks) &&
         identical(notes, _cachedNotes) &&
+        identical(games, _cachedGames) &&
         _cachedRecentItems != null) {
       return _cachedRecentItems!;
     }
@@ -312,6 +324,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
     for (final n in notes.where((n) => !n.isDeleted)) {
       items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记', date: n.createdAt, data: n));
     }
+    for (final g in games.where((g) => !g.isDeleted)) {
+      items.add(_RecentItem(type: 'game', title: g.title, date: g.createdAt, data: g));
+    }
     items.sort((a, b) => b.date.compareTo(a.date));
 
     _cachedRecentItems = items;
@@ -322,9 +337,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final movies = context.select<AppProvider, List<Movie>>((p) => p.movies);
     final books = context.select<AppProvider, List<Book>>((p) => p.books);
     final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
+    final games = context.select<AppProvider, List<Game>>((p) => p.games);
     final colors = Theme.of(context).colorScheme;
 
-    final (maxCount, dailyCounts) = _computeDailyCounts(movies, books, notes);
+    final (maxCount, dailyCounts) = _computeDailyCounts(movies, books, notes, games);
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -442,8 +458,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final movies = context.select<AppProvider, List<Movie>>((p) => p.movies);
     final books = context.select<AppProvider, List<Book>>((p) => p.books);
     final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
+    final games = context.select<AppProvider, List<Game>>((p) => p.games);
     final colors = Theme.of(context).colorScheme;
-    final recent = _computeRecentItems(movies, books, notes);
+    final recent = _computeRecentItems(movies, books, notes, games);
     if (recent.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -469,7 +486,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               child: Row(
                 children: [
                   Icon(
-                    item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : Icons.note_outlined,
+                    item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : item.type == 'game' ? Icons.sports_esports_outlined : Icons.note_outlined,
                     size: 14, color: colors.onSurface.withValues(alpha: 0.3),
                   ),
                   const SizedBox(width: 10),
@@ -497,6 +514,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
         Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: item.data as Book)));
       case 'note':
         Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: item.data as Note)));
+      case 'game':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => GameDetailPage(game: item.data as Game)));
     }
   }
 

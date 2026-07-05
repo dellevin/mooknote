@@ -72,7 +72,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 30,
+      version: 34,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -277,6 +277,67 @@ class DatabaseHelper {
       if (!cols.any((col) => col['name'] == 'authors')) {
         await db.execute("ALTER TABLE reader_books ADD COLUMN authors TEXT DEFAULT ''");
       }
+    }
+    if (oldVersion < 31) {
+      // 创建游戏表
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS games (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          cover_path TEXT,
+          rating REAL,
+          status TEXT NOT NULL DEFAULT 'want_to_play',
+          category TEXT NOT NULL DEFAULT 'digital',
+          platforms TEXT DEFAULT '[]',
+          versions TEXT DEFAULT '[]',
+          genres TEXT DEFAULT '[]',
+          play_time_hours INTEGER DEFAULT 0,
+          play_time_minutes INTEGER DEFAULT 0,
+          purchase_platforms TEXT DEFAULT '[]',
+          purchase_date TEXT,
+          purchase_price TEXT,
+          cover_offset REAL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          is_deleted INTEGER DEFAULT 0
+        )
+      ''');
+    }
+    if (oldVersion < 32) {
+      // games表添加summary字段
+      await db.execute('ALTER TABLE games ADD COLUMN summary TEXT');
+    }
+    if (oldVersion < 34) {
+      // 确保games表summary字段存在
+      final columns = await db.rawQuery('PRAGMA table_info(games)');
+      if (!columns.any((col) => col['name'] == 'summary')) {
+        await db.execute('ALTER TABLE games ADD COLUMN summary TEXT');
+      }
+      // 确保游戏评价表和游戏截图表存在
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS game_reviews (
+          id TEXT PRIMARY KEY,
+          game_id TEXT NOT NULL,
+          content TEXT NOT NULL,
+          reviewer TEXT,
+          source TEXT,
+          review_type INTEGER DEFAULT 1,
+          is_deleted INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (game_id) REFERENCES games (id)
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS game_screenshots (
+          id TEXT PRIMARY KEY,
+          game_id TEXT NOT NULL,
+          screenshot_path TEXT NOT NULL,
+          is_deleted INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (game_id) REFERENCES games (id)
+        )
+      ''');
     }
   }
 
@@ -829,6 +890,59 @@ class DatabaseHelper {
         reader_note TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
+      )
+    ''');
+
+    // 游戏表
+    await db.execute('''
+      CREATE TABLE games (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        cover_path TEXT,
+        rating REAL,
+        status TEXT NOT NULL DEFAULT 'want_to_play',
+        category TEXT NOT NULL DEFAULT 'digital',
+        platforms TEXT DEFAULT '[]',
+        versions TEXT DEFAULT '[]',
+        genres TEXT DEFAULT '[]',
+        play_time_hours INTEGER DEFAULT 0,
+        play_time_minutes INTEGER DEFAULT 0,
+        purchase_platforms TEXT DEFAULT '[]',
+        purchase_date TEXT,
+        purchase_price TEXT,
+        summary TEXT,
+        cover_offset REAL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    // 游戏评价表
+    await db.execute('''
+      CREATE TABLE game_reviews (
+        id TEXT PRIMARY KEY,
+        game_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        reviewer TEXT,
+        source TEXT,
+        review_type INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (game_id) REFERENCES games (id)
+      )
+    ''');
+
+    // 游戏截图表
+    await db.execute('''
+      CREATE TABLE game_screenshots (
+        id TEXT PRIMARY KEY,
+        game_id TEXT NOT NULL,
+        screenshot_path TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (game_id) REFERENCES games (id)
       )
     ''');
   }

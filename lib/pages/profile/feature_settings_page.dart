@@ -16,6 +16,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showMovieTab = true;
   bool _showBookTab = true;
   bool _showNoteTab = true;
+  bool _showGameTab = true;
   int _defaultTabIndex = 0;
 
   // 侧边栏
@@ -40,6 +41,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showMovieTab = _userPrefs.showMovieTab;
       _showBookTab = _userPrefs.showBookTab;
       _showNoteTab = _userPrefs.showNoteTab;
+      _showGameTab = _userPrefs.showGameTab;
       _defaultTabIndex = _userPrefs.defaultMainTabIndex;
       _showHeatmap = _userPrefs.showSidebarHeatmap;
       _showRecent = _userPrefs.showSidebarRecent;
@@ -58,6 +60,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     if (_showMovieTab) count++;
     if (_showBookTab) count++;
     if (_showNoteTab) count++;
+    if (_showGameTab) count++;
     return count;
   }
 
@@ -66,12 +69,14 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       (0, '影视', Icons.movie_outlined),
       (1, '阅读', Icons.menu_book_outlined),
       (2, '笔记', Icons.note_outlined),
+      (3, '游戏', Icons.sports_esports_outlined),
     ];
     return all.where((t) {
       return switch (t.$1) {
         0 => _showMovieTab,
         1 => _showBookTab,
         2 => _showNoteTab,
+        3 => _showGameTab,
         _ => false,
       };
     }).toList();
@@ -121,6 +126,18 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     });
   }
 
+  Future<void> _toggleGameTab(bool value) async {
+    if (!value && _enabledTabCount <= 1) {
+      ToastUtil.show(context, '至少保留一个标签页');
+      return;
+    }
+    await _userPrefs.setShowGameTab(value);
+    setState(() {
+      _showGameTab = value;
+      _fixDefaultTabIndex();
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +174,13 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               color: colors.outlineVariant),
           _buildSwitchItem(Icons.note_outlined, '笔记', '记录和管理笔记', _showNoteTab,
               _toggleNoteTab),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.sports_esports_outlined, '游戏', '记录和管理游戏记录', _showGameTab,
+              _toggleGameTab),
           Divider(
               height: 0.5,
               indent: 24,
@@ -383,28 +407,34 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
                             color: colors.onSurface)))),
             const SizedBox(height: 16),
             for (final t in enabled)
-              ListTile(
-                leading: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                        color: colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(10)),
-                    child: Icon(t.$3,
-                        color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(t.$2,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: colors.onSurface)),
-                trailing: _defaultTabIndex == t.$1
-                    ? Icon(Icons.check, color: colors.onSurface, size: 20)
-                    : null,
+              InkWell(
                 onTap: () async {
                   await _userPrefs.setDefaultMainTabIndex(t.$1);
                   setState(() => _defaultTabIndex = t.$1);
                   Navigator.pop(ctx);
                 },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: Row(children: [
+                    Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                            color: colors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8)),
+                        child: Icon(t.$3, size: 16,
+                            color: colors.onSurface.withValues(alpha: 0.6))),
+                    const SizedBox(width: 12),
+                    Text(t.$2,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const Spacer(),
+                    if (_defaultTabIndex == t.$1)
+                      Icon(Icons.check_circle, size: 20, color: colors.primary),
+                  ]),
+                ),
               ),
             const SizedBox(height: 8),
           ],

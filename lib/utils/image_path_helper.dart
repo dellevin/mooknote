@@ -10,6 +10,8 @@ import 'package:path/path.dart' as p;
 /// images/movies/{movieId}/posterimgs/xxxx.jpg   - 影视海报墙图片
 /// images/books/{bookId}/xxxx.jpg                - 书籍封面
 /// images/notes/{noteId}/xxxx.jpg                - 笔记图片
+/// images/games/{gameId}/xxxx.jpg                - 游戏封面
+/// images/games/{gameId}/screenshots/xxxx.jpg    - 游戏截图
 class ImagePathHelper {
   static final ImagePathHelper instance = ImagePathHelper._init();
 
@@ -93,6 +95,36 @@ class ImagePathHelper {
     return p.join(dir, fileName);
   }
 
+  // ==================== 游戏相关路径 ====================
+
+  /// 获取游戏图片目录
+  /// 路径: images/games/{gameId}/
+  Future<String> getGameImagesDir(String gameId) async {
+    final root = await imagesRoot;
+    return p.join(root, 'games', gameId);
+  }
+
+  /// 获取游戏封面路径
+  /// 路径: images/games/{gameId}/{fileName}
+  Future<String> getGameCoverPath(String gameId, String fileName) async {
+    final dir = await getGameImagesDir(gameId);
+    return p.join(dir, fileName);
+  }
+
+  /// 获取游戏截图目录
+  /// 路径: images/games/{gameId}/screenshots/
+  Future<String> getGameScreenshotImgsDir(String gameId) async {
+    final dir = await getGameImagesDir(gameId);
+    return p.join(dir, 'screenshots');
+  }
+
+  /// 获取游戏截图图片路径
+  /// 路径: images/games/{gameId}/screenshots/{fileName}
+  Future<String> getGameScreenshotImgPath(String gameId, String fileName) async {
+    final dir = await getGameScreenshotImgsDir(gameId);
+    return p.join(dir, fileName);
+  }
+
   // ==================== 目录操作 ====================
 
   /// 确保目录存在
@@ -126,6 +158,13 @@ class ImagePathHelper {
   /// 删除路径: images/notes/{noteId}/
   Future<void> deleteNoteImages(String noteId) async {
     final dirPath = await getNoteImagesDir(noteId);
+    await _deleteDirectory(dirPath);
+  }
+
+  /// 删除游戏图片目录
+  /// 删除路径: images/games/{gameId}/
+  Future<void> deleteGameImages(String gameId) async {
+    final dirPath = await getGameImagesDir(gameId);
     await _deleteDirectory(dirPath);
   }
 

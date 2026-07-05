@@ -15,9 +15,9 @@ class _TagManagementPageState extends State<TagManagementPage> {
   int _currentIndex = 0;
   bool _isSyncing = false;
 
-  static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag'];
-  static const _typeLabels = ['影视类型', '书籍类型', '笔记标签'];
-  static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined];
+  static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag', 'game_genre'];
+  static const _typeLabels = ['影视类型', '书籍类型', '笔记标签', '游戏类型'];
+  static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined, Icons.sports_esports_outlined];
 
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
   Map<String, int> _usageCounts = {};
@@ -61,6 +61,11 @@ class _TagManagementPageState extends State<TagManagementPage> {
     for (final n in provider.notes.where((n) => !n.isDeleted)) {
       for (final t in n.tags) {
         counts[t] = (counts[t] ?? 0) + 1;
+      }
+    }
+    for (final g in provider.games.where((g) => !g.isDeleted)) {
+      for (final genre in g.genres) {
+        counts[genre] = (counts[genre] ?? 0) + 1;
       }
     }
 
@@ -121,7 +126,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         children: [
           // 弹出的类别胶囊按钮
           if (_showTypePicker) ...[
-            ...[0, 1, 2].where((i) => i != _currentIndex).map((i) => Padding(
+            ...[0, 1, 2, 3].where((i) => i != _currentIndex).map((i) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: GestureDetector(
                 onTap: () {
@@ -420,7 +425,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final idx = _tabTypes.indexOf(type);
     final icon = _typeIcons[idx];
     final label = _typeLabels[idx];
-    final hints = ['同步或手动添加影视类型', '同步或手动添加书籍类型', '同步或手动添加笔记标签'];
+    final hints = ['同步或手动添加影视类型', '同步或手动添加书籍类型', '同步或手动添加笔记标签', '同步或手动添加游戏类型'];
 
     return Center(
       key: ValueKey('empty_$type'),
@@ -543,6 +548,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
     } else if (_currentType == 'book_genre') {
       for (final b in provider.books.where((b) => !b.isDeleted && b.genres.contains(tagName))) {
         items.add((title: b.title, subtitle: b.authors.take(2).join(' / '), type: '书籍'));
+      }
+    } else if (_currentType == 'game_genre') {
+      for (final g in provider.games.where((g) => !g.isDeleted && g.genres.contains(tagName))) {
+        items.add((title: g.title, subtitle: g.platforms.take(2).join(' / '), type: '游戏'));
       }
     } else {
       for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) {

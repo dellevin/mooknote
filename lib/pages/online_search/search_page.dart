@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../note/note_detail_page.dart';
+import '../game/game_detail_page.dart';
 import '../../widgets/fade_in_local_image.dart';
 
 /// 搜索页面
@@ -23,6 +24,7 @@ class _SearchPageState extends State<SearchPage> {
   bool _showMovies = true;
   bool _showBooks = true;
   bool _showNotes = true;
+  bool _showGames = true;
 
   List<_SearchResult> _results = [];
   bool _hasSearched = false;
@@ -92,6 +94,16 @@ class _SearchPageState extends State<SearchPage> {
         }
       }
     }
+    if (_showGames) {
+      for (final game in provider.games.where((g) => !g.isDeleted)) {
+        if (game.title.toLowerCase().contains(lowerKeyword) ||
+            game.genres.any((g) => g.toLowerCase().contains(lowerKeyword)) ||
+            game.platforms.any((p) => p.toLowerCase().contains(lowerKeyword)) ||
+            game.versions.any((v) => v.toLowerCase().contains(lowerKeyword))) {
+          results.add(_SearchResult(type: 'game', data: game));
+        }
+      }
+    }
     setState(() {
       _results = results;
       _hasSearched = true;
@@ -120,6 +132,11 @@ class _SearchPageState extends State<SearchPage> {
         if (t.toLowerCase().contains(lowerKeyword)) tagSet.add(t);
       }
     }
+    for (final g in provider.games.where((g) => !g.isDeleted)) {
+      for (final genre in g.genres) {
+        if (genre.toLowerCase().contains(lowerKeyword)) tagSet.add(genre);
+      }
+    }
     return tagSet.toList()..sort();
   }
 
@@ -137,6 +154,9 @@ class _SearchPageState extends State<SearchPage> {
       }
       for (final n in provider.notes.where((n) => !n.isDeleted)) {
         if (n.tags.contains(tag)) results.add(_SearchResult(type: 'note', data: n));
+      }
+      for (final g in provider.games.where((g) => !g.isDeleted)) {
+        if (g.genres.contains(tag)) results.add(_SearchResult(type: 'game', data: g));
       }
       _results = results;
     });
@@ -203,12 +223,13 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildFilterRow() {
     final keyword = _searchController.text.trim();
     final provider = context.read<AppProvider>();
-    int movieCount = 0, bookCount = 0, noteCount = 0;
+    int movieCount = 0, bookCount = 0, noteCount = 0, gameCount = 0;
     if (keyword.isNotEmpty) {
       final kw = keyword.toLowerCase();
       movieCount = provider.movies.where((m) => !m.isDeleted && (m.title.toLowerCase().contains(kw) || m.alternateTitles.any((t) => t.toLowerCase().contains(kw)) || (m.summary?.toLowerCase().contains(kw) ?? false) || m.genres.any((g) => g.toLowerCase().contains(kw)) || m.directors.any((d) => d.toLowerCase().contains(kw)) || m.writers.any((w) => w.toLowerCase().contains(kw)) || m.actors.any((a) => a.toLowerCase().contains(kw)))).length;
       bookCount = provider.books.where((b) => !b.isDeleted && (b.title.toLowerCase().contains(kw) || b.alternateTitles.any((t) => t.toLowerCase().contains(kw)) || (b.summary?.toLowerCase().contains(kw) ?? false) || b.authors.any((a) => a.toLowerCase().contains(kw)))).length;
       noteCount = provider.notes.where((n) => !n.isDeleted && (n.title.toLowerCase().contains(kw) || n.content.toLowerCase().contains(kw) || n.tags.any((t) => t.toLowerCase().contains(kw)))).length;
+      gameCount = provider.games.where((g) => !g.isDeleted && (g.title.toLowerCase().contains(kw) || g.genres.any((e) => e.toLowerCase().contains(kw)) || g.platforms.any((p) => p.toLowerCase().contains(kw)) || g.versions.any((v) => v.toLowerCase().contains(kw)))).length;
     }
 
     return Padding(
@@ -219,6 +240,8 @@ class _SearchPageState extends State<SearchPage> {
         _filterChip('书籍', Icons.menu_book_outlined, _showBooks, bookCount, () { setState(() { _showBooks = !_showBooks; _performSearch(); }); }),
         const SizedBox(width: 8),
         _filterChip('笔记', Icons.note_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); }),
+        const SizedBox(width: 8),
+        _filterChip('游戏', Icons.sports_esports_outlined, _showGames, gameCount, () { setState(() { _showGames = !_showGames; _performSearch(); }); }),
       ]),
     );
   }
@@ -304,6 +327,7 @@ class _SearchPageState extends State<SearchPage> {
                     case 'movie': return _buildMovieItem(item.data as Movie);
                     case 'book': return _buildBookItem(item.data as Book);
                     case 'note': return _buildNoteItem(item.data as Note);
+                    case 'game': return _buildGameItem(item.data as Game);
                     default: return const SizedBox.shrink();
                   }
                 },
@@ -479,6 +503,46 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  Widget _buildGameItem(Game game) {
+    final colors = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GameDetailPage(game: game))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+        child: Row(children: [
+          _posterThumb(game.coverPath, Icons.sports_esports_outlined),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                _typeBadge('游戏'),
+                const Spacer(),
+                _statusBadge(game.status, colors),
+              ]),
+              const SizedBox(height: 6),
+              Text(game.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              const SizedBox(height: 4),
+              Row(children: [
+                if (game.rating != null) ...[
+                  Icon(Icons.star, size: 13, color: const Color(0xFFFFB800)),
+                  const SizedBox(width: 2),
+                  Text('${game.rating}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFFFB800))),
+                  const SizedBox(width: 8),
+                ],
+                if (game.platforms.isNotEmpty)
+                  Expanded(child: Text(game.platforms.take(2).join(' · '), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)))),
+              ]),
+            ]),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.15), size: 18),
+        ]),
+      ),
+    );
+  }
+
   Widget _posterThumb(String? path, IconData fallback) {
     final colors = Theme.of(context).colorScheme;
     return Container(
@@ -503,9 +567,10 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _statusBadge(String status, ColorScheme colors) {
     final (label, bg, fg) = switch (status) {
-      'watched' || 'read' => ('已看' , colors.primary, colors.onPrimary),
-      'watching' || 'reading' => ('在看', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
-      'want_to_watch' || 'want_to_read' => ('想看', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      'watched' || 'read' || 'completed' => ('已看' , colors.primary, colors.onPrimary),
+      'watching' || 'reading' || 'playing' => ('在看', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
+      'want_to_watch' || 'want_to_read' || 'want_to_play' => ('想看', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      'abandoned' => ('弃游', colors.errorContainer, colors.onError),
       _ => ('', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.3)),
     };
     if (label.isEmpty) return const SizedBox.shrink();

@@ -8,6 +8,9 @@ import '../data/movie/movie_review_dao.dart';
 import '../data/movie/movie_poster_dao.dart';
 import '../data/book/book_review_dao.dart';
 import '../data/book/book_excerpt_dao.dart';
+import '../data/game/game_dao.dart';
+import '../data/game/game_review_dao.dart';
+import '../data/game/game_screenshot_dao.dart';
 import '../data/tag/tag_dao.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
@@ -25,11 +28,15 @@ class AppProvider extends ChangeNotifier {
   final MoviePosterDao _posterDao = MoviePosterDao();
   final BookReviewDao _bookReviewDao = BookReviewDao();
   final BookExcerptDao _bookExcerptDao = BookExcerptDao();
+  final GameDao _gameDao = GameDao();
+  final GameReviewDao _gameReviewDao = GameReviewDao();
+  final GameScreenshotDao _gameScreenshotDao = GameScreenshotDao();
   final TagDao _tagDao = TagDao();
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
   List<Note> _notes = [];
+  List<Game> _games = [];
 
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
@@ -44,6 +51,7 @@ class AppProvider extends ChangeNotifier {
   Movie? _selectedMovie;
   Book? _selectedBook;
   Note? _selectedNote;
+  Game? _selectedGame;
 
   // 主题模式
   ThemeMode _themeMode = ThemeMode.system;
@@ -68,6 +76,15 @@ class AppProvider extends ChangeNotifier {
 
   // 书架模式（不显示分类，按创建时间排序）
   bool _bookshelfMode = false;
+
+  // 游戏选中的状态 (0: 已通关，1: 在玩，2: 想玩，3: 弃游)
+  int _gameStatusIndex = 0;
+
+  // 游戏列表布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
+  int _gameLayoutStyle = 0;
+
+  // 游戏墙模式
+  bool _gameWallMode = false;
   
   // 侧边菜单是否打开
   bool _drawerOpen = false;
@@ -91,11 +108,13 @@ class AppProvider extends ChangeNotifier {
       _movieDao.getAllMovies(),
       _bookDao.getAllBooks(),
       _noteDao.getAllNotes(),
+      _gameDao.getAllGames(),
     ]);
     _movies = results[0] as List<Movie>;
     _books = results[1] as List<Book>;
     _notes = results[2] as List<Note>;
-    debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}');
+    _games = results[3] as List<Game>;
+    debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}, games=${_games.length}');
     notifyListeners();
   }
 
@@ -105,12 +124,15 @@ class AppProvider extends ChangeNotifier {
     _movieLayoutStyle = userPrefs.movieLayoutStyle;
     _movieWallMode = userPrefs.movieWallMode;
     _bookshelfMode = userPrefs.bookshelfMode;
+    _gameLayoutStyle = userPrefs.gameLayoutStyle;
+    _gameWallMode = userPrefs.gameWallMode;
     final defaultIndex = userPrefs.defaultMainTabIndex;
     // 确保选中的标签是启用的
     final showMovie = userPrefs.showMovieTab;
     final showBook = userPrefs.showBookTab;
     final showNote = userPrefs.showNoteTab;
-    final enabled = [showMovie, showBook, showNote];
+    final showGame = userPrefs.showGameTab;
+    final enabled = [showMovie, showBook, showNote, showGame];
     if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
       _mainTabIndex = defaultIndex;
     } else {
@@ -119,8 +141,10 @@ class AppProvider extends ChangeNotifier {
         _mainTabIndex = 0;
       } else if (showBook) {
         _mainTabIndex = 1;
-      } else {
+      } else if (showNote) {
         _mainTabIndex = 2;
+      } else if (showGame) {
+        _mainTabIndex = 3;
       }
     }
     notifyListeners();
@@ -141,6 +165,12 @@ class AppProvider extends ChangeNotifier {
   // 加载笔记数据
   Future<void> loadNotes({int sortMode = 0}) async {
     _notes = await _noteDao.getAllNotes(sortMode: sortMode);
+    notifyListeners();
+  }
+
+  // 加载游戏数据
+  Future<void> loadGames() async {
+    _games = await _gameDao.getAllGames();
     notifyListeners();
   }
 
@@ -168,17 +198,25 @@ class AppProvider extends ChangeNotifier {
     return _noteDao.getNotesPaged(limit: _pageSize, offset: offset, sortMode: sortMode);
   }
 
+  Future<List<Game>> loadGamesPaged({String? status, required int offset, int sortMode = 0}) async {
+    return _gameDao.getGamesPaged(status: status, limit: _pageSize, offset: offset, sortMode: sortMode);
+  }
+
   // Getters
   int get mainTabIndex => _mainTabIndex;
   int get bottomNavIndex => _bottomNavIndex;
   Movie? get selectedMovie => _selectedMovie;
   Book? get selectedBook => _selectedBook;
   Note? get selectedNote => _selectedNote;
+  Game? get selectedGame => _selectedGame;
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
   bool get movieWallMode => _movieWallMode;
   int get bookStatusIndex => _bookStatusIndex;
   bool get bookshelfMode => _bookshelfMode;
+  int get gameStatusIndex => _gameStatusIndex;
+  int get gameLayoutStyle => _gameLayoutStyle;
+  bool get gameWallMode => _gameWallMode;
   bool get drawerOpen => _drawerOpen;
   bool get bottomNavVisible => _bottomNavVisible;
   ThemeMode get themeMode => _themeMode;
@@ -187,6 +225,7 @@ class AppProvider extends ChangeNotifier {
   List<Movie> get movies => UnmodifiableListView(_movies);
   List<Book> get books => UnmodifiableListView(_books);
   List<Note> get notes => UnmodifiableListView(_notes);
+  List<Game> get games => UnmodifiableListView(_games);
 
   // 根据状态获取影视列表
   List<Movie> getMoviesByStatus(String status) {
@@ -228,6 +267,11 @@ class AppProvider extends ChangeNotifier {
 
   void selectNote(Note? note) {
     _selectedNote = note;
+    notifyListeners();
+  }
+
+  void selectGame(Game? game) {
+    _selectedGame = game;
     notifyListeners();
   }
 
@@ -311,6 +355,23 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setGameStatusIndex(int index) {
+    _gameStatusIndex = index;
+    notifyListeners();
+  }
+
+  void setGameLayoutStyle(int style) {
+    _gameLayoutStyle = style;
+    UserPrefs().setGameLayoutStyle(style);
+    notifyListeners();
+  }
+
+  void setGameWallMode(bool enabled) {
+    _gameWallMode = enabled;
+    UserPrefs().setGameWallMode(enabled);
+    notifyListeners();
+  }
+
   void toggleDrawer() {
     _drawerOpen = !_drawerOpen;
     notifyListeners();
@@ -389,6 +450,31 @@ class AppProvider extends ChangeNotifier {
     await loadNotes();
   }
 
+  Future<void> addGame(Game game) async {
+    await _gameDao.insertGame(game);
+    await loadGames();
+  }
+
+  Future<void> updateGame(Game game) async {
+    await _gameDao.updateGame(game);
+    await loadGames();
+  }
+
+  Future<void> removeGame(String id) async {
+    await _gameDao.deleteGame(id);
+    await loadGames();
+  }
+
+  /// 仅更新游戏封面偏移量（不触发全量刷新）
+  Future<void> updateGameCoverOffset(String gameId, double offset) async {
+    await _gameDao.updateCoverOffset(gameId, offset);
+    final idx = _games.indexWhere((g) => g.id == gameId);
+    if (idx != -1) {
+      _games[idx] = _games[idx].copyWith(coverOffset: offset);
+      notifyListeners();
+    }
+  }
+
   Future<void> toggleNotePin(String id, bool isPinned) async {
     await _noteDao.togglePin(id, isPinned);
     await loadNotes();
@@ -446,6 +532,59 @@ class AppProvider extends ChangeNotifier {
   /// 获取影视的海报数量
   Future<int> getMoviePosterCount(String movieId) async {
     return await _posterDao.getPosterCount(movieId);
+  }
+
+  // ========== 游戏评价相关方法 ==========
+
+  /// 获取游戏的所有评价
+  Future<List<GameReview>> getGameReviews(String gameId) async {
+    return await _gameReviewDao.getReviewsByGameId(gameId);
+  }
+
+  /// 添加游戏评价
+  Future<void> addGameReview(GameReview review) async {
+    await _gameReviewDao.insertReview(review);
+  }
+
+  /// 更新游戏评价
+  Future<void> updateGameReview(GameReview review) async {
+    await _gameReviewDao.updateReview(review);
+  }
+
+  /// 删除游戏评价
+  Future<void> removeGameReview(String id) async {
+    await _gameReviewDao.deleteReview(id);
+  }
+
+  /// 获取游戏的评价数量
+  Future<int> getGameReviewCount(String gameId) async {
+    return await _gameReviewDao.getReviewCount(gameId);
+  }
+
+  // ========== 游戏截图相关方法 ==========
+
+  /// 获取游戏的所有截图
+  Future<List<GameScreenshot>> getGameScreenshots(String gameId) async {
+    return await _gameScreenshotDao.getScreenshotsByGameId(gameId);
+  }
+
+  /// 添加游戏截图
+  Future<void> addGameScreenshot(GameScreenshot screenshot) async {
+    await _gameScreenshotDao.insertScreenshot(screenshot);
+  }
+
+  /// 删除游戏截图
+  Future<void> removeGameScreenshot(String id) async {
+    final screenshot = await _gameScreenshotDao.getScreenshotById(id);
+    if (screenshot != null) {
+      await ImagePathHelper.instance.deleteFile(screenshot.screenshotPath);
+    }
+    await _gameScreenshotDao.deleteScreenshot(id);
+  }
+
+  /// 获取游戏的截图数量
+  Future<int> getGameScreenshotCount(String gameId) async {
+    return await _gameScreenshotDao.getScreenshotCount(gameId);
   }
 
   // ========== 书评相关方法 ==========
@@ -554,15 +693,34 @@ class AppProvider extends ChangeNotifier {
     await ImagePathHelper.instance.deleteNoteImages(id);
     await _noteDao.permanentDeleteNote(id);
   }
+
+  /// 获取已删除的游戏
+  Future<List<Game>> getDeletedGames() async {
+    return await _gameDao.getDeletedGames();
+  }
+
+  /// 恢复游戏
+  Future<void> restoreGame(String id) async {
+    await _gameDao.restoreGame(id);
+    await loadGames();
+  }
+
+  /// 彻底删除游戏
+  Future<void> permanentDeleteGame(String id) async {
+    await ImagePathHelper.instance.deleteGameImages(id);
+    await _gameDao.permanentDeleteGame(id);
+  }
   
   /// 清空回收站
   Future<void> clearRecycleBin() async {
     final deletedMovies = await getDeletedMovies();
     final deletedBooks = await getDeletedBooks();
     final deletedNotes = await getDeletedNotes();
+    final deletedGames = await getDeletedGames();
     final deletedMovieReviews = await getDeletedMovieReviews();
     final deletedBookReviews = await getDeletedBookReviews();
     final deletedBookExcerpts = await getDeletedBookExcerpts();
+    final deletedGameReviews = await getDeletedGameReviews();
 
     for (final movie in deletedMovies) {
       await permanentDeleteMovie(movie.id);
@@ -573,6 +731,9 @@ class AppProvider extends ChangeNotifier {
     for (final note in deletedNotes) {
       await permanentDeleteNote(note.id);
     }
+    for (final game in deletedGames) {
+      await permanentDeleteGame(game.id);
+    }
     for (final review in deletedMovieReviews) {
       await _reviewDao.permanentDeleteReview(review.id);
     }
@@ -582,10 +743,14 @@ class AppProvider extends ChangeNotifier {
     for (final excerpt in deletedBookExcerpts) {
       await _bookExcerptDao.permanentDeleteExcerpt(excerpt.id);
     }
+    for (final review in deletedGameReviews) {
+      await _gameReviewDao.permanentDeleteReview(review.id);
+    }
 
     await loadMovies();
     await loadBooks();
     await loadNotes();
+    await loadGames();
   }
 
   // ========== 影评书评回收站 ==========
@@ -612,6 +777,20 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> permanentDeleteBookReview(String id) async {
     await _bookReviewDao.permanentDeleteReview(id);
+  }
+
+  // ========== 游戏评价回收站 ==========
+
+  Future<List<GameReview>> getDeletedGameReviews() async {
+    return await _gameReviewDao.getDeletedReviews();
+  }
+
+  Future<void> restoreGameReview(String id) async {
+    await _gameReviewDao.restoreReview(id);
+  }
+
+  Future<void> permanentDeleteGameReview(String id) async {
+    await _gameReviewDao.permanentDeleteReview(id);
   }
 
   // ========== 摘抄回收站方法 ==========
@@ -715,6 +894,15 @@ class AppProvider extends ChangeNotifier {
       }
     }
 
+    // 游戏类型
+    final games = await db.query('games',
+        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+    for (final row in games) {
+      for (final genre in parseStringListGeneric(row['genres'])) {
+        await insertTag(genre, 'game_genre');
+      }
+    }
+
     return added;
   }
 
@@ -726,6 +914,8 @@ class AppProvider extends ChangeNotifier {
         await loadBooks();
       case 'note_tag':
         await loadNotes();
+      case 'game_genre':
+        await loadGames();
     }
   }
 }
