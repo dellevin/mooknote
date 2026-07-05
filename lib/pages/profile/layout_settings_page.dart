@@ -15,8 +15,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   int _noteLayout = 0;
   int _movieLayout = 0;
   int _bookLayout = 0;
+  int _gameLayout = 0;
   bool _movieWallMode = false;
   bool _bookshelfMode = false;
+  bool _gameWallMode = false;
 
   @override
   void initState() {
@@ -24,8 +26,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     _noteLayout = _userPrefs.noteLayoutStyle;
     _movieLayout = _userPrefs.movieLayoutStyle;
     _bookLayout = _userPrefs.bookLayoutStyle;
+    _gameLayout = _userPrefs.gameLayoutStyle;
     _movieWallMode = _userPrefs.movieWallMode;
     _bookshelfMode = _userPrefs.bookshelfMode;
+    _gameWallMode = _userPrefs.gameWallMode;
   }
 
   @override
@@ -98,6 +102,32 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               (2, Icons.timeline_outlined, '时间线'),
             ],
             onChanged: (v) => _setLayout('note', v),
+          ),
+          const SizedBox(height: 8),
+          Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+              color: colors.outlineVariant.withValues(alpha: 0.5)),
+          const SizedBox(height: 8),
+
+          // ── 游戏 ──
+          _buildCategoryHeader(Icons.sports_esports_outlined, '游戏', colors.primary),
+          _buildWallSwitch(
+            icon: Icons.wallpaper_outlined,
+            title: '游戏墙模式',
+            subtitle: '显示全部游戏，不区分状态',
+            value: _gameWallMode,
+            onChanged: (v) => _setWallMode('game', v),
+          ),
+          _buildLayoutSelector(
+            selected: _gameLayout,
+            options: [
+              (0, Icons.grid_view_outlined, '海报网格'),
+              (1, Icons.view_list_outlined, '列表'),
+              (2, Icons.crop_landscape_outlined, '大图卡片'),
+            ],
+            onChanged: (v) => _setLayout('game', v),
           ),
         ],
       ),
@@ -194,6 +224,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         await _userPrefs.setBookshelfMode(value);
         setState(() => _bookshelfMode = value);
         if (mounted) context.read<AppProvider>().setBookshelfMode(value);
+      case 'game':
+        await _userPrefs.setGameWallMode(value);
+        setState(() => _gameWallMode = value);
+        if (mounted) context.read<AppProvider>().setGameWallMode(value);
     }
   }
 
@@ -209,6 +243,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       case 'book':
         await _userPrefs.setBookLayoutStyle(value);
         setState(() => _bookLayout = value);
+      case 'game':
+        await _userPrefs.setGameLayoutStyle(value);
+        setState(() => _gameLayout = value);
+        if (mounted) context.read<AppProvider>().setGameLayoutStyle(value);
     }
   }
 
