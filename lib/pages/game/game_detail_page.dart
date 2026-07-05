@@ -960,7 +960,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
             onPressed: () async {
               final provider = context.read<AppProvider>();
               await provider.removeGame(widget.game.id);
-              if (!mounted) return;
+              if (!mounted || !context.mounted) return;
               if (widget.embedded) {
                 Navigator.of(context).pop();
                 provider.selectGame(null);
@@ -969,7 +969,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 navigator.pop();
                 navigator.pop();
               }
-              if (mounted) {
+              if (mounted && context.mounted) {
                 ToastUtil.show(context, '已删除');
               }
             },

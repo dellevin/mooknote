@@ -45,12 +45,19 @@ class _MainContentPageState extends State<MainContentPage> {
   }
 
   void _loadTabSettings() {
-    setState(() {
-      _showMovieTab = _userPrefs.showMovieTab;
-      _showBookTab = _userPrefs.showBookTab;
-      _showNoteTab = _userPrefs.showNoteTab;
-      _showGameTab = _userPrefs.showGameTab;
-    });
+    final newMovie = _userPrefs.showMovieTab;
+    final newBook = _userPrefs.showBookTab;
+    final newNote = _userPrefs.showNoteTab;
+    final newGame = _userPrefs.showGameTab;
+    if (newMovie != _showMovieTab || newBook != _showBookTab ||
+        newNote != _showNoteTab || newGame != _showGameTab) {
+      setState(() {
+        _showMovieTab = newMovie;
+        _showBookTab = newBook;
+        _showNoteTab = newNote;
+        _showGameTab = newGame;
+      });
+    }
   }
 
   @override

@@ -7,6 +7,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -286,7 +287,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
         await File(pickedFile.path).copy(targetPath);
 
         final newPoster = MoviePoster(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: const Uuid().v4(),
           movieId: widget.movie.id,
           posterPath: targetPath,
           createdAt: DateTime.now(),
@@ -423,7 +424,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
       final newPoster = MoviePoster(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: const Uuid().v4(),
         movieId: widget.movie.id,
         posterPath: targetPath,
         createdAt: DateTime.now(),

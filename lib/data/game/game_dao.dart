@@ -144,6 +144,9 @@ class GameDao {
   // 彻底删除游戏
   Future<int> permanentDeleteGame(String id) => _wrap('permanentDeleteGame', () async {
     final db = await _dbHelper.database;
+    // 清理子记录，防止孤儿数据
+    await db.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
+    await db.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
     return await db.delete(
       'games',
       where: 'id = ?',

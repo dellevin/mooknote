@@ -447,8 +447,9 @@ class _MovieTabPageState extends State<MovieTabPage> {
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeMovie(movie.id);
+              if (!ctx.mounted) return;
               Navigator.pop(ctx);
-              _loadFirst();
+              if (mounted) _loadFirst();
             },
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

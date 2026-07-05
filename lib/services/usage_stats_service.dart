@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:uuid/uuid.dart';
 import '../utils/user_prefs.dart';
 import '../utils/server_config.dart';
 
@@ -87,7 +88,7 @@ class UsageStatsService with WidgetsBindingObserver {
       final info = await deviceInfo.linuxInfo;
       rawId = '${info.name}-${info.id}';
     } else {
-      rawId = DateTime.now().millisecondsSinceEpoch.toString();
+      rawId = const Uuid().v4();
     }
 
     final bytes = utf8.encode(rawId);

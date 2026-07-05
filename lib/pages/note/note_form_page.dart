@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../providers/app_provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -97,7 +98,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         await context.read<AppProvider>().updateNote(updatedNote);
         _savedNote = updatedNote;
       } else {
-        final noteId = now.millisecondsSinceEpoch.toString();
+        final noteId = const Uuid().v4();
         List<String> finalImages = [];
         if (_images.isNotEmpty) {
           final oldNoteId = _tempNoteId ?? noteId;
@@ -701,7 +702,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       await context.read<AppProvider>().updateNote(updatedNote);
     } else {
       // 添加新笔记
-      final noteId = now.millisecondsSinceEpoch.toString();
+      final noteId = const Uuid().v4();
 
       // 如果有图片，需要移动到正确的ID目录
       List<String> finalImages = [];
@@ -799,7 +800,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           noteId = widget.note!.id;
         } else {
           // 新建模式：使用已存在的临时ID或生成新的
-          noteId = _tempNoteId ?? DateTime.now().millisecondsSinceEpoch.toString();
+          noteId = _tempNoteId ?? const Uuid().v4();
           _tempNoteId = noteId;
         }
 
@@ -810,10 +811,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
         await File(image.path).copy(targetPath);
 
+        if (!mounted) return;
         setState(() => _images.add(targetPath));
       }
     } catch (e) {
-      ToastUtil.show(context, '选择图片失败: $e');
+      if (mounted) ToastUtil.show(context, '选择图片失败: $e');
     }
   }
 

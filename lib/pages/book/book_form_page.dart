@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -157,12 +158,14 @@ class _BookFormPageState extends State<BookFormPage> {
                   _halfCard('书名', _titleController.text, Icons.book_outlined, required: true,
                     onTap: () async {
                       final r = await TextInputPanel.show(context: context, title: '书名', initialValue: _titleController.text, hint: '请输入书名');
+                      if (!mounted) return;
                       if (r != null) setState(() => _titleController.text = r);
                     },
                   ),
                   _halfCard('别名', _alternateTitles.isEmpty ? '' : '${_alternateTitles.length}个：${_alternateTitles.join('、')}', Icons.alternate_email_outlined,
                     onTap: () async {
                       final r = await GenreSelectorPage.show(context: context, title: '添加别名', existingTags: [], initialSelected: _alternateTitles, hint: '输入别名');
+                      if (!mounted) return;
                       if (r != null) setState(() => _alternateTitles = r);
                     },
                   ),
@@ -173,6 +176,7 @@ class _BookFormPageState extends State<BookFormPage> {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.authors).toList();
                       final r = await GenreSelectorPage.show(context: context, title: '选择作者', existingTagsFuture: compute(_collectUnique, data), initialSelected: _authors, hint: '如：余华、莫言');
+                      if (!mounted) return;
                       if (r != null) setState(() => _authors = r);
                     },
                   ),
@@ -181,12 +185,14 @@ class _BookFormPageState extends State<BookFormPage> {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.translators).toList();
                       final r = await GenreSelectorPage.show(context: context, title: '选择译者', existingTagsFuture: compute(_collectUnique, data), initialSelected: _translators, hint: '如：李继宏、许钧');
+                      if (!mounted) return;
                       if (r != null) setState(() => _translators = r);
                     },
                   ),
                   _halfCard('出版社', _publisherController.text, Icons.business_outlined,
                     onTap: () async {
                       final r = await TextInputPanel.show(context: context, title: '出版社', initialValue: _publisherController.text, hint: '请输入出版社');
+                      if (!mounted) return;
                       if (r != null) setState(() => _publisherController.text = r);
                     },
                   ),
@@ -198,12 +204,14 @@ class _BookFormPageState extends State<BookFormPage> {
                       final tags = await provider.getTags('book_genre', excludeHidden: true);
                       if (!mounted) return;
                       final r = await GenreSelectorPage.show(context: context, title: '选择类型', existingTags: tags.map((t) => t['name'] as String).toList(), initialSelected: _genres, hint: '如：小说、历史、传记');
+                      if (!mounted) return;
                       if (r != null) setState(() => _genres = r);
                     },
                   ),
                   _halfCard('ISBN', _isbnController.text, Icons.qr_code_outlined,
                     onTap: () async {
                       final r = await TextInputPanel.show(context: context, title: 'ISBN', initialValue: _isbnController.text, hint: '请输入ISBN编号');
+                      if (!mounted) return;
                       if (r != null) setState(() => _isbnController.text = r);
                     },
                   ),
@@ -425,10 +433,11 @@ class _BookFormPageState extends State<BookFormPage> {
       final picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 1200, imageQuality: 85);
       if (picked != null) {
         final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final bookId = widget.book?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final bookId = widget.book?.id ?? const Uuid().v4();
         final targetPath = await ImagePathHelper.instance.getBookCoverPath(bookId, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         await File(picked.path).copy(targetPath);
+        if (!mounted) return;
         setState(() => _coverPath = targetPath);
       }
     } catch (e) {
@@ -492,10 +501,11 @@ class _BookFormPageState extends State<BookFormPage> {
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final bookId = widget.book?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      final bookId = widget.book?.id ?? const Uuid().v4();
       final targetPath = await ImagePathHelper.instance.getBookCoverPath(bookId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
+      if (!mounted) return;
       setState(() => _coverPath = targetPath);
     } catch (e) {
       debugPrint('封面下载失败: $e');
@@ -556,21 +566,25 @@ class _BookFormPageState extends State<BookFormPage> {
 
   Future<void> _selectPublishDate() async {
     final picked = await showDatePicker(context: context, initialDate: _publishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    if (!mounted) return;
     if (picked != null) setState(() => _publishDate = picked);
   }
 
   Future<void> _selectStartDate() async {
     final picked = await showDatePicker(context: context, initialDate: _startDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    if (!mounted) return;
     if (picked != null) setState(() => _startDate = picked);
   }
 
   Future<void> _selectFinishDate() async {
     final picked = await showDatePicker(context: context, initialDate: _finishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    if (!mounted) return;
     if (picked != null) setState(() => _finishDate = picked);
   }
 
   Future<void> _editSummary() async {
     final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => _SummaryEditorPage(initialText: _summaryController.text)));
+    if (!mounted) return;
     if (result != null) setState(() => _summaryController.text = result);
   }
 
@@ -619,7 +633,7 @@ class _BookFormPageState extends State<BookFormPage> {
       final now = DateTime.now();
 
       if (widget.book == null) {
-        final newBookId = now.millisecondsSinceEpoch.toString();
+        final newBookId = const Uuid().v4();
         String? finalCoverPath;
         if (_coverPath != null && _coverPath!.isNotEmpty) {
           finalCoverPath = await _moveCoverToNewId(_coverPath!, newBookId);

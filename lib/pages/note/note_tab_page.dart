@@ -392,7 +392,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
           TextButton(onPressed: () => Navigator.pop(ctx),
             child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
-            onPressed: () async { await context.read<AppProvider>().removeNote(note.id); Navigator.pop(ctx); _loadFirst(); },
+            onPressed: () async { await context.read<AppProvider>().removeNote(note.id); if (!ctx.mounted) return; Navigator.pop(ctx); if (mounted) _loadFirst(); },
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/sync/backup_service.dart';
-import '../../services/sync/auto_backup_service.dart';
 import '../../utils/toast_util.dart';
 
 /// 本地备份页面
@@ -16,27 +15,6 @@ class BackupPage extends StatefulWidget {
 class _BackupPageState extends State<BackupPage> {
   bool _isExporting = false;
   bool _isImporting = false;
-  bool _autoBackupEnabled = false;
-  bool _isLoading = true;
-  String? _backupDirPath;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAutoBackupStatus();
-  }
-
-  Future<void> _loadAutoBackupStatus() async {
-    final enabled = await AutoBackupService.instance.getEnabled();
-    final dirPath = await AutoBackupService.instance.getBackupDirectoryPath();
-    if (mounted) {
-      setState(() {
-        _autoBackupEnabled = enabled;
-        _backupDirPath = dirPath;
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,16 +24,9 @@ class _BackupPageState extends State<BackupPage> {
       appBar: AppBar(
         title: const Text('本地备份'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
+      body: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // 自动备份开关 - 紧凑一行
-                _buildAutoBackupSection(colors),
-
-                const SizedBox(height: 20),
-
                 // 手动备份
                 _buildSectionTitle(colors, '手动备份'),
                 const SizedBox(height: 10),
@@ -491,75 +462,5 @@ class _BackupPageState extends State<BackupPage> {
         setState(() => _isImporting = false);
       }
     }
-  }
-
-  /// 构建自动备份区域 - 紧凑一行
-  Widget _buildAutoBackupSection(ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outline, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.schedule,
-                size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _backupDirPath != null && _autoBackupEnabled
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '自动本地备份',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _backupDirPath!,
-                        style:
-                            TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  )
-                : Text(
-                    '自动本地备份',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
-                  ),
-          ),
-          Switch(
-            value: _autoBackupEnabled,
-            onChanged: (value) async {
-              setState(() => _autoBackupEnabled = value);
-              await AutoBackupService.instance.setEnabled(value);
-              if (value) {
-                ToastUtil.show(context, '自动备份已开启');
-              } else {
-                ToastUtil.show(context, '自动备份已关闭');
-              }
-              await _loadAutoBackupStatus();
-            },
-            activeThumbColor: colors.primary,
-            activeTrackColor: colors.primary.withValues(alpha: 0.3),
-            inactiveThumbColor: colors.surface,
-            inactiveTrackColor: colors.outline,
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 
@@ -313,7 +314,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
 
       if (widget.review == null) {
         final newReview = BookReview(
-          id: now.millisecondsSinceEpoch.toString(),
+          id: const Uuid().v4(),
           bookId: widget.bookId,
           content: _contentController.text.trim(),
           reviewer: _reviewerController.text.trim(),

@@ -101,19 +101,58 @@ class AppProvider extends ChangeNotifier {
   String? _lastEditedItemId;
   String? get lastEditedItemId => _lastEditedItemId;
 
+  // 数据库初始化失败标志
+  bool _dbInitFailed = false;
+  bool get dbInitFailed => _dbInitFailed;
+
+  /// 标记数据库初始化失败（供 UI 提示重试）
+  void markDbInitFailed() {
+    _dbInitFailed = true;
+    notifyListeners();
+  }
+
+  /// 重试数据库初始化
+  Future<void> retryInitDatabase() async {
+    _dbInitFailed = false;
+    notifyListeners();
+    await initDatabase();
+  }
+
   // 初始化数据库
   Future<void> initDatabase() async {
     debugPrint('[AppProvider] initDatabase');
-    final results = await Future.wait([
-      _movieDao.getAllMovies(),
-      _bookDao.getAllBooks(),
-      _noteDao.getAllNotes(),
-      _gameDao.getAllGames(),
-    ]);
-    _movies = results[0] as List<Movie>;
-    _books = results[1] as List<Book>;
-    _notes = results[2] as List<Note>;
-    _games = results[3] as List<Game>;
+    // 独立加载每个 DAO，避免一个失败导致全部中断
+    try {
+      _movies = await _movieDao.getAllMovies();
+    } catch (e) {
+      debugPrint('[AppProvider] 加载影视数据失败: $e');
+    }
+    try {
+      _books = await _bookDao.getAllBooks();
+    } catch (e) {
+      debugPrint('[AppProvider] 加载书籍数据失败: $e');
+    }
+    try {
+      _notes = await _noteDao.getAllNotes();
+    } catch (e) {
+      debugPrint('[AppProvider] 加载笔记数据失败: $e');
+    }
+    try {
+      _games = await _gameDao.getAllGames();
+    } catch (e) {
+      debugPrint('[AppProvider] 加载游戏数据失败: $e');
+    }
+    // 检查是否全部失败
+    if (_movies.isEmpty && _books.isEmpty && _notes.isEmpty && _games.isEmpty) {
+      // 可能是初始化全部失败（非空数据库场景下不合理），标记以便 UI 提示
+      try {
+        final db = await DatabaseHelper.instance.database;
+        final count = (await db.rawQuery('SELECT COUNT(*) as cnt FROM movies')).first['cnt'] as int;
+        if (count > 0) _dbInitFailed = true;
+      } catch (_) {
+        _dbInitFailed = true;
+      }
+    }
     debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}, games=${_games.length}');
     notifyListeners();
   }
@@ -387,12 +426,15 @@ class AppProvider extends ChangeNotifier {
   // 添加影视记录
   Future<void> addMovie(Movie movie) async {
     await _movieDao.insertMovie(movie);
-    await loadMovies();
+    _movies.add(movie);
+    notifyListeners();
   }
 
   Future<void> updateMovie(Movie movie) async {
     await _movieDao.updateMovie(movie);
-    await loadMovies();
+    final idx = _movies.indexWhere((m) => m.id == movie.id);
+    if (idx != -1) _movies[idx] = movie;
+    notifyListeners();
   }
 
   /// 仅更新封面偏移量（不触发全量刷新）
@@ -417,52 +459,65 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> removeMovie(String id) async {
     await _movieDao.deleteMovie(id);
-    await loadMovies();
+    _movies.removeWhere((m) => m.id == id);
+    notifyListeners();
   }
 
   Future<void> addBook(Book book) async {
     await _bookDao.insertBook(book);
-    await loadBooks();
+    _books.add(book);
+    notifyListeners();
   }
 
   Future<void> updateBook(Book book) async {
     await _bookDao.updateBook(book);
-    await loadBooks();
+    final idx = _books.indexWhere((b) => b.id == book.id);
+    if (idx != -1) _books[idx] = book;
+    notifyListeners();
   }
 
   Future<void> removeBook(String id) async {
     await _bookDao.deleteBook(id);
-    await loadBooks();
+    _books.removeWhere((b) => b.id == id);
+    notifyListeners();
   }
 
   Future<void> addNote(Note note) async {
     await _noteDao.insertNote(note);
-    await loadNotes();
+    _notes.add(note);
+    notifyListeners();
   }
 
   Future<void> updateNote(Note note) async {
     await _noteDao.updateNote(note);
-    await loadNotes();
+    final idx = _notes.indexWhere((n) => n.id == note.id);
+    if (idx != -1) _notes[idx] = note;
+    notifyListeners();
   }
 
   Future<void> removeNote(String id) async {
     await _noteDao.deleteNote(id);
-    await loadNotes();
+    _notes.removeWhere((n) => n.id == id);
+    notifyListeners();
   }
 
   Future<void> addGame(Game game) async {
     await _gameDao.insertGame(game);
-    await loadGames();
+    _games.add(game);
+    notifyListeners();
   }
 
   Future<void> updateGame(Game game) async {
     await _gameDao.updateGame(game);
-    await loadGames();
+    final idx = _games.indexWhere((g) => g.id == game.id);
+    if (idx != -1) _games[idx] = game;
+    notifyListeners();
   }
 
   Future<void> removeGame(String id) async {
     await _gameDao.deleteGame(id);
-    await loadGames();
+    _games.removeWhere((g) => g.id == id);
+    notifyListeners();
   }
 
   /// 仅更新游戏封面偏移量（不触发全量刷新）
@@ -477,7 +532,10 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> toggleNotePin(String id, bool isPinned) async {
     await _noteDao.togglePin(id, isPinned);
-    await loadNotes();
+    final idx = _notes.indexWhere((n) => n.id == id);
+    if (idx != -1) {
+      _notes[idx] = _notes[idx].copyWith(isPinned: isPinned);
+    }
     notifyListeners();
   }
   
@@ -722,29 +780,59 @@ class AppProvider extends ChangeNotifier {
     final deletedBookExcerpts = await getDeletedBookExcerpts();
     final deletedGameReviews = await getDeletedGameReviews();
 
-    for (final movie in deletedMovies) {
-      await permanentDeleteMovie(movie.id);
+    // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
+    final movieIds = deletedMovies.map((m) => m.id).toList();
+    final bookIds = deletedBooks.map((b) => b.id).toList();
+    final noteIds = deletedNotes.map((n) => n.id).toList();
+    final gameIds = deletedGames.map((g) => g.id).toList();
+
+    // 事务内批量删除数据库记录，保证原子性
+    final db = await DatabaseHelper.instance.database;
+    await db.transaction((txn) async {
+      for (final id in movieIds) {
+        await txn.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
+        await txn.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
+        await txn.delete('movies', where: 'id = ?', whereArgs: [id]);
+      }
+      for (final id in bookIds) {
+        await txn.delete('book_reviews', where: 'book_id = ?', whereArgs: [id]);
+        await txn.delete('book_excerpts', where: 'book_id = ?', whereArgs: [id]);
+        await txn.delete('books', where: 'id = ?', whereArgs: [id]);
+      }
+      for (final id in noteIds) {
+        await txn.delete('notes', where: 'id = ?', whereArgs: [id]);
+      }
+      for (final id in gameIds) {
+        await txn.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
+        await txn.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
+        await txn.delete('games', where: 'id = ?', whereArgs: [id]);
+      }
+      for (final review in deletedMovieReviews) {
+        await txn.delete('movie_reviews', where: 'id = ?', whereArgs: [review.id]);
+      }
+      for (final review in deletedBookReviews) {
+        await txn.delete('book_reviews', where: 'id = ?', whereArgs: [review.id]);
+      }
+      for (final excerpt in deletedBookExcerpts) {
+        await txn.delete('book_excerpts', where: 'id = ?', whereArgs: [excerpt.id]);
+      }
+      for (final review in deletedGameReviews) {
+        await txn.delete('game_reviews', where: 'id = ?', whereArgs: [review.id]);
+      }
+    });
+
+    // 事务成功后，清理关联的图片文件（文件删除失败不影响数据一致性）
+    for (final id in movieIds) {
+      await ImagePathHelper.instance.deleteMovieImages(id);
     }
-    for (final book in deletedBooks) {
-      await permanentDeleteBook(book.id);
+    for (final id in bookIds) {
+      await ImagePathHelper.instance.deleteBookImages(id);
     }
-    for (final note in deletedNotes) {
-      await permanentDeleteNote(note.id);
+    for (final id in noteIds) {
+      await ImagePathHelper.instance.deleteNoteImages(id);
     }
-    for (final game in deletedGames) {
-      await permanentDeleteGame(game.id);
-    }
-    for (final review in deletedMovieReviews) {
-      await _reviewDao.permanentDeleteReview(review.id);
-    }
-    for (final review in deletedBookReviews) {
-      await _bookReviewDao.permanentDeleteReview(review.id);
-    }
-    for (final excerpt in deletedBookExcerpts) {
-      await _bookExcerptDao.permanentDeleteExcerpt(excerpt.id);
-    }
-    for (final review in deletedGameReviews) {
-      await _gameReviewDao.permanentDeleteReview(review.id);
+    for (final id in gameIds) {
+      await ImagePathHelper.instance.deleteGameImages(id);
     }
 
     await loadMovies();

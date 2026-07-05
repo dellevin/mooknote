@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -256,6 +257,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       arguments: url,
     );
 
+    if (!mounted) return;
     // 处理返回的影视信息
     if (result != null && result is Map<String, dynamic>) {
       _fillMovieInfo(result);
@@ -353,7 +355,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
       final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      final movieId = widget.movie?.id ?? const Uuid().v4();
       final targetPath = await ImagePathHelper.instance.getMoviePosterPath(movieId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
@@ -436,6 +438,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         initialValue: _titleController.text,
                         hint: '请输入影视名称',
                       );
+                      if (!mounted) return;
                       if (result != null) setState(() => _titleController.text = result);
                     },
                   ),
@@ -458,6 +461,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         initialSelected: _alternateTitles,
                         hint: '输入别名',
                       );
+                      if (!mounted) return;
                       if (result != null) setState(() => _alternateTitles = result);
                     },
                   ),
@@ -483,6 +487,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         initialSelected: _directors,
                         hint: '如：张艺谋、李安',
                       );
+                      if (!mounted) return;
                       if (result != null) setState(() => _directors = result);
                     },
                   ),
@@ -506,6 +511,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         initialSelected: _writers,
                         hint: '如：刘慈欣、王家卫',
                       );
+                      if (!mounted) return;
                       if (result != null) setState(() => _writers = result);
                     },
                   ),
@@ -531,6 +537,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         initialSelected: _actors,
                         hint: '如：梁朝伟、周星驰',
                       );
+                      if (!mounted) return;
                       if (result != null) setState(() => _actors = result);
                     },
                   ),
@@ -556,6 +563,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         initialSelected: _genres,
                         hint: '如：剧情、科幻、悬疑',
                       );
+                      if (!mounted) return;
                       if (result != null) setState(() => _genres = result);
                     },
                   ),
@@ -734,6 +742,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         builder: (_) => _SummaryEditorPage(initialText: _summaryController.text),
       ),
     );
+    if (!mounted) return;
     if (result != null) {
       setState(() => _summaryController.text = result);
     }
@@ -1144,7 +1153,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
         // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID（保存时会替换）
-        final movieId = widget.movie?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final movieId = widget.movie?.id ?? const Uuid().v4();
 
         // 保存到新的路径结构: images/movies/{movieId}/{fileName}
         final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
@@ -1155,6 +1164,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
         await File(pickedFile.path).copy(targetPath);
 
+        if (!mounted) return;
         setState(() => _posterPath = targetPath);
       }
     } catch (e) {
@@ -1237,6 +1247,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       builder: (context, child) => child!,
     );
 
+    if (!mounted) return;
     if (picked != null) {
       setState(() => _releaseDate = picked);
     }
@@ -1252,6 +1263,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       builder: (context, child) => child!,
     );
 
+    if (!mounted) return;
     if (picked != null) {
       setState(() => _watchDate = picked);
     }
@@ -1321,7 +1333,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
     if (widget.movie == null) {
       // 生成新的影视ID
-      final newMovieId = now.millisecondsSinceEpoch.toString();
+      final newMovieId = const Uuid().v4();
 
       // 如果有海报，需要移动到正确的ID目录
       String? finalPosterPath;

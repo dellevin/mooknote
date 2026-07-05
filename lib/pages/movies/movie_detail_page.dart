@@ -1189,7 +1189,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             onPressed: () async {
               final provider = context.read<AppProvider>();
               await provider.removeMovie(widget.movie.id);
-              if (!mounted) return;
+              if (!mounted || !context.mounted) return;
               if (widget.embedded) {
                 Navigator.of(context).pop(); // close dialog
                 provider.selectMovie(null);
@@ -1198,7 +1198,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 navigator.pop();
                 navigator.pop();
               }
-              if (mounted) {
+              if (mounted && context.mounted) {
                 ToastUtil.show(context, '已删除');
               }
             },

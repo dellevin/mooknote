@@ -14,7 +14,6 @@ import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
-import 'services/sync/auto_backup_service.dart';
 import 'services/usage_stats_service.dart';
 import 'providers/app_provider.dart';
 
@@ -42,22 +41,11 @@ Future<void> _bootstrap(AppProvider appProvider) async {
     await appProvider.initDatabase();
   } catch (e) {
     debugPrint('[Startup] 数据库初始化失败: $e');
+    appProvider.markDbInitFailed();
   }
   appProvider.initMainTabIndex();
 
-  unawaited(_initAutoBackup());
   unawaited(_initUsageStats());
-}
-
-Future<void> _initAutoBackup() async {
-  try {
-    final isLocalAutoBackupEnabled = await AutoBackupService.instance.getEnabled();
-    if (isLocalAutoBackupEnabled) {
-      await AutoBackupService.instance.start();
-    }
-  } catch (e) {
-    debugPrint('初始化自动备份失败: $e');
-  }
 }
 
 Future<void> _initUsageStats() async {

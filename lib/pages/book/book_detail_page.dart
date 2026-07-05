@@ -1374,14 +1374,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeBook(widget.book.id);
-              if (!mounted) return;
+              if (!mounted || !context.mounted) return;
               Navigator.pop(context);
               if (widget.embedded) {
                 context.read<AppProvider>().selectBook(null);
               } else {
                 Navigator.pop(context);
               }
-              ToastUtil.show(context, '已删除');
+              if (mounted && context.mounted) {
+                ToastUtil.show(context, '已删除');
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -185,6 +186,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           initialValue: _titleController.text,
                           hint: '请输入游戏名称',
                         );
+                        if (!mounted) return;
                         if (result != null) setState(() => _titleController.text = result);
                       },
                     ),
@@ -210,6 +212,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           initialSelected: _platforms,
                           hint: '如：PS5、Switch、Steam',
                         );
+                        if (!mounted) return;
                         if (result != null) setState(() => _platforms = result);
                       },
                     ),
@@ -235,6 +238,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           initialSelected: _versions,
                           hint: '如：标准版、豪华版',
                         );
+                        if (!mounted) return;
                         if (result != null) setState(() => _versions = result);
                       },
                     ),
@@ -269,6 +273,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           initialSelected: _genres,
                           hint: '如：RPG、动作、冒险',
                         );
+                        if (!mounted) return;
                         if (result != null) setState(() => _genres = result);
                       },
                     ),
@@ -305,6 +310,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           initialSelected: _purchasePlatforms,
                           hint: '如：Steam、eShop、PlayStation Store',
                         );
+                        if (!mounted) return;
                         if (result != null) setState(() => _purchasePlatforms = result);
                       },
                     ),
@@ -344,6 +350,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           hint: '如：298元、49.99美元',
                           keyboardType: TextInputType.text,
                         );
+                        if (!mounted) return;
                         if (result != null) setState(() => _purchasePriceController.text = result);
                       },
                     ),
@@ -496,6 +503,7 @@ class _GameFormPageState extends State<GameFormPage> {
         builder: (_) => _SummaryEditorPage(initialText: _summaryController.text),
       ),
     );
+    if (!mounted) return;
     if (result != null) {
       setState(() => _summaryController.text = result);
     }
@@ -753,10 +761,11 @@ class _GameFormPageState extends State<GameFormPage> {
 
       if (pickedFile != null) {
         final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final gameId = widget.game?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final gameId = widget.game?.id ?? const Uuid().v4();
         final targetPath = await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         await File(pickedFile.path).copy(targetPath);
+        if (!mounted) return;
         setState(() => _coverPath = targetPath);
       }
     } catch (e) {
@@ -919,11 +928,12 @@ class _GameFormPageState extends State<GameFormPage> {
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final gameId = widget.game?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      final gameId = widget.game?.id ?? const Uuid().v4();
       final targetPath = await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
+      if (!mounted) return;
       setState(() => _coverPath = targetPath);
     } catch (e) {
       debugPrint('封面下载失败: $e');
@@ -1009,6 +1019,7 @@ class _GameFormPageState extends State<GameFormPage> {
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       builder: (context, child) => child!,
     );
+    if (!mounted) return;
     if (picked != null) {
       setState(() => _purchaseDate = picked);
     }
@@ -1073,7 +1084,7 @@ class _GameFormPageState extends State<GameFormPage> {
       final now = DateTime.now();
 
       if (widget.game == null) {
-        final newGameId = now.millisecondsSinceEpoch.toString();
+        final newGameId = const Uuid().v4();
         String? finalCoverPath;
         if (_coverPath != null && _coverPath!.isNotEmpty) {
           finalCoverPath = await _moveCoverToNewId(_coverPath!, newGameId);

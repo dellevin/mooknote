@@ -446,8 +446,9 @@ class _GameTabPageState extends State<GameTabPage> {
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeGame(game.id);
+              if (!ctx.mounted) return;
               Navigator.pop(ctx);
-              _loadFirst();
+              if (mounted) _loadFirst();
             },
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

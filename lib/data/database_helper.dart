@@ -159,17 +159,7 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
       }
     }
-    // v16: 确保 cover_offset 列存在（v15 的数据库可能缺少此列）
-    if (oldVersion < 16) {
-      final movieCols = await db.rawQuery('PRAGMA table_info(movies)');
-      if (!movieCols.any((col) => col['name'] == 'cover_offset')) {
-        await db.execute('ALTER TABLE movies ADD COLUMN cover_offset REAL DEFAULT 0');
-      }
-      final bookCols = await db.rawQuery('PRAGMA table_info(books)');
-      if (!bookCols.any((col) => col['name'] == 'cover_offset')) {
-        await db.execute('ALTER TABLE books ADD COLUMN cover_offset REAL DEFAULT 0');
-      }
-    }
+    // v16: 已合并到 v15（cover_offset 列的添加逻辑相同，v15 的 PRAGMA 检查已确保幂等）
     if (oldVersion < 17) {
       await db.execute('ALTER TABLE tags ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0');
     }
@@ -248,9 +238,7 @@ class DatabaseHelper {
     if (oldVersion < 26) {
       await _upgradeBooksTableV26(db);
     }
-    if (oldVersion < 27) {
-      await _upgradeBooksTableV27(db);
-    }
+    // v27: 已合并到 v26（start_date/finish_date 的添加逻辑相同，v26 的 PRAGMA 检查已确保幂等）
     if (oldVersion < 28) {
       // 移除 Note Plus 功能，删除 note_plus 表
       await db.execute('DROP TABLE IF EXISTS note_plus');
@@ -338,20 +326,6 @@ class DatabaseHelper {
           FOREIGN KEY (game_id) REFERENCES games (id)
         )
       ''');
-    }
-  }
-
-  /// 升级books表到V27（添加阅读始末日期字段）
-  Future<void> _upgradeBooksTableV27(Database db) async {
-    final columns = await db.rawQuery('PRAGMA table_info(books)');
-    final hasStartDate = columns.any((col) => col['name'] == 'start_date');
-    final hasFinishDate = columns.any((col) => col['name'] == 'finish_date');
-
-    if (!hasStartDate) {
-      await db.execute('ALTER TABLE books ADD COLUMN start_date TEXT');
-    }
-    if (!hasFinishDate) {
-      await db.execute('ALTER TABLE books ADD COLUMN finish_date TEXT');
     }
   }
 
@@ -567,153 +541,159 @@ class DatabaseHelper {
   
   /// 升级notes表到V4
   Future<void> _upgradeNotesTableV4(Database db) async {
-    // 备份旧数据
-    final oldData = await db.query('notes');
-    
-    // 删除旧表
-    await db.execute('DROP TABLE IF EXISTS notes');
-    
-    // 创建新表
-    await db.execute('''
-      CREATE TABLE notes (
-        id TEXT PRIMARY KEY,
-        title TEXT DEFAULT '',
-        content TEXT NOT NULL,
-        content_type TEXT DEFAULT 'markdown',
-        tags TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-    ''');
-    
-    // 迁移旧数据（将title字段恢复）
-    for (final row in oldData) {
-      try {
-        final now = DateTime.now().toIso8601String();
-        final title = row['title']?.toString() ?? '';
-        final content = row['content']?.toString() ?? '';
-        
-        await db.insert('notes', {
-          'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          'title': title,
-          'content': content,
-          'content_type': 'markdown',
-          'tags': row['tags'] ?? '',
-          'created_at': row['created_at']?.toString() ?? now,
-          'updated_at': row['updated_at']?.toString() ?? now,
-        });
-      } catch (e) {
-        debugPrint('[DB] 迁移笔记记录失败: $e');
+    await db.transaction((txn) async {
+      // 备份旧数据
+      final oldData = await txn.query('notes');
+
+      // 删除旧表
+      await txn.execute('DROP TABLE IF EXISTS notes');
+
+      // 创建新表
+      await txn.execute('''
+        CREATE TABLE notes (
+          id TEXT PRIMARY KEY,
+          title TEXT DEFAULT '',
+          content TEXT NOT NULL,
+          content_type TEXT DEFAULT 'markdown',
+          tags TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+
+      // 迁移旧数据（将title字段恢复）
+      for (final row in oldData) {
+        try {
+          final now = DateTime.now().toIso8601String();
+          final title = row['title']?.toString() ?? '';
+          final content = row['content']?.toString() ?? '';
+
+          await txn.insert('notes', {
+            'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            'title': title,
+            'content': content,
+            'content_type': 'markdown',
+            'tags': row['tags'] ?? '',
+            'created_at': row['created_at']?.toString() ?? now,
+            'updated_at': row['updated_at']?.toString() ?? now,
+          });
+        } catch (e) {
+          debugPrint('[DB] 迁移笔记记录失败: $e');
+        }
       }
-    }
+    });
   }
 
   /// 升级books表到V3
   Future<void> _upgradeBooksTableV3(Database db) async {
-    // 备份旧数据
-    final oldData = await db.query('books');
-    
-    // 删除旧表
-    await db.execute('DROP TABLE IF EXISTS books');
-    
-    // 创建新表
-    await db.execute('''
-      CREATE TABLE books (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        cover_path TEXT,
-        authors TEXT,
-        alternate_titles TEXT,
-        publisher TEXT,
-        genres TEXT,
-        summary TEXT,
-        rating REAL,
-        status TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
-      )
-    ''');
-    
-    // 迁移旧数据
-    for (final row in oldData) {
-      try {
-        final now = DateTime.now().toIso8601String();
-        await db.insert('books', {
-          'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          'title': row['title']?.toString() ?? '',
-          'cover_path': row['cover'],
-          'authors': row['author'] != null ? '["${row['author']}"]' : '[]',
-          'alternate_titles': '[]',
-          'publisher': null,
-          'genres': '[]',
-          'summary': row['note'],
-          'rating': row['rating'],
-          'status': row['status'] ?? 'want_to_read',
-          'created_at': now,
-          'updated_at': now,
-          'is_deleted': 0,
-        });
-      } catch (e) {
-        debugPrint('[DB] 迁移书籍记录失败: $e');
+    await db.transaction((txn) async {
+      // 备份旧数据
+      final oldData = await txn.query('books');
+
+      // 删除旧表
+      await txn.execute('DROP TABLE IF EXISTS books');
+
+      // 创建新表
+      await txn.execute('''
+        CREATE TABLE books (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          cover_path TEXT,
+          authors TEXT,
+          alternate_titles TEXT,
+          publisher TEXT,
+          genres TEXT,
+          summary TEXT,
+          rating REAL,
+          status TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          is_deleted INTEGER DEFAULT 0
+        )
+      ''');
+
+      // 迁移旧数据
+      for (final row in oldData) {
+        try {
+          final now = DateTime.now().toIso8601String();
+          await txn.insert('books', {
+            'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            'title': row['title']?.toString() ?? '',
+            'cover_path': row['cover'],
+            'authors': row['author'] != null ? '["${row['author']}"]' : '[]',
+            'alternate_titles': '[]',
+            'publisher': null,
+            'genres': '[]',
+            'summary': row['note'],
+            'rating': row['rating'],
+            'status': row['status'] ?? 'want_to_read',
+            'created_at': now,
+            'updated_at': now,
+            'is_deleted': 0,
+          });
+        } catch (e) {
+          debugPrint('[DB] 迁移书籍记录失败: $e');
+        }
       }
-    }
+    });
   }
 
   /// 升级movies表到V2
   Future<void> _upgradeMoviesTableV2(Database db) async {
-    // 备份旧数据
-    final oldData = await db.query('movies');
-    
-    // 删除旧表
-    await db.execute('DROP TABLE IF EXISTS movies');
-    
-    // 创建新表
-    await db.execute('''
-      CREATE TABLE movies (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        poster_path TEXT,
-        release_date TEXT,
-        directors TEXT,
-        writers TEXT,
-        actors TEXT,
-        genres TEXT,
-        alternate_titles TEXT,
-        summary TEXT,
-        rating REAL,
-        status TEXT NOT NULL,
-        category TEXT NOT NULL DEFAULT 'movie',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
-      )
-    ''');
+    await db.transaction((txn) async {
+      // 备份旧数据
+      final oldData = await txn.query('movies');
 
-    // 迁移旧数据（尽可能保留）
-    for (final row in oldData) {
-      try {
-        await db.insert('movies', {
-          'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          'title': row['title']?.toString() ?? '',
-          'poster_path': row['poster_path'],
-          'release_date': null,
-          'directors': '[]',
-          'writers': '[]',
-          'actors': '[]',
-          'genres': '[]',
-          'alternate_titles': '[]',
-          'summary': row['note'],
-          'rating': row['rating'],
-          'status': row['status'] ?? 'want_to_watch',
-          'created_at': row['created_at']?.toString() ?? DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-          'is_deleted': row['is_deleted'] ?? 0,
-        });
-      } catch (e) {
-        debugPrint('[DB] 迁移影视记录失败: $e');
+      // 删除旧表
+      await txn.execute('DROP TABLE IF EXISTS movies');
+
+      // 创建新表
+      await txn.execute('''
+        CREATE TABLE movies (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          poster_path TEXT,
+          release_date TEXT,
+          directors TEXT,
+          writers TEXT,
+          actors TEXT,
+          genres TEXT,
+          alternate_titles TEXT,
+          summary TEXT,
+          rating REAL,
+          status TEXT NOT NULL,
+          category TEXT NOT NULL DEFAULT 'movie',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          is_deleted INTEGER DEFAULT 0
+        )
+      ''');
+
+      // 迁移旧数据（尽可能保留）
+      for (final row in oldData) {
+        try {
+          await txn.insert('movies', {
+            'id': row['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            'title': row['title']?.toString() ?? '',
+            'poster_path': row['poster_path'],
+            'release_date': null,
+            'directors': '[]',
+            'writers': '[]',
+            'actors': '[]',
+            'genres': '[]',
+            'alternate_titles': '[]',
+            'summary': row['note'],
+            'rating': row['rating'],
+            'status': row['status'] ?? 'want_to_watch',
+            'created_at': row['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+            'is_deleted': row['is_deleted'] ?? 0,
+          });
+        } catch (e) {
+          debugPrint('[DB] 迁移影视记录失败: $e');
+        }
       }
-    }
+    });
   }
 
   // 创建数据库表
