@@ -217,81 +217,89 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
   }
 
   Widget _buildContentInput(ColorScheme colors) {
-    return GestureDetector(
-      onTap: _editContent,
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(minHeight: 140),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _contentController.text.isEmpty ? '在这里粘贴或输入书中的原文段落…' : _contentController.text,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.8,
-                color: _contentController.text.isEmpty ? colors.onSurface.withValues(alpha: 0.25) : colors.onSurface,
+    return Container(
+      constraints: const BoxConstraints(minHeight: 140, maxHeight: 280),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _contentController,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              style: TextStyle(fontSize: 15, height: 1.8, color: colors.onSurface),
+              decoration: InputDecoration(
+                hintText: '在这里粘贴或输入书中的原文段落…',
+                hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
               ),
-              maxLines: 6,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text('$_contentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-                const SizedBox(width: 4),
-                Icon(Icons.edit_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.25)),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('$_contentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _editContent,
+                child: Icon(Icons.open_in_full, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCommentInput(ColorScheme colors) {
-    return GestureDetector(
-      onTap: _editComment,
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(minHeight: 80),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _commentController.text.isEmpty ? '记录思考、联想或评论…' : _commentController.text,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.8,
-                color: _commentController.text.isEmpty ? colors.onSurface.withValues(alpha: 0.25) : colors.onSurface,
+    return Container(
+      constraints: const BoxConstraints(minHeight: 80, maxHeight: 280),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _commentController,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              style: TextStyle(fontSize: 15, height: 1.8, color: colors.onSurface),
+              decoration: InputDecoration(
+                hintText: '记录思考、联想或评论…',
+                hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
               ),
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text('$_commentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-                const SizedBox(width: 4),
-                Icon(Icons.edit_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.25)),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('$_commentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _editComment,
+                child: Icon(Icons.open_in_full, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
