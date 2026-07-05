@@ -30,15 +30,39 @@ class _CustomDrawerState extends State<CustomDrawer> {
   String _version = '0.1.5';
 
   // 热力图缓存
-  List<Movie>? _cachedMovies;
-  List<Book>? _cachedBooks;
-  List<Note>? _cachedNotes;
-  List<Game>? _cachedGames;
+  int _cachedMoviesHash = 0;
+  int _cachedBooksHash = 0;
+  int _cachedNotesHash = 0;
+  int _cachedGamesHash = 0;
   Map<DateTime, int>? _cachedDailyCounts;
   int? _cachedMaxCount;
 
   // 最近添加缓存
   List<_RecentItem>? _cachedRecentItems;
+
+  /// 用列表长度 + 首末元素ID生成轻量哈希，避免 identical() 在 Provider 返回新实例时永远失败
+  int _listHash<T>(List<T> list) {
+    if (list.isEmpty) return 0;
+    final first = list.first;
+    final last = list.last;
+    return Object.hash(list.length, first, last);
+  }
+
+  bool _isHeatmapCacheValid(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
+    return _cachedDailyCounts != null &&
+        _cachedMoviesHash == _listHash(movies) &&
+        _cachedBooksHash == _listHash(books) &&
+        _cachedNotesHash == _listHash(notes) &&
+        _cachedGamesHash == _listHash(games);
+  }
+
+  bool _isRecentCacheValid(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
+    return _cachedRecentItems != null &&
+        _cachedMoviesHash == _listHash(movies) &&
+        _cachedBooksHash == _listHash(books) &&
+        _cachedNotesHash == _listHash(notes) &&
+        _cachedGamesHash == _listHash(games);
+  }
 
   @override
   void initState() {
@@ -264,11 +288,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   // ─── 热力图缓存计算 ───
 
   (int, Map<DateTime, int>) _computeDailyCounts(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
-    if (identical(movies, _cachedMovies) &&
-        identical(books, _cachedBooks) &&
-        identical(notes, _cachedNotes) &&
-        identical(games, _cachedGames) &&
-        _cachedDailyCounts != null) {
+    if (_isHeatmapCacheValid(movies, books, notes, games)) {
       return (_cachedMaxCount!, _cachedDailyCounts!);
     }
 
@@ -296,21 +316,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
     if (maxCount == 0) maxCount = 1;
 
-    _cachedMovies = movies;
-    _cachedBooks = books;
-    _cachedNotes = notes;
-    _cachedGames = games;
+    _cachedMoviesHash = _listHash(movies);
+    _cachedBooksHash = _listHash(books);
+    _cachedNotesHash = _listHash(notes);
+    _cachedGamesHash = _listHash(games);
     _cachedDailyCounts = dailyCounts;
     _cachedMaxCount = maxCount;
     return (maxCount, dailyCounts);
   }
 
   List<_RecentItem> _computeRecentItems(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
-    if (identical(movies, _cachedMovies) &&
-        identical(books, _cachedBooks) &&
-        identical(notes, _cachedNotes) &&
-        identical(games, _cachedGames) &&
-        _cachedRecentItems != null) {
+    if (_isRecentCacheValid(movies, books, notes, games)) {
       return _cachedRecentItems!;
     }
 
@@ -329,6 +345,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
     }
     items.sort((a, b) => b.date.compareTo(a.date));
 
+    _cachedMoviesHash = _listHash(movies);
+    _cachedBooksHash = _listHash(books);
+    _cachedNotesHash = _listHash(notes);
+    _cachedGamesHash = _listHash(games);
     _cachedRecentItems = items;
     return items;
   }

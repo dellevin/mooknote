@@ -53,6 +53,9 @@ class WebDAVService {
   // 默认自动同步间隔（分钟）
   static const int _defaultAutoSyncInterval = 5;
 
+  // HTTP 请求超时
+  static const Duration _httpTimeout = Duration(seconds: 30);
+
   Map<String, String>? _cachedConfig;
   Timer? _autoSyncTimer;
   bool _isAutoSyncEnabled = false;
@@ -426,7 +429,7 @@ class WebDAVService {
       request.headers['Content-Type'] = 'application/zip';
       request.bodyBytes = bytes;
 
-      var response = await client.send(request);
+      var response = await client.send(request).timeout(_httpTimeout);
 
       // 处理重定向
       if (response.statusCode == 301 || response.statusCode == 302 ||
@@ -437,7 +440,7 @@ class WebDAVService {
           request.headers['Authorization'] = _basicAuth(username, password);
           request.headers['Content-Type'] = 'application/zip';
           request.bodyBytes = bytes;
-          response = await client.send(request);
+          response = await client.send(request).timeout(_httpTimeout);
         }
       }
 
@@ -461,7 +464,7 @@ class WebDAVService {
       var request = http.Request('GET', Uri.parse(url));
       request.headers['Authorization'] = _basicAuth(username, password);
 
-      var response = await client.send(request);
+      var response = await client.send(request).timeout(_httpTimeout);
 
       // 处理重定向
       if (response.statusCode == 301 || response.statusCode == 302 ||
@@ -470,7 +473,7 @@ class WebDAVService {
         if (location != null) {
           request = http.Request('GET', Uri.parse(location));
           request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request);
+          response = await client.send(request).timeout(_httpTimeout);
         }
       }
 
@@ -508,7 +511,7 @@ class WebDAVService {
       var request = http.Request('HEAD', Uri.parse(zipUrl));
       request.headers['Authorization'] = _basicAuth(username, password);
 
-      var response = await client.send(request);
+      var response = await client.send(request).timeout(_httpTimeout);
 
       // 处理重定向
       if (response.statusCode == 301 || response.statusCode == 302 ||
@@ -517,7 +520,7 @@ class WebDAVService {
         if (location != null) {
           request = http.Request('HEAD', Uri.parse(location));
           request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request);
+          response = await client.send(request).timeout(_httpTimeout);
         }
       }
 
@@ -551,7 +554,7 @@ class WebDAVService {
       var request = http.Request('HEAD', Uri.parse(url));
       request.headers['Authorization'] = _basicAuth(username, password);
 
-      var response = await client.send(request);
+      var response = await client.send(request).timeout(_httpTimeout);
 
       // 处理重定向
       if (response.statusCode == 301 || response.statusCode == 302 ||
@@ -560,7 +563,7 @@ class WebDAVService {
         if (location != null) {
           request = http.Request('HEAD', Uri.parse(location));
           request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request);
+          response = await client.send(request).timeout(_httpTimeout);
         }
       }
 
