@@ -80,6 +80,10 @@ class AppProvider extends ChangeNotifier {
   int _editRefreshCounter = 0;
   int get editRefreshCounter => _editRefreshCounter;
 
+  // 最近编辑的条目 ID（用于就地更新，避免重置分页）
+  String? _lastEditedItemId;
+  String? get lastEditedItemId => _lastEditedItemId;
+
   // 初始化数据库
   Future<void> initDatabase() async {
     debugPrint('[AppProvider] initDatabase');
@@ -141,8 +145,10 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 编辑返回后触发列表页重载
-  void setEditRefresh() {
+  /// [itemId] 被编辑条目的 ID，用于就地更新而非重置分页
+  void setEditRefresh([String? itemId]) {
     _editRefreshCounter++;
+    _lastEditedItemId = itemId;
     notifyListeners();
   }
 

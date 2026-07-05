@@ -299,6 +299,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     );
     final provider = context.read<AppProvider>();
     Navigator.pushNamed(context, '/note-form', arguments: currentNote).then((_) async {
+      provider.setEditRefresh(currentNote.id);
       await provider.loadNotes();
     });
   }

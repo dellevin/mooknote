@@ -82,6 +82,20 @@ class _BookTabPageState extends State<BookTabPage> {
     final statusChanged = provider.bookStatusIndex != _lastStatusIndex;
     final countChanged = provider.books.length != _prevBookCount;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
+    if (editRefreshed && provider.lastEditedItemId != null) {
+      // 就地更新被编辑的条目，不重置分页
+      _lastEditRefreshCounter = provider.editRefreshCounter;
+      _prevBookCount = provider.books.length;
+      final editedId = provider.lastEditedItemId!;
+      final idx = _items.indexWhere((b) => b.id == editedId);
+      if (idx != -1) {
+        final updated = provider.books.where((b) => b.id == editedId).firstOrNull;
+        if (updated != null) {
+          setState(() { _items[idx] = updated; });
+        }
+      }
+      return;
+    }
     if (statusChanged || countChanged || editRefreshed) {
       _prevBookCount = provider.books.length;
       _loadFirst();

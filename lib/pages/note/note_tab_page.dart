@@ -30,6 +30,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   bool _initialized = false;
   int _lastScrollSignal = 0;
   int _prevNoteCount = -1;
+  int _lastEditRefreshCounter = 0;
 
   @override
   void initState() {
@@ -64,9 +65,27 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
     // 仅在数据实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
     final countChanged = provider.notes.length != _prevNoteCount;
-    if (countChanged) {
+    final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
+    if (editRefreshed && provider.lastEditedItemId != null) {
+      // 就地更新被编辑的条目，不重置分页
+      _lastEditRefreshCounter = provider.editRefreshCounter;
+      _prevNoteCount = provider.notes.length;
+      final editedId = provider.lastEditedItemId!;
+      final idx = _items.indexWhere((n) => n.id == editedId);
+      if (idx != -1) {
+        final updated = provider.notes.where((n) => n.id == editedId).firstOrNull;
+        if (updated != null) {
+          setState(() { _items[idx] = updated; });
+        }
+      }
+      return;
+    }
+    if (countChanged || editRefreshed) {
       _prevNoteCount = provider.notes.length;
       _loadFirst();
+    }
+    if (editRefreshed) {
+      _lastEditRefreshCounter = provider.editRefreshCounter;
     }
   }
 
@@ -98,7 +117,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     if (Breakpoint.isWideContent(context)) {
       context.read<AppProvider>().selectNote(note);
     } else {
-      Navigator.pushNamed(context, '/note-detail', arguments: note).then((_) => _loadFirst());
+      Navigator.pushNamed(context, '/note-detail', arguments: note);
     }
   }
 

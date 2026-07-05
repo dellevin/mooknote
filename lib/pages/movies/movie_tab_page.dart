@@ -74,6 +74,20 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final layoutChanged = provider.movieLayoutStyle != _prevLayoutStyle;
     final countChanged = provider.movies.length != _prevMovieCount;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
+    if (editRefreshed && provider.lastEditedItemId != null) {
+      // 就地更新被编辑的条目，不重置分页
+      _lastEditRefreshCounter = provider.editRefreshCounter;
+      _prevMovieCount = provider.movies.length;
+      final editedId = provider.lastEditedItemId!;
+      final idx = _items.indexWhere((m) => m.id == editedId);
+      if (idx != -1) {
+        final updated = provider.movies.where((m) => m.id == editedId).firstOrNull;
+        if (updated != null) {
+          setState(() { _items[idx] = updated; });
+        }
+      }
+      return;
+    }
     if (statusChanged || layoutChanged || countChanged || editRefreshed) {
       _prevLayoutStyle = provider.movieLayoutStyle;
       _prevMovieCount = provider.movies.length;
