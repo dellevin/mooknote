@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../utils/toast_util.dart';
+import '../../providers/app_provider.dart';
+import '../../utils/toast_util.dart';
 
 class TagManagementPage extends StatefulWidget {
   const TagManagementPage({super.key});

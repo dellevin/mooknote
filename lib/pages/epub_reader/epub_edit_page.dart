@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart';
-import '../../utils/epub/reader_dao.dart';
+import '../../data/epub/reader_dao.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/text_input_panel.dart';
 

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
-import '../../utils/epub/reader_dao.dart';
+import '../../data/epub/reader_dao.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'book_excerpt_form_page.dart';
 

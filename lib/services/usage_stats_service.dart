@@ -6,12 +6,12 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'user_prefs.dart';
-import 'server_config.dart';
+import '../utils/user_prefs.dart';
+import '../utils/server_config.dart';
 
 /// 匿名用户统计服务（静默运行，对用户不可见）
 ///
-/// App 启动后每 5 分钟向统计服务器发送匿名心跳。
+/// App 启动后每 1 分钟向统计服务器发送匿名心跳。
 /// 统计数据在服务端管理后台查看，App 内无入口。
 class UsageStatsService with WidgetsBindingObserver {
   static final UsageStatsService instance = UsageStatsService._();

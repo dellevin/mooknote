@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
-import '../../utils/sync/backup_service.dart';
-import '../../utils/sync/auto_backup_service.dart';
+import '../../services/sync/backup_service.dart';
+import '../../services/sync/auto_backup_service.dart';
 import '../../utils/toast_util.dart';
 
 /// 本地备份页面

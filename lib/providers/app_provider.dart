@@ -1,19 +1,19 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
-import '../utils/movie/movie_dao.dart';
-import '../utils/book/book_dao.dart';
-import '../utils/note/note_dao.dart';
-import '../utils/movie/movie_review_dao.dart';
-import '../utils/movie/movie_poster_dao.dart';
-import '../utils/book/book_review_dao.dart';
-import '../utils/book/book_excerpt_dao.dart';
-import '../utils/tag/tag_dao.dart';
-import '../utils/database_helper.dart';
+import '../data/movie/movie_dao.dart';
+import '../data/book/book_dao.dart';
+import '../data/note/note_dao.dart';
+import '../data/movie/movie_review_dao.dart';
+import '../data/movie/movie_poster_dao.dart';
+import '../data/book/book_review_dao.dart';
+import '../data/book/book_excerpt_dao.dart';
+import '../data/tag/tag_dao.dart';
+import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
 import '../utils/theme/app_theme.dart';
-import '../utils/font_download_manager.dart';
+import '../services/font_download_manager.dart';
 
 /// 应用全局状态管理
 class AppProvider extends ChangeNotifier {

@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../models/data_models.dart';
-import 'movies/movie_detail_page.dart';
-import 'book/book_detail_page.dart';
+import '../../providers/app_provider.dart';
+import '../../models/data_models.dart';
+import '../movies/movie_detail_page.dart';
+import '../book/book_detail_page.dart';
 
 /// 角色信息页面 - 列出所有导演/主演/编剧/作者
 class PersonListPage extends StatefulWidget {

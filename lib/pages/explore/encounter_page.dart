@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../utils/user_prefs.dart';
+import '../../providers/app_provider.dart';
+import '../../utils/user_prefs.dart';
 
 /// 相遇统计页
 class EncounterPage extends StatelessWidget {

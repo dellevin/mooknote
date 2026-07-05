@@ -1,13 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../models/data_models.dart';
-import '../widgets/fade_in_local_image.dart';
-import '../utils/toast_util.dart';
-import 'movies/movie_detail_page.dart';
-import 'book/book_detail_page.dart';
-import 'note/note_detail_page.dart';
+import '../../providers/app_provider.dart';
+import '../../models/data_models.dart';
+import '../../widgets/fade_in_local_image.dart';
+import '../../utils/toast_util.dart';
+import '../movies/movie_detail_page.dart';
+import '../book/book_detail_page.dart';
+import '../note/note_detail_page.dart';
 
 /// 漫步页面 - 随机发现内容
 class StrollPage extends StatefulWidget {

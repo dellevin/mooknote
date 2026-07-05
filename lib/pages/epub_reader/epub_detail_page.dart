@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../utils/epub/reader_dao.dart';
-import '../../utils/epub/epub_parser.dart';
-import '../../utils/epub/reader_models.dart';
-import '../../utils/book/book_dao.dart';
-import '../../utils/book/book_excerpt_dao.dart';
+import '../../data/epub/reader_dao.dart';
+import '../../services/epub/epub_parser.dart';
+import '../../data/epub/reader_models.dart';
+import '../../data/book/book_dao.dart';
+import '../../data/book/book_excerpt_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../models/data_models.dart';
 import '../book/book_detail_page.dart';

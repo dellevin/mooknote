@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
-import '../../utils/app_icon_channel.dart';
+import '../../services/app_icon_channel.dart';
 
 /// 应用图标选择页面
 class AppIconPickerPage extends StatefulWidget {

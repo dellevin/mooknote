@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:xml/xml.dart';
 
-import '../../utils/epub/epub_stream_service.dart';
+import '../../services/epub/epub_stream_service.dart';
 import 'book_session.dart';
 
 class SearchSheet extends StatefulWidget {

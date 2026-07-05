@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:http/http.dart' as http;
-import '../utils/server_config.dart';
+import '../../utils/server_config.dart';
 
 /// 用户服务协议 / 隐私政策查看页面
 class LegalPage extends StatefulWidget {

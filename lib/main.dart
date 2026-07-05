@@ -9,13 +9,13 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'pages/home_page.dart';
+import 'pages/home/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
-import 'utils/changelog_service.dart';
-import 'utils/sync/auto_backup_service.dart';
-import 'utils/usage_stats_service.dart';
+import 'services/changelog_service.dart';
+import 'services/sync/auto_backup_service.dart';
+import 'services/usage_stats_service.dart';
 import 'providers/app_provider.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();

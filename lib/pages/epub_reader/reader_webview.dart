@@ -5,12 +5,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import '../../utils/epub/epub_theme.dart';
+import '../../services/epub/epub_theme.dart';
 import 'book_session.dart';
-import '../../utils/epub/epub_webview_handler.dart';
-import '../../utils/epub/reader_scripts.dart';
-import '../../utils/epub/web/webview_bridge.dart';
-import '../../utils/epub/web/reader_api.dart';
+import '../../services/epub/epub_webview_handler.dart';
+import '../../services/epub/reader_scripts.dart';
+import '../../services/epub/web/webview_bridge.dart';
+import '../../services/epub/web/reader_api.dart';
 
 /// Controller for ReaderWebView that provides methods to control the WebView
 class ReaderWebViewController {

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import '../../utils/epub/reader_dao.dart';
+import '../../data/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import 'highlight_detail_sheet.dart';

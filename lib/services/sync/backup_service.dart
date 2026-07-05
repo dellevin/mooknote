@@ -8,8 +8,8 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import '../database_helper.dart';
-import '../user_prefs.dart';
+import '../../data/database_helper.dart';
+import '../../utils/user_prefs.dart';
 
 /// 数据备份服务 - 支持导出和导入数据（包含图片）
 class BackupService {

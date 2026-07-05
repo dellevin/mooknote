@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import '../../utils/epub/reader_models.dart';
+import '../../data/epub/reader_models.dart';
 
 /// Helper class to represent a visible row in the flattened TOC list
 class _TocRowItem {

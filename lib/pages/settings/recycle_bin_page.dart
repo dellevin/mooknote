@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../models/data_models.dart';
-import '../utils/toast_util.dart';
+import '../../providers/app_provider.dart';
+import '../../models/data_models.dart';
+import '../../utils/toast_util.dart';
 
 /// 回收站页面
 class RecycleBinPage extends StatefulWidget {

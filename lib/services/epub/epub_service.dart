@@ -4,8 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'epub_parser.dart';
-import 'reader_dao.dart';
-import 'reader_models.dart';
+import '../../data/epub/reader_dao.dart';
+import '../../data/epub/reader_models.dart';
 
 /// EPUB 服务层 - 管理导入、解压、删除
 class EpubService {

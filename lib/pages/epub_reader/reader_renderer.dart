@@ -4,9 +4,9 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import '../../utils/epub/epub_theme.dart';
-import '../../utils/epub/reader_settings.dart';
-import '../../utils/epub/epub_webview_handler.dart';
+import '../../services/epub/epub_theme.dart';
+import '../../services/epub/reader_settings.dart';
+import '../../services/epub/epub_webview_handler.dart';
 import 'book_session.dart';
 import 'reader_webview.dart';
 import 'page_turn/page_turn.dart';

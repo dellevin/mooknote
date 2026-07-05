@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'server_config.dart';
+import '../utils/server_config.dart';
 
 /// 更新日志数据模型
 class ChangelogItem {

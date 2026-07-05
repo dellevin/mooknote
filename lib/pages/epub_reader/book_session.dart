@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import '../../utils/epub/epub_webview_handler.dart';
-import '../../utils/epub/reader_dao.dart';
-import '../../utils/epub/reader_models.dart';
+import '../../services/epub/epub_webview_handler.dart';
+import '../../data/epub/reader_dao.dart';
+import '../../data/epub/reader_models.dart';
 
 /// Manages the current reading session including book data, TOC state, and
 /// progress tracking.  Adapted from lumina's BookSession but uses mooknote's

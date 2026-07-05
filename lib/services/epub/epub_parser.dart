@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
-import 'reader_models.dart';
+import '../../data/epub/reader_models.dart';
 
 /// EPUB 解析器 - 从 ZIP 归档中解析 EPUB 结构
 class EpubParser {

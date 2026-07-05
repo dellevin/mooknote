@@ -11,7 +11,7 @@ import '../../utils/user_prefs.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
-import '../../utils/epub/reader_dao.dart';
+import '../../data/epub/reader_dao.dart';
 import '../epub_reader/epub_highlights_page.dart';
 import '../epub_reader/reader_screen.dart';
 

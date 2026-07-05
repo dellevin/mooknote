@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
-import '../utils/font_download_manager.dart';
-import '../utils/toast_util.dart';
-import '../utils/user_prefs.dart';
+import '../../services/font_download_manager.dart';
+import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 
 /// 字体选择页面
 ///

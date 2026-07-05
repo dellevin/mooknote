@@ -2,10 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../models/data_models.dart';
-import '../utils/user_prefs.dart';
-import '../widgets/fade_in_local_image.dart';
+import '../../providers/app_provider.dart';
+import '../../models/data_models.dart';
+import '../../utils/user_prefs.dart';
+import '../../widgets/fade_in_local_image.dart';
 
 /// 数据统计页面 - 多维度数据分析
 class StatisticsPage extends StatefulWidget {

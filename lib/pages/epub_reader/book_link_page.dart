@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../utils/book/book_dao.dart';
-import '../../utils/epub/reader_dao.dart';
+import '../../data/book/book_dao.dart';
+import '../../data/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';

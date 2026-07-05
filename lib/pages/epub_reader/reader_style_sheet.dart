@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../utils/epub/epub_theme.dart';
+import '../../services/epub/epub_theme.dart';
 import 'widgets/integer_stepper.dart';
 import 'widgets/reader_scale_slider.dart';
 

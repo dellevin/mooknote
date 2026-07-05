@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../utils/user_prefs.dart';
-import '../utils/responsive.dart';
-import '../widgets/custom_drawer.dart';
-import '../widgets/bottom_nav_bar.dart';
-import '../widgets/add_sheet.dart';
+import '../../providers/app_provider.dart';
+import '../../utils/user_prefs.dart';
+import '../../utils/responsive.dart';
+import '../../widgets/custom_drawer.dart';
+import '../../widgets/bottom_nav_bar.dart';
+import '../../widgets/add_sheet.dart';
 import 'main_content_page.dart';
-import 'profile_page.dart';
+import '../profile/profile_page.dart';
 
 /// 主页 - 包含底部导航，可切换主页/我的
 class HomePage extends StatefulWidget {

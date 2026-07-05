@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../utils/epub/reader_dao.dart';
-import '../../utils/epub/epub_service.dart';
+import '../../data/epub/reader_dao.dart';
+import '../../services/epub/epub_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import 'epub_detail_page.dart';
