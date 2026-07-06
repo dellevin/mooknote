@@ -110,17 +110,6 @@ class EncounterPage extends StatelessWidget {
                     children: [
                       Divider(color: colors.outlineVariant, thickness: 0.5),
                       const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _statItem(context, '${movies.length}', '影视', Icons.movie_outlined),
-                          _statItem(context, '${books.length}', '书籍', Icons.menu_book_outlined),
-                          _statItem(context, '${notes.length}', '笔记', Icons.note_outlined),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Divider(color: colors.outlineVariant, thickness: 0.5),
-                      const SizedBox(height: 24),
                       Text(
                         '已记录',
                         style: TextStyle(
@@ -159,25 +148,6 @@ class EncounterPage extends StatelessWidget {
     if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return '$count';
-  }
-
-  Widget _statItem(BuildContext context, String value, String label, IconData icon) {
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.3)),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)),
-        ),
-      ],
-    );
   }
 
   Widget _recordItem(BuildContext context, String value, String label) {
