@@ -22,6 +22,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   bool _isConfigured = false;
   bool _obscurePassword = true;
   SyncDirection _syncDirection = SyncDirection.upload;
+  String _syncStep = '';
 
   // 远程备份信息
   DateTime? _remoteModifiedTime;
@@ -125,7 +126,28 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     setState(() => _isLoading = true);
 
     try {
-      final result = await WebDAVService.instance.syncData(direction: _syncDirection);
+      SyncResult result;
+
+      if (_syncDirection == SyncDirection.upload) {
+        // 上传：先打包再上传，分步显示
+        setState(() => _syncStep = '正在打包数据...');
+        final exportResult = await WebDAVService.instance.exportLocalData();
+        if (!exportResult.success || exportResult.zipPath == null) {
+          if (mounted) {
+            setState(() { _isLoading = false; _syncStep = ''; });
+            ToastUtil.show(context, exportResult.errorMessage ?? '创建备份失败');
+          }
+          return;
+        }
+        if (!mounted) return;
+        setState(() => _syncStep = '正在上传到云端...');
+        result = await WebDAVService.instance.uploadExportedData(exportResult);
+      } else {
+        // 下载
+        setState(() => _syncStep = '正在从云端下载...');
+        result = await WebDAVService.instance.syncData(direction: SyncDirection.download);
+      }
+
       if (!mounted) return;
 
       if (result.success) {
@@ -151,7 +173,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     } catch (e) {
       if (mounted) ToastUtil.show(context, '同步失败: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() { _isLoading = false; _syncStep = ''; });
     }
   }
 
@@ -433,11 +455,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
               const SizedBox(height: 40),
             ],
           ),
-          if (_isLoading)
-            Container(
-              color: colors.surface.withValues(alpha: 0.7),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
-            ),
         ],
       ),
     );
@@ -526,7 +543,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     );
   }
 
-  Widget _buildBtn(ColorScheme colors, String text, {VoidCallback? onTap, bool loading = false}) {
+  Widget _buildBtn(ColorScheme colors, String text, {VoidCallback? onTap}) {
     final disabled = onTap == null;
     return GestureDetector(
       onTap: onTap,
@@ -538,15 +555,9 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
-          child: loading
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, valueColor: AlwaysStoppedAnimation(colors.onPrimary)))
-              : Text(text,
-                  style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
         ),
       ),
     );
@@ -622,17 +633,31 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           const SizedBox(height: 16),
           const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildBtn(colors, '上传', onTap: _isLoading ? null : () => _showUploadConfirm(), loading: _isLoading),
+          if (_isLoading) ...[
+            SizedBox(
+              width: double.infinity,
+              child: LinearProgressIndicator(
+                backgroundColor: colors.surfaceContainerHighest,
+                color: colors.primary,
+                minHeight: 3,
+                borderRadius: BorderRadius.circular(1.5),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildBtn(colors, '下载', onTap: _isLoading ? null : () => _showDownloadConfirm(), loading: _isLoading),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+            Text(_syncStep, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildBtn(colors, '上传', onTap: _isLoading ? null : () => _showUploadConfirm()),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildBtn(colors, '下载', onTap: _isLoading ? null : () => _showDownloadConfirm()),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

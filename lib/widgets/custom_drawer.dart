@@ -140,6 +140,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final noteCount = provider.notes.length;
         final gameCount = provider.games.where((g) => !g.isDeleted).length;
 
+        // 根据功能开关过滤显示的统计项
+        final statItems = <Widget>[];
+        if (userPrefs.showMovieTab) statItems.add(_buildProfileStatRow(Icons.movie_outlined, movieCount, '观影'));
+        if (userPrefs.showBookTab) statItems.add(_buildProfileStatRow(Icons.menu_book_outlined, bookCount, '阅读'));
+        if (userPrefs.showNoteTab) statItems.add(_buildProfileStatRow(Icons.note_outlined, noteCount, '笔记'));
+        if (userPrefs.showGameTab) statItems.add(_buildProfileStatRow(Icons.sports_esports_outlined, gameCount, '游戏'));
+
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           padding: const EdgeInsets.all(20),
@@ -181,16 +188,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Divider(height: 1, color: colors.outlineVariant),
-              const SizedBox(height: 14),
-              _buildProfileStatRow(Icons.movie_outlined, movieCount, '观影'),
-              const SizedBox(height: 12),
-              _buildProfileStatRow(Icons.menu_book_outlined, bookCount, '阅读'),
-              const SizedBox(height: 12),
-              _buildProfileStatRow(Icons.note_outlined, noteCount, '笔记'),
-              const SizedBox(height: 12),
-              _buildProfileStatRow(Icons.sports_esports_outlined, gameCount, '游戏'),
+              if (statItems.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Divider(height: 1, color: colors.outlineVariant),
+                const SizedBox(height: 14),
+                for (int i = 0; i < statItems.length; i++) ...[
+                  statItems[i],
+                  if (i < statItems.length - 1) const SizedBox(height: 12),
+                ],
+              ],
             ],
           ),
         );

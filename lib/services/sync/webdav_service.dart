@@ -35,7 +35,6 @@ class SyncResult {
 enum SyncDirection {
   upload,    // 仅上传
   download,  // 仅下载
-  bidirectional, // 双向同步
 }
 
 /// WebDAV 服务类 - 完整备份 zip 同步
@@ -189,8 +188,63 @@ class WebDAVService {
     }
   }
 
+  /// 打包本地数据（第一步，用于上传前单独调用以显示进度）
+  Future<AutoBackupExportResult> exportLocalData() async {
+    return BackupService.instance.exportDataForAutoBackup();
+  }
+
+  /// 上传已打包的数据（第二步）
+  Future<SyncResult> uploadExportedData(AutoBackupExportResult exportResult) async {
+    if (!exportResult.success || exportResult.zipPath == null) {
+      _isSyncing = false;
+      return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败');
+    }
+
+    final config = await getConfig();
+    if (config == null) {
+      _isSyncing = false;
+      return SyncResult(success: false, message: '未配置 WebDAV');
+    }
+
+    try {
+      final url = config['url']!;
+      final username = config['username']!;
+      final password = config['password']!;
+      final path = config['path']!;
+
+      final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+      final dirUrl = '$baseUrl$path';
+
+      final client = http.Client();
+      try {
+        final fileName = _generateBackupFileName();
+        final zipUrl = '$dirUrl/$fileName';
+        final success = await _uploadFile(client, zipUrl, username, password, exportResult.zipPath!);
+        try { await File(exportResult.zipPath!).delete(); } catch (_) {}
+        if (success) {
+          debugPrint('[WebDAV] 备份上传成功: $fileName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+          await _cleanupOldBackups(client, dirUrl, username, password);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
+          return SyncResult(
+            success: true, message: '同步完成',
+            uploadedFiles: 1, uploadedImages: exportResult.imageCount,
+          );
+        } else {
+          return SyncResult(success: false, message: '上传备份文件失败');
+        }
+      } finally {
+        client.close();
+      }
+    } catch (e) {
+      return SyncResult(success: false, message: '上传失败: $e');
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
   /// 同步数据 — 完整备份 zip 格式，与本地备份完全一致
-  Future<SyncResult> syncData({SyncDirection direction = SyncDirection.bidirectional}) async {
+  Future<SyncResult> syncData({SyncDirection direction = SyncDirection.upload}) async {
     // 防止并发同步
     if (_isSyncing) {
       return SyncResult(success: false, message: '同步正在进行中，请稍后再试');
@@ -256,8 +310,8 @@ class WebDAVService {
 
           if (success && await tempZip.exists()) {
             final bytes = await tempZip.readAsBytes();
+            try { await tempZip.delete(); } catch (_) {}
             final importResult = await BackupService.instance.restoreFromZipBytes(bytes);
-            await tempZip.delete();
 
             if (importResult.success) {
               downloadedFiles = 1;
@@ -268,66 +322,8 @@ class WebDAVService {
               return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败');
             }
           } else {
+            try { await tempZip.delete(); } catch (_) {}
             return SyncResult(success: false, message: '下载备份文件失败');
-          }
-
-        } else if (direction == SyncDirection.bidirectional) {
-          // 获取远程最新备份的修改时间
-          final backups = await _listRemoteBackups(client, dirUrl, username, password);
-          DateTime? remoteModTime;
-          String? latestRemoteFile;
-          if (backups.isNotEmpty) {
-            latestRemoteFile = backups.last;
-            final latestUrl = '$dirUrl/$latestRemoteFile';
-            remoteModTime = await _getRemoteFileModifiedTime(client, latestUrl, username, password);
-          }
-
-          // 获取上次同步时间
-          final syncPrefs = await SharedPreferences.getInstance();
-          final lastSyncStr = syncPrefs.getString(_lastSyncKey);
-          final lastSyncTime = lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
-
-          final bool remoteIsNewer = remoteModTime != null &&
-              (lastSyncTime == null || remoteModTime.isAfter(lastSyncTime));
-
-          if (remoteIsNewer && latestRemoteFile != null) {
-            // 远程更新，下载并恢复
-            final tempDir = await getTemporaryDirectory();
-            final tempZip = File(p.join(tempDir.path, 'mooknote_bidir.zip'));
-
-            final downloadSuccess = await _downloadFile(client, '$dirUrl/$latestRemoteFile', username, password, tempZip);
-            if (downloadSuccess && await tempZip.exists()) {
-              final bytes = await tempZip.readAsBytes();
-              final importResult = await BackupService.instance.restoreFromZipBytes(bytes);
-              await tempZip.delete();
-
-              if (importResult.success) {
-                downloadedFiles = 1;
-                downloadedImages = importResult.stats?['图片'] ?? 0;
-                needReload = true;
-                debugPrint('[WebDAV] 远程备份较新，已恢复 ($latestRemoteFile): ${importResult.statsText}');
-              }
-            } else {
-              try { await tempZip.delete(); } catch (_) {}
-            }
-          } else {
-            debugPrint('[WebDAV] 本地数据已是最新或远程无更新，跳过下载');
-          }
-
-          // 上传本地备份（无论是否下载，确保远程有最新数据）
-          final exportResult = await BackupService.instance.exportDataForAutoBackup();
-          if (exportResult.success && exportResult.zipPath != null) {
-            final fileName = _generateBackupFileName();
-            final uploadSuccess = await _uploadFile(client, '$dirUrl/$fileName', username, password, exportResult.zipPath!);
-            // 清理临时 zip 文件
-            try { await File(exportResult.zipPath!).delete(); } catch (_) {}
-            if (uploadSuccess) {
-              uploadedFiles = 1;
-              uploadedImages = exportResult.imageCount;
-              debugPrint('[WebDAV] 本地备份已上传: $fileName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
-              // 清理旧备份
-              await _cleanupOldBackups(client, dirUrl, username, password);
-            }
           }
         }
 
@@ -509,42 +505,6 @@ class WebDAVService {
       return null;
     } finally {
       client.close();
-    }
-  }
-  Future<DateTime?> _getRemoteFileModifiedTime(
-    http.Client client,
-    String url,
-    String username,
-    String password,
-  ) async {
-    try {
-      var request = http.Request('HEAD', Uri.parse(url));
-      request.headers['Authorization'] = _basicAuth(username, password);
-
-      var response = await client.send(request).timeout(_shortTimeout);
-
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        await response.stream.drain();
-        if (location != null) {
-          request = http.Request('HEAD', Uri.parse(location));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request).timeout(_shortTimeout);
-        }
-      }
-
-      if (response.statusCode == 200) {
-        final lastModified = response.headers['last-modified'];
-        if (lastModified != null) {
-          return HttpDate.parse(lastModified).toLocal();
-        }
-      }
-      return null;
-    } catch (e) {
-      debugPrint('[WebDAV] 获取远程文件时间失败: $e');
-      return null;
     }
   }
 

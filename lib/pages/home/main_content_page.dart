@@ -164,156 +164,16 @@ class _MainContentPageState extends State<MainContentPage> {
   void _showCloudSheet(BuildContext context) async {
     final colors = Theme.of(context).colorScheme;
     final hasConfig = (await WebDAVService.instance.getConfig()) != null;
-    Map<String, dynamic>? remoteInfo;
-    if (hasConfig) {
-      remoteInfo = await WebDAVService.instance.getRemoteBackupInfo();
-    }
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
-        final bc = Theme.of(ctx).colorScheme;
-        final modifiedTime = remoteInfo?['modifiedTime'] as DateTime?;
-        final remoteSize = remoteInfo?['size'] as int?;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Center(child: Container(
-                width: 36, height: 4, margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(color: bc.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
-              )),
-              Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
-              const SizedBox(height: 14),
-              _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据', desc: hasConfig ? '将本地数据同步到云端' : '请先配置 WebDAV 服务器', enabled: hasConfig, onTap: hasConfig ? () { Navigator.pop(ctx); _performSync(context, SyncDirection.upload); } : null, colors: bc),
-              const SizedBox(height: 8),
-              _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据', desc: hasConfig ? '从云端恢复数据到本地' : '请先配置 WebDAV 服务器', enabled: hasConfig, onTap: hasConfig ? () { Navigator.pop(ctx); _performSync(context, SyncDirection.download); } : null, colors: bc),
-              const SizedBox(height: 8),
-              _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置', desc: '配置服务器地址与认证信息', enabled: true, onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
-              if (modifiedTime != null || remoteSize != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: bc.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.info_outline, size: 14, color: bc.onSurface.withValues(alpha: 0.3)),
-                    const SizedBox(width: 6),
-                    Text('云端备份', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.4))),
-                    const Spacer(),
-                    if (modifiedTime != null) Text(_formatDateTime(modifiedTime), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
-                    if (modifiedTime != null && remoteSize != null) Text('  ·  ', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.2))),
-                    if (remoteSize != null) Text(_formatFileSize(remoteSize), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
-                  ]),
-                ),
-              ],
-            ]),
-          ),
-        );
+        return _CloudSheetContent(hasConfig: hasConfig);
       },
     );
   }
-
-  String _formatDateTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
-  Widget _cloudCard({required IconData icon, required String title, required String desc, required bool enabled, required VoidCallback? onTap, required ColorScheme colors}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: enabled ? colors.primary.withValues(alpha: 0.04) : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.outlineVariant, width: 0.5),
-        ),
-        child: Row(children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: enabled ? colors.primary.withValues(alpha: 0.08) : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 20, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.18))),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: enabled ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
-            const SizedBox(height: 1),
-            Text(desc, style: TextStyle(fontSize: 11, color: enabled ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface.withValues(alpha: 0.2))),
-          ])),
-          Icon(Icons.chevron_right, size: 20, color: enabled ? colors.onSurface.withValues(alpha: 0.15) : colors.onSurface.withValues(alpha: 0.08)),
-        ]),
-      ),
-    );
-  }
-
-  Future<void> _performSync(BuildContext context, SyncDirection direction) async {
-    final colors = Theme.of(context).colorScheme;
-    final config = await WebDAVService.instance.getConfig();
-    if (config == null) {
-      if (context.mounted) _showResultDialog(context, title: '同步失败', message: '请先配置 WebDAV 服务器', isSuccess: false);
-      return;
-    }
-    if (context.mounted) {
-      showDialog(context: context, barrierDismissible: false, builder: (_) => Center(child: CircularProgressIndicator(color: colors.primary)));
-    }
-    final result = await WebDAVService.instance.syncData(direction: direction);
-    if (context.mounted) Navigator.pop(context);
-    if (result.success && result.needReload && context.mounted) {
-      final provider = context.read<AppProvider>();
-      await provider.loadMovies();
-      await provider.loadBooks();
-      await provider.loadNotes();
-      await provider.loadGames();
-    }
-    if (context.mounted) {
-      _showResultDialog(context, title: result.success ? '同步成功' : '同步失败', message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'), isSuccess: result.success, details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages});
-    }
-  }
-
-  void _showResultDialog(BuildContext context, {required String title, required String message, required bool isSuccess, Map<String, dynamic>? details}) {
-    final colors = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Row(children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: isSuccess ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(10)), child: Icon(isSuccess ? Icons.check_circle : Icons.error, color: isSuccess ? const Color(0xFF4CAF50) : const Color(0xFFE57373), size: 24)),
-          const SizedBox(width: 12),
-          Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        ]),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(message, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
-          if (details != null) ...[const SizedBox(height: 16), Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (details['uploaded'] != null) _detailRow('上传文件', '${details['uploaded']} 个', colors),
-            if (details['downloaded'] != null) _detailRow('下载文件', '${details['downloaded']} 个', colors),
-          ]))],
-        ]),
-        actions: [ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: const Text('确定'))],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value, ColorScheme colors) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
-      Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
-    ]),
-  );
 
   // ─── Tab 栏 + 指示条 ─────────────────────────────────
 
@@ -519,4 +379,255 @@ class _TabItem {
   final String label;
   final int originalIndex;
   _TabItem(this.label, this.originalIndex);
+}
+
+/// 云备份弹窗内容（异步加载远程信息，避免阻塞弹窗弹出）
+class _CloudSheetContent extends StatefulWidget {
+  final bool hasConfig;
+  const _CloudSheetContent({required this.hasConfig});
+
+  @override
+  State<_CloudSheetContent> createState() => _CloudSheetContentState();
+}
+
+class _CloudSheetContentState extends State<_CloudSheetContent> {
+  DateTime? _modifiedTime;
+  int? _remoteSize;
+  bool _loading = true;
+  bool _syncing = false;
+  String _syncStep = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.hasConfig) {
+      _loadRemoteInfo();
+    } else {
+      _loading = false;
+    }
+  }
+
+  Future<void> _loadRemoteInfo() async {
+    setState(() => _loading = true);
+    final info = await WebDAVService.instance.getRemoteBackupInfo();
+    if (mounted) {
+      setState(() {
+        _modifiedTime = info?['modifiedTime'] as DateTime?;
+        _remoteSize = info?['size'] as int?;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _performSync(SyncDirection direction) async {
+    if (direction == SyncDirection.upload) {
+      // 上传：先打包，再上传
+      setState(() => _syncStep = '正在打包数据...');
+      final exportResult = await WebDAVService.instance.exportLocalData();
+      if (!exportResult.success || exportResult.zipPath == null) {
+        if (mounted) {
+          setState(() => _syncing = false);
+          _showResultDialog(title: '同步失败', message: exportResult.errorMessage ?? '创建备份失败', isSuccess: false);
+        }
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _syncStep = '正在上传到云端...');
+      final result = await WebDAVService.instance.uploadExportedData(exportResult);
+      if (result.success && result.needReload && mounted) {
+        final provider = context.read<AppProvider>();
+        await provider.loadMovies();
+        await provider.loadBooks();
+        await provider.loadNotes();
+        await provider.loadGames();
+      }
+      if (mounted) {
+        setState(() => _syncing = false);
+        Navigator.pop(context);
+        _showResultDialog(
+          title: result.success ? '同步成功' : '同步失败',
+          message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
+          isSuccess: result.success,
+          details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
+        );
+      }
+    } else {
+      // 下载
+      setState(() => _syncStep = '正在从云端下载...');
+      final config = await WebDAVService.instance.getConfig();
+      if (config == null) {
+        if (mounted) {
+          setState(() => _syncing = false);
+          _showResultDialog(title: '同步失败', message: '请先配置 WebDAV 服务器', isSuccess: false);
+        }
+        return;
+      }
+      final result = await WebDAVService.instance.syncData(direction: SyncDirection.download);
+      if (result.success && result.needReload && mounted) {
+        final provider = context.read<AppProvider>();
+        await provider.loadMovies();
+        await provider.loadBooks();
+        await provider.loadNotes();
+        await provider.loadGames();
+      }
+      if (mounted) {
+        setState(() => _syncing = false);
+        Navigator.pop(context);
+        _showResultDialog(
+          title: result.success ? '同步成功' : '同步失败',
+          message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
+          isSuccess: result.success,
+          details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
+        );
+      }
+    }
+  }
+
+  void _startSync(SyncDirection direction) {
+    setState(() {
+      _syncing = true;
+      _syncStep = '';
+    });
+    _performSync(direction);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bc = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(
+            width: 36, height: 4, margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(color: bc.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
+          )),
+          Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
+          if (_loading)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: bc.primary)),
+            )
+          else if (_modifiedTime != null || _remoteSize != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: bc.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(children: [
+                Icon(Icons.info_outline, size: 14, color: bc.onSurface.withValues(alpha: 0.3)),
+                const SizedBox(width: 6),
+                Text('云端备份', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.4))),
+                const Spacer(),
+                if (_modifiedTime != null) Text(_formatDateTime(_modifiedTime!), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
+                if (_modifiedTime != null && _remoteSize != null) Text('  ·  ', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.2))),
+                if (_remoteSize != null) Text(_formatFileSize(_remoteSize!), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
+              ]),
+            ),
+          ],
+          const SizedBox(height: 14),
+          if (_syncing) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(children: [
+                SizedBox(
+                  width: 180,
+                  child: LinearProgressIndicator(
+                    backgroundColor: bc.surfaceContainerHighest,
+                    color: bc.primary,
+                    minHeight: 3,
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(_syncStep, style: TextStyle(fontSize: 13, color: bc.onSurface.withValues(alpha: 0.6))),
+              ]),
+            ),
+          ] else ...[
+            _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据', desc: widget.hasConfig ? '将本地数据同步到云端' : '请先配置 WebDAV 服务器', enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc),
+            const SizedBox(height: 8),
+            _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据', desc: widget.hasConfig ? '从云端恢复数据到本地' : '请先配置 WebDAV 服务器', enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.download) : null, colors: bc),
+            const SizedBox(height: 8),
+            _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置', desc: '配置服务器地址与认证信息', enabled: true, onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return '刚刚';
+    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
+    if (diff.inDays < 1) return '${diff.inHours}小时前';
+    if (diff.inDays < 7) return '${diff.inDays}天前';
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Widget _cloudCard({required IconData icon, required String title, required String desc, required bool enabled, required VoidCallback? onTap, required ColorScheme colors}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: enabled ? colors.primary.withValues(alpha: 0.04) : colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.outlineVariant, width: 0.5),
+        ),
+        child: Row(children: [
+          Container(width: 36, height: 36, decoration: BoxDecoration(color: enabled ? colors.primary.withValues(alpha: 0.08) : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 20, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.18))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: enabled ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
+            const SizedBox(height: 1),
+            Text(desc, style: TextStyle(fontSize: 11, color: enabled ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface.withValues(alpha: 0.2))),
+          ])),
+          Icon(Icons.chevron_right, size: 20, color: enabled ? colors.onSurface.withValues(alpha: 0.15) : colors.onSurface.withValues(alpha: 0.08)),
+        ]),
+      ),
+    );
+  }
+
+  void _showResultDialog({required String title, required String message, required bool isSuccess, Map<String, dynamic>? details}) {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: colors.surface, elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(children: [
+          Container(width: 40, height: 40, decoration: BoxDecoration(color: isSuccess ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(10)), child: Icon(isSuccess ? Icons.check_circle : Icons.error, color: isSuccess ? const Color(0xFF4CAF50) : const Color(0xFFE57373), size: 24)),
+          const SizedBox(width: 12),
+          Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(message, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+          if (details != null) ...[const SizedBox(height: 16), Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (details['uploaded'] != null) _detailRow('上传文件', '${details['uploaded']} 个', colors),
+            if (details['downloaded'] != null) _detailRow('下载文件', '${details['downloaded']} 个', colors),
+          ]))],
+        ]),
+        actions: [ElevatedButton(onPressed: () => Navigator.pop(dialogCtx), style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: const Text('确定'))],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value, ColorScheme colors) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(children: [
+      Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+      const Spacer(),
+      Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+    ]),
+  );
 }

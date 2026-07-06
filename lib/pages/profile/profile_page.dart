@@ -90,11 +90,12 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   provider.movies.where((m) => !m.isDeleted).toList();
               final books = provider.books.where((b) => !b.isDeleted).toList();
               final notes = provider.notes.where((n) => !n.isDeleted).toList();
+              final games = provider.games.where((g) => !g.isDeleted).toList();
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHero(movies, books, notes),
+                    _buildHero(movies, books, notes, games),
                     const SizedBox(height: 20),
                     if (_userPrefs.showMovieTab) ...[
                       _buildModuleHeader('影视'),
@@ -127,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   // ─── Hero 区域 ──────────────────────────────────────────────────────
 
-  Widget _buildHero(List<Movie> movies, List<Book> books, List<Note> notes) {
+  Widget _buildHero(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
     final colors = Theme.of(context).colorScheme;
     final coverPaths = [
       ...movies
@@ -236,9 +237,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    _buildHeroStat(_formatCount(movies.length), '观影', hasData),
-                    _buildHeroStat(_formatCount(books.length), '阅读', hasData),
-                    _buildHeroStat(_formatCount(notes.length), '笔记', hasData),
+                    if (_userPrefs.showMovieTab) _buildHeroStat(_formatCount(movies.length), '观影', hasData),
+                    if (_userPrefs.showBookTab) _buildHeroStat(_formatCount(books.length), '阅读', hasData),
+                    if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记', hasData),
+                    if (_userPrefs.showGameTab) _buildHeroStat(_formatCount(games.length), '游戏', hasData),
                   ],
                 ),
               ],
