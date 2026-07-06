@@ -222,13 +222,15 @@ class WebDAVService {
       try {
         if (direction == SyncDirection.upload) {
           final exportResult = await BackupService.instance.exportDataForAutoBackup();
-          if (!exportResult.success || exportResult.zipBytes == null) {
+          if (!exportResult.success || exportResult.zipPath == null) {
             return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败');
           }
 
           final fileName = _generateBackupFileName();
           final zipUrl = '$dirUrl/$fileName';
-          final success = await _uploadBytes(client, zipUrl, username, password, exportResult.zipBytes!);
+          final success = await _uploadFile(client, zipUrl, username, password, exportResult.zipPath!);
+          // 清理临时 zip 文件
+          try { await File(exportResult.zipPath!).delete(); } catch (_) {}
           if (success) {
             uploadedFiles = 1;
             uploadedImages = exportResult.imageCount;
@@ -314,9 +316,11 @@ class WebDAVService {
 
           // 上传本地备份（无论是否下载，确保远程有最新数据）
           final exportResult = await BackupService.instance.exportDataForAutoBackup();
-          if (exportResult.success && exportResult.zipBytes != null) {
+          if (exportResult.success && exportResult.zipPath != null) {
             final fileName = _generateBackupFileName();
-            final uploadSuccess = await _uploadBytes(client, '$dirUrl/$fileName', username, password, exportResult.zipBytes!);
+            final uploadSuccess = await _uploadFile(client, '$dirUrl/$fileName', username, password, exportResult.zipPath!);
+            // 清理临时 zip 文件
+            try { await File(exportResult.zipPath!).delete(); } catch (_) {}
             if (uploadSuccess) {
               uploadedFiles = 1;
               uploadedImages = exportResult.imageCount;
@@ -361,15 +365,22 @@ class WebDAVService {
     return prefs.getString(_lastSyncKey);
   }
 
-  /// 上传字节数据到 WebDAV
-  Future<bool> _uploadBytes(
+  /// 上传文件到 WebDAV（从文件路径读取，避免备份服务端重复占用内存）
+  Future<bool> _uploadFile(
     http.Client client,
     String url,
     String username,
     String password,
-    Uint8List bytes,
+    String filePath,
   ) async {
     try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint('[WebDAV] _uploadFile: 文件不存在 $filePath');
+        return false;
+      }
+      final bytes = await file.readAsBytes();
+
       var request = http.Request('PUT', Uri.parse(url));
       request.headers['Authorization'] = _basicAuth(username, password);
       request.headers['Content-Type'] = 'application/zip';
@@ -394,7 +405,7 @@ class WebDAVService {
       debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
       return response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204;
     } catch (e) {
-      debugPrint('[WebDAV] _uploadBytes error: $e');
+      debugPrint('[WebDAV] _uploadFile error: $e');
       return false;
     }
   }

@@ -79,19 +79,20 @@ class AutoBackupService {
       
       // 导出数据
       final result = await BackupService.instance.exportDataForAutoBackup();
-      
-      if (!result.success) {
+
+      if (!result.success || result.zipPath == null) {
         debugPrint('AutoBackup: 导出失败 - ${result.errorMessage}');
         return;
       }
-      
+
       // 生成备份文件名
       final fileName = 'auto_backup_${_formatDateTime(DateTime.now())}.zip';
       final backupFile = File(path.join(backupDir.path, fileName));
-      
-      // 写入备份文件
-      await backupFile.writeAsBytes(result.zipBytes!);
-      
+
+      // 移动临时 zip 到备份目录
+      final tempFile = File(result.zipPath!);
+      await tempFile.rename(backupFile.path);
+
       debugPrint('AutoBackup: 备份成功 - ${backupFile.path}');
       
       // 清理旧备份，只保留最新的5个

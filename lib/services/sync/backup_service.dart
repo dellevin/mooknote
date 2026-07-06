@@ -158,13 +158,9 @@ class BackupService {
 
       encoder.close();
 
-      // 读取最终 zip 文件
-      final zipFile = File(tempZipPath);
-      final zipBytes = await zipFile.readAsBytes();
-      await zipFile.delete();
-
+      // 返回 zip 文件路径，不再读入内存
       return _ExportData(
-        zipBytes: Uint8List.fromList(zipBytes),
+        zipPath: tempZipPath,
         movieCount: movies.length,
         bookCount: books.length,
         noteCount: notes.length,
@@ -184,30 +180,35 @@ class BackupService {
   Future<ExportResult> exportDataWithImages() async {
     try {
       final data = await _buildExportData();
+      final zipFile = File(data.zipPath!);
       final tempDir = await getTemporaryDirectory();
       final fileName = 'mooknote_backup_${_formatDateTime(DateTime.now())}.zip';
       final tempFilePath = path.join(tempDir.path, fileName);
-      await File(tempFilePath).writeAsBytes(data.zipBytes);
 
       String? finalPath;
       try {
+        // FilePicker.saveFile 需要 bytes，这里必须读入内存
+        final zipBytes = await zipFile.readAsBytes();
         final outputPath = await FilePicker.platform.saveFile(
           dialogTitle: '保存备份文件',
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['zip'],
-          bytes: data.zipBytes,
+          bytes: zipBytes,
         );
         if (outputPath == null) {
+          await zipFile.delete();
           return ExportResult.cancelled();
         }
         finalPath = outputPath;
-        if (finalPath != tempFilePath) {
-          await File(finalPath).writeAsBytes(data.zipBytes);
-        }
       } catch (e) {
+        // FilePicker 不可用时，复制到临时目录
+        await zipFile.copy(tempFilePath);
         finalPath = tempFilePath;
       }
+
+      // 清理原始临时 zip
+      try { await zipFile.delete(); } catch (_) {}
 
       return ExportResult.success(
         filePath: finalPath,
@@ -229,12 +230,12 @@ class BackupService {
 
   // ─── 自动备份导出 ─────────────────────────────────────
 
-  /// 导出数据用于自动备份（返回字节数据）
+  /// 导出数据用于自动备份（返回临时 zip 文件路径，调用方负责删除）
   Future<AutoBackupExportResult> exportDataForAutoBackup() async {
     try {
       final data = await _buildExportData();
       return AutoBackupExportResult.success(
-        zipBytes: data.zipBytes,
+        zipPath: data.zipPath!,
         movieCount: data.movieCount,
         bookCount: data.bookCount,
         noteCount: data.noteCount,
@@ -776,7 +777,7 @@ class BackupService {
 
 /// 导出中间数据
 class _ExportData {
-  final Uint8List zipBytes;
+  final String? zipPath; // 临时 zip 文件路径，调用方负责删除
   final int movieCount;
   final int bookCount;
   final int noteCount;
@@ -784,7 +785,7 @@ class _ExportData {
   final int epubCount;
 
   _ExportData({
-    required this.zipBytes,
+    this.zipPath,
     required this.movieCount,
     required this.bookCount,
     required this.noteCount,
@@ -798,7 +799,7 @@ class _ExportData {
 class AutoBackupExportResult {
   final bool success;
   final String? errorMessage;
-  final Uint8List? zipBytes;
+  final String? zipPath; // 临时 zip 文件路径，调用方负责删除
   final int movieCount;
   final int bookCount;
   final int noteCount;
@@ -808,7 +809,7 @@ class AutoBackupExportResult {
   AutoBackupExportResult._({
     required this.success,
     this.errorMessage,
-    this.zipBytes,
+    this.zipPath,
     this.movieCount = 0,
     this.bookCount = 0,
     this.noteCount = 0,
@@ -817,7 +818,7 @@ class AutoBackupExportResult {
   });
 
   factory AutoBackupExportResult.success({
-    required Uint8List zipBytes,
+    required String zipPath,
     required int movieCount,
     required int bookCount,
     required int noteCount,
@@ -825,7 +826,7 @@ class AutoBackupExportResult {
     int epubCount = 0,
   }) {
     return AutoBackupExportResult._(
-      success: true, zipBytes: zipBytes,
+      success: true, zipPath: zipPath,
       movieCount: movieCount, bookCount: bookCount,
       noteCount: noteCount, imageCount: imageCount,
       epubCount: epubCount,
