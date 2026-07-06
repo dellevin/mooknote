@@ -16,7 +16,6 @@ class MovieStatusBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: colors.surface,
-            border: Border(bottom: BorderSide(color: colors.outline, width: 0.5)),
           ),
           child: Container(
             padding: const EdgeInsets.all(4),

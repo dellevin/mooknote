@@ -172,7 +172,6 @@ class _GameTabPageState extends State<GameTabPage> {
     final masterContent = Column(
       children: [
         if (!isWallMode) const GameStatusBar(),
-        if (!isWallMode) Divider(height: 0.5, thickness: 0.5, color: colors.outlineVariant),
         Expanded(child: _buildBody(context)),
       ],
     );

@@ -164,6 +164,10 @@ class _MainContentPageState extends State<MainContentPage> {
   void _showCloudSheet(BuildContext context) async {
     final colors = Theme.of(context).colorScheme;
     final hasConfig = (await WebDAVService.instance.getConfig()) != null;
+    Map<String, dynamic>? remoteInfo;
+    if (hasConfig) {
+      remoteInfo = await WebDAVService.instance.getRemoteBackupInfo();
+    }
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
@@ -171,6 +175,8 @@ class _MainContentPageState extends State<MainContentPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         final bc = Theme.of(ctx).colorScheme;
+        final modifiedTime = remoteInfo?['modifiedTime'] as DateTime?;
+        final remoteSize = remoteInfo?['size'] as int?;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -186,11 +192,46 @@ class _MainContentPageState extends State<MainContentPage> {
               _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据', desc: hasConfig ? '从云端恢复数据到本地' : '请先配置 WebDAV 服务器', enabled: hasConfig, onTap: hasConfig ? () { Navigator.pop(ctx); _performSync(context, SyncDirection.download); } : null, colors: bc),
               const SizedBox(height: 8),
               _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置', desc: '配置服务器地址与认证信息', enabled: true, onTap: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
+              if (modifiedTime != null || remoteSize != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: bc.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.info_outline, size: 14, color: bc.onSurface.withValues(alpha: 0.3)),
+                    const SizedBox(width: 6),
+                    Text('云端备份', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.4))),
+                    const Spacer(),
+                    if (modifiedTime != null) Text(_formatDateTime(modifiedTime), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
+                    if (modifiedTime != null && remoteSize != null) Text('  ·  ', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.2))),
+                    if (remoteSize != null) Text(_formatFileSize(remoteSize), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
+                  ]),
+                ),
+              ],
             ]),
           ),
         );
       },
     );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return '刚刚';
+    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
+    if (diff.inDays < 1) return '${diff.inHours}小时前';
+    if (diff.inDays < 7) return '${diff.inDays}天前';
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Widget _cloudCard({required IconData icon, required String title, required String desc, required bool enabled, required VoidCallback? onTap, required ColorScheme colors}) {

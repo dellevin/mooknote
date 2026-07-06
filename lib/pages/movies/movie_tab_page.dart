@@ -166,7 +166,6 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final masterContent = Column(
       children: [
         if (!isWallMode) const MovieStatusBar(),
-        if (!isWallMode) Divider(height: 0.5, thickness: 0.5, color: colors.outlineVariant),
         Expanded(child: _buildBody(context)),
       ],
     );
