@@ -420,14 +420,17 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
   }
 
   Future<void> _performSync(SyncDirection direction) async {
+    // 保存外层 navigator，pop bottom sheet 后还能用它弹 dialog
+    final navigator = Navigator.of(context);
+
     if (direction == SyncDirection.upload) {
       // 上传：先打包，再上传
       setState(() => _syncStep = '正在打包数据...');
       final exportResult = await WebDAVService.instance.exportLocalData();
       if (!exportResult.success || exportResult.zipPath == null) {
         if (mounted) {
-          setState(() => _syncing = false);
-          _showResultDialog(title: '同步失败', message: exportResult.errorMessage ?? '创建备份失败', isSuccess: false);
+          Navigator.pop(context); // 关闭 bottom sheet
+          _showResultDialog(navigator, title: '同步失败', message: exportResult.errorMessage ?? '创建备份失败', isSuccess: false);
         }
         return;
       }
@@ -443,22 +446,22 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
       }
       if (mounted) {
         setState(() => _syncing = false);
-        Navigator.pop(context);
-        _showResultDialog(
-          title: result.success ? '同步成功' : '同步失败',
-          message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
-          isSuccess: result.success,
-          details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
-        );
+        Navigator.pop(context); // 关闭 bottom sheet
       }
+      _showResultDialog(navigator,
+        title: result.success ? '同步成功' : '同步失败',
+        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
+        isSuccess: result.success,
+        details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
+      );
     } else {
       // 下载
       setState(() => _syncStep = '正在从云端下载...');
       final config = await WebDAVService.instance.getConfig();
       if (config == null) {
         if (mounted) {
-          setState(() => _syncing = false);
-          _showResultDialog(title: '同步失败', message: '请先配置 WebDAV 服务器', isSuccess: false);
+          Navigator.pop(context);
+          _showResultDialog(navigator, title: '同步失败', message: '请先配置 WebDAV 服务器', isSuccess: false);
         }
         return;
       }
@@ -472,14 +475,14 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
       }
       if (mounted) {
         setState(() => _syncing = false);
-        Navigator.pop(context);
-        _showResultDialog(
-          title: result.success ? '同步成功' : '同步失败',
-          message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
-          isSuccess: result.success,
-          details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
-        );
+        Navigator.pop(context); // 关闭 bottom sheet
       }
+      _showResultDialog(navigator,
+        title: result.success ? '同步成功' : '同步失败',
+        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
+        isSuccess: result.success,
+        details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
+      );
     }
   }
 
@@ -597,10 +600,12 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
     );
   }
 
-  void _showResultDialog({required String title, required String message, required bool isSuccess, Map<String, dynamic>? details}) {
-    final colors = Theme.of(context).colorScheme;
+  void _showResultDialog(NavigatorState navigator, {required String title, required String message, required bool isSuccess, Map<String, dynamic>? details}) {
+    // 使用保存的 navigator context，而非 state context（bottom sheet 已 pop）
+    final overlayCtx = navigator.context;
+    final colors = Theme.of(overlayCtx).colorScheme;
     showDialog(
-      context: context,
+      context: overlayCtx,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

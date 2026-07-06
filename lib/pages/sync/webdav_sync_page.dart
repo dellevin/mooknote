@@ -374,9 +374,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('WebDAV 备份')),
+    return PopScope(
+      canPop: !_isLoading,
+      child: Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          title: const Text('WebDAV 备份'),
+          leading: _isLoading ? const SizedBox.shrink() : null,
+        ),
       body: Stack(
         children: [
           ListView(
@@ -386,6 +391,12 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
 
               // 已连接提示
               if (_isConfigured) _buildConnectedBanner(colors),
+
+              if (_isConfigured) ...[
+                // 远程备份信息卡片（包含操作按钮）
+                _buildRemoteInfoCard(colors),
+                const SizedBox(height: 24),
+              ],
 
               // 服务器配置
               _buildSectionLabel(colors, '服务器配置'),
@@ -444,12 +455,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                 ],
                 const SizedBox(height: 28),
 
-                if (_isConfigured) ...[
-                  // 远程备份信息卡片（包含操作按钮）
-                  _buildRemoteInfoCard(colors),
-                  const SizedBox(height: 24),
-                ],
-
               const SizedBox(height: 24),
               _buildTips(colors),
               const SizedBox(height: 40),
@@ -457,6 +462,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           ),
         ],
       ),
+    ),
     );
   }
 
