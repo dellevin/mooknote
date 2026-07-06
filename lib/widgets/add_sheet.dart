@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../providers/app_provider.dart';
+import '../utils/user_prefs.dart';
 
 /// 新增记录弹窗 — 供底部导航栏和 NavigationRail 共用
 
@@ -34,6 +35,67 @@ void showQuickAddSheet(BuildContext context, AppProvider provider) {
 void showAddSheet(BuildContext context, AppProvider provider) {
   final colors = Theme.of(context).colorScheme;
   final outerContext = context;
+  final userPrefs = UserPrefs();
+
+  final options = <Widget>[];
+  if (userPrefs.showMovieTab) {
+    options.add(_buildOption(
+      colors: colors,
+      icon: Icons.movie_outlined,
+      title: '添加观影',
+      subtitle: '记录你看过的电影',
+      onTap: () {
+        Navigator.pop(outerContext);
+        final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
+        final s = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
+        Navigator.pushNamed(outerContext, '/movie-form',
+            arguments: {'initialStatus': s});
+      },
+    ));
+  }
+  if (userPrefs.showBookTab) {
+    options.add(_buildOption(
+      colors: colors,
+      icon: Icons.menu_book_outlined,
+      title: '添加阅读',
+      subtitle: '记录你读过的书',
+      onTap: () {
+        Navigator.pop(outerContext);
+        final statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read', 3: 'abandoned'};
+        final s = statusMap[provider.bookStatusIndex] ?? 'want_to_read';
+        Navigator.pushNamed(outerContext, '/book-form',
+            arguments: {'initialStatus': s});
+      },
+    ));
+  }
+  if (userPrefs.showNoteTab) {
+    options.add(_buildOption(
+      colors: colors,
+      icon: Icons.note_outlined,
+      title: '添加笔记',
+      subtitle: '记录你的想法和笔记',
+      onTap: () {
+        Navigator.pop(outerContext);
+        Navigator.pushNamed(outerContext, '/note-form');
+      },
+    ));
+  }
+  if (userPrefs.showGameTab) {
+    options.add(_buildOption(
+      colors: colors,
+      icon: Icons.sports_esports_outlined,
+      title: '添加游戏',
+      subtitle: '记录你玩过的游戏',
+      onTap: () {
+        Navigator.pop(outerContext);
+        final statusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
+        final s = statusMap[provider.gameStatusIndex] ?? 'want_to_play';
+        Navigator.pushNamed(outerContext, '/game-form',
+            arguments: {'initialStatus': s});
+      },
+    ));
+  }
+
   showModalBottomSheet(
     context: context,
     backgroundColor: colors.surface,
@@ -70,72 +132,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildOption(
-                colors: bc,
-                icon: Icons.movie_outlined,
-                title: '添加观影',
-                subtitle: '记录你看过的电影',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final statusMap = {
-                    0: 'watched',
-                    1: 'watching',
-                    2: 'want_to_watch',
-                  };
-                  final s =
-                      statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
-                  Navigator.pushNamed(outerContext, '/movie-form',
-                      arguments: {'initialStatus': s});
-                },
-              ),
-              _buildOption(
-                colors: bc,
-                icon: Icons.menu_book_outlined,
-                title: '添加阅读',
-                subtitle: '记录你读过的书',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final statusMap = {
-                    0: 'read',
-                    1: 'reading',
-                    2: 'want_to_read',
-                    3: 'abandoned',
-                  };
-                  final s =
-                      statusMap[provider.bookStatusIndex] ?? 'want_to_read';
-                  Navigator.pushNamed(outerContext, '/book-form',
-                      arguments: {'initialStatus': s});
-                },
-              ),
-              _buildOption(
-                colors: bc,
-                icon: Icons.note_outlined,
-                title: '添加笔记',
-                subtitle: '记录你的想法和笔记',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.pushNamed(outerContext, '/note-form');
-                },
-              ),
-              _buildOption(
-                colors: bc,
-                icon: Icons.sports_esports_outlined,
-                title: '添加游戏',
-                subtitle: '记录你玩过的游戏',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final statusMap = {
-                    0: 'completed',
-                    1: 'playing',
-                    2: 'want_to_play',
-                    3: 'abandoned',
-                  };
-                  final s =
-                      statusMap[provider.gameStatusIndex] ?? 'want_to_play';
-                  Navigator.pushNamed(outerContext, '/game-form',
-                      arguments: {'initialStatus': s});
-                },
-              ),
+              ...options,
             ],
           ),
         ),
