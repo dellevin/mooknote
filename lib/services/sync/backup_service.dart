@@ -629,8 +629,6 @@ class BackupService {
       'avatarPath',
       'webdav_config',
       'webdav_last_sync',
-      'webdav_auto_sync',
-      'webdav_auto_sync_interval',
     };
     for (final entry in data.entries) {
       final key = entry.key;

@@ -55,10 +55,6 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       });
       _loadRemoteInfo();
     }
-
-    final autoSyncEnabled = await WebDAVService.instance.isAutoSyncEnabled();
-    final autoSyncInterval = await WebDAVService.instance.getAutoSyncInterval();
-    debugPrint('WebDAV auto sync: enabled=$autoSyncEnabled, interval=$autoSyncInterval');
   }
 
   Future<void> _loadRemoteInfo() async {
