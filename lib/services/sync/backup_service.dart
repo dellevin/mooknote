@@ -19,8 +19,9 @@ class BackupService {
 
   // ─── 共享导出逻辑 ─────────────────────────────────────
 
-  /// 收集所有表数据和图片，构建 ZIP 字节
+  /// 收集所有表数据和图片，构建 ZIP 文件
   Future<_ExportData> _buildExportData() async {
+    // 阶段1：主线程收集数据（DB 查询、SharedPreferences 需主线程）
     final db = await DatabaseHelper.instance.database;
 
     final movies = await db.query('movies');
@@ -109,69 +110,25 @@ class BackupService {
       },
     };
 
-    // 创建 ZIP（逐文件写入磁盘，避免全部加载到内存）
+    // 阶段2：后台 isolate 执行 JSON 编码 + ZIP 压缩（避免阻塞主线程动画）
     final tempDir = await getTemporaryDirectory();
-    final tempZipPath = path.join(tempDir.path, 'mooknote_backup_temp.zip');
-    final encoder = ZipFileEncoder();
-    encoder.create(tempZipPath);
+    final appDir = await getApplicationDocumentsDirectory();
 
-    try {
-      // data.json
-      final jsonString = const JsonEncoder.withIndent('  ').convert(backupData);
-      final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
-      final dataFile = File(path.join(tempDir.path, 'mooknote_data.json'));
-      await dataFile.writeAsBytes(jsonBytes);
-      encoder.addFile(dataFile, 'data.json');
-      await dataFile.delete();
+    final result = await compute(_buildZipInIsolate, _ZipComputeParams(
+      backupData: backupData,
+      imagePaths: imagePaths.toList(),
+      tempDirPath: tempDir.path,
+      appDirPath: appDir.path,
+    ));
 
-      int imageCount = 0;
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesRoot = path.join(appDir.path, 'images');
-
-      for (final imagePath in imagePaths) {
-        final file = File(imagePath);
-        if (await file.exists()) {
-          String relativePath;
-          if (imagePath.startsWith(imagesRoot)) {
-            relativePath = imagePath.substring(imagesRoot.length + 1);
-          } else {
-            relativePath = path.basename(imagePath);
-          }
-          encoder.addFile(file, 'images/$relativePath');
-          imageCount++;
-        }
-      }
-
-      // 收集 epub_books 目录下的 epub 文件
-      int epubCount = 0;
-      final epubRoot = path.join(appDir.path, 'epub_books');
-      final epubDir = Directory(epubRoot);
-      if (await epubDir.exists()) {
-        await for (final entity in epubDir.list(recursive: true)) {
-          if (entity is File) {
-            final relativePath = entity.path.substring(epubRoot.length + 1);
-            encoder.addFile(entity, 'epub_books/$relativePath');
-            epubCount++;
-          }
-        }
-      }
-
-      encoder.close();
-
-      // 返回 zip 文件路径，不再读入内存
-      return _ExportData(
-        zipPath: tempZipPath,
-        movieCount: movies.length,
-        bookCount: books.length,
-        noteCount: notes.length,
-        imageCount: imageCount,
-        epubCount: epubCount,
-      );
-    } catch (e) {
-      encoder.close();
-      try { await File(tempZipPath).delete(); } catch (_) {}
-      rethrow;
-    }
+    return _ExportData(
+      zipPath: result.zipPath,
+      movieCount: movies.length,
+      bookCount: books.length,
+      noteCount: notes.length,
+      imageCount: result.imageCount,
+      epubCount: result.epubCount,
+    );
   }
 
   // ─── 手动导出 ─────────────────────────────────────────
@@ -910,5 +867,85 @@ class ImportResult {
   String get statsText {
     if (stats == null || stats!.isEmpty) return '没有导入任何数据';
     return stats!.entries.map((e) => '${e.key}: ${e.value}').join('，');
+  }
+}
+
+// ─── compute isolate 参数和函数 ──────────────────────────
+
+class _ZipComputeParams {
+  final Map<String, dynamic> backupData;
+  final List<String> imagePaths;
+  final String tempDirPath;
+  final String appDirPath;
+
+  _ZipComputeParams({
+    required this.backupData,
+    required this.imagePaths,
+    required this.tempDirPath,
+    required this.appDirPath,
+  });
+}
+
+class _ZipComputeResult {
+  final String? zipPath;
+  final int imageCount;
+  final int epubCount;
+
+  _ZipComputeResult({this.zipPath, required this.imageCount, required this.epubCount});
+}
+
+/// 在后台 isolate 中执行 JSON 编码 + ZIP 压缩，避免阻塞主线程
+_ZipComputeResult _buildZipInIsolate(_ZipComputeParams params) {
+  final tempZipPath = path.join(params.tempDirPath, 'mooknote_backup_temp.zip');
+  final encoder = ZipFileEncoder();
+  encoder.create(tempZipPath);
+
+  try {
+    // data.json
+    final jsonString = const JsonEncoder.withIndent('  ').convert(params.backupData);
+    final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
+    final dataFile = File(path.join(params.tempDirPath, 'mooknote_data.json'));
+    dataFile.writeAsBytesSync(jsonBytes);
+    encoder.addFile(dataFile, 'data.json');
+    dataFile.deleteSync();
+
+    int imageCount = 0;
+    final imagesRoot = path.join(params.appDirPath, 'images');
+
+    for (final imagePath in params.imagePaths) {
+      final file = File(imagePath);
+      if (file.existsSync()) {
+        String relativePath;
+        if (imagePath.startsWith(imagesRoot)) {
+          relativePath = imagePath.substring(imagesRoot.length + 1);
+        } else {
+          relativePath = path.basename(imagePath);
+        }
+        encoder.addFile(file, 'images/$relativePath');
+        imageCount++;
+      }
+    }
+
+    // 收集 epub_books 目录下的 epub 文件
+    int epubCount = 0;
+    final epubRoot = path.join(params.appDirPath, 'epub_books');
+    final epubDir = Directory(epubRoot);
+    if (epubDir.existsSync()) {
+      for (final entity in epubDir.listSync(recursive: true)) {
+        if (entity is File) {
+          final relativePath = entity.path.substring(epubRoot.length + 1);
+          encoder.addFile(entity, 'epub_books/$relativePath');
+          epubCount++;
+        }
+      }
+    }
+
+    encoder.close();
+
+    return _ZipComputeResult(zipPath: tempZipPath, imageCount: imageCount, epubCount: epubCount);
+  } catch (e) {
+    encoder.close();
+    try { File(tempZipPath).deleteSync(); } catch (_) {}
+    rethrow;
   }
 }

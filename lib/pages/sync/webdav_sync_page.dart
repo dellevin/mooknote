@@ -131,6 +131,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       if (_syncDirection == SyncDirection.upload) {
         // 上传：先打包再上传，分步显示
         setState(() => _syncStep = '正在打包数据...');
+        await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
         final exportResult = await WebDAVService.instance.exportLocalData();
         if (!exportResult.success || exportResult.zipPath == null) {
           if (mounted) {
@@ -141,10 +142,12 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         }
         if (!mounted) return;
         setState(() => _syncStep = '正在上传到云端...');
+        await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
         result = await WebDAVService.instance.uploadExportedData(exportResult);
       } else {
         // 下载
         setState(() => _syncStep = '正在从云端下载...');
+        await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
         result = await WebDAVService.instance.syncData(direction: SyncDirection.download);
       }
 

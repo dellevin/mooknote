@@ -426,6 +426,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
     if (direction == SyncDirection.upload) {
       // 上传：先打包，再上传
       setState(() => _syncStep = '正在打包数据...');
+      await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final exportResult = await WebDAVService.instance.exportLocalData();
       if (!exportResult.success || exportResult.zipPath == null) {
         if (mounted) {
@@ -436,6 +437,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
       }
       if (!mounted) return;
       setState(() => _syncStep = '正在上传到云端...');
+      await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final result = await WebDAVService.instance.uploadExportedData(exportResult);
       if (result.success && result.needReload && mounted) {
         final provider = context.read<AppProvider>();
@@ -457,6 +459,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
     } else {
       // 下载
       setState(() => _syncStep = '正在从云端下载...');
+      await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final config = await WebDAVService.instance.getConfig();
       if (config == null) {
         if (mounted) {
