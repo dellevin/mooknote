@@ -41,7 +41,6 @@ class BookGridItem extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final title = book['title'] as String? ?? '';
     final author = book['author'] as String? ?? '';
-    final progress = _readingProgress;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,30 +59,8 @@ class BookGridItem extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: _buildCoverStack(context, fit: StackFit.expand, extras: [
-              // 底部渐变背景 + 进度条
-              if (progress > 0)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black54],
-                      ),
-                    ),
-                    alignment: Alignment.bottomCenter,
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 2.5,
-                      backgroundColor: Colors.white24,
-                      valueColor: const AlwaysStoppedAnimation(Colors.white70),
-                    ),
-                  ),
-                ),
+              // 阅读状态角标
+              _buildStatusBadge(context),
             ]),
           ),
         ),
@@ -114,15 +91,17 @@ class BookGridItem extends StatelessWidget {
     );
   }
 
-  /// Compact: cover only, title gradient overlay + progress badge.
+  /// Compact: cover only, title + author gradient overlay + progress badge.
   Widget _buildCompact(BuildContext context) {
     final title = book['title'] as String? ?? '';
+    final author = book['author'] as String? ?? '';
 
     return _buildCoverStack(
       context,
       fit: StackFit.expand,
       extras: [
-        // Bottom gradient + title
+        // 阅读状态角标
+        _buildStatusBadge(context),
         Positioned(
           bottom: 0,
           left: 0,
@@ -132,7 +111,7 @@ class BookGridItem extends StatelessWidget {
               bottom: Radius.circular(6),
             ),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(6, 32, 6, 6),
+              padding: const EdgeInsets.fromLTRB(6, 24, 6, 6),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -140,27 +119,43 @@ class BookGridItem extends StatelessWidget {
                   colors: [Colors.transparent, Colors.black87],
                 ),
               ),
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  shadows: [
-                    const Shadow(
-                      color: Colors.black54,
-                      blurRadius: 2.0,
-                      offset: Offset(0, 1.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      shadows: [
+                        const Shadow(
+                          color: Colors.black54,
+                          blurRadius: 2.0,
+                          offset: Offset(0, 1.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (author.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      author,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
         ),
-        // Progress badge (top-right)
-        _buildProgressBadge(context),
       ],
     );
   }
@@ -198,42 +193,62 @@ class BookGridItem extends StatelessWidget {
   }
 
   Widget _buildPlaceholder(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final title = book['title'] as String? ?? '';
+    final initial = title.isNotEmpty ? title.substring(0, 1) : '';
     return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: colors.surfaceContainerHighest,
       child: Center(
-        child: Icon(
-          Icons.auto_stories_outlined,
-          size: 36,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
-        ),
+        child: initial.isNotEmpty
+            ? Text(initial,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface.withValues(alpha: 0.2),
+                ))
+            : Icon(
+                Icons.auto_stories_outlined,
+                size: 36,
+                color: colors.onSurface.withValues(alpha: 0.2),
+              ),
       ),
     );
   }
 
   // ─── badge helpers ────────────────────────────────────────────────────────
 
-  /// Progress badge (compact mode).
-  Widget _buildProgressBadge(BuildContext context) {
+  /// 阅读状态角标（左上角，含百分比）
+  Widget _buildStatusBadge(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final progress = _readingProgress;
-    if (progress <= 0) return const SizedBox.shrink();
+    final String label;
+    final Color color;
+    if (progress >= 1.0) {
+      label = '已读';
+      color = const Color(0xFF16A34A);
+    } else if (progress > 0.0) {
+      label = '在读 ${(progress * 100).toInt()}%';
+      color = colors.primary;
+    } else {
+      label = '未读';
+      color = const Color(0xFFDC2626);
+    }
 
     return Positioned(
-      top: 8,
-      right: 8,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.8),
-          child: Text(
-            '${(progress * 100).toStringAsFixed(0)}%',
+      top: 6,
+      left: 6,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
+            )),
       ),
     );
   }

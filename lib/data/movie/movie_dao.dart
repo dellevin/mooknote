@@ -28,13 +28,17 @@ class MovieDao {
   });
 
   // 分页查询影视记录
-  Future<List<Movie>> getMoviesPaged({String? status, int limit = 20, int offset = 0, int sortMode = 0}) => _wrap('getMoviesPaged', () async {
+  Future<List<Movie>> getMoviesPaged({String? status, String? category, int limit = 20, int offset = 0, int sortMode = 0}) => _wrap('getMoviesPaged', () async {
     final db = await _dbHelper.database;
     String where = 'is_deleted = 0';
     List<dynamic> whereArgs = [];
     if (status != null && status.isNotEmpty) {
       where += ' AND status = ?';
       whereArgs.add(status);
+    }
+    if (category != null && category.isNotEmpty) {
+      where += ' AND category = ?';
+      whereArgs.add(category);
     }
     final maps = await db.query('movies', where: where, whereArgs: whereArgs,
         orderBy: _buildMovieOrderBy(sortMode), limit: limit, offset: offset);

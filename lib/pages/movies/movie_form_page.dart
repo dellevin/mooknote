@@ -893,6 +893,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
     ('综艺', 'variety'),
     ('纪录片', 'documentary'),
     ('微短剧', 'short'),
+    ('其他', 'other'),
   ];
 
   /// 构建状态选项

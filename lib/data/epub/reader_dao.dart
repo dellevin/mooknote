@@ -7,15 +7,22 @@ class ReaderDao {
   // ─── reader_books ─────────────────────────────────────────────────
 
   /// 获取所有未删除的阅读记录（包含关联书籍封面）
-  Future<List<Map<String, dynamic>>> getAllReaderBooks() async {
+  /// [sortMode] 排序模式: 0=更新时间, 1=创建时间, 2=阅读进度, 3=书名
+  Future<List<Map<String, dynamic>>> getAllReaderBooks({int sortMode = 0}) async {
     final db = await _db.database;
+    final orderBy = switch (sortMode) {
+      1 => 'rb.created_at DESC',
+      2 => 'rb.reading_percentage DESC',
+      3 => 'rb.title COLLATE NOCASE ASC',
+      _ => 'rb.updated_at DESC',
+    };
     final results = await db.rawQuery('''
       SELECT rb.*,
              COALESCE(b.cover_path, rb.cover_path) as display_cover_path
       FROM reader_books rb
       LEFT JOIN books b ON rb.book_id = b.id AND b.is_deleted = 0
       WHERE rb.is_deleted = 0
-      ORDER BY rb.updated_at DESC
+      ORDER BY $orderBy
     ''');
     return results.map((row) {
       final map = Map<String, dynamic>.from(row);

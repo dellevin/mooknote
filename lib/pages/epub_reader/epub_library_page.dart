@@ -27,6 +27,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   ViewMode _viewMode = UserPrefs().epubViewMode == 1
       ? ViewMode.compact
       : ViewMode.relaxed;
+  int _sortMode = UserPrefs().epubSortMode;
 
   @override
   void initState() {
@@ -36,7 +37,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
 
   Future<void> _loadBooks() async {
     if (mounted) setState(() => _isLoading = true);
-    final books = await _dao.getAllReaderBooks();
+    final books = await _dao.getAllReaderBooks(sortMode: _sortMode);
     if (mounted) {
       setState(() {
         _books = books;
@@ -169,6 +170,54 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     UserPrefs().setEpubViewMode(_viewMode == ViewMode.compact ? 1 : 0);
   }
 
+  void _showSortMenu() {
+    final colors = Theme.of(context).colorScheme;
+    final options = [
+      (0, '按更新时间排序', Icons.update),
+      (1, '按创建时间排序', Icons.calendar_today_outlined),
+      (2, '按阅读进度排序', Icons.auto_stories_outlined),
+      (3, '按书名排序', Icons.sort_by_alpha),
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text('书架排序', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+          const SizedBox(height: 8),
+          for (int i = 0; i < options.length; i++) ...[
+            if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
+            _sortOption(ctx, options[i].$1, options[i].$2, options[i].$3, colors),
+          ],
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
+  }
+
+  Widget _sortOption(BuildContext ctx, int value, String label, IconData icon, ColorScheme colors) {
+    final selected = _sortMode == value;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
+      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+      trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
+      onTap: () {
+        Navigator.pop(ctx);
+        if (_sortMode != value) {
+          setState(() => _sortMode = value);
+          UserPrefs().setEpubSortMode(value);
+          _loadBooks();
+        }
+      },
+    );
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -216,6 +265,10 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
               color: colors.onSurface.withValues(alpha: 0.6),
             ),
             onPressed: _toggleViewMode,
+          ),
+          IconButton(
+            icon: Icon(Icons.sort, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+            onPressed: _showSortMenu,
           ),
           IconButton(
             icon: Icon(Icons.add_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
@@ -314,13 +367,27 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   Widget _buildListView(ColorScheme colors) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      itemCount: _books.length,
+      itemCount: _filteredBooks.length,
       itemBuilder: (context, index) {
-        final book = _books[index];
+        final book = _filteredBooks[index];
         final title = book['title'] as String? ?? '';
         final author = book['author'] as String? ?? '';
         final coverPath = book['cover_path'] as String?;
         final progress = (book['reading_percentage'] as num?)?.toDouble() ?? 0.0;
+
+        // 阅读状态推断
+        final String statusLabel;
+        final Color statusColor;
+        if (progress >= 1.0) {
+          statusLabel = '已读';
+          statusColor = const Color(0xFF16A34A);
+        } else if (progress > 0.0) {
+          statusLabel = '在读';
+          statusColor = colors.primary;
+        } else {
+          statusLabel = '未读';
+          statusColor = const Color(0xFFDC2626);
+        }
 
         return GestureDetector(
           onTap: () => _openBook(book),
@@ -333,36 +400,67 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: colors.outlineVariant, width: 0.5),
             ),
-            child: Row(
+            child: Column(
               children: [
-                // 封面
-                SizedBox(
-                  width: 56, height: 80,
-                  child: _buildCover(coverPath, colors),
+                Row(
+                  children: [
+                    // 封面
+                    SizedBox(
+                      width: 56, height: 80,
+                      child: _buildCover(coverPath, colors),
+                    ),
+                    const SizedBox(width: 14),
+                    // 信息
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          if (author.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                          ],
+                          const SizedBox(height: 8),
+                          // 状态标签 + 百分比
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: statusColor.withValues(alpha: 0.25), width: 0.5),
+                                ),
+                                child: Text(statusLabel,
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: statusColor)),
+                              ),
+                              if (progress > 0 && progress < 1.0) ...[
+                                const SizedBox(width: 6),
+                                Text('${(progress * 100).toInt()}%',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                // 信息
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                      if (author.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-                      ],
-                      const SizedBox(height: 8),
-                      // 标签
-                      Wrap(spacing: 6, runSpacing: 4, children: [
-                        _buildTag('EPUB', colors),
-                        if (progress > 0) _buildTag('${(progress * 100).toInt()}%', colors),
-                      ]),
-                    ],
+                // 进度条
+                if (progress > 0) ...[
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(1.5),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 3,
+                      backgroundColor: colors.outlineVariant.withValues(alpha: 0.3),
+                      valueColor: AlwaysStoppedAnimation(statusColor),
+                    ),
                   ),
-                ),
-                Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+                ],
               ],
             ),
           ),
@@ -389,15 +487,4 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     );
   }
 
-  Widget _buildTag(String label, ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(label,
-          style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.5))),
-    );
-  }
 }

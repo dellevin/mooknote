@@ -71,6 +71,12 @@ class AppProvider extends ChangeNotifier {
   // 影视墙模式（不显示分类，按创建时间排序）
   bool _movieWallMode = false;
 
+  // 影视显示模式 (0: 观看状态, 1: 分类状态)
+  int _movieDisplayMode = 0;
+
+  // 影视分类索引
+  int _movieCategoryIndex = 0;
+
   // 阅读选中的状态 (0: 读完，1: 在读，2: 准备读)
   int _bookStatusIndex = 0;
 
@@ -162,6 +168,7 @@ class AppProvider extends ChangeNotifier {
     final userPrefs = UserPrefs();
     _movieLayoutStyle = userPrefs.movieLayoutStyle;
     _movieWallMode = userPrefs.movieWallMode;
+    _movieDisplayMode = userPrefs.movieDisplayMode;
     _bookshelfMode = userPrefs.bookshelfMode;
     _gameLayoutStyle = userPrefs.gameLayoutStyle;
     _gameWallMode = userPrefs.gameWallMode;
@@ -225,8 +232,8 @@ class AppProvider extends ChangeNotifier {
   // ─── 分页加载（供列表页触底加载使用）────────────────────────
   static const int _pageSize = 20;
 
-  Future<List<Movie>> loadMoviesPaged({String? status, required int offset, int sortMode = 0}) async {
-    return _movieDao.getMoviesPaged(status: status, limit: _pageSize, offset: offset, sortMode: sortMode);
+  Future<List<Movie>> loadMoviesPaged({String? status, String? category, required int offset, int sortMode = 0}) async {
+    return _movieDao.getMoviesPaged(status: status, category: category, limit: _pageSize, offset: offset, sortMode: sortMode);
   }
 
   Future<List<Book>> loadBooksPaged({String? status, required int offset, int sortMode = 0}) async {
@@ -251,6 +258,8 @@ class AppProvider extends ChangeNotifier {
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
   bool get movieWallMode => _movieWallMode;
+  int get movieDisplayMode => _movieDisplayMode;
+  int get movieCategoryIndex => _movieCategoryIndex;
   int get bookStatusIndex => _bookStatusIndex;
   bool get bookshelfMode => _bookshelfMode;
   int get gameStatusIndex => _gameStatusIndex;
@@ -380,6 +389,17 @@ class AppProvider extends ChangeNotifier {
   void setMovieWallMode(bool enabled) {
     _movieWallMode = enabled;
     UserPrefs().setMovieWallMode(enabled);
+    notifyListeners();
+  }
+
+  void setMovieDisplayMode(int mode) {
+    _movieDisplayMode = mode;
+    UserPrefs().setMovieDisplayMode(mode);
+    notifyListeners();
+  }
+
+  void setMovieCategoryIndex(int index) {
+    _movieCategoryIndex = index;
     notifyListeners();
   }
 

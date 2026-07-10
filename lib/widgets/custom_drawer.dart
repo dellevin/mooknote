@@ -11,9 +11,13 @@ import '../pages/markdown_reader/md_reader_tab_page.dart';
 import '../pages/epub_reader/epub_library_page.dart';
 import '../pages/settings/tag_management_page.dart';
 import '../pages/movies/movie_detail_page.dart';
+import '../pages/movies/movie_form_page.dart';
 import '../pages/book/book_detail_page.dart';
+import '../pages/book/book_form_page.dart';
 import '../pages/note/note_detail_page.dart';
+import '../pages/note/note_form_page.dart';
 import '../pages/game/game_detail_page.dart';
+import '../pages/profile/settings_page.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
 
@@ -81,6 +85,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final userPrefs = UserPrefs();
     final showHeatmap = userPrefs.showSidebarHeatmap;
     final showRecent = userPrefs.showSidebarRecent;
+    final showQuickActions = userPrefs.showSidebarQuickActions;
     final showTools = userPrefs.showSidebarEncounter ||
         userPrefs.showSidebarStroll ||
         userPrefs.showSidebarCalendar ||
@@ -95,6 +100,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildProfileCard(context),
+            if (showQuickActions) ...[
+              const SizedBox(height: 12),
+              _buildQuickActions(context),
+            ],
             if (showHeatmap) ...[
               const SizedBox(height: 16),
               _buildCalendarSection(context),
@@ -108,11 +117,23 @@ class _CustomDrawerState extends State<CustomDrawer> {
               _buildToolsCard(context),
             ],
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-              child: Center(
-                child: Text('v$_version', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.2))),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('v$_version', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.2))),
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    onTap: () {
+                      if (!widget.embedded) Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
+                    },
+                    child: Icon(Icons.settings_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.2)),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -141,15 +162,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final gameCount = provider.games.where((g) => !g.isDeleted).length;
 
         // 根据功能开关过滤显示的统计项
-        final statItems = <Widget>[];
-        if (userPrefs.showMovieTab) statItems.add(_buildProfileStatRow(Icons.movie_outlined, movieCount, '观影'));
-        if (userPrefs.showBookTab) statItems.add(_buildProfileStatRow(Icons.menu_book_outlined, bookCount, '阅读'));
-        if (userPrefs.showNoteTab) statItems.add(_buildProfileStatRow(Icons.note_outlined, noteCount, '笔记'));
-        if (userPrefs.showGameTab) statItems.add(_buildProfileStatRow(Icons.sports_esports_outlined, gameCount, '游戏'));
+        final statItems = <(IconData, int, String, Color)>[];
+        if (userPrefs.showMovieTab) statItems.add((Icons.movie_outlined, movieCount, '观影', const Color(0xFF2563EB)));
+        if (userPrefs.showBookTab) statItems.add((Icons.menu_book_outlined, bookCount, '阅读', const Color(0xFF16A34A)));
+        if (userPrefs.showNoteTab) statItems.add((Icons.note_outlined, noteCount, '笔记', const Color(0xFF9333EA)));
+        if (userPrefs.showGameTab) statItems.add((Icons.sports_esports_outlined, gameCount, '游戏', const Color(0xFFEA580C)));
 
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(16),
@@ -160,8 +181,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               Row(
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: colors.surfaceContainerHighest,
@@ -170,18 +191,18 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     clipBehavior: Clip.antiAlias,
                     child: avatarPath != null && avatarPath.isNotEmpty
                         ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
-                            errorWidget: Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)))
-                        : Icon(Icons.person_outline, size: 26, color: colors.onSurface.withValues(alpha: 0.3)),
+                            errorWidget: Icon(Icons.person_outline, size: 22, color: colors.onSurface.withValues(alpha: 0.3)))
+                        : Icon(Icons.person_outline, size: 22, color: colors.onSurface.withValues(alpha: 0.3)),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(nickname, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                        Text(nickname, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                         const SizedBox(height: 2),
-                        Text(motto, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        Text(motto, maxLines: 2, overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                       ],
                     ),
@@ -189,31 +210,35 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ],
               ),
               if (statItems.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Divider(height: 1, color: colors.outlineVariant),
                 const SizedBox(height: 14),
-                for (int i = 0; i < statItems.length; i++) ...[
-                  statItems[i],
-                  if (i < statItems.length - 1) const SizedBox(height: 12),
-                ],
+                Row(
+                  children: statItems.map((item) {
+                    final (icon, count, label, color) = item;
+                    return Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_formatCount(count), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(icon, size: 11, color: colors.onSurface.withValues(alpha: 0.4)),
+                              const SizedBox(width: 3),
+                              Text(label, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ],
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildProfileStatRow(IconData icon, int count, String label) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: colors.onSurface.withValues(alpha: 0.5)),
-        const SizedBox(width: 10),
-        Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-        const Spacer(),
-        Text(_formatCount(count), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-      ],
     );
   }
 
@@ -223,23 +248,114 @@ class _CustomDrawerState extends State<CustomDrawer> {
     return count.toString();
   }
 
+  // ─── 快捷操作 ──────────────────────────────────────────────────────
+
+  Widget _buildQuickActions(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final userPrefs = UserPrefs();
+
+    final actions = <(IconData, String, Color, VoidCallback)>[];
+    if (userPrefs.showMovieTab) actions.add((
+      Icons.add_photo_alternate_outlined, '影视', const Color(0xFF2563EB),
+      () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const MovieFormPage())); },
+    ));
+    if (userPrefs.showBookTab) actions.add((
+      Icons.menu_book_outlined, '阅读', const Color(0xFF16A34A),
+      () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const BookFormPage())); },
+    ));
+    if (userPrefs.showNoteTab) actions.add((
+      Icons.edit_note_outlined, '笔记', const Color(0xFF9333EA),
+      () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteFormPage())); },
+    ));
+
+    if (actions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: actions.map((action) {
+          final (icon, label, color, onTap) = action;
+          return Expanded(
+            child: GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon, size: 18, color: color),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   // ─── 功能入口卡片 ────────────────────────────────────────────────────
 
   Widget _buildToolsCard(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final userPrefs = UserPrefs();
 
-    final items = <(IconData, String, Widget)>[];
-    if (userPrefs.showSidebarEncounter) items.add((Icons.favorite_border, '统计', const EncounterPage()));
-    if (userPrefs.showSidebarStroll) items.add((Icons.explore_outlined, '漫步', const StrollPage()));
-    if (userPrefs.showSidebarCalendar) items.add((Icons.calendar_month_outlined, '书影日历', const MediaCalendarPage()));
-    if (userPrefs.showSidebarPerson) items.add((Icons.people_outline, '角色信息', const PersonListPage()));
-    if (userPrefs.showSidebarTags) items.add((Icons.label_outline, '标签管理', const TagManagementPage()));
-    if (userPrefs.showSidebarMdReader) items.add((Icons.description_outlined, 'MD阅读', const MdReaderTabPage()));
-    if (userPrefs.showSidebarEpub) items.add((Icons.auto_stories_outlined, 'EPUB阅读', const EpubLibraryPage()));
+    final exploreItems = <(IconData, String, Widget)>[];
+    if (userPrefs.showSidebarEncounter) exploreItems.add((Icons.favorite_border, '统计', const EncounterPage()));
+    if (userPrefs.showSidebarStroll) exploreItems.add((Icons.explore_outlined, '漫步', const StrollPage()));
+    if (userPrefs.showSidebarCalendar) exploreItems.add((Icons.calendar_month_outlined, '书影日历', const MediaCalendarPage()));
 
-    if (items.isEmpty) return const SizedBox.shrink();
+    final toolItems = <(IconData, String, Widget)>[];
+    if (userPrefs.showSidebarPerson) toolItems.add((Icons.people_outline, '角色信息', const PersonListPage()));
+    if (userPrefs.showSidebarTags) toolItems.add((Icons.label_outline, '标签管理', const TagManagementPage()));
+    if (userPrefs.showSidebarMdReader) toolItems.add((Icons.description_outlined, 'MD阅读', const MdReaderTabPage()));
+    if (userPrefs.showSidebarEpub) toolItems.add((Icons.auto_stories_outlined, 'EPUB阅读', const EpubLibraryPage()));
 
+    if (exploreItems.isEmpty && toolItems.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (exploreItems.isNotEmpty) ...[
+          _buildGroupTitle('探索', colors),
+          const SizedBox(height: 6),
+          _buildGroupCard(context, exploreItems),
+        ],
+        if (toolItems.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildGroupTitle('工具', colors),
+          const SizedBox(height: 6),
+          _buildGroupCard(context, toolItems),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildGroupTitle(String title, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.3), letterSpacing: 1)),
+    );
+  }
+
+  Widget _buildGroupCard(BuildContext context, List<(IconData, String, Widget)> items) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -389,6 +505,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
           }
         }
 
+        // 连续打卡天数
+        int streak = 0;
+        for (int i = 0; i < 365; i++) {
+          final date = today.subtract(Duration(days: i));
+          if (dailyCounts[date] != null && dailyCounts[date]! > 0) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+
         final monthLabels = <int, String>{};
         for (int week = 0; week < totalWeeks; week++) {
           final date = lastSunday.subtract(Duration(days: (totalWeeks - 1 - week) * 7));
@@ -412,6 +539,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   Icon(Icons.calendar_today, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 8),
                   Text('热力图', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+                  const Spacer(),
+                  if (streak > 0) ...[
+                    Icon(Icons.local_fire_department, size: 14, color: const Color(0xFFFF6D00)),
+                    const SizedBox(width: 3),
+                    Text('连续 $streak 天', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFFFF6D00))),
+                  ],
                 ],
               ),
               const SizedBox(height: 14),
@@ -435,10 +568,21 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     ...List.generate(weekDays, (day) => Row(
                       children: List.generate(totalWeeks, (week) {
                         final count = cells[day][week];
-                        return Container(
-                          width: cellSize, height: cellSize,
-                          margin: EdgeInsets.only(right: week < totalWeeks - 1 ? cellGap : 0, bottom: day < weekDays - 1 ? cellGap : 0),
-                          decoration: BoxDecoration(color: _heatmapColor(count, maxCount), borderRadius: BorderRadius.circular(2)),
+                        final date = lastSunday.subtract(Duration(days: (totalWeeks - 1 - week) * 7 + (6 - day)));
+                        return GestureDetector(
+                          onTap: count > 0 ? () => _showDayDetail(context, date, dailyCounts[date] ?? 0, movies, books, notes, games) : null,
+                          child: Tooltip(
+                            message: '${date.month}月${date.day}日${count > 0 ? ' · $count条' : ''}',
+                            child: Container(
+                              width: cellSize, height: cellSize,
+                              margin: EdgeInsets.only(right: week < totalWeeks - 1 ? cellGap : 0, bottom: day < weekDays - 1 ? cellGap : 0),
+                              decoration: BoxDecoration(
+                                color: _heatmapColor(count, maxCount),
+                                borderRadius: BorderRadius.circular(2),
+                                border: count > 0 ? null : Border.all(color: colors.outlineVariant.withValues(alpha: 0.3), width: 0.5),
+                              ),
+                            ),
+                          ),
                         );
                       }),
                     )),
@@ -462,6 +606,77 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ],
           ),
         );
+  }
+
+  void _showDayDetail(BuildContext context, DateTime date, int count, List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
+    final colors = Theme.of(context).colorScheme;
+    final dayMovies = movies.where((m) => !m.isDeleted && DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day) == date).toList();
+    final dayBooks = books.where((b) => !b.isDeleted && DateTime(b.createdAt.year, b.createdAt.month, b.createdAt.day) == date).toList();
+    final dayNotes = notes.where((n) => !n.isDeleted && DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day) == date).toList();
+    final dayGames = games.where((g) => !g.isDeleted && DateTime(g.createdAt.year, g.createdAt.month, g.createdAt.day) == date).toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Row(
+                children: [
+                  Text('${date.month}月${date.day}日', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  const SizedBox(width: 8),
+                  Text('$count条记录', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.45))),
+                ],
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 12),
+                children: [
+                  if (dayMovies.isNotEmpty) ...[
+                    for (final m in dayMovies) _dayDetailItem(ctx, Icons.movie_outlined, m.title, colors.primary),
+                  ],
+                  if (dayBooks.isNotEmpty) ...[
+                    for (final b in dayBooks) _dayDetailItem(ctx, Icons.menu_book_outlined, b.title, const Color(0xFF16A34A)),
+                  ],
+                  if (dayNotes.isNotEmpty) ...[
+                    for (final n in dayNotes) _dayDetailItem(ctx, Icons.note_outlined, n.title.isNotEmpty ? n.title : '随手记', const Color(0xFF9333EA)),
+                  ],
+                  if (dayGames.isNotEmpty) ...[
+                    for (final g in dayGames) _dayDetailItem(ctx, Icons.sports_esports_outlined, g.title, const Color(0xFFEA580C)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dayDetailItem(BuildContext ctx, IconData icon, String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(7)),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: Theme.of(ctx).colorScheme.onSurface))),
+        ],
+      ),
+    );
   }
 
   Color _heatmapColor(int count, int maxCount) {
@@ -504,16 +719,23 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ],
           ),
           const SizedBox(height: 14),
-          ...recent.take(4).map((item) => InkWell(
+          ...recent.take(6).map((item) => InkWell(
             onTap: () => _openRecentItem(context, item),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.only(bottom: 10, top: 2),
               child: Row(
                 children: [
-                  Icon(
-                    item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : item.type == 'game' ? Icons.sports_esports_outlined : Icons.note_outlined,
-                    size: 14, color: colors.onSurface.withValues(alpha: 0.3),
+                  Container(
+                    width: 22, height: 22,
+                    decoration: BoxDecoration(
+                      color: _typeColor(item.type).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Icon(
+                      item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : item.type == 'game' ? Icons.sports_esports_outlined : Icons.note_outlined,
+                      size: 12, color: _typeColor(item.type),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -552,6 +774,16 @@ class _CustomDrawerState extends State<CustomDrawer> {
     if (diff.inDays > 0) return '${diff.inDays}天前';
     if (diff.inHours > 0) return '${diff.inHours}小时前';
     return '刚刚';
+  }
+
+  Color _typeColor(String type) {
+    return switch (type) {
+      'movie' => const Color(0xFF2563EB),
+      'book' => const Color(0xFF16A34A),
+      'note' => const Color(0xFF9333EA),
+      'game' => const Color(0xFFEA580C),
+      _ => const Color(0xFF6B7280),
+    };
   }
 }
 

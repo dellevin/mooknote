@@ -29,6 +29,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showTags = true;
   bool _showMdReader = true;
   bool _showEpub = true;
+  bool _showQuickActions = true;
 
   @override
   void initState() {
@@ -52,6 +53,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showTags = _userPrefs.showSidebarTags;
       _showMdReader = _userPrefs.showSidebarMdReader;
       _showEpub = _userPrefs.showSidebarEpub;
+      _showQuickActions = _userPrefs.showSidebarQuickActions;
     });
   }
 
@@ -203,6 +205,16 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               (v) async {
             await _userPrefs.setShowSidebarRecent(v);
             setState(() => _showRecent = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.bolt_outlined, '快捷操作', '快速新建笔记/影视/导入EPUB', _showQuickActions,
+              (v) async {
+            await _userPrefs.setShowSidebarQuickActions(v);
+            setState(() => _showQuickActions = v);
           }),
           Divider(
               height: 0.5,

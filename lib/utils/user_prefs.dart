@@ -141,6 +141,9 @@ class UserPrefs {
   bool get showSidebarEpub => prefs.getBool('showSidebarEpub') ?? true;
   Future<bool> setShowSidebarEpub(bool value) => prefs.setBool('showSidebarEpub', value);
 
+  bool get showSidebarQuickActions => prefs.getBool('showSidebarQuickActions') ?? true;
+  Future<bool> setShowSidebarQuickActions(bool value) => prefs.setBool('showSidebarQuickActions', value);
+
   /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
   Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);
@@ -160,6 +163,10 @@ class UserPrefs {
   /// 影视布局样式 (0: 海报网格, 1: 列表)
   int get movieLayoutStyle => prefs.getInt('movieLayoutStyle') ?? 0;
   Future<bool> setMovieLayoutStyle(int value) => prefs.setInt('movieLayoutStyle', value);
+
+  /// 影视显示模式 (0: 观看状态, 1: 分类状态)
+  int get movieDisplayMode => prefs.getInt('movieDisplayMode') ?? 0;
+  Future<bool> setMovieDisplayMode(int value) => prefs.setInt('movieDisplayMode', value);
 
   /// 阅读布局样式 (0: 封面网格, 1: 列表)
   int get bookLayoutStyle => prefs.getInt('bookLayoutStyle') ?? 0;
@@ -275,6 +282,10 @@ class UserPrefs {
   /// EPUB 书架视图模式: 0=宽松, 1=紧凑
   int get epubViewMode => prefs.getInt('epubViewMode') ?? 0;
   Future<bool> setEpubViewMode(int value) => prefs.setInt('epubViewMode', value);
+
+  /// EPUB 书架排序模式: 0=更新时间, 1=创建时间, 2=阅读进度, 3=书名
+  int get epubSortMode => prefs.getInt('epubSortMode') ?? 0;
+  Future<bool> setEpubSortMode(int value) => prefs.setInt('epubSortMode', value);
 
   /// EPUB 句读列表视图模式: 0=瀑布流, 1=列表
   int get highlightsViewMode => prefs.getInt('highlightsViewMode') ?? 0;

@@ -4,6 +4,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/movie_status_bar.dart';
+import '../../widgets/movie_category_bar.dart';
 import '../../widgets/movie_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
@@ -34,6 +35,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
   int _lastEditRefreshCounter = 0;
   int _prevMovieCount = -1;
   int _prevLayoutStyle = -1;
+  int _prevCategoryIndex = -1;
+  int _prevDisplayMode = -1;
   double _swipeOffset = 0.0; // 当前拖动偏移量（用于左右滑动切换状态）
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
@@ -72,6 +75,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
     // 仅在数据或布局实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
     final statusChanged = provider.movieStatusIndex != _lastStatusIndex;
     final layoutChanged = provider.movieLayoutStyle != _prevLayoutStyle;
+    final categoryChanged = provider.movieCategoryIndex != _prevCategoryIndex;
+    final displayModeChanged = provider.movieDisplayMode != _prevDisplayMode;
     final countChanged = provider.movies.length != _prevMovieCount;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
     if (editRefreshed && provider.lastEditedItemId != null) {
@@ -88,8 +93,10 @@ class _MovieTabPageState extends State<MovieTabPage> {
       }
       return;
     }
-    if (statusChanged || layoutChanged || countChanged || editRefreshed) {
+    if (statusChanged || layoutChanged || categoryChanged || displayModeChanged || countChanged || editRefreshed) {
       _prevLayoutStyle = provider.movieLayoutStyle;
+      _prevCategoryIndex = provider.movieCategoryIndex;
+      _prevDisplayMode = provider.movieDisplayMode;
       _prevMovieCount = provider.movies.length;
       _loadFirst();
     }
@@ -107,14 +114,29 @@ class _MovieTabPageState extends State<MovieTabPage> {
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
     final isWallMode = provider.movieWallMode;
+    final isCategoryMode = provider.movieDisplayMode == 1;
     final statusIdx = provider.movieStatusIndex;
+    final categoryIdx = provider.movieCategoryIndex;
     _lastStatusIndex = statusIdx;
     _initialized = true;
-    // 影视墙模式：不筛选状态，使用用户选择的排序（默认创建时间）
-    final status = isWallMode ? null : (_statusMap[statusIdx] ?? 'watched');
+    // 影视墙模式：不筛选状态和分类
+    // 分类模式：按分类筛选
+    // 观看状态模式：按状态筛选
+    String? status;
+    String? category;
+    if (isWallMode) {
+      status = null;
+      category = null;
+    } else if (isCategoryMode) {
+      status = null;
+      category = MovieCategoryBar.categoryValue(categoryIdx);
+    } else {
+      status = _statusMap[statusIdx] ?? 'watched';
+      category = null;
+    }
     final sortMode = UserPrefs().movieSortMode;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadMoviesPaged(status: status, offset: 0, sortMode: sortMode);
+    final list = await provider.loadMoviesPaged(status: status, category: category, offset: 0, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
       _items.clear();
@@ -130,9 +152,21 @@ class _MovieTabPageState extends State<MovieTabPage> {
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final isWallMode = provider.movieWallMode;
-    final status = isWallMode ? null : (_statusMap[provider.movieStatusIndex] ?? 'watched');
+    final isCategoryMode = provider.movieDisplayMode == 1;
+    String? status;
+    String? category;
+    if (isWallMode) {
+      status = null;
+      category = null;
+    } else if (isCategoryMode) {
+      status = null;
+      category = MovieCategoryBar.categoryValue(provider.movieCategoryIndex);
+    } else {
+      status = _statusMap[provider.movieStatusIndex] ?? 'watched';
+      category = null;
+    }
     final sortMode = UserPrefs().movieSortMode;
-    final list = await provider.loadMoviesPaged(status: status, offset: _offset, sortMode: sortMode);
+    final list = await provider.loadMoviesPaged(status: status, category: category, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
       _items.addAll(list);
@@ -165,7 +199,10 @@ class _MovieTabPageState extends State<MovieTabPage> {
 
     final masterContent = Column(
       children: [
-        if (!isWallMode) const MovieStatusBar(),
+        if (!isWallMode)
+          provider.movieDisplayMode == 1
+              ? const MovieCategoryBar()
+              : const MovieStatusBar(),
         Expanded(child: _buildBody(context)),
       ],
     );
@@ -212,7 +249,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
           );
         }();
 
-        // 用 GestureDetector 包裹，左右滑动切换状态（用 Transform 而非 AnimatedContainer padding 避免负数崩溃）
+        // 用 GestureDetector 包裹，左右滑动切换状态/分类
         return GestureDetector(
           onHorizontalDragStart: (_) => _swipeOffset = 0.0,
           onHorizontalDragUpdate: (details) => setState(() => _swipeOffset += details.primaryDelta ?? 0),
@@ -223,10 +260,17 @@ class _MovieTabPageState extends State<MovieTabPage> {
               return;
             }
             final direction = (velocity ?? 0) > 0 ? -1 : 1; // 右滑→上一个，左滑→下一个
-            final currentIndex = provider.movieStatusIndex;
-            final newIndex = (currentIndex + direction + 3) % 3;
             setState(() => _swipeOffset = 0.0);
-            provider.setMovieStatusIndex(newIndex);
+            if (provider.movieDisplayMode == 1) {
+              // 分类模式
+              final count = MovieCategoryBar.count;
+              final newIndex = (provider.movieCategoryIndex + direction + count) % count;
+              provider.setMovieCategoryIndex(newIndex);
+            } else {
+              // 观看状态模式
+              final newIndex = (provider.movieStatusIndex + direction + 3) % 3;
+              provider.setMovieStatusIndex(newIndex);
+            }
           },
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: _swipeOffset.clamp(-100.0, 100.0)),
@@ -492,13 +536,18 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final colors = Theme.of(context).colorScheme;
     final provider = context.read<AppProvider>();
     final isWallMode = provider.movieWallMode;
-    final statusText = isWallMode ? '' : ['已看', '在看', '想看'][statusIndex];
+    final isCategoryMode = provider.movieDisplayMode == 1;
+    final emptyText = isWallMode
+        ? '暂无影片'
+        : isCategoryMode
+            ? '暂无${MovieCategoryBar.categoryLabel(provider.movieCategoryIndex)}'
+            : '暂无${['已看', '在看', '想看'][statusIndex]}的影片';
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.movie_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
-      Text(isWallMode ? '暂无影片' : '暂无$statusText的影片', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(emptyText, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));
   }
 }
