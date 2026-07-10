@@ -75,6 +75,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     return Column(
       children: [
         AppBar(
+          titleSpacing: 8,
+          leadingWidth: 44,
           leading: Builder(
             builder: (context) => IconButton(
               icon: Icon(Icons.menu, color: colors.onSurface),

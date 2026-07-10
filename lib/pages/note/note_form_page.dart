@@ -213,6 +213,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
       child: Row(
         children: [
           IconButton(
+            padding: const EdgeInsets.only(left: 12, right: 4),
+            constraints: const BoxConstraints(),
             onPressed: () async {
               final shouldPop = await _confirmLeave();
               if (shouldPop && context.mounted) Navigator.pop(context);
@@ -282,11 +284,11 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Widget _buildFloatingToolbar() {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: colors.outlineVariant, width: 0.5),
         boxShadow: [
           BoxShadow(
@@ -321,14 +323,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
               ),
             ),
           ),
-          // 视图模式切换
-          const SizedBox(width: 8),
-          Container(
-            width: 1, height: 20, color: colors.outline,
-          ),
-          const SizedBox(width: 8),
-          _modeSwitch(Icons.edit, 'edit'),
-          _modeSwitch(Icons.visibility, 'preview'),
         ],
       ),
     );
@@ -344,8 +338,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
         child: Tooltip(
           message: tooltip,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-            child: Icon(icon, size: 21, color: colors.onSurface.withValues(alpha: 0.7)),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+            child: Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.7)),
           ),
         ),
       ),
@@ -355,9 +349,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Widget _toolGap() {
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: SizedBox(
-        height: 18,
+        height: 14,
         child: VerticalDivider(width: 0, thickness: 0.5, color: colors.outline),
       ),
     );
@@ -474,6 +468,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           height: 1.6,
         ),
         border: InputBorder.none,
+        enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,
         contentPadding: const EdgeInsets.all(16),
       ),
@@ -641,6 +636,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           hintText: '添加标题',
           hintStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2)),
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
           isDense: true,

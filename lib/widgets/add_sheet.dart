@@ -106,32 +106,32 @@ void showAddSheet(BuildContext context, AppProvider provider) {
       final bc = Theme.of(ctx).colorScheme;
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40,
-                height: 4,
+                width: 32,
+                height: 3,
                 decoration: BoxDecoration(
                   color: bc.onSurface.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
                     Text('新增记录',
                         style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: bc.onSurface)),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               ...options,
             ],
           ),
@@ -151,38 +151,38 @@ Widget _buildOption({
   return InkWell(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 22, color: colors.onSurface.withValues(alpha: 0.6)),
+            child: Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
                     style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: colors.onSurface)),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(subtitle,
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         color: colors.onSurface.withValues(alpha: 0.4))),
               ],
             ),
           ),
           Icon(Icons.chevron_right,
-              color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+              color: colors.onSurface.withValues(alpha: 0.25), size: 18),
         ],
       ),
     ),

@@ -277,16 +277,19 @@ class _BookFormPageState extends State<BookFormPage> {
         Row(children: [
           Text('状态', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              _buildStatusOption('想读', 'want_to_read'),
-              _buildStatusOption('在读', 'reading'),
-              _buildStatusOption('已读', 'read'),
-              _buildStatusOption('弃读', 'abandoned'),
-            ]),
-          ),
+          Expanded(child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                _buildStatusOption('想读', 'want_to_read'),
+                _buildStatusOption('在读', 'reading'),
+                _buildStatusOption('已读', 'read'),
+                _buildStatusOption('弃读', 'abandoned'),
+              ]),
+            ),
+          )),
         ]),
         const SizedBox(height: 12),
         // 评分
