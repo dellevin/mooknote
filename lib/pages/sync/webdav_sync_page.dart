@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/toast_util.dart';
 import '../../services/sync/webdav_service.dart';
+import '../../services/sync/cache_cleaner.dart';
 import '../../providers/app_provider.dart';
 
 /// WebDAV 备份页面
@@ -126,6 +127,11 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     setState(() => _isLoading = true);
 
     try {
+      // 先清理缓存
+      setState(() => _syncStep = '正在清理缓存...');
+      await Future.delayed(Duration.zero);
+      await CacheCleaner.instance.clean(context.read<AppProvider>());
+
       SyncResult result;
 
       if (_syncDirection == SyncDirection.upload) {

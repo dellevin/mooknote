@@ -11,6 +11,7 @@ import '../../utils/user_prefs.dart';
 import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
 import '../../data/database_helper.dart';
+import '../../services/sync/cache_cleaner.dart';
 import '../online_search/enhanced_search_settings_page.dart';
 import '../settings/legal_page.dart';
 import 'app_icon_picker_page.dart';
@@ -1035,30 +1036,13 @@ class _SettingsPageState extends State<SettingsPage> {
           context: context,
           barrierDismissible: false,
           builder: (_) => const Center(child: CircularProgressIndicator()));
-      final appProvider = context.read<AppProvider>();
-
-      // 1. 清理未引用的图片文件
-      final dbImagePaths = await _getAllDbImagePaths(appProvider);
-      final deletedImages = await _cleanImageDirectory(dbImagePaths);
-
-      // 2. 清理孤立的 epub_books 目录
-      final deletedEpubs = await _cleanOrphanedEpubBooks(appProvider);
-
-      // 3. 清理临时目录缓存（分享海报、备份ZIP等）
-      final deletedTemp = await _cleanTempDirectory();
-
-      // 4. 清理空文件夹
-      final deletedEmptyDirs = await _cleanEmptyDirectories();
-
+      final result = await CacheCleaner.instance.clean(context.read<AppProvider>());
       Navigator.pop(context);
       if (context.mounted) {
-        final total =
-            deletedImages + deletedEpubs + deletedTemp + deletedEmptyDirs;
-        if (total == 0) {
+        if (result.total == 0) {
           ToastUtil.show(context, '没有需要清理的缓存');
         } else {
-          ToastUtil.show(context,
-              '已清理 $deletedImages 个孤立图片，$deletedEpubs 个孤立电子书，$deletedTemp 个临时文件，$deletedEmptyDirs 个空文件夹');
+          ToastUtil.show(context, result.description);
         }
       }
     } catch (e) {
@@ -1096,77 +1080,6 @@ class _SettingsPageState extends State<SettingsPage> {
     return paths;
   }
 
-  Future<int> _cleanImageDirectory(Set<String> dbImagePaths) async {
-    int deletedCount = 0;
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
-      if (!await imagesDir.exists()) return 0;
-      await for (final entity
-          in imagesDir.list(recursive: true, followLinks: false)) {
-        if (entity is File &&
-            !dbImagePaths.contains(entity.path) &&
-            !path.basename(entity.path).startsWith('avatar')) {
-          try {
-            await entity.delete();
-            deletedCount++;
-          } catch (_) {}
-        }
-      }
-    } catch (e) {
-      debugPrint('清理图片目录失败: $e');
-    }
-    return deletedCount;
-  }
-
-  /// 清理 epub_books 中孤立的目录（数据库中不存在的）
-  Future<int> _cleanOrphanedEpubBooks(AppProvider provider) async {
-    int deletedCount = 0;
-    try {
-      final db = await DatabaseHelper.instance.database;
-      // 收集数据库中所有引用的 epub_books 子目录名（包括软删除的）
-      final rows = await db.query('reader_books',
-          columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
-      final usedDirs = <String>{};
-      for (final r in rows) {
-        // 只收集未删除的记录对应的目录
-        final isDeleted = r['is_deleted'] == 1 || r['is_deleted'] == true;
-        if (isDeleted) continue;
-        final id = r['id'] as String?;
-        if (id != null && id.isNotEmpty) usedDirs.add(id);
-        _collectEpubDirName(r['file_path'] as String?, usedDirs);
-        _collectEpubDirName(r['cover_path'] as String?, usedDirs);
-      }
-
-      // 检查 /data/user/0/top.iletter.mooknote/app_flutter/epub_books 路径
-      final appDir = await getApplicationDocumentsDirectory();
-      final possiblePaths = [
-        '${appDir.path}/epub_books',
-        '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
-      ];
-
-      for (final epubPath in possiblePaths) {
-        final epubDir = Directory(epubPath);
-        if (!await epubDir.exists()) continue;
-
-        await for (final entity in epubDir.list(followLinks: false)) {
-          if (entity is Directory) {
-            final dirName = path.basename(entity.path);
-            if (!usedDirs.contains(dirName)) {
-              try {
-                await entity.delete(recursive: true);
-                deletedCount++;
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('清理 epub_books 目录失败: $e');
-    }
-    return deletedCount;
-  }
-
   /// 从绝对路径中提取 epub_books/ 下的目录名
   void _collectEpubDirName(String? pathStr, Set<String> dirs) {
     if (pathStr == null || pathStr.isEmpty) return;
@@ -1176,100 +1089,6 @@ class _SettingsPageState extends State<SettingsPage> {
     final rest = pathStr.substring(idx + marker.length);
     final slashIdx = rest.indexOf('/');
     dirs.add(slashIdx >= 0 ? rest.substring(0, slashIdx) : rest);
-  }
-
-  Future<int> _cleanTempDirectory() async {
-    int deletedCount = 0;
-    final now = DateTime.now();
-
-    // 1. 清理临时目录中的分享海报（保留备份ZIP）
-    try {
-      final tempDir = await getTemporaryDirectory();
-      if (await tempDir.exists()) {
-        await for (final entity in tempDir.list(followLinks: false)) {
-          if (entity is File) {
-            final name = path.basename(entity.path);
-            if (name.startsWith('book_poster_') ||
-                name.startsWith('movie_poster_') ||
-                name.startsWith('note_share_') ||
-                name.startsWith('mooknote_download') ||
-                name.startsWith('mooknote_bidir')) {
-              try {
-                final stat = await entity.stat();
-                if (now.difference(stat.modified).inHours >= 1) {
-                  await entity.delete();
-                  deletedCount++;
-                }
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('清理临时目录失败: $e');
-    }
-
-    // 2. 清理应用缓存目录 (/data/user/0/{package}/cache/)
-    try {
-      final cacheDir = await getApplicationCacheDirectory();
-      if (await cacheDir.exists()) {
-        await for (final entity
-            in cacheDir.list(recursive: true, followLinks: false)) {
-          if (entity is File) {
-            try {
-              await entity.delete();
-              deletedCount++;
-            } catch (_) {}
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('清理缓存目录失败: $e');
-    }
-
-    return deletedCount;
-  }
-
-  /// 清理 images、epub_books、cache 下的空文件夹
-  Future<int> _cleanEmptyDirectories() async {
-    int deletedCount = 0;
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final cacheDir = await getApplicationCacheDirectory();
-      final dirs = [
-        Directory('${appDir.path}/images'),
-        Directory('${appDir.path}/epub_books'),
-        cacheDir,
-      ];
-      for (final dir in dirs) {
-        if (!await dir.exists()) continue;
-        deletedCount += await _removeEmptyDirsRecursive(dir);
-      }
-    } catch (e) {
-      debugPrint('清理空文件夹失败: $e');
-    }
-    return deletedCount;
-  }
-
-  /// 递归删除空子文件夹（自底向上），不删除根目录本身
-  Future<int> _removeEmptyDirsRecursive(Directory dir) async {
-    int count = 0;
-    try {
-      final children = await dir.list(followLinks: false).toList();
-      for (final child in children) {
-        if (child is Directory) {
-          count += await _removeEmptyDirsRecursive(child);
-          final remaining = await child.list(followLinks: false).toList();
-          if (remaining.isEmpty) {
-            try {
-              await child.delete();
-              count++;
-            } catch (_) {}
-          }
-        }
-      }
-    } catch (_) {}
-    return count;
   }
 
   // ─── 扫描方法（只统计不删除） ──────────────────────────────────────────────
