@@ -10,6 +10,7 @@ import '../../utils/responsive.dart';
 import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'note_detail_page.dart';
+import 'note_add_page.dart';
 
 /// 笔记标签页（分页 + 触底加载）
 class NoteTabPage extends StatefulWidget {
@@ -139,11 +140,14 @@ class _NoteTabPageState extends State<NoteTabPage> {
       }
       final masterContent = _buildContent(isWideContent);
       if (!isWideContent) return masterContent;
+      final detailWidget = provider.isAdding && provider.addingType == 2
+          ? NoteAddPage(onCancel: () => provider.cancelAdding())
+          : provider.selectedNote != null
+              ? NoteDetailPage(note: provider.selectedNote!, embedded: true)
+              : const DetailPlaceholder(icon: Icons.note_outlined, message: '选择一条笔记查看详情');
       return MasterDetailScaffold(
         master: masterContent,
-        detail: provider.selectedNote != null
-            ? NoteDetailPage(note: provider.selectedNote!, embedded: true)
-            : const DetailPlaceholder(icon: Icons.note_outlined, message: '选择一条笔记查看详情'),
+        detail: detailWidget,
       );
     });
   }

@@ -66,6 +66,41 @@ String generateSkeletonHtml(
   <script id="skeleton-script">
     $kControllerJs
   </script>
+  <script id="skeleton-srcdoc-patch">
+    // Patch: loadFrameSrcdoc for Windows WebView2
+    // Injects HTML content via srcdoc instead of src URL.
+    // A <base> tag is prepended so relative URLs resolve to epub:// and
+    // can be intercepted by shouldInterceptRequest.
+    window.api.loadFrameSrcdoc = function(token, slot, htmlContent, baseUrl, anchors, properties) {
+      var frame = this.frameMgr.getFrame(slot);
+      if (!frame) { window.flutter_inappwebview.callHandler("onEventFinished", token); return; }
+      this.state.anchors[slot] = anchors || [];
+      this.state.properties[slot] = properties || [];
+      // Store the URL anchor for onFrameLoad to scroll to
+      var urlAnchor = '';
+      if (baseUrl.indexOf('#') !== -1) {
+        urlAnchor = baseUrl.split('#').pop();
+      }
+      frame.onload = null;
+      // Prepend <base> tag for relative URL resolution
+      var baseTag = '<base href="' + baseUrl + '">';
+      var htmlWithBase = htmlContent;
+      if (htmlWithBase.indexOf('<head') !== -1) {
+        htmlWithBase = htmlWithBase.replace(/<head([^>]*)>/i, function(m, a) { return '<head' + a + '>' + baseTag; });
+      } else if (htmlWithBase.indexOf('<html') !== -1) {
+        htmlWithBase = htmlWithBase.replace(/<html([^>]*)>/i, function(m, a) { return '<html' + a + '><head>' + baseTag + '</head>'; });
+      } else {
+        htmlWithBase = baseTag + htmlWithBase;
+      }
+      var self = this;
+      frame.onload = function() {
+        // Set frame.src so onFrameLoad can extract the anchor for scrolling
+        if (urlAnchor) frame.setAttribute('data-srcdoc-anchor', urlAnchor);
+        self.onFrameLoad(frame, token);
+      };
+      frame.srcdoc = htmlWithBase;
+    };
+  </script>
   <script id="skeleton-variable-script">
     const initialConfig = $initialConfigJson;
     window.addEventListener('DOMContentLoaded', () => {
@@ -75,9 +110,9 @@ String generateSkeletonHtml(
 </head>
 <body>
   <div id="frame-container">
-    <iframe id="frame-prev" sandbox="allow-same-origin allow-scripts" scrolling="no" style="z-index: 1; opacity: 0;"></iframe>
-    <iframe id="frame-curr" sandbox="allow-same-origin allow-scripts" scrolling="no" style="z-index: 2; opacity: 1;"></iframe>
-    <iframe id="frame-next" sandbox="allow-same-origin allow-scripts" scrolling="no" style="z-index: 1; opacity: 0;"></iframe>
+    <iframe id="frame-prev" scrolling="no" style="z-index: 1; opacity: 0;"></iframe>
+    <iframe id="frame-curr" scrolling="no" style="z-index: 2; opacity: 1;"></iframe>
+    <iframe id="frame-next" scrolling="no" style="z-index: 1; opacity: 0;"></iframe>
   </div>
 </body>
 </html>

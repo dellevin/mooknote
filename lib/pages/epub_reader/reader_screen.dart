@@ -200,7 +200,18 @@ class _ReaderScreenState extends State<ReaderScreen>
       final route = ModalRoute.of(context);
       if (route != null && route.animation != null) {
         routeAnimation = route.animation!;
-        routeAnimation?.addStatusListener(handleRouteAnimationStatus);
+        if (routeAnimation!.isCompleted) {
+          shouldShowWebView = true;
+        } else {
+          routeAnimation?.addStatusListener(handleRouteAnimationStatus);
+          // 安全超时：桌面端路由动画可能不触发 completed，500ms后强制显示
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && !shouldShowWebView) {
+              debugPrint('[EPUB-Reader] animation timeout, forcing WebView visible');
+              setState(() { shouldShowWebView = true; });
+            }
+          });
+        }
       } else {
         shouldShowWebView = true;
       }
@@ -268,6 +279,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   void handleRouteAnimationStatus(AnimationStatus status) {
+    debugPrint('[EPUB-Reader] animation status: $status');
     if (status == AnimationStatus.completed) {
       setState(() {
         shouldShowWebView = true;

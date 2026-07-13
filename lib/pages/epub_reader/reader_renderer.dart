@@ -77,11 +77,17 @@ class ReaderRendererController {
         .toList();
     final propertiesParam = encodedPropertiesList.map((p) => '"$p"').join(',');
     final propertiesJson = '[$propertiesParam]';
+
+    if (Platform.isWindows) {
+      final result = await _rendererState?._readHtmlForUrl(url);
+      if (result != null) {
+        return await webViewController?.loadFrameSrcdoc(
+          'curr', result.$1, result.$2, anchorsJson, propertiesJson,
+        );
+      }
+    }
     return await webViewController?.loadFrame(
-      'curr',
-      url,
-      anchorsJson,
-      propertiesJson,
+      'curr', url, anchorsJson, propertiesJson,
     );
   }
 
@@ -98,11 +104,17 @@ class ReaderRendererController {
         .toList();
     final propertiesParam = encodedPropertiesList.map((p) => '"$p"').join(',');
     final propertiesJson = '[$propertiesParam]';
+
+    if (Platform.isWindows) {
+      final result = await _rendererState?._readHtmlForUrl(url);
+      if (result != null) {
+        return await webViewController?.loadFrameSrcdoc(
+          'next', result.$1, result.$2, anchorsJson, propertiesJson,
+        );
+      }
+    }
     return await webViewController?.loadFrame(
-      'next',
-      url,
-      anchorsJson,
-      propertiesJson,
+      'next', url, anchorsJson, propertiesJson,
     );
   }
 
@@ -119,11 +131,17 @@ class ReaderRendererController {
         .toList();
     final propertiesParam = encodedPropertiesList.map((p) => '"$p"').join(',');
     final propertiesJson = '[$propertiesParam]';
+
+    if (Platform.isWindows) {
+      final result = await _rendererState?._readHtmlForUrl(url);
+      if (result != null) {
+        return await webViewController?.loadFrameSrcdoc(
+          'prev', result.$1, result.$2, anchorsJson, propertiesJson,
+        );
+      }
+    }
     return await webViewController?.loadFrame(
-      'prev',
-      url,
-      anchorsJson,
-      propertiesJson,
+      'prev', url, anchorsJson, propertiesJson,
     );
   }
 
@@ -234,6 +252,16 @@ class _ReaderRendererState extends State<ReaderRenderer>
     _currentTheme = theme;
     await _webViewController.updateTheme(
       theme.copyWith(padding: _addSafeAreaToPadding(theme.padding)),
+    );
+  }
+
+  /// Read HTML content from EPUB for a given virtual URL (Windows srcdoc approach).
+  /// Returns (htmlContent, baseUrl) or null.
+  Future<(String, String)?> _readHtmlForUrl(String url) async {
+    return await widget.webViewHandler.readHtmlContentWithBaseUrl(
+      epubPath: widget.bookSession.book['file_path'] as String,
+      fileHash: widget.fileHash,
+      url: url,
     );
   }
 

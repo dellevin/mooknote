@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../../main.dart';
 import '../../services/epub/epub_theme.dart';
 import 'book_session.dart';
 import '../../services/epub/epub_webview_handler.dart';
@@ -42,6 +43,16 @@ class ReaderWebViewController {
     String properties,
   ) async {
     return await _webViewState?._loadFrame(frame, url, anchors, properties);
+  }
+
+  Future<int?> loadFrameSrcdoc(
+    String frame,
+    String htmlContent,
+    String baseUrl,
+    String anchors,
+    String properties,
+  ) async {
+    return await _webViewState?._loadFrameSrcdoc(frame, htmlContent, baseUrl, anchors, properties);
   }
 
   Future<void> jumpToPage(int pageIndex) async {
@@ -327,6 +338,7 @@ class _ReaderWebViewState extends State<ReaderWebView> {
     if (_isHeadlessInitialized) return;
 
     _headlessWebView = HeadlessInAppWebView(
+      webViewEnvironment: windowsWebViewEnvironment,
       initialData: _generateInitialData(width, height),
       initialSettings: defaultSettings,
       shouldInterceptRequest: _shouldInterceptRequest,
@@ -363,6 +375,14 @@ class _ReaderWebViewState extends State<ReaderWebView> {
     String anchors,
     String properties,
   ) => _api.loadFrame(frame, url, anchors, properties);
+
+  Future<int> _loadFrameSrcdoc(
+    String frame,
+    String htmlContent,
+    String baseUrl,
+    String anchors,
+    String properties,
+  ) => _api.loadFrameSrcdoc(frame, htmlContent, baseUrl, anchors, properties);
 
   Future<void> _jumpToPage(int pageIndex) => _api.jumpToPage(pageIndex);
 
@@ -1113,6 +1133,7 @@ class _ReaderWebViewState extends State<ReaderWebView> {
               child: AbsorbPointer(
                 child: widget.shouldShowWebView
                     ? InAppWebView(
+                        webViewEnvironment: windowsWebViewEnvironment,
                         headlessWebView: _headlessWebView,
                         initialData: _generateInitialData(width, height),
                         initialSettings: defaultSettings,

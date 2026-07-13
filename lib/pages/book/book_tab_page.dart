@@ -12,6 +12,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'book_detail_page.dart';
+import 'book_add_page.dart';
 
 /// 阅读标签页（分页 + 触底加载）
 class BookTabPage extends StatefulWidget {
@@ -157,11 +158,14 @@ class _BookTabPageState extends State<BookTabPage> {
     if (!isWideContent) return masterContent;
 
     final selectedBook = provider.selectedBook;
+    final detailWidget = provider.isAdding && provider.addingType == 1
+        ? BookAddPage(onCancel: () => provider.cancelAdding())
+        : selectedBook != null
+            ? BookDetailPage(book: selectedBook, embedded: true)
+            : const DetailPlaceholder(icon: Icons.menu_book_outlined, message: '选择一本书查看详情');
     return MasterDetailScaffold(
       master: masterContent,
-      detail: selectedBook != null
-          ? BookDetailPage(book: selectedBook, embedded: true)
-          : const DetailPlaceholder(icon: Icons.menu_book_outlined, message: '选择一本书查看详情'),
+      detail: detailWidget,
     );
   }
 

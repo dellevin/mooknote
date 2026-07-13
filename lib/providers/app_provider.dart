@@ -52,6 +52,8 @@ class AppProvider extends ChangeNotifier {
   Book? _selectedBook;
   Note? _selectedNote;
   Game? _selectedGame;
+  bool _isAdding = false;
+  int? _addingType; // 0=影视, 1=阅读, 2=笔记, 3=游戏, null=未选择类型
 
   // 主题模式
   ThemeMode _themeMode = ThemeMode.system;
@@ -320,6 +322,43 @@ class AppProvider extends ChangeNotifier {
 
   void selectGame(Game? game) {
     _selectedGame = game;
+    notifyListeners();
+  }
+
+  bool get isAdding => _isAdding;
+  int? get addingType => _addingType;
+
+  void startAdding() {
+    _isAdding = true;
+    _addingType = null;
+    // 清除选中项，避免同时显示详情和添加
+    _selectedMovie = null;
+    _selectedBook = null;
+    _selectedNote = null;
+    _selectedGame = null;
+    notifyListeners();
+  }
+
+  void startAddingType(int type) {
+    _isAdding = true;
+    _addingType = type;
+    _selectedMovie = null;
+    _selectedBook = null;
+    _selectedNote = null;
+    _selectedGame = null;
+    _mainTabIndex = type;
+    notifyListeners();
+  }
+
+  void cancelAdding() {
+    _isAdding = false;
+    _addingType = null;
+    notifyListeners();
+  }
+
+  void finishAdding() {
+    _isAdding = false;
+    _addingType = null;
     notifyListeners();
   }
 

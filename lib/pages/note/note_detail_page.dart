@@ -1,11 +1,18 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
+import '../../utils/toast_util.dart';
+import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
+import '../../widgets/tag_side_panel.dart';
 import 'note_share_page.dart';
 
 /// 笔记详情页
@@ -21,6 +28,97 @@ class NoteDetailPage extends StatefulWidget {
 
 class _NoteDetailPageState extends State<NoteDetailPage> {
   static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+
+  // ─── 编辑模式 ───
+  bool _isEditing = false;
+  String _editMode = 'edit'; // 'edit' | 'preview'
+  late TextEditingController _titleCtrl;
+  late TextEditingController _contentCtrl;
+  List<String> _editTags = [];
+  List<String> _editImages = [];
+  Timer? _autoSaveTimer;
+  String _saveStatus = '';
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl = TextEditingController(text: widget.note.title);
+    _contentCtrl = TextEditingController(text: widget.note.content);
+    _editTags = List.from(widget.note.tags);
+    _editImages = List.from(widget.note.images);
+  }
+
+  @override
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    _titleCtrl.dispose();
+    _contentCtrl.dispose();
+    super.dispose();
+  }
+
+  void _enterEditMode() {
+    final latest = context.read<AppProvider>().notes
+        .where((n) => n.id == widget.note.id).firstOrNull ?? widget.note;
+    _titleCtrl.text = latest.title;
+    _contentCtrl.text = latest.content;
+    _editTags = List.from(latest.tags);
+    _editImages = List.from(latest.images);
+    _saveStatus = '';
+    setState(() => _isEditing = true);
+  }
+
+  void _onContentChanged() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) _autoSave();
+    });
+  }
+
+  Future<void> _autoSave() async {
+    final content = _contentCtrl.text.trim();
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty && content.isEmpty) return;
+    try {
+      final latest = context.read<AppProvider>().notes
+          .where((n) => n.id == widget.note.id).firstOrNull ?? widget.note;
+      final updated = latest.copyWith(
+        title: title, content: content, tags: _editTags, images: _editImages,
+        updatedAt: DateTime.now(),
+      );
+      await context.read<AppProvider>().updateNote(updated);
+      if (mounted) {
+        setState(() => _saveStatus = 'saved');
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted && _saveStatus == 'saved') setState(() => _saveStatus = '');
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveEdit() async {
+    _autoSaveTimer?.cancel();
+    final title = _titleCtrl.text.trim();
+    final content = _contentCtrl.text.trim();
+    if (title.isEmpty && content.isEmpty) {
+      ToastUtil.show(context, '标题或内容不能为空');
+      return;
+    }
+    try {
+      final latest = context.read<AppProvider>().notes
+          .where((n) => n.id == widget.note.id).firstOrNull ?? widget.note;
+      final updated = latest.copyWith(
+        title: title, content: content, tags: _editTags, images: _editImages,
+        updatedAt: DateTime.now(),
+      );
+      await context.read<AppProvider>().updateNote(updated);
+      if (!mounted) return;
+      ToastUtil.show(context, '保存成功');
+      setState(() => _isEditing = false);
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '保存失败: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +228,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   /// 桌面端布局
   Widget _buildDesktopStyle(Note note, ColorScheme colors) {
+    if (_isEditing) return _buildDesktopEditStyle(note, colors);
     return Scaffold(
       backgroundColor: colors.surface,
       body: Column(
@@ -219,7 +318,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 ),
                 const SizedBox(width: 12),
                 FilledButton.icon(
-                  onPressed: () => _navigateToEdit(context),
+                  onPressed: _enterEditMode,
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: const Text('编辑'),
                   style: FilledButton.styleFrom(
@@ -231,6 +330,295 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // ─── 桌面端编辑模式：左编辑 + 右预览 ────────────────────────────
+
+  Widget _buildDesktopEditStyle(Note note, ColorScheme colors) {
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Column(
+        children: [
+          // 顶栏
+          Container(
+            height: 48,
+            decoration: BoxDecoration(color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+            child: Row(children: [
+              IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
+                onPressed: () { _autoSaveTimer?.cancel(); if (_saveStatus == 'saved') _autoSave(); setState(() => _isEditing = false); }),
+              Expanded(child: Text(_titleCtrl.text.isNotEmpty ? _titleCtrl.text : '编辑笔记',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                maxLines: 1, overflow: TextOverflow.ellipsis)),
+              // 编辑/预览切换
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  _editModeChip(Icons.edit_outlined, '编辑', 'edit', colors),
+                  _editModeChip(Icons.visibility_outlined, '预览', 'preview', colors),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              if (_saveStatus == 'saved')
+                Padding(padding: const EdgeInsets.only(right: 8),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                    const SizedBox(width: 4),
+                    Text('已保存', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                  ])),
+              FilledButton.icon(onPressed: _saveEdit,
+                icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
+              const SizedBox(width: 12),
+            ]),
+          ),
+          // 主体
+          Expanded(
+            child: _editMode == 'edit' ? _buildEditArea(colors, note) : _buildPreviewArea(colors, note),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _editModeChip(IconData icon, String label, String mode, ColorScheme colors) {
+    final active = _editMode == mode;
+    return GestureDetector(onTap: () => setState(() => _editMode = mode),
+      child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? colors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: active ? [BoxShadow(color: colors.onSurface.withValues(alpha: 0.03), blurRadius: 2)] : null),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: active ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4)),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: active ? FontWeight.w500 : FontWeight.normal,
+            color: active ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4))),
+        ])));
+  }
+
+  Widget _buildEditArea(ColorScheme colors, Note note) {
+    return Column(children: [
+      // 标题输入
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+        child: TextField(controller: _titleCtrl, maxLines: 1,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface),
+          decoration: InputDecoration(hintText: '添加标题',
+            hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2)),
+            border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+          onChanged: (_) => setState(() {})),
+      ),
+      // 内容编辑
+      Expanded(
+        child: TextField(controller: _contentCtrl, maxLines: null, expands: true,
+          textAlignVertical: TextAlignVertical.top,
+          strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
+          style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+          decoration: InputDecoration(hintText: '使用 Markdown 格式书写...',
+            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
+            border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
+          onChanged: (_) => _onContentChanged()),
+      ),
+      // 图片网格
+      if (_editImages.isNotEmpty) _buildEditImageGrid(colors),
+      // 标签 + 字数 + 工具栏
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5))),
+        child: Column(children: [
+          // 标签行
+          Wrap(spacing: 6, runSpacing: 4, children: [
+            for (int i = 0; i < _editTags.length; i++) Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(_editTags[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
+                const SizedBox(width: 3),
+                GestureDetector(onTap: () => setState(() => _editTags.removeAt(i)),
+                  child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3))),
+              ])),
+            GestureDetector(onTap: _showEditTagPanel,
+              child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+                  const SizedBox(width: 2),
+                  Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+                ]))),
+          ]),
+          const SizedBox(height: 6),
+          // 工具栏
+          Row(children: [
+            Expanded(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+              _editToolBtn(Icons.title, '标题', _insertHeading),
+              _editToolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
+              _editToolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
+              _editToolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
+              _editToolGap(colors),
+              _editToolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
+              _editToolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
+              _editToolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
+              _editToolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
+              _editToolGap(colors),
+              _editToolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
+              _editToolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
+              _editToolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
+              _editToolGap(colors),
+              _editToolBtn(Icons.add_photo_alternate_outlined, '图片', _pickEditImage),
+            ]))),
+            const SizedBox(width: 8),
+            Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+          ]),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _buildPreviewArea(ColorScheme colors, Note note) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        if (_titleCtrl.text.isNotEmpty) ...[
+          Text(_titleCtrl.text, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.3)),
+          const SizedBox(height: 16),
+        ],
+        Markdown(
+          data: _contentCtrl.text,
+          styleSheet: _buildMarkdownStyleSheet(colors),
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          // ignore: deprecated_member_use
+          imageBuilder: (uri, title, alt) => _buildMarkdownImage(uri, note),
+        ),
+        if (_editImages.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildImageRow(_editImages),
+        ],
+        const SizedBox(height: 48),
+      ],
+    );
+  }
+
+  Widget _editToolBtn(IconData icon, String tooltip, VoidCallback onTap) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(color: Colors.transparent,
+      child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(6),
+        child: Tooltip(message: tooltip,
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Icon(icon, size: 16, color: colors.onSurface.withValues(alpha: 0.6))))));
+  }
+
+  Widget _editToolGap(ColorScheme colors) {
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: SizedBox(height: 12, child: VerticalDivider(width: 0, thickness: 0.5, color: colors.outline)));
+  }
+
+  void _insertMarkdown(String left, String right) {
+    final text = _contentCtrl.text;
+    final selection = _contentCtrl.selection;
+    final start = selection.start;
+    final end = selection.end;
+    String selectedText = end > start ? text.substring(start, end) : '';
+    final insertion = '$left$selectedText$right';
+    _contentCtrl.value = TextEditingValue(
+      text: text.substring(0, start) + insertion + text.substring(end),
+      selection: TextSelection.collapsed(
+        offset: selectedText.isEmpty ? start + left.length : start + left.length + selectedText.length + right.length,
+      ),
+    );
+    _onContentChanged();
+  }
+
+  void _insertHeading() {
+    final text = _contentCtrl.text;
+    final selection = _contentCtrl.selection;
+    final start = selection.start;
+    int lineStart = start;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') lineStart--;
+    int hashCount = 0;
+    int pos = lineStart;
+    while (pos < text.length && text[pos] == '#') { hashCount++; pos++; }
+    if (pos < text.length && text[pos] == ' ') pos++;
+    if (hashCount > 0 && hashCount < 6) {
+      hashCount++;
+      final newPrefix = '${'#' * hashCount} ';
+      _contentCtrl.value = TextEditingValue(
+        text: text.substring(0, lineStart) + newPrefix + text.substring(pos),
+        selection: TextSelection.collapsed(offset: lineStart + newPrefix.length));
+    } else if (hashCount >= 6) {
+      _contentCtrl.value = TextEditingValue(
+        text: text.substring(0, lineStart) + text.substring(pos),
+        selection: TextSelection.collapsed(offset: lineStart));
+    } else {
+      _contentCtrl.value = TextEditingValue(
+        text: text.substring(0, lineStart) + '# ' + text.substring(lineStart),
+        selection: TextSelection.collapsed(offset: lineStart + 2));
+    }
+    _onContentChanged();
+  }
+
+  Future<void> _pickEditImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1920, imageQuality: 85);
+      if (image == null) return;
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final targetDir = await ImagePathHelper.instance.getNoteImagesDir(widget.note.id);
+      await ImagePathHelper.instance.ensureDirExists(targetDir);
+      final targetPath = p.join(targetDir, fileName);
+      await File(image.path).copy(targetPath);
+      if (mounted) setState(() => _editImages.add(targetPath));
+      _onContentChanged();
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择图片失败: $e');
+    }
+  }
+
+  Future<void> _showEditTagPanel() async {
+    final provider = context.read<AppProvider>();
+    final tagRows = await provider.getTags('note_tag');
+    final allTags = tagRows.map((t) => t['name'] as String).toSet();
+    for (final note in provider.notes) { allTags.addAll(note.tags); }
+    if (!mounted) return;
+    TagSidePanel.show(context: context, selectedTags: List.from(_editTags),
+      allAvailableTags: allTags.toList()..sort(),
+      onTagsChanged: (newTags) => setState(() => _editTags = newTags));
+  }
+
+  Widget _buildEditImageGrid(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      height: 72,
+      child: ListView.separated(scrollDirection: Axis.horizontal,
+        itemCount: _editImages.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (ctx, i) {
+          if (i < _editImages.length) {
+            return Stack(children: [
+              InkWell(onTap: () => _showImagePreview(_editImages, i),
+                child: Container(width: 56, height: 56,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.outlineVariant, width: 0.5)),
+                  clipBehavior: Clip.antiAlias,
+                  child: FadeInLocalImage(path: _editImages[i], fit: BoxFit.cover))),
+              Positioned(top: -4, right: -4,
+                child: GestureDetector(onTap: () => setState(() => _editImages.removeAt(i)),
+                  child: Container(width: 16, height: 16,
+                    decoration: BoxDecoration(color: colors.surface, shape: BoxShape.circle, border: Border.all(color: colors.outline)),
+                    child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.5))))),
+            ]);
+          }
+          return InkWell(onTap: _pickEditImage,
+            child: Container(width: 56, height: 56,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: colors.surfaceContainerHighest,
+                border: Border.all(color: colors.outlineVariant)),
+              child: Icon(Icons.add_photo_alternate_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.3))));
+        }),
     );
   }
 

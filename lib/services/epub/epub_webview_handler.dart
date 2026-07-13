@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'epub_stream_service.dart';
 import '../../utils/image_path_helper.dart';
@@ -99,6 +100,8 @@ class EpubWebViewHandler {
     required WebUri requestUrl,
   }) async {
     try {
+      debugPrint('[EPUB-Handler] customScheme: $requestUrl');
+
       // Serve user-imported fonts.
       if (isFontRequest(requestUrl)) {
         final fontResult = await _readFontFile(requestUrl);
@@ -144,6 +147,7 @@ class EpubWebViewHandler {
   ) async {
     final prefix = "/book/$fileHash/";
     if (!requestUrl.path.startsWith(prefix)) {
+      debugPrint('[EPUB-Handler] path mismatch: ${requestUrl.path} does not start with $prefix');
       return null;
     }
 
@@ -156,9 +160,13 @@ class EpubWebViewHandler {
       targetFilePath: fileRelativePath,
     );
 
-    if (data == null) return null;
+    if (data == null) {
+      debugPrint('[EPUB-Handler] file not found in epub: $fileRelativePath');
+      return null;
+    }
 
     final mimeType = _streamService.getMimeType(fileRelativePath);
+    debugPrint('[EPUB-Handler] serving: $fileRelativePath ($mimeType, ${data.length} bytes)');
     return (data, mimeType);
   }
 
@@ -194,6 +202,38 @@ class EpubWebViewHandler {
     'woff': 'font/woff',
     'woff2': 'font/woff2',
   };
+
+  /// Read HTML content from EPUB for srcdoc injection (Windows WebView2).
+  /// [url] is the virtual epub:// URL; extracts the relative path and reads the file.
+  /// Returns (htmlContent, baseUrl) where baseUrl points to the file's directory
+  /// so that relative URLs in the HTML resolve correctly.
+  Future<(String, String)?> readHtmlContentWithBaseUrl({
+    required String epubPath,
+    required String fileHash,
+    required String url,
+  }) async {
+    try {
+      final uri = Uri.parse(url);
+      final prefix = "/book/$fileHash/";
+      if (!uri.path.startsWith(prefix)) return null;
+      final decodedPath = Uri.decodeFull(uri.path);
+      final relativePath = decodedPath.substring(prefix.length).split('#')[0];
+      final data = await _streamService.readFileFromEpub(
+        epubPath: epubPath,
+        targetFilePath: relativePath,
+      );
+      if (data == null) return null;
+      final htmlContent = String.fromCharCodes(data);
+      // Base URL should point to the directory containing the HTML file
+      final dirPath = relativePath.contains('/')
+          ? relativePath.substring(0, relativePath.lastIndexOf('/') + 1)
+          : '';
+      final baseUrl = '$virtualScheme://$virtualDomain/book/$fileHash/$dirPath';
+      return (htmlContent, baseUrl);
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Generate base URL for a chapter.
   /// This URL should be used as the baseUrl parameter when loading HTML.

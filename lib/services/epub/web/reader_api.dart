@@ -33,6 +33,33 @@ class ReaderApi {
     (t) => "window.api.loadFrame($t, '$slot', '$url', $anchors, $properties)",
   );
 
+  /// Loads HTML content via srcdoc into the iframe identified by [slot].
+  /// Used on Windows where iframe src with custom scheme doesn't load subresources.
+  /// [htmlContent] is the raw HTML string to inject.
+  /// [baseUrl] is used as the iframe's base URL for resolving relative paths.
+  Future<int> loadFrameSrcdoc(
+    String slot,
+    String htmlContent,
+    String baseUrl,
+    String anchors,
+    String properties,
+  ) {
+    final escapedHtml = _escapeForJs(htmlContent);
+    return _bridge.call(
+      (t) => "window.api.loadFrameSrcdoc($t, '$slot', '$escapedHtml', '$baseUrl', $anchors, $properties)",
+    );
+  }
+
+  /// Escapes a string for safe embedding in a JS single-quoted string literal.
+  String _escapeForJs(String s) {
+    return s
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r')
+        .replaceAll(r'$', r'\$');
+  }
+
   /// Scrolls [slot]'s iframe to [pageIndex] without immediately awaiting.
   Future<int> jumpToPageFor(String slot, int pageIndex) =>
       _bridge.call((t) => "window.api.jumpToPageFor($t, '$slot', $pageIndex)");

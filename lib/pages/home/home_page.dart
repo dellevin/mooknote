@@ -12,6 +12,7 @@ import '../../utils/toast_util.dart';
 import '../../widgets/custom_drawer.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/add_sheet.dart';
+import '../../widgets/add_type_selector.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../pages/epub_reader/epub_library_page.dart';
 import '../../pages/movies/movie_detail_page.dart';
@@ -328,7 +329,16 @@ class _DesktopIconRail extends StatelessWidget {
             _buildProfileHeader(context),
             const SizedBox(height: 10),
             // 添加 + 搜索
-            _IconRailItem(icon: Icons.add_circle_outline, activeIcon: Icons.add_circle, label: '添加', accentColor: colors.primary, selected: false, onTap: () => showAddSheet(context, context.read<AppProvider>())),
+            _IconRailItem(icon: Icons.add_circle_outline, activeIcon: Icons.add_circle, label: '添加', accentColor: colors.primary, selected: false, onTap: () {
+              final provider = context.read<AppProvider>();
+              if (Breakpoint.isDesktop(context)) {
+                showAddTypeSelector(context).then((type) {
+                  if (type != null) provider.startAddingType(type);
+                });
+              } else {
+                showAddSheet(context, provider);
+              }
+            }),
             _IconRailItem(icon: Icons.search, activeIcon: Icons.search, label: '搜索', accentColor: colors.primary, selected: false, onTap: () => _showSearchDialog(context)),
             const SizedBox(height: 2),
             // 分类图标
@@ -3546,7 +3556,7 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   Widget _toggleBtn(String label, bool selected, VoidCallback onTap, ColorScheme colors) {
     return Material(
-      color: selected ? colors.surface : Colors.transparent,
+      color: selected ? colors.onSurface : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -3559,7 +3569,7 @@ class _SearchDialogState extends State<_SearchDialog> {
               Icon(
                 selected ? Icons.search_rounded : Icons.search_outlined,
                 size: 14,
-                color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.5),
+                color: selected ? colors.surface : colors.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 5),
               Text(
@@ -3567,7 +3577,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.55),
+                  color: selected ? colors.surface : colors.onSurface.withValues(alpha: 0.55),
                 ),
               ),
             ],

@@ -12,6 +12,7 @@ import '../../utils/responsive.dart';
 import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'game_detail_page.dart';
+import 'game_add_page.dart';
 
 /// 游戏标签页（分页 + 触底加载）
 class GameTabPage extends StatefulWidget {
@@ -180,11 +181,14 @@ class _GameTabPageState extends State<GameTabPage> {
     if (!isWideContent) return masterContent;
 
     final selectedGame = provider.selectedGame;
+    final detailWidget = provider.isAdding && provider.addingType == 3
+        ? GameAddPage(onCancel: () => provider.cancelAdding())
+        : selectedGame != null
+            ? GameDetailPage(game: selectedGame, embedded: true)
+            : const DetailPlaceholder(icon: Icons.sports_esports_outlined, message: '选择一款游戏查看详情');
     return MasterDetailScaffold(
       master: masterContent,
-      detail: selectedGame != null
-          ? GameDetailPage(game: selectedGame, embedded: true)
-          : const DetailPlaceholder(icon: Icons.sports_esports_outlined, message: '选择一款游戏查看详情'),
+      detail: detailWidget,
     );
   }
 

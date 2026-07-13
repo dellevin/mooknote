@@ -9,6 +9,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'pages/home/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
@@ -19,12 +20,30 @@ import 'providers/app_provider.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
+/// Windows 桌面版 WebView2 环境，注册 epub:// 自定义协议
+WebViewEnvironment? windowsWebViewEnvironment;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Windows 桌面：使用 FFI 初始化 sqflite
   if (Platform.isWindows) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    // 注册 epub:// 自定义协议，使 WebView2 能拦截该协议的请求
+    try {
+      windowsWebViewEnvironment = await WebViewEnvironment.create(settings:
+        WebViewEnvironmentSettings(customSchemeRegistrations: [
+          CustomSchemeRegistration(
+            scheme: 'epub',
+            hasAuthorityComponent: true,
+            treatAsSecure: true,
+          ),
+        ]),
+      );
+      debugPrint('[Startup] WebViewEnvironment created successfully');
+    } catch (e) {
+      debugPrint('[Startup] WebViewEnvironment 初始化失败: $e');
+    }
   }
   await UserPrefs.init();
   final appProvider = AppProvider();

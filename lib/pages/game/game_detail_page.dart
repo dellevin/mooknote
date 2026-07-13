@@ -1,14 +1,20 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../../widgets/fade_in_local_image.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
+import '../../widgets/genre_selector_page.dart';
 import 'game_reviews_page.dart';
 import 'game_screenshots_page.dart';
 import 'game_share_page.dart';
@@ -35,12 +41,72 @@ class _GameDetailPageState extends State<GameDetailPage> {
   final ValueNotifier<bool> _showTitle = ValueNotifier(false);
   ScrollController? _overlayScrollController;
 
+  // ─── 编辑模式 ───
+  bool _isEditing = false;
+  final _editFormKey = GlobalKey<FormState>();
+  late TextEditingController _titleCtrl;
+  late TextEditingController _summaryCtrl;
+  late TextEditingController _ratingCtrl;
+  late TextEditingController _purchasePriceCtrl;
+  late TextEditingController _playTimeHoursCtrl;
+  late TextEditingController _playTimeMinutesCtrl;
+  List<String> _editPlatforms = [];
+  List<String> _editVersions = [];
+  List<String> _editGenres = [];
+  List<String> _editPurchasePlatforms = [];
+  String? _editCoverPath;
+  String _editStatus = 'want_to_play';
+  String _editCategory = 'digital';
+  DateTime? _editPurchaseDate;
+  bool _editIsDownloading = false;
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
     _detailStyle = UserPrefs().detailPageStyle;
     _coverOffset.value = UserPrefs().getCoverOffset(widget.game.id);
+    _initEditControllers();
     _detectCoverAspect();
+  }
+
+  void _initEditControllers() {
+    final g = widget.game;
+    _titleCtrl = TextEditingController(text: g.title);
+    _summaryCtrl = TextEditingController(text: g.summary ?? '');
+    _ratingCtrl = TextEditingController(text: g.rating?.toString() ?? '');
+    _purchasePriceCtrl = TextEditingController(text: g.purchasePrice ?? '');
+    _playTimeHoursCtrl = TextEditingController(text: g.playTimeHours > 0 ? g.playTimeHours.toString() : '');
+    _playTimeMinutesCtrl = TextEditingController(text: g.playTimeMinutes > 0 ? g.playTimeMinutes.toString() : '');
+    _editPlatforms = List.from(g.platforms);
+    _editVersions = List.from(g.versions);
+    _editGenres = List.from(g.genres);
+    _editPurchasePlatforms = List.from(g.purchasePlatforms);
+    _editCoverPath = g.coverPath;
+    _editStatus = g.status;
+    _editCategory = g.category;
+    _editPurchaseDate = g.purchaseDate;
+  }
+
+  void _enterEditMode() {
+    // 从 provider 获取最新数据
+    final latest = context.read<AppProvider>().games
+        .where((g) => g.id == widget.game.id).firstOrNull ?? widget.game;
+    _titleCtrl.text = latest.title;
+    _summaryCtrl.text = latest.summary ?? '';
+    _ratingCtrl.text = latest.rating?.toString() ?? '';
+    _purchasePriceCtrl.text = latest.purchasePrice ?? '';
+    _playTimeHoursCtrl.text = latest.playTimeHours > 0 ? latest.playTimeHours.toString() : '';
+    _playTimeMinutesCtrl.text = latest.playTimeMinutes > 0 ? latest.playTimeMinutes.toString() : '';
+    _editPlatforms = List.from(latest.platforms);
+    _editVersions = List.from(latest.versions);
+    _editGenres = List.from(latest.genres);
+    _editPurchasePlatforms = List.from(latest.purchasePlatforms);
+    _editCoverPath = latest.coverPath;
+    _editStatus = latest.status;
+    _editCategory = latest.category;
+    _editPurchaseDate = latest.purchaseDate;
+    setState(() => _isEditing = true);
   }
 
   Future<void> _detectCoverAspect() async {
@@ -64,6 +130,12 @@ class _GameDetailPageState extends State<GameDetailPage> {
   void dispose() {
     _coverOffset.dispose();
     _draggingCover.dispose();
+    _titleCtrl.dispose();
+    _summaryCtrl.dispose();
+    _ratingCtrl.dispose();
+    _purchasePriceCtrl.dispose();
+    _playTimeHoursCtrl.dispose();
+    _playTimeMinutesCtrl.dispose();
     super.dispose();
   }
 
@@ -84,6 +156,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
 
   /// 桌面端左右分栏布局
   Widget _buildDesktopStyle(Game game, ColorScheme colors) {
+    if (_isEditing) return _buildDesktopEditStyle(game, colors);
     final hasCover = game.coverPath != null && game.coverPath!.isNotEmpty;
     return Scaffold(
       backgroundColor: colors.surface,
@@ -150,16 +223,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         Text(game.title,
                           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.3)),
                         const SizedBox(height: 16),
-                        Row(children: [
+                        Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                           if (game.rating != null) ...[
                             Icon(Icons.star, size: 20, color: colors.onSurface),
                             const SizedBox(width: 4),
                             Text(game.rating!.toStringAsFixed(1),
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                            const SizedBox(width: 16),
                           ],
                           _buildStatusTag(game),
-                          const SizedBox(width: 6),
                           _buildCategoryTag(game),
                         ]),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
@@ -252,7 +323,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 ),
                 const SizedBox(width: 12),
                 FilledButton.icon(
-                  onPressed: () => _navigateToEdit(context),
+                  onPressed: _enterEditMode,
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: const Text('编辑'),
                   style: FilledButton.styleFrom(
@@ -265,6 +336,584 @@ class _GameDetailPageState extends State<GameDetailPage> {
         ],
       ),
     );
+  }
+
+  // ─── 桌面端编辑模式 ──────────────────────────────────────────
+
+  static const _gameStatuses = [
+    ('通关', 'completed'), ('在玩', 'playing'), ('想玩', 'want_to_play'), ('弃游', 'abandoned'),
+  ];
+
+  static const _gameCategories = [
+    ('数字版', 'digital'), ('卡带版', 'cartridge'), ('光盘版', 'disc'),
+  ];
+
+  Widget _buildDesktopEditStyle(Game game, ColorScheme colors) {
+    final hasCover = _editCoverPath != null && _editCoverPath!.isNotEmpty;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Form(
+        key: _editFormKey,
+        child: Column(
+          children: [
+            // 顶栏
+            Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: colors.surface,
+                border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
+              ),
+              child: Row(children: [
+                IconButton(
+                  icon: Icon(Icons.close, color: colors.onSurface, size: 18),
+                  onPressed: () => setState(() => _isEditing = false),
+                ),
+                Expanded(
+                  child: Text('编辑游戏',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                ),
+                FilledButton.icon(
+                  onPressed: _saveEdit,
+                  icon: const Icon(Icons.check, size: 16),
+                  label: const Text('保存'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ]),
+            ),
+            // 主体：左封面+右表单
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 左侧：封面 + 状态/评分/分类
+                  Container(
+                    width: 240,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        // 封面
+                        GestureDetector(
+                          onTap: _showEditCoverOptions,
+                          child: Container(
+                            width: 200, height: 280,
+                            decoration: BoxDecoration(
+                              color: colors.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(alignment: Alignment.center, children: [
+                              hasCover
+                                  ? FadeInLocalImage(path: _editCoverPath, fit: BoxFit.cover)
+                                  : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                      Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
+                                      const SizedBox(height: 8),
+                                      Text('点击添加封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                                    ]),
+                              if (_editIsDownloading)
+                                Container(color: Colors.black.withValues(alpha: 0.4),
+                                  child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                            ]),
+                          ),
+                        ),
+                        if (hasCover)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _editCoverPath = null),
+                              child: Text('移除封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
+                          ),
+                        const SizedBox(height: 20),
+                        // 状态
+                        _buildEditSectionLabel('状态', colors),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+                          child: Wrap(
+                            spacing: 0, runSpacing: 4,
+                            children: _gameStatuses.map((s) => _buildEditStatusChip(s.$1, s.$2, colors)).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // 评分
+                        _buildEditSectionLabel('评分', colors),
+                        const SizedBox(height: 6),
+                        Row(children: [
+                          ...List.generate(5, (i) {
+                            final starVal = i + 1;
+                            final currentRating = double.tryParse(_ratingCtrl.text) ?? 0;
+                            final starRating = currentRating / 2;
+                            final isFilled = starVal <= starRating;
+                            final isHalf = starVal == starRating.ceil() && starRating % 1 != 0;
+                            return GestureDetector(
+                              onTap: () => setState(() => _ratingCtrl.text = (starVal * 2).toString()),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 1),
+                                child: Icon(
+                                  isHalf ? Icons.star_half : (isFilled ? Icons.star : Icons.star_border),
+                                  size: 20, color: (isFilled || isHalf) ? const Color(0xFFFFB800) : colors.outline,
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 48, height: 28,
+                            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+                            child: TextFormField(
+                              controller: _ratingCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              textAlign: TextAlign.center,
+                              inputFormatters: [_RatingInputFormatter()],
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+                              decoration: InputDecoration(
+                                hintText: '0-10', hintStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25)),
+                                border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 6), isDense: true,
+                              ),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          if (_ratingCtrl.text.isNotEmpty) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => setState(() => _ratingCtrl.clear()),
+                              child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                            ),
+                          ],
+                        ]),
+                        const SizedBox(height: 16),
+                        // 分类
+                        _buildEditSectionLabel('分类', colors),
+                        const SizedBox(height: 6),
+                        Wrap(spacing: 4, runSpacing: 4, children: _gameCategories.map((c) {
+                          final selected = _editCategory == c.$2;
+                          return GestureDetector(
+                            onTap: () => setState(() => _editCategory = c.$2),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: selected ? colors.primary : colors.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(c.$1, style: TextStyle(
+                                fontSize: 11, fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
+                                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                              )),
+                            ),
+                          );
+                        }).toList()),
+                      ],
+                    ),
+                  ),
+                  // 右侧：可滚动表单
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(0, 20, 24, 80),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 名称
+                          _buildEditField('名称', _titleCtrl, hint: '游戏名称', required: true),
+                          const SizedBox(height: 16),
+                          // 平台
+                          _buildEditChipField('平台', _editPlatforms, onTap: () async {
+                            final provider = context.read<AppProvider>();
+                            final data = provider.games.map((g) => g.platforms).toList();
+                            final result = await GenreSelectorPage.show(
+                              context: context, title: '选择平台',
+                              existingTagsFuture: compute(_collectUnique, data),
+                              initialSelected: _editPlatforms, hint: '如：Switch、PS5、Steam',
+                            );
+                            if (result != null) setState(() => _editPlatforms = result);
+                          }),
+                          const SizedBox(height: 16),
+                          // 版本
+                          _buildEditChipField('版本', _editVersions, onTap: () async {
+                            final provider = context.read<AppProvider>();
+                            final data = provider.games.map((g) => g.versions).toList();
+                            final result = await GenreSelectorPage.show(
+                              context: context, title: '选择版本',
+                              existingTagsFuture: compute(_collectUnique, data),
+                              initialSelected: _editVersions, hint: '如：标准版、豪华版',
+                            );
+                            if (result != null) setState(() => _editVersions = result);
+                          }),
+                          const SizedBox(height: 16),
+                          // 类型
+                          _buildEditChipField('类型', _editGenres, onTap: () async {
+                            final provider = context.read<AppProvider>();
+                            final tags = await provider.getTags('game_genre', excludeHidden: true);
+                            final names = tags.map((t) => t['name'] as String).toList();
+                            if (!mounted) return;
+                            final result = await GenreSelectorPage.show(
+                              context: context, title: '选择类型', existingTags: names,
+                              initialSelected: _editGenres, hint: '如：RPG、动作、冒险',
+                            );
+                            if (result != null) setState(() => _editGenres = result);
+                          }),
+                          const SizedBox(height: 16),
+                          // 购买平台
+                          _buildEditChipField('购买平台', _editPurchasePlatforms, onTap: () async {
+                            final provider = context.read<AppProvider>();
+                            final data = provider.games.map((g) => g.purchasePlatforms).toList();
+                            final result = await GenreSelectorPage.show(
+                              context: context, title: '选择购买平台',
+                              existingTagsFuture: compute(_collectUnique, data),
+                              initialSelected: _editPurchasePlatforms, hint: '如：eShop、Steam、PS Store',
+                            );
+                            if (result != null) setState(() => _editPurchasePlatforms = result);
+                          }),
+                          const SizedBox(height: 16),
+                          // 购买价格
+                          _buildEditField('购买价格', _purchasePriceCtrl, hint: '如：298'),
+                          const SizedBox(height: 16),
+                          // 游玩时长
+                          _buildEditSectionLabel('游玩时长', colors),
+                          const SizedBox(height: 6),
+                          Row(children: [
+                            Container(
+                              width: 80,
+                              child: TextFormField(
+                                controller: _playTimeHoursCtrl,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                style: TextStyle(fontSize: 14, color: colors.onSurface),
+                                decoration: InputDecoration(
+                                  hintText: '小时', hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                                  filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('小时', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                            const SizedBox(width: 12),
+                            Container(
+                              width: 80,
+                              child: TextFormField(
+                                controller: _playTimeMinutesCtrl,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                style: TextStyle(fontSize: 14, color: colors.onSurface),
+                                decoration: InputDecoration(
+                                  hintText: '分钟', hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                                  filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('分钟', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                          ]),
+                          const SizedBox(height: 16),
+                          // 购买日期
+                          _buildEditDateField('购买日期', _editPurchaseDate, (d) => setState(() => _editPurchaseDate = d), clearable: true),
+                          const SizedBox(height: 16),
+                          // 简介
+                          _buildEditSectionLabel('游戏简介', colors),
+                          const SizedBox(height: 6),
+                          Container(
+                            constraints: const BoxConstraints(minHeight: 120),
+                            child: TextFormField(
+                              controller: _summaryCtrl,
+                              maxLines: null,
+                              style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+                              decoration: InputDecoration(
+                                hintText: '写下游戏简介...',
+                                hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                                filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 底部操作栏
+            Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: colors.surface,
+                border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showDeleteDialog(context),
+                    icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
+                    label: Text('删除', style: TextStyle(color: colors.error)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditSectionLabel(String label, ColorScheme colors) {
+    return Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
+  }
+
+  Widget _buildEditStatusChip(String label, String value, ColorScheme colors) {
+    final selected = _editStatus == value;
+    return GestureDetector(
+      onTap: () => setState(() => _editStatus = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? colors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: selected ? [BoxShadow(color: colors.onSurface.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))] : null,
+        ),
+        child: Text(label, style: TextStyle(
+          fontSize: 13, fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
+          color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+        )),
+      ),
+    );
+  }
+
+  Widget _buildEditField(String label, TextEditingController ctrl, {String hint = '', bool required = false}) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: ctrl,
+        style: TextStyle(fontSize: 14, color: colors.onSurface),
+        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
+        decoration: InputDecoration(
+          hintText: hint, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+          filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          isDense: true,
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildEditChipField(String label, List<String> chips, {required VoidCallback onTap}) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      const SizedBox(height: 6),
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: chips.isEmpty
+              ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
+              : Wrap(spacing: 4, runSpacing: 4, children: chips.map((c) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(4)),
+                  child: Text(c, style: TextStyle(fontSize: 12, color: colors.onSurface)),
+                )).toList()),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildEditDateField(String label, DateTime? date, ValueChanged<DateTime?> onChanged, {bool clearable = false}) {
+    final colors = Theme.of(context).colorScheme;
+    final hasDate = date != null;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      const SizedBox(height: 6),
+      GestureDetector(
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context, initialDate: date ?? DateTime.now(),
+            firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+          );
+          if (picked != null) onChanged(picked);
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(children: [
+            Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+            const SizedBox(width: 8),
+            Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期',
+              style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
+            const Spacer(),
+            if (clearable && hasDate)
+              GestureDetector(
+                onTap: () => onChanged(null),
+                child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+              ),
+          ]),
+        ),
+      ),
+    ]);
+  }
+
+  void _showEditCoverOptions() {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context, backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Align(alignment: Alignment.centerLeft,
+              child: Text('添加封面', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+            const SizedBox(height: 16),
+            ListTile(leading: Icon(Icons.photo_library_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
+              title: Text('从相册选择', style: TextStyle(color: colors.onSurface)),
+              onTap: () { Navigator.pop(ctx); _pickEditCover(); }),
+            ListTile(leading: Icon(Icons.link_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
+              title: Text('网络链接', style: TextStyle(color: colors.onSurface)),
+              onTap: () { Navigator.pop(ctx); _pickEditCoverFromUrl(); }),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickEditCover() async {
+    try {
+      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 1200, imageQuality: 85);
+      if (picked == null) return;
+      final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final targetPath = await ImagePathHelper.instance.getGameCoverPath(widget.game.id, fileName);
+      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+      await File(picked.path).copy(targetPath);
+      if (mounted) setState(() => _editCoverPath = targetPath);
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择封面失败: $e');
+    }
+  }
+
+  Future<void> _pickEditCoverFromUrl() async {
+    final urlCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) {
+      final colors = Theme.of(ctx).colorScheme;
+      return AlertDialog(
+        backgroundColor: colors.surface, elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+          const SizedBox(height: 12),
+          TextField(controller: urlCtrl, keyboardType: TextInputType.url,
+            style: TextStyle(fontSize: 14, color: colors.onSurface),
+            decoration: InputDecoration(hintText: 'https://example.com/image.jpg',
+              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+              filled: true, fillColor: colors.surfaceContainerHigh,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
+            )),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            child: const Text('确定')),
+        ],
+      );
+    });
+    final url = urlCtrl.text.trim();
+    urlCtrl.dispose();
+    if (confirmed != true || url.isEmpty) return;
+    await _downloadEditCoverFromUrl(url);
+  }
+
+  Future<void> _downloadEditCoverFromUrl(String url) async {
+    setState(() => _editIsDownloading = true);
+    try {
+      final response = await http.get(Uri.parse(url), headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15',
+        'Accept': 'image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Referer': Uri.parse(url).replace(path: '/').toString(),
+      });
+      if (response.statusCode != 200) throw Exception('下载失败: HTTP ${response.statusCode}');
+      final contentType = response.headers['content-type'];
+      if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片');
+      if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
+      final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final targetPath = await ImagePathHelper.instance.getGameCoverPath(widget.game.id, fileName);
+      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+      await File(targetPath).writeAsBytes(response.bodyBytes);
+      if (mounted) setState(() => _editCoverPath = targetPath);
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '下载失败: $e');
+    } finally {
+      if (mounted) setState(() => _editIsDownloading = false);
+    }
+  }
+
+  Future<void> _saveEdit() async {
+    if (!_editFormKey.currentState!.validate()) return;
+    try {
+      final rating = _ratingCtrl.text.isNotEmpty ? double.tryParse(_ratingCtrl.text) : null;
+      final updated = widget.game.copyWith(
+        title: _titleCtrl.text.trim(),
+        coverPath: _editCoverPath,
+        platforms: _editPlatforms,
+        versions: _editVersions,
+        genres: _editGenres,
+        purchasePlatforms: _editPurchasePlatforms,
+        purchasePrice: _purchasePriceCtrl.text.trim().isEmpty ? null : _purchasePriceCtrl.text.trim(),
+        playTimeHours: int.tryParse(_playTimeHoursCtrl.text) ?? 0,
+        playTimeMinutes: int.tryParse(_playTimeMinutesCtrl.text) ?? 0,
+        summary: _summaryCtrl.text.trim(),
+        rating: rating,
+        status: _editStatus,
+        category: _editCategory,
+        purchaseDate: _editPurchaseDate,
+        updatedAt: DateTime.now(),
+      );
+      await context.read<AppProvider>().updateGame(updated);
+      if (!mounted) return;
+      ToastUtil.show(context, '更新成功');
+      setState(() => _isEditing = false);
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '保存失败: $e');
+    }
+  }
+
+  /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
+  static List<String> _collectUnique(List<List<String>> lists) {
+    final s = <String>{};
+    for (final l in lists) { s.addAll(l); }
+    return s.toList()..sort();
   }
 
   Widget _buildDesktopInfoRow(String label, String value, ColorScheme colors) {
@@ -1186,5 +1835,18 @@ class _GameDetailPageState extends State<GameDetailPage> {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
+  }
+}
+
+/// 评分输入格式化器：只允许 0-10，最多1位小数
+class _RatingInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    if (!RegExp(r'^\d{0,2}\.?\d{0,1}$').hasMatch(text)) return oldValue;
+    final n = double.tryParse(text);
+    if (n != null && n > 10) return oldValue;
+    return newValue;
   }
 }

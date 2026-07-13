@@ -13,6 +13,7 @@ import '../../utils/responsive.dart';
 import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'movie_detail_page.dart';
+import 'movie_add_page.dart';
 
 /// 观影标签页（分页 + 触底加载）
 class MovieTabPage extends StatefulWidget {
@@ -211,11 +212,14 @@ class _MovieTabPageState extends State<MovieTabPage> {
     if (!isWideContent) return masterContent;
 
     final selectedMovie = provider.selectedMovie;
+    final detailWidget = provider.isAdding && provider.addingType == 0
+        ? MovieAddPage(onCancel: () => provider.cancelAdding())
+        : selectedMovie != null
+            ? MovieDetailPage(movie: selectedMovie, embedded: true)
+            : const DetailPlaceholder(icon: Icons.movie_outlined, message: '选择一部影片查看详情');
     return MasterDetailScaffold(
       master: masterContent,
-      detail: selectedMovie != null
-          ? MovieDetailPage(movie: selectedMovie, embedded: true)
-          : const DetailPlaceholder(icon: Icons.movie_outlined, message: '选择一部影片查看详情'),
+      detail: detailWidget,
     );
   }
 
