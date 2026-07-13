@@ -173,6 +173,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     if (!mounted) return;
     final provider = context.read<AppProvider>();
     await provider.addMovie(movie);
+    await provider.loadMovies();
 
     if (mounted) {
       setState(() {
@@ -328,139 +329,138 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final typeParts =
         [typeName, classStr].where((s) => s.toString().isNotEmpty).join(' / ');
 
-    return Column(children: [
-      // 顶部：AppBar + 海报信息区
-      Container(
-        color: colors.surface,
-        child: SafeArea(
-            bottom: false,
-            child: Column(children: [
-              // AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                            color: colors.surfaceContainerHigh,
-                            shape: BoxShape.circle),
-                        child: Icon(Icons.arrow_back,
-                            size: 20, color: colors.onSurface)),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => setState(() => _detailStyle = _detailStyle == 0 ? 1 : 0),
-                    child: Container(
-                        width: 36,
-                        height:36,
-                        decoration: BoxDecoration(
-                            color: colors.surfaceContainerHigh,
-                            shape: BoxShape.circle),
-                        child: Icon(
-                            _detailStyle == 0
-                                ? Icons.crop_landscape_rounded
-                                : Icons.grid_view_rounded,
-                            size: 18,
-                            color: colors.onSurface)),
-                  ),
-                ]),
-              ),
-              // 海报 + 信息
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 海报
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: SizedBox(
-                          width: 120,
-                          height: 170,
-                          child: pic.toString().isNotEmpty
-                              ? Image.network(pic,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _posterPlaceholder(colors))
-                              : _posterPlaceholder(colors),
+    return NestedScrollView(
+      headerSliverBuilder: (context, _) => [
+        SliverToBoxAdapter(
+          child: Container(
+            color: colors.surface,
+            child: SafeArea(
+              bottom: false,
+              child: Column(children: [
+                // AppBar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                              color: colors.surfaceContainerHigh,
+                              shape: BoxShape.circle),
+                          child: Icon(Icons.arrow_back,
+                              size: 20, color: colors.onSurface)),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => setState(() => _detailStyle = _detailStyle == 0 ? 1 : 0),
+                      child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                              color: colors.surfaceContainerHigh,
+                              shape: BoxShape.circle),
+                          child: Icon(
+                              _detailStyle == 0
+                                  ? Icons.crop_landscape_rounded
+                                  : Icons.grid_view_rounded,
+                              size: 18,
+                              color: colors.onSurface)),
+                    ),
+                  ]),
+                ),
+                // 海报 + 信息
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            width: 120,
+                            height: 170,
+                            child: pic.toString().isNotEmpty
+                                ? Image.network(pic,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _posterPlaceholder(colors))
+                                : _posterPlaceholder(colors),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      // 信息
-                      Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(name,
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: colors.onSurface)),
-                              const SizedBox(height: 8),
-                              // 评分
-                              if (score.toString().isNotEmpty && score != '0.0') ...[
-                                Row(children: [
-                                  Icon(Icons.star_rounded, size: 16, color: const Color(0xFFF59E0B)),
-                                  const SizedBox(width: 3),
-                                  Text('$score', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                                  Text(' /10', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-                                ]),
-                                const SizedBox(height: 2),
-                                Text('评分来源于网络资源收集，并非官方评分', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
-                                const SizedBox(height: 8),
-                              ],
-                              // 完结状态
-                              _endTag(isEnd),
-                              if (metaParts.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text(metaParts,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(name,
                                     style: TextStyle(
-                                        fontSize: 12,
-                                        color: colors.onSurface
-                                            .withValues(alpha: 0.5))),
-                              ],
-                              if (typeParts.isNotEmpty) ...[
-                                const SizedBox(height: 3),
-                                Text(typeParts,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: colors.onSurface
-                                            .withValues(alpha: 0.4)),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis),
-                              ],
-                              // 本地状态
-                              if (_localMovie != null) ...[
-                                const SizedBox(height: 10),
-                                _buildLocalStatus(colors),
-                              ],
-                            ]),
-                      ),
-                    ]),
-              ),
-            ])),
-      ),
-
-      // Tab 栏
-      Container(
-        decoration: BoxDecoration(
-            border: Border(
-                bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
-        child: Row(children: [
-          _buildTabButton('概要', 0),
-          _buildTabButton('演职人员', 1),
-        ]),
-      ),
-
-      // 内容区
-      Expanded(
-        child:
-            _currentTab == 0 ? _buildOverview(colors) : _buildStaffTab(colors),
-      ),
-    ]);
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.onSurface)),
+                                const SizedBox(height: 8),
+                                if (score.toString().isNotEmpty && score != '0.0') ...[
+                                  Row(children: [
+                                    Icon(Icons.star_rounded, size: 16, color: const Color(0xFFF59E0B)),
+                                    const SizedBox(width: 3),
+                                    Text('$score', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                                    Text(' /10', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                                  ]),
+                                  const SizedBox(height: 2),
+                                  Text('评分来源于网络资源收集，并非官方评分', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
+                                  const SizedBox(height: 8),
+                                ],
+                                _endTag(isEnd),
+                                if (metaParts.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(metaParts,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.5))),
+                                ],
+                                if (typeParts.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(typeParts,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.4)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis),
+                                ],
+                                if (_localMovie != null) ...[
+                                  const SizedBox(height: 10),
+                                  _buildLocalStatus(colors),
+                                ],
+                              ]),
+                        ),
+                      ]),
+                ),
+              ]),
+            ),
+          ),
+        ),
+        // Tab 栏：吸顶
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _StickyTabBarDelegate(
+            child: Container(
+              decoration: BoxDecoration(
+                  color: colors.surface,
+                  border: Border(
+                      bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+              child: Row(children: [
+                _buildTabButton('概要', 0),
+                _buildTabButton('演职人员', 1),
+              ]),
+            ),
+          ),
+        ),
+      ],
+      body: _currentTab == 0 ? _buildOverview(colors) : _buildStaffTab(colors),
+    );
   }
 
   // ── 沉浸式布局 ──────────────────────────────────────────
@@ -478,116 +478,115 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final metaParts = [year, area].where((s) => s.toString().isNotEmpty).join(' · ');
     final typeParts = [typeName, classStr].where((s) => s.toString().isNotEmpty).join(' / ');
 
-    return Column(children: [
-      // 全宽海报区
-      Stack(children: [
-        // 海报图
-        SizedBox(
-          width: double.infinity,
-          height: 320,
-          child: pic.toString().isNotEmpty
-              ? Image.network(pic, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: colors.surfaceContainerHighest))
-              : Container(color: colors.surfaceContainerHighest,
-                  child: Icon(Icons.movie_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.1))),
-        ),
-        // 渐变遮罩
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                stops: const [0.35, 1.0],
+    return NestedScrollView(
+      headerSliverBuilder: (context, _) => [
+        SliverToBoxAdapter(
+          child: Stack(children: [
+            SizedBox(
+              width: double.infinity,
+              height: 320,
+              child: pic.toString().isNotEmpty
+                  ? Image.network(pic, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: colors.surfaceContainerHighest))
+                  : Container(color: colors.surfaceContainerHighest,
+                      child: Icon(Icons.movie_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.1))),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
+                    stops: const [0.35, 1.0],
+                  ),
+                ),
               ),
+            ),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
+                        child: const Icon(Icons.arrow_back, size: 20, color: Colors.white)),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => setState(() => _detailStyle = 0),
+                    child: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
+                        child: const Icon(Icons.grid_view_rounded, size: 18, color: Colors.white)),
+                  ),
+                ]),
+              ),
+            ),
+            Positioned(
+              left: 16, right: 16, bottom: 18,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 8),
+                Row(children: [
+                  if (score.toString().isNotEmpty && score != '0.0') ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.star_rounded, size: 18, color: Colors.amber.shade400),
+                          const SizedBox(width: 3),
+                          Text('$score', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  _endTag(isEnd),
+                  if (metaParts.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(metaParts, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
+                  ],
+                ]),
+                if (typeParts.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(typeParts, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5))),
+                ],
+                if (_localMovie != null) ...[
+                  const SizedBox(height: 8),
+                  _buildLocalStatus(colors),
+                ],
+              ]),
+            ),
+          ]),
+        ),
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _StickyTabBarDelegate(
+            child: Container(
+              decoration: BoxDecoration(
+                  color: colors.surface,
+                  border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+              child: Row(children: [
+                _buildTabButton('概要', 0),
+                _buildTabButton('演职人员', 1),
+              ]),
             ),
           ),
         ),
-        // 顶部按钮
-        SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
-                    child: const Icon(Icons.arrow_back, size: 20, color: Colors.white)),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => setState(() => _detailStyle = 0),
-                child: Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
-                    child: const Icon(Icons.grid_view_rounded, size: 18, color: Colors.white)),
-              ),
-            ]),
-          ),
-        ),
-        // 底部信息叠加
-        Positioned(
-          left: 16, right: 16, bottom: 18,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 8),
-            Row(children: [
-              if (score.toString().isNotEmpty && score != '0.0') ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.star_rounded, size: 18, color: Colors.amber.shade400),
-                      const SizedBox(width: 3),
-                      Text('$score', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-              ],
-              _endTag(isEnd),
-              if (metaParts.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text(metaParts, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
-              ],
-            ]),
-            if (typeParts.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(typeParts, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5))),
-            ],
-            if (_localMovie != null) ...[
-              const SizedBox(height: 8),
-              _buildLocalStatus(colors),
-            ],
-          ]),
-        ),
-      ]),
-
-      // Tab 栏
-      Container(
-        decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
-        child: Row(children: [
-          _buildTabButton('概要', 0),
-          _buildTabButton('演职人员', 1),
-        ]),
-      ),
-
-      // 内容区
-      Expanded(
-        child: _currentTab == 0 ? _buildOverview(colors) : _buildStaffTab(colors),
-      ),
-    ]);
+      ],
+      body: _currentTab == 0 ? _buildOverview(colors) : _buildStaffTab(colors),
+    );
   }
 
   Widget _posterPlaceholder(ColorScheme colors) {
@@ -907,4 +906,21 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   color: colors.onSurface.withValues(alpha: 0.25)))),
     );
   }
+}
+
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _StickyTabBarDelegate({required this.child});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
+
+  @override
+  double get minExtent => 44;
+
+  @override
+  double get maxExtent => 44;
+
+  @override
+  bool shouldRebuild(_StickyTabBarDelegate oldDelegate) => child != oldDelegate.child;
 }

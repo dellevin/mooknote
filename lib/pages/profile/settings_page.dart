@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/image_path_helper.dart';
 import '../../data/database_helper.dart';
 import '../../services/sync/cache_cleaner.dart';
 import '../online_search/enhanced_search_settings_page.dart';
@@ -65,30 +67,32 @@ class _SettingsPageState extends State<SettingsPage> {
                 indent: 24,
                 endIndent: 24,
                 color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.tune_outlined,
-            title: '功能设置',
-            subtitle: '启动标签、模块开关、侧边栏功能',
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const FeatureSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.dashboard_outlined,
-            title: '布局设置',
-            subtitle: '影视、阅读、笔记的展示样式',
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
+          if (!Platform.isWindows) ...[
+            _buildNavigationItem(
+              icon: Icons.tune_outlined,
+              title: '功能设置',
+              subtitle: '启动标签、模块开关、侧边栏功能',
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const FeatureSettingsPage())),
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            _buildNavigationItem(
+              icon: Icons.dashboard_outlined,
+              title: '布局设置',
+              subtitle: '影视、阅读、笔记的展示样式',
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+          ],
           _buildThemeModeSelector(),
           Divider(
               height: 0.5,
@@ -101,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildFontSelector(),
+          if (!Platform.isWindows) _buildFontSelector(),
           _buildSectionHeader('其他设置'),
           _buildActionItem(
             icon: Icons.person_outline,
@@ -128,18 +132,20 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(
-            icon: Icons.swipe_vertical_outlined,
-            title: '底部导航栏滚动隐藏',
-            subtitle: '下滑时自动隐藏底部导航栏',
-            value: _hideBottomNavOnScroll,
-            onChanged: _toggleHideBottomNavOnScroll,
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
+          if (!Platform.isWindows) ...[
+            _buildSwitchItem(
+              icon: Icons.swipe_vertical_outlined,
+              title: '底部导航栏滚动隐藏',
+              subtitle: '下滑时自动隐藏底部导航栏',
+              value: _hideBottomNavOnScroll,
+              onChanged: _toggleHideBottomNavOnScroll,
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+          ],
           _buildSectionHeader('数据管理'),
           _buildActionItem(
             icon: Icons.cleaning_services_outlined,
@@ -152,17 +158,19 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildActionItem(
-            icon: Icons.folder_outlined,
-            title: '获取系统权限',
-            subtitle: '前往系统设置开启存储权限',
-            onTap: _showStoragePermissionDialog,
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
+          if (!Platform.isWindows) ...[
+            _buildActionItem(
+              icon: Icons.folder_outlined,
+              title: '获取系统权限',
+              subtitle: '前往系统设置开启存储权限',
+              onTap: _showStoragePermissionDialog,
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+          ],
           _buildSectionHeader('帮助'),
           _buildActionItem(
             icon: Icons.language_outlined,
@@ -944,11 +952,10 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (_) => Center(child: CircularProgressIndicator(color: colors.primary)),
     );
 
-    final appProvider = pageContext.read<AppProvider>();
-    final dbImagePaths = await _getAllDbImagePaths(appProvider);
+    final dbImagePaths = await _getAllDbImagePaths();
 
     final imageInfo = await _scanImageDirectory(dbImagePaths);
-    final epubInfo = await _scanOrphanedEpubBooks(appProvider);
+    final epubInfo = await _scanOrphanedEpubBooks();
     final tempInfo = await _scanTempDirectory();
     final emptyDirInfo = await _scanEmptyDirectories();
 
@@ -1036,7 +1043,7 @@ class _SettingsPageState extends State<SettingsPage> {
           context: context,
           barrierDismissible: false,
           builder: (_) => const Center(child: CircularProgressIndicator()));
-      final result = await CacheCleaner.instance.clean(context.read<AppProvider>());
+      final result = await CacheCleaner.instance.clean();
       Navigator.pop(context);
       if (context.mounted) {
         if (result.total == 0) {
@@ -1051,42 +1058,69 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<Set<String>> _getAllDbImagePaths(AppProvider provider) async {
+  /// 直接查 DB 收集所有图片路径（含软删除记录，与 CacheCleaner 保持一致）
+  Future<Set<String>> _getAllDbImagePaths() async {
+    final db = await DatabaseHelper.instance.database;
     final paths = <String>{};
-    for (final movie in provider.movies) {
-      if (movie.posterPath?.isNotEmpty == true) paths.add(movie.posterPath!);
+
+    final movies = await db.query('movies', columns: ['poster_path']);
+    for (final m in movies) {
+      final p = m['poster_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
-    for (final book in provider.books) {
-      if (book.coverPath?.isNotEmpty == true) paths.add(book.coverPath!);
+
+    final books = await db.query('books', columns: ['cover_path']);
+    for (final b in books) {
+      final p = b['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
-    for (final note in provider.notes) {
-      for (final p in note.images) {
-        if (p.isNotEmpty) paths.add(p);
+
+    final notes = await db.query('notes', columns: ['images']);
+    for (final n in notes) {
+      final imagesJson = n['images'] as String?;
+      if (imagesJson != null && imagesJson.isNotEmpty) {
+        try {
+          for (final ip in jsonDecode(imagesJson) as List<dynamic>) {
+            if (ip is String && ip.isNotEmpty) paths.add(ip);
+          }
+        } catch (_) {}
       }
     }
-    for (final movieId in provider.movies.map((m) => m.id)) {
-      for (final poster in await provider.getMoviePosters(movieId)) {
-        if (poster.posterPath.isNotEmpty) paths.add(poster.posterPath);
-      }
+
+    final moviePosters = await db.query('movie_posters', columns: ['poster_path']);
+    for (final p in moviePosters) {
+      final pp = p['poster_path'] as String?;
+      if (pp != null && pp.isNotEmpty) paths.add(pp);
     }
-    for (final game in provider.games) {
-      if (game.coverPath?.isNotEmpty == true) paths.add(game.coverPath!);
+
+    final games = await db.query('games', columns: ['cover_path']);
+    for (final g in games) {
+      final p = g['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
-    for (final gameId in provider.games.map((g) => g.id)) {
-      for (final screenshot in await provider.getGameScreenshots(gameId)) {
-        if (screenshot.screenshotPath.isNotEmpty) paths.add(screenshot.screenshotPath);
-      }
+
+    final gameScreenshots = await db.query('game_screenshots', columns: ['screenshot_path']);
+    for (final s in gameScreenshots) {
+      final p = s['screenshot_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
+
+    final userPrefs = UserPrefs();
+    final avatarPath = userPrefs.avatarPath;
+    if (avatarPath != null && avatarPath.isNotEmpty) paths.add(avatarPath);
+
     return paths;
   }
 
   /// 从绝对路径中提取 epub_books/ 下的目录名
+  /// 兼容 Windows(\) 和 Unix(/) 分隔符
   void _collectEpubDirName(String? pathStr, Set<String> dirs) {
     if (pathStr == null || pathStr.isEmpty) return;
+    final unified = pathStr.replaceAll('\\', '/');
     final marker = '/epub_books/';
-    final idx = pathStr.indexOf(marker);
+    final idx = unified.indexOf(marker);
     if (idx < 0) return;
-    final rest = pathStr.substring(idx + marker.length);
+    final rest = unified.substring(idx + marker.length);
     final slashIdx = rest.indexOf('/');
     dirs.add(slashIdx >= 0 ? rest.substring(0, slashIdx) : rest);
   }
@@ -1097,12 +1131,13 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<(int, int)> _scanImageDirectory(Set<String> dbImagePaths) async {
     int count = 0, totalSize = 0;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final imagesDir = Directory(path.join(appDirPath, 'images'));
       if (!await imagesDir.exists()) return (0, 0);
+      final normalizedDbPaths = dbImagePaths.map(_normalizePath).toSet();
       await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
         if (entity is File &&
-            !dbImagePaths.contains(entity.path) &&
+            !normalizedDbPaths.contains(_normalizePath(entity.path)) &&
             !path.basename(entity.path).startsWith('avatar')) {
           try {
             totalSize += await entity.length();
@@ -1114,7 +1149,12 @@ class _SettingsPageState extends State<SettingsPage> {
     return (count, totalSize);
   }
 
-  Future<(int, int)> _scanOrphanedEpubBooks(AppProvider provider) async {
+  /// 规范化路径用于跨平台比较（统一分隔符）
+  String _normalizePath(String p) {
+    return path.normalize(p.replaceAll('\\', '/'));
+  }
+
+  Future<(int, int)> _scanOrphanedEpubBooks() async {
     int count = 0, totalSize = 0;
     try {
       final db = await DatabaseHelper.instance.database;
@@ -1128,9 +1168,9 @@ class _SettingsPageState extends State<SettingsPage> {
         _collectEpubDirName(r['file_path'] as String?, usedDirs);
         _collectEpubDirName(r['cover_path'] as String?, usedDirs);
       }
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDirPath = await ImagePathHelper.getAppDir();
       final possiblePaths = [
-        '${appDir.path}/epub_books',
+        path.join(appDirPath, 'epub_books'),
         '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
       ];
       for (final epubPath in possiblePaths) {
@@ -1183,10 +1223,17 @@ class _SettingsPageState extends State<SettingsPage> {
       if (await cacheDir.exists()) {
         await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
           if (entity is File) {
-            try {
-              totalSize += await entity.length();
-              count++;
-            } catch (_) {}
+            final name = path.basename(entity.path);
+            if (name.startsWith('book_poster_') ||
+                name.startsWith('movie_poster_') ||
+                name.startsWith('note_share_') ||
+                name.startsWith('mooknote_download') ||
+                name.startsWith('mooknote_bidir')) {
+              try {
+                totalSize += await entity.length();
+                count++;
+              } catch (_) {}
+            }
           }
         }
       }
@@ -1197,11 +1244,11 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<(int, int)> _scanEmptyDirectories() async {
     int count = 0;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDirPath = await ImagePathHelper.getAppDir();
       final cacheDir = await getApplicationCacheDirectory();
       final dirs = [
-        Directory('${appDir.path}/images'),
-        Directory('${appDir.path}/epub_books'),
+        Directory(path.join(appDirPath, 'images')),
+        Directory(path.join(appDirPath, 'epub_books')),
         cacheDir,
       ];
       for (final dir in dirs) {

@@ -19,6 +19,10 @@ class MasterDetailScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 桌面三栏布局下只显示 detail（列表已在侧边栏）
+    if (Breakpoint.isDesktop(context) && detail != null) {
+      return detail!;
+    }
     if (!Breakpoint.isWideContent(context) || detail == null) {
       return master;
     }

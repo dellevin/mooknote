@@ -8,6 +8,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/responsive.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
@@ -63,9 +64,229 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         .where((m) => m.id == widget.movie.id)
         .firstOrNull ?? widget.movie;
 
+    if (Breakpoint.isDesktop(context)) {
+      return _buildDesktopStyle(movie, colors);
+    }
     return _detailStyle == 1
         ? _buildOverlayStyle(movie, colors)
         : _buildStandardStyle(movie, colors);
+  }
+
+  /// 桌面端左右分栏布局
+  Widget _buildDesktopStyle(Movie movie, ColorScheme colors) {
+    final hasPoster = movie.posterPath != null && movie.posterPath!.isNotEmpty;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Column(
+        children: [
+          // 顶栏
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            child: Row(children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: colors.onSurface, size: 18),
+                onPressed: widget.embedded
+                    ? () => context.read<AppProvider>().selectMovie(null)
+                    : () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Text(movie.title,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+            ]),
+          ),
+          // 主体：左封面 + 右信息
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 左侧封面
+                Container(
+                  width: 240,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 200,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: hasPoster
+                              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4))]
+                              : null,
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: hasPoster
+                            ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
+                            : Center(child: Icon(Icons.movie_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
+                      ),
+                    ],
+                  ),
+                ),
+                // 右侧信息（可滚动）
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(0, 20, 24, 80),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 标题
+                        Text(movie.title,
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.3)),
+                        if (movie.alternateTitles.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(movie.alternateTitles.join(' / '),
+                            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+                        ],
+                        const SizedBox(height: 16),
+                        // 评分 + 状态 + 分类
+                        Row(children: [
+                          if (movie.rating != null) ...[
+                            Icon(Icons.star, size: 20, color: colors.onSurface),
+                            const SizedBox(width: 4),
+                            Text(movie.rating!.toStringAsFixed(1),
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                            const SizedBox(width: 16),
+                          ],
+                          _buildStatusTag(movie),
+                          const SizedBox(width: 6),
+                          _buildCategoryTag(movie),
+                        ]),
+                        const SizedBox(height: 8),
+                        if (movie.releaseDate != null)
+                          GestureDetector(
+                            onTap: _toggleDateDisplay,
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(
+                                _showExactDate
+                                    ? '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月${movie.releaseDate!.day.toString().padLeft(2, '0')}日上映'
+                                    : '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
+                                style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(Icons.tune, size: 14, color: colors.onSurface.withValues(alpha: 0.2)),
+                            ]),
+                          ),
+                        if (movie.watchDate != null) ...[
+                          const SizedBox(height: 4),
+                          Text('观看于 ${_formatDate(movie.watchDate!)}',
+                            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+                        ],
+                        Divider(height: 32, thickness: 0.5, color: colors.outline),
+                        // 详细信息
+                        if (movie.directors.isNotEmpty) _buildDesktopInfoRow('导演', movie.directors.join('，'), colors),
+                        if (movie.writers.isNotEmpty) _buildDesktopInfoRow('编剧', movie.writers.join('，'), colors),
+                        if (movie.actors.isNotEmpty) _buildDesktopInfoRow('主演', movie.actors.join('，'), colors),
+                        if (movie.genres.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            SizedBox(width: 56, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            Expanded(child: Wrap(spacing: 8, runSpacing: 8,
+                              children: movie.genres.map((g) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+                                child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+                              )).toList(),
+                            )),
+                          ]),
+                        ],
+                        if (movie.summary != null && movie.summary!.isNotEmpty) ...[
+                          Divider(height: 32, thickness: 0.5, color: colors.outline),
+                          Row(children: [
+                            Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+                            const SizedBox(width: 8),
+                            Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          ]),
+                          const SizedBox(height: 12),
+                          Text(movie.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+                        ],
+                        Divider(height: 32, thickness: 0.5, color: colors.outline),
+                        // 更多
+                        Row(children: [
+                          Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+                          const SizedBox(width: 8),
+                          Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildExtraSectionItem(
+                          icon: Icons.rate_review_outlined,
+                          title: '影评',
+                          subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
+                          emptyText: '暂无影评',
+                          unit: '条影评',
+                          onTap: () => _navigateToReviews(movie),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildExtraSectionItem(
+                          icon: Icons.photo_library_outlined,
+                          title: '海报墙',
+                          subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
+                          emptyText: '暂无海报',
+                          unit: '张海报',
+                          onTap: () => _navigateToPosters(movie),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 底部操作栏
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _showDeleteDialog(context),
+                  icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
+                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: () => _navigateToEdit(context),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('编辑'),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopInfoRow(String label, String value, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 56, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
+        ],
+      ),
+    );
   }
 
   /// 标准样式
@@ -121,7 +342,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   const SizedBox(width: 4),
                   IconButton(
                     icon: widget.embedded
-                        ? Icon(Icons.close, color: colors.onSurface, size: 18)
+                        ? Icon(Icons.arrow_back, color: colors.onSurface, size: 18)
                         : Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
                     onPressed: widget.embedded
                         ? () => context.read<AppProvider>().selectMovie(null)
@@ -192,7 +413,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   const SizedBox(width: 4),
                   IconButton(
                     icon: widget.embedded
-                        ? const Icon(Icons.close, color: Colors.white, size: 18)
+                        ? const Icon(Icons.arrow_back, color: Colors.white, size: 18)
                         : const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                     onPressed: widget.embedded
                         ? () => context.read<AppProvider>().selectMovie(null)
@@ -372,14 +593,16 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
-        const SizedBox(height: 12),
-        _buildFloatingButton(
-          icon: Icons.share_outlined,
-          onPressed: () => _showSharePoster(movie),
-          tooltip: '分享海报',
-          backgroundColor: const Color(0xFF4CAF50),
-          foregroundColor: Colors.white,
-        ),
+        if (!Platform.isWindows) ...[
+          const SizedBox(height: 12),
+          _buildFloatingButton(
+            icon: Icons.share_outlined,
+            onPressed: () => _showSharePoster(movie),
+            tooltip: '分享海报',
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+          ),
+        ],
       ],
     );
   }

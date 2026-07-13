@@ -1362,6 +1362,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       );
 
       await context.read<AppProvider>().addMovie(newMovie);
+      await context.read<AppProvider>().loadMovies();
     } else {
       final updatedMovie = widget.movie!.copyWith(
         title: _titleController.text.trim(),

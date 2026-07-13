@@ -649,6 +649,7 @@ class _BookFormPageState extends State<BookFormPage> {
           publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, createdAt: now, updatedAt: now,
         );
         await context.read<AppProvider>().addBook(newBook);
+        await context.read<AppProvider>().loadBooks();
       } else {
         final updatedBook = widget.book!.copyWith(
           title: _titleController.text.trim(), coverPath: _coverPath,

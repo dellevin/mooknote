@@ -199,7 +199,7 @@ Win32Window::MessageHandler(HWND hwnd,
     }
     case WM_GETMINMAXINFO: {
       auto info = reinterpret_cast<MINMAXINFO*>(lparam);
-      info->ptMinTrackSize.x = 360;
+      info->ptMinTrackSize.x = 900;
       info->ptMinTrackSize.y = 640;
       return 0;
     }

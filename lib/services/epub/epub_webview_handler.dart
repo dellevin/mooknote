@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:path_provider/path_provider.dart';
 import 'epub_stream_service.dart';
+import '../../utils/image_path_helper.dart';
 
 /// Simple file reference with path and optional anchor.
 class Href {
@@ -34,8 +34,8 @@ class EpubWebViewHandler {
 
   static Future<String> getDocumentsPath() async {
     if (_documentsPath != null) return _documentsPath!;
-    final dir = await getApplicationDocumentsDirectory();
-    _documentsPath = '${dir.path}/';
+    final appDirPath = await ImagePathHelper.getAppDir();
+    _documentsPath = '$appDirPath/';
     return _documentsPath!;
   }
 

@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'epub_parser.dart';
 import '../../data/epub/reader_dao.dart';
 import '../../data/epub/reader_models.dart';
+import '../../utils/image_path_helper.dart';
 
 /// EPUB 服务层 - 管理导入、解压、删除
 class EpubService {
@@ -21,8 +22,8 @@ class EpubService {
     final fileName = p.basename(sourcePath);
 
     // 复制 EPUB 到永久存储（FilePicker 临时文件会被清理）
-    final appDir = await getApplicationDocumentsDirectory();
-    final bookDir = Directory(p.join(appDir.path, 'epub_books', bookId));
+    final appDirPath = await ImagePathHelper.getAppDir();
+    final bookDir = Directory(p.join(appDirPath, 'epub_books', bookId));
     if (!await bookDir.exists()) await bookDir.create(recursive: true);
     final permanentPath = p.join(bookDir.path, 'book.epub');
     await File(sourcePath).copy(permanentPath);
@@ -98,8 +99,8 @@ class EpubService {
       if (!await coverFile.exists()) return null;
 
       // 保存到 epub_books/{bookId}/ 目录下
-      final appDir = await getApplicationDocumentsDirectory();
-      final coverDir = p.join(appDir.path, 'epub_books', bookId);
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final coverDir = p.join(appDirPath, 'epub_books', bookId);
       await Directory(coverDir).create(recursive: true);
       final ext = p.extension(coverFile.path).toLowerCase();
       final destPath = p.join(coverDir, 'cover$ext');
@@ -144,8 +145,8 @@ class EpubService {
 
     // 清理 epub_books/{bookId}/ 目录（epub + 封面）
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final bookDir = Directory(p.join(appDir.path, 'epub_books', bookId));
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final bookDir = Directory(p.join(appDirPath, 'epub_books', bookId));
       if (await bookDir.exists()) await bookDir.delete(recursive: true);
     } catch (_) {}
 

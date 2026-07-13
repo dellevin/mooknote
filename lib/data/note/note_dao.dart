@@ -40,7 +40,7 @@ class NoteDao {
     switch (sortMode) {
       case 1: return 'is_pinned DESC, created_at DESC';
       case 2: return 'is_pinned DESC, title COLLATE NOCASE ASC';
-      default: return 'is_pinned DESC, updated_at DESC';
+      default: return 'is_pinned DESC, created_at DESC';
     }
   }
 

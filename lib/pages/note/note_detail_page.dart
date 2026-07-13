@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
+import '../../utils/responsive.dart';
 import 'note_share_page.dart';
 
 /// 笔记详情页
@@ -28,12 +30,15 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       orElse: () => widget.note,
     );
 
+    if (Breakpoint.isDesktop(context)) {
+      return _buildDesktopStyle(note, colors);
+    }
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
         leading: widget.embedded
             ? IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.arrow_back),
                 onPressed: () => context.read<AppProvider>().selectNote(null),
               )
             : null,
@@ -117,6 +122,112 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
             right: 16,
             bottom: 24,
             child: _buildFloatingActionButtons(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 桌面端布局
+  Widget _buildDesktopStyle(Note note, ColorScheme colors) {
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Column(
+        children: [
+          // 顶栏
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            child: Row(children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: colors.onSurface, size: 18),
+                onPressed: widget.embedded
+                    ? () => context.read<AppProvider>().selectNote(null)
+                    : () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Text(
+                  note.title.isNotEmpty ? note.title : _truncateContent(note.content),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+            ]),
+          ),
+          // 日期信息栏
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            child: Row(
+              children: [
+                Text('${note.createdAt.day}',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w200, color: colors.onSurface.withValues(alpha: 0.75), height: 1.0)),
+                const SizedBox(width: 8),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text('${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')} 周${_weekdays[note.createdAt.weekday - 1]}',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.55))),
+                  const SizedBox(height: 1),
+                  Text('${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                ]),
+                const Spacer(),
+                Text('${note.content.length} 字',
+                  style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+              ],
+            ),
+          ),
+          if (note.tags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 24, right: 24),
+              child: _buildTagRow(note.tags),
+            ),
+          // 内容
+          Expanded(
+            child: Markdown(
+              data: note.content,
+              styleSheet: _buildMarkdownStyleSheet(colors),
+              padding: const EdgeInsets.all(24),
+              // ignore: deprecated_member_use
+              imageBuilder: (uri, title, alt) => _buildMarkdownImage(uri, note),
+            ),
+          ),
+          if (note.images.isNotEmpty) _buildImageRow(note.images),
+          // 底部操作栏
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _showDeleteDialog(context),
+                  icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
+                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: () => _navigateToEdit(context),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('编辑'),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -324,14 +435,16 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
-        const SizedBox(height: 12),
-        _buildFloatingButton(
-          icon: Icons.share_outlined,
-          onPressed: _shareNote,
-          tooltip: '分享',
-          backgroundColor: const Color(0xFF4CAF50),
-          foregroundColor: Colors.white,
-        ),
+        if (!Platform.isWindows) ...[
+          const SizedBox(height: 12),
+          _buildFloatingButton(
+            icon: Icons.share_outlined,
+            onPressed: _shareNote,
+            tooltip: '分享',
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+          ),
+        ],
       ],
     );
   }
@@ -368,6 +481,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   }
 
   void _showDeleteDialog(BuildContext context) {
+    final errorColor = Theme.of(context).colorScheme.error;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -388,7 +502,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 Navigator.pop(context);
               }
             },
-            child: Text('删除', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text('删除', style: TextStyle(color: errorColor)),
           ),
         ],
       ),

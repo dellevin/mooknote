@@ -38,6 +38,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     _layoutStyle = UserPrefs().noteLayoutStyle;
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = context.read<AppProvider>();
       _provider = provider;
       provider.addListener(_onDataChanged);

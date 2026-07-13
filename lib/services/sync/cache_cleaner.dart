@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-import '../../providers/app_provider.dart';
 import '../../data/database_helper.dart';
+import '../../utils/image_path_helper.dart';
+import '../../utils/user_prefs.dart';
 
 /// 缓存清理服务
 class CacheCleaner {
@@ -11,10 +13,10 @@ class CacheCleaner {
   static final CacheCleaner instance = CacheCleaner._();
 
   /// 执行完整缓存清理，返回各分类删除数量
-  Future<CacheCleanResult> clean(AppProvider provider) async {
-    final dbImagePaths = await _getAllDbImagePaths(provider);
+  Future<CacheCleanResult> clean() async {
+    final dbImagePaths = await _getAllDbImagePaths();
     final deletedImages = await _cleanImageDirectory(dbImagePaths);
-    final deletedEpubs = await _cleanOrphanedEpubBooks(provider);
+    final deletedEpubs = await _cleanOrphanedEpubBooks();
     final deletedTemp = await _cleanTempDirectory();
     final deletedEmptyDirs = await _cleanEmptyDirectories();
     return CacheCleanResult(
@@ -25,44 +27,87 @@ class CacheCleaner {
     );
   }
 
-  Future<Set<String>> _getAllDbImagePaths(AppProvider provider) async {
+  /// 直接查 DB 收集所有图片路径（含软删除记录，与 BackupService 保持一致）
+  Future<Set<String>> _getAllDbImagePaths() async {
+    final db = await DatabaseHelper.instance.database;
     final paths = <String>{};
-    for (final movie in provider.movies) {
-      if (movie.posterPath?.isNotEmpty == true) paths.add(movie.posterPath!);
+
+    // 影视海报
+    final movies = await db.query('movies', columns: ['poster_path']);
+    for (final m in movies) {
+      final p = m['poster_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
-    for (final book in provider.books) {
-      if (book.coverPath?.isNotEmpty == true) paths.add(book.coverPath!);
+
+    // 书籍封面
+    final books = await db.query('books', columns: ['cover_path']);
+    for (final b in books) {
+      final p = b['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
-    for (final note in provider.notes) {
-      for (final p in note.images) {
-        if (p.isNotEmpty) paths.add(p);
+
+    // 笔记图片
+    final notes = await db.query('notes', columns: ['images']);
+    for (final n in notes) {
+      final imagesJson = n['images'] as String?;
+      if (imagesJson != null && imagesJson.isNotEmpty) {
+        try {
+          for (final ip in jsonDecode(imagesJson) as List<dynamic>) {
+            if (ip is String && ip.isNotEmpty) paths.add(ip);
+          }
+        } catch (_) {}
       }
     }
-    for (final movieId in provider.movies.map((m) => m.id)) {
-      for (final poster in await provider.getMoviePosters(movieId)) {
-        if (poster.posterPath.isNotEmpty) paths.add(poster.posterPath);
-      }
+
+    // 影视海报墙图片
+    final moviePosters = await db.query('movie_posters', columns: ['poster_path']);
+    for (final p in moviePosters) {
+      final pp = p['poster_path'] as String?;
+      if (pp != null && pp.isNotEmpty) paths.add(pp);
     }
-    for (final game in provider.games) {
-      if (game.coverPath?.isNotEmpty == true) paths.add(game.coverPath!);
+
+    // 游戏封面
+    final games = await db.query('games', columns: ['cover_path']);
+    for (final g in games) {
+      final p = g['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
-    for (final gameId in provider.games.map((g) => g.id)) {
-      for (final screenshot in await provider.getGameScreenshots(gameId)) {
-        if (screenshot.screenshotPath.isNotEmpty) paths.add(screenshot.screenshotPath);
-      }
+
+    // 游戏截图
+    final gameScreenshots = await db.query('game_screenshots', columns: ['screenshot_path']);
+    for (final s in gameScreenshots) {
+      final p = s['screenshot_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
     }
+
+    // 用户头像
+    final userPrefs = UserPrefs();
+    final avatarPath = userPrefs.avatarPath;
+    if (avatarPath != null && avatarPath.isNotEmpty) paths.add(avatarPath);
+
     return paths;
+  }
+
+  /// 规范化路径用于跨平台比较（统一分隔符、去掉末尾分隔符）
+  /// Windows 上 DB 存的路径和文件系统遍历得到的路径分隔符可能不一致，
+  /// 直接字符串比较会漏匹配导致图片被误删。
+  String _normalize(String p) {
+    // 统一为正斜杠后再用 path.normalize 处理 .. 和 . 等
+    final unified = p.replaceAll('\\', '/');
+    return path.normalize(unified);
   }
 
   Future<int> _cleanImageDirectory(Set<String> dbImagePaths) async {
     int deletedCount = 0;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final imagesDir = Directory(path.join(appDirPath, 'images'));
       if (!await imagesDir.exists()) return 0;
+      // 预先规范化 DB 路径，避免每个文件都做转换
+      final normalizedDbPaths = dbImagePaths.map(_normalize).toSet();
       await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
         if (entity is File &&
-            !dbImagePaths.contains(entity.path) &&
+            !normalizedDbPaths.contains(_normalize(entity.path)) &&
             !path.basename(entity.path).startsWith('avatar')) {
           try {
             await entity.delete();
@@ -76,7 +121,7 @@ class CacheCleaner {
     return deletedCount;
   }
 
-  Future<int> _cleanOrphanedEpubBooks(AppProvider provider) async {
+  Future<int> _cleanOrphanedEpubBooks() async {
     int deletedCount = 0;
     try {
       final db = await DatabaseHelper.instance.database;
@@ -91,9 +136,10 @@ class CacheCleaner {
         _collectEpubDirName(r['cover_path'] as String?, usedDirs);
       }
 
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDirPath = await ImagePathHelper.getAppDir();
       final possiblePaths = [
-        '${appDir.path}/epub_books',
+        path.join(appDirPath, 'epub_books'),
+        // Android 旧版绝对路径（path.join 在 Windows 上不会破坏它）
         '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
       ];
 
@@ -118,14 +164,34 @@ class CacheCleaner {
     return deletedCount;
   }
 
+  /// 从路径中提取 epub_books/{bookId} 的 bookId 部分
+  /// 兼容 Windows(\) 和 Unix(/) 分隔符
   void _collectEpubDirName(String? pathStr, Set<String> dirs) {
     if (pathStr == null || pathStr.isEmpty) return;
+    // 统一为正斜杠便于查找 marker
+    final unified = pathStr.replaceAll('\\', '/');
     final marker = '/epub_books/';
-    final idx = pathStr.indexOf(marker);
+    final idx = unified.indexOf(marker);
     if (idx < 0) return;
-    final rest = pathStr.substring(idx + marker.length);
+    final rest = unified.substring(idx + marker.length);
     final slashIdx = rest.indexOf('/');
     dirs.add(slashIdx >= 0 ? rest.substring(0, slashIdx) : rest);
+  }
+
+  /// mooknote 自己产生的临时文件名前缀
+  static const _tempPrefixes = [
+    'book_poster_',
+    'movie_poster_',
+    'note_share_',
+    'mooknote_download',
+    'mooknote_bidir',
+  ];
+
+  bool _isMooknoteTempFile(String name) {
+    for (final prefix in _tempPrefixes) {
+      if (name.startsWith(prefix)) return true;
+    }
+    return false;
   }
 
   Future<int> _cleanTempDirectory() async {
@@ -138,11 +204,7 @@ class CacheCleaner {
         await for (final entity in tempDir.list(followLinks: false)) {
           if (entity is File) {
             final name = path.basename(entity.path);
-            if (name.startsWith('book_poster_') ||
-                name.startsWith('movie_poster_') ||
-                name.startsWith('note_share_') ||
-                name.startsWith('mooknote_download') ||
-                name.startsWith('mooknote_bidir')) {
+            if (_isMooknoteTempFile(name)) {
               try {
                 final stat = await entity.stat();
                 if (now.difference(stat.modified).inHours >= 1) {
@@ -158,15 +220,20 @@ class CacheCleaner {
       debugPrint('清理临时目录失败: $e');
     }
 
+    // cacheDir 只删 mooknote 自己产生的临时文件，不再无差别全清
+    // （Windows/Flutter 引擎也在该目录放缓存文件，全清可能误伤）
     try {
       final cacheDir = await getApplicationCacheDirectory();
       if (await cacheDir.exists()) {
         await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
           if (entity is File) {
-            try {
-              await entity.delete();
-              deletedCount++;
-            } catch (_) {}
+            final name = path.basename(entity.path);
+            if (_isMooknoteTempFile(name)) {
+              try {
+                await entity.delete();
+                deletedCount++;
+              } catch (_) {}
+            }
           }
         }
       }
@@ -180,11 +247,11 @@ class CacheCleaner {
   Future<int> _cleanEmptyDirectories() async {
     int deletedCount = 0;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDirPath = await ImagePathHelper.getAppDir();
       final cacheDir = await getApplicationCacheDirectory();
       final dirs = [
-        Directory('${appDir.path}/images'),
-        Directory('${appDir.path}/epub_books'),
+        Directory(path.join(appDirPath, 'images')),
+        Directory(path.join(appDirPath, 'epub_books')),
         cacheDir,
       ];
       for (final dir in dirs) {

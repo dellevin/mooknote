@@ -1115,6 +1115,7 @@ class _GameFormPageState extends State<GameFormPage> {
         );
 
         await context.read<AppProvider>().addGame(newGame);
+        await context.read<AppProvider>().loadGames();
       } else {
         final updatedGame = widget.game!.copyWith(
           title: _titleController.text.trim(),

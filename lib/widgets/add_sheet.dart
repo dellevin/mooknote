@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 
@@ -96,49 +97,74 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     ));
   }
 
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: colors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (ctx) {
-      final bc = Theme.of(ctx).colorScheme;
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
+  if (Platform.isWindows) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final bc = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: bc.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          title: Text('新增记录',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: bc.onSurface)),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 32,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: bc.onSurface.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Text('新增记录',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: bc.onSurface)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...options,
-            ],
+            children: options,
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
+  } else {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final bc = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 32,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: bc.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Text('新增记录',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: bc.onSurface)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...options,
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 Widget _buildOption({

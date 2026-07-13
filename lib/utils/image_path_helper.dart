@@ -17,19 +17,24 @@ class ImagePathHelper {
 
   ImagePathHelper._init();
 
-  String? _appDirPath;
+  static String? _appDirPath;
 
-  /// 获取应用文档目录
-  Future<String> get _appDir async {
+  /// 获取应用数据根目录（Windows 下统一到 mooknote 子目录）
+  /// 所有需要访问 images/、epub_books/ 等目录的代码都应使用此方法
+  static Future<String> getAppDir() async {
     if (_appDirPath != null) return _appDirPath!;
     final appDir = await getApplicationDocumentsDirectory();
-    _appDirPath = appDir.path;
+    if (Platform.isWindows) {
+      _appDirPath = p.join(appDir.path, 'mooknote');
+    } else {
+      _appDirPath = appDir.path;
+    }
     return _appDirPath!;
   }
 
   /// 获取图片根目录
   Future<String> get imagesRoot async {
-    final appDir = await _appDir;
+    final appDir = await getAppDir();
     return p.join(appDir, 'images');
   }
 

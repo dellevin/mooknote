@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/image_path_helper.dart';
 import '../models/data_models.dart';
 
 /// 数据库帮助类 - 管理数据库的创建和版本控制
@@ -13,9 +15,14 @@ class DatabaseHelper {
 
   DatabaseHelper._init();
 
+  /// 获取数据库根目录（统一使用 ImagePathHelper.getAppDir）
+  Future<String> _getDbRootPath() async {
+    return await ImagePathHelper.getAppDir();
+  }
+
   /// 数据库文件路径
   Future<String?> get databasePath async {
-    final path = await getDatabasesPath();
+    final path = await _getDbRootPath();
     return join(path, 'mooknote.db');
   }
 
@@ -67,8 +74,10 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
+    final dbPath = await _getDbRootPath();
     final path = join(dbPath, filePath);
+    // 确保目录存在
+    await Directory(dbPath).create(recursive: true);
 
     return await openDatabase(
       path,

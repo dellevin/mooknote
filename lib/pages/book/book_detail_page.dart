@@ -8,6 +8,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/responsive.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
@@ -59,10 +60,271 @@ class _BookDetailPageState extends State<BookDetailPage> {
         .where((b) => b.id == widget.book.id)
         .firstOrNull ?? widget.book;
 
+    if (Breakpoint.isDesktop(context)) {
+      return _buildDesktopStyle(book, colors);
+    }
     if (_detailStyle == 1) {
       return _buildOverlayStyle(book, colors);
     }
     return _buildStandardStyle(book, colors);
+  }
+
+  /// 桌面端左右分栏布局
+  Widget _buildDesktopStyle(Book book, ColorScheme colors) {
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Column(
+        children: [
+          // 顶栏
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            child: Row(children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: colors.onSurface, size: 18),
+                onPressed: widget.embedded
+                    ? () => context.read<AppProvider>().selectBook(null)
+                    : () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Text(book.title,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+            ]),
+          ),
+          // 主体：左封面 + 右信息
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 左侧封面
+                Container(
+                  width: 240,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 200,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: hasCover
+                              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4))]
+                              : null,
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: hasCover
+                            ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
+                            : Center(child: Icon(Icons.menu_book, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
+                      ),
+                    ],
+                  ),
+                ),
+                // 右侧信息（可滚动）
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(0, 20, 24, 80),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(book.title,
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.3)),
+                        if (book.alternateTitles.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(book.alternateTitles.join(' / '),
+                            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+                        ],
+                        _buildEpubProgressBar(book),
+                        const SizedBox(height: 16),
+                        Row(children: [
+                          if (book.rating != null) ...[
+                            Icon(Icons.star, size: 20, color: colors.onSurface),
+                            const SizedBox(width: 4),
+                            Text(book.rating!.toStringAsFixed(1),
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                            const SizedBox(width: 16),
+                          ],
+                          _buildStatusTag(book),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text('添加于 ${_formatDate(book.createdAt)}',
+                          style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                        Divider(height: 32, thickness: 0.5, color: colors.outline),
+                        // 详细信息
+                        _buildDesktopInfoRow('作者', book.authors.join('，'), colors),
+                        if (book.translators.isNotEmpty)
+                          _buildDesktopInfoRow('译者', book.translators.join('，'), colors),
+                        if (book.genres.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            SizedBox(width: 56, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            Expanded(child: Wrap(spacing: 8, runSpacing: 8,
+                              children: book.genres.map((g) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+                                child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+                              )).toList(),
+                            )),
+                          ]),
+                        ],
+                        if (book.isbn != null && book.isbn!.isNotEmpty)
+                          _buildDesktopInfoRow('ISBN', book.isbn!, colors),
+                        if (book.publisher != null && book.publisher!.isNotEmpty)
+                          _buildDesktopInfoRow('出版社', book.publisher!, colors),
+                        if (book.publishDate != null)
+                          _buildDesktopInfoRow('出版时间', '${book.publishDate!.year}年${book.publishDate!.month.toString().padLeft(2, '0')}月', colors),
+                        if (book.startDate != null || book.finishDate != null) ...[
+                          const SizedBox(height: 8),
+                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            SizedBox(width: 56, child: Text('阅读日期', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            Expanded(child: Wrap(spacing: 12, runSpacing: 8, children: [
+                              if (book.startDate != null) _buildDateChip('开始', book.startDate!, false),
+                              if (book.finishDate != null) _buildDateChip('读完', book.finishDate!, false),
+                            ])),
+                          ]),
+                        ],
+                        if (book.summary != null && book.summary!.isNotEmpty) ...[
+                          Divider(height: 32, thickness: 0.5, color: colors.outline),
+                          Row(children: [
+                            Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+                            const SizedBox(width: 8),
+                            Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          ]),
+                          const SizedBox(height: 12),
+                          Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+                        ],
+                        Divider(height: 32, thickness: 0.5, color: colors.outline),
+                        Row(children: [
+                          Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+                          const SizedBox(width: 8),
+                          Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                        ]),
+                        const SizedBox(height: 16),
+                        _buildExtraSectionItem(
+                          icon: Icons.rate_review_outlined,
+                          title: '书评',
+                          subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
+                          emptyText: '暂无书评',
+                          unit: '条书评',
+                          onTap: () => _navigateToReviews(book),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildExtraSectionItem(
+                          icon: Icons.format_quote_outlined,
+                          title: '摘抄',
+                          subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
+                          emptyText: '暂无摘抄',
+                          unit: '条摘抄',
+                          onTap: () => _navigateToExcerpts(book),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildExtraSectionItem(
+                          icon: Icons.highlight_outlined,
+                          title: '句读',
+                          subtitleFuture: _getEpubHighlightCount(book.id),
+                          emptyText: '暂无句读',
+                          unit: '条句读',
+                          onTap: () => _navigateToEpubHighlights(book),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 底部操作栏
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _buildEpubReadButtonBar(book, colors),
+                OutlinedButton.icon(
+                  onPressed: () => _showDeleteDialog(context),
+                  icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
+                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: () => _navigateToEdit(context),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('编辑'),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopInfoRow(String label, String value, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 56, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
+        ],
+      ),
+    );
+  }
+
+  /// EPUB 阅读按钮（底部栏样式）
+  Widget _buildEpubReadButtonBar(Book book, ColorScheme colors) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: ReaderDao().getReaderBookByBookId(book.id),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        final readerBook = snapshot.data!;
+        return Row(children: [
+          FilledButton.tonalIcon(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ReaderScreen(
+                  bookId: readerBook['id'] as String,
+                  filePath: readerBook['file_path'] as String,
+                  title: readerBook['title'] as String? ?? '',
+                  coverPath: readerBook['cover_path'] as String?,
+                  bookData: readerBook,
+                ),
+              ));
+            },
+            icon: const Icon(Icons.auto_stories_outlined, size: 16),
+            label: const Text('EPUB 阅读'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF6750A4).withValues(alpha: 0.15),
+              foregroundColor: const Color(0xFF6750A4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          const SizedBox(width: 12),
+        ]);
+      },
+    );
   }
 
   /// 标准样式
@@ -156,7 +418,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   child: Row(children: [
                     const SizedBox(width: 4),
                     IconButton(
-                      icon: Icon(widget.embedded ? Icons.close : Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                      icon: Icon(widget.embedded ? Icons.arrow_back : Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                       onPressed: widget.embedded
                           ? () => context.read<AppProvider>().selectBook(null)
                           : () => Navigator.pop(context),
@@ -289,14 +551,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
         ),
         const SizedBox(height: 12),
         _buildEpubReadButton(book),
-        const SizedBox(height: 12),
-        _buildFloatingButton(
-          icon: Icons.share_outlined,
-          onPressed: () => _showSharePoster(book),
-          tooltip: '分享海报',
-          backgroundColor: const Color(0xFF4CAF50),
-          foregroundColor: Colors.white,
-        ),
+        if (!Platform.isWindows) ...[
+          const SizedBox(height: 12),
+          _buildFloatingButton(
+            icon: Icons.share_outlined,
+            onPressed: () => _showSharePoster(book),
+            tooltip: '分享海报',
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+          ),
+        ],
       ],
     );
   }
@@ -378,7 +642,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           child: Row(children: [
             const SizedBox(width: 4),
             IconButton(
-              icon: Icon(widget.embedded ? Icons.close : Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
+              icon: Icon(widget.embedded ? Icons.arrow_back : Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
               onPressed: widget.embedded
                   ? () => context.read<AppProvider>().selectBook(null)
                   : () => Navigator.pop(context),

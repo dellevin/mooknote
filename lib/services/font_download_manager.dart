@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
+import '../utils/image_path_helper.dart';
 
 /// 本地字体扫描与加载管理器
 ///
@@ -131,8 +131,8 @@ class FontDownloadManager {
       return fontDir;
     }
     // iOS / 桌面端 fallback
-    final appDir = await getApplicationDocumentsDirectory();
-    final fontDir = Directory(path.join(appDir.path, 'fonts'));
+    final appDirPath = await ImagePathHelper.getAppDir();
+    final fontDir = Directory(path.join(appDirPath, 'fonts'));
     if (!await fontDir.exists()) {
       await fontDir.create(recursive: true);
     }

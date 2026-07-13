@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/responsive.dart';
 import '../../services/sync/webdav_service.dart';
 import '../movies/movie_tab_page.dart';
 import '../book/book_tab_page.dart';
@@ -87,8 +88,10 @@ class _MainContentPageState extends State<MainContentPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _buildAppBar(context),
-        _buildTabBar(context),
+        if (!Breakpoint.isDesktop(context)) ...[
+          _buildAppBar(context),
+          _buildTabBar(context),
+        ],
         Expanded(child: _buildTabContent()),
       ],
     );

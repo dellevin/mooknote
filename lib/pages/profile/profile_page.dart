@@ -2,14 +2,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import '../../main.dart' show routeObserver;
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/image_path_helper.dart';
 import '../settings/recycle_bin_page.dart';
 import '../sync/backup_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -77,12 +78,14 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         AppBar(
           titleSpacing: 8,
           leadingWidth: 44,
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: Icon(Icons.menu, color: colors.onSurface),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
+          leading: Breakpoint.isDesktop(context)
+              ? const SizedBox.shrink()
+              : Builder(
+                  builder: (context) => IconButton(
+                    icon: Icon(Icons.menu, color: colors.onSurface),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                ),
           title: const Text('我的'),
         ),
         Expanded(
@@ -998,10 +1001,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           maxHeight: 400,
           imageQuality: 85);
       if (pickedFile != null) {
-        final appDir = await getApplicationDocumentsDirectory();
+        final appDirPath = await ImagePathHelper.getAppDir();
         final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedPath = path.join(appDir.path, 'avatars', fileName);
-        final avatarDir = Directory(path.join(appDir.path, 'avatars'));
+        final savedPath = path.join(appDirPath, 'avatars', fileName);
+        final avatarDir = Directory(path.join(appDirPath, 'avatars'));
         if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
         await File(pickedFile.path).copy(savedPath);
         await _userPrefs.setAvatarPath(savedPath);

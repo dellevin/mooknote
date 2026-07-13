@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/sync/backup_service.dart';
-import '../../services/sync/cache_cleaner.dart';
 import '../../utils/toast_util.dart';
 
 /// 本地备份页面
@@ -335,9 +334,6 @@ class _BackupPageState extends State<BackupPage> {
     setState(() => _isExporting = true);
 
     try {
-      // 先清理缓存
-      await CacheCleaner.instance.clean(context.read<AppProvider>());
-
       final result = await BackupService.instance.exportDataWithImages();
 
       if (!mounted) return;
@@ -435,9 +431,6 @@ class _BackupPageState extends State<BackupPage> {
     setState(() => _isImporting = true);
 
     try {
-      // 先清理缓存
-      await CacheCleaner.instance.clean(context.read<AppProvider>());
-
       final result = await BackupService.instance.importData();
 
       if (!mounted) return;

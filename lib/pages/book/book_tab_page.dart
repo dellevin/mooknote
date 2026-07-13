@@ -52,6 +52,7 @@ class _BookTabPageState extends State<BookTabPage> {
     _layoutStyle = UserPrefs().bookLayoutStyle;
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = context.read<AppProvider>();
       _provider = provider;
       provider.addListener(_onDataChanged);

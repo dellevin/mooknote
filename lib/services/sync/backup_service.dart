@@ -10,12 +10,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../data/database_helper.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/image_path_helper.dart';
 
 /// 数据备份服务 - 支持导出和导入数据（包含图片）
 class BackupService {
   static final BackupService instance = BackupService._init();
 
   BackupService._init();
+
+  /// 获取应用数据根目录（统一路径）
+  Future<String> _getAppDir() async {
+    return await ImagePathHelper.getAppDir();
+  }
 
   // ─── 共享导出逻辑 ─────────────────────────────────────
 
@@ -112,13 +118,25 @@ class BackupService {
 
     // 阶段2：后台 isolate 执行 JSON 编码 + ZIP 压缩（避免阻塞主线程动画）
     final tempDir = await getTemporaryDirectory();
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDirPath = await _getAppDir();
+
+    // DEBUG: 诊断 Windows 导出图片缺失问题
+    final imagesRootPath = path.join(appDirPath, 'images');
+    debugPrint('[BackupService] DEBUG appDirPath=$appDirPath');
+    debugPrint('[BackupService] DEBUG imagesRoot=$imagesRootPath');
+    debugPrint('[BackupService] DEBUG imagePaths count=${imagePaths.length}');
+    for (final ip in imagePaths) {
+      final f = File(ip);
+      final exists = f.existsSync();
+      final match = ip.startsWith(imagesRootPath);
+      debugPrint('[BackupService] DEBUG path=$ip exists=$exists startsWithImagesRoot=$match');
+    }
 
     final result = await compute(_buildZipInIsolate, _ZipComputeParams(
       backupData: backupData,
       imagePaths: imagePaths.toList(),
       tempDirPath: tempDir.path,
-      appDirPath: appDir.path,
+      appDirPath: appDirPath,
     ));
 
     return _ExportData(
@@ -144,19 +162,17 @@ class BackupService {
 
       String? finalPath;
       try {
-        // FilePicker.saveFile 需要 bytes，这里必须读入内存
-        final zipBytes = await zipFile.readAsBytes();
         final outputPath = await FilePicker.platform.saveFile(
           dialogTitle: '保存备份文件',
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['zip'],
-          bytes: zipBytes,
         );
         if (outputPath == null) {
           await zipFile.delete();
           return ExportResult.cancelled();
         }
+        await zipFile.copy(outputPath);
         finalPath = outputPath;
       } catch (e) {
         // FilePicker 不可用时，复制到临时目录
@@ -239,8 +255,8 @@ class BackupService {
 
         backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
 
-        final appDir = await getApplicationDocumentsDirectory();
-        final imagesDir = Directory(path.join(appDir.path, 'images'));
+        final appDirPath = await _getAppDir();
+        final imagesDir = Directory(path.join(appDirPath, 'images'));
         if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
 
         for (final archiveFile in archive) {
@@ -254,7 +270,7 @@ class BackupService {
             imageCount++;
           } else if (archiveFile.name.startsWith('epub_books/')) {
             final relativePath = archiveFile.name.substring(12);
-            final epubDir = Directory(path.join(appDir.path, 'epub_books'));
+            final epubDir = Directory(path.join(appDirPath, 'epub_books'));
             if (!await epubDir.exists()) await epubDir.create(recursive: true);
             final outputFile = File(path.join(epubDir.path, relativePath));
             if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
@@ -401,8 +417,8 @@ class BackupService {
       final epubFileMap = <String, String>{};
       int imageCount = 0;
 
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory(path.join(appDir.path, 'images'));
+      final appDirPath = await _getAppDir();
+      final imagesDir = Directory(path.join(appDirPath, 'images'));
       if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
 
       for (final archiveFile in archive) {
@@ -415,7 +431,7 @@ class BackupService {
           imageCount++;
         } else if (archiveFile.name.startsWith('epub_books/')) {
           final relativePath = archiveFile.name.substring(12);
-          final epubDir = Directory(path.join(appDir.path, 'epub_books'));
+          final epubDir = Directory(path.join(appDirPath, 'epub_books'));
           if (!await epubDir.exists()) await epubDir.create(recursive: true);
           final outputFile = File(path.join(epubDir.path, relativePath));
           if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
@@ -627,12 +643,11 @@ class BackupService {
 
   /// 将绝对路径转为 images/ 下的相对路径（用于 imagePathMap key）
   String _toRelativePath(String absolutePath) {
+    // 统一为正斜杠，避免 Windows 反斜杠与 zip 内正斜杠不匹配
+    final normalized = absolutePath.replaceAll('\\', '/');
     // 尝试提取 images/ 后面的部分
-    final idx = absolutePath.indexOf('/images/');
-    if (idx >= 0) return absolutePath.substring(idx + 8); // skip '/images/'
-    // Windows 路径
-    final winIdx = absolutePath.indexOf('\\images\\');
-    if (winIdx >= 0) return absolutePath.substring(winIdx + 8);
+    final idx = normalized.indexOf('/images/');
+    if (idx >= 0) return normalized.substring(idx + 8); // skip '/images/'
     return path.basename(absolutePath);
   }
 
@@ -683,10 +698,9 @@ class BackupService {
 
   /// 从绝对路径中提取 epub_books/ 下的相对路径
   String? _toEpubRelativePath(String absolutePath) {
-    final idx = absolutePath.indexOf('/epub_books/');
-    if (idx >= 0) return absolutePath.substring(idx + 13); // skip '/epub_books/'
-    final winIdx = absolutePath.indexOf('\\epub_books\\');
-    if (winIdx >= 0) return absolutePath.substring(winIdx + 13);
+    final normalized = absolutePath.replaceAll('\\', '/');
+    final idx = normalized.indexOf('/epub_books/');
+    if (idx >= 0) return normalized.substring(idx + 13); // skip '/epub_books/'
     return null;
   }
 
@@ -910,14 +924,16 @@ _ZipComputeResult _buildZipInIsolate(_ZipComputeParams params) {
     dataFile.deleteSync();
 
     int imageCount = 0;
-    final imagesRoot = path.join(params.appDirPath, 'images');
 
     for (final imagePath in params.imagePaths) {
       final file = File(imagePath);
       if (file.existsSync()) {
+        // 统一用 /images/ 子串匹配提取相对路径，兼容旧路径（路径前缀可能不含 mooknote 子目录）
+        final normalized = imagePath.replaceAll('\\', '/');
+        final idx = normalized.indexOf('/images/');
         String relativePath;
-        if (imagePath.startsWith(imagesRoot)) {
-          relativePath = imagePath.substring(imagesRoot.length + 1);
+        if (idx >= 0) {
+          relativePath = normalized.substring(idx + 8); // skip '/images/'
         } else {
           relativePath = path.basename(imagePath);
         }

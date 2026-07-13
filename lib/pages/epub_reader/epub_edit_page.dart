@@ -5,13 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart';
 import '../../data/epub/reader_dao.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/text_input_panel.dart';
+import '../../utils/image_path_helper.dart';
 
 /// EPUB 书籍编辑页
 class EpubEditPage extends StatefulWidget {
@@ -93,8 +93,8 @@ class _EpubEditPageState extends State<EpubEditPage> {
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked == null || !mounted) return;
 
-    final appDir = await getApplicationDocumentsDirectory();
-    final bookDir = Directory(p.join(appDir.path, 'epub_books', widget.bookId));
+    final appDirPath = await ImagePathHelper.getAppDir();
+    final bookDir = Directory(p.join(appDirPath, 'epub_books', widget.bookId));
     if (!await bookDir.exists()) await bookDir.create(recursive: true);
 
     final existing = bookDir.listSync().whereType<File>().where((f) {
@@ -122,8 +122,8 @@ class _EpubEditPageState extends State<EpubEditPage> {
   }
 
   Future<void> _revertCover() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final bookDir = Directory(p.join(appDir.path, 'epub_books', widget.bookId));
+    final appDirPath = await ImagePathHelper.getAppDir();
+    final bookDir = Directory(p.join(appDirPath, 'epub_books', widget.bookId));
 
     final existing = bookDir.listSync().whereType<File>().where((f) {
       final name = p.basenameWithoutExtension(f.path);

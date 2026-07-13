@@ -46,6 +46,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = context.read<AppProvider>();
       _provider = provider;
       provider.addListener(_onDataChanged);
