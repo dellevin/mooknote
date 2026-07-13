@@ -577,8 +577,8 @@ class _EncounterDialog extends StatelessWidget {
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       title: const Text('统计'),
       content: SizedBox(
-        width: 400,
-        height: 340,
+        width: 360,
+        height: 440,
         child: Consumer<AppProvider>(
           builder: (context, provider, child) {
             final movies = provider.movies.where((m) => !m.isDeleted).toList();
@@ -997,8 +997,8 @@ class _StrollDialogState extends State<_StrollDialog> {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: SizedBox(
-        width: 580,
-        height: 520,
+        width: 520,
+        height: 620,
         child: Column(
           children: [
             // 标题栏
@@ -1303,8 +1303,8 @@ class _CalendarDialogState extends State<_CalendarDialog> {
           icon: Icon(Icons.chevron_right, size: 20, color: colors.onSurface.withValues(alpha: 0.6)), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
       ]),
       content: SizedBox(
-        width: 480,
-        height: 440,
+        width: 420,
+        height: 520,
         child: Column(
           children: [
             // 星期头
@@ -3648,6 +3648,16 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _keyword = '';
   Timer? _debounce;
+  /// 状态筛选：null=全部，否则按各实体 status 值过滤
+  String? _statusFilter;
+
+  @override
+  void didUpdateWidget(covariant _DesktopListPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mainTabIndex != widget.mainTabIndex) {
+      _statusFilter = null;
+    }
+  }
 
   @override
   void dispose() {
@@ -3672,43 +3682,51 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
         SizedBox(height: MediaQuery.of(context).padding.top),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-          child: SizedBox(
-            height: 36,
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: _onSearchChanged,
-              style: TextStyle(fontSize: 13, color: colors.onSurface),
-              decoration: InputDecoration(
-                hintText: '搜索...',
-                hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
-                prefixIcon: Icon(Icons.search, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
-                suffixIcon: _keyword.isNotEmpty
-                    ? GestureDetector(
-                        onTap: () {
-                          _searchCtrl.clear();
-                          setState(() => _keyword = '');
-                        },
-                        child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.4)),
-                      )
-                    : null,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                filled: true,
-                fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: colors.primary.withValues(alpha: 0.3), width: 1),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: _onSearchChanged,
+                    style: TextStyle(fontSize: 13, color: colors.onSurface),
+                    decoration: InputDecoration(
+                      hintText: '搜索...',
+                      hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
+                      prefixIcon: Icon(Icons.search, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
+                      suffixIcon: _keyword.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () {
+                                _searchCtrl.clear();
+                                setState(() => _keyword = '');
+                              },
+                              child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.4)),
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      filled: true,
+                      fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: colors.primary.withValues(alpha: 0.3), width: 1),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              _buildSortButton(context),
+            ],
           ),
         ),
         const SizedBox(height: 4),
@@ -3734,10 +3752,153 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     }
   }
 
+  // ─── 排序按钮（对应 Android 版长按 tab 弹出的排序菜单）────────────
+
+  Widget _buildSortButton(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final (currentSort, sortOptions, _, onSortSelected) = _sortConfig(context);
+    final statusOptions = _statusFilterOptions();
+    return PopupMenuButton<String>(
+      tooltip: '排序与筛选',
+      position: PopupMenuPosition.under,
+      color: colors.surface,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      itemBuilder: (ctx) => [
+        // 排序区
+        PopupMenuItem<String>(
+          value: '__sort_header__',
+          enabled: false,
+          height: 28,
+          child: Text('排序', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
+        ),
+        for (final (value, text, icon) in sortOptions)
+          PopupMenuItem<String>(
+            value: 'sort:$value',
+            child: Row(children: [
+              Icon(icon, size: 16, color: currentSort == value ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
+              const SizedBox(width: 10),
+              Text(text, style: TextStyle(fontSize: 13, color: currentSort == value ? colors.primary : colors.onSurface)),
+              const Spacer(),
+              if (currentSort == value)
+                Icon(Icons.check, size: 14, color: colors.primary),
+            ]),
+          ),
+        // 状态筛选区（仅影视/阅读/游戏）
+        if (statusOptions != null) ...[
+          const PopupMenuDivider(height: 8),
+          PopupMenuItem<String>(
+            value: '__filter_header__',
+            enabled: false,
+            height: 28,
+            child: Text('状态筛选', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
+          ),
+          for (final (value, text, icon) in statusOptions)
+            PopupMenuItem<String>(
+              value: 'filter:$value',
+              child: Row(children: [
+                Icon(icon, size: 16, color: _statusFilter == value ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
+                const SizedBox(width: 10),
+                Text(text, style: TextStyle(fontSize: 13, color: _statusFilter == value ? colors.primary : colors.onSurface)),
+                const Spacer(),
+                if (_statusFilter == value)
+                  Icon(Icons.check, size: 14, color: colors.primary),
+              ]),
+            ),
+        ],
+      ],
+      onSelected: (v) {
+        if (v.startsWith('sort:')) {
+          final sortVal = int.parse(v.substring(5));
+          if (sortVal != currentSort) onSortSelected(sortVal);
+        } else if (v.startsWith('filter:')) {
+          final filterVal = v.substring(7);
+          setState(() => _statusFilter = filterVal.isEmpty ? null : filterVal);
+        }
+      },
+      child: Container(
+        height: 36,
+        width: 36,
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(Icons.sort, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+      ),
+    );
+  }
+
+  /// 各分类的状态筛选选项，笔记返回 null（无状态筛选）
+  List<(String, String, IconData)>? _statusFilterOptions() {
+    switch (widget.mainTabIndex) {
+      case 0: // 影视
+        return [
+          ('', '全部', Icons.select_all),
+          ('watched', '已看', Icons.visibility),
+          ('watching', '在看', Icons.play_circle_outline),
+          ('want_to_watch', '想看', Icons.bookmark_outline),
+        ];
+      case 1: // 阅读
+        return [
+          ('', '全部', Icons.select_all),
+          ('read', '已读', Icons.visibility),
+          ('reading', '在读', Icons.play_circle_outline),
+          ('want_to_read', '想读', Icons.bookmark_outline),
+          ('abandoned', '弃读', Icons.block),
+        ];
+      case 3: // 游戏
+        return [
+          ('', '全部', Icons.select_all),
+          ('completed', '通关', Icons.visibility),
+          ('playing', '在玩', Icons.play_circle_outline),
+          ('want_to_play', '想玩', Icons.bookmark_outline),
+          ('abandoned', '弃游', Icons.block),
+        ];
+      default:
+        return null;
+    }
+  }
+
+  (int, List<(int, String, IconData)>, String, ValueChanged<int>) _sortConfig(BuildContext context) {
+    final provider = context.read<AppProvider>();
+    switch (widget.mainTabIndex) {
+      case 0:
+        return (
+          UserPrefs().movieSortMode,
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline)],
+          '影视排序',
+          (v) { UserPrefs().setMovieSortMode(v); provider.loadMovies(); },
+        );
+      case 1:
+        return (
+          UserPrefs().bookSortMode,
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline)],
+          '书籍排序',
+          (v) { UserPrefs().setBookSortMode(v); provider.loadBooks(); },
+        );
+      case 2:
+        return (
+          UserPrefs().noteSortMode,
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined)],
+          '笔记排序',
+          (v) { UserPrefs().setNoteSortMode(v); provider.loadNotes(); },
+        );
+      case 3:
+        return (
+          UserPrefs().gameSortMode,
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline)],
+          '游戏排序',
+          (v) { UserPrefs().setGameSortMode(v); provider.loadGames(); },
+        );
+      default:
+        return (0, <(int, String, IconData)>[], '', (_) {});
+    }
+  }
+
   Widget _buildMovieList(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final items = provider.movies.where((m) => !m.isDeleted).toList();
+        final items = provider.movies.where((m) => !m.isDeleted && (_statusFilter == null || m.status == _statusFilter)).toList();
         if (items.isEmpty) return _buildEmpty('暂无影视记录', Icons.movie_outlined);
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -3765,7 +3926,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
   Widget _buildBookList(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final items = provider.books.where((b) => !b.isDeleted).toList();
+        final items = provider.books.where((b) => !b.isDeleted && (_statusFilter == null || b.status == _statusFilter)).toList();
         if (items.isEmpty) return _buildEmpty('暂无阅读记录', Icons.menu_book_outlined);
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -3817,7 +3978,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
   Widget _buildGameList(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final items = provider.games.where((g) => !g.isDeleted).toList();
+        final items = provider.games.where((g) => !g.isDeleted && (_statusFilter == null || g.status == _statusFilter)).toList();
         if (items.isEmpty) return _buildEmpty('暂无游戏记录', Icons.sports_esports_outlined);
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 4),

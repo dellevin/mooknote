@@ -129,22 +129,22 @@ class AppProvider extends ChangeNotifier {
     debugPrint('[AppProvider] initDatabase');
     // 独立加载每个 DAO，避免一个失败导致全部中断
     try {
-      _movies = await _movieDao.getAllMovies();
+      _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().movieSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载影视数据失败: $e');
     }
     try {
-      _books = await _bookDao.getAllBooks();
+      _books = await _bookDao.getAllBooks(sortMode: UserPrefs().bookSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载书籍数据失败: $e');
     }
     try {
-      _notes = await _noteDao.getAllNotes();
+      _notes = await _noteDao.getAllNotes(sortMode: UserPrefs().noteSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载笔记数据失败: $e');
     }
     try {
-      _games = await _gameDao.getAllGames();
+      _games = await _gameDao.getAllGames(sortMode: UserPrefs().gameSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载游戏数据失败: $e');
     }
@@ -198,25 +198,25 @@ class AppProvider extends ChangeNotifier {
   
   // 加载影视数据
   Future<void> loadMovies() async {
-    _movies = await _movieDao.getAllMovies();
+    _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().movieSortMode);
     notifyListeners();
   }
 
   // 加载书籍数据
   Future<void> loadBooks() async {
-    _books = await _bookDao.getAllBooks();
+    _books = await _bookDao.getAllBooks(sortMode: UserPrefs().bookSortMode);
     notifyListeners();
   }
 
   // 加载笔记数据
-  Future<void> loadNotes({int sortMode = 0}) async {
-    _notes = await _noteDao.getAllNotes(sortMode: sortMode);
+  Future<void> loadNotes({int? sortMode}) async {
+    _notes = await _noteDao.getAllNotes(sortMode: sortMode ?? UserPrefs().noteSortMode);
     notifyListeners();
   }
 
   // 加载游戏数据
   Future<void> loadGames() async {
-    _games = await _gameDao.getAllGames();
+    _games = await _gameDao.getAllGames(sortMode: UserPrefs().gameSortMode);
     notifyListeners();
   }
 

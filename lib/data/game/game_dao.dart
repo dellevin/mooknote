@@ -16,13 +16,13 @@ class GameDao {
   }
 
   // 获取所有游戏记录（未删除的）
-  Future<List<Game>> getAllGames() => _wrap('getAllGames', () async {
+  Future<List<Game>> getAllGames({int sortMode = 0}) => _wrap('getAllGames', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'games',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'created_at DESC',
+      orderBy: _buildGameOrderBy(sortMode),
     );
     return List.generate(maps.length, (i) => Game.fromJson(maps[i]));
   });
@@ -45,7 +45,7 @@ class GameDao {
     switch (sortMode) {
       case 1: return 'created_at DESC';
       case 2: return 'rating DESC NULLS LAST, updated_at DESC';
-      default: return 'created_at DESC';
+      default: return 'updated_at DESC';
     }
   }
 

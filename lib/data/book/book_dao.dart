@@ -16,13 +16,13 @@ class BookDao {
   }
 
   // 获取所有未删除的书籍记录
-  Future<List<Book>> getAllBooks() => _wrap('getAllBooks', () async {
+  Future<List<Book>> getAllBooks({int sortMode = 0}) => _wrap('getAllBooks', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'created_at DESC',
+      orderBy: _buildBookOrderBy(sortMode),
     );
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
   });
@@ -45,7 +45,7 @@ class BookDao {
     switch (sortMode) {
       case 1: return 'created_at DESC';
       case 2: return 'rating DESC NULLS LAST, updated_at DESC';
-      default: return 'created_at DESC';
+      default: return 'updated_at DESC';
     }
   }
 

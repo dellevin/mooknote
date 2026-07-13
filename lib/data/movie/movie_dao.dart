@@ -16,13 +16,13 @@ class MovieDao {
   }
 
   // 获取所有影视记录（未删除的）
-  Future<List<Movie>> getAllMovies() => _wrap('getAllMovies', () async {
+  Future<List<Movie>> getAllMovies({int sortMode = 0}) => _wrap('getAllMovies', () async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'movies',
       where: 'is_deleted = ?',
       whereArgs: [0],
-      orderBy: 'created_at DESC',
+      orderBy: _buildMovieOrderBy(sortMode),
     );
     return List.generate(maps.length, (i) => Movie.fromJson(maps[i]));
   });
@@ -49,7 +49,7 @@ class MovieDao {
     switch (sortMode) {
       case 1: return 'created_at DESC';
       case 2: return 'rating DESC NULLS LAST, updated_at DESC';
-      default: return 'created_at DESC';
+      default: return 'updated_at DESC';
     }
   }
 
