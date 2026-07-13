@@ -93,6 +93,12 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   }
 
   void _navigateToReader() {
+    if (Platform.isWindows) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
+      );
+      return;
+    }
     final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
     Navigator.push(
       context,
@@ -807,6 +813,12 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   }
 
   void _navigateToHighlight(Map<String, dynamic> highlight) {
+    if (Platform.isWindows) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
+      );
+      return;
+    }
     final chapter = int.tryParse(highlight['chapter'] as String? ?? '') ?? 0;
     final xpath = _extractStartXPath(highlight['cfi'] as String? ?? '');
     final text = highlight['content'] as String? ?? '';

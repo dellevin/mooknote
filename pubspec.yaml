@@ -1,7 +1,7 @@
 name: mooknote
 description: "app for tracking movies, books, and notes"
 publish_to: 'none'
-version: 0.2.6
+version: 0.2.7
 
 environment:
   sdk: ^3.5.0

@@ -742,6 +742,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
         return Row(children: [
           FilledButton.tonalIcon(
             onPressed: () {
+              if (Platform.isWindows) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
+                );
+                return;
+              }
               Navigator.push(context, MaterialPageRoute(
                 builder: (_) => ReaderScreen(
                   bookId: readerBook['id'] as String,
@@ -1016,6 +1022,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
         return _buildFloatingButton(
           icon: Icons.auto_stories_outlined,
           onPressed: () {
+            if (Platform.isWindows) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
