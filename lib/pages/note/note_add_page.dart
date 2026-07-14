@@ -13,6 +13,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
+import '../../widgets/vditor_editor.dart';
 
 class NoteAddPage extends StatefulWidget {
   final VoidCallback? onCancel;
@@ -30,6 +31,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
   List<String> _images = [];
   String _editMode = 'edit'; // 'edit' | 'preview'
   late String _tempId;
+  final _vditorKey = GlobalKey<VditorEditorState>();
 
   @override
   void initState() {
@@ -189,21 +191,32 @@ class _NoteAddPageState extends State<NoteAddPage> {
         ),
       // 内容编辑
       Expanded(
-        child: TextField(
-          controller: _contentCtrl,
-          maxLines: null,
-          expands: true,
-          textAlignVertical: TextAlignVertical.top,
-          strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
-          style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-          decoration: InputDecoration(
-            hintText: '使用 Markdown 格式书写...',
-            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
-            border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
-            contentPadding: const EdgeInsets.all(16),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
+        child: isWin
+            ? VditorEditor(
+                key: _vditorKey,
+                initialContent: _contentCtrl.text,
+                noteId: _tempId,
+                isDark: Theme.of(context).brightness == Brightness.dark,
+                onContentChanged: (value) {
+                  _contentCtrl.text = value;
+                  setState(() {});
+                },
+              )
+            : TextField(
+                controller: _contentCtrl,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
+                style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+                decoration: InputDecoration(
+                  hintText: '使用 Markdown 格式书写...',
+                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
+                  border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
       ),
       // 图片行
       if (_images.isNotEmpty) _buildImageRow(colors),
@@ -513,7 +526,9 @@ class _NoteAddPageState extends State<NoteAddPage> {
 
   Future<void> _save() async {
     final title = _titleCtrl.text.trim();
-    final content = _contentCtrl.text.trim();
+    final content = Platform.isWindows
+        ? (await _vditorKey.currentState?.getValue() ?? '').trim()
+        : _contentCtrl.text.trim();
     if (title.isEmpty && content.isEmpty) {
       ToastUtil.show(context, '标题或内容不能为空');
       return;

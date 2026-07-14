@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="index.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    #vditor { height: 100%; border: none !important; }
+    .vditor { border: none !important; }
+    .vditor-toolbar { display: none !important; }
+    .vditor-ir,
+    .vditor-ir__marker--cursor,
+    .vditor-content,
+    .vditor-reset { background: transparent !important; }
+  </style>
+</head>
+<body>
+  <div id="vditor"></div>
+  <script src="index.min.js"></script>
+  <script>
+    let vditor = null;
+
+    function initVditor(theme, placeholder) {
+      vditor = new Vditor('vditor', {
+        height: '100%',
+        mode: 'ir',
+        theme: theme,
+        icon: 'ant',
+        placeholder: placeholder || '',
+        toolbar: false,
+        cache: { enable: false },
+        preview: { theme: { current: theme } },
+        upload: {
+          handler: function(files) {
+            for (let i = 0; i < files.length; i++) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                window.flutter_inappwebview.callHandler(
+                  'onImageUpload',
+                  e.target.result,
+                  files[i].name,
+                  files[i].type
+                );
+              };
+              reader.readAsDataURL(files[i]);
+            }
+            return null;
+          },
+        },
+        input: function(value) {
+          window.flutter_inappwebview.callHandler('onContentChanged', value);
+        },
+        after: function() {
+          window.flutter_inappwebview.callHandler('onVditorReady');
+        },
+      });
+    }
+
+    function setValue(text) {
+      if (vditor) vditor.setValue(text);
+    }
+
+    function getValue() {
+      return vditor ? vditor.getValue() : '';
+    }
+
+    function setTheme(theme) {
+      if (vditor) {
+        const codeTheme = theme === 'dark' ? 'dracula' : 'github';
+        vditor.setTheme(theme, theme, codeTheme);
+      }
+    }
+
+    function insertValue(text) {
+      if (vditor) vditor.insertValue(text);
+    }
+
+    function destroy() {
+      if (vditor) { vditor.destroy(); vditor = null; }
+    }
+  </script>
+</body>
+</html>

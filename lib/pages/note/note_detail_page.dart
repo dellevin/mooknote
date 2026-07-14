@@ -13,6 +13,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/tag_side_panel.dart';
+import '../../widgets/vditor_editor.dart';
 import 'note_share_page.dart';
 
 /// 笔记详情页
@@ -39,6 +40,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   Timer? _autoSaveTimer;
   String _saveStatus = '';
   final ImagePicker _picker = ImagePicker();
+  final _vditorKey = GlobalKey<VditorEditorState>();
 
   @override
   void initState() {
@@ -76,7 +78,9 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   }
 
   Future<void> _autoSave() async {
-    final content = _contentCtrl.text.trim();
+    final content = Platform.isWindows
+        ? (await _vditorKey.currentState?.getValue() ?? '').trim()
+        : _contentCtrl.text.trim();
     final title = _titleCtrl.text.trim();
     if (title.isEmpty && content.isEmpty) return;
     try {
@@ -99,7 +103,9 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   Future<void> _saveEdit() async {
     _autoSaveTimer?.cancel();
     final title = _titleCtrl.text.trim();
-    final content = _contentCtrl.text.trim();
+    final content = Platform.isWindows
+        ? (await _vditorKey.currentState?.getValue() ?? '').trim()
+        : _contentCtrl.text.trim();
     if (title.isEmpty && content.isEmpty) {
       ToastUtil.show(context, '标题或内容不能为空');
       return;
@@ -461,15 +467,26 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         ),
       // 内容编辑
       Expanded(
-        child: TextField(controller: _contentCtrl, maxLines: null, expands: true,
-          textAlignVertical: TextAlignVertical.top,
-          strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
-          style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-          decoration: InputDecoration(hintText: '使用 Markdown 格式书写...',
-            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
-            border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
-            contentPadding: const EdgeInsets.all(16)),
-          onChanged: (_) => _onContentChanged()),
+        child: isWin
+            ? VditorEditor(
+                key: _vditorKey,
+                initialContent: _contentCtrl.text,
+                noteId: widget.note.id,
+                isDark: Theme.of(context).brightness == Brightness.dark,
+                onContentChanged: (value) {
+                  _contentCtrl.text = value;
+                  _onContentChanged();
+                },
+              )
+            : TextField(controller: _contentCtrl, maxLines: null, expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
+                style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+                decoration: InputDecoration(hintText: '使用 Markdown 格式书写...',
+                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
+                  border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(16)),
+                onChanged: (_) => _onContentChanged()),
       ),
       // 图片网格
       if (_editImages.isNotEmpty) _buildEditImageGrid(colors),

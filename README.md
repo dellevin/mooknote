@@ -184,3 +184,4 @@ python app.py
 
 - **[lumina](https://github.com/MilkFeng/lumina)**
 - **[NLCISBNPlugin](https://github.com/DoiiarX/NLCISBNPlugin)**
+- **[viditor](https://github.com/Vanessa219/vditor)**
