@@ -36,6 +36,7 @@ dependencies:
   sqflite_common_ffi: ^2.3.0
   device_info_plus: ^11.2.0
   crypto: ^3.0.6
+  window_manager: ^0.4.3
 
 dev_dependencies:
   flutter_test:

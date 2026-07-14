@@ -13,6 +13,12 @@
     .vditor-ir__marker--cursor,
     .vditor-content,
     .vditor-reset { background: transparent !important; }
+    /* 所有滚动条统一：极细极淡 */
+    *::-webkit-scrollbar { width: 4px; height: 4px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.06); border-radius: 2px; }
+    *::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.15); }
+    *::-webkit-scrollbar-corner { background: transparent; }
   </style>
 </head>
 <body>
@@ -70,6 +76,12 @@
         const codeTheme = theme === 'dark' ? 'dracula' : 'github';
         vditor.setTheme(theme, theme, codeTheme);
       }
+    }
+
+    function setBgColor(color) {
+      document.body.style.backgroundColor = color;
+      const el = document.querySelector('.vditor-ir') || document.querySelector('.vditor-wysiwyg');
+      if (el) el.style.backgroundColor = color;
     }
 
     function insertValue(text) {

@@ -94,6 +94,17 @@ class AppTheme {
         minLeadingWidth: 0, dense: true,
       ),
       dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 0.5, space: 0),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return scheme.onSurface.withValues(alpha: 0.3);
+          return scheme.onSurface.withValues(alpha: 0.1);
+        }),
+        thickness: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return 6.0;
+          return 4.0;
+        }),
+        radius: const Radius.circular(3),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: false,
         border: UnderlineInputBorder(borderSide: BorderSide(color: scheme.outlineVariant, width: 0.5)),
@@ -230,6 +241,17 @@ class AppTheme {
         color: _lighterGray,
         thickness: 0.5,
         space: 0,
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return _gray.withValues(alpha: 0.3);
+          return _gray.withValues(alpha: 0.1);
+        }),
+        thickness: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return 6.0;
+          return 4.0;
+        }),
+        radius: const Radius.circular(3),
       ),
       
       // 输入框 - 无边框，底部线
@@ -437,6 +459,17 @@ class AppTheme {
         color: _darkGray,
         thickness: 0.5,
         space: 0,
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return _lightGray.withValues(alpha: 0.4);
+          return _lightGray.withValues(alpha: 0.15);
+        }),
+        thickness: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return 6.0;
+          return 4.0;
+        }),
+        radius: const Radius.circular(3),
       ),
       
       inputDecorationTheme: InputDecorationTheme(

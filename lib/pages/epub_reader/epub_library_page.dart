@@ -5,6 +5,7 @@ import '../../data/epub/reader_dao.dart';
 import '../../services/epub/epub_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
+import '../../utils/toast_util.dart';
 import 'epub_detail_page.dart';
 import 'widgets/book_grid_item.dart';
 
@@ -84,9 +85,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     if (path == null) return;
     if (!path.toLowerCase().endsWith('.epub')) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('仅支持导入 .epub 格式的文件')),
-        );
+        ToastUtil.show(context, '\u4EC5\u652F\u6301\u5BFC\u5165 .epub \u683C\u5F0F\u7684\u6587\u4EF6');
       }
       return;
     }
@@ -105,9 +104,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     if (imported != null) {
       await _loadBooks();
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('EPUB 解析失败，请检查文件')),
-      );
+      ToastUtil.show(context, 'EPUB \u89E3\u6790\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u6587\u4EF6');
     }
   }
 
@@ -227,9 +224,10 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isWin = Platform.isWindows;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
+      appBar: isWin ? null : AppBar(
         backgroundColor: colors.surface,
         elevation: 0,
         title: _isSearching
@@ -250,41 +248,70 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
           icon: Icon(_isSearching ? Icons.close : Icons.arrow_back, size: 20),
           onPressed: _isSearching ? _toggleSearch : () => Navigator.pop(context),
         ),
-        actions: [
-          if (!_isSearching)
-            IconButton(
-              icon: Icon(Icons.search, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-              onPressed: _toggleSearch,
-            ),
-          IconButton(
-            icon: Icon(
-              _viewMode == ViewMode.relaxed
-                  ? Icons.view_compact_outlined
-                  : Icons.view_agenda_outlined,
-              size: 20,
-              color: colors.onSurface.withValues(alpha: 0.6),
-            ),
-            onPressed: _toggleViewMode,
-          ),
-          IconButton(
-            icon: Icon(Icons.sort, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-            onPressed: _showSortMenu,
-          ),
-          IconButton(
-            icon: Icon(Icons.add_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-            onPressed: _pickAndImport,
-          ),
-          const SizedBox(width: 4),
-        ],
+        actions: _buildActions(colors),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: colors.primary))
-          : _books.isEmpty
-              ? _buildEmpty(colors)
-              : _filteredBooks.isEmpty
-                  ? Center(child: Text('无搜索结果', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))))
-                  : _buildGrid(colors),
+      body: Column(children: [
+        // Windows: 自定义顶栏
+        if (isWin)
+          Container(
+            height: 52,
+            decoration: BoxDecoration(color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+            child: Row(children: [
+              const SizedBox(width: 8),
+              IconButton(icon: Icon(_isSearching ? Icons.close : Icons.arrow_back, color: colors.onSurface, size: 18),
+                onPressed: _isSearching ? _toggleSearch : () => Navigator.pop(context)),
+              Expanded(child: _isSearching
+                  ? TextField(controller: _searchCtrl, autofocus: true,
+                      style: TextStyle(fontSize: 14, color: colors.onSurface),
+                      decoration: InputDecoration(hintText: '搜索书名或作者',
+                        hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+                        border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                      onChanged: (_) => _onSearchChanged())
+                  : Text('EPUB 阅读',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)))),
+              ..._buildActions(colors),
+            ]),
+          ),
+        // 主体
+        Expanded(child: _isLoading
+            ? Center(child: CircularProgressIndicator(color: colors.primary))
+            : _books.isEmpty
+                ? _buildEmpty(colors)
+                : _filteredBooks.isEmpty
+                    ? Center(child: Text('无搜索结果', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))))
+                    : _buildGrid(colors)),
+      ]),
     );
+  }
+
+  List<Widget> _buildActions(ColorScheme colors) {
+    return [
+      if (!_isSearching)
+        IconButton(
+          icon: Icon(Icons.search, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+          onPressed: _toggleSearch,
+        ),
+      IconButton(
+        icon: Icon(
+          _viewMode == ViewMode.relaxed
+              ? Icons.view_compact_outlined
+              : Icons.view_agenda_outlined,
+          size: 20,
+          color: colors.onSurface.withValues(alpha: 0.6),
+        ),
+        onPressed: _toggleViewMode,
+      ),
+      IconButton(
+        icon: Icon(Icons.sort, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+        onPressed: _showSortMenu,
+      ),
+      IconButton(
+        icon: Icon(Icons.add_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+        onPressed: _pickAndImport,
+      ),
+      const SizedBox(width: 4),
+    ];
   }
 
   Widget _buildEmpty(ColorScheme colors) {

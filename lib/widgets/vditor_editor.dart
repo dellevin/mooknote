@@ -12,6 +12,7 @@ class VditorEditor extends StatefulWidget {
   final String? initialContent;
   final String noteId;
   final bool isDark;
+  final Color surfaceColor;
   final ValueChanged<String>? onContentChanged;
   final String placeholder;
 
@@ -20,6 +21,7 @@ class VditorEditor extends StatefulWidget {
     this.initialContent,
     required this.noteId,
     this.isDark = false,
+    this.surfaceColor = Colors.white,
     this.onContentChanged,
     this.placeholder = '使用 Markdown 格式书写...',
   });
@@ -116,6 +118,14 @@ class VditorEditorState extends State<VditorEditor> {
     } catch (_) {}
   }
 
+  Future<void> setBgColor(String hexColor) async {
+    if (_controller == null || !_isReady) return;
+    try {
+      final escaped = jsonEncode(hexColor);
+      await _controller!.evaluateJavascript(source: 'setBgColor($escaped)');
+    } catch (_) {}
+  }
+
   Future<void> insertValue(String text) async {
     if (_controller == null || !_isReady) return;
     try {
@@ -133,6 +143,20 @@ class VditorEditorState extends State<VditorEditor> {
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
       setValue(widget.initialContent!);
     }
+    // 设置背景色
+    setBgColor(_colorToHex(widget.surfaceColor));
+  }
+
+  @override
+  void didUpdateWidget(covariant VditorEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.surfaceColor != oldWidget.surfaceColor) {
+      setBgColor(_colorToHex(widget.surfaceColor));
+    }
+  }
+
+  static String _colorToHex(Color color) {
+    return '#${(color.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
   }
 
   Future<void> _pickImage() async {

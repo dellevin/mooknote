@@ -65,9 +65,12 @@ class NoteDao {
   // 更新笔记
   Future<int> updateNote(Note note) => _wrap('updateNote', () async {
     final db = await _dbHelper.database;
+    final data = note.toJson();
+    // 不覆盖 created_at，保持创建时间不变
+    data.remove('created_at');
     return await db.update(
       'notes',
-      note.toJson(),
+      data,
       where: 'id = ?',
       whereArgs: [note.id],
     );

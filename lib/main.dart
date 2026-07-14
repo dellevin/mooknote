@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:window_manager/window_manager.dart';
 import 'pages/home/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
@@ -17,6 +18,7 @@ import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
 import 'services/usage_stats_service.dart';
 import 'providers/app_provider.dart';
+import 'widgets/app_shell.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -29,6 +31,13 @@ void main() async {
   if (Platform.isWindows) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    // 初始化 window_manager：隐藏原生标题栏
+    await windowManager.ensureInitialized();
+    windowManager.waitUntilReadyToShow().then((_) async {
+      await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+      await windowManager.setMinimumSize(const Size(900, 640));
+      await windowManager.show();
+    });
     // 注册 epub:// 自定义协议，使 WebView2 能拦截该协议的请求
     try {
       windowsWebViewEnvironment = await WebViewEnvironment.create(settings:
@@ -243,6 +252,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       systemNavigationBarColor: isDark ? Colors.black : Colors.white,
       systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
+    // Windows: 同步窗口边框明暗
+    if (Platform.isWindows) {
+      windowManager.setBrightness(isDark ? Brightness.dark : Brightness.light);
+    }
   }
 
   @override
@@ -305,6 +318,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 theme: light,
                 darkTheme: dark,
                 themeMode: provider.themeMode,
+                builder: (ctx, nav) => AppShell(child: nav!),
                 localizationsDelegates: const [
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,

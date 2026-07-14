@@ -94,9 +94,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
   void _navigateToReader() {
     if (Platform.isWindows) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
-      );
+      ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能');
       return;
     }
     final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
@@ -150,9 +148,11 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     final publisher = _book['publisher'] as String? ?? '';
     final isbn = _book['isbn'] as String? ?? '';
 
+    final isWin = Platform.isWindows;
+
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
+      appBar: isWin ? null : AppBar(
         backgroundColor: colors.surface,
         elevation: 0,
         leading: IconButton(
@@ -167,151 +167,159 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
           const SizedBox(width: 4),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── 封面 + 基本信息（横向布局）──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 封面
-                  GestureDetector(
-                    onTap: _navigateToReader,
-                    child: SizedBox(
-                      width: 110, height: 154,
-                      child: _buildCover(coverPath, colors),
+      body: Column(children: [
+        // Windows: 自定义顶栏
+        if (isWin)
+          Container(
+            height: 52,
+            decoration: BoxDecoration(color: colors.surface,
+              border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+            child: Row(children: [
+              const SizedBox(width: 8),
+              IconButton(icon: Icon(Icons.arrow_back, color: colors.onSurface, size: 18),
+                onPressed: () => Navigator.pop(context)),
+              Expanded(child: Text(title.isNotEmpty ? title : 'EPUB 详情',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
+                maxLines: 1, overflow: TextOverflow.ellipsis)),
+              IconButton(
+                icon: Icon(Icons.edit_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.5)),
+                onPressed: _navigateToEdit,
+              ),
+              const SizedBox(width: 8),
+            ]),
+          ),
+        // 主体
+        Expanded(child: SingleChildScrollView(
+          child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
+            child: Padding(padding: EdgeInsets.symmetric(horizontal: isWin ? 48 : 16, vertical: 8),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // ── 封面 + 基本信息（横向布局）──
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: _navigateToReader,
+                      child: SizedBox(width: 110, height: 154, child: _buildCover(coverPath, colors)),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  // 信息
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, maxLines: 3, overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
-                                color: colors.onSurface, height: 1.3)),
-                        if (author.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-                        ],
-                        // 元数据标签
-                        if (_bookInfo != null) ...[
-                          const SizedBox(height: 10),
-                          Wrap(spacing: 6, runSpacing: 6, children: [
-                            _buildTag('${_bookInfo!.spine.length}章', colors),
-                            _buildTag('EPUB ${_bookInfo!.epubVersion}', colors),
-                          ]),
-                        ],
-                        const SizedBox(height: 12),
-                        // 进度
-                        Row(children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
-                              child: LinearProgressIndicator(
-                                value: progress > 0 ? progress : 0,
-                                minHeight: 3,
-                                backgroundColor: colors.surfaceContainerHighest,
-                              ),
-                            ),
+                    const SizedBox(width: 16),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(title, maxLines: 3, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: isWin ? 20 : 18, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3)),
+                      if (author.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                      ],
+                      if (_bookInfo != null) ...[
+                        const SizedBox(height: 10),
+                        Wrap(spacing: 6, runSpacing: 4, children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(8)),
+                            child: Text('${_bookInfo!.spine.length}章', style: TextStyle(fontSize: 11, color: colors.onPrimaryContainer, fontWeight: FontWeight.w500)),
                           ),
-                          const SizedBox(width: 8),
-                          Text(progress > 0 ? '${(progress * 100).toInt()}%' : '未开始',
-                              style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(8)),
+                            child: Text('EPUB ${_bookInfo!.epubVersion}', style: TextStyle(fontSize: 11, color: colors.onPrimaryContainer, fontWeight: FontWeight.w500)),
+                          ),
                         ]),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-
-            // ── 描述 ──
-            if (description.isNotEmpty) ...[
-              _buildSectionHeader('简介', colors),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: GestureDetector(
-                  onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
-                  child: Text(_stripHtmlTags(description),
-                      maxLines: _descriptionExpanded ? null : 4,
-                      overflow: _descriptionExpanded ? null : TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 14, height: 1.7, color: colors.onSurface)),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(value: progress > 0 ? progress : 0, minHeight: 3,
+                            backgroundColor: colors.surfaceContainerHighest))),
+                        const SizedBox(width: 8),
+                        Text(progress > 0 ? '${(progress * 100).toInt()}%' : '未开始',
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                      ]),
+                    ])),
+                  ],
                 ),
-              ),
-              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-            ],
 
-            // ── 出版信息 ──
-            if (publisher.isNotEmpty || isbn.isNotEmpty) ...[
-              _buildSectionHeader('出版信息', colors),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Wrap(
-                  spacing: 16,
-                  runSpacing: 6,
-                  children: [
-                    if (publisher.isNotEmpty)
-                      Row(mainAxisSize: MainAxisSize.min, children: [
+                const SizedBox(height: 20),
+                // Windows: 开始/继续阅读按钮
+                if (isWin)
+                  SizedBox(width: double.infinity, height: 44,
+                    child: FilledButton(
+                      onPressed: _navigateToReader,
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(progress > 0 ? '继续阅读' : '开始阅读',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    )),
+                if (isWin) const SizedBox(height: 16),
+
+                Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+
+                // ── 描述 ──
+                if (description.isNotEmpty) ...[
+                  _buildSectionHeader('\u7B80\u4ECB', colors),
+                  Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+                      child: Text(_stripHtmlTags(description),
+                          maxLines: _descriptionExpanded ? null : 4,
+                          overflow: _descriptionExpanded ? null : TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14, height: 1.7, color: colors.onSurface)),
+                    )),
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                ],
+
+                // ── 出版信息 ──
+                if (publisher.isNotEmpty || isbn.isNotEmpty) ...[
+                  _buildSectionHeader('\u51FA\u7248\u4FE1\u606F', colors),
+                  Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+                    child: Wrap(spacing: 16, runSpacing: 6, children: [
+                      if (publisher.isNotEmpty) Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.business_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                         const SizedBox(width: 4),
                         Text(publisher, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
                       ]),
-                    if (isbn.isNotEmpty)
-                      Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (isbn.isNotEmpty) Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.qr_code_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                         const SizedBox(width: 4),
                         Text(isbn, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
                       ]),
-                  ],
-                ),
-              ),
-              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-            ],
+                    ])),
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                ],
 
-            // ── 关联书籍 ──
-            _buildSectionHeader('关联书籍', colors),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: _buildLinkedBookCard(colors),
+                // ── 关联书籍 ──
+                _buildSectionHeader('\u5173\u8054\u4E66\u7C4D', colors),
+                Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                  child: _buildLinkedBookCard(colors)),
+
+                // ── 句读（高亮）──
+                Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                _buildHighlightsSectionHeader(colors),
+                Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                  child: _buildHighlightsList(colors)),
+
+                // ── 书籍摘抄 ──
+                if ((_book['book_id'] as String? ?? '').isNotEmpty) ...[
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  _buildExcerptsSectionHeader(colors),
+                  Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                    child: _buildExcerptsList(colors)),
+                ],
+
+                // ── 其他作品 ──
+                if (author.isNotEmpty) ...[
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  _buildSectionHeader('\u5176\u4ED6\u4F5C\u54C1', colors),
+                  _buildOtherWorks(author, colors),
+                  const SizedBox(height: 24),
+                ],
+              ]),
             ),
-
-            // ── 句读（高亮）──
-            Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-            _buildHighlightsSectionHeader(colors),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-              child: _buildHighlightsList(colors),
-            ),
-
-            // ── 书籍摘抄（仅关联书籍时显示）──
-            if ((_book['book_id'] as String? ?? '').isNotEmpty) ...[
-              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-              _buildExcerptsSectionHeader(colors),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-                child: _buildExcerptsList(colors),
-              ),
-            ],
-
-            // ── 其他作品（同作者）──
-            if (author.isNotEmpty) ...[
-              Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-              _buildSectionHeader('其他作品', colors),
-              _buildOtherWorks(author, colors),
-              const SizedBox(height: 24),
-            ],
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
+          )),
+        )),
+      ]),
+      // 非 Windows: 底部阅读按钮
+      bottomNavigationBar: isWin ? null : Container(
         padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
         decoration: BoxDecoration(
           color: colors.surface,
@@ -328,7 +336,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              progress > 0 ? '继续阅读' : '开始阅读',
+              progress > 0 ? '\u7EE7\u7EED\u9605\u8BFB' : '\u5F00\u59CB\u9605\u8BFB',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onPrimary),
             ),
           ),
@@ -814,9 +822,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
   void _navigateToHighlight(Map<String, dynamic> highlight) {
     if (Platform.isWindows) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
-      );
+      ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能');
       return;
     }
     final chapter = int.tryParse(highlight['chapter'] as String? ?? '') ?? 0;

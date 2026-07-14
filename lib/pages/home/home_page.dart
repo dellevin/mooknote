@@ -324,7 +324,7 @@ class _DesktopIconRail extends StatelessWidget {
         width: 160,
         child: Column(
           children: [
-            SizedBox(height: MediaQuery.of(context).padding.top + 8),
+            SizedBox(height: (Platform.isWindows ? 0 : MediaQuery.of(context).padding.top) + 8),
             // 头像 + 昵称 + 座右铭
             _buildProfileHeader(context),
             const SizedBox(height: 10),
@@ -3531,7 +3531,7 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   Widget _toggleBtn(String label, bool selected, VoidCallback onTap, ColorScheme colors) {
     return Material(
-      color: selected ? colors.onSurface : Colors.transparent,
+      color: selected ? colors.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -3544,7 +3544,7 @@ class _SearchDialogState extends State<_SearchDialog> {
               Icon(
                 selected ? Icons.search_rounded : Icons.search_outlined,
                 size: 14,
-                color: selected ? colors.surface : colors.onSurface.withValues(alpha: 0.5),
+                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 5),
               Text(
@@ -3552,7 +3552,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? colors.surface : colors.onSurface.withValues(alpha: 0.55),
+                  color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.55),
                 ),
               ),
             ],
@@ -3664,7 +3664,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     return Column(
       children: [
         // 顶部搜索栏
-        SizedBox(height: MediaQuery.of(context).padding.top),
+        SizedBox(height: Platform.isWindows ? 0 : MediaQuery.of(context).padding.top),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: Row(
@@ -3939,21 +3939,20 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
   Widget _buildNoteList(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final items = provider.notes.where((n) => !n.isDeleted).toList();
+        var items = provider.notes.where((n) => !n.isDeleted).toList();
+        // 置顶排前面，同组内按创建时间倒序
+        items.sort((a, b) {
+          if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+          return b.createdAt.compareTo(a.createdAt);
+        });
         if (items.isEmpty) return _buildEmpty('暂无笔记记录', Icons.note_outlined);
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 4),
           itemCount: items.length,
-          itemBuilder: (_, i) => _CompactListItem(
-            title: items[i].title.isNotEmpty ? items[i].title : '随手记',
-            subtitle: items[i].content.length > 40 ? '${items[i].content.substring(0, 40)}...' : (items[i].content.isNotEmpty ? items[i].content : null),
-            imagePath: null,
-            accentColor: const Color(0xFF9333EA),
-            icon: Icons.note_outlined,
+          itemBuilder: (_, i) => _DesktopNoteItem(
+            note: items[i],
             selected: provider.selectedNote?.id == items[i].id,
-            onTap: () {
-              provider.selectNote(items[i]);
-            },
+            onTap: () => provider.selectNote(items[i]),
           ),
         );
       },
@@ -4270,6 +4269,154 @@ class _CompactListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ─── 桌面端笔记列表项 ──────────────────────────────────────
+
+class _DesktopNoteItem extends StatelessWidget {
+  final Note note;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DesktopNoteItem({
+    required this.note,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = colors.brightness == Brightness.dark;
+    final title = note.title.isNotEmpty ? note.title : '随手记';
+    final preview = note.content.length > 60 ? '${note.content.substring(0, 60)}...' : note.content;
+    final dateStr = '${note.updatedAt.month}/${note.updatedAt.day}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Material(
+        color: selected
+            ? colors.primary.withValues(alpha: isDark ? 0.12 : 0.06)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          onSecondaryTapUp: (details) => _showContextMenu(context, details),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  if (note.isPinned) ...[
+                    Icon(Icons.push_pin, size: 12, color: colors.primary),
+                    const SizedBox(width: 4),
+                  ],
+                  Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: selected ? colors.primary : colors.onSurface))),
+                  const SizedBox(width: 6),
+                  Text(dateStr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.3))),
+                ]),
+                if (preview.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+                ],
+                if (note.tags.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Wrap(spacing: 4, runSpacing: 2, children: [
+                    for (final tag in note.tags.take(3))
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(tag, style: TextStyle(fontSize: 9, color: colors.onPrimaryContainer)),
+                      ),
+                    if (note.tags.length > 3)
+                      Text('+${note.tags.length - 3}', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
+                  ]),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context, TapUpDetails details) {
+    final provider = context.read<AppProvider>();
+    final overlay = Overlay.of(context);
+    final renderBox = context.findRenderObject() as RenderBox;
+    final position = renderBox.localToGlobal(details.localPosition);
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx + 1, position.dy + 1),
+      items: [
+        PopupMenuItem<String>(
+          value: 'pin',
+          height: 36,
+          child: Row(children: [
+            Icon(note.isPinned ? Icons.push_pin_outlined : Icons.push_pin, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+            const SizedBox(width: 8),
+            Text(note.isPinned ? '取消置顶' : '置顶', style: const TextStyle(fontSize: 13)),
+          ]),
+        ),
+        PopupMenuItem<String>(
+          value: 'edit',
+          height: 36,
+          child: Row(children: [
+            Icon(Icons.edit_outlined, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+            const SizedBox(width: 8),
+            const Text('编辑', style: TextStyle(fontSize: 13)),
+          ]),
+        ),
+        PopupMenuItem<String>(
+          value: 'delete',
+          height: 36,
+          child: Row(children: [
+            Icon(Icons.delete_outline, size: 16, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 8),
+            Text('删除', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
+          ]),
+        ),
+      ],
+    ).then((value) async {
+      if (value == null || !context.mounted) return;
+      switch (value) {
+        case 'pin':
+          await provider.toggleNotePin(note.id, !note.isPinned);
+          break;
+        case 'edit':
+          provider.selectNote(note);
+          // 进入编辑模式由 NoteDetailPage 处理
+          break;
+        case 'delete':
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: Theme.of(ctx).colorScheme.surface,
+              title: const Text('确认删除'),
+              content: Text('确定要删除「${note.title.isNotEmpty ? note.title : '随手记'}」吗？'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true),
+                  child: Text('删除', style: TextStyle(color: Theme.of(ctx).colorScheme.error))),
+              ],
+            ),
+          );
+          if (confirmed == true && context.mounted) {
+            await provider.removeNote(note.id);
+          }
+          break;
+      }
+    });
   }
 }
 

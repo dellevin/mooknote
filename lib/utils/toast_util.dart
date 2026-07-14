@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../widgets/custom_title_bar.dart';
 
 /// Toast 工具类
 class ToastUtil {
@@ -13,7 +15,7 @@ class ToastUtil {
     final overlay = Overlay.of(context);
     _currentToast = OverlayEntry(
       builder: (context) => Positioned(
-        top: MediaQuery.of(context).padding.top + 80,
+        top: (Platform.isWindows ? CustomTitleBar.height : MediaQuery.of(context).padding.top) + 80,
         left: 0,
         right: 0,
         child: Center(

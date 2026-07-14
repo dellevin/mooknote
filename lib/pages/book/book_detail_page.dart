@@ -582,9 +582,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
           child: Row(children: [
             Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             const SizedBox(width: 8),
-            Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期',
-              style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
-            const Spacer(),
+            Expanded(child: Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '\u9009\u62E9\u65E5\u671F',
+              style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25)), overflow: TextOverflow.ellipsis)),
             if (clearable && hasDate) GestureDetector(onTap: () => onChanged(null),
               child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3))),
           ]))),
@@ -743,9 +742,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           FilledButton.tonalIcon(
             onPressed: () {
               if (Platform.isWindows) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
-                );
+                ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能');
                 return;
               }
               Navigator.push(context, MaterialPageRoute(
