@@ -477,9 +477,6 @@ class _DesktopIconRail extends StatelessWidget {
             ],
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
-        ],
       ),
     );
   }
@@ -637,9 +634,6 @@ class _EncounterDialog extends StatelessWidget {
           },
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
-      ],
     );
   }
 
@@ -1064,13 +1058,6 @@ class _StrollDialogState extends State<_StrollDialog> {
                       ),
               ),
             ),
-            // 底部按钮
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
-              ]),
-            ),
           ],
         ),
       ),
@@ -1332,9 +1319,6 @@ class _CalendarDialogState extends State<_CalendarDialog> {
           ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
-      ],
     );
   }
 
@@ -1631,9 +1615,6 @@ class _PersonListDialogState extends State<_PersonListDialog> {
           ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
-      ],
     );
   }
 
@@ -2496,9 +2477,6 @@ class _BackupChoiceDialogState extends State<_BackupChoiceDialog> {
             ? const _LocalBackupContent()
             : const _WebDAVBackupContent(),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
-      ],
     );
   }
 
@@ -3271,9 +3249,6 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
                 ),
               ]),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
-      ],
     );
   }
 

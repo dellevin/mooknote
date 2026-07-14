@@ -401,6 +401,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   }
 
   Widget _buildEditArea(ColorScheme colors, Note note) {
+    final isWin = Platform.isWindows;
     return Column(children: [
       // 标题输入
       Container(
@@ -410,9 +411,54 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface),
           decoration: InputDecoration(hintText: '添加标题',
             hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2)),
-            border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+            border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
           onChanged: (_) => setState(() {})),
       ),
+      // Windows: 标签栏移到标题下方（靠左）
+      if (isWin)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                for (int i = 0; i < _editTags.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(_editTags[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
+                        const SizedBox(width: 3),
+                        GestureDetector(
+                          onTap: () => setState(() => _editTags.removeAt(i)),
+                          child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3)),
+                        ),
+                      ]),
+                    ),
+                  ),
+                GestureDetector(
+                  onTap: _showEditTagPanel,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+                      const SizedBox(width: 2),
+                      Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
       // 内容编辑
       Expanded(
         child: TextField(controller: _contentCtrl, maxLines: null, expands: true,
@@ -421,62 +467,73 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
           decoration: InputDecoration(hintText: '使用 Markdown 格式书写...',
             hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
-            border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
+            border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+            contentPadding: const EdgeInsets.all(16)),
           onChanged: (_) => _onContentChanged()),
       ),
       // 图片网格
       if (_editImages.isNotEmpty) _buildEditImageGrid(colors),
-      // 标签 + 字数 + 工具栏
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5))),
-        child: Column(children: [
-          // 标签行
-          Wrap(spacing: 6, runSpacing: 4, children: [
-            for (int i = 0; i < _editTags.length; i++) Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(_editTags[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
-                const SizedBox(width: 3),
-                GestureDetector(onTap: () => setState(() => _editTags.removeAt(i)),
-                  child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3))),
-              ])),
-            GestureDetector(onTap: _showEditTagPanel,
-              child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1)),
+      // 底部标签 + 字数 + 工具栏（仅非 Windows）
+      if (!isWin)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5))),
+          child: Column(children: [
+            // 标签行
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              for (int i = 0; i < _editTags.length; i++) Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
-                  const SizedBox(width: 2),
-                  Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
-                ]))),
+                  Text(_editTags[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
+                  const SizedBox(width: 3),
+                  GestureDetector(onTap: () => setState(() => _editTags.removeAt(i)),
+                    child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3))),
+                ])),
+              GestureDetector(onTap: _showEditTagPanel,
+                child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+                    const SizedBox(width: 2),
+                    Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+                  ]))),
+            ]),
+            const SizedBox(height: 6),
+            // 工具栏
+            Row(children: [
+              Expanded(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+                _editToolBtn(Icons.title, '标题', _insertHeading),
+                _editToolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
+                _editToolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
+                _editToolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
+                _editToolGap(colors),
+                _editToolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
+                _editToolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
+                _editToolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
+                _editToolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
+                _editToolGap(colors),
+                _editToolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
+                _editToolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
+                _editToolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
+                _editToolGap(colors),
+                _editToolBtn(Icons.add_photo_alternate_outlined, '图片', _pickEditImage),
+              ]))),
+              const SizedBox(width: 8),
+              Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+            ]),
           ]),
-          const SizedBox(height: 6),
-          // 工具栏
-          Row(children: [
-            Expanded(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-              _editToolBtn(Icons.title, '标题', _insertHeading),
-              _editToolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
-              _editToolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
-              _editToolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
-              _editToolGap(colors),
-              _editToolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
-              _editToolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
-              _editToolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
-              _editToolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
-              _editToolGap(colors),
-              _editToolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
-              _editToolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
-              _editToolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
-              _editToolGap(colors),
-              _editToolBtn(Icons.add_photo_alternate_outlined, '图片', _pickEditImage),
-            ]))),
-            const SizedBox(width: 8),
+        ),
+      // Windows: 底部只显示字数
+      if (isWin)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5))),
+          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
             Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
           ]),
-        ]),
-      ),
+        ),
     ]);
   }
 
