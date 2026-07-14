@@ -60,15 +60,7 @@
 - 笔记分享卡片
 - Markdown 阅读器支持暗色模式与字体大小调节
 
-### Note Plus（块级编辑器）
 
-- 类 Notion 的块级富文本编辑器，基于 flutter_quill
-- 支持 10 种块类型：段落、标题（H1-H3）、无序列表、有序列表、待办清单、引用、代码块、分隔线
-- 行内格式：粗体、斜体、下划线、删除线、行内代码
-- 斜杠命令菜单（输入 `/` 唤出）
-- 树形文档结构，支持嵌套层级与拖拽排序
-- 撤销 / 重做（最多 50 步）
-- 独立标签页管理（可在设置中开关）
 
 ### Epub 阅读器
 
@@ -111,110 +103,13 @@
 - 匿名使用统计（可选）
 - 中英双语支持
 
-## 技术栈
-
-| 类别       | 技术                                   |
-| ---------- | -------------------------------------- |
-| 框架       | Flutter 3.5+（Dart 3.5+）              |
-| 语言       | Dart                                   |
-| 状态管理   | Provider（ChangeNotifier）             |
-| 本地数据库 | SQLite（sqflite）                      |
-| 图表       | fl_chart                               |
-| 富文本     | flutter_quill（Note Plus）             |
-| Markdown   | flutter_markdown_plus                  |
-| WebView    | webview_flutter / flutter_inappwebview |
-| 本地存储   | shared_preferences                     |
-| 后端       | Python Flask + Waitress                |
-
-## 项目结构
-
-```
-lib/
-├── main.dart                      # 应用入口，初始化与后台任务
-├── models/
-│   ├── data_models.dart           # 数据模型（Movie, Book, Note, Review, Poster, Excerpt）
-│   └── note_plus_models.dart      # Note Plus 模型（Block, Document）
-├── providers/
-│   ├── app_provider.dart          # 全局状态管理（Provider）
-│   └── note_plus_provider.dart    # Note Plus 文档状态
-├── pages/
-│   ├── home_page.dart             # 首页（PageView 切换主内容 / 个人中心）
-│   ├── main_content_page.dart     # 主内容页（影视/书籍/笔记/Note Plus 标签页）
-│   ├── profile_page.dart          # 个人中心与设置
-│   ├── statistics_page.dart       # 数据统计与图表
-│   ├── recycle_bin_page.dart      # 回收站
-│   ├── tag_management_page.dart   # 标签管理
-│   ├── encounter_page.dart        # 与你相遇（使用统计）
-│   ├── stroll_page.dart           # 随机漫步
-│   ├── media_calendar_page.dart   # 媒体日历
-│   ├── person_list_page.dart      # 人物列表
-│   ├── changelog_page.dart        # 更新日志
-│   ├── legal_page.dart            # 法律信息与开源许可
-│   ├── app_icon_picker_page.dart  # 应用图标选择
-│   ├── movies/                    # 影视相关页面（列表、表单、详情、影评、海报、分享、豆瓣导入）
-│   ├── book/                      # 书籍相关页面（列表、表单、详情、书评、书摘、分享）
-│   ├── note/                      # 笔记相关页面（列表、表单、详情、分享）
-│   ├── note_plus/                 # Note Plus 块级编辑器页面
-│   ├── epub_reader/               # Epub 阅读器（渲染、目录、控制面板、脚注、图片查看、书架）
-│   ├── markdown_reader/           # Markdown 文件浏览与查看
-│   ├── online_search/             # 在线搜索影视书籍
-│   └── sync/                      # 同步与备份页面（云同步、WebDAV、本地备份）
-├── utils/
-│   ├── database_helper.dart       # SQLite 数据库管理（版本 26，含迁移链）
-│   ├── app_router.dart            # 路由生成器（SlideUpPageRoute 过渡动画）
-│   ├── slide_up_page_route.dart   # 底部滑入页面路由
-│   ├── user_prefs.dart            # 用户偏好设置（SharedPreferences 封装）
-│   ├── server_config.dart         # 服务端地址配置
-│   ├── image_path_helper.dart     # 图片路径管理
-│   ├── color_converter.dart       # 颜色值转换
-│   ├── toast_util.dart            # Toast/SnackBar 工具
-│   ├── app_icon_channel.dart      # 应用图标切换平台通道
-│   ├── changelog_service.dart     # 版本更新检查
-│   ├── usage_stats_service.dart   # 匿名使用统计服务
-│   ├── movie/                     # 影视 DAO（CRUD + 分页 + 搜索 + 回收站）
-│   ├── book/                      # 书籍 DAO（CRUD + 分页 + 搜索 + 回收站）
-│   ├── note/                      # 笔记 DAO（CRUD + 分页 + 搜索 + 回收站 + 置顶）
-│   ├── note_plus/                 # Note Plus DAO（文档 + 块管理 + 回收站）
-│   ├── tag/                       # 标签 DAO（CRUD + 隐藏 + 合并 + 级联重命名/删除）
-│   ├── epub/                      # Epub 解析、渲染、阅读设置、WebView 桥接
-│   ├── sync/                      # 同步服务（WebDAV/本地备份/自动备份）
-│   └── theme/                     # 主题配置（6 套配色 + Monet + 暗色/亮色 + Material 3）
-└── widgets/                       # 通用组件
-    ├── bottom_nav_bar.dart        # 底部导航栏（Dock 悬浮设计）
-    ├── custom_drawer.dart         # 侧边抽屉导航
-    ├── animated_star_rating.dart  # 星级评分动画
-    ├── movie_list_item.dart       # 影视列表项
-    ├── book_list_item.dart        # 书籍列表项
-    ├── note_list_item.dart        # 笔记列表项
-    ├── note_plus_list_item.dart   # Note Plus 列表项
-    ├── movie_status_bar.dart      # 影视状态标签
-    ├── book_status_bar.dart       # 书籍状态标签
-    ├── fade_in_local_image.dart   # 本地图片淡入加载
-    ├── shimmer_skeleton.dart     # 骨架屏加载占位
-    ├── tag_side_panel.dart        # 标签筛选侧面板
-    ├── text_input_panel.dart      # 文本输入面板
-    ├── genre_selector_page.dart   # 类型选择器
-    ├── app_refresh_indicator.dart # 下拉刷新封装
-    └── note_plus/                 # Note Plus 编辑器组件（编辑器、块渲染、工具栏、斜杠菜单）
-
-server/                            # Python Flask 后端
-├── app.py                         # 服务入口（Waitress 启动，端口 27047）
-├── config.py                      # 配置常量（JWT、SQLite）
-├── database.py                    # 数据库初始化
-├── auth.py                        # JWT 认证模块
-├── admin_api.py                   # 管理 API（设备、更新日志、页面管理）
-├── sync_api.py                    # 同步心跳 API
-├── web_ui.py                      # Web 管理后台（Vditor + Chart.js）
-├── requirements.txt               # Python 依赖
-└── static/                        # 静态资源
-```
 
 ## 数据存储
 
-- **数据库位置**：`<应用文档目录>/mooknote.db`
-- **图片存储位置**：`<应用文档目录>/images/<类别>/<条目ID>/<文件名>`
+- **数据库位置**：`<应用目录>/mooknote.db`
+- **图片存储位置**：`<应用目录>/images/<类别>/<条目ID>/<文件名>`
   - 类别：`movies` / `books` / `notes`
-- **Epub 书籍位置**：`<应用文档目录>/epub_books/<条目ID>/`
+- **Epub 书籍位置**：`<应用目录>/epub_books/<条目ID>/`
 - **备份文件位置**：`<下载目录>/mooknote/`（可配置）
 
 ## 环境要求
