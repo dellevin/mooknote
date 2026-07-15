@@ -826,48 +826,6 @@ class _CityPainter extends CustomPainter {
   bool shouldRepaint(_CityPainter old) => old.t != t;
 }
 
-// ─── 不拦截滑动手势的弹窗路由 ──────────────────────────────
-
-class _NoSwipeDialogRoute<T> extends PageRoute<T> {
-  final WidgetBuilder builder;
-
-  _NoSwipeDialogRoute({required this.builder});
-
-  @override
-  bool get popGestureEnabled => false; // 关键：禁止拖拽关闭，不拦截水平手势
-
-  @override
-  bool get barrierDismissible => true;
-
-  @override
-  Color? get barrierColor => Colors.black54;
-
-  @override
-  String? get barrierLabel => 'Dismiss';
-
-  @override
-  Duration get transitionDuration => const Duration(milliseconds: 200);
-
-  @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 150);
-
-  @override
-  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
-    return builder(context);
-  }
-
-  @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    return FadeTransition(opacity: animation, child: child);
-  }
-
-  @override
-  bool get opaque => false;
-
-  @override
-  bool get maintainState => true;
-}
-
 // ─── 漫步弹窗 ──────────────────────────────────────────
 
 class _StrollDialog extends StatefulWidget {
@@ -4451,7 +4409,6 @@ class _DesktopNoteItem extends StatelessWidget {
 
   void _showContextMenu(BuildContext context, TapUpDetails details) {
     final provider = context.read<AppProvider>();
-    final overlay = Overlay.of(context);
     final renderBox = context.findRenderObject() as RenderBox;
     final position = renderBox.localToGlobal(details.localPosition);
 

@@ -359,17 +359,6 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     );
   }
 
-  Widget _buildTag(String label, ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
-    );
-  }
-
   Widget _buildLinkedBookCard(ColorScheme colors) {
     final linkedBookId = _book['book_id'] as String? ?? '';
     if (linkedBookId.isEmpty) {

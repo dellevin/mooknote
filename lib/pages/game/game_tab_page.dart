@@ -166,7 +166,6 @@ class _GameTabPageState extends State<GameTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final isWideContent = Breakpoint.isWideContent(context);
     final provider = context.watch<AppProvider>();
     final isWallMode = provider.gameWallMode;

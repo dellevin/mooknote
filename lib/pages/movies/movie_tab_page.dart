@@ -194,7 +194,6 @@ class _MovieTabPageState extends State<MovieTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final isWideContent = Breakpoint.isWideContent(context);
     final provider = context.watch<AppProvider>();
     final isWallMode = provider.movieWallMode;
