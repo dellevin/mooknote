@@ -15,6 +15,7 @@ import '../../widgets/add_sheet.dart';
 import '../../widgets/add_type_selector.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../pages/epub_reader/epub_library_page.dart';
+import 'desktop_home_page.dart';
 import '../../pages/movies/movie_detail_page.dart';
 import '../../pages/book/book_detail_page.dart';
 import '../../pages/note/note_detail_page.dart';
@@ -92,6 +93,7 @@ class _HomePageState extends State<HomePage> {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         _onNavIndexChanged(provider);
+        final isHomeTab = provider.mainTabIndex == -1;
         return Scaffold(
           body: Row(
             children: [
@@ -103,16 +105,22 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
               VerticalDivider(width: 1, thickness: 1, color: colors.outlineVariant),
-              // 第二栏：列表面板（搜索 + 列表）
-              SizedBox(
-                width: 300,
-                child: _DesktopListPanel(
-                  mainTabIndex: provider.mainTabIndex,
+              // 第二栏：列表面板（主页时隐藏）
+              if (!isHomeTab) ...[
+                SizedBox(
+                  width: 300,
+                  child: _DesktopListPanel(
+                    mainTabIndex: provider.mainTabIndex,
+                  ),
                 ),
-              ),
-              VerticalDivider(width: 1, thickness: 1, color: colors.outlineVariant),
+                VerticalDivider(width: 1, thickness: 1, color: colors.outlineVariant),
+              ],
               // 第三栏：内容区
-              Expanded(child: _buildPageView(provider)),
+              Expanded(
+                child: isHomeTab
+                    ? const DesktopHomePage()
+                    : _buildPageView(provider),
+              ),
             ],
           ),
         );
@@ -341,6 +349,9 @@ class _DesktopIconRail extends StatelessWidget {
             }),
             _IconRailItem(icon: Icons.search, activeIcon: Icons.search, label: '搜索', accentColor: colors.primary, selected: false, onTap: () => _showSearchDialog(context)),
             const SizedBox(height: 2),
+            // 主页标签
+            if (userPrefs.showDesktopHomeTab)
+              _IconRailItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: '主页', accentColor: colors.primary, selected: mainTabIndex == -1, onTap: () => onTabSelected(-1)),
             // 分类图标
             ...tabs.map((t) {
               final selected = mainTabIndex == t.$4;
@@ -532,7 +543,7 @@ class _DesktopIconRail extends StatelessWidget {
   }
 
   void _showStrollDialog(BuildContext context) {
-    Navigator.of(context).push(_NoSwipeDialogRoute(builder: (_) => const _StrollDialog()));
+    showDialog(context: context, builder: (_) => const _StrollDialog());
   }
 
   void _showCalendarDialog(BuildContext context) {
@@ -581,11 +592,11 @@ class _EncounterDialog extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: const Text('统计'),
       content: SizedBox(
-        width: 360,
-        height: 440,
+        width: 420,
+        height: 620,
         child: Consumer<AppProvider>(
           builder: (context, provider, child) {
             final movies = provider.movies.where((m) => !m.isDeleted).toList();
@@ -996,70 +1007,61 @@ class _StrollDialogState extends State<_StrollDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Dialog(
+    return AlertDialog(
       backgroundColor: colors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: SizedBox(
-        width: 520,
-        height: 620,
-        child: Column(
-          children: [
-            // 标题栏
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
-              child: Row(children: [
-                const Text('漫步', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                ...[('all', '全部'), ('movie', '影视'), ('book', '书籍'), ('note', '笔记')].map((f) => Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: GestureDetector(
-                    onTap: () { if (_filter != f.$1) setState(() { _filter = f.$1; _items.clear(); _seenIds.clear(); _loadBatch(5); }); },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: _filter == f.$1 ? colors.primary : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
-                      child: Text(f.$2, style: TextStyle(fontSize: 11, fontWeight: _filter == f.$1 ? FontWeight.w600 : FontWeight.normal,
-                          color: _filter == f.$1 ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
-                    ),
-                  ),
-                )),
-                const SizedBox(width: 4),
-                GestureDetector(
-                  onTap: _reshuffle,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(14)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.casino_outlined, size: 13, color: colors.onPrimary),
-                      const SizedBox(width: 3),
-                      Text('随机', style: TextStyle(fontSize: 11, color: colors.onPrimary, fontWeight: FontWeight.w500)),
-                    ]),
-                  ),
-                ),
-              ]),
+      titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+      title: Row(children: [
+        const Text('漫步'),
+        const Spacer(),
+        ...[('all', '全部'), ('movie', '影视'), ('book', '书籍'), ('note', '笔记')].map((f) => Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: GestureDetector(
+            onTap: () { if (_filter != f.$1) setState(() { _filter = f.$1; _items.clear(); _seenIds.clear(); _loadBatch(5); }); },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: _filter == f.$1 ? colors.primary : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+              child: Text(f.$2, style: TextStyle(fontSize: 11, fontWeight: _filter == f.$1 ? FontWeight.w600 : FontWeight.normal,
+                  color: _filter == f.$1 ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
             ),
-            // 内容
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _items.isEmpty
-                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.explore_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
-                        const SizedBox(height: 12),
-                        Text('还没有内容', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
-                      ]))
-                    : PageView.builder(
-                        controller: _pageController,
-                        onPageChanged: (index) { if (index >= _items.length - 2) setState(() => _loadBatch(3)); },
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          return _buildCard(_items[index], colors);
-                        },
-                      ),
-              ),
-            ),
-          ],
+          ),
+        )),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: _reshuffle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(14)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.casino_outlined, size: 13, color: colors.onPrimary),
+              const SizedBox(width: 3),
+              Text('随机', style: TextStyle(fontSize: 11, color: colors.onPrimary, fontWeight: FontWeight.w500)),
+            ]),
+          ),
         ),
+      ]),
+      content: SizedBox(
+        width: 420,
+        height: 620,
+        child: _items.isEmpty
+            ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.explore_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
+                const SizedBox(height: 12),
+                Text('还没有内容', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+              ]))
+            : Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (index) { if (index >= _items.length - 2) setState(() => _loadBatch(3)); },
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) {
+                    return _buildCard(_items[index], colors);
+                  },
+                ),
+              ),
       ),
     );
   }
@@ -1301,7 +1303,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
       ]),
       content: SizedBox(
         width: 420,
-        height: 520,
+        height: 620,
         child: Column(
           children: [
             // 星期头
@@ -1528,8 +1530,8 @@ class _PersonListDialogState extends State<_PersonListDialog> {
           IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _refresh, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
       ]),
       content: SizedBox(
-        width: 480,
-        height: 480,
+        width: 420,
+        height: 620,
         child: _selectedPerson != null
             ? _buildPersonDetail(_selectedPerson!, colors)
             : Column(
@@ -1884,8 +1886,8 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
           IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签', onPressed: _syncTags, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
       ]),
       content: SizedBox(
-        width: 520,
-        height: 440,
+        width: 420,
+        height: 620,
         child: Column(
           children: [
             // 搜索栏
@@ -2454,7 +2456,7 @@ class _BackupChoiceDialogState extends State<_BackupChoiceDialog> {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-      contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
+      contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
         const Text('备份'),
         const Spacer(),
@@ -2471,8 +2473,8 @@ class _BackupChoiceDialogState extends State<_BackupChoiceDialog> {
         ),
       ]),
       content: SizedBox(
-        width: 480,
-        height: 440,
+        width: 420,
+        height: 620,
         child: _tabIndex == 0
             ? const _LocalBackupContent()
             : const _WebDAVBackupContent(),
@@ -3217,6 +3219,8 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
       backgroundColor: colors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
         const Text('回收站'),
         const Spacer(),
@@ -3232,8 +3236,8 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
           ),
       ]),
       content: SizedBox(
-        width: 400,
-        height: 480,
+        width: 420,
+        height: 620,
         child: _isLoading
             ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
             : Column(children: [
@@ -3729,6 +3733,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
 
   Widget _buildCategoryList(BuildContext context) {
     switch (widget.mainTabIndex) {
+      case -1: return const SizedBox.shrink(); // 主页 — 面板已隐藏
       case 0: return _buildMovieList(context);
       case 1: return _buildBookList(context);
       case 2: return _buildNoteList(context);

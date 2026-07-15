@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/data_models.dart';
 import '../data/movie/movie_dao.dart';
@@ -175,24 +176,32 @@ class AppProvider extends ChangeNotifier {
     _gameLayoutStyle = userPrefs.gameLayoutStyle;
     _gameWallMode = userPrefs.gameWallMode;
     final defaultIndex = userPrefs.defaultMainTabIndex;
-    // 确保选中的标签是启用的
-    final showMovie = userPrefs.showMovieTab;
-    final showBook = userPrefs.showBookTab;
-    final showNote = userPrefs.showNoteTab;
-    final showGame = userPrefs.showGameTab;
-    final enabled = [showMovie, showBook, showNote, showGame];
-    if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
-      _mainTabIndex = defaultIndex;
+    // Windows 桌面端且主页开启时，强制默认为主页
+    if (Platform.isWindows && userPrefs.showDesktopHomeTab) {
+      if (defaultIndex != -1) {
+        userPrefs.setDefaultMainTabIndex(-1);
+      }
+      _mainTabIndex = -1;
     } else {
-      // 回退到第一个启用的标签
-      if (showMovie) {
-        _mainTabIndex = 0;
-      } else if (showBook) {
-        _mainTabIndex = 1;
-      } else if (showNote) {
-        _mainTabIndex = 2;
-      } else if (showGame) {
-        _mainTabIndex = 3;
+      // 确保选中的标签是启用的
+      final showMovie = userPrefs.showMovieTab;
+      final showBook = userPrefs.showBookTab;
+      final showNote = userPrefs.showNoteTab;
+      final showGame = userPrefs.showGameTab;
+      final enabled = [showMovie, showBook, showNote, showGame];
+      if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
+        _mainTabIndex = defaultIndex;
+      } else {
+        // 回退到第一个启用的标签
+        if (showMovie) {
+          _mainTabIndex = 0;
+        } else if (showBook) {
+          _mainTabIndex = 1;
+        } else if (showNote) {
+          _mainTabIndex = 2;
+        } else if (showGame) {
+          _mainTabIndex = 3;
+        }
       }
     }
     notifyListeners();

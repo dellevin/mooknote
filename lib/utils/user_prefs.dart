@@ -108,9 +108,13 @@ class UserPrefs {
   bool get showGameTab => prefs.getBool('showGameTab') ?? false;
   Future<bool> setShowGameTab(bool value) => prefs.setBool('showGameTab', value);
 
-  /// 默认启动标签 (0: 影视, 1: 阅读, 2: 笔记)
-  int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? 0;
+  /// 默认启动标签 (-1: 主页, 0: 影视, 1: 阅读, 2: 笔记, 3: 游戏)
+  int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? -1;
   Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);
+
+  /// 桌面端是否显示主页标签
+  bool get showDesktopHomeTab => prefs.getBool('showDesktopHomeTab') ?? true;
+  Future<bool> setShowDesktopHomeTab(bool value) => prefs.setBool('showDesktopHomeTab', value);
 
   // ─── 侧边栏功能开关 ───
 

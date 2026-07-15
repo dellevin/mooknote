@@ -145,6 +145,7 @@ class _MainContentPageState extends State<MainContentPage> {
 
   String _getAppBarTitle(AppProvider provider) {
     switch (provider.mainTabIndex) {
+      case -1: return '主页';
       case 0: return '影视';
       case 1: return '阅读';
       case 2: return '笔记';
