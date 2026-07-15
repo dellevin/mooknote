@@ -3905,7 +3905,10 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
               selected: provider.selectedMovie?.id == m.id,
               statusLabel: label,
               statusColor: color,
+              rating: m.rating,
               onTap: () => provider.selectMovie(m),
+              onEdit: () => provider.selectMovie(m),
+              onDelete: () => _deleteItem(context, 'movie', m.id, m.title),
             );
           },
         );
@@ -3926,14 +3929,17 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             final (label, color) = _bookStatus(b.status);
             return _CompactListItem(
               title: b.title,
-              subtitle: b.authors.isNotEmpty ? b.authors.join(', ') : null,
+              subtitle: _bookSubtitle(b),
               imagePath: b.coverPath,
               accentColor: const Color(0xFF16A34A),
               icon: Icons.menu_book_outlined,
               selected: provider.selectedBook?.id == b.id,
               statusLabel: label,
               statusColor: color,
+              rating: b.rating,
               onTap: () => provider.selectBook(b),
+              onEdit: () => provider.selectBook(b),
+              onDelete: () => _deleteItem(context, 'book', b.id, b.title),
             );
           },
         );
@@ -3977,14 +3983,17 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             final (label, color) = _gameStatus(g.status);
             return _CompactListItem(
               title: g.title,
-              subtitle: g.platforms.isNotEmpty ? g.platforms.join(', ') : null,
+              subtitle: _gameSubtitle(g),
               imagePath: g.coverPath,
               accentColor: const Color(0xFFEA580C),
               icon: Icons.sports_esports_outlined,
               selected: provider.selectedGame?.id == g.id,
               statusLabel: label,
               statusColor: color,
+              rating: g.rating,
               onTap: () => provider.selectGame(g),
+              onEdit: () => provider.selectGame(g),
+              onDelete: () => _deleteItem(context, 'game', g.id, g.title),
             );
           },
         );
@@ -3993,10 +4002,18 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
   }
 
   String? _movieSubtitle(Movie m) {
-    final parts = <String>[];
-    if (m.directors.isNotEmpty) parts.add(m.directors.join(', '));
-    if ((m.rating ?? 0) > 0) parts.add('⭐ ${m.rating}');
-    return parts.isNotEmpty ? parts.join(' · ') : null;
+    if (m.directors.isEmpty) return null;
+    return m.directors.join(', ');
+  }
+
+  String? _bookSubtitle(Book b) {
+    if (b.authors.isEmpty) return null;
+    return b.authors.join(', ');
+  }
+
+  String? _gameSubtitle(Game g) {
+    if (g.platforms.isEmpty) return null;
+    return g.platforms.join(', ');
   }
 
   (String, Color) _movieStatus(String status) => switch (status) {
@@ -4021,6 +4038,30 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     'abandoned'    => ('弃游', const Color(0xFFEF4444)),
     _              => ('通关', const Color(0xFF16A34A)),
   };
+
+  Future<void> _deleteItem(BuildContext context, String type, String id, String title) async {
+    final provider = context.read<AppProvider>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(ctx).colorScheme.surface,
+        title: const Text('确认删除'),
+        content: Text('确定要删除「$title」吗？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            child: Text('删除', style: TextStyle(color: Theme.of(ctx).colorScheme.error))),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      switch (type) {
+        case 'movie': await provider.removeMovie(id);
+        case 'book': await provider.removeBook(id);
+        case 'game': await provider.removeGame(id);
+      }
+    }
+  }
 
   // ─── 搜索结果 ──────────────────────────────────────────
 
@@ -4057,6 +4098,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
               selected: provider.selectedMovie?.id == m.id,
               statusLabel: label,
               statusColor: color,
+              rating: m.rating,
               onTap: () {
                 provider.setMainTabIndex(0);
                 provider.selectMovie(m);
@@ -4070,13 +4112,14 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             final (label, color) = _bookStatus(b.status);
             return _CompactListItem(
               title: b.title,
-              subtitle: b.authors.isNotEmpty ? b.authors.join(', ') : null,
+              subtitle: _bookSubtitle(b),
               imagePath: b.coverPath,
               accentColor: const Color(0xFF16A34A),
               icon: Icons.menu_book_outlined,
               selected: provider.selectedBook?.id == b.id,
               statusLabel: label,
               statusColor: color,
+              rating: b.rating,
               onTap: () {
                 provider.setMainTabIndex(1);
                 provider.selectBook(b);
@@ -4105,13 +4148,14 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             final (label, color) = _gameStatus(g.status);
             return _CompactListItem(
               title: g.title,
-              subtitle: g.platforms.isNotEmpty ? g.platforms.join(', ') : null,
+              subtitle: _gameSubtitle(g),
               imagePath: g.coverPath,
               accentColor: const Color(0xFFEA580C),
               icon: Icons.sports_esports_outlined,
               selected: provider.selectedGame?.id == g.id,
               statusLabel: label,
               statusColor: color,
+              rating: g.rating,
               onTap: () {
                 provider.setMainTabIndex(3);
                 provider.selectGame(g);
@@ -4176,6 +4220,9 @@ class _CompactListItem extends StatelessWidget {
   final VoidCallback onTap;
   final String? statusLabel; // 状态文字，如"已看""想看"
   final Color? statusColor;  // 状态颜色
+  final double? rating;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _CompactListItem({
     required this.title,
@@ -4187,6 +4234,9 @@ class _CompactListItem extends StatelessWidget {
     required this.onTap,
     this.statusLabel,
     this.statusColor,
+    this.rating,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -4205,6 +4255,7 @@ class _CompactListItem extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
+          onSecondaryTapUp: (onEdit != null || onDelete != null) ? (details) => _showContextMenu(context, details) : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             child: Row(
@@ -4256,6 +4307,13 @@ class _CompactListItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                // 评分
+                if (rating != null && rating! > 0) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.star, size: 12, color: Color(0xFFFFB800)),
+                  const SizedBox(width: 1),
+                  Text(rating!.toStringAsFixed(1), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+                ],
                 // 状态标签
                 if (statusLabel != null) ...[
                   const SizedBox(width: 6),
@@ -4274,6 +4332,43 @@ class _CompactListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showContextMenu(BuildContext context, TapUpDetails details) {
+    final colors = Theme.of(context).colorScheme;
+    final renderBox = context.findRenderObject() as RenderBox;
+    final position = renderBox.localToGlobal(details.localPosition);
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx + 1, position.dy + 1),
+      items: [
+        if (onEdit != null)
+          PopupMenuItem<String>(
+            value: 'edit',
+            height: 36,
+            child: Row(children: [
+              Icon(Icons.edit_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.6)),
+              const SizedBox(width: 8),
+              const Text('编辑', style: TextStyle(fontSize: 13)),
+            ]),
+          ),
+        if (onDelete != null)
+          PopupMenuItem<String>(
+            value: 'delete',
+            height: 36,
+            child: Row(children: [
+              Icon(Icons.delete_outline, size: 16, color: colors.error),
+              const SizedBox(width: 8),
+              Text('删除', style: TextStyle(color: colors.error, fontSize: 13)),
+            ]),
+          ),
+      ],
+    ).then((value) {
+      if (value == null || !context.mounted) return;
+      if (value == 'edit') onEdit?.call();
+      if (value == 'delete') onDelete?.call();
+    });
   }
 }
 

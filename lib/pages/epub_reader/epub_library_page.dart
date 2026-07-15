@@ -393,7 +393,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
 
   Widget _buildListView(ColorScheme colors) {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
       itemCount: _filteredBooks.length,
       itemBuilder: (context, index) {
         final book = _filteredBooks[index];
@@ -420,74 +420,53 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
           onTap: () => _openBook(book),
           onLongPress: () => _deleteBook(book),
           child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: colors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.outlineVariant, width: 0.5),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    // 封面
-                    SizedBox(
-                      width: 56, height: 80,
-                      child: _buildCover(coverPath, colors),
-                    ),
-                    const SizedBox(width: 14),
-                    // 信息
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                          if (author.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-                          ],
-                          const SizedBox(height: 8),
-                          // 状态标签 + 百分比
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: statusColor.withValues(alpha: 0.25), width: 0.5),
-                                ),
-                                child: Text(statusLabel,
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: statusColor)),
-                              ),
-                              if (progress > 0 && progress < 1.0) ...[
-                                const SizedBox(width: 6),
-                                Text('${(progress * 100).toInt()}%',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                // 进度条
-                if (progress > 0) ...[
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(1.5),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 3,
-                      backgroundColor: colors.outlineVariant.withValues(alpha: 0.3),
-                      valueColor: AlwaysStoppedAnimation(statusColor),
-                    ),
+                // 封面
+                Container(
+                  width: 48, height: 64,
+                  decoration: BoxDecoration(
+                    color: colors.outlineVariant,
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                ],
+                  clipBehavior: Clip.antiAlias,
+                  child: _buildCover(coverPath, colors),
+                ),
+                const SizedBox(width: 12),
+                // 信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      if (author.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(author, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                      ],
+                      const SizedBox(height: 6),
+                      // 状态标签
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(statusLabel,
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: statusColor)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
               ],
             ),
           ),
@@ -506,10 +485,10 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     }
     return Container(
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
+        color: colors.outlineVariant,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Icon(Icons.auto_stories_outlined, size: 24,
+      child: Icon(Icons.auto_stories_outlined, size: 22,
           color: colors.onSurface.withValues(alpha: 0.25)),
     );
   }
