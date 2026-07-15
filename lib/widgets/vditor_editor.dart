@@ -153,6 +153,14 @@ class VditorEditorState extends State<VditorEditor> {
     } catch (_) {}
   }
 
+  Future<void> _requestHeightUpdate() async {
+    if (_controller == null || !_isReady) return;
+    try {
+      await Future.delayed(const Duration(milliseconds: 300));
+      await _controller!.evaluateJavascript(source: 'requestHeightUpdate()');
+    } catch (_) {}
+  }
+
   void _onVditorReady() {
     if (_isReady) return;
     _fallbackTimer?.cancel();
@@ -276,10 +284,13 @@ class VditorEditorState extends State<VditorEditor> {
     }
     debugPrint('[VditorEditor] loading: $initialUrl');
 
-    // 键盘弹出时，滚动到光标位置
+    // 键盘弹出时，滚动到光标位置；键盘收起时，重新通知高度
     final keyboardH = MediaQuery.of(context).viewInsets.bottom;
     if (keyboardH > 0 && _lastKeyboardH == 0 && _isReady) {
       Future.microtask(() => _scrollToCursor());
+    } else if (keyboardH == 0 && _lastKeyboardH > 0 && _isReady) {
+      // 键盘收起，请求 JS 端重新计算高度
+      Future.microtask(() => _requestHeightUpdate());
     }
     _lastKeyboardH = keyboardH;
 

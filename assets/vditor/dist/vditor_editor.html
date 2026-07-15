@@ -148,6 +148,10 @@
         cursor.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
     }
+
+    function requestHeightUpdate() {
+      requestAnimationFrame(notifyHeight);
+    }
   </script>
 </body>
 </html>

@@ -318,7 +318,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 theme: light,
                 darkTheme: dark,
                 themeMode: provider.themeMode,
-                builder: (ctx, nav) => AppShell(child: nav!),
+                builder: (ctx, nav) {
+                  Widget shell = AppShell(child: nav!);
+                  // Android: 点击空白区域收起键盘
+                  if (Platform.isAndroid) {
+                    shell = GestureDetector(
+                      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                      child: shell,
+                    );
+                  }
+                  return shell;
+                },
                 localizationsDelegates: const [
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,

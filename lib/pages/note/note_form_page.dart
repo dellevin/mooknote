@@ -64,6 +64,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void dispose() {
     _autoSaveTimer?.cancel();
     _saveStatusTimer?.cancel();
+    _scrollController.dispose();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
