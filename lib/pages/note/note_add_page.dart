@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -12,7 +10,6 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
-import '../../widgets/tag_side_panel.dart';
 import '../../widgets/vditor_editor.dart';
 
 class NoteAddPage extends StatefulWidget {
@@ -125,20 +122,19 @@ class _NoteAddPageState extends State<NoteAddPage> {
   }
 
   Widget _buildEditArea(ColorScheme colors) {
-    final isWin = Platform.isWindows;
     return Column(children: [
-      // 标题输入（Windows: 更大更醒目）
+      // 标题输入
       Container(
-        padding: EdgeInsets.symmetric(horizontal: isWin ? 48 : 16, vertical: isWin ? 16 : 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
         child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
           child: TextField(
             controller: _titleCtrl,
             maxLines: 1,
-            style: TextStyle(fontSize: isWin ? 22 : 16, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.4),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.4),
             decoration: InputDecoration(
               hintText: '添加标题',
-              hintStyle: TextStyle(fontSize: isWin ? 22 : 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2), height: 1.4),
+              hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2), height: 1.4),
               border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
@@ -147,163 +143,29 @@ class _NoteAddPageState extends State<NoteAddPage> {
           ),
         )),
       ),
-      // Windows: 标签栏（彩色药丸样式）
-      if (isWin)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
-          child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  for (int i = 0; i < _tags.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: colors.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Text(_tags[i], style: TextStyle(fontSize: 12, color: colors.onPrimaryContainer, fontWeight: FontWeight.w500)),
-                          const SizedBox(width: 4),
-                          GestureDetector(
-                            onTap: () => setState(() => _tags.removeAt(i)),
-                            child: Icon(Icons.close, size: 12, color: colors.onPrimaryContainer.withValues(alpha: 0.6)),
-                          ),
-                        ]),
-                      ),
-                    ),
-                  GestureDetector(
-                    onTap: _showTagPanel,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.outline.withValues(alpha: 0.3), width: 1),
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.add, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                        const SizedBox(width: 3),
-                        Text('标签', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                      ]),
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-          )),
-        ),
-      // 内容编辑（Windows: 限宽居中）
+      // 内容编辑
       Expanded(
-        child: isWin
-            ? Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
-                child: VditorEditor(
-                  key: _vditorKey,
-                  initialContent: _contentCtrl.text,
-                  noteId: _tempId,
-                  isDark: Theme.of(context).brightness == Brightness.dark,
-                  surfaceColor: colors.surface,
-                  onContentChanged: (value) {
-                    _contentCtrl.text = value;
-                    setState(() {});
-                  },
-                ),
-              ))
-            : TextField(
-                controller: _contentCtrl,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
-                style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-                decoration: InputDecoration(
-                  hintText: '使用 Markdown 格式书写...',
-                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
-                  border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(16),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
+        child: VditorEditor(
+          key: _vditorKey,
+          initialContent: _contentCtrl.text,
+          noteId: _tempId,
+          isDark: Theme.of(context).brightness == Brightness.dark,
+          surfaceColor: colors.surface,
+          onContentChanged: (value) {
+            _contentCtrl.text = value;
+            setState(() {});
+          },
+        ),
       ),
       // 图片行
       if (_images.isNotEmpty) _buildImageRow(colors),
-      // 底部标签 + 工具栏（仅非 Windows）
-      if (!isWin)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5))),
-          child: Column(children: [
-            // 标签行
-            Wrap(spacing: 6, runSpacing: 4, children: [
-              for (int i = 0; i < _tags.length; i++) Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(_tags[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
-                  const SizedBox(width: 3),
-                  GestureDetector(
-                    onTap: () => setState(() => _tags.removeAt(i)),
-                    child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3)),
-                  ),
-                ]),
-              ),
-              GestureDetector(
-                onTap: _showTagPanel,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
-                    const SizedBox(width: 2),
-                    Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
-                  ]),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 6),
-            // 工具栏
-            Row(children: [
-              Expanded(
-                child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-                  _toolBtn(Icons.title, '标题', _insertHeading),
-                  _toolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
-                  _toolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
-                  _toolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
-                  _toolGap(colors),
-                  _toolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
-                  _toolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
-                  _toolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
-                  _toolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
-                  _toolGap(colors),
-                  _toolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
-                  _toolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
-                  _toolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
-                  _toolGap(colors),
-                  _toolBtn(Icons.add_photo_alternate_outlined, '图片', _pickImage),
-                ])),
-              ),
-              const SizedBox(width: 8),
-              Text('${_contentCtrl.text.length} 字',
-                style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-            ]),
-          ]),
-        ),
-      // Windows: 底部字数（简洁）
-      if (isWin)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
-          child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
-            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-              Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-            ]),
-          )),
-        ),
+      // 底部字数
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+        ]),
+      ),
     ]);
   }
 
@@ -400,78 +262,6 @@ class _NoteAddPageState extends State<NoteAddPage> {
     );
   }
 
-  Widget _toolBtn(IconData icon, String tooltip, VoidCallback onTap) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Tooltip(
-          message: tooltip,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Icon(icon, size: 16, color: colors.onSurface.withValues(alpha: 0.6)),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _toolGap(ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: SizedBox(height: 12, child: VerticalDivider(width: 0, thickness: 0.5, color: colors.outline)),
-    );
-  }
-
-  void _insertMarkdown(String left, String right) {
-    final text = _contentCtrl.text;
-    final selection = _contentCtrl.selection;
-    final start = selection.start;
-    final end = selection.end;
-    String selectedText = end > start ? text.substring(start, end) : '';
-    final insertion = '$left$selectedText$right';
-    _contentCtrl.value = TextEditingValue(
-      text: text.substring(0, start) + insertion + text.substring(end),
-      selection: TextSelection.collapsed(
-        offset: selectedText.isEmpty ? start + left.length : start + left.length + selectedText.length + right.length,
-      ),
-    );
-    setState(() {});
-  }
-
-  void _insertHeading() {
-    final text = _contentCtrl.text;
-    final selection = _contentCtrl.selection;
-    final start = selection.start;
-    int lineStart = start;
-    while (lineStart > 0 && text[lineStart - 1] != '\n') lineStart--;
-    int hashCount = 0;
-    int pos = lineStart;
-    while (pos < text.length && text[pos] == '#') { hashCount++; pos++; }
-    if (pos < text.length && text[pos] == ' ') pos++;
-    if (hashCount > 0 && hashCount < 6) {
-      hashCount++;
-      final newPrefix = '${'#' * hashCount} ';
-      _contentCtrl.value = TextEditingValue(
-        text: text.substring(0, lineStart) + newPrefix + text.substring(pos),
-        selection: TextSelection.collapsed(offset: lineStart + newPrefix.length),
-      );
-    } else if (hashCount >= 6) {
-      _contentCtrl.value = TextEditingValue(
-        text: text.substring(0, lineStart) + text.substring(pos),
-        selection: TextSelection.collapsed(offset: lineStart),
-      );
-    } else {
-      _contentCtrl.value = TextEditingValue(
-        text: text.substring(0, lineStart) + '# ' + text.substring(lineStart),
-        selection: TextSelection.collapsed(offset: lineStart + 2),
-      );
-    }
-    setState(() {});
-  }
-
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1920, imageQuality: 85);
@@ -485,20 +275,6 @@ class _NoteAddPageState extends State<NoteAddPage> {
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择图片失败: $e');
     }
-  }
-
-  Future<void> _showTagPanel() async {
-    final provider = context.read<AppProvider>();
-    final tagRows = await provider.getTags('note_tag');
-    final allTags = tagRows.map((t) => t['name'] as String).toSet();
-    for (final note in provider.notes) { allTags.addAll(note.tags); }
-    if (!mounted) return;
-    TagSidePanel.show(
-      context: context,
-      selectedTags: List.from(_tags),
-      allAvailableTags: allTags.toList()..sort(),
-      onTagsChanged: (newTags) => setState(() => _tags = newTags),
-    );
   }
 
   MarkdownStyleSheet _buildMarkdownStyleSheet(ColorScheme colors) {
@@ -538,7 +314,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
   Future<void> _save() async {
     final title = _titleCtrl.text.trim();
     String content;
-    if (Platform.isWindows && _vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
+    if (_vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
       content = (await _vditorKey.currentState!.getValue()).trim();
     } else {
       content = _contentCtrl.text.trim();
@@ -587,9 +363,4 @@ class _NoteAddPageState extends State<NoteAddPage> {
     }
   }
 
-  static List<String> _collectUnique(List<List<String>> lists) {
-    final s = <String>{};
-    for (final l in lists) { s.addAll(l); }
-    return s.toList()..sort();
-  }
 }

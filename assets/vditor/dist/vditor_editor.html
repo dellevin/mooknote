@@ -5,14 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="index.css" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-    #vditor { height: 100%; border: none !important; }
+    html, body { margin: 0; padding: 0; min-height: 100%; overflow: hidden; }
+    #vditor { border: none !important; }
     .vditor { border: none !important; }
     .vditor-toolbar { display: none !important; }
     .vditor-ir,
     .vditor-ir__marker--cursor,
     .vditor-content,
     .vditor-reset { background: transparent !important; }
+    /* 正文字体小一些 */
+    .vditor-reset { font-size: 13px !important; line-height: 1.6 !important; }
+    /* 标题字体更大 */
+    .vditor-reset h1 { font-size: 22px !important; font-weight: 700 !important; }
+    .vditor-reset h2 { font-size: 18px !important; font-weight: 700 !important; }
+    .vditor-reset h3 { font-size: 16px !important; font-weight: 600 !important; }
+    .vditor-reset h4 { font-size: 15px !important; font-weight: 600 !important; }
+    .vditor-reset h5 { font-size: 14px !important; font-weight: 600 !important; }
+    .vditor-reset h6 { font-size: 13px !important; font-weight: 600 !important; }
     /* 所有滚动条统一：极细极淡 */
     *::-webkit-scrollbar { width: 4px; height: 4px; }
     *::-webkit-scrollbar-track { background: transparent; }
@@ -26,17 +35,30 @@
   <script src="index.min.js"></script>
   <script>
     let vditor = null;
+    let _heightTimer = null;
+    let _contentTimer = null;
 
     function initVditor(theme, placeholder) {
+      // Android: 使用本地路径避免 CDN 请求；Windows: 使用相对路径
+      var isAndroid = navigator.userAgent.indexOf('Android') > -1;
+      var themeBase = isAndroid
+        ? 'file:///android_asset/flutter_assets/assets/vditor/dist'
+        : '.';
       vditor = new Vditor('vditor', {
-        height: '100%',
+        height: 'auto',
         mode: 'ir',
-        theme: theme,
+        theme: theme === 'dark' ? 'dark' : 'light',
         icon: 'ant',
         placeholder: placeholder || '',
         toolbar: false,
         cache: { enable: false },
-        preview: { theme: { current: theme } },
+        themePath: themeBase + '/css/content-theme',
+        preview: {
+          theme: {
+            current: theme === 'dark' ? 'dark' : 'light',
+            path: themeBase + '/css/content-theme',
+          },
+        },
         upload: {
           handler: function(files) {
             for (let i = 0; i < files.length; i++) {
@@ -55,16 +77,38 @@
           },
         },
         input: function(value) {
-          window.flutter_inappwebview.callHandler('onContentChanged', value);
+          // 防抖：避免每次按键都触发 JS Bridge
+          clearTimeout(_contentTimer);
+          _contentTimer = setTimeout(function() {
+            window.flutter_inappwebview.callHandler('onContentChanged', value);
+          }, 150);
+          // 高度通知也防抖
+          clearTimeout(_heightTimer);
+          _heightTimer = setTimeout(function() {
+            requestAnimationFrame(notifyHeight);
+          }, 200);
         },
         after: function() {
           window.flutter_inappwebview.callHandler('onVditorReady');
+          // 初始化完成后通知高度
+          requestAnimationFrame(notifyHeight);
         },
       });
     }
 
+    function notifyHeight() {
+      const content = document.querySelector('.vditor-ir') || document.querySelector('.vditor-wysiwyg');
+      if (content) {
+        const h = content.scrollHeight;
+        window.flutter_inappwebview.callHandler('onHeightChanged', h);
+      }
+    }
+
     function setValue(text) {
-      if (vditor) vditor.setValue(text);
+      if (vditor) {
+        vditor.setValue(text);
+        setTimeout(() => requestAnimationFrame(notifyHeight), 100);
+      }
     }
 
     function getValue() {
@@ -73,8 +117,9 @@
 
     function setTheme(theme) {
       if (vditor) {
-        const codeTheme = theme === 'dark' ? 'dracula' : 'github';
-        vditor.setTheme(theme, theme, codeTheme);
+        var name = theme === 'dark' ? 'dark' : 'light';
+        var codeTheme = theme === 'dark' ? 'dracula' : 'github';
+        vditor.setTheme(name, name, codeTheme);
       }
     }
 
@@ -85,11 +130,22 @@
     }
 
     function insertValue(text) {
-      if (vditor) vditor.insertValue(text);
+      if (vditor) {
+        vditor.insertValue(text);
+        setTimeout(() => requestAnimationFrame(notifyHeight), 100);
+      }
     }
 
     function destroy() {
       if (vditor) { vditor.destroy(); vditor = null; }
+    }
+
+    function scrollToCursor() {
+      const cursor = document.querySelector('.vditor-ir__marker--cursor')
+                 || document.querySelector('.vditor-wysiwyg .vditor-cursor');
+      if (cursor) {
+        cursor.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
     }
   </script>
 </body>

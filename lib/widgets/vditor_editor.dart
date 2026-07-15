@@ -14,6 +14,7 @@ class VditorEditor extends StatefulWidget {
   final bool isDark;
   final Color surfaceColor;
   final ValueChanged<String>? onContentChanged;
+  final ValueChanged<double>? onHeightChanged;
   final String placeholder;
 
   const VditorEditor({
@@ -23,6 +24,7 @@ class VditorEditor extends StatefulWidget {
     this.isDark = false,
     this.surfaceColor = Colors.white,
     this.onContentChanged,
+    this.onHeightChanged,
     this.placeholder = '使用 Markdown 格式书写...',
   });
 
@@ -34,8 +36,9 @@ class VditorEditorState extends State<VditorEditor> {
   InAppWebViewController? _controller;
   bool _isReady = false;
   bool _loadFailed = false;
-  bool _assetsReady = false;
-  String? _distDir;
+  String? _distDir; // Windows: 文件系统路径
+  double _contentHeight = 200; // WebView 内容高度，随内容撑开
+  double _lastKeyboardH = 0; // 上次键盘高度，用于检测键盘弹出
   final Completer<void> _readyCompleter = Completer<void>();
   Timer? _fallbackTimer;
 
@@ -46,7 +49,12 @@ class VditorEditorState extends State<VditorEditor> {
   void initState() {
     super.initState();
     _startFallbackTimer();
-    _locateDistDir();
+    if (Platform.isWindows) {
+      _locateDistDir();
+    } else {
+      // Android/iOS: 直接从 asset 加载，无需定位文件系统路径
+      if (mounted) setState(() {});
+    }
   }
 
   void _startFallbackTimer() {
@@ -60,13 +68,12 @@ class VditorEditorState extends State<VditorEditor> {
   /// 定位 vditor_dist 目录（Windows 构建时由 CMakeLists 复制到 data/ 下）
   Future<void> _locateDistDir() async {
     try {
-      // Windows: exe 同级 data/vditor_dist/
       final exePath = Platform.resolvedExecutable;
       final exeDir = p.dirname(exePath);
       final candidate = p.join(exeDir, 'data', 'vditor_dist');
       if (await File(p.join(candidate, 'vditor_editor.html')).exists()) {
         _distDir = candidate;
-        if (mounted) setState(() => _assetsReady = true);
+        if (mounted) setState(() {});
         return;
       }
       debugPrint('[VditorEditor] vditor_dist not found at $candidate');
@@ -112,7 +119,7 @@ class VditorEditorState extends State<VditorEditor> {
 
   Future<void> setTheme(bool isDark) async {
     if (_controller == null || !_isReady) return;
-    final theme = isDark ? 'dark' : 'classic';
+    final theme = isDark ? 'dark' : 'light';
     try {
       await _controller!.evaluateJavascript(source: 'setTheme("$theme")');
     } catch (_) {}
@@ -134,16 +141,23 @@ class VditorEditorState extends State<VditorEditor> {
     } catch (_) {}
   }
 
+  Future<void> _scrollToCursor() async {
+    if (_controller == null || !_isReady) return;
+    try {
+      // 延迟一帧让键盘动画完成
+      await Future.delayed(const Duration(milliseconds: 300));
+      await _controller!.evaluateJavascript(source: 'scrollToCursor()');
+    } catch (_) {}
+  }
+
   void _onVditorReady() {
     if (_isReady) return;
     _fallbackTimer?.cancel();
     _isReady = true;
     if (!_readyCompleter.isCompleted) _readyCompleter.complete();
-    // 设置初始内容
     if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
       setValue(widget.initialContent!);
     }
-    // 设置背景色
     setBgColor(_colorToHex(widget.surfaceColor));
   }
 
@@ -202,83 +216,139 @@ class VditorEditorState extends State<VditorEditor> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    if (_loadFailed || !_assetsReady) {
-      if (_loadFailed) {
-        // 离线降级：使用普通 TextField
-        return TextField(
-          controller: TextEditingController(text: widget.initialContent ?? ''),
-          maxLines: null,
-          expands: true,
-          textAlignVertical: TextAlignVertical.top,
-          strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
-          style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-          decoration: InputDecoration(
-            hintText: widget.placeholder,
-            hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            contentPadding: const EdgeInsets.all(16),
-          ),
-          onChanged: widget.onContentChanged,
-        );
-      }
-      // 等待 assets 解压
+    if (_loadFailed) {
+      return TextField(
+        controller: TextEditingController(text: widget.initialContent ?? ''),
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
+        style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+        decoration: InputDecoration(
+          hintText: widget.placeholder,
+          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        onChanged: widget.onContentChanged,
+      );
+    }
+
+    // Windows: 等待 dist 目录定位完成
+    if (Platform.isWindows && _distDir == null) {
       return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
     }
 
-    final htmlPath = p.join(_distDir!, 'vditor_editor.html');
-    final fileUrl = 'file:///${htmlPath.replaceAll('\\', '/')}';
-    debugPrint('[VditorEditor] loading: $fileUrl');
+    final String initialUrl;
+    if (Platform.isWindows) {
+      final htmlPath = p.join(_distDir!, 'vditor_editor.html');
+      initialUrl = 'file:///${htmlPath.replaceAll('\\', '/')}';
+    } else {
+      // Android: 直接访问 APK 内 asset，相对路径自动解析
+      initialUrl = 'file:///android_asset/flutter_assets/assets/vditor/dist/vditor_editor.html';
+    }
+    debugPrint('[VditorEditor] loading: $initialUrl');
 
-    return Container(
-      color: colors.surface,
-      child: InAppWebView(
-        webViewEnvironment: windowsWebViewEnvironment,
-        initialUrlRequest: URLRequest(url: WebUri(fileUrl)),
-        initialSettings: InAppWebViewSettings(
-          javaScriptEnabled: true,
-          transparentBackground: true,
-          disableContextMenu: false,
-          useHybridComposition: true,
-        ),
-        onWebViewCreated: (controller) {
-          _controller = controller;
-          controller.addJavaScriptHandler(
-            handlerName: 'onVditorReady',
-            callback: (_) => _onVditorReady(),
-          );
-          controller.addJavaScriptHandler(
-            handlerName: 'onContentChanged',
-            callback: (args) {
-              if (args.isNotEmpty) {
-                widget.onContentChanged?.call(args[0].toString());
-              }
-            },
-          );
-          controller.addJavaScriptHandler(
-            handlerName: 'onPickImage',
-            callback: (_) => _pickImage(),
-          );
-          controller.addJavaScriptHandler(
-            handlerName: 'onImageUpload',
-            callback: (args) {
-              if (args.length >= 3) {
-                _handleImageUpload(args[0].toString(), args[1].toString(), args[2].toString());
-              }
-            },
-          );
-        },
-        onLoadStop: (controller, url) async {
-          final theme = widget.isDark ? 'dark' : 'classic';
-          final escapedPlaceholder = jsonEncode(widget.placeholder);
-          await controller.evaluateJavascript(
-            source: 'initVditor("$theme", $escapedPlaceholder)',
-          );
-        },
-        onReceivedError: (controller, request, error) {
-          debugPrint('[VditorEditor] load error: ${error.description}');
-        },
+    // 键盘弹出时，滚动到光标位置
+    final keyboardH = MediaQuery.of(context).viewInsets.bottom;
+    if (keyboardH > 0 && _lastKeyboardH == 0 && _isReady) {
+      Future.microtask(() => _scrollToCursor());
+    }
+    _lastKeyboardH = keyboardH;
+
+    return SizedBox(
+      height: _contentHeight,
+      child: Stack(
+        children: [
+          Container(
+            color: colors.surface,
+            child: InAppWebView(
+              webViewEnvironment: Platform.isWindows ? windowsWebViewEnvironment : null,
+              initialUrlRequest: URLRequest(url: WebUri(initialUrl)),
+              initialSettings: InAppWebViewSettings(
+                javaScriptEnabled: true,
+                transparentBackground: true,
+                disableContextMenu: false,
+                useHybridComposition: true,
+                allowFileAccessFromFileURLs: true,
+                allowUniversalAccessFromFileURLs: true,
+              ),
+              onWebViewCreated: (controller) {
+                _controller = controller;
+                controller.addJavaScriptHandler(
+                  handlerName: 'onVditorReady',
+                  callback: (_) => _onVditorReady(),
+                );
+                controller.addJavaScriptHandler(
+                  handlerName: 'onContentChanged',
+                  callback: (args) {
+                    if (args.isNotEmpty) {
+                      widget.onContentChanged?.call(args[0].toString());
+                    }
+                  },
+                );
+                controller.addJavaScriptHandler(
+                  handlerName: 'onPickImage',
+                  callback: (_) => _pickImage(),
+                );
+                controller.addJavaScriptHandler(
+                  handlerName: 'onImageUpload',
+                  callback: (args) {
+                    if (args.length >= 3) {
+                      _handleImageUpload(args[0].toString(), args[1].toString(), args[2].toString());
+                    }
+                  },
+                );
+                controller.addJavaScriptHandler(
+                  handlerName: 'onHeightChanged',
+                  callback: (args) {
+                    if (args.isNotEmpty) {
+                      final h = double.tryParse(args[0].toString()) ?? _contentHeight;
+                      if ((h - _contentHeight).abs() > 2 && h > 0) {
+                        setState(() => _contentHeight = h);
+                        widget.onHeightChanged?.call(h);
+                      }
+                    }
+                  },
+                );
+              },
+              onLoadStop: (controller, url) async {
+                final theme = widget.isDark ? 'dark' : 'light';
+                final escapedPlaceholder = jsonEncode(widget.placeholder);
+                await controller.evaluateJavascript(
+                  source: 'initVditor("$theme", $escapedPlaceholder)',
+                );
+              },
+              onReceivedError: (controller, request, error) {
+                debugPrint('[VditorEditor] load error: ${error.description}');
+              },
+            ),
+          ),
+          // 加载动画：Vditor 就绪前显示
+          if (!_isReady)
+            Container(
+              color: colors.surface,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '编辑器加载中...',
+                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

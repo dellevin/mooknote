@@ -66,3 +66,31 @@ flutter:
     - assets/images/ticket/
     - assets/images/imp_book/
     - assets/vditor/
+    - assets/vditor/dist/
+    - assets/vditor/dist/css/
+    - assets/vditor/dist/css/content-theme/
+    - assets/vditor/dist/images/
+    - assets/vditor/dist/images/emoji/
+    - assets/vditor/dist/js/abcjs/
+    - assets/vditor/dist/js/echarts/
+    - assets/vditor/dist/js/flowchart.js/
+    - assets/vditor/dist/js/graphviz/
+    - assets/vditor/dist/js/highlight.js/
+    - assets/vditor/dist/js/highlight.js/styles/
+    - assets/vditor/dist/js/i18n/
+    - assets/vditor/dist/js/icons/
+    - assets/vditor/dist/js/katex/
+    - assets/vditor/dist/js/katex/fonts/
+    - assets/vditor/dist/js/lute/
+    - assets/vditor/dist/js/markmap/
+    - assets/vditor/dist/js/mathjax/
+    - assets/vditor/dist/js/mathjax/a11y/
+    - assets/vditor/dist/js/mathjax/input/
+    - assets/vditor/dist/js/mathjax/input/mml/
+    - assets/vditor/dist/js/mathjax/input/tex/
+    - assets/vditor/dist/js/mathjax/input/tex/extensions/
+    - assets/vditor/dist/js/mathjax/sre/
+    - assets/vditor/dist/js/mathjax/sre/mathmaps/
+    - assets/vditor/dist/js/mermaid/
+    - assets/vditor/dist/js/plantuml/
+    - assets/vditor/dist/js/smiles-drawer/

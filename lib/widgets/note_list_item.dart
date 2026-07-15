@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
+import 'fade_in_local_image.dart';
 
 /// 笔记列表项组件 - 卡片式设计，内容展示在卡片内
 class NoteListItem extends StatelessWidget {
@@ -95,6 +96,54 @@ class _NoteListItemContent extends StatelessWidget {
                 ),
                 maxLines: note.title.isNotEmpty ? 2 : 3,
                 overflow: TextOverflow.ellipsis,
+              ),
+            ],
+
+            // 图片预览
+            if (note.images.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 48,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: note.images.length > 4 ? 4 : note.images.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (context, index) {
+                    if (index == 3 && note.images.length > 4) {
+                      return Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          color: colors.surfaceContainerHighest,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '+${note.images.length - 3}',
+                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
+                          ),
+                        ),
+                      );
+                    }
+                    return Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: colors.outlineVariant, width: 0.5),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: FadeInLocalImage(
+                        path: note.images[index],
+                        fit: BoxFit.cover,
+                        errorWidget: Container(
+                          color: colors.surfaceContainerHighest,
+                          child: Icon(Icons.broken_image_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.25)),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
 

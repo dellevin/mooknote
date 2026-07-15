@@ -235,13 +235,13 @@ class _SearchPageState extends State<SearchPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Row(children: [
-        _filterChip('影视', Icons.movie_outlined, _showMovies, movieCount, () { setState(() { _showMovies = !_showMovies; _performSearch(); }); }),
+        Expanded(child: _filterChip('影视', Icons.movie_outlined, _showMovies, movieCount, () { setState(() { _showMovies = !_showMovies; _performSearch(); }); })),
         const SizedBox(width: 8),
-        _filterChip('书籍', Icons.menu_book_outlined, _showBooks, bookCount, () { setState(() { _showBooks = !_showBooks; _performSearch(); }); }),
+        Expanded(child: _filterChip('书籍', Icons.menu_book_outlined, _showBooks, bookCount, () { setState(() { _showBooks = !_showBooks; _performSearch(); }); })),
         const SizedBox(width: 8),
-        _filterChip('笔记', Icons.note_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); }),
+        Expanded(child: _filterChip('笔记', Icons.note_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); })),
         const SizedBox(width: 8),
-        _filterChip('游戏', Icons.sports_esports_outlined, _showGames, gameCount, () { setState(() { _showGames = !_showGames; _performSearch(); }); }),
+        Expanded(child: _filterChip('游戏', Icons.sports_esports_outlined, _showGames, gameCount, () { setState(() { _showGames = !_showGames; _performSearch(); }); })),
       ]),
     );
   }
@@ -253,16 +253,16 @@ class _SearchPageState extends State<SearchPage> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? colors.primary : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.4)),
-          const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.4))),
-          if (showCount) ...[const SizedBox(width: 4), Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: selected ? colors.onPrimary.withValues(alpha: 0.7) : colors.onSurface.withValues(alpha: 0.25)))],
+          const SizedBox(width: 4),
+          Flexible(child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.4)), overflow: TextOverflow.ellipsis)),
+          if (showCount) ...[const SizedBox(width: 3), Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: selected ? colors.onPrimary.withValues(alpha: 0.7) : colors.onSurface.withValues(alpha: 0.25)))],
         ]),
       ),
     );

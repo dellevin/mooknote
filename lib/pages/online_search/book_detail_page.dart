@@ -335,110 +335,105 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final pages = m['pagination'];
     final coverUrl = cover.toString().isNotEmpty ? _resolveCoverUrl(cover.toString()) : '';
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, _) => [
-        SliverToBoxAdapter(
-          child: Container(
-            color: colors.surface,
-            child: SafeArea(
-              bottom: false,
-              child: Column(children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                              color: colors.surfaceContainerHigh,
-                              shape: BoxShape.circle),
-                          child: Icon(Icons.arrow_back, size: 20, color: colors.onSurface)),
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Column(children: [
+        // 头部：返回按钮 + 封面信息
+        SafeArea(
+          bottom: false,
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                          color: colors.surfaceContainerHigh,
+                          shape: BoxShape.circle),
+                      child: Icon(Icons.arrow_back, size: 20, color: colors.onSurface)),
+                ),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 110,
+                        height: 160,
+                        child: coverUrl.isNotEmpty
+                            ? Image.network(coverUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _coverPlaceholder(colors))
+                            : _coverPlaceholder(colors),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface)),
+                            if (author.toString().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(author, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+                            ],
+                            if (press.toString().isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(press, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
+                            ],
+                            if (year.toString().isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text('出版年份：$year', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                            ],
+                            if (isbn.toString().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text('ISBN：$isbn', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                            ],
+                            if (pages != null && pages != 0) ...[
+                              const SizedBox(height: 4),
+                              Text('页数：$pages', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                            ],
+                            if (_localBook != null) ...[
+                              const SizedBox(height: 10),
+                              _buildLocalStatus(colors),
+                            ],
+                          ]),
                     ),
                   ]),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox(
-                            width: 110,
-                            height: 160,
-                            child: coverUrl.isNotEmpty
-                                ? Image.network(coverUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => _coverPlaceholder(colors))
-                                : _coverPlaceholder(colors),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface)),
-                                if (author.toString().isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Text(author, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-                                ],
-                                if (press.toString().isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(press, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
-                                ],
-                                if (year.toString().isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text('出版年份：$year', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                                ],
-                                if (isbn.toString().isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text('ISBN：$isbn', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                                ],
-                                if (pages != null && pages != 0) ...[
-                                  const SizedBox(height: 4),
-                                  Text('页数：$pages', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                                ],
-                                if (_localBook != null) ...[
-                                  const SizedBox(height: 10),
-                                  _buildLocalStatus(colors),
-                                ],
-                              ]),
-                        ),
-                      ]),
-                ),
-              ]),
             ),
-          ),
+          ]),
         ),
-        // Tab 栏：吸顶
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _StickyTabBarDelegate(
-            child: Container(
-              decoration: BoxDecoration(
-                  color: colors.surface,
-                  border: Border(
-                      bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
-              child: Row(children: [
-                _buildTabButton('基础信息', 0),
-                _buildTabButton('国图信息', 1),
-                _buildTabButton('网购地址', 2),
-                _buildTabButton('书籍目录', 3),
-              ]),
-            ),
-          ),
+        // Tab 栏
+        Container(
+          decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(
+                  bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+          child: Row(children: [
+            _buildTabButton('基础信息', 0),
+            _buildTabButton('国图信息', 1),
+            _buildTabButton('网购地址', 2),
+            _buildTabButton('书籍目录', 3),
+          ]),
         ),
-      ],
-      body: _currentTab == 0
-          ? _buildBasicInfo(colors)
-          : _currentTab == 1
-              ? _buildOpacTab(colors)
-              : _currentTab == 2
-                  ? _buildOnlineTab(colors)
-                  : _buildCatalogTab(colors),
+        // Tab 内容
+        Expanded(
+          child: _currentTab == 0
+              ? _buildBasicInfo(colors)
+              : _currentTab == 1
+                  ? _buildOpacTab(colors)
+                  : _currentTab == 2
+                      ? _buildOnlineTab(colors)
+                      : _buildCatalogTab(colors),
+        ),
+      ]),
     );
   }
 
@@ -757,21 +752,4 @@ class _BookDetailPageState extends State<BookDetailPage> {
               color: colors.onSurface.withValues(alpha: 0.6))),
     ]);
   }
-}
-
-class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  _StickyTabBarDelegate({required this.child});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
-
-  @override
-  double get minExtent => 44;
-
-  @override
-  double get maxExtent => 44;
-
-  @override
-  bool shouldRebuild(_StickyTabBarDelegate oldDelegate) => child != oldDelegate.child;
 }
