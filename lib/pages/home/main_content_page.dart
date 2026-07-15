@@ -412,6 +412,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
   }
 
   Future<void> _loadRemoteInfo() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final info = await WebDAVService.instance.getRemoteBackupInfo();
     if (mounted) {

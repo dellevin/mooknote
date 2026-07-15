@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="index.css" />
   <style>
-    html, body { margin: 0; padding: 0; min-height: 100%; overflow: hidden; }
-    #vditor { border: none !important; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
     .vditor { border: none !important; }
     .vditor-toolbar { display: none !important; }
     .vditor-ir,
     .vditor-ir__marker--cursor,
     .vditor-content,
     .vditor-reset { background: transparent !important; }
+    /* Vditor 编辑区域允许滚动（Windows 桌面端需要） */
+    .vditor-ir { overflow-y: auto !important; }
     /* 正文字体小一些 */
     .vditor-reset { font-size: 13px !important; line-height: 1.6 !important; }
     /* 标题字体更大 */

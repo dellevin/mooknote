@@ -10,6 +10,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/tag_side_panel.dart';
 import '../../widgets/vditor_editor.dart';
 
 class NoteAddPage extends StatefulWidget {
@@ -126,7 +127,6 @@ class _NoteAddPageState extends State<NoteAddPage> {
       // 标题输入
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
         child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
           child: TextField(
             controller: _titleCtrl,
@@ -141,6 +141,13 @@ class _NoteAddPageState extends State<NoteAddPage> {
             ),
             onChanged: (_) => setState(() {}),
           ),
+        )),
+      ),
+      // 标签行 — 标题下面，靠左
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
+          child: Align(alignment: Alignment.centerLeft, child: _buildTagRow(colors)),
         )),
       ),
       // 内容编辑
@@ -169,6 +176,64 @@ class _NoteAddPageState extends State<NoteAddPage> {
     ]);
   }
 
+  Widget _buildTagRow(ColorScheme colors) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: [
+        for (final tag in _tags)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(tag, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
+              const SizedBox(width: 3),
+              GestureDetector(
+                onTap: () => setState(() => _tags.remove(tag)),
+                child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.3)),
+              ),
+            ]),
+          ),
+        GestureDetector(
+          onTap: _showTagPanel,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: colors.onSurface.withValues(alpha: 0.25), width: 1),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+              const SizedBox(width: 2),
+              Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showTagPanel() async {
+    final provider = context.read<AppProvider>();
+    final tagRows = await provider.getTags('note_tag');
+    final allTags = tagRows.map((t) => t['name'] as String).toSet();
+    for (final note in provider.notes) {
+      allTags.addAll(note.tags);
+    }
+    if (!mounted) return;
+    TagSidePanel.show(
+      context: context,
+      selectedTags: List.from(_tags),
+      allAvailableTags: allTags.toList()..sort(),
+      onTagsChanged: (newTags) {
+        setState(() => _tags = newTags);
+      },
+    );
+  }
+
   Widget _buildPreviewArea(ColorScheme colors) {
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -177,6 +242,21 @@ class _NoteAddPageState extends State<NoteAddPage> {
           Text(_titleCtrl.text,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.3)),
           const SizedBox(height: 16),
+        ],
+        // 标签
+        if (_tags.isNotEmpty) ...[
+          Wrap(spacing: 6, runSpacing: 4, children: [
+            for (final tag in _tags)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(tag, style: TextStyle(fontSize: 12, color: colors.onPrimaryContainer, fontWeight: FontWeight.w500)),
+              ),
+          ]),
+          const SizedBox(height: 20),
         ],
         Markdown(
           data: _contentCtrl.text,

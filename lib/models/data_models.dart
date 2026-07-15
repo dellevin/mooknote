@@ -30,13 +30,18 @@ List<String> parseStringListGeneric(dynamic data) {
     return data.map((e) => e.toString()).toList();
   }
   if (data is String) {
+    if (data.isEmpty) return [];
     try {
       final decoded = jsonDecode(data);
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList();
       }
+      // JSON 解析成功但不是 List（如 Map、String），保留原始值
+      return [data];
     } catch (e) {
-      return data.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      // JSON 解析失败，按逗号分割；若无逗号则作为单元素保留
+      final split = data.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      return split.isNotEmpty ? split : [data];
     }
   }
   return [];

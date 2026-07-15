@@ -617,16 +617,19 @@ class AppProvider extends ChangeNotifier {
   /// 添加影评
   Future<void> addMovieReview(MovieReview review) async {
     await _reviewDao.insertReview(review);
+    notifyListeners();
   }
 
   /// 更新影评
   Future<void> updateMovieReview(MovieReview review) async {
     await _reviewDao.updateReview(review);
+    notifyListeners();
   }
 
   /// 删除影评
   Future<void> removeMovieReview(String id) async {
     await _reviewDao.deleteReview(id);
+    notifyListeners();
   }
 
   /// 获取影视的影评数量
@@ -644,6 +647,7 @@ class AppProvider extends ChangeNotifier {
   /// 添加海报
   Future<void> addMoviePoster(MoviePoster poster) async {
     await _posterDao.insertPoster(poster);
+    notifyListeners();
   }
 
   /// 删除海报
@@ -653,6 +657,7 @@ class AppProvider extends ChangeNotifier {
       await ImagePathHelper.instance.deleteFile(poster.posterPath);
     }
     await _posterDao.deletePoster(id);
+    notifyListeners();
   }
 
   /// 获取影视的海报数量
@@ -670,16 +675,19 @@ class AppProvider extends ChangeNotifier {
   /// 添加游戏评价
   Future<void> addGameReview(GameReview review) async {
     await _gameReviewDao.insertReview(review);
+    notifyListeners();
   }
 
   /// 更新游戏评价
   Future<void> updateGameReview(GameReview review) async {
     await _gameReviewDao.updateReview(review);
+    notifyListeners();
   }
 
   /// 删除游戏评价
   Future<void> removeGameReview(String id) async {
     await _gameReviewDao.deleteReview(id);
+    notifyListeners();
   }
 
   /// 获取游戏的评价数量
@@ -697,6 +705,7 @@ class AppProvider extends ChangeNotifier {
   /// 添加游戏截图
   Future<void> addGameScreenshot(GameScreenshot screenshot) async {
     await _gameScreenshotDao.insertScreenshot(screenshot);
+    notifyListeners();
   }
 
   /// 删除游戏截图
@@ -706,6 +715,7 @@ class AppProvider extends ChangeNotifier {
       await ImagePathHelper.instance.deleteFile(screenshot.screenshotPath);
     }
     await _gameScreenshotDao.deleteScreenshot(id);
+    notifyListeners();
   }
 
   /// 获取游戏的截图数量
@@ -723,16 +733,19 @@ class AppProvider extends ChangeNotifier {
   /// 添加书评
   Future<void> addBookReview(BookReview review) async {
     await _bookReviewDao.insertReview(review);
+    notifyListeners();
   }
 
   /// 更新书评
   Future<void> updateBookReview(BookReview review) async {
     await _bookReviewDao.updateReview(review);
+    notifyListeners();
   }
 
   /// 删除书评
   Future<void> removeBookReview(String id) async {
     await _bookReviewDao.deleteReview(id);
+    notifyListeners();
   }
 
   /// 获取书籍的书评数量
@@ -750,16 +763,19 @@ class AppProvider extends ChangeNotifier {
   /// 添加摘抄
   Future<void> addBookExcerpt(BookExcerpt excerpt) async {
     await _bookExcerptDao.insertExcerpt(excerpt);
+    notifyListeners();
   }
 
   /// 更新摘抄
   Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
     await _bookExcerptDao.updateExcerpt(excerpt);
+    notifyListeners();
   }
 
   /// 删除摘抄
   Future<void> removeBookExcerpt(String id) async {
     await _bookExcerptDao.deleteExcerpt(id);
+    notifyListeners();
   }
 
   /// 获取书籍的摘抄数量

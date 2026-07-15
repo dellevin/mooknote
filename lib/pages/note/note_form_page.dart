@@ -143,6 +143,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final topPadding = MediaQuery.of(context).padding.top;
+
+    // Windows 桌面端：与编辑页一致的布局
+    if (Platform.isWindows) {
+      return _buildWindowsDesktopLayout(colors, topPadding);
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -156,7 +162,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final keyboardH = MediaQuery.of(context).viewInsets.bottom;
-          final contentH = constraints.maxHeight * 0.4;
           return Stack(
             children: [
               Column(
@@ -164,19 +169,16 @@ class _NoteFormPageState extends State<NoteFormPage> {
                   // 顶部区域 — 固定不动
                   _buildHeader(colors, topPadding),
 
-                  // 可滚动内容
+                  // 移动端：CustomScrollView 包裹所有内容
                   Expanded(
                     child: CustomScrollView(
                       controller: _scrollController,
                       physics: _editorTouched ? const NeverScrollableScrollPhysics() : null,
                       slivers: [
-                        // 标题行（点击编辑）
                         SliverToBoxAdapter(child: _buildTitleInput(colors)),
-
-                        // 编辑区域 — 高度随内容撑开，触摸时禁用外层滚动
                         SliverToBoxAdapter(
                           child: ConstrainedBox(
-                            constraints: BoxConstraints(minHeight: contentH),
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight * 0.4),
                             child: GestureDetector(
                               onTapDown: (_) => setState(() => _editorTouched = true),
                               onTapUp: (_) => setState(() => _editorTouched = false),
@@ -184,8 +186,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
                               child: _buildEditor(),
                           )),
                         ),
-
-                        // 图片 + 标签 + 字数 — 随内容撑开
                         SliverToBoxAdapter(child: _buildImageGrid()),
                         SliverToBoxAdapter(child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -198,8 +198,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
                             style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)),
                           ),
                         )),
-
-                        // 与工具栏的间距
                         const SliverToBoxAdapter(child: SizedBox(height: 80)),
                       ],
                     ),
@@ -219,6 +217,128 @@ class _NoteFormPageState extends State<NoteFormPage> {
         },
       ),
     ),
+    );
+  }
+
+  /// Windows 桌面端布局 — 与编辑页一致
+  Widget _buildWindowsDesktopLayout(ColorScheme colors, double topPadding) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _confirmLeave();
+        if (shouldPop && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+        backgroundColor: colors.surface,
+        body: Column(
+          children: [
+            // 顶栏 — 与编辑页一致
+            Container(
+              height: 52,
+              decoration: BoxDecoration(color: colors.surface,
+                border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
+              child: Row(children: [
+                const SizedBox(width: 8),
+                IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
+                  onPressed: () async {
+                    final shouldPop = await _confirmLeave();
+                    if (shouldPop && context.mounted) Navigator.pop(context);
+                  }),
+                Expanded(child: Text(_titleController.text.isNotEmpty ? _titleController.text : '新建笔记',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
+                  maxLines: 1, overflow: TextOverflow.ellipsis)),
+                if (_saveStatus == 'saved')
+                  Padding(padding: const EdgeInsets.only(right: 8),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                      const SizedBox(width: 4),
+                      Text('已保存', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                    ])),
+                FilledButton.icon(onPressed: _saveNote,
+                  icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
+                const SizedBox(width: 16),
+              ]),
+            ),
+            // 标题输入 — 与编辑页一致
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
+                child: TextField(controller: _titleController, maxLines: 1,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.4),
+                  decoration: InputDecoration(hintText: '添加标题',
+                    hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2), height: 1.4),
+                    border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                  onChanged: (_) => setState(() {})),
+              )),
+            ),
+            // 标签行 — 与编辑页一致
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
+                child: Align(alignment: Alignment.centerLeft, child: _buildTagChips()),
+              )),
+            ),
+            // 内容编辑
+            Expanded(
+              child: VditorEditor(
+                key: _vditorKey,
+                initialContent: _contentController.text,
+                noteId: _isEditing && widget.note != null ? widget.note!.id : (_tempNoteId ?? ''),
+                isDark: Theme.of(context).brightness == Brightness.dark,
+                surfaceColor: colors.surface,
+                onContentChanged: (value) {
+                  _contentController.text = value;
+                  _onTextChanged();
+                },
+              ),
+            ),
+            // 图片网格
+            if (_images.isNotEmpty) _buildEditImageGrid(colors),
+            // 底部字数
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                Text('${_contentController.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Windows 桌面端图片网格 — 与编辑页一致
+  Widget _buildEditImageGrid(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      height: 72,
+      child: ListView.separated(scrollDirection: Axis.horizontal,
+        itemCount: _images.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (ctx, i) {
+          if (i < _images.length) {
+            return Stack(children: [
+              InkWell(onTap: () => _showImagePreview(i),
+                child: Container(width: 56, height: 56,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: colors.outlineVariant, width: 0.5)),
+                  clipBehavior: Clip.antiAlias,
+                  child: FadeInLocalImage(path: _images[i], fit: BoxFit.cover))),
+              Positioned(top: -4, right: -4,
+                child: GestureDetector(onTap: () => setState(() => _images.removeAt(i)),
+                  child: Container(width: 16, height: 16,
+                    decoration: BoxDecoration(color: colors.surface, shape: BoxShape.circle, border: Border.all(color: colors.outline)),
+                    child: Icon(Icons.close, size: 10, color: colors.onSurface.withValues(alpha: 0.5))))),
+            ]);
+          }
+          return InkWell(onTap: _pickImage,
+            child: Container(width: 56, height: 56,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: colors.surfaceContainerHighest,
+                border: Border.all(color: colors.outlineVariant)),
+              child: Icon(Icons.add_photo_alternate_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.3))));
+        }),
     );
   }
 
@@ -498,11 +618,63 @@ class _NoteFormPageState extends State<NoteFormPage> {
     return false;
   }
 
-  /// 离开确认（自动保存后直接返回）
+  /// 离开确认：有内容时弹窗让用户选择，无内容时直接离开
   Future<bool> _confirmLeave() async {
     _autoSaveTimer?.cancel();
-    if (_hasContent()) await _autoSave();
-    return true;
+    if (!_hasContent()) return true;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text('确认离开', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          content: const Text('内容尚未保存，是否保存后离开？', style: TextStyle(fontSize: 14, height: 1.5)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'discard'),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.error,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('丢弃'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'cancel'),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('继续编辑'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, 'save'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('保存'),
+            ),
+          ],
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        );
+      },
+    );
+
+    if (result == 'save') {
+      await _autoSave();
+      return true;
+    } else if (result == 'discard') {
+      return true;
+    }
+    // 'cancel' 或关闭对话框 → 留在页面
+    return false;
   }
 
   Future<void> _saveNote() async {
@@ -678,7 +850,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   Widget _buildGridImageItem(int index) {
     final colors = Theme.of(context).colorScheme;
-    final size = (MediaQuery.of(context).size.width - 16 * 2 - 10 * 2) / 3;
+    final size = ((MediaQuery.of(context).size.width - 16 * 2 - 10 * 2) / 3).clamp(60.0, 120.0);
     return InkWell(
       onTap: () => _showImagePreview(index),
       onLongPress: () => _showDeleteImageDialog(index),
@@ -702,7 +874,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   /// 添加图片按钮
   Widget _buildAddImageButton() {
     final colors = Theme.of(context).colorScheme;
-    final size = (MediaQuery.of(context).size.width - 16 * 2 - 10 * 2) / 3;
+    final size = ((MediaQuery.of(context).size.width - 16 * 2 - 10 * 2) / 3).clamp(60.0, 120.0);
     return InkWell(
       onTap: _pickImage,
       borderRadius: BorderRadius.circular(10),

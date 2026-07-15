@@ -2024,9 +2024,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 Navigator.of(context).pop(); // close dialog
                 provider.selectMovie(null);
               } else {
-                final navigator = Navigator.of(context);
-                navigator.pop();
-                navigator.pop();
+                // 先关 dialog，再关详情页；分两步避免连续 pop 导致的导航栈异常
+                Navigator.of(context).pop(); // close dialog
+                if (mounted) Navigator.of(context).pop(); // close detail page
               }
               if (mounted && context.mounted) {
                 ToastUtil.show(context, '已删除');

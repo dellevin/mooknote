@@ -36,6 +36,7 @@ class VditorEditorState extends State<VditorEditor> {
   InAppWebViewController? _controller;
   bool _isReady = false;
   bool _loadFailed = false;
+  late final TextEditingController _fallbackController;
   String? _distDir; // Windows: 文件系统路径
   double _contentHeight = 200; // WebView 内容高度，随内容撑开
   double _lastKeyboardH = 0; // 上次键盘高度，用于检测键盘弹出
@@ -48,6 +49,7 @@ class VditorEditorState extends State<VditorEditor> {
   @override
   void initState() {
     super.initState();
+    _fallbackController = TextEditingController(text: widget.initialContent ?? '');
     _startFallbackTimer();
     if (Platform.isWindows) {
       _locateDistDir();
@@ -87,6 +89,7 @@ class VditorEditorState extends State<VditorEditor> {
   @override
   void dispose() {
     _fallbackTimer?.cancel();
+    _fallbackController.dispose();
     _destroyVditor();
     super.dispose();
   }
@@ -218,7 +221,7 @@ class VditorEditorState extends State<VditorEditor> {
 
     if (_loadFailed) {
       return TextField(
-        controller: TextEditingController(text: widget.initialContent ?? ''),
+        controller: _fallbackController,
         maxLines: null,
         expands: true,
         textAlignVertical: TextAlignVertical.top,
@@ -241,6 +244,28 @@ class VditorEditorState extends State<VditorEditor> {
       return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
     }
 
+    // Windows: WebView 环境未初始化时，直接 fallback 到纯文本编辑
+    if (Platform.isWindows && windowsWebViewEnvironment == null) {
+      _loadFailed = true;
+      return TextField(
+        controller: _fallbackController,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
+        style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+        decoration: InputDecoration(
+          hintText: widget.placeholder,
+          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        onChanged: widget.onContentChanged,
+      );
+    }
+
     final String initialUrl;
     if (Platform.isWindows) {
       final htmlPath = p.join(_distDir!, 'vditor_editor.html');
@@ -257,6 +282,98 @@ class VditorEditorState extends State<VditorEditor> {
       Future.microtask(() => _scrollToCursor());
     }
     _lastKeyboardH = keyboardH;
+
+    // Windows 桌面端：WebView 填满父容器，自身管理内部滚动
+    // 移动端：使用 _contentHeight 动态撑开，配合 onHeightChanged 回调
+    if (Platform.isWindows) {
+      return Stack(
+        children: [
+          InAppWebView(
+            webViewEnvironment: windowsWebViewEnvironment,
+            initialUrlRequest: URLRequest(url: WebUri(initialUrl)),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+              transparentBackground: true,
+              disableContextMenu: false,
+              useHybridComposition: true,
+              allowFileAccessFromFileURLs: true,
+              allowUniversalAccessFromFileURLs: true,
+            ),
+            onWebViewCreated: (controller) {
+              _controller = controller;
+              controller.addJavaScriptHandler(
+                handlerName: 'onVditorReady',
+                callback: (_) => _onVditorReady(),
+              );
+              controller.addJavaScriptHandler(
+                handlerName: 'onContentChanged',
+                callback: (args) {
+                  if (args.isNotEmpty) {
+                    widget.onContentChanged?.call(args[0].toString());
+                  }
+                },
+              );
+              controller.addJavaScriptHandler(
+                handlerName: 'onPickImage',
+                callback: (_) => _pickImage(),
+              );
+              controller.addJavaScriptHandler(
+                handlerName: 'onImageUpload',
+                callback: (args) {
+                  if (args.length >= 3) {
+                    _handleImageUpload(args[0].toString(), args[1].toString(), args[2].toString());
+                  }
+                },
+              );
+              controller.addJavaScriptHandler(
+                handlerName: 'onHeightChanged',
+                callback: (args) {
+                  if (args.isNotEmpty) {
+                    final h = double.tryParse(args[0].toString()) ?? _contentHeight;
+                    if ((h - _contentHeight).abs() > 2 && h > 0) {
+                      setState(() => _contentHeight = h);
+                      widget.onHeightChanged?.call(h);
+                    }
+                  }
+                },
+              );
+            },
+            onLoadStop: (controller, url) async {
+              final theme = widget.isDark ? 'dark' : 'light';
+              final escapedPlaceholder = jsonEncode(widget.placeholder);
+              await controller.evaluateJavascript(
+                source: 'initVditor("$theme", $escapedPlaceholder)',
+              );
+            },
+            onReceivedError: (controller, request, error) {
+              debugPrint('[VditorEditor] load error: ${error.description}');
+            },
+          ),
+          // 加载动画：Vditor 就绪前显示
+          if (!_isReady)
+            Container(
+              color: colors.surface,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '编辑器加载中...',
+                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
+    }
 
     return SizedBox(
       height: _contentHeight,
