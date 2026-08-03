@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../data/database_helper.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/image_path_helper.dart';
@@ -21,6 +22,33 @@ class BackupService {
   /// 获取应用数据根目录（统一路径）
   Future<String> _getAppDir() async {
     return await ImagePathHelper.getAppDir();
+  }
+
+  /// 请求存储权限，返回是否已获取
+  Future<bool> requestStoragePermission() async {
+    if (!Platform.isAndroid) return true;
+    var status = await Permission.manageExternalStorage.status;
+    if (status.isGranted) return true;
+    status = await Permission.manageExternalStorage.request();
+    if (status.isGranted) return true;
+    status = await Permission.storage.status;
+    if (status.isGranted) return true;
+    status = await Permission.storage.request();
+    return status.isGranted;
+  }
+
+  /// 获取 Android Download 目录下的 mooknote 备份路径
+  Future<String> _getDownloadBackupPath(String fileName) async {
+    if (Platform.isAndroid) {
+      final downloadDir = Directory('/sdcard/Download/mooknote');
+      if (!await downloadDir.exists()) {
+        await downloadDir.create(recursive: true);
+      }
+      return path.join(downloadDir.path, fileName);
+    }
+    // 非 Android 平台使用临时目录
+    final tempDir = await getTemporaryDirectory();
+    return path.join(tempDir.path, fileName);
   }
 
   // ─── 共享导出逻辑 ─────────────────────────────────────
@@ -154,11 +182,17 @@ class BackupService {
   /// 导出所有数据和图片为 ZIP 文件，并选择保存路径
   Future<ExportResult> exportDataWithImages() async {
     try {
+      // Android: 先检查存储权限，没有则请求
+      if (Platform.isAndroid) {
+        final hasPermission = await requestStoragePermission();
+        if (!hasPermission) {
+          return ExportResult.error('需要存储权限才能导出备份文件，请在设置中授予"所有文件访问权限"');
+        }
+      }
+
       final data = await _buildExportData();
       final zipFile = File(data.zipPath!);
-      final tempDir = await getTemporaryDirectory();
       final fileName = 'mooknote_backup_${_formatDateTime(DateTime.now())}.zip';
-      final tempFilePath = path.join(tempDir.path, fileName);
 
       String? finalPath;
       try {
@@ -175,9 +209,10 @@ class BackupService {
         await zipFile.copy(outputPath);
         finalPath = outputPath;
       } catch (e) {
-        // FilePicker 不可用时，复制到临时目录
-        await zipFile.copy(tempFilePath);
-        finalPath = tempFilePath;
+        // FilePicker 不可用时，复制到 /sdcard/Download/mooknote/
+        final downloadPath = await _getDownloadBackupPath(fileName);
+        await zipFile.copy(downloadPath);
+        finalPath = downloadPath;
       }
 
       // 清理原始临时 zip
@@ -218,6 +253,84 @@ class BackupService {
     } catch (e) {
       return AutoBackupExportResult.error('导出失败: $e');
     }
+  }
+
+  /// 执行本地自动备份：导出到 /sdcard/Download/mooknote/autoBackUp/，保留最新 maxKeep 个
+  Future<AutoBackupExportResult> performLocalAutoBackup({int maxKeep = 5}) async {
+    try {
+      if (Platform.isAndroid) {
+        final hasPermission = await requestStoragePermission();
+        if (!hasPermission) {
+          return AutoBackupExportResult.error('需要存储权限才能自动备份');
+        }
+      }
+
+      final data = await _buildExportData();
+      final zipFile = File(data.zipPath!);
+      final fileName = 'mooknote_backup_${_formatDateTime(DateTime.now())}.zip';
+
+      // 目标目录
+      final backupDir = Directory('/sdcard/Download/mooknote/autoBackUp');
+      if (!await backupDir.exists()) {
+        await backupDir.create(recursive: true);
+      }
+
+      // 复制到目标路径
+      final destPath = path.join(backupDir.path, fileName);
+      await zipFile.copy(destPath);
+
+      // 清理原始临时 zip
+      try { await zipFile.delete(); } catch (_) {}
+
+      // 清理旧备份，保留最新 maxKeep 个
+      await _cleanOldBackups(backupDir, maxKeep);
+
+      // 记录备份时间
+      final userPrefs = UserPrefs();
+      await userPrefs.setLastLocalAutoBackupTime(DateTime.now().toIso8601String());
+
+      return AutoBackupExportResult.success(
+        zipPath: destPath,
+        movieCount: data.movieCount,
+        bookCount: data.bookCount,
+        noteCount: data.noteCount,
+        imageCount: data.imageCount,
+        epubCount: data.epubCount,
+      );
+    } catch (e) {
+      return AutoBackupExportResult.error('自动备份失败: $e');
+    }
+  }
+
+  /// 清理旧备份文件，只保留最新的 maxKeep 个
+  Future<void> _cleanOldBackups(Directory backupDir, int maxKeep) async {
+    final files = <File>[];
+    await for (final entity in backupDir.list()) {
+      if (entity is File && entity.path.endsWith('.zip')) {
+        files.add(entity);
+      }
+    }
+    if (files.length <= maxKeep) return;
+    // 按修改时间排序，旧的在前
+    files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
+    final toDelete = files.sublist(0, files.length - maxKeep);
+    for (final f in toDelete) {
+      try { await f.delete(); } catch (_) {}
+    }
+  }
+
+  /// 获取本地自动备份目录下的备份文件列表（按时间倒序）
+  Future<List<FileSystemEntity>> listLocalAutoBackups() async {
+    final backupDir = Directory('/sdcard/Download/mooknote/autoBackUp');
+    if (!await backupDir.exists()) return [];
+    final files = <FileSystemEntity>[];
+    await for (final entity in backupDir.list()) {
+      if (entity is File && entity.path.endsWith('.zip')) {
+        files.add(entity);
+      }
+    }
+    files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    return files;
   }
 
   // ─── 导入 ─────────────────────────────────────────────

@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/sync/backup_service.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 
 /// 本地备份页面
 class BackupPage extends StatefulWidget {
@@ -15,6 +17,22 @@ class BackupPage extends StatefulWidget {
 class _BackupPageState extends State<BackupPage> {
   bool _isExporting = false;
   bool _isImporting = false;
+  bool _isRunningAutoBackup = false;
+  List<FileSystemEntity> _autoBackupFiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoBackupFiles();
+  }
+
+  Future<void> _loadAutoBackupFiles() async {
+    if (!Platform.isAndroid) return;
+    final files = await BackupService.instance.listLocalAutoBackups();
+    if (mounted) {
+      setState(() => _autoBackupFiles = files);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,38 +43,47 @@ class _BackupPageState extends State<BackupPage> {
         title: const Text('本地备份'),
       ),
       body: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                // 手动备份
-                _buildSectionTitle(colors, '手动备份'),
-                const SizedBox(height: 10),
-                _buildActionCard(
-                  colors: colors,
-                  title: '导出数据',
-                  description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备',
-                  icon: Icons.upload_outlined,
-                  buttonText: '导出',
-                  isLoading: _isExporting,
-                  onTap: _exportData,
-                ),
-                const SizedBox(height: 8),
-                _buildActionCard(
-                  colors: colors,
-                  title: '导入数据',
-                  description: '从备份文件导入数据，将覆盖当前所有数据',
-                  icon: Icons.download_outlined,
-                  buttonText: '导入',
-                  isLoading: _isImporting,
-                  onTap: _importData,
-                  isDestructive: true,
-                ),
+        padding: const EdgeInsets.all(20),
+        children: [
+          // 手动备份
+          _buildSectionTitle(colors, '手动备份'),
+          const SizedBox(height: 10),
+          _buildActionCard(
+            colors: colors,
+            title: '导出数据',
+            description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备',
+            icon: Icons.upload_outlined,
+            buttonText: '导出',
+            isLoading: _isExporting,
+            onTap: _exportData,
+          ),
+          const SizedBox(height: 8),
+          _buildActionCard(
+            colors: colors,
+            title: '导入数据',
+            description: '从备份文件导入数据，将覆盖当前所有数据',
+            icon: Icons.download_outlined,
+            buttonText: '导入',
+            isLoading: _isImporting,
+            onTap: _importData,
+            isDestructive: true,
+          ),
 
-                const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-                // 使用说明
-                _buildInfoSection(colors),
-              ],
-            ),
+          // 自动备份
+          if (Platform.isAndroid) ...[
+            _buildSectionTitle(colors, '自动备份'),
+            const SizedBox(height: 10),
+            _buildAutoBackupSection(colors),
+          ],
+
+          const SizedBox(height: 24),
+
+          // 使用说明
+          _buildInfoSection(colors),
+        ],
+      ),
     );
   }
 
@@ -183,6 +210,215 @@ class _BackupPageState extends State<BackupPage> {
     );
   }
 
+  /// 构建自动备份区域
+  Widget _buildAutoBackupSection(ColorScheme colors) {
+    final userPrefs = UserPrefs();
+    final isEnabled = userPrefs.localAutoBackupEnabled;
+    final intervalHours = userPrefs.localAutoBackupIntervalHours;
+    final lastTime = userPrefs.lastLocalAutoBackupTime;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 开关行
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.sync_outlined,
+                  size: 18,
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '自动备份',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      isEnabled
+                          ? '每 $intervalHours 小时自动备份一次，保留最新 5 个'
+                          : '开启后自动定期备份数据',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4),
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isEnabled,
+                onChanged: (value) async {
+                  await userPrefs.setLocalAutoBackupEnabled(value);
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+
+          if (isEnabled) ...[
+            const SizedBox(height: 12),
+            // 间隔选择
+            _buildIntervalSelector(colors, intervalHours),
+            const SizedBox(height: 10),
+            // 立即备份按钮
+            GestureDetector(
+              onTap: _isRunningAutoBackup ? null : _runAutoBackupNow,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _isRunningAutoBackup
+                      ? colors.onSurface.withValues(alpha: 0.25)
+                      : colors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: _isRunningAutoBackup
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(colors.onPrimary),
+                          ),
+                        )
+                      : Text(
+                          '立即备份',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onPrimary,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            // 上次备份时间
+            if (lastTime != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                '上次备份: ${_formatBackupTime(lastTime)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colors.onSurface.withValues(alpha: 0.35),
+                ),
+              ),
+            ],
+            // 备份文件列表
+            if (_autoBackupFiles.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ..._autoBackupFiles.map((f) => _buildBackupFileItem(colors, f)),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 构建间隔选择器
+  Widget _buildIntervalSelector(ColorScheme colors, int currentHours) {
+    const options = [6, 12, 24, 48];
+    return Row(
+      children: options.map((h) {
+        final selected = h == currentHours;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () async {
+              await UserPrefs().setLocalAutoBackupIntervalHours(h);
+              setState(() {});
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: selected
+                    ? colors.primary
+                    : colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Center(
+                child: Text(
+                  h < 24 ? '$h小时' : '${h ~/ 24}天',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// 构建备份文件条目
+  Widget _buildBackupFileItem(ColorScheme colors, FileSystemEntity file) {
+    final name = file.path.split('/').last;
+    final stat = file.statSync();
+    final size = _formatFileSize(stat.size);
+    final time = _formatBackupTime(stat.modified.toIso8601String());
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(Icons.description_outlined,
+              size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colors.onSurface.withValues(alpha: 0.6),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '$time · $size',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colors.onSurface.withValues(alpha: 0.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建信息说明区域
   Widget _buildInfoSection(ColorScheme colors) {
     return Container(
@@ -209,7 +445,7 @@ class _BackupPageState extends State<BackupPage> {
                   color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(height: 10),
               Text(
                 '使用说明',
                 style: TextStyle(
@@ -463,4 +699,39 @@ class _BackupPageState extends State<BackupPage> {
       }
     }
   }
+
+  /// 立即执行一次自动备份
+  Future<void> _runAutoBackupNow() async {
+    setState(() => _isRunningAutoBackup = true);
+    try {
+      final result = await BackupService.instance.performLocalAutoBackup();
+      if (!mounted) return;
+      if (result.success) {
+        ToastUtil.show(context, '自动备份完成');
+        await _loadAutoBackupFiles();
+      } else {
+        ToastUtil.show(context, result.errorMessage ?? '自动备份失败');
+      }
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '自动备份失败: $e');
+    } finally {
+      if (mounted) setState(() => _isRunningAutoBackup = false);
+    }
+  }
+
+  /// 格式化备份时间
+  String _formatBackupTime(String isoTime) {
+    final dt = DateTime.tryParse(isoTime)?.toLocal();
+    if (dt == null) return isoTime;
+    return '${dt.year}-${_pad(dt.month)}-${_pad(dt.day)} ${_pad(dt.hour)}:${_pad(dt.minute)}';
+  }
+
+  /// 格式化文件大小
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  String _pad(int n) => n.toString().padLeft(2, '0');
 }

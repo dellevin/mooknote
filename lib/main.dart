@@ -11,12 +11,14 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'pages/home/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
 import 'services/usage_stats_service.dart';
+import 'services/sync/backup_service.dart';
 import 'providers/app_provider.dart';
 import 'widgets/app_shell.dart';
 
@@ -74,6 +76,7 @@ Future<void> _bootstrap(AppProvider appProvider) async {
   appProvider.initMainTabIndex();
 
   unawaited(_initUsageStats());
+  unawaited(_startAutoBackupAfterDbReady());
 }
 
 Future<void> _initUsageStats() async {
@@ -81,6 +84,26 @@ Future<void> _initUsageStats() async {
     await UsageStatsService.instance.start();
   } catch (e) {
     debugPrint('初始化用户统计失败: $e');
+  }
+}
+
+/// 数据库就绪后启动自动备份（延迟执行，不阻塞开屏）
+Future<void> _startAutoBackupAfterDbReady() async {
+  if (!Platform.isAndroid) return;
+  // 等 UI 渲染完成后再执行，避免开屏卡顿
+  await Future.delayed(const Duration(seconds: 3));
+  final userPrefs = UserPrefs();
+  if (!userPrefs.localAutoBackupEnabled) return;
+  // 启动时立即执行一次（后台不阻塞）
+  try {
+    final result = await BackupService.instance.performLocalAutoBackup();
+    if (result.success) {
+      debugPrint('[AutoBackup] 启动自动备份完成');
+    } else {
+      debugPrint('[AutoBackup] 启动自动备份失败: ${result.errorMessage}');
+    }
+  } catch (e) {
+    debugPrint('[AutoBackup] 启动自动备份异常: $e');
   }
 }
 
@@ -96,6 +119,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeMode? _lastAppliedTheme;
   bool _updateCheckDone = false;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  Timer? _autoBackupTimer;
 
   @override
   void initState() {
@@ -105,8 +129,81 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     widget.appProvider.addListener(_onThemeChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applySystemUI();
+      _requestStoragePermissionIfNeeded();
       _checkUpdate(); // 不阻塞，完成后自行弹窗
     });
+  }
+
+  @override
+  void dispose() {
+    _autoBackupTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Android 启动时请求存储权限（备份导出需要写入 Download 目录）
+  Future<void> _requestStoragePermissionIfNeeded() async {
+    if (!Platform.isAndroid) return;
+    var status = await Permission.manageExternalStorage.status;
+    if (status.isGranted) return;
+    status = await Permission.manageExternalStorage.request();
+    if (status.isGranted) return;
+    // Android 11 以下回退到 storage 权限
+    status = await Permission.storage.status;
+    if (status.isGranted) return;
+    await Permission.storage.request();
+  }
+
+  /// 启动本地自动备份定时器（仅启动定时器，不立即执行备份）
+  void _startAutoBackupTimer() {
+    _autoBackupTimer?.cancel();
+    if (!Platform.isAndroid) return;
+    final userPrefs = UserPrefs();
+    if (!userPrefs.localAutoBackupEnabled) return;
+
+    final intervalHours = userPrefs.localAutoBackupIntervalHours;
+    // 定时器：每小时检查一次是否到了备份时间
+    _autoBackupTimer = Timer.periodic(const Duration(hours: 1), (_) {
+      _checkAndRunAutoBackup();
+    });
+    debugPrint('[AutoBackup] 定时器已启动，间隔 $intervalHours 小时');
+  }
+
+  /// 检查是否需要执行自动备份（定时器调用，走间隔判断）
+  Future<void> _checkAndRunAutoBackup() async {
+    final userPrefs = UserPrefs();
+    if (!userPrefs.localAutoBackupEnabled) {
+      _autoBackupTimer?.cancel();
+      return;
+    }
+    final intervalHours = userPrefs.localAutoBackupIntervalHours;
+    final lastTime = userPrefs.lastLocalAutoBackupTime;
+
+    bool shouldRun = false;
+    if (lastTime == null) {
+      shouldRun = true;
+    } else {
+      final last = DateTime.tryParse(lastTime)?.toLocal();
+      if (last == null) {
+        shouldRun = true;
+      } else {
+        final now = DateTime.now();
+        shouldRun = now.difference(last).inHours >= intervalHours;
+      }
+    }
+
+    if (!shouldRun) return;
+
+    try {
+      final result = await BackupService.instance.performLocalAutoBackup();
+      if (result.success) {
+        debugPrint('[AutoBackup] 定时自动备份完成');
+      } else {
+        debugPrint('[AutoBackup] 定时自动备份失败: ${result.errorMessage}');
+      }
+    } catch (e) {
+      debugPrint('[AutoBackup] 定时自动备份异常: $e');
+    }
   }
 
   /// 延迟到首页渲染后再检查版本更新，确保 context 已就绪
@@ -262,6 +359,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _applySystemUI();
+      // 从备份页返回后可能改了自动备份设置，重新启动定时器
+      _startAutoBackupTimer();
     }
   }
 

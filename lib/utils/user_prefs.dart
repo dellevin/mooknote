@@ -300,4 +300,18 @@ class UserPrefs {
   /// 字体选择器上次使用的目录路径
   String? get lastFontDir => prefs.getString('lastFontDir');
   Future<bool> setLastFontDir(String value) => prefs.setString('lastFontDir', value);
+
+  // ========== 本地自动备份 ==========
+
+  /// 是否启用本地自动备份
+  bool get localAutoBackupEnabled => prefs.getBool('localAutoBackupEnabled') ?? false;
+  Future<bool> setLocalAutoBackupEnabled(bool value) => prefs.setBool('localAutoBackupEnabled', value);
+
+  /// 本地自动备份间隔（小时），默认 24
+  int get localAutoBackupIntervalHours => prefs.getInt('localAutoBackupIntervalHours') ?? 24;
+  Future<bool> setLocalAutoBackupIntervalHours(int value) => prefs.setInt('localAutoBackupIntervalHours', value);
+
+  /// 上次本地自动备份时间（ISO8601）
+  String? get lastLocalAutoBackupTime => prefs.getString('lastLocalAutoBackupTime');
+  Future<bool> setLastLocalAutoBackupTime(String value) => prefs.setString('lastLocalAutoBackupTime', value);
 }
