@@ -63,6 +63,7 @@ class Movie {
   final String status; // watched/want_to_watch/watching
   final String category; // 影视分类: movie/tv/anime/variety/documentary/short/other
   final DateTime? watchDate; // 观看日期
+  final int watchCount; // 观看次数
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -83,6 +84,7 @@ class Movie {
     required this.status,
     this.category = 'movie',
     this.watchDate,
+    this.watchCount = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -105,6 +107,7 @@ class Movie {
       status: json['status'] ?? 'want_to_watch',
       category: json['category'] ?? 'movie',
       watchDate: _safeParseDate(json['watch_date']),
+      watchCount: json['watch_count'] ?? 0,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
@@ -128,6 +131,7 @@ class Movie {
       'status': status,
       'category': category,
       'watch_date': watchDate?.toUtc().toIso8601String(),
+      'watch_count': watchCount,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -163,6 +167,7 @@ class Movie {
     String? status,
     String? category,
     DateTime? watchDate,
+    int? watchCount,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -183,6 +188,7 @@ class Movie {
       status: status ?? this.status,
       category: category ?? this.category,
       watchDate: watchDate ?? this.watchDate,
+      watchCount: watchCount ?? this.watchCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -208,6 +214,7 @@ class Book {
   final DateTime? publishDate; // 出版时间
   final DateTime? startDate; // 开始阅读日期
   final DateTime? finishDate; // 读完日期
+  final int readCount; // 阅读次数
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -229,6 +236,7 @@ class Book {
     this.publishDate,
     this.startDate,
     this.finishDate,
+    this.readCount = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -252,6 +260,7 @@ class Book {
       publishDate: _safeParseDate(json['publish_date']),
       startDate: _safeParseDate(json['start_date']),
       finishDate: _safeParseDate(json['finish_date']),
+      readCount: json['read_count'] ?? 0,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
@@ -276,6 +285,7 @@ class Book {
       'publish_date': publishDate?.toUtc().toIso8601String(),
       'start_date': startDate?.toUtc().toIso8601String(),
       'finish_date': finishDate?.toUtc().toIso8601String(),
+      'read_count': readCount,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -306,6 +316,7 @@ class Book {
     DateTime? publishDate,
     DateTime? startDate,
     DateTime? finishDate,
+    int? readCount,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -327,6 +338,7 @@ class Book {
       publishDate: publishDate ?? this.publishDate,
       startDate: startDate ?? this.startDate,
       finishDate: finishDate ?? this.finishDate,
+      readCount: readCount ?? this.readCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -655,6 +667,9 @@ class Game {
   final List<String> genres; // 类型
   final int playTimeHours; // 游玩时长（小时）
   final int playTimeMinutes; // 游玩时长（分钟）
+  final int playCount; // 游玩次数
+  final List<String> developer; // 开发者
+  final DateTime? releaseDate; // 发售时间
   final List<String> purchasePlatforms; // 购买平台
   final DateTime? purchaseDate; // 购买日期
   final String? purchasePrice; // 购买价格
@@ -676,6 +691,9 @@ class Game {
     this.genres = const [],
     this.playTimeHours = 0,
     this.playTimeMinutes = 0,
+    this.playCount = 0,
+    this.developer = const [],
+    this.releaseDate,
     this.purchasePlatforms = const [],
     this.purchaseDate,
     this.purchasePrice,
@@ -699,6 +717,9 @@ class Game {
       genres: parseStringListGeneric(json['genres']),
       playTimeHours: json['play_time_hours'] ?? 0,
       playTimeMinutes: json['play_time_minutes'] ?? 0,
+      playCount: json['play_count'] ?? 0,
+      developer: parseStringListGeneric(json['developer']),
+      releaseDate: _safeParseDate(json['release_date']),
       purchasePlatforms: parseStringListGeneric(json['purchase_platforms']),
       purchaseDate: _safeParseDate(json['purchase_date']),
       purchasePrice: json['purchase_price'],
@@ -723,6 +744,9 @@ class Game {
       'genres': jsonEncode(genres),
       'play_time_hours': playTimeHours,
       'play_time_minutes': playTimeMinutes,
+      'play_count': playCount,
+      'developer': jsonEncode(developer),
+      'release_date': releaseDate?.toUtc().toIso8601String(),
       'purchase_platforms': jsonEncode(purchasePlatforms),
       'purchase_date': purchaseDate?.toUtc().toIso8601String(),
       'purchase_price': purchasePrice,
@@ -753,6 +777,9 @@ class Game {
     List<String>? genres,
     int? playTimeHours,
     int? playTimeMinutes,
+    int? playCount,
+    List<String>? developer,
+    DateTime? releaseDate,
     List<String>? purchasePlatforms,
     DateTime? purchaseDate,
     Object? purchasePrice = _copyWithNull,
@@ -774,6 +801,9 @@ class Game {
       genres: genres ?? this.genres,
       playTimeHours: playTimeHours ?? this.playTimeHours,
       playTimeMinutes: playTimeMinutes ?? this.playTimeMinutes,
+      playCount: playCount ?? this.playCount,
+      developer: developer ?? this.developer,
+      releaseDate: releaseDate ?? this.releaseDate,
       purchasePlatforms: purchasePlatforms ?? this.purchasePlatforms,
       purchaseDate: purchaseDate ?? this.purchaseDate,
       purchasePrice: purchasePrice is _CopyWithNullSentinel ? this.purchasePrice : (purchasePrice as String?),

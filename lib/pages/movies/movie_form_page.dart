@@ -53,6 +53,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
   String _category = 'movie';
   DateTime? _releaseDate;
   DateTime? _watchDate;
+  int _watchCount = 0;
   bool _isDownloading = false;
 
   @override
@@ -89,6 +90,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       _category = movie.category;
       _releaseDate = movie.releaseDate;
       _watchDate = movie.watchDate;
+      _watchCount = movie.watchCount;
     } else if (widget.initialStatus != null) {
       // 添加模式：使用传入的默认状态
       _status = widget.initialStatus!;
@@ -601,6 +603,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   ),
                 ),
 
+                // 观看次数
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '观看次数',
+                    value: _watchCount > 0 ? '$_watchCount 次' : '',
+                    icon: Icons.repeat_outlined,
+                    onTap: () => _editWatchCount(),
+                  ),
+                ),
+
                 // 第五行：剧情简介（独占一行）
                 SizedBox(
                   width: double.infinity,
@@ -732,6 +746,31 @@ class _MovieFormPageState extends State<MovieFormPage> {
         ),
       ),
     );
+  }
+
+  /// 编辑观看次数
+  Future<void> _editWatchCount() async {
+    final controller = TextEditingController(text: _watchCount > 0 ? '$_watchCount' : '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('观看次数'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '输入次数'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (result != null) {
+      final val = int.tryParse(result) ?? 0;
+      setState(() => _watchCount = val < 0 ? 0 : val);
+    }
   }
 
   /// 全屏编辑剧情简介
@@ -1357,6 +1396,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         status: _status,
         category: _category,
         watchDate: _watchDate,
+        watchCount: _watchCount,
         createdAt: now,
         updatedAt: now,
       );
@@ -1378,6 +1418,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         status: _status,
         category: _category,
         watchDate: _watchDate,
+        watchCount: _watchCount,
         updatedAt: now,
       );
 

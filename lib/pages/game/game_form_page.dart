@@ -41,17 +41,20 @@ class _GameFormPageState extends State<GameFormPage> {
   late TextEditingController _ratingController;
   late TextEditingController _playTimeHoursController;
   late TextEditingController _playTimeMinutesController;
+  int _playCount = 0;
   late TextEditingController _purchasePriceController;
   late TextEditingController _summaryController;
 
   List<String> _platforms = [];
   List<String> _versions = [];
   List<String> _genres = [];
+  List<String> _developer = [];
   List<String> _purchasePlatforms = [];
   String? _coverPath;
   String _status = 'want_to_play';
   String _category = 'digital';
   DateTime? _purchaseDate;
+  DateTime? _releaseDate;
   bool _isDownloading = false;
 
   @override
@@ -83,11 +86,14 @@ class _GameFormPageState extends State<GameFormPage> {
       _platforms = List.from(game.platforms);
       _versions = List.from(game.versions);
       _genres = List.from(game.genres);
+      _developer = List.from(game.developer);
       _purchasePlatforms = List.from(game.purchasePlatforms);
       _coverPath = game.coverPath;
       _status = game.status;
       _category = game.category;
       _purchaseDate = game.purchaseDate;
+      _releaseDate = game.releaseDate;
+      _playCount = game.playCount;
     } else if (widget.initialStatus != null) {
       _status = widget.initialStatus!;
     }
@@ -278,6 +284,51 @@ class _GameFormPageState extends State<GameFormPage> {
                       },
                     ),
                   ),
+                  // 开发者
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '开发者',
+                      value: _developer.isEmpty
+                          ? ''
+                          : '${_developer.length}个：${_developer.join('、')}',
+                      icon: Icons.code_outlined,
+                      scrollHorizontal: true,
+                      onTap: () async {
+                        final provider = context.read<AppProvider>();
+                        final data = provider.games.map((g) => g.developer).toList();
+                        final result = await GenreSelectorPage.show(
+                          context: context,
+                          title: '选择开发者',
+                          existingTagsFuture: compute(_collectUnique, data),
+                          initialSelected: _developer,
+                          hint: '如：任天堂、FromSoftware',
+                        );
+                        if (!mounted) return;
+                        if (result != null) setState(() => _developer = result);
+                      },
+                    ),
+                  ),
+                  // 发售时间
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '发售时间',
+                      value: _releaseDate != null
+                          ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
+                          : '',
+                      icon: Icons.event_outlined,
+                      trailing: _releaseDate != null
+                          ? GestureDetector(
+                              onTap: () => setState(() => _releaseDate = null),
+                              child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                            )
+                          : null,
+                      onTap: () => _selectReleaseDate(),
+                    ),
+                  ),
                   // 游玩时长
                   SizedBox(
                     width: (MediaQuery.of(context).size.width - 52) / 2,
@@ -289,6 +340,19 @@ class _GameFormPageState extends State<GameFormPage> {
                       onTap: () => _showPlayTimePicker(),
                     ),
                   ),
+
+                  // 游玩次数
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '游玩次数',
+                      value: _playCount > 0 ? '$_playCount 次' : '',
+                      icon: Icons.repeat_outlined,
+                      onTap: () => _editPlayCount(),
+                    ),
+                  ),
+
                   // 购买平台
                   SizedBox(
                     width: (MediaQuery.of(context).size.width - 52) / 2,
@@ -943,6 +1007,30 @@ class _GameFormPageState extends State<GameFormPage> {
     }
   }
 
+  Future<void> _editPlayCount() async {
+    final controller = TextEditingController(text: _playCount > 0 ? '$_playCount' : '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('游玩次数'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '输入次数'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (result != null) {
+      final val = int.tryParse(result) ?? 0;
+      setState(() => _playCount = val < 0 ? 0 : val);
+    }
+  }
+
   void _showPlayTimePicker() {
     final colors = Theme.of(context).colorScheme;
     final hoursController = TextEditingController(text: _playTimeHoursController.text);
@@ -1025,14 +1113,28 @@ class _GameFormPageState extends State<GameFormPage> {
     }
   }
 
+  Future<void> _selectReleaseDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _releaseDate ?? DateTime.now(),
+      firstDate: DateTime(1970),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (context, child) => child!,
+    );
+    if (!mounted) return;
+    if (picked != null) {
+      setState(() => _releaseDate = picked);
+    }
+  }
+
   bool _hasContent() {
     if (widget.game != null) return true;
     if (_titleController.text.trim().isNotEmpty) return true;
     if (_ratingController.text.trim().isNotEmpty) return true;
     if (_coverPath != null) return true;
-    if (_platforms.isNotEmpty || _versions.isNotEmpty || _genres.isNotEmpty) return true;
+    if (_platforms.isNotEmpty || _versions.isNotEmpty || _genres.isNotEmpty || _developer.isNotEmpty) return true;
     if (_purchasePlatforms.isNotEmpty) return true;
-    if (_purchaseDate != null) return true;
+    if (_purchaseDate != null || _releaseDate != null) return true;
     if (_purchasePriceController.text.trim().isNotEmpty) return true;
     if (_summaryController.text.trim().isNotEmpty) return true;
     if (int.tryParse(_playTimeHoursController.text) != null && int.parse(_playTimeHoursController.text) > 0) return true;
@@ -1100,10 +1202,13 @@ class _GameFormPageState extends State<GameFormPage> {
           platforms: _platforms,
           versions: _versions,
           genres: _genres,
+          developer: _developer,
           playTimeHours: playTimeHours,
           playTimeMinutes: playTimeMinutes,
+          playCount: _playCount,
           purchasePlatforms: _purchasePlatforms,
           purchaseDate: _purchaseDate,
+          releaseDate: _releaseDate,
           purchasePrice: _purchasePriceController.text.trim().isNotEmpty
               ? _purchasePriceController.text.trim()
               : null,
@@ -1126,10 +1231,13 @@ class _GameFormPageState extends State<GameFormPage> {
           platforms: _platforms,
           versions: _versions,
           genres: _genres,
+          developer: _developer,
           playTimeHours: playTimeHours,
           playTimeMinutes: playTimeMinutes,
+          playCount: _playCount,
           purchasePlatforms: _purchasePlatforms,
           purchaseDate: _purchaseDate,
+          releaseDate: _releaseDate,
           purchasePrice: _purchasePriceController.text.trim().isNotEmpty
               ? _purchasePriceController.text.trim()
               : null,

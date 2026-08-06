@@ -38,6 +38,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   int _prevLayoutStyle = -1;
   int _prevCategoryIndex = -1;
   int _prevDisplayMode = -1;
+  int _prevSortMode = -1;
   double _swipeOffset = 0.0; // 当前拖动偏移量（用于左右滑动切换状态）
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
@@ -79,6 +80,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final layoutChanged = provider.movieLayoutStyle != _prevLayoutStyle;
     final categoryChanged = provider.movieCategoryIndex != _prevCategoryIndex;
     final displayModeChanged = provider.movieDisplayMode != _prevDisplayMode;
+    final sortModeChanged = UserPrefs().movieSortMode != _prevSortMode;
     final countChanged = provider.movies.length != _prevMovieCount;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
     if (editRefreshed && provider.lastEditedItemId != null) {
@@ -95,10 +97,11 @@ class _MovieTabPageState extends State<MovieTabPage> {
       }
       return;
     }
-    if (statusChanged || layoutChanged || categoryChanged || displayModeChanged || countChanged || editRefreshed) {
+    if (statusChanged || layoutChanged || categoryChanged || displayModeChanged || sortModeChanged || countChanged || editRefreshed) {
       _prevLayoutStyle = provider.movieLayoutStyle;
       _prevCategoryIndex = provider.movieCategoryIndex;
       _prevDisplayMode = provider.movieDisplayMode;
+      _prevSortMode = UserPrefs().movieSortMode;
       _prevMovieCount = provider.movies.length;
       _loadFirst();
     }

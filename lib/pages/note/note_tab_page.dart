@@ -31,6 +31,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   bool _initialized = false;
   int _lastScrollSignal = 0;
   int _prevNoteCount = -1;
+  int _prevSortMode = -1;
   int _lastEditRefreshCounter = 0;
 
   @override
@@ -67,6 +68,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
     // 仅在数据实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
     final countChanged = provider.notes.length != _prevNoteCount;
+    final sortModeChanged = UserPrefs().noteSortMode != _prevSortMode;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
     if (editRefreshed && provider.lastEditedItemId != null) {
       // 就地更新被编辑的条目，不重置分页
@@ -82,7 +84,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
       }
       return;
     }
-    if (countChanged || editRefreshed) {
+    if (countChanged || sortModeChanged || editRefreshed) {
+      _prevSortMode = UserPrefs().noteSortMode;
       _prevNoteCount = provider.notes.length;
       _loadFirst();
     }

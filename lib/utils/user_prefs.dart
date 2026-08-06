@@ -130,6 +130,9 @@ class UserPrefs {
   bool get showSidebarStroll => prefs.getBool('showSidebarStroll') ?? true;
   Future<bool> setShowSidebarStroll(bool value) => prefs.setBool('showSidebarStroll', value);
 
+  bool get showSidebarReviewed => prefs.getBool('showSidebarReviewed') ?? true;
+  Future<bool> setShowSidebarReviewed(bool value) => prefs.setBool('showSidebarReviewed', value);
+
   bool get showSidebarCalendar => prefs.getBool('showSidebarCalendar') ?? true;
   Future<bool> setShowSidebarCalendar(bool value) => prefs.setBool('showSidebarCalendar', value);
 
@@ -156,11 +159,19 @@ class UserPrefs {
   int get noteSortMode => prefs.getInt('noteSortMode') ?? 0;
   Future<bool> setNoteSortMode(int value) => prefs.setInt('noteSortMode', value);
 
-  /// 影视排序方式 (0: 更新时间, 1: 创建时间, 2: 评分)
+  /// 书影日历日期模式 (0: 创建日期, 1: 观看/开始阅读日期)
+  int get calendarDateMode => prefs.getInt('calendarDateMode') ?? 0;
+  Future<bool> setCalendarDateMode(int value) => prefs.setInt('calendarDateMode', value);
+
+  /// 数据统计时间范围 (0: 周, 1: 月, 2: 年)
+  int get statsTimeRange => prefs.getInt('statsTimeRange') ?? 2;
+  Future<bool> setStatsTimeRange(int value) => prefs.setInt('statsTimeRange', value);
+
+  /// 影视排序方式 (0: 更新时间, 1: 创建时间, 2: 评分, 3: 观看日期, 4: 上映时间)
   int get movieSortMode => prefs.getInt('movieSortMode') ?? 0;
   Future<bool> setMovieSortMode(int value) => prefs.setInt('movieSortMode', value);
 
-  /// 书籍排序方式 (0: 更新时间, 1: 创建时间, 2: 评分)
+  /// 书籍排序方式 (0: 更新时间, 1: 创建时间, 2: 评分, 3: 开始阅读时间, 4: 出版时间)
   int get bookSortMode => prefs.getInt('bookSortMode') ?? 0;
   Future<bool> setBookSortMode(int value) => prefs.setInt('bookSortMode', value);
 

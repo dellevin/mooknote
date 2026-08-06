@@ -244,6 +244,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           Text('观看于 ${_formatDate(movie.watchDate!)}',
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
                         ],
+                        if (movie.watchCount > 0) ...[
+                          const SizedBox(height: 4),
+                          Text('已观看 ${movie.watchCount} 次',
+                            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+                        ],
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
                         // 详细信息
                         if (movie.directors.isNotEmpty) _buildDesktopInfoRow('导演', movie.directors.join('，'), colors),
@@ -1459,6 +1464,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           if (movie.watchDate != null)
             Text(
               '观看于 ${_formatDate(movie.watchDate!)}',
+              style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          if (movie.watchCount > 0)
+            Text(
+              '已观看 ${movie.watchCount} 次',
               style: TextStyle(
                 fontSize: 14,
                 color: colors.onSurface.withValues(alpha: 0.4),

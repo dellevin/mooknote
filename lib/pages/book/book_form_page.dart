@@ -52,6 +52,7 @@ class _BookFormPageState extends State<BookFormPage> {
   DateTime? _publishDate;
   DateTime? _startDate;
   DateTime? _finishDate;
+  int _readCount = 0;
   bool _isDownloading = false;
 
   @override
@@ -84,6 +85,7 @@ class _BookFormPageState extends State<BookFormPage> {
       _publishDate = book.publishDate;
       _startDate = book.startDate;
       _finishDate = book.finishDate;
+      _readCount = book.readCount;
     } else if (widget.initialStatus != null) {
       _status = widget.initialStatus!;
     }
@@ -236,6 +238,11 @@ class _BookFormPageState extends State<BookFormPage> {
                   ),
                   _halfCard('读完日期', _finishDate != null ? '${_finishDate!.year}.${_finishDate!.month.toString().padLeft(2, '0')}.${_finishDate!.day.toString().padLeft(2, '0')}' : '', Icons.check_circle_outlined,
                     onTap: () => _selectFinishDate(),
+                  ),
+
+                  // 阅读次数
+                  _halfCard('阅读次数', _readCount > 0 ? '$_readCount 次' : '', Icons.repeat_outlined,
+                    onTap: () => _editReadCount(),
                   ),
 
                   // 书籍简介
@@ -585,6 +592,30 @@ class _BookFormPageState extends State<BookFormPage> {
     if (picked != null) setState(() => _finishDate = picked);
   }
 
+  Future<void> _editReadCount() async {
+    final controller = TextEditingController(text: _readCount > 0 ? '$_readCount' : '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('阅读次数'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '输入次数'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (result != null) {
+      final val = int.tryParse(result) ?? 0;
+      setState(() => _readCount = val < 0 ? 0 : val);
+    }
+  }
+
   Future<void> _editSummary() async {
     final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => _SummaryEditorPage(initialText: _summaryController.text)));
     if (!mounted) return;
@@ -646,7 +677,7 @@ class _BookFormPageState extends State<BookFormPage> {
           authors: _authors, translators: _translators, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, createdAt: now, updatedAt: now,
+          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, createdAt: now, updatedAt: now,
         );
         await context.read<AppProvider>().addBook(newBook);
         await context.read<AppProvider>().loadBooks();
@@ -656,7 +687,7 @@ class _BookFormPageState extends State<BookFormPage> {
           authors: _authors, translators: _translators, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, updatedAt: now,
+          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, updatedAt: now,
         );
         await context.read<AppProvider>().updateBook(updatedBook);
       }

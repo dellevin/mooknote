@@ -35,6 +35,7 @@ class _BookTabPageState extends State<BookTabPage> {
   int _lastScrollSignal = 0;
   int _lastEditRefreshCounter = 0;
   int _prevBookCount = -1;
+  int _prevSortMode = -1;
   double _dragDelta = 0.0; // 当前拖动偏移量
 
   void _onBookTap(Book book) {
@@ -82,6 +83,7 @@ class _BookTabPageState extends State<BookTabPage> {
 
     // 仅在数据实际变化时刷新列表，避免底部导航栏显隐等UI变化误触发重载
     final statusChanged = provider.bookStatusIndex != _lastStatusIndex;
+    final sortModeChanged = UserPrefs().bookSortMode != _prevSortMode;
     final countChanged = provider.books.length != _prevBookCount;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
     if (editRefreshed && provider.lastEditedItemId != null) {
@@ -98,7 +100,8 @@ class _BookTabPageState extends State<BookTabPage> {
       }
       return;
     }
-    if (statusChanged || countChanged || editRefreshed) {
+    if (statusChanged || sortModeChanged || countChanged || editRefreshed) {
+      _prevSortMode = UserPrefs().bookSortMode;
       _prevBookCount = provider.books.length;
       _loadFirst();
     }

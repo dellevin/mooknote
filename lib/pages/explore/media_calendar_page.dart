@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../utils/user_prefs.dart';
 import '../movies/movie_detail_page.dart';
 import '../movies/movie_form_page.dart';
 import '../book/book_detail_page.dart';
@@ -19,6 +20,7 @@ class MediaCalendarPage extends StatefulWidget {
 class _MediaCalendarPageState extends State<MediaCalendarPage> {
   late DateTime _currentMonth;
   DateTime? _selectedDay;
+  int _dateMode = 0; // 0: 创建日期, 1: 观看/开始阅读日期
 
   // {DateTime(dayOnly): [{path, title, type, data}]}
   late Map<DateTime, List<_CalendarItem>> _dayItems;
@@ -26,6 +28,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
   @override
   void initState() {
     super.initState();
+    _dateMode = UserPrefs().calendarDateMode;
     final now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month);
     _selectedDay = DateTime(now.year, now.month, now.day);
@@ -38,7 +41,9 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
     for (final m in provider.movies.where((m) => !m.isDeleted)) {
       if (m.posterPath == null || m.posterPath!.isEmpty) continue;
-      final day = DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day);
+      final date = _dateMode == 1 ? m.watchDate : m.createdAt;
+      if (date == null) continue;
+      final day = DateTime(date.year, date.month, date.day);
       map.putIfAbsent(day, () => []);
       map[day]!.add(_CalendarItem(
         path: m.posterPath!,
@@ -50,7 +55,9 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
     for (final b in provider.books.where((b) => !b.isDeleted)) {
       if (b.coverPath == null || b.coverPath!.isEmpty) continue;
-      final day = DateTime(b.createdAt.year, b.createdAt.month, b.createdAt.day);
+      final date = _dateMode == 1 ? b.startDate : b.createdAt;
+      if (date == null) continue;
+      final day = DateTime(date.year, date.month, date.day);
       map.putIfAbsent(day, () => []);
       map[day]!.add(_CalendarItem(
         path: b.coverPath!,
@@ -61,6 +68,28 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     }
 
     _dayItems = map;
+  }
+
+  Widget _buildDateModeToggle(ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: TextButton.icon(
+        onPressed: () {
+          setState(() {
+            _dateMode = _dateMode == 0 ? 1 : 0;
+            UserPrefs().setCalendarDateMode(_dateMode);
+            _buildDayMap();
+          });
+        },
+        icon: Icon(_dateMode == 0 ? Icons.calendar_today_outlined : Icons.visibility_outlined, size: 16, color: colors.primary),
+        label: Text(_dateMode == 0 ? '创建日期' : '观看/阅读', style: TextStyle(fontSize: 12, color: colors.primary)),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
   }
 
   void _prevMonth() {
@@ -85,7 +114,12 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('书影日历')),
+      appBar: AppBar(
+        title: const Text('书影日历'),
+        actions: [
+          _buildDateModeToggle(colors),
+        ],
+      ),
       body: Column(
         children: [
           _buildMonthHeader(colors),

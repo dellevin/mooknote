@@ -26,6 +26,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showRecent = true;
   bool _showEncounter = true;
   bool _showStroll = true;
+  bool _showReviewed = true;
   bool _showCalendar = true;
   bool _showPerson = true;
   bool _showTags = true;
@@ -51,6 +52,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showRecent = _userPrefs.showSidebarRecent;
       _showEncounter = _userPrefs.showSidebarEncounter;
       _showStroll = _userPrefs.showSidebarStroll;
+      _showReviewed = _userPrefs.showSidebarReviewed;
       _showCalendar = _userPrefs.showSidebarCalendar;
       _showPerson = _userPrefs.showSidebarPerson;
       _showTags = _userPrefs.showSidebarTags;
@@ -250,6 +252,16 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               (v) async {
             await _userPrefs.setShowSidebarStroll(v);
             setState(() => _showStroll = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.done_all, '已阅', '查看已看/已读/已通关记录', _showReviewed,
+              (v) async {
+            await _userPrefs.setShowSidebarReviewed(v);
+            setState(() => _showReviewed = v);
           }),
           Divider(
               height: 0.5,

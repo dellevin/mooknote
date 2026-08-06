@@ -45,6 +45,7 @@ class GameDao {
     switch (sortMode) {
       case 1: return 'created_at DESC';
       case 2: return 'rating DESC NULLS LAST, updated_at DESC';
+      case 3: return 'release_date DESC NULLS LAST, created_at DESC';
       default: return 'updated_at DESC';
     }
   }

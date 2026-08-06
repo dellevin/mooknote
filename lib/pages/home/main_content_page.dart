@@ -214,7 +214,9 @@ class _MainContentPageState extends State<MainContentPage> {
                               _showSortMenu(context, isWallMode ? '影视墙排序' : '影视排序', UserPrefs().movieSortMode, [
                                 (0, '按更新时间排序', Icons.update),
                                 (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                (2, '按评分排序', Icons.star_outline),
+                                (2, '按影视评分排序', Icons.star_outline),
+                                (3, '按观看日期排序', Icons.visibility_outlined),
+                                (4, '按上映时间排序', Icons.movie_creation_outlined),
                               ], (v) { UserPrefs().setMovieSortMode(v); context.read<AppProvider>().loadMovies(); });
                             }
                           : tab.label == '阅读'
@@ -223,7 +225,9 @@ class _MainContentPageState extends State<MainContentPage> {
                                   _showSortMenu(context, isWallMode ? '书架排序' : '书籍排序', UserPrefs().bookSortMode, [
                                     (0, '按更新时间排序', Icons.update),
                                     (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                    (2, '按评分排序', Icons.star_outline),
+                                    (2, '按书籍评分排序', Icons.star_outline),
+                                    (3, '按开始阅读时间排序', Icons.auto_stories_outlined),
+                                    (4, '按出版时间排序', Icons.auto_stories_outlined),
                                   ], (v) { UserPrefs().setBookSortMode(v); context.read<AppProvider>().loadBooks(); });
                                 }
                               : tab.label == '笔记'
@@ -237,7 +241,8 @@ class _MainContentPageState extends State<MainContentPage> {
                                           _showSortMenu(context, isWallMode ? '游戏墙排序' : '游戏排序', UserPrefs().gameSortMode, [
                                             (0, '按更新时间排序', Icons.update),
                                             (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                            (2, '按评分排序', Icons.star_outline),
+                                            (2, '按游戏评分排序', Icons.star_outline),
+                                            (3, '按发售时间排序', Icons.event_outlined),
                                           ], (v) { UserPrefs().setGameSortMode(v); context.read<AppProvider>().loadGames(); });
                                         }
                                       : null,

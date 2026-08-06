@@ -260,6 +260,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             ])),
                           ]),
                         ],
+                        if (book.readCount > 0) ...[
+                          const SizedBox(height: 8),
+                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            SizedBox(width: 56, child: Text('阅读次数', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            Expanded(child: Text('${book.readCount} 次', style: TextStyle(fontSize: 13, color: colors.onSurface))),
+                          ]),
+                        ],
                         if (book.summary != null && book.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
                           Row(children: [
@@ -798,7 +805,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
                   if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                   if (book.publishDate != null) _buildPublishDateSection(book),
-                  if (book.startDate != null || book.finishDate != null) _buildReadingDatesSection(book),
+                  if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
@@ -899,7 +906,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
                         if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                         if (book.publishDate != null) _buildPublishDateSection(book),
-                        if (book.startDate != null || book.finishDate != null) _buildReadingDatesSection(book),
+                        if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
                         // 类型标签毛玻璃
                         if (book.genres.isNotEmpty) _buildGenresSection(book),
                         // 简介：内部已有毛玻璃卡片
@@ -1613,35 +1620,64 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildReadingDatesSection(Book book) {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 64,
-            child: Text(
-              '阅读日期',
-              style: TextStyle(
-                fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
+    return Column(
+      children: [
+        if (book.startDate != null || book.finishDate != null)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (book.startDate != null)
-                  _buildDateChip('开始', book.startDate!, isOverlay),
-                if (book.finishDate != null)
-                  _buildDateChip('读完', book.finishDate!, isOverlay),
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    '阅读日期',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      if (book.startDate != null)
+                        _buildDateChip('开始', book.startDate!, isOverlay),
+                      if (book.finishDate != null)
+                        _buildDateChip('读完', book.finishDate!, isOverlay),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        if (book.readCount > 0)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    '阅读次数',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    '${book.readCount} 次',
+                    style: TextStyle(fontSize: 13, color: isOverlay ? Colors.white70 : colors.onSurface),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

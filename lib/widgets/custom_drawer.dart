@@ -5,6 +5,7 @@ import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../pages/explore/encounter_page.dart';
 import '../pages/explore/stroll_page.dart';
+import '../pages/explore/reviewed_page.dart';
 import '../pages/explore/media_calendar_page.dart';
 import '../pages/explore/person_list_page.dart';
 import '../pages/markdown_reader/md_reader_tab_page.dart';
@@ -88,6 +89,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final showQuickActions = userPrefs.showSidebarQuickActions;
     final showTools = userPrefs.showSidebarEncounter ||
         userPrefs.showSidebarStroll ||
+        userPrefs.showSidebarReviewed ||
         userPrefs.showSidebarCalendar ||
         userPrefs.showSidebarPerson ||
         userPrefs.showSidebarTags ||
@@ -319,6 +321,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final exploreItems = <(IconData, String, Widget)>[];
     if (userPrefs.showSidebarEncounter) exploreItems.add((Icons.favorite_border, '统计', const EncounterPage()));
     if (userPrefs.showSidebarStroll) exploreItems.add((Icons.explore_outlined, '漫步', const StrollPage()));
+    if (userPrefs.showSidebarReviewed) exploreItems.add((Icons.done_all, '已阅', const ReviewedPage()));
     if (userPrefs.showSidebarCalendar) exploreItems.add((Icons.calendar_month_outlined, '书影日历', const MediaCalendarPage()));
 
     final toolItems = <(IconData, String, Widget)>[];

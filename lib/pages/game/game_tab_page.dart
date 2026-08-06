@@ -35,6 +35,7 @@ class _GameTabPageState extends State<GameTabPage> {
   int _lastEditRefreshCounter = 0;
   int _prevGameCount = -1;
   int _prevLayoutStyle = -1;
+  int _prevSortMode = -1;
   double _swipeOffset = 0.0;
 
   static const _statusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
@@ -73,6 +74,7 @@ class _GameTabPageState extends State<GameTabPage> {
     final statusChanged = provider.gameStatusIndex != _lastStatusIndex;
     final layoutChanged = provider.gameLayoutStyle != _prevLayoutStyle;
     final countChanged = provider.games.length != _prevGameCount;
+    final sortModeChanged = UserPrefs().gameSortMode != _prevSortMode;
     final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
     if (editRefreshed && provider.lastEditedItemId != null) {
       _lastEditRefreshCounter = provider.editRefreshCounter;
@@ -97,8 +99,9 @@ class _GameTabPageState extends State<GameTabPage> {
       }
       return;
     }
-    if (statusChanged || layoutChanged || countChanged || editRefreshed) {
+    if (statusChanged || layoutChanged || sortModeChanged || countChanged || editRefreshed) {
       _prevLayoutStyle = provider.gameLayoutStyle;
+      _prevSortMode = UserPrefs().gameSortMode;
       _prevGameCount = provider.games.length;
       _loadFirst();
     }

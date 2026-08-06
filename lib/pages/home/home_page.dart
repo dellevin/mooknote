@@ -3813,14 +3813,14 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
       case 0:
         return (
           UserPrefs().movieSortMode,
-          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline)],
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline), (3, '按观看日期', Icons.visibility_outlined), (4, '按上映时间', Icons.movie_creation_outlined)],
           '影视排序',
           (v) { UserPrefs().setMovieSortMode(v); provider.loadMovies(); },
         );
       case 1:
         return (
           UserPrefs().bookSortMode,
-          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline)],
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline), (3, '按开始阅读时间', Icons.auto_stories_outlined), (4, '按出版时间', Icons.auto_stories_outlined)],
           '书籍排序',
           (v) { UserPrefs().setBookSortMode(v); provider.loadBooks(); },
         );
@@ -3834,7 +3834,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
       case 3:
         return (
           UserPrefs().gameSortMode,
-          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline)],
+          [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline), (3, '按发售时间', Icons.event_outlined)],
           '游戏排序',
           (v) { UserPrefs().setGameSortMode(v); provider.loadGames(); },
         );

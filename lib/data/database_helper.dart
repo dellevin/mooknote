@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 34,
+      version: 36,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -336,9 +336,34 @@ class DatabaseHelper {
         )
       ''');
     }
-  }
 
-  /// 升级books表到V26（添加阅读始末日期字段）
+    if (oldVersion < 35) {
+      // 添加观看次数/阅读次数/游玩次数字段
+      final movieCols = await db.rawQuery('PRAGMA table_info(movies)');
+      if (!movieCols.any((col) => col['name'] == 'watch_count')) {
+        await db.execute('ALTER TABLE movies ADD COLUMN watch_count INTEGER DEFAULT 0');
+      }
+      final bookCols = await db.rawQuery('PRAGMA table_info(books)');
+      if (!bookCols.any((col) => col['name'] == 'read_count')) {
+        await db.execute('ALTER TABLE books ADD COLUMN read_count INTEGER DEFAULT 0');
+      }
+      final gameCols = await db.rawQuery('PRAGMA table_info(games)');
+      if (!gameCols.any((col) => col['name'] == 'play_count')) {
+        await db.execute('ALTER TABLE games ADD COLUMN play_count INTEGER DEFAULT 0');
+      }
+    }
+
+    if (oldVersion < 36) {
+      // 添加游戏开发者和发售时间字段
+      final gameCols = await db.rawQuery('PRAGMA table_info(games)');
+      if (!gameCols.any((col) => col['name'] == 'developer')) {
+        await db.execute('ALTER TABLE games ADD COLUMN developer TEXT DEFAULT \'[]\'');
+      }
+      if (!gameCols.any((col) => col['name'] == 'release_date')) {
+        await db.execute('ALTER TABLE games ADD COLUMN release_date TEXT');
+      }
+    }
+  }
   Future<void> _upgradeBooksTableV26(Database db) async {
     final columns = await db.rawQuery('PRAGMA table_info(books)');
     final hasStartDate = columns.any((col) => col['name'] == 'start_date');
@@ -724,6 +749,7 @@ class DatabaseHelper {
         status TEXT NOT NULL,
         category TEXT NOT NULL DEFAULT 'movie',
         watch_date TEXT,
+        watch_count INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,
@@ -749,6 +775,7 @@ class DatabaseHelper {
         publish_date TEXT,
         start_date TEXT,
         finish_date TEXT,
+        read_count INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,
@@ -901,6 +928,9 @@ class DatabaseHelper {
         purchase_price TEXT,
         summary TEXT,
         cover_offset REAL DEFAULT 0,
+        play_count INTEGER DEFAULT 0,
+        developer TEXT DEFAULT '[]',
+        release_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0

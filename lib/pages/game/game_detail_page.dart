@@ -53,11 +53,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
   List<String> _editPlatforms = [];
   List<String> _editVersions = [];
   List<String> _editGenres = [];
+  List<String> _editDeveloper = [];
   List<String> _editPurchasePlatforms = [];
   String? _editCoverPath;
   String _editStatus = 'want_to_play';
   String _editCategory = 'digital';
   DateTime? _editPurchaseDate;
+  DateTime? _editReleaseDate;
   bool _editIsDownloading = false;
   final ImagePicker _picker = ImagePicker();
 
@@ -81,11 +83,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
     _editPlatforms = List.from(g.platforms);
     _editVersions = List.from(g.versions);
     _editGenres = List.from(g.genres);
+    _editDeveloper = List.from(g.developer);
     _editPurchasePlatforms = List.from(g.purchasePlatforms);
     _editCoverPath = g.coverPath;
     _editStatus = g.status;
     _editCategory = g.category;
     _editPurchaseDate = g.purchaseDate;
+    _editReleaseDate = g.releaseDate;
   }
 
   void _enterEditMode() {
@@ -101,11 +105,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
     _editPlatforms = List.from(latest.platforms);
     _editVersions = List.from(latest.versions);
     _editGenres = List.from(latest.genres);
+    _editDeveloper = List.from(latest.developer);
     _editPurchasePlatforms = List.from(latest.purchasePlatforms);
     _editCoverPath = latest.coverPath;
     _editStatus = latest.status;
     _editCategory = latest.category;
     _editPurchaseDate = latest.purchaseDate;
+    _editReleaseDate = latest.releaseDate;
     setState(() => _isEditing = true);
   }
 
@@ -252,8 +258,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             )),
                           ]),
                         ],
+                        if (game.developer.isNotEmpty)
+                          _buildDesktopInfoRow('开发者', game.developer.join('、'), colors),
+                        if (game.releaseDate != null)
+                          _buildDesktopInfoRow('发售时间', _formatDate(game.releaseDate!), colors),
                         if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
                           _buildDesktopInfoRow('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟', colors),
+                        if (game.playCount > 0)
+                          _buildDesktopInfoRow('游玩次数', '${game.playCount} 次', colors),
                         if (game.purchasePlatforms.isNotEmpty)
                           _buildDesktopInfoRow('购买平台', game.purchasePlatforms.join('、'), colors),
                         if (game.purchaseDate != null)
@@ -555,6 +567,21 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             );
                             if (result != null) setState(() => _editGenres = result);
                           }),
+                          const SizedBox(height: 16),
+                          // 开发者
+                          _buildEditChipField('开发者', _editDeveloper, onTap: () async {
+                            final provider = context.read<AppProvider>();
+                            final data = provider.games.map((g) => g.developer).toList();
+                            final result = await GenreSelectorPage.show(
+                              context: context, title: '选择开发者',
+                              existingTagsFuture: compute(_collectUnique, data),
+                              initialSelected: _editDeveloper, hint: '如：任天堂、FromSoftware',
+                            );
+                            if (result != null) setState(() => _editDeveloper = result);
+                          }),
+                          const SizedBox(height: 16),
+                          // 发售时间
+                          _buildEditDateField('发售时间', _editReleaseDate, (d) => setState(() => _editReleaseDate = d), clearable: true),
                           const SizedBox(height: 16),
                           // 购买平台
                           _buildEditChipField('购买平台', _editPurchasePlatforms, onTap: () async {
@@ -889,6 +916,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         platforms: _editPlatforms,
         versions: _editVersions,
         genres: _editGenres,
+        developer: _editDeveloper,
         purchasePlatforms: _editPurchasePlatforms,
         purchasePrice: _purchasePriceCtrl.text.trim().isEmpty ? null : _purchasePriceCtrl.text.trim(),
         playTimeHours: int.tryParse(_playTimeHoursCtrl.text) ?? 0,
@@ -898,6 +926,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         status: _editStatus,
         category: _editCategory,
         purchaseDate: _editPurchaseDate,
+        releaseDate: _editReleaseDate,
         updatedAt: DateTime.now(),
       );
       await context.read<AppProvider>().updateGame(updated);
@@ -954,8 +983,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
                     _buildInfoSection('版本', game.versions.join('、')),
                   if (game.genres.isNotEmpty)
                     _buildGenresSection(game),
+                  if (game.developer.isNotEmpty)
+                    _buildInfoSection('开发者', game.developer.join('、')),
+                  if (game.releaseDate != null)
+                    _buildInfoSection('发售时间', _formatDate(game.releaseDate!)),
                   if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
                     _buildInfoSection('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟'),
+                  if (game.playCount > 0)
+                    _buildInfoSection('游玩次数', '${game.playCount} 次'),
                   if (game.purchasePlatforms.isNotEmpty)
                     _buildInfoSection('购买平台', game.purchasePlatforms.join('、')),
                   if (game.purchaseDate != null)
@@ -1097,8 +1132,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       const SizedBox(height: 12),
                       _buildOverlayGenres(game),
                     ],
+                    if (game.developer.isNotEmpty)
+                      _buildOverlayInfoRow('开发者', game.developer.join('、')),
+                    if (game.releaseDate != null)
+                      _buildOverlayInfoRow('发售时间', _formatDate(game.releaseDate!)),
                     if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
                       _buildOverlayInfoRow('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟'),
+                    if (game.playCount > 0)
+                      _buildOverlayInfoRow('游玩次数', '${game.playCount} 次'),
                     if (game.purchasePlatforms.isNotEmpty)
                       _buildOverlayInfoRow('购买平台', game.purchasePlatforms.join('、')),
                     if (game.purchaseDate != null)
