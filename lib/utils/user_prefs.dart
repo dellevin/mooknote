@@ -207,6 +207,10 @@ class UserPrefs {
   bool get gameWallMode => prefs.getBool('gameWallMode') ?? false;
   Future<bool> setGameWallMode(bool value) => prefs.setBool('gameWallMode', value);
 
+  /// 已阅页布局样式 (0: 列表, 1: 网格)
+  int get reviewedLayoutStyle => prefs.getInt('reviewedLayoutStyle') ?? 0;
+  Future<bool> setReviewedLayoutStyle(int value) => prefs.setInt('reviewedLayoutStyle', value);
+
   // ========== 应用图标设置 ==========
 
   // ========== Markdown 阅读器 ==========
