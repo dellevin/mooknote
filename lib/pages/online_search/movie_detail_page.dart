@@ -130,8 +130,23 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final pic = m['vod_pic'] ?? '';
 
     DateTime? releaseDate;
-    if (yearStr.toString().isNotEmpty) {
-      releaseDate = DateTime.tryParse('${yearStr}-01-01');
+    final pubdateStr = m['vod_pubdate'] ?? '';
+    final dateSource =
+        pubdateStr.toString().isNotEmpty ? pubdateStr : yearStr;
+    if (dateSource.toString().isNotEmpty) {
+      // 提取 yyyy-MM-dd 部分，兼容 "2025-09-08(多伦多电影节)" 等格式
+      final match =
+          RegExp(r'(\d{4}-\d{2}-\d{2})').firstMatch(dateSource.toString());
+      if (match != null) {
+        releaseDate = DateTime.tryParse(match.group(1)!);
+      } else {
+        // 纯年份如 "2025"
+        final yearMatch =
+            RegExp(r'^(\d{4})$').firstMatch(dateSource.toString());
+        if (yearMatch != null) {
+          releaseDate = DateTime.tryParse('${yearMatch.group(1)}-01-01');
+        }
+      }
     }
 
     final movieId = const Uuid().v4();

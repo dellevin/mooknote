@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 36,
+      version: 38,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -361,6 +361,44 @@ class DatabaseHelper {
       }
       if (!gameCols.any((col) => col['name'] == 'release_date')) {
         await db.execute('ALTER TABLE games ADD COLUMN release_date TEXT');
+      }
+    }
+
+    if (oldVersion < 37) {
+      // 创建片单表和片单条目表
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS playlists (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          type TEXT NOT NULL,
+          cover_path TEXT,
+          item_count INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          is_deleted INTEGER DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS playlist_items (
+          id TEXT PRIMARY KEY,
+          playlist_id TEXT NOT NULL,
+          item_id TEXT NOT NULL,
+          sort_order INTEGER DEFAULT 0,
+          added_at TEXT NOT NULL,
+          FOREIGN KEY (playlist_id) REFERENCES playlists (id)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_playlist_items_playlist ON playlist_items(playlist_id)',
+      );
+    }
+
+    if (oldVersion < 38) {
+      // 片单表添加 sort_order 字段
+      final cols = await db.rawQuery('PRAGMA table_info(playlists)');
+      if (!cols.any((col) => col['name'] == 'sort_order')) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN sort_order INTEGER DEFAULT 0');
       }
     }
   }
@@ -964,6 +1002,37 @@ class DatabaseHelper {
         FOREIGN KEY (game_id) REFERENCES games (id)
       )
     ''');
+
+    // 片单表
+    await db.execute('''
+      CREATE TABLE playlists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        type TEXT NOT NULL,
+        cover_path TEXT,
+        item_count INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    // 片单条目表
+    await db.execute('''
+      CREATE TABLE playlist_items (
+        id TEXT PRIMARY KEY,
+        playlist_id TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        added_at TEXT NOT NULL,
+        FOREIGN KEY (playlist_id) REFERENCES playlists (id)
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_playlist_items_playlist ON playlist_items(playlist_id)',
+    );
   }
 
   // 关闭数据库

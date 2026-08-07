@@ -133,6 +133,9 @@ class UserPrefs {
   bool get showSidebarReviewed => prefs.getBool('showSidebarReviewed') ?? true;
   Future<bool> setShowSidebarReviewed(bool value) => prefs.setBool('showSidebarReviewed', value);
 
+  bool get showSidebarPlaylist => prefs.getBool('showSidebarPlaylist') ?? true;
+  Future<bool> setShowSidebarPlaylist(bool value) => prefs.setBool('showSidebarPlaylist', value);
+
   bool get showSidebarCalendar => prefs.getBool('showSidebarCalendar') ?? true;
   Future<bool> setShowSidebarCalendar(bool value) => prefs.setBool('showSidebarCalendar', value);
 
@@ -210,6 +213,10 @@ class UserPrefs {
   /// 已阅页布局样式 (0: 列表, 1: 网格)
   int get reviewedLayoutStyle => prefs.getInt('reviewedLayoutStyle') ?? 0;
   Future<bool> setReviewedLayoutStyle(int value) => prefs.setInt('reviewedLayoutStyle', value);
+
+  /// 片单页布局样式 (0: 列表, 1: 网格)
+  int get playlistLayoutStyle => prefs.getInt('playlistLayoutStyle') ?? 0;
+  Future<bool> setPlaylistLayoutStyle(int value) => prefs.setInt('playlistLayoutStyle', value);
 
   // ========== 应用图标设置 ==========
 

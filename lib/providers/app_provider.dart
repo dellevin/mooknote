@@ -12,6 +12,7 @@ import '../data/book/book_excerpt_dao.dart';
 import '../data/game/game_dao.dart';
 import '../data/game/game_review_dao.dart';
 import '../data/game/game_screenshot_dao.dart';
+import '../data/playlist/playlist_dao.dart';
 import '../data/tag/tag_dao.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
@@ -32,12 +33,14 @@ class AppProvider extends ChangeNotifier {
   final GameDao _gameDao = GameDao();
   final GameReviewDao _gameReviewDao = GameReviewDao();
   final GameScreenshotDao _gameScreenshotDao = GameScreenshotDao();
+  final PlaylistDao _playlistDao = PlaylistDao();
   final TagDao _tagDao = TagDao();
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
   List<Note> _notes = [];
   List<Game> _games = [];
+  List<Playlist> _playlists = [];
 
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
@@ -231,6 +234,12 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // 加载片单数据
+  Future<void> loadPlaylists() async {
+    _playlists = await _playlistDao.getAllPlaylists();
+    notifyListeners();
+  }
+
   /// 编辑返回后触发列表页重载
   /// [itemId] 被编辑条目的 ID，用于就地更新而非重置分页
   void setEditRefresh([String? itemId]) {
@@ -285,6 +294,7 @@ class AppProvider extends ChangeNotifier {
   List<Book> get books => UnmodifiableListView(_books);
   List<Note> get notes => UnmodifiableListView(_notes);
   List<Game> get games => UnmodifiableListView(_games);
+  List<Playlist> get playlists => UnmodifiableListView(_playlists);
 
   // 根据状态获取影视列表
   List<Movie> getMoviesByStatus(String status) {
@@ -586,6 +596,66 @@ class AppProvider extends ChangeNotifier {
     await _gameDao.deleteGame(id);
     _games.removeWhere((g) => g.id == id);
     notifyListeners();
+  }
+
+  // ─── 片单操作 ─────────────────────────────────────────────────
+
+  Future<void> addPlaylist(Playlist playlist) async {
+    await _playlistDao.insertPlaylist(playlist);
+    _playlists.add(playlist);
+    notifyListeners();
+  }
+
+  Future<void> removePlaylist(String id) async {
+    await _playlistDao.deletePlaylist(id);
+    _playlists.removeWhere((p) => p.id == id);
+    notifyListeners();
+  }
+
+  Future<void> updatePlaylist(Playlist playlist) async {
+    await _playlistDao.updatePlaylist(playlist);
+    final idx = _playlists.indexWhere((p) => p.id == playlist.id);
+    if (idx != -1) _playlists[idx] = playlist;
+    notifyListeners();
+  }
+
+  Future<List<PlaylistItem>> getPlaylistItems(String playlistId) async {
+    return _playlistDao.getPlaylistItems(playlistId);
+  }
+
+  Future<void> addPlaylistItem(PlaylistItem item) async {
+    await _playlistDao.addItem(item);
+    // 更新片单的 itemCount
+    final playlist = _playlists.firstWhere((p) => p.id == item.playlistId);
+    final updated = playlist.copyWith(itemCount: playlist.itemCount + 1, updatedAt: DateTime.now());
+    final idx = _playlists.indexWhere((p) => p.id == item.playlistId);
+    if (idx != -1) _playlists[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> removePlaylistItem(String itemId, String playlistId) async {
+    await _playlistDao.removeItem(itemId, playlistId);
+    final playlist = _playlists.firstWhere((p) => p.id == playlistId);
+    final updated = playlist.copyWith(itemCount: (playlist.itemCount - 1).clamp(0, 99999), updatedAt: DateTime.now());
+    final idx = _playlists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) _playlists[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<List<String>> getPlaylistItemIds(String playlistId) async {
+    return _playlistDao.getPlaylistItemIds(playlistId);
+  }
+
+  Future<void> reorderPlaylists(List<String> playlistIds) async {
+    await _playlistDao.updatePlaylistOrder(playlistIds);
+    // 更新内存中的排序
+    final orderMap = {for (int i = 0; i < playlistIds.length; i++) playlistIds[i]: i};
+    _playlists.sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
+    notifyListeners();
+  }
+
+  Future<void> reorderPlaylistItems(String playlistId, List<String> itemIds) async {
+    await _playlistDao.updatePlaylistItemOrder(playlistId, itemIds);
   }
 
   /// 仅更新游戏封面偏移量（不触发全量刷新）
@@ -923,6 +993,7 @@ class AppProvider extends ChangeNotifier {
     await loadBooks();
     await loadNotes();
     await loadGames();
+    await loadPlaylists();
   }
 
   // ========== 影评书评回收站 ==========

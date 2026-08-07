@@ -1016,3 +1016,130 @@ class BookExcerpt {
   }
 }
 
+/// 片单模型
+class Playlist {
+  final String id;
+  final String name;
+  final String description;
+  final String type; // 'movie' / 'book' / 'game'
+  final String? coverPath;
+  final int itemCount;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+
+  Playlist({
+    required this.id,
+    required this.name,
+    this.description = '',
+    required this.type,
+    this.coverPath,
+    this.itemCount = 0,
+    this.sortOrder = 0,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
+  });
+
+  factory Playlist.fromJson(Map<String, dynamic> json) {
+    return Playlist(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'movie',
+      coverPath: json['cover_path'],
+      itemCount: json['item_count'] ?? 0,
+      sortOrder: json['sort_order'] ?? 0,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'type': type,
+      'cover_path': coverPath,
+      'item_count': itemCount,
+      'sort_order': sortOrder,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+    };
+  }
+
+  Playlist copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? type,
+    String? coverPath,
+    int? itemCount,
+    int? sortOrder,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  }) {
+    return Playlist(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      type: type ?? this.type,
+      coverPath: coverPath ?? this.coverPath,
+      itemCount: itemCount ?? this.itemCount,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+
+  String get typeLabel => switch (type) {
+    'movie' => '影视',
+    'book' => '书籍',
+    'game' => '游戏',
+    _ => type,
+  };
+}
+
+/// 片单条目模型
+class PlaylistItem {
+  final String id;
+  final String playlistId;
+  final String itemId;
+  final int sortOrder;
+  final DateTime addedAt;
+
+  PlaylistItem({
+    required this.id,
+    required this.playlistId,
+    required this.itemId,
+    this.sortOrder = 0,
+    required this.addedAt,
+  });
+
+  factory PlaylistItem.fromJson(Map<String, dynamic> json) {
+    return PlaylistItem(
+      id: json['id']?.toString() ?? '',
+      playlistId: json['playlist_id']?.toString() ?? '',
+      itemId: json['item_id']?.toString() ?? '',
+      sortOrder: json['sort_order'] ?? 0,
+      addedAt: _safeParseDate(json['added_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'playlist_id': playlistId,
+      'item_id': itemId,
+      'sort_order': sortOrder,
+      'added_at': addedAt.toUtc().toIso8601String(),
+    };
+  }
+}
+

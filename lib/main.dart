@@ -69,6 +69,7 @@ Future<void> _bootstrap(AppProvider appProvider) async {
   // 数据库优先初始化（不被 sync 阻塞）
   try {
     await appProvider.initDatabase();
+    unawaited(appProvider.loadPlaylists());
   } catch (e) {
     debugPrint('[Startup] 数据库初始化失败: $e');
     appProvider.markDbInitFailed();

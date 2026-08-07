@@ -27,6 +27,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showEncounter = true;
   bool _showStroll = true;
   bool _showReviewed = true;
+  bool _showPlaylist = true;
   bool _showCalendar = true;
   bool _showPerson = true;
   bool _showTags = true;
@@ -53,6 +54,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showEncounter = _userPrefs.showSidebarEncounter;
       _showStroll = _userPrefs.showSidebarStroll;
       _showReviewed = _userPrefs.showSidebarReviewed;
+      _showPlaylist = _userPrefs.showSidebarPlaylist;
       _showCalendar = _userPrefs.showSidebarCalendar;
       _showPerson = _userPrefs.showSidebarPerson;
       _showTags = _userPrefs.showSidebarTags;
@@ -262,6 +264,16 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               (v) async {
             await _userPrefs.setShowSidebarReviewed(v);
             setState(() => _showReviewed = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.playlist_play, '书影片单', '创建和管理自定义片单', _showPlaylist,
+              (v) async {
+            await _userPrefs.setShowSidebarPlaylist(v);
+            setState(() => _showPlaylist = v);
           }),
           Divider(
               height: 0.5,
