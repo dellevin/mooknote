@@ -20,6 +20,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   int _movieDisplayMode = 0;
   bool _bookshelfMode = false;
   bool _gameWallMode = false;
+  int _movieSortMode = 0;
+  int _bookSortMode = 0;
+  int _noteSortMode = 0;
+  int _gameSortMode = 0;
 
   @override
   void initState() {
@@ -32,6 +36,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     _movieDisplayMode = _userPrefs.movieDisplayMode;
     _bookshelfMode = _userPrefs.bookshelfMode;
     _gameWallMode = _userPrefs.gameWallMode;
+    _movieSortMode = _userPrefs.movieSortMode;
+    _bookSortMode = _userPrefs.bookSortMode;
+    _noteSortMode = _userPrefs.noteSortMode;
+    _gameSortMode = _userPrefs.gameSortMode;
   }
 
   @override
@@ -84,6 +92,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       parts.add(_movieDisplayMode == 1 ? '分类状态' : '观看状态');
     }
     parts.add(['海报网格', '列表', '大图卡片'][_movieLayout]);
+    parts.add(['更新时间', '创建时间', '评分', '观看日期', '上映时间'][_movieSortMode]);
     return parts.join(' · ');
   }
 
@@ -91,15 +100,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     final parts = <String>[];
     if (_bookshelfMode) parts.add('书架模式');
     parts.add(['海报网格', '列表'][_bookLayout]);
+    parts.add(['更新时间', '创建时间', '评分', '开始阅读', '出版时间'][_bookSortMode]);
     return parts.join(' · ');
   }
 
-  String get _noteSubtitle => ['列表', '瀑布流', '时间线'][_noteLayout];
+  String get _noteSubtitle {
+    final parts = <String>[];
+    parts.add(['列表', '瀑布流', '时间线'][_noteLayout]);
+    parts.add(['更新时间', '创建时间'][_noteSortMode]);
+    return parts.join(' · ');
+  }
 
   String get _gameSubtitle {
     final parts = <String>[];
     if (_gameWallMode) parts.add('游戏墙');
     parts.add(['海报网格', '列表', '大图卡片'][_gameLayout]);
+    parts.add(['更新时间', '创建时间', '评分', '发售时间'][_gameSortMode]);
     return parts.join(' · ');
   }
 
@@ -245,6 +261,48 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     return Divider(height: 1, indent: 20, endIndent: 20, color: colors.outlineVariant.withValues(alpha: 0.4));
   }
 
+  Widget _sheetSortSection({
+    required String title,
+    required int current,
+    required List<(int, String, IconData)> options,
+    required ColorScheme colors,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+        ),
+        for (int i = 0; i < options.length; i++) ...[
+          if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant.withValues(alpha: 0.4)),
+          _sheetSortItem(options[i], current, colors, onChanged),
+        ],
+      ]),
+    );
+  }
+
+  Widget _sheetSortItem((int, String, IconData) option, int current, ColorScheme colors, ValueChanged<int> onChanged) {
+    final selected = current == option.$1;
+    return InkWell(
+      onTap: () => onChanged(option.$1),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(children: [
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+            child: Icon(option.$3, size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(option.$2, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface))),
+          if (selected) Icon(Icons.check, size: 18, color: colors.primary),
+        ]),
+      ),
+    );
+  }
+
   // ─── 弹窗 ────────────────────────────────────────────────────────
 
   void _showMovieSheet() {
@@ -255,7 +313,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
             _sheetTitle('影视布局', colors),
             _sheetSwitchRow(
@@ -276,8 +335,23 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               options: const [(0, Icons.grid_view_outlined, '海报网格'), (1, Icons.view_list_outlined, '列表'), (2, Icons.crop_landscape_outlined, '大图卡片')],
               onChanged: (v) { _setLayout('movie', v); setSheetState(() {}); }, colors: colors,
             ),
+            _sheetDivider(colors),
+            _sheetSortSection(
+              title: '排序方式',
+              current: _movieSortMode,
+              options: const [
+                (0, '按更新时间排序', Icons.update),
+                (1, '按创建时间排序', Icons.calendar_today_outlined),
+                (2, '按影视评分排序', Icons.star_outline),
+                (3, '按观看日期排序', Icons.visibility_outlined),
+                (4, '按上映时间排序', Icons.movie_creation_outlined),
+              ],
+              colors: colors,
+              onChanged: (v) { _setSortMode('movie', v); setSheetState(() {}); },
+            ),
             const SizedBox(height: 16),
           ]),
+          ),
         ),
       ),
     );
@@ -291,7 +365,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
             _sheetTitle('阅读布局', colors),
             _sheetSwitchRow(
@@ -304,8 +379,23 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               options: const [(0, Icons.grid_view_outlined, '海报网格'), (1, Icons.view_list_outlined, '列表')],
               onChanged: (v) { _setLayout('book', v); setSheetState(() {}); }, colors: colors,
             ),
+            _sheetDivider(colors),
+            _sheetSortSection(
+              title: '排序方式',
+              current: _bookSortMode,
+              options: const [
+                (0, '按更新时间排序', Icons.update),
+                (1, '按创建时间排序', Icons.calendar_today_outlined),
+                (2, '按书籍评分排序', Icons.star_outline),
+                (3, '按开始阅读时间排序', Icons.auto_stories_outlined),
+                (4, '按出版时间排序', Icons.auto_stories_outlined),
+              ],
+              colors: colors,
+              onChanged: (v) { _setSortMode('book', v); setSheetState(() {}); },
+            ),
             const SizedBox(height: 16),
           ]),
+          ),
         ),
       ),
     );
@@ -319,7 +409,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
             _sheetTitle('笔记布局', colors),
             _sheetOptionRow(
@@ -327,8 +418,20 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               options: const [(0, Icons.view_list_outlined, '列表'), (1, Icons.grid_view_outlined, '瀑布流'), (2, Icons.timeline_outlined, '时间线')],
               onChanged: (v) { _setLayout('note', v); setSheetState(() {}); }, colors: colors,
             ),
+            _sheetDivider(colors),
+            _sheetSortSection(
+              title: '排序方式',
+              current: _noteSortMode,
+              options: const [
+                (0, '按更新时间排序', Icons.update),
+                (1, '按创建时间排序', Icons.calendar_today_outlined),
+              ],
+              colors: colors,
+              onChanged: (v) { _setSortMode('note', v); setSheetState(() {}); },
+            ),
             const SizedBox(height: 16),
           ]),
+          ),
         ),
       ),
     );
@@ -342,7 +445,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
             _sheetTitle('游戏布局', colors),
             _sheetSwitchRow(
@@ -355,8 +459,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               options: const [(0, Icons.grid_view_outlined, '海报网格'), (1, Icons.view_list_outlined, '列表'), (2, Icons.crop_landscape_outlined, '大图卡片')],
               onChanged: (v) { _setLayout('game', v); setSheetState(() {}); }, colors: colors,
             ),
+            _sheetDivider(colors),
+            _sheetSortSection(
+              title: '排序方式',
+              current: _gameSortMode,
+              options: const [
+                (0, '按更新时间排序', Icons.update),
+                (1, '按创建时间排序', Icons.calendar_today_outlined),
+                (2, '按游戏评分排序', Icons.star_outline),
+                (3, '按发售时间排序', Icons.event_outlined),
+              ],
+              colors: colors,
+              onChanged: (v) { _setSortMode('game', v); setSheetState(() {}); },
+            ),
             const SizedBox(height: 16),
           ]),
+          ),
         ),
       ),
     );
@@ -419,6 +537,28 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         await _userPrefs.setGameLayoutStyle(value);
         setState(() => _gameLayout = value);
         if (mounted) context.read<AppProvider>().setGameLayoutStyle(value);
+    }
+  }
+
+  void _setSortMode(String type, int value) async {
+    final provider = context.read<AppProvider>();
+    switch (type) {
+      case 'movie':
+        await _userPrefs.setMovieSortMode(value);
+        setState(() => _movieSortMode = value);
+        if (mounted) provider.loadMovies();
+      case 'book':
+        await _userPrefs.setBookSortMode(value);
+        setState(() => _bookSortMode = value);
+        if (mounted) provider.loadBooks();
+      case 'note':
+        await _userPrefs.setNoteSortMode(value);
+        setState(() => _noteSortMode = value);
+        if (mounted) provider.loadNotes();
+      case 'game':
+        await _userPrefs.setGameSortMode(value);
+        setState(() => _gameSortMode = value);
+        if (mounted) provider.loadGames();
     }
   }
 }
