@@ -80,6 +80,22 @@ class CacheCleaner {
       if (p != null && p.isNotEmpty) paths.add(p);
     }
 
+    // 人物照片
+    final people = await db.query('people', columns: ['photo_path']);
+    for (final p in people) {
+      final pp = p['photo_path'] as String?;
+      if (pp != null && pp.isNotEmpty) paths.add(pp);
+    }
+
+    // 角色图片（影视/书籍/游戏）
+    for (final table in const ['movie_characters', 'book_characters', 'game_characters']) {
+      final rows = await db.query(table, columns: ['image_path']);
+      for (final r in rows) {
+        final p = r['image_path'] as String?;
+        if (p != null && p.isNotEmpty) paths.add(p);
+      }
+    }
+
     // 用户头像
     final userPrefs = UserPrefs();
     final avatarPath = userPrefs.avatarPath;

@@ -1104,6 +1104,20 @@ class _SettingsPageState extends State<SettingsPage> {
       if (p != null && p.isNotEmpty) paths.add(p);
     }
 
+    final people = await db.query('people', columns: ['photo_path']);
+    for (final p in people) {
+      final pp = p['photo_path'] as String?;
+      if (pp != null && pp.isNotEmpty) paths.add(pp);
+    }
+
+    for (final table in const ['movie_characters', 'book_characters', 'game_characters']) {
+      final rows = await db.query(table, columns: ['image_path']);
+      for (final r in rows) {
+        final p = r['image_path'] as String?;
+        if (p != null && p.isNotEmpty) paths.add(p);
+      }
+    }
+
     final userPrefs = UserPrefs();
     final avatarPath = userPrefs.avatarPath;
     if (avatarPath != null && avatarPath.isNotEmpty) paths.add(avatarPath);

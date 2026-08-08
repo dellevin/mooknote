@@ -455,6 +455,8 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         await provider.loadBooks();
         await provider.loadNotes();
         await provider.loadGames();
+        await provider.loadPlaylists();
+        await provider.loadPeople();
       }
       if (mounted) {
         setState(() => _syncing = false);
@@ -485,6 +487,8 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         await provider.loadBooks();
         await provider.loadNotes();
         await provider.loadGames();
+        await provider.loadPlaylists();
+        await provider.loadPeople();
       }
       if (mounted) {
         setState(() => _syncing = false);

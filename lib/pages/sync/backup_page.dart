@@ -679,6 +679,8 @@ class _BackupPageState extends State<BackupPage> {
         await context.read<AppProvider>().loadBooks();
         await context.read<AppProvider>().loadNotes();
         await context.read<AppProvider>().loadGames();
+        await context.read<AppProvider>().loadPlaylists();
+        await context.read<AppProvider>().loadPeople();
 
         if (!mounted) return;
 

@@ -2660,6 +2660,8 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
         await context.read<AppProvider>().loadBooks();
         await context.read<AppProvider>().loadNotes();
         await context.read<AppProvider>().loadGames();
+        await context.read<AppProvider>().loadPlaylists();
+        await context.read<AppProvider>().loadPeople();
         if (!mounted) return;
         ToastUtil.show(context,'导入成功');
       } else {
@@ -2798,6 +2800,8 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           await provider.loadBooks();
           await provider.loadNotes();
           await provider.loadGames();
+          await provider.loadPlaylists();
+          await provider.loadPeople();
         }
         ToastUtil.show(context,'同步成功');
       } else {
