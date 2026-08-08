@@ -67,6 +67,29 @@ class BookCharacterDao {
     );
   });
 
+  /// 恢复已删除的角色
+  Future<int> restore(String id) => _wrap('restore', () async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'book_characters',
+      {'is_deleted': 0, 'updated_at': DateTime.now().toUtc().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
+
+  /// 获取已删除的角色
+  Future<List<BookCharacter>> getDeleted() => _wrap('getDeleted', () async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'book_characters',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+    return maps.map((m) => BookCharacter.fromJson(m)).toList();
+  });
+
   /// 获取书籍的角色数量
   Future<int> getCount(String bookId) => _wrap('getCount', () async {
     final db = await _dbHelper.database;

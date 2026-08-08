@@ -67,6 +67,29 @@ class GameCharacterDao {
     );
   });
 
+  /// 恢复已删除的角色
+  Future<int> restore(String id) => _wrap('restore', () async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'game_characters',
+      {'is_deleted': 0, 'updated_at': DateTime.now().toUtc().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
+
+  /// 获取已删除的角色
+  Future<List<GameCharacter>> getDeleted() => _wrap('getDeleted', () async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'game_characters',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+    return maps.map((m) => GameCharacter.fromJson(m)).toList();
+  });
+
   /// 获取游戏的角色数量
   Future<int> getCount(String gameId) => _wrap('getCount', () async {
     final db = await _dbHelper.database;

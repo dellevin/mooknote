@@ -12,7 +12,7 @@ class RecycleBinPage extends StatefulWidget {
   State<RecycleBinPage> createState() => _RecycleBinPageState();
 }
 
-enum _ItemType { movie, book, note, game, movieReview, bookReview, bookExcerpt, gameReview, person }
+enum _ItemType { movie, book, note, game, movieReview, bookReview, bookExcerpt, gameReview, person, movieCharacter, bookCharacter, gameCharacter }
 
 class _DeletedItem {
   final _ItemType type;
@@ -94,6 +94,30 @@ class _DeletedItem {
         icon = Icons.person_outline,
         typeLabel = '人物';
 
+  _DeletedItem.movieCharacter(MovieCharacter c)
+      : type = _ItemType.movieCharacter,
+        id = c.id,
+        title = c.name,
+        subtitle = '删除于 ${c.updatedAt.year}.${c.updatedAt.month.toString().padLeft(2, '0')}.${c.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.movie_outlined,
+        typeLabel = '影视角色';
+
+  _DeletedItem.bookCharacter(BookCharacter c)
+      : type = _ItemType.bookCharacter,
+        id = c.id,
+        title = c.name,
+        subtitle = '删除于 ${c.updatedAt.year}.${c.updatedAt.month.toString().padLeft(2, '0')}.${c.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.menu_book_outlined,
+        typeLabel = '书籍角色';
+
+  _DeletedItem.gameCharacter(GameCharacter c)
+      : type = _ItemType.gameCharacter,
+        id = c.id,
+        title = c.name,
+        subtitle = '删除于 ${c.updatedAt.year}.${c.updatedAt.month.toString().padLeft(2, '0')}.${c.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.sports_esports_outlined,
+        typeLabel = '游戏角色';
+
 }
 
 class _RecycleBinPageState extends State<RecycleBinPage> {
@@ -122,6 +146,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     final bookExcerpts = await provider.getDeletedBookExcerpts();
     final gameReviews = await provider.getDeletedGameReviews();
     final people = await provider.getDeletedPeople();
+    final movieCharacters = await provider.getDeletedMovieCharacters();
+    final bookCharacters = await provider.getDeletedBookCharacters();
+    final gameCharacters = await provider.getDeletedGameCharacters();
     if (!mounted) return;
     setState(() {
       _allItems = [
@@ -134,6 +161,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         for (final e in bookExcerpts) _DeletedItem.bookExcerpt(e),
         for (final r in gameReviews) _DeletedItem.gameReview(r),
         for (final p in people) _DeletedItem.person(p),
+        for (final c in movieCharacters) _DeletedItem.movieCharacter(c),
+        for (final c in bookCharacters) _DeletedItem.bookCharacter(c),
+        for (final c in gameCharacters) _DeletedItem.gameCharacter(c),
       ];
       _isLoading = false;
     });
@@ -191,27 +221,54 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
 
   Widget _buildFilterRow() {
     final colors = Theme.of(context).colorScheme;
+    final chips = <Widget>[
+      _filterChip('全部', null),
+      _filterChip('影视', _ItemType.movie),
+      _filterChip('书籍', _ItemType.book),
+      _filterChip('笔记', _ItemType.note),
+      _filterChip('游戏', _ItemType.game),
+      _filterChip('影评', _ItemType.movieReview),
+      _filterChip('书评', _ItemType.bookReview),
+      _filterChip('书摘', _ItemType.bookExcerpt),
+      _filterChip('游戏评价', _ItemType.gameReview),
+      _filterChip('人物', _ItemType.person),
+      _filterChip('影视角色', _ItemType.movieCharacter),
+      _filterChip('书籍角色', _ItemType.bookCharacter),
+      _filterChip('游戏角色', _ItemType.gameCharacter),
+    ];
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
       ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _filterChip('全部', null),
-          _filterChip('影视', _ItemType.movie),
-          _filterChip('书籍', _ItemType.book),
-          _filterChip('笔记', _ItemType.note),
-          _filterChip('游戏', _ItemType.game),
-          _filterChip('影评', _ItemType.movieReview),
-          _filterChip('书评', _ItemType.bookReview),
-          _filterChip('书摘', _ItemType.bookExcerpt),
-          _filterChip('游戏评价', _ItemType.gameReview),
-          _filterChip('人物', _ItemType.person),
-        ],
+      child: ShaderMask(
+        shaderCallback: (Rect bounds) {
+          return const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Color(0x00FFFFFF),
+              Color(0xFFFFFFFF),
+              Color(0xFFFFFFFF),
+              Color(0x00FFFFFF),
+            ],
+            stops: [0.0, 0.04, 0.96, 1.0],
+          ).createShader(bounds);
+        },
+        blendMode: BlendMode.dstIn,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              for (var i = 0; i < chips.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                chips[i],
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -442,6 +499,15 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       case _ItemType.person:
         await provider.restorePerson(item.id);
         if (mounted) ToastUtil.show(context, '人物已恢复');
+      case _ItemType.movieCharacter:
+        await provider.restoreMovieCharacter(item.id);
+        if (mounted) ToastUtil.show(context, '影视角色已恢复');
+      case _ItemType.bookCharacter:
+        await provider.restoreBookCharacter(item.id);
+        if (mounted) ToastUtil.show(context, '书籍角色已恢复');
+      case _ItemType.gameCharacter:
+        await provider.restoreGameCharacter(item.id);
+        if (mounted) ToastUtil.show(context, '游戏角色已恢复');
     }
     _loadDeletedItems();
   }
@@ -469,6 +535,12 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         await provider.permanentDeleteGameReview(item.id);
       case _ItemType.person:
         await provider.permanentDeletePerson(item.id);
+      case _ItemType.movieCharacter:
+        await provider.permanentDeleteMovieCharacter(item.id);
+      case _ItemType.bookCharacter:
+        await provider.permanentDeleteBookCharacter(item.id);
+      case _ItemType.gameCharacter:
+        await provider.permanentDeleteGameCharacter(item.id);
     }
     _loadDeletedItems();
     if (mounted) ToastUtil.show(context, '已彻底删除');

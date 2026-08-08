@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
-import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'character_form_page.dart';
@@ -51,9 +50,6 @@ class _MovieCharactersPageState extends State<MovieCharactersPage> {
   }
 
   Future<void> _delete(MovieCharacter c) async {
-    if (c.imagePath != null && c.imagePath!.isNotEmpty) {
-      await ImagePathHelper.instance.deleteCharacterImages(c.id);
-    }
     await context.read<AppProvider>().deleteMovieCharacter(c.id);
     _loadCharacters();
     if (mounted) ToastUtil.show(context, '已删除');
@@ -116,9 +112,6 @@ class _BookCharactersPageState extends State<BookCharactersPage> {
   }
 
   Future<void> _delete(BookCharacter c) async {
-    if (c.imagePath != null && c.imagePath!.isNotEmpty) {
-      await ImagePathHelper.instance.deleteCharacterImages(c.id);
-    }
     await context.read<AppProvider>().deleteBookCharacter(c.id);
     _loadCharacters();
     if (mounted) ToastUtil.show(context, '已删除');
@@ -181,9 +174,6 @@ class _GameCharactersPageState extends State<GameCharactersPage> {
   }
 
   Future<void> _delete(GameCharacter c) async {
-    if (c.imagePath != null && c.imagePath!.isNotEmpty) {
-      await ImagePathHelper.instance.deleteCharacterImages(c.id);
-    }
     await context.read<AppProvider>().deleteGameCharacter(c.id);
     _loadCharacters();
     if (mounted) ToastUtil.show(context, '已删除');
@@ -247,7 +237,7 @@ class _CharacterListScaffold extends StatelessWidget {
                       description: c.description as String?,
                       imagePath: c.imagePath as String?,
                       onTap: () => onTap(c),
-                      onDelete: () => _confirmDelete(context, c),
+                      onDelete: () => onDelete(c),
                     );
                   },
                 ),
@@ -276,41 +266,6 @@ class _CharacterListScaffold extends StatelessWidget {
       ),
     );
   }
-
-  void _confirmDelete(BuildContext context, dynamic c) {
-    final colors = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除该角色吗？',
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              onDelete(c);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.error,
-              foregroundColor: colors.onError,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('删除'),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
 }
 
 class _CharacterTile extends StatelessWidget {
@@ -335,61 +290,48 @@ class _CharacterTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Dismissible(
-      key: ValueKey(name + imagePath.toString()),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: colors.error,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: Icon(Icons.delete_outline, color: colors.onError),
+    return ListTile(
+      onTap: onTap,
+      onLongPress: () => _showDeleteDialog(context),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: _buildAvatar(colors),
+      title: Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (aliases.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(aliases.join('、'),
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            ),
+          if (tags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: tags.map((t) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(t, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
+                )).toList(),
+              ),
+            ),
+          if (description != null && description!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+            ),
+        ],
       ),
-      confirmDismiss: (_) async {
-        _showDeleteDialog(context);
-        return false;
-      },
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: _buildAvatar(colors),
-        title: Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (aliases.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(aliases.join('、'),
-                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-              ),
-            if (tags.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: tags.map((t) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(t, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6))),
-                  )).toList(),
-                ),
-              ),
-            if (description != null && description!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(description!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
-              ),
-          ],
-        ),
-        trailing: Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
-      ),
+      trailing: Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
     );
   }
 

@@ -962,6 +962,9 @@ class AppProvider extends ChangeNotifier {
     final deletedBookExcerpts = await getDeletedBookExcerpts();
     final deletedGameReviews = await getDeletedGameReviews();
     final deletedPeople = await getDeletedPeople();
+    final deletedMovieCharacters = await getDeletedMovieCharacters();
+    final deletedBookCharacters = await getDeletedBookCharacters();
+    final deletedGameCharacters = await getDeletedGameCharacters();
 
     // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
     final movieIds = deletedMovies.map((m) => m.id).toList();
@@ -969,6 +972,9 @@ class AppProvider extends ChangeNotifier {
     final noteIds = deletedNotes.map((n) => n.id).toList();
     final gameIds = deletedGames.map((g) => g.id).toList();
     final personIds = deletedPeople.map((p) => p.id).toList();
+    final movieCharacterIds = deletedMovieCharacters.map((c) => c.id).toList();
+    final bookCharacterIds = deletedBookCharacters.map((c) => c.id).toList();
+    final gameCharacterIds = deletedGameCharacters.map((c) => c.id).toList();
 
     // 事务内批量删除数据库记录，保证原子性
     final db = await DatabaseHelper.instance.database;
@@ -1009,6 +1015,15 @@ class AppProvider extends ChangeNotifier {
         await txn.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
         await txn.delete('people', where: 'id = ?', whereArgs: [id]);
       }
+      for (final id in movieCharacterIds) {
+        await txn.delete('movie_characters', where: 'id = ?', whereArgs: [id]);
+      }
+      for (final id in bookCharacterIds) {
+        await txn.delete('book_characters', where: 'id = ?', whereArgs: [id]);
+      }
+      for (final id in gameCharacterIds) {
+        await txn.delete('game_characters', where: 'id = ?', whereArgs: [id]);
+      }
     });
 
     // 事务成功后，清理关联的图片文件（文件删除失败不影响数据一致性）
@@ -1026,6 +1041,15 @@ class AppProvider extends ChangeNotifier {
     }
     for (final id in personIds) {
       await ImagePathHelper.instance.deletePersonImages(id);
+    }
+    for (final id in movieCharacterIds) {
+      await ImagePathHelper.instance.deleteCharacterImages(id);
+    }
+    for (final id in bookCharacterIds) {
+      await ImagePathHelper.instance.deleteCharacterImages(id);
+    }
+    for (final id in gameCharacterIds) {
+      await ImagePathHelper.instance.deleteCharacterImages(id);
     }
 
     await loadMovies();
@@ -1482,6 +1506,23 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 恢复已删除的影视角色
+  Future<void> restoreMovieCharacter(String id) async {
+    await _movieCharacterDao.restore(id);
+    notifyListeners();
+  }
+
+  /// 彻底删除影视角色
+  Future<void> permanentDeleteMovieCharacter(String id) async {
+    await ImagePathHelper.instance.deleteCharacterImages(id);
+    await _movieCharacterDao.permanentDelete(id);
+  }
+
+  /// 获取已删除的影视角色
+  Future<List<MovieCharacter>> getDeletedMovieCharacters() async {
+    return await _movieCharacterDao.getDeleted();
+  }
+
   // ─── 书籍角色 ───
   Future<List<BookCharacter>> getBookCharacters(String bookId) async {
     return await _bookCharacterDao.getByBookId(bookId);
@@ -1506,6 +1547,23 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 恢复已删除的书籍角色
+  Future<void> restoreBookCharacter(String id) async {
+    await _bookCharacterDao.restore(id);
+    notifyListeners();
+  }
+
+  /// 彻底删除书籍角色
+  Future<void> permanentDeleteBookCharacter(String id) async {
+    await ImagePathHelper.instance.deleteCharacterImages(id);
+    await _bookCharacterDao.permanentDelete(id);
+  }
+
+  /// 获取已删除的书籍角色
+  Future<List<BookCharacter>> getDeletedBookCharacters() async {
+    return await _bookCharacterDao.getDeleted();
+  }
+
   // ─── 游戏角色 ───
   Future<List<GameCharacter>> getGameCharacters(String gameId) async {
     return await _gameCharacterDao.getByGameId(gameId);
@@ -1528,5 +1586,22 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteGameCharacter(String id) async {
     await _gameCharacterDao.delete(id);
     notifyListeners();
+  }
+
+  /// 恢复已删除的游戏角色
+  Future<void> restoreGameCharacter(String id) async {
+    await _gameCharacterDao.restore(id);
+    notifyListeners();
+  }
+
+  /// 彻底删除游戏角色
+  Future<void> permanentDeleteGameCharacter(String id) async {
+    await ImagePathHelper.instance.deleteCharacterImages(id);
+    await _gameCharacterDao.permanentDelete(id);
+  }
+
+  /// 获取已删除的游戏角色
+  Future<List<GameCharacter>> getDeletedGameCharacters() async {
+    return await _gameCharacterDao.getDeleted();
   }
 }
