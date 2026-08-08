@@ -16,9 +16,12 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/work_people_section.dart';
+import '../../widgets/character_preview_section.dart';
+import '../../widgets/character_info_sheet.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
+import '../character/character_list_page.dart';
 
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
@@ -41,6 +44,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   double _posterImageHeight = 0.0;
   final ValueNotifier<bool> _showTitle = ValueNotifier(false);
   ScrollController? _overlayScrollController;
+
+  // ─── 角色预览 ───
+  List<dynamic> _characters = [];
 
   // ─── 编辑模式 ───
   bool _isEditing = false;
@@ -68,6 +74,13 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     _detailStyle = UserPrefs().detailPageStyle;
     _posterOffset.value = UserPrefs().getCoverOffset(widget.movie.id);
     _initEditControllers();
+    _loadCharacters();
+  }
+
+  Future<void> _loadCharacters() async {
+    final list = await context.read<AppProvider>().getMovieCharacters(widget.movie.id);
+    if (!mounted) return;
+    setState(() => _characters = list);
   }
 
   void _initEditControllers() {
@@ -268,6 +281,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             )),
                           ]),
                         ],
+                        CharacterPreviewSection(
+                          characters: _characters,
+                          onTap: _openCharacterSheet,
+                        ),
                         WorkPeopleSection(workId: movie.id, workType: 'movie'),
                         if (movie.summary != null && movie.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
@@ -303,6 +320,15 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           emptyText: '暂无海报',
                           unit: '张海报',
                           onTap: () => _navigateToPosters(movie),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildExtraSectionItem(
+                          icon: Icons.people_outline,
+                          title: '角色',
+                          subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
+                          emptyText: '暂无角色',
+                          unit: '个角色',
+                          onTap: () => _navigateToCharacters(movie),
                         ),
                       ],
                     ),
@@ -934,6 +960,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     _buildActorsSection(movie),
                   if (movie.genres.isNotEmpty)
                     _buildGenresSection(movie),
+                  CharacterPreviewSection(
+                    characters: _characters,
+                    onTap: _openCharacterSheet,
+                  ),
                   WorkPeopleSection(workId: movie.id, workType: 'movie'),
                   if (movie.summary != null && movie.summary!.isNotEmpty)
                     _buildSummarySection(movie),
@@ -1066,7 +1096,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                       const SizedBox(height: 12),
                       _buildGenresSection(movie),
                     ],
-                    const SizedBox(height: 12),
+                    CharacterPreviewSection(
+                      characters: _characters,
+                      onTap: _openCharacterSheet,
+                      isOverlay: true,
+                    ),
                     // 关联人物
                     WorkPeopleSection(workId: movie.id, workType: 'movie'),
                     const SizedBox(height: 12),
@@ -1200,6 +1234,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           tooltip: '编辑',
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
+        ),
+        const SizedBox(height: 12),
+        _buildFloatingButton(
+          icon: Icons.people_outline,
+          onPressed: () => _navigateToCharacters(movie),
+          tooltip: '角色',
+          backgroundColor: colors.secondaryContainer,
+          foregroundColor: colors.onSecondaryContainer,
         ),
         const SizedBox(height: 12),
         _buildFloatingButton(
@@ -1811,6 +1853,15 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             unit: '张海报',
             onTap: () => _navigateToPosters(movie),
           ),
+          const SizedBox(height: 12),
+          _buildExtraSectionItem(
+            icon: Icons.people_outline,
+            title: '角色',
+            subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
+            emptyText: '暂无角色',
+            unit: '个角色',
+            onTap: () => _navigateToCharacters(movie),
+          ),
         ],
       ),
     );
@@ -1838,6 +1889,15 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             emptyText: '暂无海报',
             unit: '张海报',
             onTap: () => _navigateToPosters(movie),
+          ),
+          const SizedBox(height: 12),
+          _buildFrostedExtraItem(
+            icon: Icons.people_outline,
+            title: '角色',
+            subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
+            emptyText: '暂无角色',
+            unit: '个角色',
+            onTap: () => _navigateToCharacters(movie),
           ),
         ],
       ),
@@ -1985,6 +2045,25 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         builder: (context) => MoviePostersPage(movie: movie),
       ),
     );
+  }
+
+  void _navigateToCharacters(Movie movie) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovieCharactersPage(movie: movie),
+      ),
+    ).then((_) => _loadCharacters());
+  }
+
+  Future<void> _openCharacterSheet(dynamic character) async {
+    final needRefresh = await CharacterInfoSheet.show(
+      context,
+      entityType: 'movie',
+      entityId: widget.movie.id,
+      character: character,
+    );
+    if (needRefresh == true) _loadCharacters();
   }
 
   String _formatDate(DateTime date) {

@@ -147,6 +147,29 @@ class ImagePathHelper {
     return p.join(dir, fileName);
   }
 
+  // ==================== 角色相关路径 ====================
+
+  /// 获取角色图片目录
+  /// 路径: images/characters/{characterId}/
+  Future<String> getCharacterImagesDir(String characterId) async {
+    final root = await imagesRoot;
+    return p.join(root, 'characters', characterId);
+  }
+
+  /// 获取角色图片路径
+  /// 路径: images/characters/{characterId}/{fileName}
+  Future<String> getCharacterImagePath(String characterId, String fileName) async {
+    final dir = await getCharacterImagesDir(characterId);
+    return p.join(dir, fileName);
+  }
+
+  /// 删除角色图片目录
+  /// 删除路径: images/characters/{characterId}/
+  Future<void> deleteCharacterImages(String characterId) async {
+    final dirPath = await getCharacterImagesDir(characterId);
+    await _deleteDirectory(dirPath);
+  }
+
   // ==================== 目录操作 ====================
 
   /// 确保目录存在

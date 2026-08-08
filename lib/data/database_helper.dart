@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 39,
+      version: 40,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -404,6 +404,14 @@ class DatabaseHelper {
     if (oldVersion < 39) {
       // 创建人物表和关联表
       await _createPeopleTables(db);
+    }
+    if (oldVersion < 40) {
+      // 创建角色表
+      await _createCharacterTables(db);
+      // 早期 v40 迭代可能已建表但缺列，补齐缺失列
+      await _ensureCharacterColumns(db, 'movie_characters');
+      await _ensureCharacterColumns(db, 'book_characters');
+      await _ensureCharacterColumns(db, 'game_characters');
     }
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
@@ -1040,6 +1048,8 @@ class DatabaseHelper {
 
     // 人物表
     await _createPeopleTables(db);
+    // 角色表
+    await _createCharacterTables(db);
   }
 
   /// 创建人物表和关联表
@@ -1105,6 +1115,85 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_book_people_person ON book_people(person_id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_game_people_game ON game_people(game_id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_game_people_person ON game_people(person_id)');
+  }
+
+  /// 创建角色表（影视/书籍/游戏）
+  Future<void> _createCharacterTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movie_characters (
+        id TEXT PRIMARY KEY,
+        movie_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT,
+        aliases TEXT DEFAULT '[]',
+        tags TEXT DEFAULT '[]',
+        description TEXT,
+        image_path TEXT,
+        sort_order INTEGER DEFAULT 0,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_movie_characters_movie ON movie_characters(movie_id)');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_characters (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT,
+        aliases TEXT DEFAULT '[]',
+        tags TEXT DEFAULT '[]',
+        description TEXT,
+        image_path TEXT,
+        sort_order INTEGER DEFAULT 0,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_book_characters_book ON book_characters(book_id)');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS game_characters (
+        id TEXT PRIMARY KEY,
+        game_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT,
+        aliases TEXT DEFAULT '[]',
+        tags TEXT DEFAULT '[]',
+        description TEXT,
+        image_path TEXT,
+        sort_order INTEGER DEFAULT 0,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_game_characters_game ON game_characters(game_id)');
+  }
+
+  /// 补齐角色表缺失的列（早期 v40 迭代建表时可能未包含）
+  Future<void> _ensureCharacterColumns(Database db, String table) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    final names = columns.map((c) => c['name'] as String).toSet();
+    const additions = <String, String>{
+      'role': 'TEXT',
+      'aliases': "TEXT DEFAULT '[]'",
+      'tags': "TEXT DEFAULT '[]'",
+      'description': 'TEXT',
+      'image_path': 'TEXT',
+      'sort_order': 'INTEGER DEFAULT 0',
+      'is_deleted': 'INTEGER DEFAULT 0',
+      'created_at': "TEXT DEFAULT ''",
+      'updated_at': "TEXT DEFAULT ''",
+    };
+    for (final entry in additions.entries) {
+      if (!names.contains(entry.key)) {
+        await db.execute('ALTER TABLE $table ADD COLUMN ${entry.key} ${entry.value}');
+      }
+    }
   }
 
   // 关闭数据库

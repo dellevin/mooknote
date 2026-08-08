@@ -19,6 +19,9 @@ import '../data/person/person_dao.dart';
 import '../data/person/movie_person_dao.dart';
 import '../data/person/book_person_dao.dart';
 import '../data/person/game_person_dao.dart';
+import '../data/character/movie_character_dao.dart';
+import '../data/character/book_character_dao.dart';
+import '../data/character/game_character_dao.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
@@ -44,6 +47,9 @@ class AppProvider extends ChangeNotifier {
   final MoviePersonDao _moviePersonDao = MoviePersonDao();
   final BookPersonDao _bookPersonDao = BookPersonDao();
   final GamePersonDao _gamePersonDao = GamePersonDao();
+  final MovieCharacterDao _movieCharacterDao = MovieCharacterDao();
+  final BookCharacterDao _bookCharacterDao = BookCharacterDao();
+  final GameCharacterDao _gameCharacterDao = GameCharacterDao();
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
@@ -1448,5 +1454,79 @@ class AppProvider extends ChangeNotifier {
 
     await loadPeople();
     return (newPersons: newPersons, newRelations: newRelations, merged: merged);
+  }
+
+  // ========== 角色相关方法 ==========
+
+  // ─── 影视角色 ───
+  Future<List<MovieCharacter>> getMovieCharacters(String movieId) async {
+    return await _movieCharacterDao.getByMovieId(movieId);
+  }
+
+  Future<int> getMovieCharacterCount(String movieId) async {
+    return await _movieCharacterDao.getCount(movieId);
+  }
+
+  Future<void> addMovieCharacter(MovieCharacter character) async {
+    await _movieCharacterDao.insert(character);
+    notifyListeners();
+  }
+
+  Future<void> updateMovieCharacter(MovieCharacter character) async {
+    await _movieCharacterDao.update(character);
+    notifyListeners();
+  }
+
+  Future<void> deleteMovieCharacter(String id) async {
+    await _movieCharacterDao.delete(id);
+    notifyListeners();
+  }
+
+  // ─── 书籍角色 ───
+  Future<List<BookCharacter>> getBookCharacters(String bookId) async {
+    return await _bookCharacterDao.getByBookId(bookId);
+  }
+
+  Future<int> getBookCharacterCount(String bookId) async {
+    return await _bookCharacterDao.getCount(bookId);
+  }
+
+  Future<void> addBookCharacter(BookCharacter character) async {
+    await _bookCharacterDao.insert(character);
+    notifyListeners();
+  }
+
+  Future<void> updateBookCharacter(BookCharacter character) async {
+    await _bookCharacterDao.update(character);
+    notifyListeners();
+  }
+
+  Future<void> deleteBookCharacter(String id) async {
+    await _bookCharacterDao.delete(id);
+    notifyListeners();
+  }
+
+  // ─── 游戏角色 ───
+  Future<List<GameCharacter>> getGameCharacters(String gameId) async {
+    return await _gameCharacterDao.getByGameId(gameId);
+  }
+
+  Future<int> getGameCharacterCount(String gameId) async {
+    return await _gameCharacterDao.getCount(gameId);
+  }
+
+  Future<void> addGameCharacter(GameCharacter character) async {
+    await _gameCharacterDao.insert(character);
+    notifyListeners();
+  }
+
+  Future<void> updateGameCharacter(GameCharacter character) async {
+    await _gameCharacterDao.update(character);
+    notifyListeners();
+  }
+
+  Future<void> deleteGameCharacter(String id) async {
+    await _gameCharacterDao.delete(id);
+    notifyListeners();
   }
 }

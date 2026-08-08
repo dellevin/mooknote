@@ -16,9 +16,12 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/work_people_section.dart';
+import '../../widgets/character_preview_section.dart';
+import '../../widgets/character_info_sheet.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
+import '../character/character_list_page.dart';
 import '../../data/epub/reader_dao.dart';
 import '../epub_reader/epub_highlights_page.dart';
 import '../epub_reader/reader_screen.dart';
@@ -43,6 +46,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   double _coverImageHeight = 0.0;
   final ValueNotifier<bool> _showTitle = ValueNotifier(false);
   ScrollController? _overlayScrollController;
+
+  // ─── 角色预览 ───
+  List<dynamic> _characters = [];
 
   // ─── 编辑模式 ───
   bool _isEditing = false;
@@ -84,6 +90,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
     _detailStyle = UserPrefs().detailPageStyle;
     _coverOffset.value = UserPrefs().getCoverOffset(widget.book.id);
     _initEditControllers();
+    _loadCharacters();
+  }
+
+  Future<void> _loadCharacters() async {
+    final list = await context.read<AppProvider>().getBookCharacters(widget.book.id);
+    if (!mounted) return;
+    setState(() => _characters = list);
   }
 
   void _initEditControllers() {
@@ -268,6 +281,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             Expanded(child: Text('${book.readCount} 次', style: TextStyle(fontSize: 13, color: colors.onSurface))),
                           ]),
                         ],
+                        CharacterPreviewSection(
+                          characters: _characters,
+                          onTap: _openCharacterSheet,
+                        ),
                         WorkPeopleSection(workId: book.id, workType: 'book'),
                         if (book.summary != null && book.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
@@ -311,6 +328,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           emptyText: '暂无句读',
                           unit: '条句读',
                           onTap: () => _navigateToEpubHighlights(book),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildExtraSectionItem(
+                          icon: Icons.people_outline,
+                          title: '角色',
+                          subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
+                          emptyText: '暂无角色',
+                          unit: '个角色',
+                          onTap: () => _navigateToCharacters(book),
                         ),
                       ],
                     ),
@@ -808,6 +834,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                   if (book.publishDate != null) _buildPublishDateSection(book),
                   if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
+                  CharacterPreviewSection(
+                    characters: _characters,
+                    onTap: _openCharacterSheet,
+                  ),
                   WorkPeopleSection(workId: book.id, workType: 'book'),
                   if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
@@ -911,6 +941,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
                         // 类型标签毛玻璃
                         if (book.genres.isNotEmpty) _buildGenresSection(book),
+                        CharacterPreviewSection(
+                          characters: _characters,
+                          onTap: _openCharacterSheet,
+                          isOverlay: true,
+                        ),
                         // 关联人物
                         WorkPeopleSection(workId: book.id, workType: 'book'),
                         // 简介：内部已有毛玻璃卡片
@@ -994,6 +1029,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
           tooltip: '编辑',
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
+        ),
+        const SizedBox(height: 12),
+        _buildFloatingButton(
+          icon: Icons.people_outline,
+          onPressed: () => _navigateToCharacters(book),
+          tooltip: '角色',
+          backgroundColor: colors.secondaryContainer,
+          foregroundColor: colors.onSecondaryContainer,
         ),
         const SizedBox(height: 12),
         _buildFloatingButton(
@@ -1866,6 +1909,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
             unit: '条句读',
             onTap: () => _navigateToEpubHighlights(book),
           ),
+          const SizedBox(height: 12),
+          _buildExtraSectionItem(
+            icon: Icons.people_outline,
+            title: '角色',
+            subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
+            emptyText: '暂无角色',
+            unit: '个角色',
+            onTap: () => _navigateToCharacters(book),
+          ),
         ],
       ),
     );
@@ -1903,6 +1955,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
             emptyText: '暂无句读',
             unit: '条句读',
             onTap: () => _navigateToEpubHighlights(book),
+          ),
+          const SizedBox(height: 12),
+          _buildFrostedExtraItem(
+            icon: Icons.people_outline,
+            title: '角色',
+            subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
+            emptyText: '暂无角色',
+            unit: '个角色',
+            onTap: () => _navigateToCharacters(book),
           ),
         ],
       ),
@@ -2050,6 +2111,25 @@ class _BookDetailPageState extends State<BookDetailPage> {
         builder: (context) => BookExcerptsPage(book: book),
       ),
     );
+  }
+
+  void _navigateToCharacters(Book book) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookCharactersPage(book: book),
+      ),
+    ).then((_) => _loadCharacters());
+  }
+
+  Future<void> _openCharacterSheet(dynamic character) async {
+    final needRefresh = await CharacterInfoSheet.show(
+      context,
+      entityType: 'book',
+      entityId: widget.book.id,
+      character: character,
+    );
+    if (needRefresh == true) _loadCharacters();
   }
 
   /// 获取关联 EPUB 的句读（高亮）数量

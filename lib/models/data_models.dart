@@ -1365,3 +1365,321 @@ class GamePerson {
   }
 }
 
+/// 影视角色模型
+class MovieCharacter {
+  final String id;
+  final String movieId;
+  final String name;
+  final String? role;
+  final List<String> aliases;
+  final List<String> tags;
+  final String? description;
+  final String? imagePath;
+  final int sortOrder;
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  MovieCharacter({
+    required this.id,
+    required this.movieId,
+    required this.name,
+    this.role,
+    this.aliases = const [],
+    this.tags = const [],
+    this.description,
+    this.imagePath,
+    this.sortOrder = 0,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory MovieCharacter.fromJson(Map<String, dynamic> json) {
+    return MovieCharacter(
+      id: json['id']?.toString() ?? '',
+      movieId: json['movie_id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      role: json['role'],
+      aliases: parseStringListGeneric(json['aliases']),
+      tags: parseStringListGeneric(json['tags']),
+      description: json['description'],
+      imagePath: json['image_path'],
+      sortOrder: json['sort_order'] ?? 0,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'movie_id': movieId,
+      'name': name,
+      'role': role,
+      'aliases': jsonEncode(aliases),
+      'tags': jsonEncode(tags),
+      'description': description,
+      'image_path': imagePath,
+      'sort_order': sortOrder,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  MovieCharacter copyWith({
+    String? id,
+    String? movieId,
+    String? name,
+    Object? role = _copyWithNull,
+    List<String>? aliases,
+    List<String>? tags,
+    Object? description = _copyWithNull,
+    Object? imagePath = _copyWithNull,
+    int? sortOrder,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return MovieCharacter(
+      id: id ?? this.id,
+      movieId: movieId ?? this.movieId,
+      name: name ?? this.name,
+      role: role is _CopyWithNullSentinel ? this.role : (role as String?),
+      aliases: aliases ?? this.aliases,
+      tags: tags ?? this.tags,
+      description: description is _CopyWithNullSentinel ? this.description : (description as String?),
+      imagePath: imagePath is _CopyWithNullSentinel ? this.imagePath : (imagePath as String?),
+      sortOrder: sortOrder ?? this.sortOrder,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  File? get imageFile {
+    if (imagePath == null || imagePath!.isEmpty) return null;
+    return File(imagePath!);
+  }
+
+  String get summary {
+    if (description == null || description!.isEmpty) return '';
+    if (description!.length <= 50) return description!;
+    return '${description!.substring(0, 50)}...';
+  }
+}
+
+/// 书籍角色模型
+class BookCharacter {
+  final String id;
+  final String bookId;
+  final String name;
+  final String? role;
+  final List<String> aliases;
+  final List<String> tags;
+  final String? description;
+  final String? imagePath;
+  final int sortOrder;
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  BookCharacter({
+    required this.id,
+    required this.bookId,
+    required this.name,
+    this.role,
+    this.aliases = const [],
+    this.tags = const [],
+    this.description,
+    this.imagePath,
+    this.sortOrder = 0,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory BookCharacter.fromJson(Map<String, dynamic> json) {
+    return BookCharacter(
+      id: json['id']?.toString() ?? '',
+      bookId: json['book_id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      role: json['role'],
+      aliases: parseStringListGeneric(json['aliases']),
+      tags: parseStringListGeneric(json['tags']),
+      description: json['description'],
+      imagePath: json['image_path'],
+      sortOrder: json['sort_order'] ?? 0,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'book_id': bookId,
+      'name': name,
+      'role': role,
+      'aliases': jsonEncode(aliases),
+      'tags': jsonEncode(tags),
+      'description': description,
+      'image_path': imagePath,
+      'sort_order': sortOrder,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  BookCharacter copyWith({
+    String? id,
+    String? bookId,
+    String? name,
+    Object? role = _copyWithNull,
+    List<String>? aliases,
+    List<String>? tags,
+    Object? description = _copyWithNull,
+    Object? imagePath = _copyWithNull,
+    int? sortOrder,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return BookCharacter(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      name: name ?? this.name,
+      role: role is _CopyWithNullSentinel ? this.role : (role as String?),
+      aliases: aliases ?? this.aliases,
+      tags: tags ?? this.tags,
+      description: description is _CopyWithNullSentinel ? this.description : (description as String?),
+      imagePath: imagePath is _CopyWithNullSentinel ? this.imagePath : (imagePath as String?),
+      sortOrder: sortOrder ?? this.sortOrder,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  File? get imageFile {
+    if (imagePath == null || imagePath!.isEmpty) return null;
+    return File(imagePath!);
+  }
+
+  String get summary {
+    if (description == null || description!.isEmpty) return '';
+    if (description!.length <= 50) return description!;
+    return '${description!.substring(0, 50)}...';
+  }
+}
+
+/// 游戏角色模型
+class GameCharacter {
+  final String id;
+  final String gameId;
+  final String name;
+  final String? role;
+  final List<String> aliases;
+  final List<String> tags;
+  final String? description;
+  final String? imagePath;
+  final int sortOrder;
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  GameCharacter({
+    required this.id,
+    required this.gameId,
+    required this.name,
+    this.role,
+    this.aliases = const [],
+    this.tags = const [],
+    this.description,
+    this.imagePath,
+    this.sortOrder = 0,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory GameCharacter.fromJson(Map<String, dynamic> json) {
+    return GameCharacter(
+      id: json['id']?.toString() ?? '',
+      gameId: json['game_id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      role: json['role'],
+      aliases: parseStringListGeneric(json['aliases']),
+      tags: parseStringListGeneric(json['tags']),
+      description: json['description'],
+      imagePath: json['image_path'],
+      sortOrder: json['sort_order'] ?? 0,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'game_id': gameId,
+      'name': name,
+      'role': role,
+      'aliases': jsonEncode(aliases),
+      'tags': jsonEncode(tags),
+      'description': description,
+      'image_path': imagePath,
+      'sort_order': sortOrder,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  GameCharacter copyWith({
+    String? id,
+    String? gameId,
+    String? name,
+    Object? role = _copyWithNull,
+    List<String>? aliases,
+    List<String>? tags,
+    Object? description = _copyWithNull,
+    Object? imagePath = _copyWithNull,
+    int? sortOrder,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return GameCharacter(
+      id: id ?? this.id,
+      gameId: gameId ?? this.gameId,
+      name: name ?? this.name,
+      role: role is _CopyWithNullSentinel ? this.role : (role as String?),
+      aliases: aliases ?? this.aliases,
+      tags: tags ?? this.tags,
+      description: description is _CopyWithNullSentinel ? this.description : (description as String?),
+      imagePath: imagePath is _CopyWithNullSentinel ? this.imagePath : (imagePath as String?),
+      sortOrder: sortOrder ?? this.sortOrder,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  File? get imageFile {
+    if (imagePath == null || imagePath!.isEmpty) return null;
+    return File(imagePath!);
+  }
+
+  String get summary {
+    if (description == null || description!.isEmpty) return '';
+    if (description!.length <= 50) return description!;
+    return '${description!.substring(0, 50)}...';
+  }
+}
+

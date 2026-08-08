@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/data_models.dart';
@@ -88,8 +89,14 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
         break;
     }
 
-    // 按 sortOrder 保留首次出现的顺序
-    final items = byPerson.values.toList();
+    // 按角色权重排序：导演/编剧/作者等优先，纯演员最后
+    // 每个人取其所有角色中的最小权重（最高优先级）作为排序依据
+    final items = byPerson.values.toList()
+      ..sort((a, b) {
+        final aWeight = a.roleTypes.map(_roleWeight).reduce(min);
+        final bWeight = b.roleTypes.map(_roleWeight).reduce(min);
+        return aWeight.compareTo(bWeight);
+      });
     if (!mounted) return;
     setState(() {
       _items = items;
@@ -182,16 +189,32 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
             ],
           ),
           const SizedBox(height: 20),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _items.map((item) {
-                final idx = _items.indexOf(item);
-                return Padding(
-                  padding: EdgeInsets.only(left: idx == 0 ? 0 : 16),
-                  child: _buildPersonChip(item, colors),
-                );
-              }).toList(),
+          ShaderMask(
+            shaderCallback: (Rect bounds) {
+              return const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Color(0x00FFFFFF),
+                  Color(0xFFFFFFFF),
+                  Color(0xFFFFFFFF),
+                  Color(0x00FFFFFF),
+                ],
+                stops: [0.0, 0.04, 0.96, 1.0],
+              ).createShader(bounds);
+            },
+            blendMode: BlendMode.dstIn,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _items.map((item) {
+                  final idx = _items.indexOf(item);
+                  return Padding(
+                    padding: EdgeInsets.only(left: idx == 0 ? 0 : 16),
+                    child: _buildPersonChip(item, colors),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],

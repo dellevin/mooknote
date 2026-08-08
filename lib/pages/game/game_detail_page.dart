@@ -16,9 +16,12 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/work_people_section.dart';
+import '../../widgets/character_preview_section.dart';
+import '../../widgets/character_info_sheet.dart';
 import 'game_reviews_page.dart';
 import 'game_screenshots_page.dart';
 import 'game_share_page.dart';
+import '../character/character_list_page.dart';
 
 /// 游戏详情页 - 极简主义设计
 class GameDetailPage extends StatefulWidget {
@@ -41,6 +44,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
   late int _detailStyle;
   final ValueNotifier<bool> _showTitle = ValueNotifier(false);
   ScrollController? _overlayScrollController;
+
+  // ─── 角色预览 ───
+  List<dynamic> _characters = [];
 
   // ─── 编辑模式 ───
   bool _isEditing = false;
@@ -71,6 +77,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
     _coverOffset.value = UserPrefs().getCoverOffset(widget.game.id);
     _initEditControllers();
     _detectCoverAspect();
+    _loadCharacters();
+  }
+
+  Future<void> _loadCharacters() async {
+    final list = await context.read<AppProvider>().getGameCharacters(widget.game.id);
+    if (!mounted) return;
+    setState(() => _characters = list);
   }
 
   void _initEditControllers() {
@@ -273,6 +286,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           _buildDesktopInfoRow('购买时间', _formatDate(game.purchaseDate!), colors),
                         if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
                           _buildDesktopInfoRow('购买价格', game.purchasePrice!, colors),
+                        CharacterPreviewSection(
+                          characters: _characters,
+                          onTap: _openCharacterSheet,
+                        ),
                         WorkPeopleSection(workId: game.id, workType: 'game'),
                         if (game.summary != null && game.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
@@ -307,6 +324,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           emptyText: '暂无截图',
                           unit: '张截图',
                           onTap: () => _navigateToScreenshots(game),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildExtraSectionItem(
+                          icon: Icons.people_outline,
+                          title: '角色',
+                          subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
+                          emptyText: '暂无角色',
+                          unit: '个角色',
+                          onTap: () => _navigateToCharacters(game),
                         ),
                       ],
                     ),
@@ -999,6 +1025,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
                     _buildInfoSection('购买时间', _formatDate(game.purchaseDate!)),
                   if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
                     _buildInfoSection('购买价格', game.purchasePrice!),
+                  CharacterPreviewSection(
+                    characters: _characters,
+                    onTap: _openCharacterSheet,
+                  ),
                   WorkPeopleSection(workId: game.id, workType: 'game'),
                   if (game.summary != null && game.summary!.isNotEmpty)
                     _buildInfoSection('游戏简介', game.summary!),
@@ -1149,6 +1179,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       _buildOverlayInfoRow('购买时间', _formatDate(game.purchaseDate!)),
                     if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
                       _buildOverlayInfoRow('购买价格', game.purchasePrice!),
+                    CharacterPreviewSection(
+                      characters: _characters,
+                      onTap: _openCharacterSheet,
+                      isOverlay: true,
+                    ),
                     // 关联人物
                     WorkPeopleSection(workId: game.id, workType: 'game'),
                     if (game.summary != null && game.summary!.isNotEmpty) ...[
@@ -1289,6 +1324,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
             unit: '张截图',
             onTap: () => _navigateToScreenshots(game),
           ),
+          const SizedBox(height: 12),
+          _buildFrostedExtraItem(
+            icon: Icons.people_outline,
+            title: '角色',
+            subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
+            emptyText: '暂无角色',
+            unit: '个角色',
+            onTap: () => _navigateToCharacters(game),
+          ),
         ],
       ),
     );
@@ -1355,6 +1399,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
           tooltip: '编辑',
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
+        ),
+        const SizedBox(height: 12),
+        _buildFloatingButton(
+          icon: Icons.people_outline,
+          onPressed: () => _navigateToCharacters(game),
+          tooltip: '角色',
+          backgroundColor: colors.secondaryContainer,
+          foregroundColor: colors.onSecondaryContainer,
         ),
         const SizedBox(height: 12),
         _buildFloatingButton(
@@ -1721,6 +1773,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
             unit: '张截图',
             onTap: () => _navigateToScreenshots(game),
           ),
+          const SizedBox(height: 12),
+          _buildExtraSectionItem(
+            icon: Icons.people_outline,
+            title: '角色',
+            subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
+            emptyText: '暂无角色',
+            unit: '个角色',
+            onTap: () => _navigateToCharacters(game),
+          ),
         ],
       ),
     );
@@ -1788,6 +1849,21 @@ class _GameDetailPageState extends State<GameDetailPage> {
 
   void _navigateToScreenshots(Game game) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreenshotsPage(game: game)));
+  }
+
+  void _navigateToCharacters(Game game) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => GameCharactersPage(game: game)))
+        .then((_) => _loadCharacters());
+  }
+
+  Future<void> _openCharacterSheet(dynamic character) async {
+    final needRefresh = await CharacterInfoSheet.show(
+      context,
+      entityType: 'game',
+      entityId: widget.game.id,
+      character: character,
+    );
+    if (needRefresh == true) _loadCharacters();
   }
 
   void _showStylePicker() {

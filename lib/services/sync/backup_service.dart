@@ -75,6 +75,11 @@ class BackupService {
     final moviePeople = await db.query('movie_people');
     final bookPeople = await db.query('book_people');
     final gamePeople = await db.query('game_people');
+    final playlists = await db.query('playlists');
+    final playlistItems = await db.query('playlist_items');
+    final movieCharacters = await db.query('movie_characters');
+    final bookCharacters = await db.query('book_characters');
+    final gameCharacters = await db.query('game_characters');
 
     // 收集图片路径
     final imagePaths = <String>{};
@@ -117,6 +122,10 @@ class BackupService {
       final pp = p['photo_path'] as String?;
       if (pp != null && pp.isNotEmpty) imagePaths.add(pp);
     }
+    for (final c in [...movieCharacters, ...bookCharacters, ...gameCharacters]) {
+      final ip = c['image_path'] as String?;
+      if (ip != null && ip.isNotEmpty) imagePaths.add(ip);
+    }
 
     final userPrefs = UserPrefs();
     final userInfo = {
@@ -153,6 +162,11 @@ class BackupService {
         'movie_people': moviePeople,
         'book_people': bookPeople,
         'game_people': gamePeople,
+        'playlists': playlists,
+        'playlist_items': playlistItems,
+        'movie_characters': movieCharacters,
+        'book_characters': bookCharacters,
+        'game_characters': gameCharacters,
       },
     };
 
@@ -436,6 +450,11 @@ class BackupService {
       final moviePeopleCols = await _getTableColumns(db, 'movie_people');
       final bookPeopleCols = await _getTableColumns(db, 'book_people');
       final gamePeopleCols = await _getTableColumns(db, 'game_people');
+      final playlistsCols = await _getTableColumns(db, 'playlists');
+      final playlistItemsCols = await _getTableColumns(db, 'playlist_items');
+      final movieCharactersCols = await _getTableColumns(db, 'movie_characters');
+      final bookCharactersCols = await _getTableColumns(db, 'book_characters');
+      final gameCharactersCols = await _getTableColumns(db, 'game_characters');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
@@ -449,6 +468,11 @@ class BackupService {
         await txn.delete('book_people');
         await txn.delete('game_people');
         await txn.delete('people');
+        await txn.delete('playlist_items');
+        await txn.delete('playlists');
+        await txn.delete('movie_characters');
+        await txn.delete('book_characters');
+        await txn.delete('game_characters');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
@@ -527,6 +551,51 @@ class BackupService {
             );
           }
         }
+        if (data.containsKey('people')) {
+          for (final p in data['people'] as List) {
+            await txn.insert('people', _updateImagePath(_convertToDbMapSafe(p, peopleCols), 'photo_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('movie_people')) {
+          for (final mp in data['movie_people'] as List) {
+            await txn.insert('movie_people', _convertToDbMapSafe(mp, moviePeopleCols));
+          }
+        }
+        if (data.containsKey('book_people')) {
+          for (final bp in data['book_people'] as List) {
+            await txn.insert('book_people', _convertToDbMapSafe(bp, bookPeopleCols));
+          }
+        }
+        if (data.containsKey('game_people')) {
+          for (final gp in data['game_people'] as List) {
+            await txn.insert('game_people', _convertToDbMapSafe(gp, gamePeopleCols));
+          }
+        }
+        if (data.containsKey('playlists')) {
+          for (final pl in data['playlists'] as List) {
+            await txn.insert('playlists', _updateImagePath(_convertToDbMapSafe(pl, playlistsCols), 'cover_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('playlist_items')) {
+          for (final pi in data['playlist_items'] as List) {
+            await txn.insert('playlist_items', _convertToDbMapSafe(pi, playlistItemsCols));
+          }
+        }
+        if (data.containsKey('movie_characters')) {
+          for (final c in data['movie_characters'] as List) {
+            await txn.insert('movie_characters', _updateImagePath(_convertToDbMapSafe(c, movieCharactersCols), 'image_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('book_characters')) {
+          for (final c in data['book_characters'] as List) {
+            await txn.insert('book_characters', _updateImagePath(_convertToDbMapSafe(c, bookCharactersCols), 'image_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('game_characters')) {
+          for (final c in data['game_characters'] as List) {
+            await txn.insert('game_characters', _updateImagePath(_convertToDbMapSafe(c, gameCharactersCols), 'image_path', imagePathMap));
+          }
+        }
       });
 
       // 恢复用户信息
@@ -600,6 +669,11 @@ class BackupService {
       final moviePeopleCols = await _getTableColumns(db, 'movie_people');
       final bookPeopleCols = await _getTableColumns(db, 'book_people');
       final gamePeopleCols = await _getTableColumns(db, 'game_people');
+      final playlistsCols = await _getTableColumns(db, 'playlists');
+      final playlistItemsCols = await _getTableColumns(db, 'playlist_items');
+      final movieCharactersCols = await _getTableColumns(db, 'movie_characters');
+      final bookCharactersCols = await _getTableColumns(db, 'book_characters');
+      final gameCharactersCols = await _getTableColumns(db, 'game_characters');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
@@ -613,6 +687,11 @@ class BackupService {
         await txn.delete('book_people');
         await txn.delete('game_people');
         await txn.delete('people');
+        await txn.delete('playlist_items');
+        await txn.delete('playlists');
+        await txn.delete('movie_characters');
+        await txn.delete('book_characters');
+        await txn.delete('game_characters');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
@@ -689,6 +768,51 @@ class BackupService {
               'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
               [map['id'], map['name'], map['type'], map['created_at']],
             );
+          }
+        }
+        if (data.containsKey('people')) {
+          for (final p in data['people'] as List) {
+            await txn.insert('people', _updateImagePath(_convertToDbMapSafe(p, peopleCols), 'photo_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('movie_people')) {
+          for (final mp in data['movie_people'] as List) {
+            await txn.insert('movie_people', _convertToDbMapSafe(mp, moviePeopleCols));
+          }
+        }
+        if (data.containsKey('book_people')) {
+          for (final bp in data['book_people'] as List) {
+            await txn.insert('book_people', _convertToDbMapSafe(bp, bookPeopleCols));
+          }
+        }
+        if (data.containsKey('game_people')) {
+          for (final gp in data['game_people'] as List) {
+            await txn.insert('game_people', _convertToDbMapSafe(gp, gamePeopleCols));
+          }
+        }
+        if (data.containsKey('playlists')) {
+          for (final pl in data['playlists'] as List) {
+            await txn.insert('playlists', _updateImagePath(_convertToDbMapSafe(pl, playlistsCols), 'cover_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('playlist_items')) {
+          for (final pi in data['playlist_items'] as List) {
+            await txn.insert('playlist_items', _convertToDbMapSafe(pi, playlistItemsCols));
+          }
+        }
+        if (data.containsKey('movie_characters')) {
+          for (final c in data['movie_characters'] as List) {
+            await txn.insert('movie_characters', _updateImagePath(_convertToDbMapSafe(c, movieCharactersCols), 'image_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('book_characters')) {
+          for (final c in data['book_characters'] as List) {
+            await txn.insert('book_characters', _updateImagePath(_convertToDbMapSafe(c, bookCharactersCols), 'image_path', imagePathMap));
+          }
+        }
+        if (data.containsKey('game_characters')) {
+          for (final c in data['game_characters'] as List) {
+            await txn.insert('game_characters', _updateImagePath(_convertToDbMapSafe(c, gameCharactersCols), 'image_path', imagePathMap));
           }
         }
       });
@@ -778,6 +902,13 @@ class BackupService {
     if (data.containsKey('games')) stats['游戏'] = (data['games'] as List).length;
     if (data.containsKey('game_reviews')) stats['游戏评价'] = (data['game_reviews'] as List).length;
     if (data.containsKey('game_screenshots')) stats['游戏截图'] = (data['game_screenshots'] as List).length;
+    if (data.containsKey('people')) stats['人物'] = (data['people'] as List).length;
+    if (data.containsKey('playlists')) stats['片单'] = (data['playlists'] as List).length;
+    int charCount = 0;
+    for (final key in ['movie_characters', 'book_characters', 'game_characters']) {
+      if (data.containsKey(key)) charCount += (data[key] as List).length;
+    }
+    if (charCount > 0) stats['角色'] = charCount;
     if (imageCount > 0) stats['图片'] = imageCount;
     return stats;
   }
