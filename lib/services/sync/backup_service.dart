@@ -400,7 +400,10 @@ class BackupService {
 
         for (final archiveFile in archive) {
           if (archiveFile.name.startsWith('images/')) {
-            final relativePath = archiveFile.name.substring(7);
+            var relativePath = archiveFile.name.substring('images/'.length);
+            while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+              relativePath = relativePath.substring(1);
+            }
             final outputFile = File(path.join(imagesDir.path, relativePath));
             if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
             await outputFile.writeAsBytes(archiveFile.content as List<int>);
@@ -408,7 +411,11 @@ class BackupService {
             imagePathMap[relativePath] = outputFile.path;
             imageCount++;
           } else if (archiveFile.name.startsWith('epub_books/')) {
-            final relativePath = archiveFile.name.substring(12);
+            var relativePath = archiveFile.name.substring('epub_books/'.length);
+            // 防御前导斜杠导致 path.join 把它当绝对路径
+            while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+              relativePath = relativePath.substring(1);
+            }
             final epubDir = Directory(path.join(appDirPath, 'epub_books'));
             if (!await epubDir.exists()) await epubDir.create(recursive: true);
             final outputFile = File(path.join(epubDir.path, relativePath));
@@ -625,14 +632,20 @@ class BackupService {
 
       for (final archiveFile in archive) {
         if (archiveFile.name.startsWith('images/')) {
-          final relativePath = archiveFile.name.substring(7);
+          var relativePath = archiveFile.name.substring('images/'.length);
+          while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+            relativePath = relativePath.substring(1);
+          }
           final outputFile = File(path.join(imagesDir.path, relativePath));
           if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
           await outputFile.writeAsBytes(archiveFile.content as List<int>);
           imagePathMap[relativePath] = outputFile.path;
           imageCount++;
         } else if (archiveFile.name.startsWith('epub_books/')) {
-          final relativePath = archiveFile.name.substring(12);
+          var relativePath = archiveFile.name.substring('epub_books/'.length);
+          while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+            relativePath = relativePath.substring(1);
+          }
           final epubDir = Directory(path.join(appDirPath, 'epub_books'));
           if (!await epubDir.exists()) await epubDir.create(recursive: true);
           final outputFile = File(path.join(epubDir.path, relativePath));
@@ -1221,7 +1234,7 @@ _ZipComputeResult _buildZipInIsolate(_ZipComputeParams params) {
     if (epubDir.existsSync()) {
       for (final entity in epubDir.listSync(recursive: true)) {
         if (entity is File) {
-          final relativePath = entity.path.substring(epubRoot.length + 1);
+          final relativePath = path.relative(entity.path, from: epubRoot);
           encoder.addFile(entity, 'epub_books/$relativePath');
           epubCount++;
         }
