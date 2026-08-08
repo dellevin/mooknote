@@ -292,7 +292,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.people_outline, '角色信息', '管理影视和书籍中的角色', _showPerson,
+              Icons.people_outline, '人物', '管理影视、书籍和游戏中的人物', _showPerson,
               (v) async {
             await _userPrefs.setShowSidebarPerson(v);
             setState(() => _showPerson = v);

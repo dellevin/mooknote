@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 /// images/notes/{noteId}/xxxx.jpg                - 笔记图片
 /// images/games/{gameId}/xxxx.jpg                - 游戏封面
 /// images/games/{gameId}/screenshots/xxxx.jpg    - 游戏截图
+/// images/people/{personId}/xxxx.jpg             - 人物图片
 class ImagePathHelper {
   static final ImagePathHelper instance = ImagePathHelper._init();
 
@@ -130,6 +131,22 @@ class ImagePathHelper {
     return p.join(dir, fileName);
   }
 
+  // ==================== 人物相关路径 ====================
+
+  /// 获取人物图片目录
+  /// 路径: images/people/{personId}/
+  Future<String> getPersonImagesDir(String personId) async {
+    final root = await imagesRoot;
+    return p.join(root, 'people', personId);
+  }
+
+  /// 获取人物图片路径
+  /// 路径: images/people/{personId}/{fileName}
+  Future<String> getPersonPhotoPath(String personId, String fileName) async {
+    final dir = await getPersonImagesDir(personId);
+    return p.join(dir, fileName);
+  }
+
   // ==================== 目录操作 ====================
 
   /// 确保目录存在
@@ -170,6 +187,13 @@ class ImagePathHelper {
   /// 删除路径: images/games/{gameId}/
   Future<void> deleteGameImages(String gameId) async {
     final dirPath = await getGameImagesDir(gameId);
+    await _deleteDirectory(dirPath);
+  }
+
+  /// 删除人物图片目录
+  /// 删除路径: images/people/{personId}/
+  Future<void> deletePersonImages(String personId) async {
+    final dirPath = await getPersonImagesDir(personId);
     await _deleteDirectory(dirPath);
   }
 

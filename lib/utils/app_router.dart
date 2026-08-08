@@ -12,6 +12,7 @@ import '../pages/book/book_detail_page.dart';
 import '../pages/note/note_detail_page.dart';
 import '../pages/game/game_detail_page.dart';
 import '../pages/movies/douban_webview_page.dart';
+import '../pages/people/person_form_page.dart';
 
 /// 路由生成器
 class AppRouter {
@@ -88,6 +89,11 @@ class AppRouter {
           return null;
         }
         return SlideUpPageRoute(page: DoubanWebViewPage(url: url));
+
+      case '/person-form':
+        final args = settings.arguments;
+        final Person? person = args is Person ? args : null;
+        return SlideUpPageRoute(page: PersonFormPage(person: person));
 
       default:
         return _buildUnknownRoute(settings.name);

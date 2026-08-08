@@ -15,6 +15,7 @@ import '../../utils/user_prefs.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/work_people_section.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
@@ -267,6 +268,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             Expanded(child: Text('${book.readCount} 次', style: TextStyle(fontSize: 13, color: colors.onSurface))),
                           ]),
                         ],
+                        WorkPeopleSection(workId: book.id, workType: 'book'),
                         if (book.summary != null && book.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
                           Row(children: [
@@ -806,7 +808,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
                   if (book.publishDate != null) _buildPublishDateSection(book),
                   if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
-                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  WorkPeopleSection(workId: book.id, workType: 'book'),
                   if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   _buildExtraSections(book),
@@ -909,11 +911,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
                         // 类型标签毛玻璃
                         if (book.genres.isNotEmpty) _buildGenresSection(book),
+                        // 关联人物
+                        WorkPeopleSection(workId: book.id, workType: 'book'),
                         // 简介：内部已有毛玻璃卡片
                         if (book.summary != null && book.summary!.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           _buildSummarySection(book),
                         ],
+                        const SizedBox(height: 12),
                         const SizedBox(height: 12),
                         // 书评、书摘毛玻璃
                         _buildExtraSectionsOverlay(book),

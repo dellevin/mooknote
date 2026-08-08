@@ -15,6 +15,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/work_people_section.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
@@ -267,6 +268,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             )),
                           ]),
                         ],
+                        WorkPeopleSection(workId: movie.id, workType: 'movie'),
                         if (movie.summary != null && movie.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
                           Row(children: [
@@ -932,7 +934,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     _buildActorsSection(movie),
                   if (movie.genres.isNotEmpty)
                     _buildGenresSection(movie),
-                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
+                  WorkPeopleSection(workId: movie.id, workType: 'movie'),
                   if (movie.summary != null && movie.summary!.isNotEmpty)
                     _buildSummarySection(movie),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
@@ -1064,11 +1066,13 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                       const SizedBox(height: 12),
                       _buildGenresSection(movie),
                     ],
+                    const SizedBox(height: 12),
+                    // 关联人物
+                    WorkPeopleSection(workId: movie.id, workType: 'movie'),
+                    const SizedBox(height: 12),
                     // 简介：内部已有毛玻璃卡片
-                    if (movie.summary != null && movie.summary!.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                    if (movie.summary != null && movie.summary!.isNotEmpty)
                       _buildSummarySection(movie),
-                    ],
                     const SizedBox(height: 12),
                     // 影评、海报墙毛玻璃
                     _buildExtraSectionsOverlay(movie),

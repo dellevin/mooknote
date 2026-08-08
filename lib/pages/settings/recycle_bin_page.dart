@@ -12,7 +12,7 @@ class RecycleBinPage extends StatefulWidget {
   State<RecycleBinPage> createState() => _RecycleBinPageState();
 }
 
-enum _ItemType { movie, book, note, game, movieReview, bookReview, bookExcerpt, gameReview }
+enum _ItemType { movie, book, note, game, movieReview, bookReview, bookExcerpt, gameReview, person }
 
 class _DeletedItem {
   final _ItemType type;
@@ -86,6 +86,14 @@ class _DeletedItem {
         icon = Icons.rate_review_outlined,
         typeLabel = '游戏评价';
 
+  _DeletedItem.person(Person p)
+      : type = _ItemType.person,
+        id = p.id,
+        title = p.name,
+        subtitle = '删除于 ${p.updatedAt.year}.${p.updatedAt.month.toString().padLeft(2, '0')}.${p.updatedAt.day.toString().padLeft(2, '0')}',
+        icon = Icons.person_outline,
+        typeLabel = '人物';
+
 }
 
 class _RecycleBinPageState extends State<RecycleBinPage> {
@@ -113,6 +121,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     final bookReviews = await provider.getDeletedBookReviews();
     final bookExcerpts = await provider.getDeletedBookExcerpts();
     final gameReviews = await provider.getDeletedGameReviews();
+    final people = await provider.getDeletedPeople();
     if (!mounted) return;
     setState(() {
       _allItems = [
@@ -124,6 +133,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         for (final r in bookReviews) _DeletedItem.bookReview(r),
         for (final e in bookExcerpts) _DeletedItem.bookExcerpt(e),
         for (final r in gameReviews) _DeletedItem.gameReview(r),
+        for (final p in people) _DeletedItem.person(p),
       ];
       _isLoading = false;
     });
@@ -200,6 +210,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
           _filterChip('书评', _ItemType.bookReview),
           _filterChip('书摘', _ItemType.bookExcerpt),
           _filterChip('游戏评价', _ItemType.gameReview),
+          _filterChip('人物', _ItemType.person),
         ],
       ),
     );
@@ -428,6 +439,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       case _ItemType.gameReview:
         await provider.restoreGameReview(item.id);
         if (mounted) ToastUtil.show(context, '游戏评价已恢复');
+      case _ItemType.person:
+        await provider.restorePerson(item.id);
+        if (mounted) ToastUtil.show(context, '人物已恢复');
     }
     _loadDeletedItems();
   }
@@ -453,6 +467,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         await provider.permanentDeleteBookExcerpt(item.id);
       case _ItemType.gameReview:
         await provider.permanentDeleteGameReview(item.id);
+      case _ItemType.person:
+        await provider.permanentDeletePerson(item.id);
     }
     _loadDeletedItems();
     if (mounted) ToastUtil.show(context, '已彻底删除');

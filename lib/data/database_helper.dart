@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 38,
+      version: 39,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -400,6 +400,10 @@ class DatabaseHelper {
       if (!cols.any((col) => col['name'] == 'sort_order')) {
         await db.execute('ALTER TABLE playlists ADD COLUMN sort_order INTEGER DEFAULT 0');
       }
+    }
+    if (oldVersion < 39) {
+      // 创建人物表和关联表
+      await _createPeopleTables(db);
     }
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
@@ -1033,6 +1037,74 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX idx_playlist_items_playlist ON playlist_items(playlist_id)',
     );
+
+    // 人物表
+    await _createPeopleTables(db);
+  }
+
+  /// 创建人物表和关联表
+  Future<void> _createPeopleTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS people (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        gender TEXT,
+        birth_date TEXT,
+        birth_place TEXT,
+        alternate_names TEXT DEFAULT '[]',
+        occupation TEXT DEFAULT '[]',
+        summary TEXT,
+        photo_path TEXT,
+        cover_offset REAL DEFAULT 0,
+        is_deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movie_people (
+        id TEXT PRIMARY KEY,
+        movie_id TEXT NOT NULL,
+        person_id TEXT NOT NULL,
+        role_type TEXT NOT NULL,
+        character_name TEXT,
+        sort_order INTEGER DEFAULT 0,
+        FOREIGN KEY (movie_id) REFERENCES movies (id),
+        FOREIGN KEY (person_id) REFERENCES people (id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_people (
+        id TEXT PRIMARY KEY,
+        book_id TEXT NOT NULL,
+        person_id TEXT NOT NULL,
+        role_type TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        FOREIGN KEY (book_id) REFERENCES books (id),
+        FOREIGN KEY (person_id) REFERENCES people (id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS game_people (
+        id TEXT PRIMARY KEY,
+        game_id TEXT NOT NULL,
+        person_id TEXT NOT NULL,
+        role_type TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        FOREIGN KEY (game_id) REFERENCES games (id),
+        FOREIGN KEY (person_id) REFERENCES people (id)
+      )
+    ''');
+
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_movie_people_movie ON movie_people(movie_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_movie_people_person ON movie_people(person_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_book_people_book ON book_people(book_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_book_people_person ON book_people(person_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_game_people_game ON game_people(game_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_game_people_person ON game_people(person_id)');
   }
 
   // 关闭数据库

@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import '../models/data_models.dart';
 import '../data/movie/movie_dao.dart';
 import '../data/book/book_dao.dart';
@@ -14,6 +15,10 @@ import '../data/game/game_review_dao.dart';
 import '../data/game/game_screenshot_dao.dart';
 import '../data/playlist/playlist_dao.dart';
 import '../data/tag/tag_dao.dart';
+import '../data/person/person_dao.dart';
+import '../data/person/movie_person_dao.dart';
+import '../data/person/book_person_dao.dart';
+import '../data/person/game_person_dao.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
@@ -35,12 +40,17 @@ class AppProvider extends ChangeNotifier {
   final GameScreenshotDao _gameScreenshotDao = GameScreenshotDao();
   final PlaylistDao _playlistDao = PlaylistDao();
   final TagDao _tagDao = TagDao();
+  final PersonDao _personDao = PersonDao();
+  final MoviePersonDao _moviePersonDao = MoviePersonDao();
+  final BookPersonDao _bookPersonDao = BookPersonDao();
+  final GamePersonDao _gamePersonDao = GamePersonDao();
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
   List<Note> _notes = [];
   List<Game> _games = [];
   List<Playlist> _playlists = [];
+  List<Person> _people = [];
 
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
@@ -154,6 +164,11 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[AppProvider] 加载游戏数据失败: $e');
     }
+    try {
+      _people = await _personDao.getAllPeople();
+    } catch (e) {
+      debugPrint('[AppProvider] 加载人物数据失败: $e');
+    }
     // 检查是否全部失败
     if (_movies.isEmpty && _books.isEmpty && _notes.isEmpty && _games.isEmpty) {
       // 可能是初始化全部失败（非空数据库场景下不合理），标记以便 UI 提示
@@ -165,7 +180,7 @@ class AppProvider extends ChangeNotifier {
         _dbInitFailed = true;
       }
     }
-    debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}, games=${_games.length}');
+    debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}, games=${_games.length}, people=${_people.length}');
     notifyListeners();
   }
 
@@ -240,6 +255,12 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // 加载人物数据
+  Future<void> loadPeople() async {
+    _people = await _personDao.getAllPeople();
+    notifyListeners();
+  }
+
   /// 编辑返回后触发列表页重载
   /// [itemId] 被编辑条目的 ID，用于就地更新而非重置分页
   void setEditRefresh([String? itemId]) {
@@ -295,6 +316,7 @@ class AppProvider extends ChangeNotifier {
   List<Note> get notes => UnmodifiableListView(_notes);
   List<Game> get games => UnmodifiableListView(_games);
   List<Playlist> get playlists => UnmodifiableListView(_playlists);
+  List<Person> get people => UnmodifiableListView(_people);
 
   // 根据状态获取影视列表
   List<Movie> getMoviesByStatus(String status) {
@@ -933,12 +955,14 @@ class AppProvider extends ChangeNotifier {
     final deletedBookReviews = await getDeletedBookReviews();
     final deletedBookExcerpts = await getDeletedBookExcerpts();
     final deletedGameReviews = await getDeletedGameReviews();
+    final deletedPeople = await getDeletedPeople();
 
     // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
     final movieIds = deletedMovies.map((m) => m.id).toList();
     final bookIds = deletedBooks.map((b) => b.id).toList();
     final noteIds = deletedNotes.map((n) => n.id).toList();
     final gameIds = deletedGames.map((g) => g.id).toList();
+    final personIds = deletedPeople.map((p) => p.id).toList();
 
     // 事务内批量删除数据库记录，保证原子性
     final db = await DatabaseHelper.instance.database;
@@ -973,6 +997,12 @@ class AppProvider extends ChangeNotifier {
       for (final review in deletedGameReviews) {
         await txn.delete('game_reviews', where: 'id = ?', whereArgs: [review.id]);
       }
+      for (final id in personIds) {
+        await txn.delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
+        await txn.delete('book_people', where: 'person_id = ?', whereArgs: [id]);
+        await txn.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
+        await txn.delete('people', where: 'id = ?', whereArgs: [id]);
+      }
     });
 
     // 事务成功后，清理关联的图片文件（文件删除失败不影响数据一致性）
@@ -988,12 +1018,16 @@ class AppProvider extends ChangeNotifier {
     for (final id in gameIds) {
       await ImagePathHelper.instance.deleteGameImages(id);
     }
+    for (final id in personIds) {
+      await ImagePathHelper.instance.deletePersonImages(id);
+    }
 
     await loadMovies();
     await loadBooks();
     await loadNotes();
     await loadGames();
     await loadPlaylists();
+    await loadPeople();
   }
 
   // ========== 影评书评回收站 ==========
@@ -1160,5 +1194,259 @@ class AppProvider extends ChangeNotifier {
       case 'game_genre':
         await loadGames();
     }
+  }
+
+  // ========== 人物管理 ==========
+
+  /// 添加人物
+  Future<void> addPerson(Person person) async {
+    await _personDao.insertPerson(person);
+    await loadPeople();
+  }
+
+  /// 更新人物
+  Future<void> updatePerson(Person person) async {
+    await _personDao.updatePerson(person);
+    await loadPeople();
+  }
+
+  /// 更新人物封面偏移量
+  Future<void> updatePersonCoverOffset(String personId, double offset) async {
+    await _personDao.updateCoverOffset(personId, offset);
+  }
+
+  /// 软删除人物
+  Future<void> removePerson(String id) async {
+    await _personDao.deletePerson(id);
+    await loadPeople();
+  }
+
+  /// 恢复已删除的人物
+  Future<void> restorePerson(String id) async {
+    await _personDao.restorePerson(id);
+    await loadPeople();
+  }
+
+  /// 彻底删除人物
+  Future<void> permanentDeletePerson(String id) async {
+    await ImagePathHelper.instance.deletePersonImages(id);
+    await _personDao.permanentDeletePerson(id);
+  }
+
+  /// 获取已删除的人物
+  Future<List<Person>> getDeletedPeople() async {
+    return await _personDao.getDeletedPeople();
+  }
+
+  /// 搜索人物
+  Future<List<Person>> searchPeople(String keyword) async {
+    return await _personDao.searchPeople(keyword);
+  }
+
+  /// 根据ID获取人物
+  Future<Person?> getPersonById(String id) async {
+    return await _personDao.getPersonById(id);
+  }
+
+  // ========== 人物关联查询 ==========
+
+  /// 获取某部影视的关联人物
+  Future<List<MoviePerson>> getMoviePeople(String movieId) async {
+    return await _moviePersonDao.getByMovieId(movieId);
+  }
+
+  /// 获取某个人物参与的影视
+  Future<List<MoviePerson>> getPersonMovies(String personId) async {
+    return await _moviePersonDao.getByPersonId(personId);
+  }
+
+  /// 获取某本书的关联人物
+  Future<List<BookPerson>> getBookPeople(String bookId) async {
+    return await _bookPersonDao.getByBookId(bookId);
+  }
+
+  /// 获取某个人物参与的书籍
+  Future<List<BookPerson>> getPersonBooks(String personId) async {
+    return await _bookPersonDao.getByPersonId(personId);
+  }
+
+  /// 获取某游戏的关联人物
+  Future<List<GamePerson>> getGamePeople(String gameId) async {
+    return await _gamePersonDao.getByGameId(gameId);
+  }
+
+  /// 获取某个人物参与的游戏
+  Future<List<GamePerson>> getPersonGames(String personId) async {
+    return await _gamePersonDao.getByPersonId(personId);
+  }
+
+  /// 保存影视的人物关联（先删后插）
+  Future<void> saveMoviePeople(String movieId, List<MoviePerson> people) async {
+    await _moviePersonDao.deleteByMovieId(movieId);
+    if (people.isNotEmpty) {
+      await _moviePersonDao.insertAll(people);
+    }
+  }
+
+  /// 保存书籍的人物关联
+  Future<void> saveBookPeople(String bookId, List<BookPerson> people) async {
+    await _bookPersonDao.deleteByBookId(bookId);
+    if (people.isNotEmpty) {
+      await _bookPersonDao.insertAll(people);
+    }
+  }
+
+  /// 保存游戏的人物关联
+  Future<void> saveGamePeople(String gameId, List<GamePerson> people) async {
+    await _gamePersonDao.deleteByGameId(gameId);
+    if (people.isNotEmpty) {
+      await _gamePersonDao.insertAll(people);
+    }
+  }
+
+  /// 保存某个人物的所有影视关联（先删后插，按 personId 维度）
+  Future<void> savePersonMovieRelations(String personId, List<MoviePerson> relations) async {
+    await _moviePersonDao.deleteByPersonId(personId);
+    if (relations.isNotEmpty) {
+      await _moviePersonDao.insertAll(relations);
+    }
+  }
+
+  /// 保存某个人物的所有书籍关联
+  Future<void> savePersonBookRelations(String personId, List<BookPerson> relations) async {
+    await _bookPersonDao.deleteByPersonId(personId);
+    if (relations.isNotEmpty) {
+      await _bookPersonDao.insertAll(relations);
+    }
+  }
+
+  /// 保存某个人物的所有游戏关联
+  Future<void> savePersonGameRelations(String personId, List<GamePerson> relations) async {
+    await _gamePersonDao.deleteByPersonId(personId);
+    if (relations.isNotEmpty) {
+      await _gamePersonDao.insertAll(relations);
+    }
+  }
+
+  /// 扫描所有作品的人物字段，自动创建人物并建立关联
+  /// 返回 (新增人物数, 新增关联数, 合并去重数)
+  Future<({int newPersons, int newRelations, int merged})> refreshPersonRelations() async {
+    // 先合并已有的同名重复人物
+    final merged = await _personDao.mergeDuplicatePeople();
+    if (merged > 0) {
+      await loadPeople();
+    }
+
+    final nameIndex = <String, Person>{};
+    for (final p in _people) {
+      nameIndex[p.name] = p;
+    }
+
+    int newPersons = 0;
+    int newRelations = 0;
+    const uuid = Uuid();
+    final now = DateTime.now();
+
+    Future<Person> findOrCreate(String name, String occupationLabel) async {
+      final existing = nameIndex[name];
+      if (existing != null) return existing;
+      // 内存索引未命中时回退查库，避免重复创建同名人物
+      final dbExisting = await _personDao.getPersonByName(name);
+      if (dbExisting != null) {
+        nameIndex[name] = dbExisting;
+        return dbExisting;
+      }
+      final person = Person(
+        id: uuid.v4(),
+        name: name,
+        occupation: [occupationLabel],
+        createdAt: now,
+        updatedAt: now,
+      );
+      await _personDao.insertPerson(person);
+      nameIndex[name] = person;
+      newPersons++;
+      return person;
+    }
+
+    // 影视：directors/writers/actors
+    for (final movie in _movies) {
+      if (movie.isDeleted) continue;
+      final entries = <(List<String>, String, String)>[
+        (movie.directors, 'director', '导演'),
+        (movie.writers, 'writer', '编剧'),
+        (movie.actors, 'actor', '演员'),
+      ];
+      for (final (names, roleType, occupationLabel) in entries) {
+        final seen = <String>{};
+        for (final name in names) {
+          final trimmed = name.trim();
+          if (trimmed.isEmpty || !seen.add(trimmed)) continue;
+          final person = await findOrCreate(trimmed, occupationLabel);
+          if (!await _moviePersonDao.existsRelation(movie.id, person.id, roleType)) {
+            await _moviePersonDao.insert(MoviePerson(
+              id: uuid.v4(),
+              movieId: movie.id,
+              personId: person.id,
+              roleType: roleType,
+              characterName: null,
+              sortOrder: 0,
+            ));
+            newRelations++;
+          }
+        }
+      }
+    }
+
+    // 书籍：authors/translators
+    for (final book in _books) {
+      if (book.isDeleted) continue;
+      final entries = <(List<String>, String, String)>[
+        (book.authors, 'author', '作者'),
+        (book.translators, 'translator', '译者'),
+      ];
+      for (final (names, roleType, occupationLabel) in entries) {
+        final seen = <String>{};
+        for (final name in names) {
+          final trimmed = name.trim();
+          if (trimmed.isEmpty || !seen.add(trimmed)) continue;
+          final person = await findOrCreate(trimmed, occupationLabel);
+          if (!await _bookPersonDao.existsRelation(book.id, person.id, roleType)) {
+            await _bookPersonDao.insert(BookPerson(
+              id: uuid.v4(),
+              bookId: book.id,
+              personId: person.id,
+              roleType: roleType,
+              sortOrder: 0,
+            ));
+            newRelations++;
+          }
+        }
+      }
+    }
+
+    // 游戏：developer
+    for (final game in _games) {
+      if (game.isDeleted) continue;
+      final seen = <String>{};
+      for (final name in game.developer) {
+        final trimmed = name.trim();
+        if (trimmed.isEmpty || !seen.add(trimmed)) continue;
+        final person = await findOrCreate(trimmed, '开发者');
+        if (!await _gamePersonDao.existsRelation(game.id, person.id, 'developer')) {
+          await _gamePersonDao.insert(GamePerson(
+            id: uuid.v4(),
+            gameId: game.id,
+            personId: person.id,
+            roleType: 'developer',
+            sortOrder: 0,
+          ));
+          newRelations++;
+        }
+      }
+    }
+
+    await loadPeople();
+    return (newPersons: newPersons, newRelations: newRelations, merged: merged);
   }
 }

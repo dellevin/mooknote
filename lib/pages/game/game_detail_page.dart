@@ -15,6 +15,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/work_people_section.dart';
 import 'game_reviews_page.dart';
 import 'game_screenshots_page.dart';
 import 'game_share_page.dart';
@@ -272,6 +273,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           _buildDesktopInfoRow('购买时间', _formatDate(game.purchaseDate!), colors),
                         if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
                           _buildDesktopInfoRow('购买价格', game.purchasePrice!, colors),
+                        WorkPeopleSection(workId: game.id, workType: 'game'),
                         if (game.summary != null && game.summary!.isNotEmpty) ...[
                           Divider(height: 32, thickness: 0.5, color: colors.outline),
                           Row(children: [
@@ -997,6 +999,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                     _buildInfoSection('购买时间', _formatDate(game.purchaseDate!)),
                   if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
                     _buildInfoSection('购买价格', game.purchasePrice!),
+                  WorkPeopleSection(workId: game.id, workType: 'game'),
                   if (game.summary != null && game.summary!.isNotEmpty)
                     _buildInfoSection('游戏简介', game.summary!),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
@@ -1146,10 +1149,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       _buildOverlayInfoRow('购买时间', _formatDate(game.purchaseDate!)),
                     if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
                       _buildOverlayInfoRow('购买价格', game.purchasePrice!),
+                    // 关联人物
+                    WorkPeopleSection(workId: game.id, workType: 'game'),
                     if (game.summary != null && game.summary!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _buildOverlaySummary(game),
                     ],
+                    const SizedBox(height: 12),
                     const SizedBox(height: 12),
                     _buildExtraSectionsOverlay(game),
                   ]),

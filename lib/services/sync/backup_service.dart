@@ -71,6 +71,10 @@ class BackupService {
     final games = await db.query('games');
     final gameReviews = await db.query('game_reviews');
     final gameScreenshots = await db.query('game_screenshots');
+    final people = await db.query('people');
+    final moviePeople = await db.query('movie_people');
+    final bookPeople = await db.query('book_people');
+    final gamePeople = await db.query('game_people');
 
     // 收集图片路径
     final imagePaths = <String>{};
@@ -109,6 +113,10 @@ class BackupService {
       final p = s['screenshot_path'] as String?;
       if (p != null && p.isNotEmpty) imagePaths.add(p);
     }
+    for (final p in people) {
+      final pp = p['photo_path'] as String?;
+      if (pp != null && pp.isNotEmpty) imagePaths.add(pp);
+    }
 
     final userPrefs = UserPrefs();
     final userInfo = {
@@ -141,6 +149,10 @@ class BackupService {
         'games': games,
         'game_reviews': gameReviews,
         'game_screenshots': gameScreenshots,
+        'people': people,
+        'movie_people': moviePeople,
+        'book_people': bookPeople,
+        'game_people': gamePeople,
       },
     };
 
@@ -420,6 +432,10 @@ class BackupService {
       final gamesCols = await _getTableColumns(db, 'games');
       final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
       final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
+      final peopleCols = await _getTableColumns(db, 'people');
+      final moviePeopleCols = await _getTableColumns(db, 'movie_people');
+      final bookPeopleCols = await _getTableColumns(db, 'book_people');
+      final gamePeopleCols = await _getTableColumns(db, 'game_people');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
@@ -429,6 +445,10 @@ class BackupService {
         await txn.delete('book_annotations');
         await txn.delete('game_reviews');
         await txn.delete('game_screenshots');
+        await txn.delete('movie_people');
+        await txn.delete('book_people');
+        await txn.delete('game_people');
+        await txn.delete('people');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
@@ -576,6 +596,10 @@ class BackupService {
       final gamesCols = await _getTableColumns(db, 'games');
       final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
       final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
+      final peopleCols = await _getTableColumns(db, 'people');
+      final moviePeopleCols = await _getTableColumns(db, 'movie_people');
+      final bookPeopleCols = await _getTableColumns(db, 'book_people');
+      final gamePeopleCols = await _getTableColumns(db, 'game_people');
 
       await db.transaction((txn) async {
         await txn.delete('movie_reviews');
@@ -585,6 +609,10 @@ class BackupService {
         await txn.delete('book_annotations');
         await txn.delete('game_reviews');
         await txn.delete('game_screenshots');
+        await txn.delete('movie_people');
+        await txn.delete('book_people');
+        await txn.delete('game_people');
+        await txn.delete('people');
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');

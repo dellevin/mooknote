@@ -1143,3 +1143,225 @@ class PlaylistItem {
   }
 }
 
+/// 人物档案模型
+class Person {
+  final String id;
+  final String name;
+  final String? gender; // male/female/other
+  final DateTime? birthDate;
+  final String? birthPlace;
+  final List<String> alternateNames; // 其他名称
+  final List<String> occupation; // 职业: ["导演","演员","编剧"]
+  final String? summary;
+  final String? photoPath;
+  final double coverOffset;
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  Person({
+    required this.id,
+    required this.name,
+    this.gender,
+    this.birthDate,
+    this.birthPlace,
+    this.alternateNames = const [],
+    this.occupation = const [],
+    this.summary,
+    this.photoPath,
+    this.coverOffset = 0.0,
+    this.isDeleted = false,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Person.fromJson(Map<String, dynamic> json) {
+    return Person(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      gender: json['gender'],
+      birthDate: _safeParseDate(json['birth_date']),
+      birthPlace: json['birth_place'],
+      alternateNames: parseStringListGeneric(json['alternate_names']),
+      occupation: parseStringListGeneric(json['occupation']),
+      summary: json['summary'],
+      photoPath: json['photo_path'],
+      coverOffset: _safeParseDouble(json['cover_offset'], fallback: 0.0)!,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'gender': gender,
+      'birth_date': birthDate?.toUtc().toIso8601String(),
+      'birth_place': birthPlace,
+      'alternate_names': jsonEncode(alternateNames),
+      'occupation': jsonEncode(occupation),
+      'summary': summary,
+      'photo_path': photoPath,
+      'cover_offset': coverOffset,
+      'is_deleted': isDeleted ? 1 : 0,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  Person copyWith({
+    String? id,
+    String? name,
+    Object? gender = _copyWithNull,
+    DateTime? birthDate,
+    Object? birthPlace = _copyWithNull,
+    List<String>? alternateNames,
+    List<String>? occupation,
+    Object? summary = _copyWithNull,
+    Object? photoPath = _copyWithNull,
+    double? coverOffset,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Person(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      gender: gender is _CopyWithNullSentinel ? this.gender : (gender as String?),
+      birthDate: birthDate ?? this.birthDate,
+      birthPlace: birthPlace is _CopyWithNullSentinel ? this.birthPlace : (birthPlace as String?),
+      alternateNames: alternateNames ?? this.alternateNames,
+      occupation: occupation ?? this.occupation,
+      summary: summary is _CopyWithNullSentinel ? this.summary : (summary as String?),
+      photoPath: photoPath is _CopyWithNullSentinel ? this.photoPath : (photoPath as String?),
+      coverOffset: coverOffset ?? this.coverOffset,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  /// 获取封面文件
+  File? get photoFile {
+    if (photoPath == null || photoPath!.isEmpty) return null;
+    return File(photoPath!);
+  }
+}
+
+/// 影视↔人物关联模型
+class MoviePerson {
+  final String id;
+  final String movieId;
+  final String personId;
+  final String roleType; // director/writer/actor
+  final String? characterName; // 饰演角色（仅actor）
+  final int sortOrder;
+
+  MoviePerson({
+    required this.id,
+    required this.movieId,
+    required this.personId,
+    required this.roleType,
+    this.characterName,
+    this.sortOrder = 0,
+  });
+
+  factory MoviePerson.fromJson(Map<String, dynamic> json) {
+    return MoviePerson(
+      id: json['id'] ?? '',
+      movieId: json['movie_id'] ?? '',
+      personId: json['person_id'] ?? '',
+      roleType: json['role_type'] ?? 'actor',
+      characterName: json['character_name'],
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'movie_id': movieId,
+      'person_id': personId,
+      'role_type': roleType,
+      'character_name': characterName,
+      'sort_order': sortOrder,
+    };
+  }
+}
+
+/// 书籍↔人物关联模型
+class BookPerson {
+  final String id;
+  final String bookId;
+  final String personId;
+  final String roleType; // author/translator
+  final int sortOrder;
+
+  BookPerson({
+    required this.id,
+    required this.bookId,
+    required this.personId,
+    required this.roleType,
+    this.sortOrder = 0,
+  });
+
+  factory BookPerson.fromJson(Map<String, dynamic> json) {
+    return BookPerson(
+      id: json['id'] ?? '',
+      bookId: json['book_id'] ?? '',
+      personId: json['person_id'] ?? '',
+      roleType: json['role_type'] ?? 'author',
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'book_id': bookId,
+      'person_id': personId,
+      'role_type': roleType,
+      'sort_order': sortOrder,
+    };
+  }
+}
+
+/// 游戏↔人物关联模型
+class GamePerson {
+  final String id;
+  final String gameId;
+  final String personId;
+  final String roleType; // developer
+  final int sortOrder;
+
+  GamePerson({
+    required this.id,
+    required this.gameId,
+    required this.personId,
+    required this.roleType,
+    this.sortOrder = 0,
+  });
+
+  factory GamePerson.fromJson(Map<String, dynamic> json) {
+    return GamePerson(
+      id: json['id'] ?? '',
+      gameId: json['game_id'] ?? '',
+      personId: json['person_id'] ?? '',
+      roleType: json['role_type'] ?? 'developer',
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'game_id': gameId,
+      'person_id': personId,
+      'role_type': roleType,
+      'sort_order': sortOrder,
+    };
+  }
+}
+
