@@ -11,6 +11,7 @@ import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
+import '../../utils/excel_exporter.dart';
 import '../settings/recycle_bin_page.dart';
 import '../sync/backup_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -19,6 +20,7 @@ import '../settings/tag_management_page.dart';
 import '../explore/stroll_page.dart';
 import '../sync/cloud_sync_page.dart';
 import 'settings_page.dart';
+import 'watchlist_page.dart';
 
 /// 个人中心页面
 class ProfilePage extends StatefulWidget {
@@ -36,7 +38,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
 
-  // 我的模块切换索引 (0=影视, 1=阅读, 2=笔记, 3=游戏)
+  // 我的模块切换索引 (0=影视, 1=阅读, 2=游戏, 3=笔记)
   int _myModuleIndex = 0;
 
   @override
@@ -106,6 +108,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     _buildHero(movies, books, notes, games),
                     const SizedBox(height: 20),
                     _buildMyModule(movies, books, notes, games),
+                    const SizedBox(height: 20),
+                    _buildWatchlist(movies, books, games),
                     const SizedBox(height: 20),
                     _buildTagsSection(movies, books, notes),
                     const SizedBox(height: 20),
@@ -294,8 +298,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   static const _moduleDefs = <(String, IconData)>[
     ('影视', Icons.movie_outlined),
     ('阅读', Icons.menu_book_outlined),
-    ('笔记', Icons.sticky_note_2_outlined),
     ('游戏', Icons.sports_esports_outlined),
+    ('笔记', Icons.sticky_note_2_outlined),
   ];
 
   List<(String, IconData)> get _visibleModules {
@@ -660,6 +664,174 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     );
   }
 
+  // ─── 想看清单 ──────────────────────────────────────────────────────
+
+  Widget _buildWatchlist(List<Movie> movies, List<Book> books, List<Game> games) {
+    final colors = Theme.of(context).colorScheme;
+
+    final items = <_WatchlistItem>[];
+    if (_userPrefs.showMovieTab) {
+      for (final m in movies.where((m) => m.status == 'want_to_watch')) {
+        items.add(_WatchlistItem(
+          title: m.title,
+          imagePath: m.posterPath,
+          type: 'movie',
+          createdAt: m.createdAt,
+          onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: m),
+        ));
+      }
+    }
+    if (_userPrefs.showBookTab) {
+      for (final b in books.where((b) => b.status == 'want_to_read')) {
+        items.add(_WatchlistItem(
+          title: b.title,
+          imagePath: b.coverPath,
+          type: 'book',
+          createdAt: b.createdAt,
+          onTap: () => Navigator.pushNamed(context, '/book-detail', arguments: b),
+        ));
+      }
+    }
+    if (_userPrefs.showGameTab) {
+      for (final g in games.where((g) => g.status == 'want_to_play')) {
+        items.add(_WatchlistItem(
+          title: g.title,
+          imagePath: g.coverPath,
+          type: 'game',
+          createdAt: g.createdAt,
+          onTap: () => Navigator.pushNamed(context, '/game-detail', arguments: g),
+        ));
+      }
+    }
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    final typeIcon = <String, IconData>{
+      'movie': Icons.movie_outlined,
+      'book': Icons.menu_book_outlined,
+      'game': Icons.sports_esports_outlined,
+    };
+    final typeColor = <String, Color>{
+      'movie': const Color(0xFF2563EB),
+      'book': const Color(0xFF16A34A),
+      'game': const Color(0xFFEA580C),
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Text('想看清单',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const WatchlistPage())),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('全部',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                    Icon(Icons.chevron_right,
+                        size: 16,
+                        color: colors.onSurface.withValues(alpha: 0.3)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Center(
+                child: Text('暂无想看记录',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: colors.onSurface.withValues(alpha: 0.3)))),
+          )
+        else
+          SizedBox(
+            height: 120,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: items.take(20).length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final item = items[i];
+                return GestureDetector(
+                  onTap: item.onTap,
+                  child: SizedBox(
+                    width: 78,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 78,
+                                decoration: BoxDecoration(
+                                  color: colors.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: item.imagePath != null && item.imagePath!.isNotEmpty
+                                    ? FadeInLocalImage(
+                                        path: item.imagePath,
+                                        fit: BoxFit.cover,
+                                        errorWidget: Icon(Icons.image_outlined,
+                                            size: 20,
+                                            color: colors.onSurface.withValues(alpha: 0.2)))
+                                    : Icon(Icons.image_outlined,
+                                        size: 20,
+                                        color: colors.onSurface.withValues(alpha: 0.2)),
+                              ),
+                              Positioned(
+                                top: 4,
+                                left: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: typeColor[item.type]!,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Icon(typeIcon[item.type],
+                                      size: 10, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: colors.onSurface.withValues(alpha: 0.6))),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildEmptyHint(String text) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
@@ -777,17 +949,18 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
       ),
       (Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
-      (
-        Icons.delete_outline,
-        '回收',
-        () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
-      ),
+      (Icons.ios_share_outlined, '导出', () => _showExportOptions(context)),
       (
         Icons.settings_outlined,
         '设置',
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const SettingsPage()))
+      ),
+      (
+        Icons.delete_outline,
+        '回收',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
       ),
       (Icons.feedback_outlined, '反馈', () => _showFeedbackDialog(context)),
     ];
@@ -1212,4 +1385,136 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       ),
     );
   }
+
+  void _showExportOptions(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final provider = context.read<AppProvider>();
+    final userPrefs = UserPrefs();
+
+    final options = <(String, IconData, int)>[];
+    if (userPrefs.showMovieTab) {
+      options.add(('影视', Icons.movie_outlined, provider.movies.where((m) => !m.isDeleted).length));
+    }
+    if (userPrefs.showBookTab) {
+      options.add(('阅读', Icons.menu_book_outlined, provider.books.where((b) => !b.isDeleted).length));
+    }
+    if (userPrefs.showGameTab) {
+      options.add(('游戏', Icons.sports_esports_outlined, provider.games.where((g) => !g.isDeleted).length));
+    }
+    options.add(('笔记', Icons.sticky_note_2_outlined, provider.notes.where((n) => !n.isDeleted).length));
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: Text('选择导出类型',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface))),
+            const SizedBox(height: 4),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: Text('导出为 Excel (.xlsx) 格式',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4)))),
+            const SizedBox(height: 12),
+            for (final (label, icon, count) in options) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Icon(icon,
+                        size: 18,
+                        color: colors.onSurface.withValues(alpha: 0.6))),
+                title: Text(label,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface)),
+                subtitle: Text('$count 条记录',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4))),
+                trailing: Icon(Icons.chevron_right,
+                    color: colors.onSurface.withValues(alpha: 0.25)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _doExport(context, label);
+                },
+              ),
+              if (label != options.last.$1)
+                Divider(height: 0.5, color: colors.outlineVariant),
+            ],
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _doExport(BuildContext context, String type) async {
+    final provider = context.read<AppProvider>();
+    try {
+      File file;
+      switch (type) {
+        case '影视':
+          file = await ExcelExporter.exportMovies(
+              provider.movies.where((m) => !m.isDeleted).toList());
+          break;
+        case '阅读':
+          file = await ExcelExporter.exportBooks(
+              provider.books.where((b) => !b.isDeleted).toList());
+          break;
+        case '游戏':
+          file = await ExcelExporter.exportGames(
+              provider.games.where((g) => !g.isDeleted).toList());
+          break;
+        default:
+          file = await ExcelExporter.exportNotes(
+              provider.notes.where((n) => !n.isDeleted).toList());
+      }
+      if (!context.mounted) return;
+      ToastUtil.show(context, '已导出到 ${file.path}');
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastUtil.show(context, '导出失败：$e');
+    }
+  }
+}
+
+class _WatchlistItem {
+  final String title;
+  final String? imagePath;
+  final String type; // movie / book / game
+  final DateTime createdAt;
+  final VoidCallback onTap;
+
+  const _WatchlistItem({
+    required this.title,
+    this.imagePath,
+    required this.type,
+    required this.createdAt,
+    required this.onTap,
+  });
 }

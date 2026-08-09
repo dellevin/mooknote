@@ -20,8 +20,8 @@ import '../pages/movies/movie_form_page.dart';
 import '../pages/book/book_detail_page.dart';
 import '../pages/book/book_form_page.dart';
 import '../pages/note/note_detail_page.dart';
-import '../pages/note/note_form_page.dart';
 import '../pages/game/game_detail_page.dart';
+import '../pages/game/game_form_page.dart';
 import '../pages/profile/settings_page.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
@@ -270,9 +270,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
       Icons.menu_book_outlined, '阅读', const Color(0xFF16A34A),
       () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const BookFormPage())); },
     ));
-    if (userPrefs.showNoteTab) actions.add((
-      Icons.edit_note_outlined, '笔记', const Color(0xFF9333EA),
-      () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteFormPage())); },
+    if (userPrefs.showGameTab) actions.add((
+      Icons.sports_esports_outlined, '游戏', const Color(0xFFEA580C),
+      () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const GameFormPage())); },
     ));
 
     if (actions.isEmpty) return const SizedBox.shrink();
