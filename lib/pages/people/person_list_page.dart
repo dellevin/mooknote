@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lpinyin/lpinyin.dart';
 import 'package:provider/provider.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
-import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/person_avatar.dart';
 import 'person_detail_page.dart';
@@ -21,10 +22,182 @@ class _PersonListPageState extends State<PersonListPage> {
   String? _occupationFilter; // 职业筛选
   final TextEditingController _searchCtrl = TextEditingController();
 
+  // 字母索引
+  final _itemScrollController = ItemScrollController();
+  final _itemPositionsListener = ItemPositionsListener.create();
+  final _activeLetterNotifier = ValueNotifier<String>('');
+  final Map<String, int> _letterFirstIndex = {};
+  List<_FlatItem> _flatItems = [];
+  List<Person> _lastFiltered = const [];
+
+  // 拼音缓存：人名 -> 首字母；人名 -> 拼音（用于组内排序）
+  static final Map<String, String> _letterCache = {};
+  static final Map<String, String> _pinyinCache = {};
+  static const List<String> _allLetters = [
+    'A','B','C','D','E','F','G','H','I','J','K','L','M',
+    'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','#'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _itemPositionsListener.itemPositions.addListener(_onPositionsChanged);
+  }
+
   @override
   void dispose() {
+    _itemPositionsListener.itemPositions.removeListener(_onPositionsChanged);
+    _activeLetterNotifier.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  /// 取人名首字母（A-Z），非字母开头返回 '#'。结果缓存。
+  String _firstLetter(String name) {
+    return _letterCache.putIfAbsent(name, () => _firstLetterUncached(name));
+  }
+
+  /// 取人名拼音（用于组内排序）。结果缓存。
+  String _pinyinOf(String name) {
+    return _pinyinCache.putIfAbsent(name, () => PinyinHelper.getFirstWordPinyin(name));
+  }
+
+  String _firstLetterUncached(String name) {
+    final s = name.trim();
+    if (s.isEmpty) return '#';
+    final first = s.substring(0, 1);
+    if (RegExp(r'[A-Za-z]').hasMatch(first)) return first.toUpperCase();
+    final py = PinyinHelper.getFirstWordPinyin(first);
+    if (py.isEmpty) return '#';
+    final c = py.substring(0, 1).toUpperCase();
+    return RegExp(r'[A-Z]').hasMatch(c) ? c : '#';
+  }
+
+  /// 把 filtered 列表按首字母分组，扁平化为 header + person。
+  /// 仅在 filtered 引用或长度变化时重算，避免每次 build 重复计算。
+  void _buildFlatItems(List<Person> filtered) {
+    if (identical(filtered, _lastFiltered) && filtered.length == _lastFiltered.length) return;
+    _lastFiltered = filtered;
+    _flatItems = [];
+    _letterFirstIndex.clear();
+    if (filtered.isEmpty) {
+      _activeLetterNotifier.value = '';
+      return;
+    }
+
+    final groups = <String, List<Person>>{};
+    for (final p in filtered) {
+      final letter = _firstLetter(p.name);
+      groups.putIfAbsent(letter, () => []).add(p);
+    }
+    for (final g in groups.values) {
+      g.sort((a, b) => _pinyinOf(a.name).compareTo(_pinyinOf(b.name)));
+    }
+
+    final keys = groups.keys.toList()
+      ..sort((a, b) {
+        if (a == '#') return 1;
+        if (b == '#') return -1;
+        return a.compareTo(b);
+      });
+
+    for (final k in keys) {
+      _letterFirstIndex[k] = _flatItems.length;
+      _flatItems.add(_FlatItem.letter(k));
+      for (final p in groups[k]!) {
+        _flatItems.add(_FlatItem.person(p));
+      }
+    }
+
+    if (_activeLetterNotifier.value.isEmpty || !_letterFirstIndex.containsKey(_activeLetterNotifier.value)) {
+      _activeLetterNotifier.value = keys.first;
+    }
+  }
+
+  void _onPositionsChanged() {
+    final positions = _itemPositionsListener.itemPositions.value;
+    if (positions.isEmpty) return;
+    // 取屏幕顶部第一个可见 item 的 index，反查它属于哪个字母
+    final firstVisible = positions.reduce((a, b) => a.itemLeadingEdge < b.itemLeadingEdge ? a : b);
+    final idx = firstVisible.index;
+    String current = '';
+    for (final entry in _letterFirstIndex.entries) {
+      if (entry.value <= idx) {
+        current = entry.key;
+      } else {
+        break;
+      }
+    }
+    if (current.isNotEmpty && current != _activeLetterNotifier.value) {
+      _activeLetterNotifier.value = current;
+    }
+  }
+
+  void _jumpToLetter(String letter) {
+    final index = _letterFirstIndex[letter];
+    if (index == null) return;
+    if (!_itemScrollController.isAttached) return;
+    _itemScrollController.scrollTo(
+      index: index,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Widget _buildIndexBar(ColorScheme colors) {
+    final present = _letterFirstIndex.keys.toSet();
+    return Positioned(
+      right: 2,
+      top: 0,
+      bottom: 0,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxH = constraints.maxHeight;
+          const barPadding = 4.0;
+          final available = maxH - barPadding * 2;
+          final itemH = (available / _allLetters.length).clamp(8.0, 16.0);
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: barPadding),
+            child: ValueListenableBuilder<String>(
+              valueListenable: _activeLetterNotifier,
+              builder: (context, activeLetter, _) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (final letter in _allLetters)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          if (!present.contains(letter)) return;
+                          _activeLetterNotifier.value = letter;
+                          _jumpToLetter(letter);
+                        },
+                        child: SizedBox(
+                          height: itemH,
+                          width: itemH + 8,
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.easeOut,
+                            style: TextStyle(
+                              fontSize: activeLetter == letter ? itemH * 1.1 : itemH * 0.65,
+                              fontWeight: activeLetter == letter ? FontWeight.w800 : FontWeight.w500,
+                              color: present.contains(letter)
+                                  ? (activeLetter == letter ? colors.primary : colors.onSurface.withValues(alpha: 0.7))
+                                  : colors.onSurface.withValues(alpha: 0.25),
+                            ),
+                            child: Text(letter, textAlign: TextAlign.center),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 
   List<Person> _filterPeople(List<Person> people) {
@@ -48,6 +221,7 @@ class _PersonListPageState extends State<PersonListPage> {
     final colors = Theme.of(context).colorScheme;
     final people = context.watch<AppProvider>().people;
     final filtered = _filterPeople(people);
+    _buildFlatItems(filtered);
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -76,10 +250,35 @@ class _PersonListPageState extends State<PersonListPage> {
           Expanded(
             child: filtered.isEmpty
                 ? _buildEmptyState(colors)
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) => _buildPersonItem(filtered[index], colors),
+                : Stack(
+                    children: [
+                      ScrollablePositionedList.builder(
+                        itemScrollController: _itemScrollController,
+                        itemPositionsListener: _itemPositionsListener,
+                        padding: const EdgeInsets.only(left: 16, right: 28, top: 8, bottom: 8),
+                        itemCount: _flatItems.length,
+                        itemBuilder: (context, i) {
+                          final item = _flatItems[i];
+                          if (item.isHeader) {
+                            return Container(
+                              height: 32,
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(top: 10, bottom: 4),
+                              child: Text(
+                                item.letter!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.onSurface.withValues(alpha: 0.4),
+                                ),
+                              ),
+                            );
+                          }
+                          return _buildPersonItem(item.person!, colors);
+                        },
+                      ),
+                      _buildIndexBar(colors),
+                    ],
                   ),
           ),
         ],
@@ -355,4 +554,13 @@ class _PersonListPageState extends State<PersonListPage> {
       if (mounted) context.read<AppProvider>().loadPeople();
     });
   }
+}
+
+class _FlatItem {
+  final String? letter;
+  final Person? person;
+  bool get isHeader => letter != null;
+
+  _FlatItem.letter(this.letter) : person = null;
+  _FlatItem.person(this.person) : letter = null;
 }

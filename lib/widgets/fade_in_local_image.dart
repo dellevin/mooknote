@@ -58,13 +58,15 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     }
 
     final file = File(widget.path!);
-    if (file.existsSync()) {
+    final exists = await file.exists();
+    if (!mounted) return;
+    if (exists) {
       setState(() => _loaded = true);
       _controller.forward();
       return;
     }
 
-    setState(() => _error = true);
+    if (mounted) setState(() => _error = true);
   }
 
   @override

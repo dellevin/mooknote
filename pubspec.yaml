@@ -38,6 +38,8 @@ dependencies:
   crypto: ^3.0.6
   window_manager: ^0.4.3
   flutter_svg: ^2.3.0
+  lpinyin: ^2.0.3
+  scrollable_positioned_list: ^0.3.8
 
 dev_dependencies:
   flutter_test:
