@@ -4,6 +4,7 @@ import '../models/data_models.dart';
 import '../pages/people/person_detail_page.dart';
 import '../providers/app_provider.dart';
 import 'fade_in_local_image.dart';
+import 'person_avatar.dart';
 
 /// 人物信息浮动面板（底部 ModalBottomSheet）
 /// 展示人物基本信息 + 关联作品，点击「查看全部」跳转到原详情页
@@ -130,30 +131,14 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
   }
 
   Widget _buildHeader(Person person, ColorScheme colors) {
-    final hasPhoto = person.photoPath != null && person.photoPath!.isNotEmpty;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest,
-            shape: BoxShape.circle,
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: hasPhoto
-              ? FadeInLocalImage(path: person.photoPath, fit: BoxFit.cover)
-              : Center(
-                  child: Text(
-                    person.name.isNotEmpty ? person.name[0] : '?',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ),
+        PersonAvatar(
+          photoPath: person.photoPath,
+          name: person.name,
+          size: 64,
+          fontSize: 26,
         ),
         const SizedBox(width: 14),
         Expanded(

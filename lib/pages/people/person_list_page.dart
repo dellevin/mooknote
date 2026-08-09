@@ -4,7 +4,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
-import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/person_avatar.dart';
 import 'person_detail_page.dart';
 import 'person_form_page.dart';
 
@@ -211,7 +211,6 @@ class _PersonListPageState extends State<PersonListPage> {
   }
 
   Widget _buildPersonItem(Person person, ColorScheme colors) {
-    final hasPhoto = person.photoPath != null && person.photoPath!.isNotEmpty;
     return InkWell(
       onTap: () => _navigateToDetail(person),
       borderRadius: BorderRadius.circular(10),
@@ -224,27 +223,11 @@ class _PersonListPageState extends State<PersonListPage> {
         ),
         child: Row(
           children: [
-            // 头像
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: hasPhoto
-                  ? FadeInLocalImage(path: person.photoPath, fit: BoxFit.cover)
-                  : Center(
-                      child: Text(
-                        person.name.isNotEmpty ? person.name[0] : '?',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    ),
+            PersonAvatar(
+              photoPath: person.photoPath,
+              name: person.name,
+              size: 48,
+              fontSize: 20,
             ),
             const SizedBox(width: 12),
             // 信息

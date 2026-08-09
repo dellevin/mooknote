@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../widgets/person_avatar.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 
@@ -214,13 +215,11 @@ class _PersonListPageState extends State<PersonListPage> {
     final totalWorks = person.movies.length + person.books.length;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
-      leading: CircleAvatar(
-        radius: 20,
-        backgroundColor: colors.surfaceContainerHighest,
-        child: Text(
-          person.name.isNotEmpty ? person.name[0] : '?',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5)),
-        ),
+      leading: PersonAvatar(
+        photoPath: null,
+        name: person.name,
+        size: 40,
+        fontSize: 16,
       ),
       title: Text(person.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
       subtitle: Padding(

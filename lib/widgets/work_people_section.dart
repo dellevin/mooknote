@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
-import 'fade_in_local_image.dart';
+import 'person_avatar.dart';
 import 'person_info_sheet.dart';
 
 /// 作品详情页使用的"关联人物"区块
@@ -233,33 +233,17 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
 
   Widget _buildPersonChip(_PersonRole item, ColorScheme colors) {
     final person = item.person;
-    final hasPhoto = person.photoPath != null && person.photoPath!.isNotEmpty;
     return GestureDetector(
       onTap: () => PersonInfoSheet.show(context, person),
       child: SizedBox(
         width: 84,
         child: Column(
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: hasPhoto
-                  ? FadeInLocalImage(path: person.photoPath, fit: BoxFit.cover)
-                  : Center(
-                      child: Text(
-                        person.name.isNotEmpty ? person.name[0] : '?',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ),
+            PersonAvatar(
+              photoPath: person.photoPath,
+              name: person.name,
+              size: 60,
+              fontSize: 24,
             ),
             const SizedBox(height: 8),
             Text(
