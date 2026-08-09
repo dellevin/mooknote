@@ -25,6 +25,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
   String _searchQuery = '';
   final _searchController = TextEditingController();
   bool _showTypePicker = false;
+  int _selectedGroup = 0; // 0=已使用, 1=未使用, 2=隐藏
 
   @override
   void initState() {
@@ -108,7 +109,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
-      appBar: AppBar(title: const Text('标签管理'), actions: [
+      appBar: AppBar(title: const Text('标签'), actions: [
         _isSyncing
             ? Padding(padding: const EdgeInsets.all(16),
                 child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
@@ -195,25 +196,6 @@ class _TagManagementPageState extends State<TagManagementPage> {
     );
   }
 
-  Widget _buildStatChip(IconData icon, String label, int count, ColorScheme colors) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(8)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.5)),
-            const SizedBox(width: 4),
-            Text('$count', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            const SizedBox(width: 2),
-            Text(label, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ─── 标签列表 ──────────────────────────────────────────────────────────
 
   Widget _buildTagList(String type) {
@@ -265,6 +247,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
     }
     used.sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
 
+    final groups = [used, unused, hidden];
+    final groupLabels = ['已使用', '未使用', '隐藏'];
+    final currentGroup = groups[_selectedGroup];
+
     return SingleChildScrollView(
       key: ValueKey(type),
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
@@ -272,35 +258,64 @@ class _TagManagementPageState extends State<TagManagementPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSearchBar(colors),
-          // 统计栏
+          // 分组切换Tab
           Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: Row(children: [
-              _buildStatChip(Icons.check_circle_outline, '已使用', used.length, colors),
-              const SizedBox(width: 8),
-              _buildStatChip(Icons.radio_button_unchecked, '未使用', unused.length, colors),
-              const SizedBox(width: 8),
-              _buildStatChip(Icons.visibility_off_outlined, '隐藏', hidden.length, colors),
-            ]),
+            padding: const EdgeInsets.only(top: 12, bottom: 12),
+            child: Row(
+              children: [
+                _buildGroupTab(Icons.check_circle_outline, '已使用', used.length, 0, colors),
+                const SizedBox(width: 8),
+                _buildGroupTab(Icons.radio_button_unchecked, '未使用', unused.length, 1, colors),
+                const SizedBox(width: 8),
+                _buildGroupTab(Icons.visibility_off_outlined, '隐藏', hidden.length, 2, colors),
+              ],
+            ),
           ),
-          _buildGroupHeader('已使用', used.length, colors),
-          const SizedBox(height: 6),
-          used.isNotEmpty
-              ? Wrap(spacing: 8, runSpacing: 6, children: used.map(_buildTagChip).toList())
-              : _buildEmptyGroup('暂无已使用标签', colors),
-          const SizedBox(height: 16),
-          _buildGroupHeader('未使用', unused.length, colors),
-          const SizedBox(height: 6),
-          unused.isNotEmpty
-              ? Wrap(spacing: 8, runSpacing: 6, children: unused.map(_buildTagChip).toList())
-              : _buildEmptyGroup('暂无未使用标签', colors),
-          const SizedBox(height: 16),
-          _buildGroupHeader('隐藏', hidden.length, colors),
-          const SizedBox(height: 6),
-          hidden.isNotEmpty
-              ? Wrap(spacing: 8, runSpacing: 6, children: hidden.map(_buildTagChip).toList())
-              : _buildEmptyGroup('暂无隐藏标签', colors),
+          if (currentGroup.isEmpty)
+            _buildEmptyGroup('暂无${groupLabels[_selectedGroup]}标签', colors)
+          else
+            Wrap(spacing: 8, runSpacing: 6, children: currentGroup.map(_buildTagChip).toList()),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGroupTab(IconData icon, String label, int count, int index, ColorScheme colors) {
+    final selected = _selectedGroup == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedGroup = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected ? colors.primary : colors.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? colors.primary : colors.outlineVariant,
+              width: selected ? 1 : 0.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(width: 4),
+              Text(label, style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+              )),
+              const SizedBox(width: 4),
+              Text('$count', style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.35),
+              )),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -348,19 +363,6 @@ class _TagManagementPageState extends State<TagManagementPage> {
             )
           else
             const SizedBox(width: 12),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGroupHeader(String label, int count, ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Row(
-        children: [
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5))),
-          const SizedBox(width: 6),
-          Text('$count', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
