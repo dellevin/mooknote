@@ -48,24 +48,28 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
       final person = people.where((p) => p.id == personId).firstOrNull;
       if (person == null) return;
       final existing = byPerson[personId];
+      if (withCharacter) {
+        final c = r.characterName as String?;
+        if (c != null && c.isNotEmpty) {
+          existing?.characters.putIfAbsent(roleType, () => []).add(c);
+        }
+      }
       if (existing != null) {
         existing.roleTypes.add(roleType);
-        if (withCharacter) {
-          final c = r.characterName as String?;
-          if (c != null && c.isNotEmpty) existing.characterNames.add(c);
-        }
-      } else {
-        final characterNames = <String>[];
-        if (withCharacter) {
-          final c = r.characterName as String?;
-          if (c != null && c.isNotEmpty) characterNames.add(c);
-        }
-        byPerson[personId] = _PersonRole(
-          person: person,
-          roleTypes: [roleType],
-          characterNames: characterNames,
-        );
+        return;
       }
+      final characters = <String, List<String>>{};
+      if (withCharacter) {
+        final c = r.characterName as String?;
+        if (c != null && c.isNotEmpty) {
+          characters[roleType] = [c];
+        }
+      }
+      byPerson[personId] = _PersonRole(
+        person: person,
+        roleTypes: [roleType],
+        characters: characters,
+      );
     }
 
     switch (widget.workType) {
@@ -109,6 +113,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
       'director' => '导演',
       'writer' => '编剧',
       'actor' => '演员',
+      'voiceActor' => '配音',
       'author' => '作者',
       'translator' => '译者',
       'developer' => '开发者',
@@ -116,7 +121,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
     };
   }
 
-  /// 角色排序权重：演员放最后
+  /// 角色排序权重：演员/配音放最后
   int _roleWeight(String roleType) {
     return switch (roleType) {
       'director' => 0,
@@ -125,6 +130,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
       'translator' => 3,
       'developer' => 4,
       'actor' => 99,
+      'voiceActor' => 99,
       _ => 50,
     };
   }
@@ -134,19 +140,22 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
   /// 「导演 / 演员 饰 唐僧 / 演员 饰 孙悟空」
   String _buildRoleText(_PersonRole item) {
     final parts = <String>[];
-    // 非演员角色：去重后按权重排序
-    final nonActor = item.roleTypes.where((r) => r != 'actor').toSet().toList()
+    final perfRoleTypes = ['actor', 'voiceActor'];
+    // 非演员/配音角色：去重后按权重排序
+    final nonPerf = item.roleTypes.where((r) => !perfRoleTypes.contains(r)).toSet().toList()
       ..sort((a, b) => _roleWeight(a).compareTo(_roleWeight(b)));
-    parts.addAll(nonActor.map(_roleLabel));
+    parts.addAll(nonPerf.map(_roleLabel));
 
-    // 演员角色：每个饰演角色名单独成段
-    final isActor = item.roleTypes.contains('actor');
-    if (isActor) {
-      if (item.characterNames.isEmpty) {
-        parts.add('演员');
+    // 演员/配音角色：每个饰演角色名单独成段
+    for (final roleType in perfRoleTypes) {
+      if (!item.roleTypes.contains(roleType)) continue;
+      final label = _roleLabel(roleType);
+      final names = item.characters[roleType] ?? const [];
+      if (names.isEmpty) {
+        parts.add(label);
       } else {
-        for (final c in item.characterNames) {
-          parts.add('演员 饰 $c');
+        for (final c in names) {
+          parts.add('$label 饰 $c');
         }
       }
     }
@@ -282,11 +291,11 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
 class _PersonRole {
   final Person person;
   final List<String> roleTypes;
-  final List<String> characterNames;
+  final Map<String, List<String>> characters; // roleType → 角色名列表（actor/voiceActor）
 
   _PersonRole({
     required this.person,
     required this.roleTypes,
-    required this.characterNames,
+    required this.characters,
   });
 }

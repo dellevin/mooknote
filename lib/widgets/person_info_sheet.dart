@@ -421,6 +421,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
       'director' => '导演',
       'writer' => '编剧',
       'actor' => '演员',
+      'voiceActor' => '配音',
       'author' => '作者',
       'translator' => '译者',
       'developer' => '开发者',

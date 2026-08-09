@@ -85,7 +85,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
   List<Person> _matchedPeople = [];
   bool _searching = false;
 
-  static const _movieRoles = [('director', '导演'), ('writer', '编剧'), ('actor', '演员')];
+  static const _movieRoles = [('director', '导演'), ('writer', '编剧'), ('actor', '演员'), ('voiceActor', '配音')];
   static const _bookRoles = [('author', '作者'), ('translator', '译者')];
   static const _gameRoles = [('developer', '开发者')];
 
@@ -151,7 +151,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
         workId: entry.workId,
         workType: entry.workType,
         roleType: roleType,
-        characterName: entry.workType == 'movie' && roleType == 'actor' ? entry.characterName : null,
+        characterName: entry.workType == 'movie' && (roleType == 'actor' || roleType == 'voiceActor') ? entry.characterName : null,
       );
     });
   }
@@ -556,6 +556,9 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
   }
 
   void _showCharacterNameDialog(_WorkRoleEntry entry, String? current) {
+    final isVoiceActor = entry.roleType == 'voiceActor';
+    final title = isVoiceActor ? '配音角色' : '饰演角色';
+    final hint = isVoiceActor ? '如：米老鼠' : '如：关羽';
     final ctrl = TextEditingController(text: current ?? '');
     showDialog(
       context: context,
@@ -564,14 +567,14 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('饰演角色', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          title: Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: TextField(
             controller: ctrl,
             autofocus: true,
             style: TextStyle(fontSize: 15, color: colors.onSurface),
             cursorColor: colors.primary,
             decoration: InputDecoration(
-              hintText: '如：关羽',
+              hintText: hint,
               hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
               filled: true,
               fillColor: colors.surfaceContainerHigh,
@@ -699,8 +702,8 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
           // 职业标签/下拉
           _buildRoleDropdown(entry, colors),
           const SizedBox(width: 8),
-          // 角色名（仅影视演员）
-          if (entry.workType == 'movie' && entry.roleType == 'actor') ...[
+          // 角色名（影视演员/配音）
+          if (entry.workType == 'movie' && (entry.roleType == 'actor' || entry.roleType == 'voiceActor')) ...[
             GestureDetector(
               onTap: () => _showCharacterNameDialog(entry, entry.characterName),
               child: Container(

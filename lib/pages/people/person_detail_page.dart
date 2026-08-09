@@ -415,6 +415,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
       'director' => '导演',
       'writer' => '编剧',
       'actor' => '演员',
+      'voiceActor' => '配音',
       'author' => '作者',
       'translator' => '译者',
       'developer' => '开发者',
