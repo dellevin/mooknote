@@ -172,8 +172,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final statItems = <(IconData, int, String, Color)>[];
         if (userPrefs.showMovieTab) statItems.add((Icons.movie_outlined, movieCount, '观影', const Color(0xFF2563EB)));
         if (userPrefs.showBookTab) statItems.add((Icons.menu_book_outlined, bookCount, '阅读', const Color(0xFF16A34A)));
-        if (userPrefs.showNoteTab) statItems.add((Icons.sticky_note_2_outlined, noteCount, '笔记', const Color(0xFF9333EA)));
         if (userPrefs.showGameTab) statItems.add((Icons.sports_esports_outlined, gameCount, '游戏', const Color(0xFFEA580C)));
+        if (userPrefs.showNoteTab) statItems.add((Icons.sticky_note_2_outlined, noteCount, '笔记', const Color(0xFF9333EA)));
 
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),

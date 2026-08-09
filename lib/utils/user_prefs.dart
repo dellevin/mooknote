@@ -193,9 +193,17 @@ class UserPrefs {
   int get movieDisplayMode => prefs.getInt('movieDisplayMode') ?? 0;
   Future<bool> setMovieDisplayMode(int value) => prefs.setInt('movieDisplayMode', value);
 
+  /// 影视状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
+  int get movieStatusBarStyle => prefs.getInt('movieStatusBarStyle') ?? 0;
+  Future<bool> setMovieStatusBarStyle(int value) => prefs.setInt('movieStatusBarStyle', value);
+
   /// 阅读布局样式 (0: 封面网格, 1: 列表)
   int get bookLayoutStyle => prefs.getInt('bookLayoutStyle') ?? 0;
   Future<bool> setBookLayoutStyle(int value) => prefs.setInt('bookLayoutStyle', value);
+
+  /// 书籍状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
+  int get bookStatusBarStyle => prefs.getInt('bookStatusBarStyle') ?? 0;
+  Future<bool> setBookStatusBarStyle(int value) => prefs.setInt('bookStatusBarStyle', value);
 
   /// 影视墙模式（不显示分类，按创建时间排序）
   bool get movieWallMode => prefs.getBool('movieWallMode') ?? false;
@@ -212,6 +220,10 @@ class UserPrefs {
   /// 游戏布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
   int get gameLayoutStyle => prefs.getInt('gameLayoutStyle') ?? 0;
   Future<bool> setGameLayoutStyle(int value) => prefs.setInt('gameLayoutStyle', value);
+
+  /// 游戏状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
+  int get gameStatusBarStyle => prefs.getInt('gameStatusBarStyle') ?? 0;
+  Future<bool> setGameStatusBarStyle(int value) => prefs.setInt('gameStatusBarStyle', value);
 
   /// 游戏墙模式
   bool get gameWallMode => prefs.getBool('gameWallMode') ?? false;

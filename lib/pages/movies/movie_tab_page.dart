@@ -8,6 +8,7 @@ import '../../widgets/movie_category_bar.dart';
 import '../../widgets/movie_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
+import '../../widgets/top_fade_scrim.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/master_detail_scaffold.dart';
@@ -207,7 +208,14 @@ class _MovieTabPageState extends State<MovieTabPage> {
           provider.movieDisplayMode == 1
               ? const MovieCategoryBar()
               : const MovieStatusBar(),
-        Expanded(child: _buildBody(context)),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildBody(context),
+              if (!isWallMode) const TopFadeScrim(),
+            ],
+          ),
+        ),
       ],
     );
 

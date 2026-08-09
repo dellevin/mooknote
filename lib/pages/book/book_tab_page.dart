@@ -8,6 +8,7 @@ import '../../widgets/book_status_bar.dart';
 import '../../widgets/book_list_item.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
+import '../../widgets/top_fade_scrim.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
@@ -155,7 +156,14 @@ class _BookTabPageState extends State<BookTabPage> {
     final isWallMode = provider.bookshelfMode;
     final masterContent = Column(children: [
       if (!isWallMode) const BookStatusBar(),
-      Expanded(child: _buildBody(context)),
+      Expanded(
+        child: Stack(
+          children: [
+            _buildBody(context),
+            if (!isWallMode) const TopFadeScrim(),
+          ],
+        ),
+      ),
     ]);
 
     if (!isWideContent) return masterContent;

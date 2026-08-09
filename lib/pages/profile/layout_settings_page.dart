@@ -19,8 +19,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   int _gameLayout = 0;
   bool _movieWallMode = false;
   int _movieDisplayMode = 0;
+  int _movieStatusBarStyle = 0;
   bool _bookshelfMode = false;
+  int _bookStatusBarStyle = 0;
   bool _gameWallMode = false;
+  int _gameStatusBarStyle = 0;
   int _movieSortMode = 0;
   int _bookSortMode = 0;
   int _noteSortMode = 0;
@@ -36,8 +39,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     _gameLayout = _userPrefs.gameLayoutStyle;
     _movieWallMode = _userPrefs.movieWallMode;
     _movieDisplayMode = _userPrefs.movieDisplayMode;
+    _movieStatusBarStyle = _userPrefs.movieStatusBarStyle;
     _bookshelfMode = _userPrefs.bookshelfMode;
+    _bookStatusBarStyle = _userPrefs.bookStatusBarStyle;
     _gameWallMode = _userPrefs.gameWallMode;
+    _gameStatusBarStyle = _userPrefs.gameStatusBarStyle;
     _movieSortMode = _userPrefs.movieSortMode;
     _bookSortMode = _userPrefs.bookSortMode;
     _noteSortMode = _userPrefs.noteSortMode;
@@ -103,6 +109,9 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       parts.add('影视墙');
     } else {
       parts.add(_movieDisplayMode == 1 ? '分类状态' : '观看状态');
+      if (_movieDisplayMode == 0) {
+        parts.add(['胶囊', '下划线', '芯片', '下拉'][_movieStatusBarStyle]);
+      }
     }
     parts.add(['海报网格', '列表', '大图卡片'][_movieLayout]);
     parts.add(['更新时间', '创建时间', '评分', '观看日期', '上映时间'][_movieSortMode]);
@@ -111,7 +120,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   String get _bookSubtitle {
     final parts = <String>[];
-    if (_bookshelfMode) parts.add('书架模式');
+    if (_bookshelfMode) {
+      parts.add('书架模式');
+    } else {
+      parts.add(['胶囊', '下划线', '芯片', '下拉'][_bookStatusBarStyle]);
+    }
     parts.add(['海报网格', '列表'][_bookLayout]);
     parts.add(['更新时间', '创建时间', '评分', '开始阅读', '出版时间'][_bookSortMode]);
     return parts.join(' · ');
@@ -126,7 +139,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   String get _gameSubtitle {
     final parts = <String>[];
-    if (_gameWallMode) parts.add('游戏墙');
+    if (_gameWallMode) {
+      parts.add('游戏墙');
+    } else {
+      parts.add(['胶囊', '下划线', '芯片', '下拉'][_gameStatusBarStyle]);
+    }
     parts.add(['海报网格', '列表', '大图卡片'][_gameLayout]);
     parts.add(['更新时间', '创建时间', '评分', '发售时间'][_gameSortMode]);
     return parts.join(' · ');
@@ -384,6 +401,19 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
                 options: const [(0, Icons.check_circle_outline, '观看状态'), (1, Icons.category_outlined, '分类状态')],
                 onChanged: (v) { _setDisplayMode('movie', v); setSheetState(() {}); }, colors: colors,
               ),
+              if (_movieDisplayMode == 0) ...[
+                _sheetDivider(colors),
+                _sheetOptionRow(
+                  label: '状态栏样式', selected: _movieStatusBarStyle,
+                  options: const [
+                    (0, Icons.circle, '胶囊'),
+                    (1, Icons.format_underlined, '下划线'),
+                    (2, Icons.square_outlined, '芯片'),
+                    (3, Icons.arrow_drop_down_circle_outlined, '下拉'),
+                  ],
+                  onChanged: (v) { _setStatusBarStyle('movie', v); setSheetState(() {}); }, colors: colors,
+                ),
+              ],
             ],
             _sheetDivider(colors),
             _sheetOptionRow(
@@ -429,6 +459,19 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               title: '书架模式', subtitle: '显示全部书籍，不区分状态',
               value: _bookshelfMode, onChanged: (v) { _setWallMode('book', v); setSheetState(() {}); }, colors: colors,
             ),
+            if (!_bookshelfMode) ...[
+              _sheetDivider(colors),
+              _sheetOptionRow(
+                label: '状态栏样式', selected: _bookStatusBarStyle,
+                options: const [
+                  (0, Icons.circle, '胶囊'),
+                  (1, Icons.format_underlined, '下划线'),
+                  (2, Icons.square_outlined, '芯片'),
+                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'),
+                ],
+                onChanged: (v) { _setStatusBarStyle('book', v); setSheetState(() {}); }, colors: colors,
+              ),
+            ],
             _sheetDivider(colors),
             _sheetOptionRow(
               label: '布局样式', selected: _bookLayout,
@@ -509,6 +552,19 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               title: '游戏墙模式', subtitle: '显示全部游戏，不区分状态',
               value: _gameWallMode, onChanged: (v) { _setWallMode('game', v); setSheetState(() {}); }, colors: colors,
             ),
+            if (!_gameWallMode) ...[
+              _sheetDivider(colors),
+              _sheetOptionRow(
+                label: '状态栏样式', selected: _gameStatusBarStyle,
+                options: const [
+                  (0, Icons.circle, '胶囊'),
+                  (1, Icons.format_underlined, '下划线'),
+                  (2, Icons.square_outlined, '芯片'),
+                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'),
+                ],
+                onChanged: (v) { _setStatusBarStyle('game', v); setSheetState(() {}); }, colors: colors,
+              ),
+            ],
             _sheetDivider(colors),
             _sheetOptionRow(
               label: '布局样式', selected: _gameLayout,
@@ -574,6 +630,23 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         await _userPrefs.setMovieDisplayMode(value);
         setState(() => _movieDisplayMode = value);
         if (mounted) context.read<AppProvider>().setMovieDisplayMode(value);
+    }
+  }
+
+  void _setStatusBarStyle(String type, int value) async {
+    switch (type) {
+      case 'movie':
+        await _userPrefs.setMovieStatusBarStyle(value);
+        setState(() => _movieStatusBarStyle = value);
+        if (mounted) context.read<AppProvider>().setMovieStatusBarStyle(value);
+      case 'book':
+        await _userPrefs.setBookStatusBarStyle(value);
+        setState(() => _bookStatusBarStyle = value);
+        if (mounted) context.read<AppProvider>().setBookStatusBarStyle(value);
+      case 'game':
+        await _userPrefs.setGameStatusBarStyle(value);
+        setState(() => _gameStatusBarStyle = value);
+        if (mounted) context.read<AppProvider>().setGameStatusBarStyle(value);
     }
   }
 

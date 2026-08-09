@@ -36,6 +36,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
 
+  // 我的模块切换索引 (0=影视, 1=阅读, 2=笔记, 3=游戏)
+  int _myModuleIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -102,21 +105,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   children: [
                     _buildHero(movies, books, notes, games),
                     const SizedBox(height: 20),
-                    if (_userPrefs.showMovieTab) ...[
-                      _buildModuleHeader('影视'),
-                      _buildMovieModule(movies),
-                      const SizedBox(height: 20),
-                    ],
-                    if (_userPrefs.showBookTab) ...[
-                      _buildModuleHeader('阅读'),
-                      _buildBookModule(books),
-                      const SizedBox(height: 20),
-                    ],
-                    if (_userPrefs.showNoteTab) ...[
-                      _buildModuleHeader('笔记'),
-                      _buildNoteModule(notes),
-                      const SizedBox(height: 20),
-                    ],
+                    _buildMyModule(movies, books, notes, games),
+                    const SizedBox(height: 20),
                     _buildTagsSection(movies, books, notes),
                     const SizedBox(height: 20),
                     _buildToolsGrid(context),
@@ -300,17 +290,136 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     );
   }
 
-  // ─── 模块标题 ──────────────────────────────────────────────────────
+  // 我的模块数据
+  static const _moduleDefs = <(String, IconData)>[
+    ('影视', Icons.movie_outlined),
+    ('阅读', Icons.menu_book_outlined),
+    ('笔记', Icons.sticky_note_2_outlined),
+    ('游戏', Icons.sports_esports_outlined),
+  ];
 
-  Widget _buildModuleHeader(String title) {
+  List<(String, IconData)> get _visibleModules {
+    final result = <(String, IconData)>[];
+    if (_userPrefs.showMovieTab) result.add(_moduleDefs[0]);
+    if (_userPrefs.showBookTab) result.add(_moduleDefs[1]);
+    if (_userPrefs.showNoteTab) result.add(_moduleDefs[2]);
+    if (_userPrefs.showGameTab) result.add(_moduleDefs[3]);
+    return result;
+  }
+
+  // 我的模块分发
+  Widget _buildMyModule(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
+    final modules = _visibleModules;
+    if (modules.isEmpty) return const SizedBox.shrink();
+    final index = _myModuleIndex.clamp(0, modules.length - 1);
+    final (title, _) = modules[index];
+
+    Widget content;
+    switch (title) {
+      case '阅读':
+        content = _buildBookModule(books);
+        break;
+      case '笔记':
+        content = _buildNoteModule(notes);
+        break;
+      case '游戏':
+        content = _buildGameModule(games);
+        break;
+      default:
+        content = _buildMovieModule(movies);
+    }
+
     final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(title,
-          style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Text(title,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
+              const Spacer(),
+              // 图标切换器
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < modules.length; i++) ...[
+                    if (i != 0) const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => setState(() => _myModuleIndex = i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: i == index ? colors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(modules[i].$2,
+                            size: 16,
+                            color: i == index
+                                ? colors.onPrimary
+                                : colors.onSurface.withValues(alpha: 0.4)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        content,
+      ],
+    );
+  }
+
+  // ─── 游戏模块 ──────────────────────────────────────────────────────
+
+  Widget _buildGameModule(List<Game> games) {
+    final colors = Theme.of(context).colorScheme;
+    final completed = games.where((g) => g.status == 'completed').length;
+    final playing = games.where((g) => g.status == 'playing').length;
+    final wantTo = games.where((g) => g.status == 'want_to_play').length;
+    final recent = games.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(children: [
+            _buildStatusTag('已通关', completed, true, colors),
+            const SizedBox(width: 10),
+            _buildStatusTag('在玩', playing, false, colors),
+            const SizedBox(width: 10),
+            _buildStatusTag('想玩', wantTo, false, colors),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        if (recent.isNotEmpty)
+          SizedBox(
+            height: 120,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: recent.take(15).length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => _buildCoverCard(
+                title: recent[i].title,
+                imagePath: recent[i].coverPath,
+                onTap: () => Navigator.pushNamed(context, '/game-detail',
+                    arguments: recent[i]),
+              ),
+            ),
+          )
+        else
+          _buildEmptyHint('暂无游戏记录'),
+      ],
     );
   }
 

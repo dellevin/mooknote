@@ -99,11 +99,17 @@ class AppProvider extends ChangeNotifier {
   // 影视显示模式 (0: 观看状态, 1: 分类状态)
   int _movieDisplayMode = 0;
 
+  // 影视状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
+  int _movieStatusBarStyle = 0;
+
   // 影视分类索引
   int _movieCategoryIndex = 0;
 
   // 阅读选中的状态 (0: 读完，1: 在读，2: 准备读)
   int _bookStatusIndex = 0;
+
+  // 书籍状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
+  int _bookStatusBarStyle = 0;
 
   // 书架模式（不显示分类，按创建时间排序）
   bool _bookshelfMode = false;
@@ -113,6 +119,9 @@ class AppProvider extends ChangeNotifier {
 
   // 游戏列表布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
   int _gameLayoutStyle = 0;
+
+  // 游戏状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
+  int _gameStatusBarStyle = 0;
 
   // 游戏墙模式
   bool _gameWallMode = false;
@@ -199,9 +208,12 @@ class AppProvider extends ChangeNotifier {
     _movieLayoutStyle = userPrefs.movieLayoutStyle;
     _movieWallMode = userPrefs.movieWallMode;
     _movieDisplayMode = userPrefs.movieDisplayMode;
+    _movieStatusBarStyle = userPrefs.movieStatusBarStyle;
+    _bookStatusBarStyle = userPrefs.bookStatusBarStyle;
     _bookshelfMode = userPrefs.bookshelfMode;
     _gameLayoutStyle = userPrefs.gameLayoutStyle;
     _gameWallMode = userPrefs.gameWallMode;
+    _gameStatusBarStyle = userPrefs.gameStatusBarStyle;
     _homeModuleSwitchMode = userPrefs.homeModuleSwitchMode;
     final defaultIndex = userPrefs.defaultMainTabIndex;
     // Windows 桌面端且主页开启时，强制默认为主页
@@ -311,12 +323,15 @@ class AppProvider extends ChangeNotifier {
   int get movieLayoutStyle => _movieLayoutStyle;
   bool get movieWallMode => _movieWallMode;
   int get movieDisplayMode => _movieDisplayMode;
+  int get movieStatusBarStyle => _movieStatusBarStyle;
   int get movieCategoryIndex => _movieCategoryIndex;
   int get bookStatusIndex => _bookStatusIndex;
+  int get bookStatusBarStyle => _bookStatusBarStyle;
   bool get bookshelfMode => _bookshelfMode;
   int get gameStatusIndex => _gameStatusIndex;
   int get gameLayoutStyle => _gameLayoutStyle;
   bool get gameWallMode => _gameWallMode;
+  int get gameStatusBarStyle => _gameStatusBarStyle;
   bool get drawerOpen => _drawerOpen;
   bool get bottomNavVisible => _bottomNavVisible;
   ThemeMode get themeMode => _themeMode;
@@ -495,6 +510,12 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setMovieStatusBarStyle(int style) {
+    _movieStatusBarStyle = style;
+    UserPrefs().setMovieStatusBarStyle(style);
+    notifyListeners();
+  }
+
   void setMovieCategoryIndex(int index) {
     _movieCategoryIndex = index;
     notifyListeners();
@@ -508,6 +529,12 @@ class AppProvider extends ChangeNotifier {
   void setBookshelfMode(bool enabled) {
     _bookshelfMode = enabled;
     UserPrefs().setBookshelfMode(enabled);
+    notifyListeners();
+  }
+
+  void setBookStatusBarStyle(int style) {
+    _bookStatusBarStyle = style;
+    UserPrefs().setBookStatusBarStyle(style);
     notifyListeners();
   }
 
@@ -525,6 +552,12 @@ class AppProvider extends ChangeNotifier {
   void setGameWallMode(bool enabled) {
     _gameWallMode = enabled;
     UserPrefs().setGameWallMode(enabled);
+    notifyListeners();
+  }
+
+  void setGameStatusBarStyle(int style) {
+    _gameStatusBarStyle = style;
+    UserPrefs().setGameStatusBarStyle(style);
     notifyListeners();
   }
 
