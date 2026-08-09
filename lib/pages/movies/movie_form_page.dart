@@ -14,6 +14,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/text_input_panel.dart';
+import '../../widgets/duration_picker.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -54,6 +55,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
   DateTime? _releaseDate;
   DateTime? _watchDate;
   int _watchCount = 0;
+  int _duration = 0;
   bool _isDownloading = false;
 
   @override
@@ -91,6 +93,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       _releaseDate = movie.releaseDate;
       _watchDate = movie.watchDate;
       _watchCount = movie.watchCount;
+      _duration = movie.duration;
     } else if (widget.initialStatus != null) {
       // 添加模式：使用传入的默认状态
       _status = widget.initialStatus!;
@@ -615,6 +618,18 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   ),
                 ),
 
+                // 影视总时长
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 52) / 2,
+                  height: 90,
+                  child: _buildInfoCard(
+                    label: '影视总时长',
+                    value: _formatDuration(_duration),
+                    icon: Icons.schedule_outlined,
+                    onTap: () => _editDuration(),
+                  ),
+                ),
+
                 // 第五行：剧情简介（独占一行）
                 SizedBox(
                   width: double.infinity,
@@ -771,6 +786,24 @@ class _MovieFormPageState extends State<MovieFormPage> {
       final val = int.tryParse(result) ?? 0;
       setState(() => _watchCount = val < 0 ? 0 : val);
     }
+  }
+
+  /// 编辑影视总时长
+  Future<void> _editDuration() async {
+    final result = await DurationPicker.show(context: context, initialMinutes: _duration);
+    if (result != null) {
+      setState(() => _duration = result);
+    }
+  }
+
+  /// 格式化时长：120 -> "2小时0分"，0 -> ""
+  String _formatDuration(int minutes) {
+    if (minutes <= 0) return '';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h > 0 && m > 0) return '$h小时$m分';
+    if (h > 0) return '$h小时';
+    return '$m分';
   }
 
   /// 全屏编辑剧情简介
@@ -1397,6 +1430,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         category: _category,
         watchDate: _watchDate,
         watchCount: _watchCount,
+        duration: _duration,
         createdAt: now,
         updatedAt: now,
       );
@@ -1419,6 +1453,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         category: _category,
         watchDate: _watchDate,
         watchCount: _watchCount,
+        duration: _duration,
         updatedAt: now,
       );
 

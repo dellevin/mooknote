@@ -58,6 +58,7 @@ class GenreSelectorPage extends StatefulWidget {
 class _GenreSelectorPageState extends State<GenreSelectorPage> {
   late List<String> _selected;
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   String _query = '';
   List<String>? _loadedTags;
   bool _loading = true;
@@ -69,6 +70,13 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
     _loadTags();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadTags() async {
     if (widget.existingTags != null) {
       _loadedTags = widget.existingTags;
@@ -76,12 +84,6 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
       _loadedTags = await widget.existingTagsFuture;
     }
     if (mounted) setState(() => _loading = false);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   void _toggle(String tag) {
@@ -168,86 +170,28 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
           children: [
             // Header
             Container(
-              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 12, 8, 12),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
-              ),
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 14, 8, 14),
               child: Row(
                 children: [
                   Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => Navigator.pop(context, _selected),
+                    onPressed: () {
+                      // 输入框非空时，完成即添加并关闭
+                      if (_query.trim().isNotEmpty && !_selected.contains(_query.trim())) {
+                        _selected.add(_query.trim());
+                      }
+                      Navigator.pop(context, _selected);
+                    },
                     child: Text('完成', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
                   ),
                 ],
               ),
             ),
 
-            // 已选择（一行一个，最新在上）
-            if (_selected.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('已选择', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                ),
-              ),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.25),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
-                  ),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: _selected.length,
-                    itemBuilder: (_, i) {
-                      final idx = _selected.length - 1 - i;
-                      final tag = _selected[idx];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: colors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: ListTile(
-                            dense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            leading: Icon(Icons.check_circle, size: 20, color: colors.primary),
-                            title: GestureDetector(
-                              onTap: () => _editItem(idx, tag),
-                              child: Text(tag, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GestureDetector(
-                                  onTap: () => _editItem(idx, tag),
-                                  child: Icon(Icons.edit, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
-                                ),
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: () => _toggle(tag),
-                                  child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-
             // 搜索/输入框
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: TextField(
                 controller: _controller,
                 style: TextStyle(fontSize: 14, color: colors.onSurface),
@@ -272,56 +216,115 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
               ),
             ),
 
-            // 已有类型/搜索结果
-            if (allTags.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _loading ? '加载中...' : (query.isEmpty ? '已有类型' : '匹配结果'),
-                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
-                  ),
+            // 已选择区（紧凑 chip 流，最新在上）
+            if (_selected.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: _buildSelectedChips(colors),
+              ),
+              const SizedBox(height: 4),
+            ],
+
+            // 可选区标题
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _loading ? '加载中...' : (query.isEmpty ? '可选 (${available.length})' : '匹配结果 (${available.length})'),
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
                 ),
               ),
-              Expanded(
-                child: _loading
-                    ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                    : available.isEmpty
-                        ? Center(child: Text(
-                            query.isEmpty ? '暂无已有选项' : '无匹配结果，回车添加',
-                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
-                          ))
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: available.map((tag) {
-                                return GestureDetector(
-                                  onTap: () => _toggle(tag),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: colors.surfaceContainerHighest,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: colors.outline, width: 0.5),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.add, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
-                                        const SizedBox(width: 4),
-                                        Text(tag, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+            ),
+
+            // 可选列表（虚拟化）
+            Expanded(
+              child: _loading
+                  ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                  : available.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 32),
+                            child: Text(
+                              query.isEmpty ? '暂无可选' : '无匹配结果，回车添加',
+                              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
                             ),
                           ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+                          itemCount: available.length,
+                          itemExtent: 44,
+                          itemBuilder: (_, i) {
+                            final tag = available[i];
+                            return _buildAvailableItem(tag, colors);
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 已选 chip 流：每个 chip 显示「标签名 ×」，点 × 移除，长按编辑
+  Widget _buildSelectedChips(ColorScheme colors) {
+    // 反序展示，最新在上
+    final reversed = _selected.reversed.toList();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: List.generate(reversed.length, (i) {
+        final actualIdx = _selected.length - 1 - i;
+        final tag = reversed[i];
+        return GestureDetector(
+          onTap: () => _toggle(tag),
+          onLongPress: () => _editItem(actualIdx, tag),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+            decoration: BoxDecoration(
+              color: colors.primary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(tag, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+                const SizedBox(width: 4),
+                Icon(Icons.close, size: 14, color: colors.onPrimary.withValues(alpha: 0.85)),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /// 可选列表项：左标签 + 右添加图标
+  Widget _buildAvailableItem(String tag, ColorScheme colors) {
+    return InkWell(
+      onTap: () => _toggle(tag),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                tag,
+                style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.8)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
+            ),
+            Icon(Icons.add_circle_outline, size: 18, color: colors.onSurface.withValues(alpha: 0.3)),
           ],
         ),
       ),

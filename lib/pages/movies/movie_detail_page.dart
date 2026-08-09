@@ -263,6 +263,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           Text('已观看 ${movie.watchCount} 次',
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
                         ],
+                        if (movie.duration > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(_formatDuration(movie.duration),
+                            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+                        ],
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
                         // 详细信息
                         if (movie.directors.isNotEmpty) _buildDesktopInfoRow('导演', movie.directors.join('，'), colors),
@@ -1523,6 +1528,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 color: colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
+          if (movie.duration > 0)
+            Text(
+              _formatDuration(movie.duration),
+              style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
         ],
       ),
     );
@@ -2068,6 +2081,16 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 格式化时长：120 -> "2小时0分"，0 -> ""
+  String _formatDuration(int minutes) {
+    if (minutes <= 0) return '';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h > 0 && m > 0) return '时长 $h小时$m分';
+    if (h > 0) return '时长 $h小时';
+    return '时长 $m分';
   }
 
   void _navigateToEdit(BuildContext context) {

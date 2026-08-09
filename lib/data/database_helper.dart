@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 40,
+      version: 41,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -412,6 +412,13 @@ class DatabaseHelper {
       await _ensureCharacterColumns(db, 'movie_characters');
       await _ensureCharacterColumns(db, 'book_characters');
       await _ensureCharacterColumns(db, 'game_characters');
+    }
+    if (oldVersion < 41) {
+      // 添加影视总时长字段
+      final movieCols = await db.rawQuery('PRAGMA table_info(movies)');
+      if (!movieCols.any((col) => col['name'] == 'duration')) {
+        await db.execute('ALTER TABLE movies ADD COLUMN duration INTEGER DEFAULT 0');
+      }
     }
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
@@ -800,6 +807,7 @@ class DatabaseHelper {
         category TEXT NOT NULL DEFAULT 'movie',
         watch_date TEXT,
         watch_count INTEGER DEFAULT 0,
+        duration INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,

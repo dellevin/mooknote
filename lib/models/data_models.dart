@@ -64,6 +64,7 @@ class Movie {
   final String category; // 影视分类: movie/tv/anime/variety/documentary/short/other
   final DateTime? watchDate; // 观看日期
   final int watchCount; // 观看次数
+  final int duration; // 影视总时长（分钟）
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -85,6 +86,7 @@ class Movie {
     this.category = 'movie',
     this.watchDate,
     this.watchCount = 0,
+    this.duration = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -108,6 +110,7 @@ class Movie {
       category: json['category'] ?? 'movie',
       watchDate: _safeParseDate(json['watch_date']),
       watchCount: json['watch_count'] ?? 0,
+      duration: json['duration'] ?? 0,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
@@ -132,6 +135,7 @@ class Movie {
       'category': category,
       'watch_date': watchDate?.toUtc().toIso8601String(),
       'watch_count': watchCount,
+      'duration': duration,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -168,6 +172,7 @@ class Movie {
     String? category,
     DateTime? watchDate,
     int? watchCount,
+    int? duration,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -189,6 +194,7 @@ class Movie {
       category: category ?? this.category,
       watchDate: watchDate ?? this.watchDate,
       watchCount: watchCount ?? this.watchCount,
+      duration: duration ?? this.duration,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,

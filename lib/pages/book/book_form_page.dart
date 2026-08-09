@@ -156,7 +156,7 @@ class _BookFormPageState extends State<BookFormPage> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  // 书名 + 别名
+                  // 第一行：书名 + 别名
                   _halfCard('书名', _titleController.text, Icons.book_outlined, required: true,
                     onTap: () async {
                       final r = await TextInputPanel.show(context: context, title: '书名', initialValue: _titleController.text, hint: '请输入书名');
@@ -172,7 +172,7 @@ class _BookFormPageState extends State<BookFormPage> {
                     },
                   ),
 
-                  // 作者 + 译者
+                  // 第二行：作者 + 译者
                   _halfCard('作者', _authors.isEmpty ? '' : '${_authors.length}人：${_authors.join('、')}', Icons.person_outline,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
@@ -191,15 +191,8 @@ class _BookFormPageState extends State<BookFormPage> {
                       if (r != null) setState(() => _translators = r);
                     },
                   ),
-                  _halfCard('出版社', _publisherController.text, Icons.business_outlined,
-                    onTap: () async {
-                      final r = await TextInputPanel.show(context: context, title: '出版社', initialValue: _publisherController.text, hint: '请输入出版社');
-                      if (!mounted) return;
-                      if (r != null) setState(() => _publisherController.text = r);
-                    },
-                  ),
 
-                  // 类型 + ISBN
+                  // 第三行：类型 + 阅读次数
                   _halfCard('类型', _genres.isEmpty ? '' : '${_genres.length}个：${_genres.join('、')}', Icons.category_outlined,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
@@ -210,29 +203,23 @@ class _BookFormPageState extends State<BookFormPage> {
                       if (r != null) setState(() => _genres = r);
                     },
                   ),
-                  _halfCard('ISBN', _isbnController.text, Icons.qr_code_outlined,
+                  _halfCard('阅读次数', _readCount > 0 ? '$_readCount 次' : '', Icons.repeat_outlined,
+                    onTap: () => _editReadCount(),
+                  ),
+
+                  // 第四行：出版社 + 出版时间
+                  _halfCard('出版社', _publisherController.text, Icons.business_outlined,
                     onTap: () async {
-                      final r = await TextInputPanel.show(context: context, title: 'ISBN', initialValue: _isbnController.text, hint: '请输入ISBN编号');
+                      final r = await TextInputPanel.show(context: context, title: '出版社', initialValue: _publisherController.text, hint: '请输入出版社');
                       if (!mounted) return;
-                      if (r != null) setState(() => _isbnController.text = r);
+                      if (r != null) setState(() => _publisherController.text = r);
                     },
                   ),
-
-                  // 出版时间
-                  SizedBox(
-                    width: double.infinity, height: 90,
-                    child: _buildInfoCard(
-                      label: '出版时间',
-                      value: _publishDate != null ? '${_publishDate!.year}.${_publishDate!.month.toString().padLeft(2, '0')}.${_publishDate!.day.toString().padLeft(2, '0')}' : '',
-                      icon: Icons.date_range_outlined,
-                      trailing: _publishDate != null
-                          ? GestureDetector(onTap: () => setState(() => _publishDate = null), child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)))
-                          : null,
-                      onTap: () => _selectPublishDate(),
-                    ),
+                  _halfCard('出版时间', _publishDate != null ? '${_publishDate!.year}.${_publishDate!.month.toString().padLeft(2, '0')}.${_publishDate!.day.toString().padLeft(2, '0')}' : '', Icons.date_range_outlined,
+                    onTap: () => _selectPublishDate(),
                   ),
 
-                  // 开始阅读日期 + 读完日期（同一行）
+                  // 第五行：开始阅读 + 读完日期
                   _halfCard('开始阅读', _startDate != null ? '${_startDate!.year}.${_startDate!.month.toString().padLeft(2, '0')}.${_startDate!.day.toString().padLeft(2, '0')}' : '', Icons.play_circle_outlined,
                     onTap: () => _selectStartDate(),
                   ),
@@ -240,12 +227,22 @@ class _BookFormPageState extends State<BookFormPage> {
                     onTap: () => _selectFinishDate(),
                   ),
 
-                  // 阅读次数
-                  _halfCard('阅读次数', _readCount > 0 ? '$_readCount 次' : '', Icons.repeat_outlined,
-                    onTap: () => _editReadCount(),
+                  // ISBN（独占一行）
+                  SizedBox(
+                    width: double.infinity, height: 90,
+                    child: _buildInfoCard(
+                      label: 'ISBN',
+                      value: _isbnController.text,
+                      icon: Icons.qr_code_outlined,
+                      onTap: () async {
+                        final r = await TextInputPanel.show(context: context, title: 'ISBN', initialValue: _isbnController.text, hint: '请输入ISBN编号');
+                        if (!mounted) return;
+                        if (r != null) setState(() => _isbnController.text = r);
+                      },
+                    ),
                   ),
 
-                  // 书籍简介
+                  // 书籍简介（独占一行）
                   SizedBox(
                     width: double.infinity,
                     child: _buildInfoCard(label: '书籍简介', value: _summaryController.text, icon: Icons.description_outlined, height: 160, scrollable: true, onTap: () => _editSummary()),
