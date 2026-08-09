@@ -9,15 +9,34 @@ import '../note/note_detail_page.dart';
 import '../game/game_detail_page.dart';
 import '../../widgets/fade_in_local_image.dart';
 
-/// 搜索页面
-class SearchPage extends StatefulWidget {
+/// 搜索页面（带 Scaffold + AppBar）
+class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
 
   @override
-  State<SearchPage> createState() => _SearchPageState();
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        title: const Text('搜索'),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: const SearchPageBody(),
+    );
+  }
 }
 
-class _SearchPageState extends State<SearchPage> {
+/// 搜索页 body —— 可嵌入到统一搜索页 SearchHubPage
+class SearchPageBody extends StatefulWidget {
+  const SearchPageBody({super.key});
+
+  @override
+  State<SearchPageBody> createState() => _SearchPageBodyState();
+}
+
+class _SearchPageBodyState extends State<SearchPageBody> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
 
@@ -32,12 +51,6 @@ class _SearchPageState extends State<SearchPage> {
   String? _selectedTag;
 
   Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
-  }
 
   @override
   void dispose() {
@@ -167,14 +180,9 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        title: const Text('搜索'),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
-      body: Column(children: [
+    return Material(
+      color: colors.surface,
+      child: Column(children: [
         _buildSearchBar(),
         _buildFilterRow(),
         Expanded(
@@ -239,7 +247,7 @@ class _SearchPageState extends State<SearchPage> {
         const SizedBox(width: 8),
         Expanded(child: _filterChip('书籍', Icons.menu_book_outlined, _showBooks, bookCount, () { setState(() { _showBooks = !_showBooks; _performSearch(); }); })),
         const SizedBox(width: 8),
-        Expanded(child: _filterChip('笔记', Icons.note_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); })),
+        Expanded(child: _filterChip('笔记', Icons.sticky_note_2_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); })),
         const SizedBox(width: 8),
         Expanded(child: _filterChip('游戏', Icons.sports_esports_outlined, _showGames, gameCount, () { setState(() { _showGames = !_showGames; _performSearch(); }); })),
       ]),

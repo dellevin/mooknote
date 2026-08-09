@@ -82,7 +82,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     all.addAll([
       (0, '影视', Icons.movie_outlined),
       (1, '阅读', Icons.menu_book_outlined),
-      (2, '笔记', Icons.note_outlined),
+      (2, '笔记', Icons.sticky_note_2_outlined),
       (3, '游戏', Icons.sports_esports_outlined),
     ].where((t) {
       return switch (t.$1) {
@@ -196,7 +196,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.note_outlined, '笔记', '记录和管理笔记', _showNoteTab,
+          _buildSwitchItem(Icons.sticky_note_2_outlined, '笔记', '记录和管理笔记', _showNoteTab,
               _toggleNoteTab),
           Divider(
               height: 0.5,

@@ -75,7 +75,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             onTap: _showBookSheet,
           ),
           _buildCategoryTile(
-            icon: Icons.note_outlined,
+            icon: Icons.sticky_note_2_outlined,
             title: '笔记',
             color: colors.primary,
             subtitle: _noteSubtitle,

@@ -307,8 +307,8 @@ class _DesktopIconRail extends StatelessWidget {
   static const _categoryMeta = [
     (Icons.movie_outlined, Icons.movie, '影视', 0, Color(0xFF2563EB)),
     (Icons.menu_book_outlined, Icons.menu_book, '阅读', 1, Color(0xFF16A34A)),
-    (Icons.note_outlined, Icons.note, '笔记', 2, Color(0xFF9333EA)),
     (Icons.sports_esports_outlined, Icons.sports_esports, '游戏', 3, Color(0xFFEA580C)),
+    (Icons.sticky_note_2_outlined, Icons.sticky_note_2, '笔记', 2, Color(0xFF9333EA)),
   ];
 
   @override
@@ -880,7 +880,7 @@ class _StrollDialogState extends State<_StrollDialog> {
       for (final n in provider.notes.where((n) => !n.isDeleted)) {
         notePool.add(_StrollItem(type: 'note', data: n, id: 'n_${n.id}', title: n.title.isNotEmpty ? n.title : '随手记',
           subtitle: n.tags.take(3).join(' · '), detail: n.content, imagePath: n.images.isNotEmpty ? n.images.first : null,
-          icon: Icons.note_outlined, label: '笔记', createdAt: n.createdAt,
+          icon: Icons.sticky_note_2_outlined, label: '笔记', createdAt: n.createdAt,
           tags: n.tags.take(3).toList(), color: const Color(0xFF66BB6A)));
       }
     }
@@ -1758,7 +1758,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
 
   static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag', 'game_genre'];
   static const _typeLabels = ['影视类型', '书籍类型', '笔记标签', '游戏类型'];
-  static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined, Icons.sports_esports_outlined];
+  static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.sticky_note_2_outlined, Icons.sports_esports_outlined];
 
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
   Map<String, int> _usageCounts = {};
@@ -3918,7 +3918,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
           if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
           return b.createdAt.compareTo(a.createdAt);
         });
-        if (items.isEmpty) return _buildEmpty('暂无笔记记录', Icons.note_outlined);
+        if (items.isEmpty) return _buildEmpty('暂无笔记记录', Icons.sticky_note_2_outlined);
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 4),
           itemCount: items.length,
@@ -4096,7 +4096,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             subtitle: n.content.length > 40 ? '${n.content.substring(0, 40)}...' : null,
             imagePath: null,
             accentColor: const Color(0xFF9333EA),
-            icon: Icons.note_outlined,
+            icon: Icons.sticky_note_2_outlined,
             selected: provider.selectedNote?.id == n.id,
             onTap: () {
               provider.setMainTabIndex(2);

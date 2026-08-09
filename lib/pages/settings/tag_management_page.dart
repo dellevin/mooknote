@@ -17,7 +17,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag', 'game_genre'];
   static const _typeLabels = ['影视类型', '书籍类型', '笔记标签', '游戏类型'];
-  static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.note_outlined, Icons.sports_esports_outlined];
+  static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.sticky_note_2_outlined, Icons.sports_esports_outlined];
 
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
   Map<String, int> _usageCounts = {};

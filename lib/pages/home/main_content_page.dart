@@ -8,8 +8,7 @@ import '../movies/movie_tab_page.dart';
 import '../book/book_tab_page.dart';
 import '../note/note_tab_page.dart';
 import '../game/game_tab_page.dart';
-import '../online_search/search_page.dart';
-import '../online_search/online_search_page.dart';
+import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页（PageView 滑动切换）
@@ -71,8 +70,8 @@ class _MainContentPageState extends State<MainContentPage> {
     final tabs = <_TabItem>[];
     if (_showMovieTab) tabs.add(_TabItem('影视', 0));
     if (_showBookTab) tabs.add(_TabItem('阅读', 1));
-    if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
     if (_showGameTab) tabs.add(_TabItem('游戏', 3));
+    if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
     return tabs;
   }
 
@@ -119,30 +118,7 @@ class _MainContentPageState extends State<MainContentPage> {
             _buildCloudSyncButton(context),
             IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchPage())),
-            ),
-            if (UserPrefs().enhancedSearchEnabled)
-              IconButton(
-              icon: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Icon(Icons.search, size: 22),
-                  Positioned(
-                    right: -3,
-                    top: -3,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.add, size: 10, color: colors.onSurface),
-                    ),
-                  ),
-                ],
-              ),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OnlineSearchPage())),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchHubPage())),
             ),
           ],
         );
@@ -431,8 +407,8 @@ class _MainContentPageState extends State<MainContentPage> {
           children: [
             if (_showMovieTab) const MovieTabPage(),
             if (_showBookTab) const BookTabPage(),
-            if (_showNoteTab) const NoteTabPage(),
             if (_showGameTab) const GameTabPage(),
+            if (_showNoteTab) const NoteTabPage(),
           ],
         );
       },
@@ -443,7 +419,7 @@ class _MainContentPageState extends State<MainContentPage> {
     switch (label) {
       case '影视': return Icons.movie_outlined;
       case '阅读': return Icons.menu_book_outlined;
-      case '笔记': return Icons.note_outlined;
+      case '笔记': return Icons.sticky_note_2_outlined;
       case '游戏': return Icons.sports_esports_outlined;
       default: return Icons.circle;
     }

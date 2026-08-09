@@ -168,7 +168,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     if (_showNotes) {
       final words = fn.fold<int>(0, (sum, n) => sum + n.content.length);
       final ws = words >= 10000 ? '${(words / 10000).toStringAsFixed(1)}万' : '$words';
-      items.add(_ModuleData(Icons.note_outlined, '笔记', fn.length, '$ws字', _noteColor, 2));
+      items.add(_ModuleData(Icons.sticky_note_2_outlined, '笔记', fn.length, '$ws字', _noteColor, 2));
     }
     if (_showGames) {
       final completed = fg.where((g) => g.status == 'completed').length;

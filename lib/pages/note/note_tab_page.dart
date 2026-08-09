@@ -147,7 +147,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
           ? NoteAddPage(onCancel: () => provider.cancelAdding())
           : provider.selectedNote != null
               ? NoteDetailPage(note: provider.selectedNote!, embedded: true)
-              : const DetailPlaceholder(icon: Icons.note_outlined, message: '选择一条笔记查看详情');
+              : const DetailPlaceholder(icon: Icons.sticky_note_2_outlined, message: '选择一条笔记查看详情');
       return MasterDetailScaffold(
         master: masterContent,
         detail: detailWidget,
@@ -417,7 +417,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-          child: Icon(Icons.note_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
+          child: Icon(Icons.sticky_note_2_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
       Text('暂无笔记', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));

@@ -72,7 +72,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
   if (userPrefs.showNoteTab) {
     options.add(_buildOption(
       colors: colors,
-      icon: Icons.note_outlined,
+      icon: Icons.sticky_note_2_outlined,
       title: '添加笔记',
       subtitle: '记录你的想法和笔记',
       onTap: () {

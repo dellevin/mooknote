@@ -7,15 +7,34 @@ import '../../utils/toast_util.dart';
 import 'movie_detail_page.dart';
 import 'book_detail_page.dart';
 
-/// 在线搜索影视/书籍
-class OnlineSearchPage extends StatefulWidget {
+/// 在线搜索影视/书籍（带 Scaffold + AppBar）
+class OnlineSearchPage extends StatelessWidget {
   const OnlineSearchPage({super.key});
 
   @override
-  State<OnlineSearchPage> createState() => _OnlineSearchPageState();
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        title: const Text('在线搜索'),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: const OnlineSearchPageBody(),
+    );
+  }
 }
 
-class _OnlineSearchPageState extends State<OnlineSearchPage> {
+/// 在线搜索 body —— 可嵌入到统一搜索页 SearchHubPage
+class OnlineSearchPageBody extends StatefulWidget {
+  const OnlineSearchPageBody({super.key});
+
+  @override
+  State<OnlineSearchPageBody> createState() => _OnlineSearchPageBodyState();
+}
+
+class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   final _movieScrollController = ScrollController();
@@ -252,39 +271,45 @@ class _OnlineSearchPageState extends State<OnlineSearchPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        titleSpacing: 8,
-        title: _buildSearchBar(colors),
-        actions: [
-          TextButton(
-            onPressed: _doSearch,
-            child: Text('搜索',
-                style: TextStyle(fontSize: 14, color: colors.primary)),
+    return Material(
+      color: colors.surface,
+      child: Column(
+        children: [
+          // 搜索栏 + 搜索按钮
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            child: Row(
+              children: [
+                Expanded(child: _buildSearchBar(colors)),
+                TextButton(
+                  onPressed: _doSearch,
+                  child: Text('搜索',
+                      style: TextStyle(fontSize: 14, color: colors.primary)),
+                ),
+              ],
+            ),
+          ),
+          // 影视/书籍 tab 栏（搜索后显示）
+          if (_hasSearched)
+            Container(
+              decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(
+                          color: colors.outlineVariant, width: 0.5))),
+              child: Row(children: [
+                _buildTabButton(colors, '影视', 0, _movieTotal),
+                _buildTabButton(colors, '书籍', 1, _bookTotal),
+              ]),
+            ),
+          Expanded(
+            child: _hasSearched
+                ? (_currentTab == 0
+                    ? _buildMovieResults(colors)
+                    : _buildBookResults(colors))
+                : _buildHistoryPanel(colors),
           ),
         ],
-        bottom: _hasSearched
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(40),
-                child: Container(
-                  decoration: BoxDecoration(
-                      border: Border(
-                          bottom: BorderSide(
-                              color: colors.outlineVariant, width: 0.5))),
-                  child: Row(children: [
-                    _buildTabButton(colors, '影视', 0, _movieTotal),
-                    _buildTabButton(colors, '书籍', 1, _bookTotal),
-                  ]),
-                ),
-              )
-            : null,
       ),
-      body: _hasSearched
-          ? (_currentTab == 0
-              ? _buildMovieResults(colors)
-              : _buildBookResults(colors))
-          : _buildHistoryPanel(colors),
     );
   }
 

@@ -35,7 +35,7 @@ class _AddTypeDialog extends StatelessWidget {
     final types = <_AddTypeItem>[];
     if (showMovie) types.add(_AddTypeItem('影视', Icons.movie_outlined, 0));
     if (showBook) types.add(_AddTypeItem('阅读', Icons.menu_book_outlined, 1));
-    if (showNote) types.add(_AddTypeItem('笔记', Icons.note_outlined, 2));
+    if (showNote) types.add(_AddTypeItem('笔记', Icons.sticky_note_2_outlined, 2));
     if (showGame) types.add(_AddTypeItem('游戏', Icons.sports_esports_outlined, 3));
 
     return Dialog(

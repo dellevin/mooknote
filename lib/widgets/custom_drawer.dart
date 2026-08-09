@@ -172,7 +172,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final statItems = <(IconData, int, String, Color)>[];
         if (userPrefs.showMovieTab) statItems.add((Icons.movie_outlined, movieCount, '观影', const Color(0xFF2563EB)));
         if (userPrefs.showBookTab) statItems.add((Icons.menu_book_outlined, bookCount, '阅读', const Color(0xFF16A34A)));
-        if (userPrefs.showNoteTab) statItems.add((Icons.note_outlined, noteCount, '笔记', const Color(0xFF9333EA)));
+        if (userPrefs.showNoteTab) statItems.add((Icons.sticky_note_2_outlined, noteCount, '笔记', const Color(0xFF9333EA)));
         if (userPrefs.showGameTab) statItems.add((Icons.sports_esports_outlined, gameCount, '游戏', const Color(0xFFEA580C)));
 
         return Container(
@@ -657,7 +657,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     for (final b in dayBooks) _dayDetailItem(ctx, Icons.menu_book_outlined, b.title, const Color(0xFF16A34A)),
                   ],
                   if (dayNotes.isNotEmpty) ...[
-                    for (final n in dayNotes) _dayDetailItem(ctx, Icons.note_outlined, n.title.isNotEmpty ? n.title : '随手记', const Color(0xFF9333EA)),
+                    for (final n in dayNotes) _dayDetailItem(ctx, Icons.sticky_note_2_outlined, n.title.isNotEmpty ? n.title : '随手记', const Color(0xFF9333EA)),
                   ],
                   if (dayGames.isNotEmpty) ...[
                     for (final g in dayGames) _dayDetailItem(ctx, Icons.sports_esports_outlined, g.title, const Color(0xFFEA580C)),
@@ -803,7 +803,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Icon(
-        item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : item.type == 'game' ? Icons.sports_esports_outlined : Icons.note_outlined,
+        item.type == 'movie' ? Icons.movie_outlined : item.type == 'book' ? Icons.menu_book_outlined : item.type == 'game' ? Icons.sports_esports_outlined : Icons.sticky_note_2_outlined,
         size: 12, color: _typeColor(item.type),
       ),
     );

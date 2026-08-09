@@ -85,7 +85,7 @@ class _StrollPageState extends State<StrollPage> {
           subtitle: n.tags.take(3).join(' · '),
           detail: n.content,
           imagePath: n.images.isNotEmpty ? n.images.first : null,
-          icon: Icons.note_outlined, label: '笔记',
+          icon: Icons.sticky_note_2_outlined, label: '笔记',
           createdAt: n.createdAt,
           tags: n.tags.take(3).toList(),
           color: const Color(0xFF66BB6A),
@@ -376,7 +376,7 @@ class _StrollPageState extends State<StrollPage> {
       ('all', '全部', Icons.apps_outlined),
       ('movie', '影视', Icons.movie_outlined),
       ('book', '书籍', Icons.menu_book_outlined),
-      ('note', '笔记', Icons.note_outlined),
+      ('note', '笔记', Icons.sticky_note_2_outlined),
       ('game', '游戏', Icons.sports_esports_outlined),
     ];
     return Padding(

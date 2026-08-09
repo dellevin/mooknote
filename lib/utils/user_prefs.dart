@@ -284,6 +284,10 @@ class UserPrefs {
   bool get enhancedSearchEnabled => prefs.getBool('enhancedSearchEnabled') ?? false;
   Future<bool> setEnhancedSearchEnabled(bool value) => prefs.setBool('enhancedSearchEnabled', value);
 
+  /// 上次使用的搜索模式：false=本地, true=增强
+  bool get lastSearchOnline => prefs.getBool('lastSearchOnline') ?? false;
+  Future<bool> setLastSearchOnline(bool value) => prefs.setBool('lastSearchOnline', value);
+
   /// 影视增强搜索 Token
   String get movieSearchToken => prefs.getString('movieSearchToken') ?? '';
   Future<bool> setMovieSearchToken(String value) => prefs.setString('movieSearchToken', value);
