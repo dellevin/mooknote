@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/fade_in_local_image.dart';
 import '../movies/movie_detail_page.dart';
 import '../movies/movie_form_page.dart';
 import '../book/book_detail_page.dart';
@@ -120,33 +120,21 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           _buildDateModeToggle(colors),
         ],
       ),
-      body: Column(
-        children: [
-          _buildMonthHeader(colors),
-          _buildWeekdayLabels(colors),
-          Expanded(
-            child: _selectedDay != null && (_dayItems[_selectedDay]?.isNotEmpty ?? false)
-                ? Column(
-                    children: [
-                      SingleChildScrollView(
-                        child: _buildCalendarGrid(colors, today),
-                      ),
-                      Expanded(
-                        child: _buildSelectedDayDetail(colors),
-                      ),
-                    ],
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildCalendarGrid(colors, today),
-                        if (_selectedDay != null) _buildSelectedDayDetail(colors),
-                        const SizedBox(height: 80),
-                      ],
-                    ),
-                  ),
-          ),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // 日历区域固定，详情区独立滚动
+          final calendar = _buildCalendarArea(colors, today, constraints.maxWidth);
+          return Column(
+            children: [
+              _buildMonthHeader(colors),
+              _buildWeekdayLabels(colors),
+              calendar,
+              Expanded(
+                child: _buildSelectedDayDetail(colors),
+              ),
+            ],
+          );
+        },
       ),
       floatingActionButton: _selectedDay != null
           ? FloatingActionButton(
@@ -202,9 +190,28 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
   // ─── 日历网格 ───
 
-  static const double _cellHeight = 62;
+  /// 日历区域：横滑切月 + cell 自适应
+  Widget _buildCalendarArea(ColorScheme colors, DateTime today, double maxWidth) {
+    // 可用宽度去掉左右 padding（8+8），每行 7 格
+    final cellSize = ((maxWidth - 16) / 7).clamp(44.0, 76.0);
 
-  Widget _buildCalendarGrid(ColorScheme colors, DateTime today) {
+    // 横滑切月手势
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final v = details.primaryVelocity;
+        if (v == null) return;
+        const threshold = 300.0;
+        if (v < -threshold) {
+          _nextMonth();
+        } else if (v > threshold) {
+          _prevMonth();
+        }
+      },
+      child: _buildCalendarGrid(colors, today, cellSize),
+    );
+  }
+
+  Widget _buildCalendarGrid(ColorScheme colors, DateTime today, double cellSize) {
     final firstDay = DateTime(_currentMonth.year, _currentMonth.month, 1);
     final lastDay = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
     final startOffset = firstDay.weekday - 1;
@@ -217,7 +224,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
       child: Column(
         children: List.generate(rows, (row) {
           return SizedBox(
-            height: _cellHeight,
+            height: cellSize,
             child: Row(
               children: List.generate(7, (col) {
                 final index = row * 7 + col;
@@ -251,25 +258,38 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                   ? colors.surfaceContainerHigh
                   : null,
           borderRadius: BorderRadius.circular(10),
-          border: isToday
-              ? Border.all(color: colors.primary, width: 1.5)
-              : isSelected
-                  ? Border.all(color: colors.primary.withValues(alpha: 0.3), width: 1)
-                  : null,
+          border: isSelected
+              ? Border.all(color: colors.primary.withValues(alpha: 0.3), width: 1)
+              : null,
         ),
         child: hasItems
             ? _buildImageCell(colors, day, items, isToday)
-            : Center(
-                child: Text(
-                  '$day',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
-                    color: isToday
-                        ? colors.primary
-                        : colors.onSurface.withValues(alpha: 0.35),
+            : Stack(
+                children: [
+                  Center(
+                    child: Text(
+                      '$day',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+                        color: isToday
+                            ? colors.primary
+                            : colors.onSurface.withValues(alpha: 0.35),
+                      ),
+                    ),
                   ),
-                ),
+                  if (isToday)
+                    Positioned(
+                      top: 4, left: 4,
+                      child: Container(
+                        width: 6, height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colors.primary,
+                        ),
+                      ),
+                    ),
+                ],
               ),
       ),
     );
@@ -281,10 +301,11 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image(
-            image: FileImage(File(items.first.path)),
+          FadeInLocalImage(
+            path: items.first.path,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            duration: const Duration(milliseconds: 250),
+            errorWidget: Container(
               color: colors.surfaceContainerHighest,
               child: Center(child: Icon(Icons.image_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.2))),
             ),
@@ -324,6 +345,18 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                 child: Text('+${items.length - 1}', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white)),
               ),
             ),
+          // 今日小圆点（左上角）
+          if (isToday)
+            Positioned(
+              top: 4, left: 4,
+              child: Container(
+                width: 6, height: 6,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFFD54F),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -332,6 +365,9 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
   // ─── 选中日期的详情 ───
 
   Widget _buildSelectedDayDetail(ColorScheme colors) {
+    if (_selectedDay == null) {
+      return const SizedBox.shrink();
+    }
     final items = _dayItems[_selectedDay] ?? [];
     if (items.isEmpty) {
       return Container(
@@ -379,10 +415,11 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                     borderRadius: BorderRadius.circular(6),
                     child: SizedBox(
                       width: 40, height: 40,
-                      child: Image(
-                        image: FileImage(File(item.path)),
+                      child: FadeInLocalImage(
+                        path: item.path,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        duration: const Duration(milliseconds: 250),
+                        errorWidget: Container(
                           color: colors.surfaceContainerHighest,
                           child: Icon(Icons.image_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
                         ),
