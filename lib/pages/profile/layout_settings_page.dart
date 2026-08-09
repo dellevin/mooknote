@@ -12,6 +12,7 @@ class LayoutSettingsPage extends StatefulWidget {
 
 class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
+  int _homeModuleSwitchMode = 0;
   int _noteLayout = 0;
   int _movieLayout = 0;
   int _bookLayout = 0;
@@ -28,6 +29,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   @override
   void initState() {
     super.initState();
+    _homeModuleSwitchMode = _userPrefs.homeModuleSwitchMode;
     _noteLayout = _userPrefs.noteLayoutStyle;
     _movieLayout = _userPrefs.movieLayoutStyle;
     _bookLayout = _userPrefs.bookLayoutStyle;
@@ -51,6 +53,13 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
+          _buildCategoryTile(
+            icon: Icons.dashboard_outlined,
+            title: '主页模块显示方式',
+            color: colors.primary,
+            subtitle: _homeModuleSubtitle,
+            onTap: _showHomeModuleSheet,
+          ),
           _buildCategoryTile(
             icon: Icons.movie_outlined,
             title: '影视',
@@ -82,6 +91,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         ],
       ),
     );
+  }
+
+  String get _homeModuleSubtitle {
+    return _homeModuleSwitchMode == 1 ? '顶部下拉切换' : '模块标签切换';
   }
 
   String get _movieSubtitle {
@@ -304,6 +317,49 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   }
 
   // ─── 弹窗 ────────────────────────────────────────────────────────
+
+  void _showHomeModuleSheet() {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _sheetHandle(colors),
+              _sheetTitle('主页模块显示方式', colors),
+              _sheetOptionRow(
+                label: '切换方式',
+                selected: _homeModuleSwitchMode,
+                options: const [
+                  (0, Icons.tab_outlined, '模块标签'),
+                  (1, Icons.arrow_drop_down_outlined, '顶部下拉'),
+                ],
+                onChanged: (v) {
+                  _userPrefs.setHomeModuleSwitchMode(v);
+                  setState(() => _homeModuleSwitchMode = v);
+                  if (mounted) context.read<AppProvider>().setHomeModuleSwitchMode(v);
+                  setSheetState(() {});
+                },
+                colors: colors,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                child: Text(
+                  _homeModuleSwitchMode == 1
+                      ? 'AppBar 标题显示当前模块，点击弹出选择菜单。'
+                      : '底部显示模块标签栏，点击切换。',
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showMovieSheet() {
     final colors = Theme.of(context).colorScheme;

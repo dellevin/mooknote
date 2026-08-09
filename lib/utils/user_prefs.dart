@@ -108,6 +108,10 @@ class UserPrefs {
   bool get showGameTab => prefs.getBool('showGameTab') ?? false;
   Future<bool> setShowGameTab(bool value) => prefs.setBool('showGameTab', value);
 
+  /// 主页模块显示方式 (0=底部tab切换, 1=顶部下拉切换)
+  int get homeModuleSwitchMode => prefs.getInt('homeModuleSwitchMode') ?? 0;
+  Future<bool> setHomeModuleSwitchMode(int value) => prefs.setInt('homeModuleSwitchMode', value);
+
   /// 默认启动标签 (-1: 主页, 0: 影视, 1: 阅读, 2: 笔记, 3: 游戏)
   int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? -1;
   Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);

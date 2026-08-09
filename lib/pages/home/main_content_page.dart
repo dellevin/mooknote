@@ -86,27 +86,34 @@ class _MainContentPageState extends State<MainContentPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (!Breakpoint.isDesktop(context)) ...[
-          _buildAppBar(context),
-          _buildTabBar(context),
-        ],
-        Expanded(child: _buildTabContent()),
-      ],
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final isDropdown = provider.homeModuleSwitchMode == 1;
+        return Column(
+          children: [
+            if (!Breakpoint.isDesktop(context)) ...[
+              _buildAppBar(context, isDropdown),
+              if (!isDropdown) _buildTabBar(context),
+            ],
+            Expanded(child: _buildTabContent()),
+          ],
+        );
+      },
     );
   }
 
   // ─── AppBar ──────────────────────────────────────────
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, bool isDropdown) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final colors = Theme.of(context).colorScheme;
         return AppBar(
           titleSpacing: 8,
           leadingWidth: 44,
-          title: Text(_getAppBarTitle(provider)),
+          title: isDropdown
+              ? _buildDropdownTitle(context, provider, colors)
+              : Text(_getAppBarTitle(provider)),
           actionsPadding: const EdgeInsets.only(right: 4),
           actions: [
             _buildCloudSyncButton(context),
@@ -139,6 +146,65 @@ class _MainContentPageState extends State<MainContentPage> {
             ),
           ],
         );
+      },
+    );
+  }
+
+  Widget _buildDropdownTitle(BuildContext context, AppProvider provider, ColorScheme colors) {
+    final tabs = _enabledTabs;
+    final safeIndex = _mapToEnabledTabIndex(provider.mainTabIndex).clamp(0, tabs.length - 1);
+    final currentLabel = tabs.isEmpty ? '主页' : tabs[safeIndex].label;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showModulePicker(context, tabs, safeIndex),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_tabIcon(currentLabel), size: 20, color: colors.primary),
+          const SizedBox(width: 6),
+          Text(currentLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 2),
+          Icon(Icons.arrow_drop_down, size: 22, color: colors.onSurface.withValues(alpha: 0.5)),
+        ],
+      ),
+    );
+  }
+
+  void _showModulePicker(BuildContext context, List<_TabItem> tabs, int currentIndex) {
+    final colors = Theme.of(context).colorScheme;
+    final provider = context.read<AppProvider>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          for (int i = 0; i < tabs.length; i++) ...[
+            if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
+            _modulePickerItem(ctx, tabs[i], i, i == currentIndex, colors, provider),
+          ],
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
+  }
+
+  Widget _modulePickerItem(BuildContext ctx, _TabItem tab, int idx, bool selected, ColorScheme colors, AppProvider provider) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      leading: Container(width: 36, height: 36,
+          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+          child: Icon(_tabIcon(tab.label), size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
+      title: Text(tab.label, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+      trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
+      onTap: () {
+        Navigator.pop(ctx);
+        _isTabTap = true;
+        _pageController.jumpToPage(idx);
+        provider.setMainTabIndex(tab.originalIndex);
+        Future.delayed(const Duration(milliseconds: 50), () => _isTabTap = false);
       },
     );
   }

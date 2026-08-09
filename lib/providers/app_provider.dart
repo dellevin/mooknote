@@ -61,6 +61,9 @@ class AppProvider extends ChangeNotifier {
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
 
+  // 主页模块显示方式 (0=底部tab切换, 1=顶部下拉切换)
+  int _homeModuleSwitchMode = 0;
+
   // 当前底部导航选中的索引 (0: 主页，1: 新增，2: 我的)
   int _bottomNavIndex = 0;
 
@@ -199,6 +202,7 @@ class AppProvider extends ChangeNotifier {
     _bookshelfMode = userPrefs.bookshelfMode;
     _gameLayoutStyle = userPrefs.gameLayoutStyle;
     _gameWallMode = userPrefs.gameWallMode;
+    _homeModuleSwitchMode = userPrefs.homeModuleSwitchMode;
     final defaultIndex = userPrefs.defaultMainTabIndex;
     // Windows 桌面端且主页开启时，强制默认为主页
     if (Platform.isWindows && userPrefs.showDesktopHomeTab) {
@@ -297,6 +301,7 @@ class AppProvider extends ChangeNotifier {
 
   // Getters
   int get mainTabIndex => _mainTabIndex;
+  int get homeModuleSwitchMode => _homeModuleSwitchMode;
   int get bottomNavIndex => _bottomNavIndex;
   Movie? get selectedMovie => _selectedMovie;
   Book? get selectedBook => _selectedBook;
@@ -337,6 +342,12 @@ class AppProvider extends ChangeNotifier {
   // Setters
   void setMainTabIndex(int index) {
     _mainTabIndex = index;
+    notifyListeners();
+  }
+
+  void setHomeModuleSwitchMode(int mode) {
+    _homeModuleSwitchMode = mode;
+    UserPrefs().setHomeModuleSwitchMode(mode);
     notifyListeners();
   }
 
