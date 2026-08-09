@@ -228,7 +228,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
         : '--';
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: colors.surfaceContainerLow,
@@ -237,19 +237,26 @@ class _ReviewedPageState extends State<ReviewedPage> {
       child: Column(
         children: [
           // 第一行：总数 + 评分
-          Row(
-            children: [
-              _buildStatItem('${filtered.length}', '已阅', colors.primary, Icons.done_all_rounded, colors),
-              _buildStatDivider(colors),
-              _buildStatItem(avg, '均分', Colors.amber, Icons.star_rounded, colors),
-              _buildStatDivider(colors),
-              // 分类计数
-              _buildMiniCategory('影视', movieCount, Colors.blue, _ItemType.movie, colors),
-              const SizedBox(width: 12),
-              _buildMiniCategory('书籍', bookCount, Colors.teal, _ItemType.book, colors),
-              const SizedBox(width: 12),
-              _buildMiniCategory('游戏', gameCount, Colors.orange, _ItemType.game, colors),
-            ],
+          _FadeEdgeScrollView(
+            colors: colors,
+            fadeColor: colors.surfaceContainerLow,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildStatItem('${filtered.length}', '已阅', colors.primary, Icons.done_all_rounded, colors),
+                  _buildStatDivider(colors),
+                  _buildStatItem(avg, '均分', Colors.amber, Icons.star_rounded, colors),
+                  _buildStatDivider(colors),
+                  // 分类计数
+                  _buildMiniCategory('影视', movieCount, Colors.blue, _ItemType.movie, colors),
+                  const SizedBox(width: 12),
+                  _buildMiniCategory('书籍', bookCount, Colors.teal, _ItemType.book, colors),
+                  const SizedBox(width: 12),
+                  _buildMiniCategory('游戏', gameCount, Colors.orange, _ItemType.game, colors),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -658,11 +665,12 @@ class _ReviewedPageState extends State<ReviewedPage> {
 class _FadeEdgeScrollView extends StatelessWidget {
   final ColorScheme colors;
   final Widget child;
-  const _FadeEdgeScrollView({required this.colors, required this.child});
+  final Color? fadeColor;
+  const _FadeEdgeScrollView({required this.colors, required this.child, this.fadeColor});
 
   @override
   Widget build(BuildContext context) {
-    final fadeColor = colors.surface;
+    final fade = fadeColor ?? colors.surface;
     return Stack(
       children: [
         child,
@@ -675,7 +683,7 @@ class _FadeEdgeScrollView extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [fadeColor, fadeColor.withValues(alpha: 0)],
+                  colors: [fade, fade.withValues(alpha: 0)],
                 ),
               ),
             ),
@@ -690,7 +698,7 @@ class _FadeEdgeScrollView extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
-                  colors: [fadeColor, fadeColor.withValues(alpha: 0)],
+                  colors: [fade, fade.withValues(alpha: 0)],
                 ),
               ),
             ),
