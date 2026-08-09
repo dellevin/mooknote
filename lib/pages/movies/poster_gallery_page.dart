@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../utils/image_saver.dart';
 
 /// 海报画廊页面 - 支持左右滑动浏览
 class PosterGalleryPage extends StatefulWidget {
@@ -49,13 +50,16 @@ class _PosterGalleryPageState extends State<PosterGalleryPage> {
             },
             itemBuilder: (context, index) {
               final poster = widget.posters[index];
-              return InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 3.0,
-                child: Center(
-                  child: FadeInLocalImage(
-                    path: poster.posterPath,
-                    fit: BoxFit.contain,
+              return GestureDetector(
+                onLongPress: () => ImageSaver.showSaveFromFileSheet(poster.posterPath, context: context),
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 3.0,
+                  child: Center(
+                    child: FadeInLocalImage(
+                      path: poster.posterPath,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               );

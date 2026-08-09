@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../utils/image_saver.dart';
 
 class ImageViewer extends StatefulWidget {
   final Uint8List imageData;
@@ -168,6 +169,7 @@ class _ImageViewerState extends State<ImageViewer>
                 rect: currentRect,
                 child: GestureDetector(
                   onTap: _handleClose,
+                  onLongPress: () => ImageSaver.showSaveFromBytesSheet(widget.imageData, context: context),
                   child: Container(
                     clipBehavior: Clip.antiAlias,
                     decoration: const BoxDecoration(

@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
+import '../../utils/image_saver.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
 import '../../widgets/vditor_editor.dart';
@@ -903,6 +904,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       barrierDismissible: true,
       builder: (context) => GestureDetector(
         onTap: () => Navigator.pop(context),
+        onLongPress: () => ImageSaver.showSaveFromFileSheet(_images[index], context: context),
         child: Container(
           color: Colors.black.withValues(alpha: 0.9),
           child: Center(

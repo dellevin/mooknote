@@ -10,6 +10,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
+import '../../utils/image_saver.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/vditor_editor.dart';
 import '../../widgets/tag_side_panel.dart';
@@ -808,6 +809,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       barrierDismissible: true,
       builder: (context) => GestureDetector(
         onTap: () => Navigator.pop(context),
+        onLongPress: () => ImageSaver.showSaveFromFileSheet(images[initialIndex], context: context),
         child: Container(
           color: Colors.black.withValues(alpha: 0.9),
           child: Center(

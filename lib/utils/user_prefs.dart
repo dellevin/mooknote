@@ -142,6 +142,9 @@ class UserPrefs {
   bool get showSidebarPerson => prefs.getBool('showSidebarPerson') ?? true;
   Future<bool> setShowSidebarPerson(bool value) => prefs.setBool('showSidebarPerson', value);
 
+  bool get showSidebarGallery => prefs.getBool('showSidebarGallery') ?? true;
+  Future<bool> setShowSidebarGallery(bool value) => prefs.setBool('showSidebarGallery', value);
+
   bool get showSidebarTags => prefs.getBool('showSidebarTags') ?? true;
   Future<bool> setShowSidebarTags(bool value) => prefs.setBool('showSidebarTags', value);
 

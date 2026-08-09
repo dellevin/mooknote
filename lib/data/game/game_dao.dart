@@ -27,6 +27,18 @@ class GameDao {
     return List.generate(maps.length, (i) => Game.fromJson(maps[i]));
   });
 
+  // 根据ID获取游戏记录
+  Future<Game?> getGameById(String id) => _wrap('getGameById', () async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'games',
+      where: 'id = ? AND is_deleted = ?',
+      whereArgs: [id, 0],
+    );
+    if (maps.isEmpty) return null;
+    return Game.fromJson(maps.first);
+  });
+
   // 分页查询游戏记录
   Future<List<Game>> getGamesPaged({String? status, int limit = 20, int offset = 0, int sortMode = 0}) => _wrap('getGamesPaged', () async {
     final db = await _dbHelper.database;

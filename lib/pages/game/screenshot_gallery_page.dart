@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../utils/image_saver.dart';
 
 /// 游戏截图画廊页面 - 支持左右滑动浏览
 class ScreenshotGalleryPage extends StatefulWidget {
@@ -42,11 +43,14 @@ class _ScreenshotGalleryPageState extends State<ScreenshotGalleryPage> {
             onPageChanged: (index) => setState(() => _currentIndex = index),
             itemBuilder: (context, index) {
               final screenshot = widget.screenshots[index];
-              return InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 3.0,
-                child: Center(
-                  child: FadeInLocalImage(path: screenshot.screenshotPath, fit: BoxFit.contain),
+              return GestureDetector(
+                onLongPress: () => ImageSaver.showSaveFromFileSheet(screenshot.screenshotPath, context: context),
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 3.0,
+                  child: Center(
+                    child: FadeInLocalImage(path: screenshot.screenshotPath, fit: BoxFit.contain),
+                  ),
                 ),
               );
             },

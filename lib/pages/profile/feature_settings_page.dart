@@ -30,6 +30,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showPlaylist = true;
   bool _showCalendar = true;
   bool _showPerson = true;
+  bool _showGallery = true;
   bool _showTags = true;
   bool _showMdReader = true;
   bool _showEpub = true;
@@ -57,6 +58,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showPlaylist = _userPrefs.showSidebarPlaylist;
       _showCalendar = _userPrefs.showSidebarCalendar;
       _showPerson = _userPrefs.showSidebarPerson;
+      _showGallery = _userPrefs.showSidebarGallery;
       _showTags = _userPrefs.showSidebarTags;
       _showMdReader = _userPrefs.showSidebarMdReader;
       _showEpub = _userPrefs.showSidebarEpub;
@@ -296,6 +298,17 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               (v) async {
             await _userPrefs.setShowSidebarPerson(v);
             setState(() => _showPerson = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.photo_library_outlined, '图库', '浏览所有保存过的图片', _showGallery,
+              (v) async {
+            await _userPrefs.setShowSidebarGallery(v);
+            setState(() => _showGallery = v);
           }),
           Divider(
               height: 0.5,

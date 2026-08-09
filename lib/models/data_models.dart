@@ -1689,3 +1689,38 @@ class GameCharacter {
   }
 }
 
+/// 图库图片项
+class GalleryItem {
+  final String path;
+  final String category;
+  final String entityType;
+  final String entityId;
+  final String entityTitle;
+  final String? parentTitle;
+  final DateTime createdAt;
+
+  // category 取值：
+  // 'movie_poster' | 'movie_posters' | 'book_cover' | 'note_image'
+  // | 'game_cover' | 'game_screenshot' | 'person_photo'
+  // | 'movie_character' | 'book_character' | 'game_character'
+  //
+  // entityType 与 category 的映射：
+  //   movie_poster / movie_posters / movie_character → 'movie'
+  //   book_cover / book_character → 'book'
+  //   note_image → 'note'
+  //   game_cover / game_screenshot / game_character → 'game'
+  //   person_photo → 'person'
+  //
+  // 角色图片：entityId 存父作品 ID，entityTitle 存角色名，parentTitle 存父作品标题
+
+  const GalleryItem({
+    required this.path,
+    required this.category,
+    required this.entityType,
+    required this.entityId,
+    required this.entityTitle,
+    this.parentTitle,
+    required this.createdAt,
+  });
+}
+
