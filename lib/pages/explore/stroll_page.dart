@@ -8,6 +8,7 @@ import '../../utils/toast_util.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../note/note_detail_page.dart';
+import '../game/game_detail_page.dart';
 
 /// 漫步页面 - 随机发现内容
 class StrollPage extends StatefulWidget {
@@ -21,20 +22,19 @@ class _StrollPageState extends State<StrollPage> {
   final _random = Random();
   final List<_StrollItem> _items = [];
   final Set<String> _seenIds = {};
-  late PageController _pageController;
+  int _current = 0;
   String _filter = 'all'; // all / movie / book / note
+
+  // 拖动手势状态
+  double _dragX = 0; // 当前水平偏移（正=右滑，负=左滑）
+  double _dragY = 0; // 当前垂直偏移
+  bool _isDragging = false;
+  bool _horizontalLocked = false; // 是否锁定为水平方向
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.78);
     _loadBatch(5);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   // ─── 数据加载 ───
@@ -46,6 +46,7 @@ class _StrollPageState extends State<StrollPage> {
     final moviePool = <_StrollItem>[];
     final bookPool = <_StrollItem>[];
     final notePool = <_StrollItem>[];
+    final gamePool = <_StrollItem>[];
     if (_filter == 'all' || _filter == 'movie') {
       for (final m in provider.movies.where((m) => !m.isDeleted)) {
         moviePool.add(_StrollItem(
@@ -91,12 +92,28 @@ class _StrollPageState extends State<StrollPage> {
         ));
       }
     }
+    if (_filter == 'all' || _filter == 'game') {
+      for (final g in provider.games.where((g) => !g.isDeleted)) {
+        gamePool.add(_StrollItem(
+          type: 'game', data: g, id: 'g_${g.id}',
+          title: g.title,
+          subtitle: g.developer.take(2).join(' / '),
+          detail: _gameDetail(g),
+          imagePath: g.coverPath,
+          icon: Icons.sports_esports_outlined, label: '游戏',
+          rating: g.rating, createdAt: g.createdAt,
+          tags: g.genres.take(3).toList(),
+          color: const Color(0xFFEC4899),
+        ));
+      }
+    }
 
     // 构建非空类别列表
     final pools = <List<_StrollItem>>[];
     if (moviePool.isNotEmpty) pools.add(moviePool);
     if (bookPool.isNotEmpty) pools.add(bookPool);
     if (notePool.isNotEmpty) pools.add(notePool);
+    if (gamePool.isNotEmpty) pools.add(gamePool);
     if (pools.isEmpty) return;
 
     // 全部模式下等概率选类别，单类别模式下直接选
@@ -131,12 +148,71 @@ class _StrollPageState extends State<StrollPage> {
     return pool.last;
   }
 
-  void _reshuffle() {
+  /// 切换到下一张（点击"随机"按钮 / 左滑）
+  void _next() {
     setState(() {
-      _items.clear();
-      _seenIds.clear();
-      _loadBatch(5);
+      _current++;
+      if (_current >= _items.length - 2) {
+        _loadBatch(3);
+      }
+      if (_current >= _items.length) {
+        // 池子耗尽，回到最后一张
+        _current = _items.length - 1;
+      }
     });
+  }
+
+  /// 切换到上一张（右滑）
+  void _prev() {
+    setState(() {
+      if (_current > 0) {
+        _current--;
+      }
+    });
+  }
+
+  // ─── 拖动手势 ───
+
+  void _onDragStart(DragStartDetails _) {
+    _dragX = 0;
+    _dragY = 0;
+    _isDragging = true;
+    _horizontalLocked = false;
+  }
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (!_isDragging) return;
+    setState(() {
+      _dragX += d.delta.dx;
+      _dragY += d.delta.dy;
+      // 首次明显移动时判定主方向：水平位移绝对值 > 垂直则锁定水平
+      if (!_horizontalLocked &&
+          (_dragX.abs() > 8 || _dragY.abs() > 8)) {
+        _horizontalLocked = _dragX.abs() > _dragY.abs();
+      }
+    });
+  }
+
+  void _onDragEnd(DragEndDetails _) {
+    if (!_isDragging) return;
+    final dx = _dragX;
+    final dy = _dragY;
+    setState(() {
+      _isDragging = false;
+      _dragX = 0;
+      _dragY = 0;
+      _horizontalLocked = false;
+    });
+    // 非水平主导或距离过小：不切换
+    if (dx.abs() <= dy.abs()) return;
+    const threshold = 60.0;
+    if (dx < -threshold) {
+      // 左滑 → 下一张
+      _next();
+    } else if (dx > threshold) {
+      // 右滑 → 上一张
+      _prev();
+    }
   }
 
   // ─── 辅助方法 ───
@@ -158,6 +234,15 @@ class _StrollPageState extends State<StrollPage> {
     return parts.join('\n');
   }
 
+  String _gameDetail(Game g) {
+    final parts = <String>[];
+    if (g.platforms.isNotEmpty) parts.add(g.platforms.take(2).join(' / '));
+    if (g.summary != null && g.summary!.isNotEmpty) {
+      parts.add(g.summary!.length > 100 ? '${g.summary!.substring(0, 100)}...' : g.summary!);
+    }
+    return parts.join('\n');
+  }
+
   String _timeAgoText(DateTime date) {
     final diff = DateTime.now().difference(date);
     if (diff.inDays >= 365) return '${(diff.inDays / 365).floor()}年前';
@@ -172,6 +257,7 @@ class _StrollPageState extends State<StrollPage> {
       case 'movie': return '看过';
       case 'book': return '读过';
       case 'note': return '写下';
+      case 'game': return '玩过';
       default: return '';
     }
   }
@@ -184,18 +270,9 @@ class _StrollPageState extends State<StrollPage> {
         Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: item.data as Book)));
       case 'note':
         Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: item.data as Note)));
+      case 'game':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => GameDetailPage(game: item.data as Game)));
     }
-  }
-
-  void _deleteItem(_StrollItem item) async {
-    final provider = context.read<AppProvider>();
-    switch (item.type) {
-      case 'movie': await provider.removeMovie(item.data.id);
-      case 'book': await provider.removeBook(item.data.id);
-      case 'note': await provider.removeNote(item.data.id);
-    }
-    setState(() => _items.remove(item));
-    if (mounted) ToastUtil.show(context, '已删除');
   }
 
   // ─── 界面 ───
@@ -203,7 +280,7 @@ class _StrollPageState extends State<StrollPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final hasContent = _items.isNotEmpty;
+    final hasContent = _items.isNotEmpty && _current < _items.length;
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -213,36 +290,39 @@ class _StrollPageState extends State<StrollPage> {
           _buildTopBar(colors),
           // 类型筛选
           _buildFilterBar(colors),
-          // 内容
+          // 内容 + 随机按钮
           Expanded(
             child: !hasContent
                 ? _buildEmptyState(colors)
-                : RefreshIndicator(
-                    onRefresh: () async => _reshuffle(),
-                    color: colors.primary,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      onPageChanged: (index) {
-                        if (index >= _items.length - 2) {
-                          setState(() => _loadBatch(3));
-                        }
-                      },
-                      itemCount: _items.length,
-                      itemBuilder: (context, index) {
-                        return AnimatedBuilder(
-                          animation: _pageController,
-                          builder: (context, child) {
-                            double scale = 1.0;
-                            if (_pageController.hasClients && _pageController.page != null) {
-                              final diff = (_pageController.page! - index).abs();
-                              scale = (1 - diff * 0.08).clamp(0.88, 1.0);
-                            }
-                            return Transform.scale(scale: scale, child: child);
-                          },
-                          child: _buildCard(_items[index], colors),
-                        );
-                      },
-                    ),
+                : Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 310),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 280),
+                              switchInCurve: Curves.easeOut,
+                              switchOutCurve: Curves.easeIn,
+                              transitionBuilder: (child, anim) {
+                                return FadeTransition(
+                                  opacity: anim,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.04),
+                                      end: Offset.zero,
+                                    ).animate(anim),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _buildCard(_items[_current], colors, key: ValueKey(_current)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      _buildNextButton(colors),
+                    ],
                   ),
           ),
         ],
@@ -264,19 +344,28 @@ class _StrollPageState extends State<StrollPage> {
             const Spacer(),
             Text('漫步', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const Spacer(),
-            GestureDetector(
-              onTap: _reshuffle,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(16)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.casino_outlined, size: 14, color: colors.onPrimary),
-                  const SizedBox(width: 4),
-                  Text('随机', style: TextStyle(fontSize: 12, color: colors.onPrimary, fontWeight: FontWeight.w500)),
-                ]),
-              ),
-            ),
+            // 占位，保持标题居中
+            const SizedBox(width: 48),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 卡片下方的"随机"按钮 — 点击切换下一张
+  Widget _buildNextButton(ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: GestureDetector(
+        onTap: _next,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(24)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.casino_outlined, size: 16, color: colors.onPrimary),
+            const SizedBox(width: 6),
+            Text('随机一张', style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w600)),
+          ]),
         ),
       ),
     );
@@ -288,59 +377,115 @@ class _StrollPageState extends State<StrollPage> {
       ('movie', '影视', Icons.movie_outlined),
       ('book', '书籍', Icons.menu_book_outlined),
       ('note', '笔记', Icons.note_outlined),
+      ('game', '游戏', Icons.sports_esports_outlined),
     ];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: filters.map((f) {
-          final selected = _filter == f.$1;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () {
-                if (_filter != f.$1) {
-                  setState(() {
-                    _filter = f.$1;
-                    _items.clear();
-                    _seenIds.clear();
-                    _loadBatch(5);
-                  });
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: selected ? colors.primary : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: filters.map((f) {
+              final selected = _filter == f.$1;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    if (_filter != f.$1) {
+                      setState(() {
+                        _filter = f.$1;
+                        _items.clear();
+                        _seenIds.clear();
+                        _current = 0;
+                        _loadBatch(5);
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: selected ? colors.primary : colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(f.$3, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
+                      const SizedBox(width: 4),
+                      Text(f.$2, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                          color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
+                    ]),
+                  ),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(f.$3, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
-                  const SizedBox(width: 4),
-                  Text(f.$2, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                      color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
-                ]),
+              );
+            }).toList(),
+          ),
+        ),
+          // 左侧淡出遮罩
+          Positioned(
+            left: 0, top: 0, bottom: 0, width: 16,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [colors.surface, colors.surface.withValues(alpha: 0)],
+                  ),
+                ),
               ),
             ),
-          );
-        }).toList(),
+          ),
+          // 右侧淡出遮罩
+          Positioned(
+            right: 0, top: 0, bottom: 0, width: 16,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: [colors.surface, colors.surface.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCard(_StrollItem item, ColorScheme colors) {
+  Widget _buildCard(_StrollItem item, ColorScheme colors, {Key? key}) {
     final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty;
+    // 拖动时透明度：位移越大越淡（最淡 0.3）
+    final opacity = _isDragging && _horizontalLocked
+        ? (1.0 - (_dragX.abs() / 300).clamp(0.0, 0.7))
+        : 1.0;
 
     return GestureDetector(
+      key: key,
+      behavior: HitTestBehavior.opaque,
       onTap: () => _openDetail(item),
       onDoubleTap: () => ToastUtil.show(context, '已收藏'),
-      child: hasImage ? _buildImmersiveCard(item, colors) : _buildContentCard(item, colors),
+      onHorizontalDragStart: _onDragStart,
+      onHorizontalDragUpdate: _onDragUpdate,
+      onHorizontalDragEnd: _onDragEnd,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 120),
+        opacity: opacity,
+        child: Transform.translate(
+          offset: Offset(_horizontalLocked ? _dragX : 0, 0),
+          child: hasImage ? _buildImmersiveCard(item, colors) : _buildContentCard(item, colors),
+        ),
+      ),
     );
   }
 
   /// 有图片的卡片：全屏沉浸式
   Widget _buildImmersiveCard(_StrollItem item, ColorScheme colors) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 80, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 80),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 8))],
@@ -382,7 +527,7 @@ class _StrollPageState extends State<StrollPage> {
   /// 无图片的卡片：内容从顶部开始
   Widget _buildContentCard(_StrollItem item, ColorScheme colors) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 80, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 80),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -451,8 +596,6 @@ class _StrollPageState extends State<StrollPage> {
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
               const Spacer(),
               _actionBtn(Icons.visibility_outlined, '查看', () => _openDetail(item), colors: colors),
-              const SizedBox(width: 8),
-              _actionBtn(Icons.delete_outline, '删除', () => _showDeleteConfirm(item), colors: colors),
             ]),
           ],
         ),
@@ -533,8 +676,6 @@ class _StrollPageState extends State<StrollPage> {
               style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.4))),
           const Spacer(),
           _actionBtn(Icons.visibility_outlined, '查看', () => _openDetail(item)),
-          const SizedBox(width: 12),
-          _actionBtn(Icons.delete_outline, '删除', () => _showDeleteConfirm(item)),
         ]),
       ],
     );
@@ -558,30 +699,6 @@ class _StrollPageState extends State<StrollPage> {
           const SizedBox(width: 4),
           Text(label, style: TextStyle(fontSize: 12, color: fg.withValues(alpha: 0.8))),
         ]),
-      ),
-    );
-  }
-
-  void _showDeleteConfirm(_StrollItem item) {
-    final colors = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除"${item.title}"吗？删除后可在回收站恢复。',
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          ElevatedButton(
-            onPressed: () { Navigator.pop(ctx); _deleteItem(item); },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('删除'),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../../widgets/fade_in_local_image.dart';
 
 /// Display mode for the book grid item.
 enum ViewMode { relaxed, compact }
@@ -188,8 +188,7 @@ class BookGridItem extends StatelessWidget {
     StackFit fit = StackFit.loose,
   }) {
     final coverPath = book['cover_path'] as String?;
-    final hasCover =
-        coverPath != null && coverPath.isNotEmpty && File(coverPath).existsSync();
+    final placeholder = _buildPlaceholder(context);
 
     return Stack(
       fit: fit,
@@ -197,15 +196,14 @@ class BookGridItem extends StatelessWidget {
         Container(
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
           clipBehavior: Clip.antiAlias,
-          child: hasCover
-              ? Image.file(
-                  File(coverPath),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, __, ___) => _buildPlaceholder(context),
-                )
-              : _buildPlaceholder(context),
+          child: FadeInLocalImage(
+            path: coverPath,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            placeholder: placeholder,
+            errorWidget: placeholder,
+          ),
         ),
         ...extras,
       ],

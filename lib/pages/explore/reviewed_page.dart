@@ -325,24 +325,30 @@ class _ReviewedPageState extends State<ReviewedPage> {
           for (final group in genreGroups)
             Container(
               height: 30,
-              margin: EdgeInsets.fromLTRB(0, genreGroups.indexOf(group) == 0 ? 8 : 4, 0, 0),
-              child: _FadeEdgeScrollView(
-                colors: colors,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _buildTypeTag(group.type, colors),
-                    const SizedBox(width: 5),
-                    for (final genre in group.genres) ...[
-                      _buildFilterChip(genre, genre, colors,
-                          color: group.color,
-                          isSelected: _selectedGenre == genre,
-                          onTap: () => setState(() => _selectedGenre = _selectedGenre == genre ? null : genre)),
-                      const SizedBox(width: 5),
-                    ],
-                  ],
-                ),
+              margin: EdgeInsets.fromLTRB(16, genreGroups.indexOf(group) == 0 ? 8 : 4, 0, 0),
+              child: Row(
+                children: [
+                  _buildTypeTag(group.type, colors),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: _FadeEdgeScrollView(
+                      colors: colors,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 16),
+                        children: [
+                          for (final genre in group.genres) ...[
+                            _buildFilterChip(genre, genre, colors,
+                                color: group.color,
+                                isSelected: _selectedGenre == genre,
+                                onTap: () => setState(() => _selectedGenre = _selectedGenre == genre ? null : genre)),
+                            const SizedBox(width: 5),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           // 年份筛选
@@ -350,20 +356,29 @@ class _ReviewedPageState extends State<ReviewedPage> {
             Container(
               height: 30,
               margin: const EdgeInsets.only(top: 4),
-              child: _FadeEdgeScrollView(
-                colors: colors,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _buildTypeTag(null, colors),
-                    const SizedBox(width: 5),
-                    for (final year in years) ...[
-                      _buildFilterChip(year, '$year', colors, isSelected: _selectedYear == year, onTap: () => setState(() => _selectedYear = _selectedYear == year ? null : year)),
-                      const SizedBox(width: 5),
-                    ],
-                  ],
-                ),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: _buildTypeTag(null, colors),
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: _FadeEdgeScrollView(
+                      colors: colors,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 16),
+                        children: [
+                          for (final year in years) ...[
+                            _buildFilterChip(year, '$year', colors, isSelected: _selectedYear == year, onTap: () => setState(() => _selectedYear = _selectedYear == year ? null : year)),
+                            const SizedBox(width: 5),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

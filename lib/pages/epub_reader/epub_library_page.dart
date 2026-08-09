@@ -1,12 +1,15 @@
-import 'dart:io';
-import 'dart:ui';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../data/epub/reader_dao.dart';
 import '../../services/epub/epub_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/responsive.dart';
+import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/shimmer_skeleton.dart';
 import 'epub_detail_page.dart';
+import 'widgets/book_grid_item.dart';
 
 /// EPUB 书架页面
 class EpubLibraryPage extends StatefulWidget {
@@ -25,6 +28,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   bool _isSearching = false;
   final TextEditingController _searchCtrl = TextEditingController();
   int _sortMode = UserPrefs().epubSortMode;
+  int _viewMode = UserPrefs().epubViewMode; // 0=列表 1=网格
 
   @override
   void initState() {
@@ -205,16 +209,6 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     );
   }
 
-  /// 找到最近在读的书（进度 > 0 且 < 1，按更新时间排序取第一本）
-  Map<String, dynamic>? get _lastReadingBook {
-    final reading = _books.where((b) {
-      final p = (b['reading_percentage'] as num?)?.toDouble() ?? 0.0;
-      return p > 0.0 && p < 1.0;
-    }).toList();
-    if (reading.isEmpty) return null;
-    return reading.first;
-  }
-
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -274,8 +268,8 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
             ]),
           ),
         // 主体
-        Expanded(child: _isLoading
-            ? Center(child: CircularProgressIndicator(color: colors.primary))
+        Expanded(child: _isLoading && _books.isEmpty
+            ? const BookSkeletonGrid()
             : _books.isEmpty
                 ? _buildEmpty(colors)
                 : _filteredBooks.isEmpty
@@ -289,196 +283,44 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     );
   }
 
-  /// 主体内容：继续阅读横幅 + 书架列表
+  /// 主体内容：书架（列表/网格）
   Widget _buildContent(ColorScheme colors) {
-    final lastBook = _lastReadingBook;
     return CustomScrollView(
       slivers: [
-        // 继续阅读横幅
-        if (lastBook != null && !_isSearching)
-          SliverToBoxAdapter(child: _buildContinueReading(colors, lastBook)),
-        // 书架列表
-        _buildSliverListView(colors),
+        // 书架分隔标题
+        SliverToBoxAdapter(child: _buildSectionHeader(colors)),
+        // 书架列表/网格
+        _viewMode == 0 ? _buildSliverListView(colors) : _buildSliverGrid(colors),
       ],
     );
   }
 
-  /// 继续阅读横幅卡片 — 封面背景 + 毛玻璃
-  Widget _buildContinueReading(ColorScheme colors, Map<String, dynamic> book) {
-    final title = book['title'] as String? ?? '';
-    final author = book['author'] as String? ?? '';
-    final coverPath = book['cover_path'] as String?;
-    final progress = (book['reading_percentage'] as num?)?.toDouble() ?? 0.0;
-    final percentStr = '${(progress * 100).toInt()}%';
-    final hasCover = coverPath != null && coverPath.isNotEmpty && File(coverPath).existsSync();
-
+  /// 书架分隔标题（带计数）
+  Widget _buildSectionHeader(ColorScheme colors) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () => _openBook(book),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                fit: StackFit.passthrough,
-                children: [
-                  // 底层：封面图做背景
-                  if (hasCover)
-                    SizedBox(
-                      height: 140,
-                      width: double.infinity,
-                      child: Image.file(
-                        File(coverPath!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: colors.primaryContainer),
-                      ),
-                    ),
-                  // 毛玻璃遮罩层
-                  ClipRRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
-                        height: 140,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.surface.withValues(alpha: 0.35),
-                          borderRadius: hasCover ? BorderRadius.zero : BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 封面
-                            Container(
-                              width: 56,
-                              height: 78,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: colors.outlineVariant,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colors.shadow.withValues(alpha: 0.2),
-                                    blurRadius: 8,
-                                    offset: const Offset(2, 3),
-                                  ),
-                                ],
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: _buildCover(coverPath, colors),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: colors.onSurface,
-                                      )),
-                                  if (author.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
-                                    Text(author,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: colors.onSurface.withValues(alpha: 0.55),
-                                        )),
-                                  ],
-                                  const Spacer(),
-                                  // 进度条 + 百分比
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(4),
-                                          child: LinearProgressIndicator(
-                                            value: progress,
-                                            minHeight: 6,
-                                            backgroundColor: colors.primary.withValues(alpha: 0.15),
-                                            valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(percentStr,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: colors.primary,
-                                          )),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  // 继续阅读按钮
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                                      decoration: BoxDecoration(
-                                        color: colors.primary,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.play_arrow_rounded, size: 16, color: colors.onPrimary),
-                                          const SizedBox(width: 4),
-                                          Text('继续阅读',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: colors.onPrimary,
-                                              )),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // 书架分隔
-          Padding(
-            padding: const EdgeInsets.only(top: 20, left: 4, bottom: 4),
-            child: Row(
-              children: [
-                Text('书架',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface.withValues(alpha: 0.45),
-                    )),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    height: 0.5,
-                    color: colors.outlineVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Text(
+        '书架 (${_filteredBooks.length})',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: colors.onSurface.withValues(alpha: 0.4),
+        ),
       ),
     );
   }
 
   List<Widget> _buildActions(ColorScheme colors) {
     return [
+      if (!_isSearching)
+        IconButton(
+          icon: Icon(_viewMode == 0 ? Icons.grid_view_outlined : Icons.view_list_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+          tooltip: _viewMode == 0 ? '网格视图' : '列表视图',
+          onPressed: () {
+            setState(() => _viewMode = _viewMode == 0 ? 1 : 0);
+            UserPrefs().setEpubViewMode(_viewMode);
+          },
+        ),
       if (!_isSearching)
         IconButton(
           icon: Icon(Icons.search, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
@@ -547,6 +389,35 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
           (context, index) => _buildListItem(colors, _filteredBooks[index]),
           childCount: _filteredBooks.length,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSliverGrid(ColorScheme colors) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      sliver: SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final crossAxisCount =
+              responsiveCrossAxisCount(constraints.crossAxisExtent, minItemWidth: 110);
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: 0.55,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => BookGridItem(
+                book: _filteredBooks[index],
+                viewMode: ViewMode.relaxed,
+                onTap: () => _openBook(_filteredBooks[index]),
+                onLongPress: () => _deleteBook(_filteredBooks[index]),
+              ),
+              childCount: _filteredBooks.length,
+            ),
+          );
+        },
       ),
     );
   }
@@ -679,29 +550,24 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   }
 
   Widget _buildCover(String? path, ColorScheme colors) {
-    if (path != null && path.isNotEmpty && File(path).existsSync()) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.file(
-          File(path),
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, __, ___) => Container(
-            color: colors.outlineVariant,
-            child: Icon(Icons.auto_stories_outlined, size: 22,
-                color: colors.onSurface.withValues(alpha: 0.25)),
-          ),
-        ),
-      );
-    }
-    return Container(
+    final placeholder = Container(
       decoration: BoxDecoration(
         color: colors.outlineVariant,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Icon(Icons.auto_stories_outlined, size: 22,
           color: colors.onSurface.withValues(alpha: 0.25)),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: FadeInLocalImage(
+        path: path,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        placeholder: placeholder,
+        errorWidget: placeholder,
+      ),
     );
   }
 
