@@ -263,18 +263,19 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   }
 
   Widget _buildPosterMosaic(List<String> paths) {
-    final posters = paths.take(12).toList();
-    while (posters.length < 12)
+    const cellCount = 30;
+    final posters = paths.take(cellCount).toList();
+    while (posters.length < cellCount)
       posters.add(posters[posters.length % paths.length]);
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 2,
-        crossAxisSpacing: 2,
+        crossAxisCount: 6,
+        mainAxisSpacing: 1.5,
+        crossAxisSpacing: 1.5,
       ),
-      itemCount: 12,
+      itemCount: cellCount,
       itemBuilder: (_, i) =>
           FadeInLocalImage(path: posters[i], fit: BoxFit.cover),
     );
