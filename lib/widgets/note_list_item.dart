@@ -30,6 +30,11 @@ class _NoteListItemContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Color.alphaBlend(
+      colors.onSurface.withValues(alpha: isDark ? 0.04 : 0.022),
+      colors.surface,
+    );
     final previewText = _getPreviewText(note);
 
     return GestureDetector(
@@ -43,8 +48,8 @@ class _NoteListItemContent extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(8),
           border: selected ? Border.all(color: colors.primary, width: 1.5) : null,
         ),
         child: Column(

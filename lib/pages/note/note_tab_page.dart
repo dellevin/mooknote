@@ -218,6 +218,11 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   Widget _buildTimelineItem(Note note) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Color.alphaBlend(
+      colors.onSurface.withValues(alpha: isDark ? 0.04 : 0.022),
+      colors.surface,
+    );
     return GestureDetector(
       onTap: () => _onNoteTap(note),
       onLongPress: () => _showNoteActions(note),
@@ -228,7 +233,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
           Expanded(child: Container(width: 1, color: colors.outline)),
         ])),
         Expanded(child: Container(margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(8)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
               Expanded(child: Text(_formatFullDate(note.updatedAt), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)))),
@@ -276,6 +281,11 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   Widget _buildWaterfallCard(Note note) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Color.alphaBlend(
+      colors.onSurface.withValues(alpha: isDark ? 0.04 : 0.022),
+      colors.surface,
+    );
     final contentText = _getPreviewText(note);
     final images = note.images;
     final hasImage = images.isNotEmpty;
@@ -284,7 +294,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
       onTap: () => _onNoteTap(note),
       onLongPress: () => _showNoteActions(note),
       child: Container(margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(10),
+        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(8),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))]),
         clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
