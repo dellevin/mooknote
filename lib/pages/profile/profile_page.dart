@@ -41,6 +41,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   // 我的模块切换索引 (0=影视, 1=阅读, 2=游戏, 3=笔记)
   int _myModuleIndex = 0;
 
+  // Hero 背景封面路径缓存，避免每次 build 都 shuffle 换图
+  List<String> _heroCoverPaths = const [];
+
   @override
   void initState() {
     super.initState();
@@ -61,8 +64,13 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   @override
   void didPopNext() {
-    // 从其他页面返回时刷新用户数据（头像、昵称等）
+    // 从其他页面返回时刷新用户数据（头像、昵称等）+ 换一次背景图
     _loadUserData();
+    _invalidateHeroCache();
+  }
+
+  void _invalidateHeroCache() {
+    setState(() => _heroCoverPaths = const []);
   }
 
   Future<void> _loadUserData() async {
@@ -129,14 +137,18 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   Widget _buildHero(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
     final colors = Theme.of(context).colorScheme;
-    final coverPaths = [
-      ...movies
-          .where((m) => m.posterPath != null && m.posterPath!.isNotEmpty)
-          .map((m) => m.posterPath!),
-      ...books
-          .where((b) => b.coverPath != null && b.coverPath!.isNotEmpty)
-          .map((b) => b.coverPath!),
-    ]..shuffle();
+    // 仅在缓存为空时重新生成（进入页面 / 从其他页面返回），避免每次 build 都 shuffle 换图
+    if (_heroCoverPaths.isEmpty) {
+      _heroCoverPaths = [
+        ...movies
+            .where((m) => m.posterPath != null && m.posterPath!.isNotEmpty)
+            .map((m) => m.posterPath!),
+        ...books
+            .where((b) => b.coverPath != null && b.coverPath!.isNotEmpty)
+            .map((b) => b.coverPath!),
+      ]..shuffle();
+    }
+    final coverPaths = _heroCoverPaths;
 
     final hasData = coverPaths.length >= 4;
 

@@ -75,6 +75,8 @@ class AppTheme {
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleSpacing: 24,
         titleTextStyle: TextStyle(
@@ -207,6 +209,8 @@ class AppTheme {
         backgroundColor: _white,
         foregroundColor: _black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleSpacing: 24,
         titleTextStyle: TextStyle(
@@ -431,6 +435,8 @@ class AppTheme {
         backgroundColor: _black,
         foregroundColor: _white,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleSpacing: 24,
         titleTextStyle: TextStyle(

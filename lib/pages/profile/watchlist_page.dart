@@ -218,25 +218,18 @@ class _WatchlistPageState extends State<WatchlistPage> {
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 封面
             Container(
-              width: 52,
-              height: 74,
+              width: 56,
+              height: 80,
               decoration: BoxDecoration(
                 color: colors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(4),
               ),
               clipBehavior: Clip.antiAlias,
               child: item.imagePath != null && item.imagePath!.isNotEmpty
@@ -248,23 +241,12 @@ class _WatchlistPageState extends State<WatchlistPage> {
                   : Icon(Icons.image_outlined,
                       size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
             ),
-            const SizedBox(width: 10),
-            // 左侧竖色条
-            Container(
-              width: 3,
-              height: 50,
-              decoration: BoxDecoration(
-                color: _typeColor[item.type]!.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // 标题 + 类型
+            const SizedBox(width: 12),
+            // 标题 + 底部信息
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 2),
                   Text(item.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -273,7 +255,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                           fontWeight: FontWeight.w500,
                           color: colors.onSurface,
                           height: 1.3)),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Icon(_typeIcon[item.type],
@@ -284,20 +266,15 @@ class _WatchlistPageState extends State<WatchlistPage> {
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: _typeColor[item.type])),
+                      const Spacer(),
+                      Text(_formatRelative(item.createdAt),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.4))),
                     ],
                   ),
                 ],
               ),
-            ),
-            // 右侧加入时间
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(_formatRelative(item.createdAt),
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: colors.onSurface.withValues(alpha: 0.4))),
-              ],
             ),
           ],
         ),

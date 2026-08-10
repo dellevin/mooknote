@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/gallery/gallery_dao.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -119,64 +120,135 @@ class _GalleryPageState extends State<GalleryPage> {
                         ],
                       ),
                     )
-                  : Column(
-                      children: [
+                  : CustomScrollView(
+                      slivers: [
                         // 类别筛选条
                         if (_availableCategories.length > 1)
-                          SizedBox(
-                            height: 44,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              children: [
-                                _buildChip(null, '全部', colors),
-                                ..._availableCategories.map((c) => _buildChip(c, _categoryLabels[c] ?? c, colors)),
-                              ],
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 44,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                children: [
+                                  _buildChip(null, '全部', colors),
+                                  ..._availableCategories.map((c) => _buildChip(c, _categoryLabels[c] ?? c, colors)),
+                                ],
+                              ),
                             ),
                           ),
-                        // 网格
-                        Expanded(
-                          child: GridView.builder(
-                            padding: const EdgeInsets.all(4),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 4,
-                              mainAxisSpacing: 4,
-                            ),
-                            itemCount: _filteredItems.length,
+                        // 瀑布流网格
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          sliver: SliverMasonryGrid.count(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childCount: _filteredItems.length,
                             itemBuilder: (context, index) {
                               final item = _filteredItems[index];
-                              return GestureDetector(
-                                onTap: () => _openPreview(index),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: FadeInLocalImage(
-                                    path: item.path,
-                                    fit: BoxFit.cover,
-                                    errorWidget: Container(
-                                      color: colors.surfaceContainerHighest,
-                                      child: Icon(Icons.broken_image_outlined, color: colors.onSurface.withValues(alpha: 0.3)),
-                                    ),
-                                  ),
-                                ),
-                              );
+                              return _buildCard(item, index, colors);
                             },
                           ),
                         ),
                         // 底部计数
-                        SafeArea(
-                          top: false,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              '共 ${_filteredItems.length} 张图片',
-                              style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
+                        SliverToBoxAdapter(
+                          child: SafeArea(
+                            top: false,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: Text(
+                                  '共 ${_filteredItems.length} 张图片',
+                                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
     );
+  }
+
+  Widget _buildCard(GalleryItem item, int index, ColorScheme colors) {
+    final categoryLabel = _categoryLabels[item.category] ?? item.category;
+    final title = item.entityTitle.isNotEmpty ? item.entityTitle : '未命名';
+
+    return GestureDetector(
+      onTap: () => _openPreview(index),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 图片
+          AspectRatio(
+            aspectRatio: _aspectRatioFor(item.category),
+            child: FadeInLocalImage(
+              path: item.path,
+              fit: BoxFit.cover,
+              errorWidget: Container(
+                color: colors.surfaceContainerHighest,
+                child: Icon(Icons.broken_image_outlined, color: colors.onSurface.withValues(alpha: 0.3)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 类别标签
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: Text(
+              categoryLabel,
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // 标题
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+          ),
+          // 角色图片显示父作品
+          if (item.parentTitle != null && item.parentTitle!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              item.parentTitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.45)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 不同类别用不同宽高比，让瀑布流有错落感
+  double _aspectRatioFor(String category) {
+    switch (category) {
+      case 'movie_poster':
+      case 'book_cover':
+      case 'game_cover':
+        return 2 / 3; // 竖版海报/封面
+      case 'movie_posters':
+        return 2 / 3;
+      case 'person_photo':
+      case 'movie_character':
+      case 'book_character':
+      case 'game_character':
+        return 3 / 4; // 人物照
+      case 'game_screenshot':
+        return 16 / 9; // 横版截图
+      case 'note_image':
+        return 1 / 1; // 笔记图片方形
+      default:
+        return 3 / 4;
+    }
   }
 
   Widget _buildChip(String? category, String label, ColorScheme colors) {
