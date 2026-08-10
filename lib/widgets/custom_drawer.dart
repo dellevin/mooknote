@@ -263,7 +263,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
     final actions = <(IconData, String, Color, VoidCallback)>[];
     if (userPrefs.showMovieTab) actions.add((
-      Icons.add_photo_alternate_outlined, '影视', const Color(0xFF2563EB),
+      Icons.movie_outlined, '影视', const Color(0xFF2563EB),
       () { if (!widget.embedded) { Navigator.pop(context); } Navigator.push(context, MaterialPageRoute(builder: (_) => const MovieFormPage())); },
     ));
     if (userPrefs.showBookTab) actions.add((
@@ -297,13 +297,30 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 36, height: 36,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(icon, size: 18, color: color),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(icon, size: 18, color: color),
+                        ),
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            width: 14, height: 14,
+                            decoration: BoxDecoration(
+                              color: colors.surface,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.add, size: 10, color: color),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),

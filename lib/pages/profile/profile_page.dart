@@ -669,6 +669,16 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   Widget _buildWatchlist(List<Movie> movies, List<Book> books, List<Game> games) {
     final colors = Theme.of(context).colorScheme;
 
+    final movieWantTo = _userPrefs.showMovieTab
+        ? movies.where((m) => m.status == 'want_to_watch').length
+        : 0;
+    final bookWantTo = _userPrefs.showBookTab
+        ? books.where((b) => b.status == 'want_to_read').length
+        : 0;
+    final gameWantTo = _userPrefs.showGameTab
+        ? games.where((g) => g.status == 'want_to_play').length
+        : 0;
+
     final items = <_WatchlistItem>[];
     if (_userPrefs.showMovieTab) {
       for (final m in movies.where((m) => m.status == 'want_to_watch')) {
@@ -705,17 +715,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     }
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    final typeIcon = <String, IconData>{
-      'movie': Icons.movie_outlined,
-      'book': Icons.menu_book_outlined,
-      'game': Icons.sports_esports_outlined,
-    };
-    final typeColor = <String, Color>{
-      'movie': const Color(0xFF2563EB),
-      'book': const Color(0xFF16A34A),
-      'game': const Color(0xFFEA580C),
-    };
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -750,6 +749,22 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             ],
           ),
         ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(children: [
+            if (_userPrefs.showMovieTab) ...[
+              _buildStatusTag('影视', movieWantTo, true, colors),
+              const SizedBox(width: 10),
+            ],
+            if (_userPrefs.showBookTab) ...[
+              _buildStatusTag('书籍', bookWantTo, false, colors),
+              const SizedBox(width: 10),
+            ],
+            if (_userPrefs.showGameTab)
+              _buildStatusTag('游戏', gameWantTo, false, colors),
+          ]),
+        ),
         const SizedBox(height: 12),
         if (items.isEmpty)
           Padding(
@@ -778,40 +793,23 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Stack(
-                            children: [
-                              Container(
-                                width: 78,
-                                decoration: BoxDecoration(
-                                  color: colors.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: item.imagePath != null && item.imagePath!.isNotEmpty
-                                    ? FadeInLocalImage(
-                                        path: item.imagePath,
-                                        fit: BoxFit.cover,
-                                        errorWidget: Icon(Icons.image_outlined,
-                                            size: 20,
-                                            color: colors.onSurface.withValues(alpha: 0.2)))
-                                    : Icon(Icons.image_outlined,
+                          child: Container(
+                            width: 78,
+                            decoration: BoxDecoration(
+                              color: colors.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: item.imagePath != null && item.imagePath!.isNotEmpty
+                                ? FadeInLocalImage(
+                                    path: item.imagePath,
+                                    fit: BoxFit.cover,
+                                    errorWidget: Icon(Icons.image_outlined,
                                         size: 20,
-                                        color: colors.onSurface.withValues(alpha: 0.2)),
-                              ),
-                              Positioned(
-                                top: 4,
-                                left: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: typeColor[item.type]!,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Icon(typeIcon[item.type],
-                                      size: 10, color: Colors.white),
-                                ),
-                              ),
-                            ],
+                                        color: colors.onSurface.withValues(alpha: 0.2)))
+                                : Icon(Icons.image_outlined,
+                                    size: 20,
+                                    color: colors.onSurface.withValues(alpha: 0.2)),
                           ),
                         ),
                         const SizedBox(height: 4),

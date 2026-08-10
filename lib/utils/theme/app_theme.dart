@@ -42,9 +42,10 @@ class AppTheme {
     Color(0xFFFF8F00), // 琥珀
     Color(0xFFE91E63), // 玫瑰
     Color(0xFF673AB7), // 紫罗兰
+    Color(0xFF8B6F47), // 米黄
   ];
 
-  static const List<String> colorSchemeNames = ['经典', '靛蓝', '薄荷', '琥珀', '玫瑰', '紫罗兰'];
+  static const List<String> colorSchemeNames = ['经典', '靛蓝', '薄荷', '琥珀', '玫瑰', '紫罗兰', '米黄'];
 
   // 莫奈动态取色
   static Color? _monetColor;
