@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'game_review_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 游戏评价详情页
 class GameReviewDetailPage extends StatefulWidget {
@@ -41,7 +42,7 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
 
   Future<void> _deleteReview() async {
     final colors = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

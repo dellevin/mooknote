@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_overlay.dart';
 
 class TagManagementPage extends StatefulWidget {
   const TagManagementPage({super.key});
@@ -561,7 +562,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final name = tag['name'] as String;
     final isHidden = (tag['is_hidden'] as int?) == 1;
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -680,7 +681,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
       }
     }
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -762,7 +763,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         .where((t) => (t['id'] as String) != tagId && !descendants.contains(t['id'] as String))
         .toList();
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -857,7 +858,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final controller = TextEditingController();
     final type = _currentType;
 
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -927,7 +928,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final type = tag['type'] as String;
     final oldName = tag['name'] as String;
 
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -995,7 +996,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         .map((t) => t['name'] as String)
         .toList();
 
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {

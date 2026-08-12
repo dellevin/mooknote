@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../pages/character/character_form_page.dart';
 import 'fade_in_local_image.dart';
+import '../widgets/app_overlay.dart';
 
 /// 角色信息底部弹窗
 ///
@@ -26,7 +27,7 @@ class CharacterInfoSheet extends StatefulWidget {
     required String entityId,
     required dynamic character,
   }) {
-    return showModalBottomSheet<bool>(
+    return appModalBottomSheet<bool>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       isScrollControlled: true,

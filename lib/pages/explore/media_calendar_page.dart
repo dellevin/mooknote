@@ -8,6 +8,7 @@ import '../movies/movie_detail_page.dart';
 import '../movies/movie_form_page.dart';
 import '../book/book_detail_page.dart';
 import '../book/book_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 书影日历 - 按月展示影视/书籍添加记录
 class MediaCalendarPage extends StatefulWidget {
@@ -457,7 +458,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
   void _showAddMenu(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),

@@ -54,7 +54,7 @@ class UserPrefs {
   
   // ========== 应用设置 ==========
   
-  /// 主题模式: 0=跟随系统, 1=浅色, 2=深色
+  /// 主题模式: 0=跟随系统, 1=浅色, 2=深色, 3=毛玻璃
   int get themeMode => prefs.getInt('themeMode') ?? 0;
   Future<bool> setThemeMode(int value) => prefs.setInt('themeMode', value);
 

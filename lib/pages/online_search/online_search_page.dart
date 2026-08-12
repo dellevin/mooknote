@@ -6,6 +6,7 @@ import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import 'movie_detail_page.dart';
 import 'book_detail_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 在线搜索影视/书籍（带 Scaffold + AppBar）
 class OnlineSearchPage extends StatelessWidget {
@@ -143,7 +144,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
 
   void _showUnlockDialog() {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -499,7 +500,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   }
 
   void _showTokenExpiredDialog() {
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         final c = Theme.of(ctx).colorScheme;
@@ -982,7 +983,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
             const Spacer(),
             GestureDetector(
               onTap: () {
-                showDialog(
+                appDialog(
                   context: context,
                   builder: (ctx) {
                     final c = Theme.of(ctx).colorScheme;
@@ -1057,7 +1058,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                       _doSearch();
                     },
                     onLongPress: () {
-                      showDialog(
+                      appDialog(
                         context: context,
                         builder: (ctx) {
                           final c = Theme.of(ctx).colorScheme;

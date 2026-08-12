@@ -12,6 +12,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 书籍详情页 - 在线版
 class BookDetailPage extends StatefulWidget {
@@ -227,7 +228,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   void _showAddSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(

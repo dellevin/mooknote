@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import 'fade_in_local_image.dart';
+import '../widgets/app_overlay.dart';
 
 /// 人物详情页使用的作品关联结果（按媒体类型分组）
 class WorkSelectionResult {
@@ -382,7 +383,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     final title = isVoiceActor ? '配音角色' : '饰演角色';
     final hint = isVoiceActor ? '如：米老鼠' : '如：关羽';
     final ctrl = TextEditingController(text: current ?? '');
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;

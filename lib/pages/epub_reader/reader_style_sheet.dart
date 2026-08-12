@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/epub/epub_theme.dart';
 import 'widgets/integer_stepper.dart';
 import 'widgets/reader_scale_slider.dart';
+import '../../widgets/app_overlay.dart';
 
 /// Simplified reader style configuration bottom sheet.
 ///
@@ -382,7 +383,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
     Color bgColor = Color(_customBgColor);
     Color textColor = Color(_customTextColor);
 
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(

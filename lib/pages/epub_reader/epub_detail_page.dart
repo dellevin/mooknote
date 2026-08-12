@@ -17,6 +17,7 @@ import 'epub_edit_page.dart';
 import 'epub_highlights_page.dart';
 import 'highlight_detail_sheet.dart';
 import 'reader_screen.dart';
+import '../../widgets/app_overlay.dart';
 
 /// EPUB 书籍详情页
 class EpubDetailPage extends StatefulWidget {
@@ -730,7 +731,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
   /// 删除摘抄（同步删除蓝色高亮）
   Future<void> _deleteExcerpt(BookExcerpt excerpt, ColorScheme colors) async {
-    final confirmed = showDialog<bool>(
+    final confirmed = appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除摘抄', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -774,7 +775,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   }
 
   Future<void> _deleteHighlight(int id, ColorScheme colors) async {
-    final confirmed = showDialog<bool>(
+    final confirmed = appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除句读', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -873,7 +874,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
   }
 
   void _showLinkedBookActions(ColorScheme colors, String title) {
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -914,7 +915,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
             title: Text('取消关联', style: TextStyle(fontSize: 13, color: colors.error)),
             onTap: () {
               Navigator.pop(ctx);
-              showDialog(
+              appDialog(
                 context: context,
                 builder: (confirmCtx) => AlertDialog(
                   title: const Text('取消关联', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),

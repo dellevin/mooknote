@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_overlay.dart';
 
 class FeatureSettingsPage extends StatefulWidget {
   const FeatureSettingsPage({super.key});
@@ -442,7 +443,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   void _showDefaultTabPicker() {
     final colors = Theme.of(context).colorScheme;
     final enabled = _enabledTabs;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(

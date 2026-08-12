@@ -12,6 +12,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import 'poster_gallery_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 影视海报墙页面
 class MoviePostersPage extends StatefulWidget {
@@ -184,7 +185,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
 
   Future<void> _pickPoster() async {
     // 显示选择对话框
-    final result = await showModalBottomSheet<int>(
+    final result = await appModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
@@ -311,7 +312,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   Future<void> _pickFromUrl() async {
     final urlController = TextEditingController();
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;
@@ -504,7 +505,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   }
 
   void _showDeleteDialog(MoviePoster poster) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;

@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/data_models.dart';
@@ -80,6 +81,10 @@ class AppProvider extends ChangeNotifier {
 
   // 主题模式
   ThemeMode _themeMode = ThemeMode.system;
+
+  // 毛玻璃主题（themeMode=3）：标志 + 随机封面
+  bool _frostedActive = false;
+  String? _frostedCoverPath;
 
   // 配色方案索引
   int _colorSchemeIndex = 0;
@@ -250,12 +255,14 @@ class AppProvider extends ChangeNotifier {
   // 加载影视数据
   Future<void> loadMovies() async {
     _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().movieSortMode);
+    if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
   // 加载书籍数据
   Future<void> loadBooks() async {
     _books = await _bookDao.getAllBooks(sortMode: UserPrefs().bookSortMode);
+    if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
@@ -268,6 +275,7 @@ class AppProvider extends ChangeNotifier {
   // 加载游戏数据
   Future<void> loadGames() async {
     _games = await _gameDao.getAllGames(sortMode: UserPrefs().gameSortMode);
+    if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
@@ -336,6 +344,10 @@ class AppProvider extends ChangeNotifier {
   bool get bottomNavVisible => _bottomNavVisible;
   ThemeMode get themeMode => _themeMode;
   int get colorSchemeIndex => _colorSchemeIndex;
+
+  // 毛玻璃状态
+  bool get frostedActive => _frostedActive;
+  String? get frostedCoverPath => _frostedCoverPath;
   String get fontFamily => _fontFamily;
   List<Movie> get movies => UnmodifiableListView(_movies);
   List<Book> get books => UnmodifiableListView(_books);
@@ -443,11 +455,33 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setThemeMode(ThemeMode mode) {
-    if (_themeMode != mode) {
+    final wasFrosted = _frostedActive;
+    _frostedActive = false;
+    UserPrefs().setThemeMode(mode.index); // 0=system, 1=light, 2=dark, 3=frosted
+    if (_themeMode != mode || wasFrosted) {
       _themeMode = mode;
-      UserPrefs().setThemeMode(mode.index); // 0=system, 1=light, 2=dark
       notifyListeners();
     }
+  }
+
+  /// 启用毛玻璃主题（themeMode=3），随机取一张封面作为背景
+  void enableFrosted() {
+    _frostedActive = true;
+    _themeMode = ThemeMode.dark;
+    UserPrefs().setThemeMode(3);
+    refreshFrostedCover();
+  }
+
+  /// 从影视/书籍/游戏封面中随机取一张作为毛玻璃背景
+  void refreshFrostedCover() {
+    if (!_frostedActive) return;
+    final paths = <String>[
+      ..._movies.where((m) => m.posterPath != null && m.posterPath!.isNotEmpty).map((m) => m.posterPath!),
+      ..._books.where((b) => b.coverPath != null && b.coverPath!.isNotEmpty).map((b) => b.coverPath!),
+      ..._games.where((g) => g.coverPath != null && g.coverPath!.isNotEmpty).map((g) => g.coverPath!),
+    ];
+    _frostedCoverPath = paths.isEmpty ? null : paths[Random().nextInt(paths.length)];
+    notifyListeners();
   }
 
   void loadThemeMode() {
@@ -457,10 +491,13 @@ class AppProvider extends ChangeNotifier {
         _themeMode = ThemeMode.light;
       case 2:
         _themeMode = ThemeMode.dark;
+      case 3:
+        _frostedActive = true;
+        _themeMode = ThemeMode.dark;
       default:
         _themeMode = ThemeMode.system;
     }
-    _colorSchemeIndex = prefs.colorSchemeIndex;
+    _colorSchemeIndex = prefs.colorSchemeIndex.clamp(-1, AppTheme.seedColors.length - 1);
     _fontFamily = prefs.fontFamily;
     AppTheme.setFontFamily(_fontFamily);
     // 异步预加载已缓存的字体（不阻塞 UI）

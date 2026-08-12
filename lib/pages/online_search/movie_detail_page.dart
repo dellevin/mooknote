@@ -15,6 +15,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 影视详情页 - 在线版
 class MovieDetailPage extends StatefulWidget {
@@ -318,7 +319,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   Future<void> _showRateSheet() async {
     final colors = Theme.of(context).colorScheme;
     final rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-    final selected = await showModalBottomSheet<double>(
+    final selected = await appModalBottomSheet<double>(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -547,7 +548,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
 
   void _showAddSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(

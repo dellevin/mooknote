@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../services/sync/backup_service.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 本地备份页面
 class BackupPage extends StatefulWidget {
@@ -500,7 +501,7 @@ class _BackupPageState extends State<BackupPage> {
     required String content,
     String? detail,
   }) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -600,7 +601,7 @@ class _BackupPageState extends State<BackupPage> {
   /// 导入数据
   Future<void> _importData() async {
     // 显示确认对话框
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;

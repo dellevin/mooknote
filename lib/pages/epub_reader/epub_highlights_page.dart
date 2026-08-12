@@ -6,6 +6,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import 'highlight_detail_sheet.dart';
 import 'reader_screen.dart';
+import '../../widgets/app_overlay.dart';
 
 /// EPUB 句读（高亮）管理页面 —— 支持瀑布流/列表模式切换
 class EpubHighlightsPage extends StatefulWidget {
@@ -317,7 +318,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
   }
 
   void _showDeleteConfirm(int id, ColorScheme colors) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

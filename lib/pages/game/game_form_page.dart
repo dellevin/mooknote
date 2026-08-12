@@ -14,6 +14,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/text_input_panel.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -833,7 +834,7 @@ class _GameFormPageState extends State<GameFormPage> {
   /// 显示封面选择选项
   void _showCoverOptions() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -904,7 +905,7 @@ class _GameFormPageState extends State<GameFormPage> {
   /// 从网络链接选择封面
   Future<void> _pickCoverFromUrl() async {
     final urlController = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -1001,7 +1002,7 @@ class _GameFormPageState extends State<GameFormPage> {
   /// 编辑游戏名称（弹窗）
   Future<void> _editTitle() async {
     final controller = TextEditingController(text: _titleController.text);
-    final result = await showDialog<String>(
+    final result = await appDialog<String>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -1049,7 +1050,7 @@ class _GameFormPageState extends State<GameFormPage> {
 
   Future<void> _editPlayCount() async {
     final controller = TextEditingController(text: _playCount > 0 ? '$_playCount' : '');
-    final result = await showDialog<String>(
+    final result = await appDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('游玩次数'),
@@ -1076,7 +1077,7 @@ class _GameFormPageState extends State<GameFormPage> {
     final hoursController = TextEditingController(text: _playTimeHoursController.text);
     final minutesController = TextEditingController(text: _playTimeMinutesController.text);
 
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -1185,7 +1186,7 @@ class _GameFormPageState extends State<GameFormPage> {
   Future<bool> _confirmLeave() async {
     if (!_hasContent()) return true;
     final colors = Theme.of(context).colorScheme;
-    final result = await showDialog<bool>(
+    final result = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

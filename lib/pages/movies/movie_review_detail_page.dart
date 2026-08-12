@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'movie_review_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 影评详情页
 class MovieReviewDetailPage extends StatefulWidget {
@@ -45,7 +46,7 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
 
   Future<void> _deleteReview() async {
     final colors = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

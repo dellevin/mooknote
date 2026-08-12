@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'character_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 影视角色列表页
 class MovieCharactersPage extends StatefulWidget {
@@ -358,7 +359,7 @@ class _CharacterTile extends StatelessWidget {
 
   void _showDeleteDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

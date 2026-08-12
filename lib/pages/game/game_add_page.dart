@@ -13,6 +13,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/app_overlay.dart';
 
 class GameAddPage extends StatefulWidget {
   final VoidCallback? onCancel;
@@ -307,7 +308,7 @@ class _GameAddPageState extends State<GameAddPage> {
 
   void _showCoverOptions() {
     final c = Theme.of(context).colorScheme;
-    showModalBottomSheet(context: context, backgroundColor: c.surface,
+    appModalBottomSheet(context: context, backgroundColor: c.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -337,7 +338,7 @@ class _GameAddPageState extends State<GameAddPage> {
 
   Future<void> _pickCoverFromUrl() async {
     final ctrl = TextEditingController();
-    final ok = await showDialog<bool>(context: context, builder: (ctx) {
+    final ok = await appDialog<bool>(context: context, builder: (ctx) {
       final c = Theme.of(ctx).colorScheme;
       return AlertDialog(backgroundColor: c.surface, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)),

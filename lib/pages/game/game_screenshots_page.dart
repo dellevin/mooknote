@@ -12,6 +12,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import 'screenshot_gallery_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 游戏截图页面
 class GameScreenshotsPage extends StatefulWidget {
@@ -147,7 +148,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
   }
 
   Future<void> _pickScreenshot() async {
-    final result = await showModalBottomSheet<int>(
+    final result = await appModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -247,7 +248,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
 
   Future<void> _pickFromUrl() async {
     final urlController = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;
@@ -332,7 +333,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
   }
 
   void _showDeleteDialog(GameScreenshot screenshot) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;

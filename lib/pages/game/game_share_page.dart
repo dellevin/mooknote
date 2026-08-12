@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_overlay.dart';
 
 class GameSharePage extends StatefulWidget {
   final Game game;
@@ -61,7 +62,7 @@ class _GameSharePageState extends State<GameSharePage> {
     final colors = Theme.of(context).colorScheme;
     const icons = [Icons.image_outlined, Icons.sports_esports_outlined];
     const subtitles = ['简约海报风格', '游戏信息卡风格'];
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),

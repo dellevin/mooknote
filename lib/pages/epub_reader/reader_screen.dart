@@ -23,6 +23,7 @@ import 'footnote_popup.dart';
 import 'search_sheet.dart';
 import 'epub_selection_toolbar.dart';
 import 'selection_handles.dart';
+import '../../widgets/app_overlay.dart';
 
 part 'mixins/spine_navigation_mixin.dart';
 part 'mixins/page_navigation_mixin.dart';
@@ -439,7 +440,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   void _openSearch() {
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

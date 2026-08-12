@@ -14,6 +14,7 @@ import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'game_detail_page.dart';
 import 'game_add_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 状态索引 → 状态值
 const _gameStatusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
@@ -519,7 +520,7 @@ class _GameTabViewState extends State<_GameTabView>
 
   void _showDeleteDialog(BuildContext context, Game game) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

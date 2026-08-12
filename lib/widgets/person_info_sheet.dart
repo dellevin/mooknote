@@ -5,6 +5,7 @@ import '../pages/people/person_detail_page.dart';
 import '../providers/app_provider.dart';
 import 'fade_in_local_image.dart';
 import 'person_avatar.dart';
+import '../widgets/app_overlay.dart';
 
 /// 人物信息浮动面板（底部 ModalBottomSheet）
 /// 展示人物基本信息 + 关联作品，点击「查看全部」跳转到原详情页
@@ -14,7 +15,7 @@ class PersonInfoSheet extends StatefulWidget {
   const PersonInfoSheet({super.key, required this.person});
 
   static Future<void> show(BuildContext context, Person person) {
-    return showModalBottomSheet(
+    return appModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       isScrollControlled: true,

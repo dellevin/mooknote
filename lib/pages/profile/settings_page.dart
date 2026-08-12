@@ -20,6 +20,7 @@ import 'feature_settings_page.dart';
 import 'layout_settings_page.dart';
 import 'changelog_page.dart';
 import 'font_picker_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 设置页面
 class SettingsPage extends StatefulWidget {
@@ -263,7 +264,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     final nicknameController = TextEditingController(text: _userPrefs.nickname);
     final mottoController = TextEditingController(text: _userPrefs.motto);
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -351,11 +352,12 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  static const _themeModeLabels = ['跟随系统', '浅色模式', '深色模式'];
+  static const _themeModeLabels = ['跟随系统', '浅色模式', '深色模式', '毛玻璃'];
   static const _themeModeIcons = [
     Icons.brightness_auto,
     Icons.light_mode,
-    Icons.dark_mode
+    Icons.dark_mode,
+    Icons.blur_on
   ];
 
   Widget _buildThemeModeSelector() {
@@ -401,7 +403,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showThemeModePicker() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
@@ -464,6 +466,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _setThemeMode(int mode) async {
     await _userPrefs.setThemeMode(mode);
+    if (mode == 3) {
+      if (mounted) {
+        context.read<AppProvider>().enableFrosted();
+        setState(() => _themeMode = mode);
+      }
+      return;
+    }
     final themeMode = switch (mode) {
       1 => ThemeMode.light,
       2 => ThemeMode.dark,
@@ -527,7 +536,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showColorSchemePicker() {
     final colors = Theme.of(context).colorScheme;
     final provider = context.read<AppProvider>();
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
@@ -904,7 +913,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showStoragePermissionDialog() {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -945,7 +954,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showClearCacheDialog(BuildContext pageContext) async {
     final colors = Theme.of(context).colorScheme;
     // 先扫描分析
-    showDialog(
+    appDialog(
       context: pageContext,
       barrierDismissible: false,
       builder: (_) => Center(child: CircularProgressIndicator(color: colors.primary)),
@@ -968,7 +977,7 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    showDialog(
+    appDialog(
       context: pageContext,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: colors.surface,
@@ -1038,7 +1047,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _clearCacheData(BuildContext context) async {
     try {
-      showDialog(
+      appDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => const Center(child: CircularProgressIndicator()));
@@ -1058,7 +1067,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showCacheResult(
       BuildContext context, bool success, String message, bool cleaned) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: Icon(

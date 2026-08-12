@@ -15,6 +15,7 @@ import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'movie_detail_page.dart';
 import 'movie_add_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 状态索引 → 状态值
 const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
@@ -530,7 +531,7 @@ class _MovieTabViewState extends State<_MovieTabView>
 
   void _showDeleteDialog(BuildContext context, Movie movie) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

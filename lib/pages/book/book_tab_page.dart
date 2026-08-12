@@ -14,6 +14,7 @@ import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'book_detail_page.dart';
 import 'book_add_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 状态索引 → 状态值
 const _bookStatusMap = {0: 'read', 1: 'reading', 2: 'want_to_read', 3: 'abandoned'};
@@ -412,7 +413,7 @@ class _BookTabViewState extends State<_BookTabView>
 
   void _showDeleteDialog(BuildContext context, Book book) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

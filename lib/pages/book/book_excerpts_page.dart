@@ -7,6 +7,7 @@ import '../../utils/toast_util.dart';
 import '../../data/epub/reader_dao.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'book_excerpt_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 书籍摘抄列表页面
 class BookExcerptsPage extends StatefulWidget {
@@ -363,7 +364,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
 
   Future<bool?> _showDeleteDialog(BookExcerpt excerpt) {
     final colors = Theme.of(context).colorScheme;
-    return showDialog<bool>(
+    return appDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -407,7 +408,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
 
   void _showDeleteAllDialog() {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -449,7 +450,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
 
   void _showImportSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -532,7 +533,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
   void _showWechatReadImport() {
     final colors = Theme.of(context).colorScheme;
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,

@@ -10,6 +10,7 @@ import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
 import 'person_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 人物档案详情页
 class PersonDetailPage extends StatefulWidget {
@@ -464,7 +465,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
 
   void _showDeleteDialog(Person person) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface,

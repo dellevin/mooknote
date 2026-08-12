@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -10,9 +11,6 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
@@ -21,53 +19,77 @@ class CustomBottomNavBar extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                height: 56,
-                margin: const EdgeInsets.symmetric(horizontal: 40),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                      spreadRadius: -2,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildNavItem(
-                      colors: colors,
-                      icon: Icons.home_outlined,
-                      activeIcon: Icons.home,
-                      isActive: provider.bottomNavIndex == 0,
-                      onTap: () => provider.setBottomNavIndex(0),
-                    ),
-                    _buildAddButton(context, provider),
-                    _buildNavItem(
-                      colors: colors,
-                      icon: Icons.person_outline,
-                      activeIcon: Icons.person,
-                      isActive: provider.bottomNavIndex == 2,
-                      onTap: () => provider.setBottomNavIndex(2),
-                    ),
-                  ],
-                ),
-              ),
+              _buildDock(context, provider: provider),
               SizedBox(height: bottomPadding + 8),
             ],
           ),
         );
       },
+    );
+  }
+
+  /// Dock 悬浮导航条；毛玻璃模式下加真实模糊，保证可读
+  Widget _buildDock(BuildContext context, {required AppProvider provider}) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFrosted = provider.frostedActive;
+
+    final dock = Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildNavItem(
+            colors: colors,
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home,
+            isActive: provider.bottomNavIndex == 0,
+            onTap: () => provider.setBottomNavIndex(0),
+          ),
+          _buildAddButton(context, provider),
+          _buildNavItem(
+            colors: colors,
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
+            isActive: provider.bottomNavIndex == 2,
+            onTap: () => provider.setBottomNavIndex(2),
+          ),
+        ],
+      ),
+    );
+
+    // 毛玻璃模式下：裁剪 + 模糊区域与胶囊同宽（外围留白），避免整行全宽模糊
+    Widget result = dock;
+    if (isFrosted) {
+      result = ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          child: dock,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: result,
     );
   }
 

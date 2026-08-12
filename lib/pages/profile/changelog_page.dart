@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/changelog_service.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 更新日志页面
 class ChangelogPage extends StatefulWidget {
@@ -55,7 +56,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
 
   void _showNoUpdateDialog(String localVersion) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -77,7 +78,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
 
   void _showUpdateDialog({required String version, String? localVersion}) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../utils/toast_util.dart';
 import '../../services/sync/webdav_service.dart';
 import '../../providers/app_provider.dart';
+import '../../widgets/app_overlay.dart';
 
 /// WebDAV 备份页面
 class WebDAVSyncPage extends StatefulWidget {
@@ -183,7 +184,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   }
 
   void _showResultDialog(String title, String content) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -231,7 +232,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   }
 
   Future<void> _showUploadConfirm() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -269,7 +270,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   }
 
   Future<void> _showDownloadConfirm() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -307,7 +308,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   }
 
   Future<void> _clearConfig() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;

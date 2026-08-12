@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
+import '../widgets/app_overlay.dart';
 
 /// 笔记列表项组件 - 卡片式设计，内容展示在卡片内
 class NoteListItem extends StatelessWidget {
@@ -189,7 +190,7 @@ class _NoteListItemContent extends StatelessWidget {
 
   void _showActions(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -272,7 +273,7 @@ class _NoteListItemContent extends StatelessWidget {
 
   void _showDeleteConfirm(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

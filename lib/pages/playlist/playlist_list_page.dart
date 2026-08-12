@@ -6,6 +6,7 @@ import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'playlist_create_page.dart';
 import 'playlist_detail_page.dart';
+import '../../widgets/app_overlay.dart';
 
 class PlaylistListPage extends StatefulWidget {
   const PlaylistListPage({super.key});
@@ -561,7 +562,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   void _showActionSheet(BuildContext context, Playlist playlist, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -642,7 +643,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   Future<bool?> _showDeleteDialog(BuildContext context, Playlist playlist, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
-    return showDialog<bool>(
+    return appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

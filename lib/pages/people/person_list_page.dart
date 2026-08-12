@@ -8,6 +8,7 @@ import '../../utils/toast_util.dart';
 import '../../widgets/person_avatar.dart';
 import 'person_detail_page.dart';
 import 'person_form_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 人物列表页
 class PersonListPage extends StatefulWidget {
@@ -526,7 +527,7 @@ class _PersonListPageState extends State<PersonListPage> {
   Future<void> _refreshRelations() async {
     final provider = context.read<AppProvider>();
     // 显示加载弹窗
-    showDialog(
+    appDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => PopScope(

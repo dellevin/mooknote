@@ -21,6 +21,7 @@ import '../explore/stroll_page.dart';
 import '../sync/cloud_sync_page.dart';
 import 'settings_page.dart';
 import 'watchlist_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 个人中心页面
 class ProfilePage extends StatefulWidget {
@@ -1053,7 +1054,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   void _showFeedbackDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final email = 'dellevin99@gmail.com';
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -1210,7 +1211,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   Future<void> _pickAvatar() async {
     final colors = Theme.of(context).colorScheme;
-    await showModalBottomSheet(
+    await appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -1312,7 +1313,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   void _showBackupOptions(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -1414,7 +1415,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     }
     options.add(('笔记', Icons.sticky_note_2_outlined, provider.notes.where((n) => !n.isDeleted).length));
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
@@ -1515,7 +1516,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   void _showExportResult(BuildContext context, bool success, String message) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: Icon(

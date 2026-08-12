@@ -25,6 +25,7 @@ import '../character/character_list_page.dart';
 import '../../data/epub/reader_dao.dart';
 import '../epub_reader/epub_highlights_page.dart';
 import '../epub_reader/reader_screen.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 书籍详情页 - 极简主义设计
 class BookDetailPage extends StatefulWidget {
@@ -627,7 +628,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   void _showEditCoverOptions() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(context: context, backgroundColor: colors.surface,
+    appModalBottomSheet(context: context, backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -661,7 +662,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Future<void> _pickEditCoverFromUrl() async {
     final urlCtrl = TextEditingController();
-    final confirmed = await showDialog<bool>(context: context, builder: (ctx) {
+    final confirmed = await appDialog<bool>(context: context, builder: (ctx) {
       final colors = Theme.of(ctx).colorScheme;
       return AlertDialog(backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1312,7 +1313,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     const names = ['默认样式', '毛玻璃层叠'];
     const icons = [Icons.article_outlined, Icons.blur_on_outlined];
     const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片'];
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -2173,7 +2174,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   void _showDeleteDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface,

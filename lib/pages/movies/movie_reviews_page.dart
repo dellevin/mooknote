@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'movie_review_form_page.dart';
 import 'movie_review_detail_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 影视影评列表页面
 class MovieReviewsPage extends StatefulWidget {
@@ -286,7 +287,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
   }
 
   void _showDeleteDialog(MovieReview review) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;

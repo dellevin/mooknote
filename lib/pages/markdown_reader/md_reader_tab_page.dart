@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import '../../utils/user_prefs.dart';
 import 'md_viewer_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// Markdown 阅读器 - 文件浏览器
 class MdReaderTabPage extends StatefulWidget {
@@ -88,7 +89,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
   }
 
   void _showPermissionDeniedDialog() {
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -276,7 +277,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
   }
 
   void _showSettingsSheet() {
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(

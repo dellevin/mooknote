@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -27,6 +28,7 @@ import '../pages/profile/settings_page.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
 import 'shimmer_skeleton.dart';
+import '../widgets/app_overlay.dart';
 
 /// 自定义侧边栏
 class CustomDrawer extends StatefulWidget {
@@ -194,6 +196,18 @@ class _CustomDrawerState extends State<CustomDrawer> {
     );
 
     if (widget.embedded) return content;
+    final isFrosted = context.read<AppProvider>().frostedActive;
+    if (isFrosted) {
+      return Drawer(
+        backgroundColor: Colors.transparent,
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+            child: Container(color: colors.surfaceContainerHigh, child: content),
+          ),
+        ),
+      );
+    }
     return Drawer(
       backgroundColor: colors.surfaceContainerHigh,
       child: content,
@@ -689,7 +703,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final dayNotes = notes.where((n) => !n.isDeleted && DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day) == date).toList();
     final dayGames = games.where((g) => !g.isDeleted && DateTime(g.createdAt.year, g.createdAt.month, g.createdAt.day) == date).toList();
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),

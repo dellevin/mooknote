@@ -15,6 +15,7 @@ import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/text_input_panel.dart';
 import '../../widgets/alternate_titles_dialog.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -394,7 +395,7 @@ class _BookFormPageState extends State<BookFormPage> {
 
   Future<void> _pickCover() async {
     final colors = Theme.of(context).colorScheme;
-    await showModalBottomSheet(
+    await appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -447,7 +448,7 @@ class _BookFormPageState extends State<BookFormPage> {
 
   Future<void> _pickCoverFromUrl() async {
     final urlController = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final c = Theme.of(ctx).colorScheme;
@@ -567,7 +568,7 @@ class _BookFormPageState extends State<BookFormPage> {
   /// 编辑书名（弹窗）
   Future<void> _editTitle() async {
     final controller = TextEditingController(text: _titleController.text);
-    final result = await showDialog<String>(
+    final result = await appDialog<String>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -615,7 +616,7 @@ class _BookFormPageState extends State<BookFormPage> {
 
   /// 编辑别名（弹窗 + 标签式输入）
   Future<void> _editAlternateTitles() async {
-    final result = await showDialog<List<String>>(
+    final result = await appDialog<List<String>>(
       context: context,
       builder: (ctx) => AlternateTitlesDialog(initial: _alternateTitles),
     );
@@ -643,7 +644,7 @@ class _BookFormPageState extends State<BookFormPage> {
 
   Future<void> _editReadCount() async {
     final controller = TextEditingController(text: _readCount > 0 ? '$_readCount' : '');
-    final result = await showDialog<String>(
+    final result = await appDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('阅读次数'),
@@ -689,7 +690,7 @@ class _BookFormPageState extends State<BookFormPage> {
   Future<bool> _confirmLeave() async {
     if (!_hasContent()) return true;
     final colors = Theme.of(context).colorScheme;
-    final result = await showDialog<bool>(
+    final result = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'game_review_form_page.dart';
 import 'game_review_detail_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 游戏评价列表页面
 class GameReviewsPage extends StatefulWidget {
@@ -224,7 +225,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
   }
 
   void _showDeleteDialog(GameReview review) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;

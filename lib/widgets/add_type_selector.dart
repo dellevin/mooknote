@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../utils/user_prefs.dart';
+import '../widgets/app_overlay.dart';
 
 /// 添加类型选择弹窗
 Future<void> showAddTypeDialog(BuildContext context) async {
-  final result = await showDialog<int>(
+  final result = await appDialog<int>(
     context: context,
     builder: (ctx) => const _AddTypeDialog(),
   );
@@ -15,7 +16,7 @@ Future<void> showAddTypeDialog(BuildContext context) async {
 
 /// 返回选中的类型索引 (0=影视, 1=阅读, 2=笔记, 3=游戏)，取消返回 null
 Future<int?> showAddTypeSelector(BuildContext context) {
-  return showDialog<int>(
+  return appDialog<int>(
     context: context,
     builder: (ctx) => const _AddTypeDialog(),
   );

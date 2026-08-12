@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 import 'book_review_detail_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 书籍书评列表页面
 class BookReviewsPage extends StatefulWidget {
@@ -286,7 +287,7 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
   }
 
   void _showDeleteDialog(BookReview review) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../widgets/app_overlay.dart';
 
 /// 图片保存工具 —— 将图片复制/写入到 /sdcard/Pictures/mooknote/
 class ImageSaver {
@@ -82,7 +83,7 @@ class ImageSaver {
     required Future<void> Function() onConfirm,
   }) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(

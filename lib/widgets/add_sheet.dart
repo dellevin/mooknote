@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../widgets/app_overlay.dart';
 
 /// 新增记录弹窗 — 供底部导航栏和 NavigationRail 共用
 
@@ -98,7 +99,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
   }
 
   if (Platform.isWindows) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) {
         final bc = Theme.of(ctx).colorScheme;
@@ -121,7 +122,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
       },
     );
   } else {
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(

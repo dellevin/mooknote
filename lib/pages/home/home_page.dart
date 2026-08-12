@@ -26,6 +26,7 @@ import 'main_content_page.dart';
 import '../online_search/search_page.dart';
 import '../online_search/online_search_page.dart';
 import '../profile/profile_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 主页 - 包含底部导航，可切换主页/我的
 class HomePage extends StatefulWidget {
@@ -451,7 +452,7 @@ class _DesktopIconRail extends StatelessWidget {
   void _showSearchDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final dialogHeight = (MediaQuery.of(context).size.height * 0.82).clamp(560.0, 820.0);
-    showDialog(
+    appDialog(
       context: context,
       builder: (dialogCtx) => Dialog(
         backgroundColor: colors.surface,
@@ -473,7 +474,7 @@ class _DesktopIconRail extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final email = 'dellevin99@gmail.com';
     final qqGroup = '1087203310';
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -536,40 +537,40 @@ class _DesktopIconRail extends StatelessWidget {
     );
   }
   void _showBackupDialog(BuildContext context) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (_) => const _BackupChoiceDialog(),
     );
   }
 
   void _showEncounterDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => const _EncounterDialog());
+    appDialog(context: context, builder: (_) => const _EncounterDialog());
   }
 
   void _showStrollDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => const _StrollDialog());
+    appDialog(context: context, builder: (_) => const _StrollDialog());
   }
 
   void _showCalendarDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => const _CalendarDialog());
+    appDialog(context: context, builder: (_) => const _CalendarDialog());
   }
 
   void _showPersonDialog(BuildContext context) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (_) => const _PersonListDialog(),
     );
   }
 
   void _showTagDialog(BuildContext context) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (_) => const _TagManagementDialog(),
     );
   }
 
   void _showRecycleBinDialog(BuildContext context) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (_) => const _RecycleBinDialog(),
     );
@@ -1165,7 +1166,7 @@ class _StrollDialogState extends State<_StrollDialog> {
 
   void _showDeleteConfirm(_StrollItem item) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(context: context, builder: (ctx) => AlertDialog(
+    appDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: colors.surface, elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
@@ -2058,7 +2059,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     final name = tag['name'] as String;
     final isHidden = (tag['is_hidden'] as int?) == 1;
 
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -2127,7 +2128,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     } else {
       for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) items.add((title: n.title.isNotEmpty ? n.title : '随手记', subtitle: null, type: '笔记'));
     }
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -2161,7 +2162,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     final colors = Theme.of(context).colorScheme;
     final controller = TextEditingController();
     final type = _currentType;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -2208,7 +2209,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     final tagId = tag['id'] as String;
     final type = tag['type'] as String;
     final oldName = tag['name'] as String;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -2250,7 +2251,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     bool showAdvanced = false;
     final otherTags = (_tagCache[type] ?? []).where((t) => t['id'] != tagId).map((t) => t['name'] as String).toList();
 
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setDialogState) {
         final bc = Theme.of(ctx).colorScheme;
@@ -2625,7 +2626,7 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
   }
 
   Future<void> _importData() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -2820,7 +2821,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
 
   Future<void> _confirmSync(SyncDirection direction) async {
     final isUpload = direction == SyncDirection.upload;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -2844,7 +2845,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
   }
 
   Future<void> _clearConfig() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -3343,7 +3344,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
 
   Future<void> _permanentDelete(_BinItem item) async {
     final colors = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
@@ -3382,7 +3383,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
 
   void _showClearAllDialog() {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
@@ -4007,7 +4008,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
 
   Future<void> _deleteItem(BuildContext context, String type, String id, String title) async {
     final provider = context.read<AppProvider>();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Theme.of(ctx).colorScheme.surface,
@@ -4463,7 +4464,7 @@ class _DesktopNoteItem extends StatelessWidget {
           // 进入编辑模式由 NoteDetailPage 处理
           break;
         case 'delete':
-          final confirmed = await showDialog<bool>(
+          final confirmed = await appDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
               backgroundColor: Theme.of(ctx).colorScheme.surface,

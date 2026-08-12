@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 回收站页面
 class RecycleBinPage extends StatefulWidget {
@@ -441,7 +442,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   }
 
   Future<void> _restore(_DeletedItem item) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -548,7 +549,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
 
   Future<bool> _showConfirmDialog(String message) async {
     final colors = Theme.of(context).colorScheme;
-    final result = await showDialog<bool>(
+    final result = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -582,7 +583,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   void _showClearAllDialog() {
     final pageContext = context;
     final colors = Theme.of(pageContext).colorScheme;
-    showDialog(
+    appDialog(
       context: pageContext,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

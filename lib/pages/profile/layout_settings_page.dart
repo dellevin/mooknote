@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_overlay.dart';
 
 class LayoutSettingsPage extends StatefulWidget {
   const LayoutSettingsPage({super.key});
@@ -337,7 +338,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _showHomeModuleSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -380,7 +381,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _showMovieSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -445,7 +446,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _showBookSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -502,7 +503,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _showNoteSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -538,7 +539,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   void _showGameSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),

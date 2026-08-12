@@ -11,6 +11,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 人物编辑/添加页面
 class PersonFormPage extends StatefulWidget {
@@ -259,7 +260,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
 
   void _showPhotoOptions() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -311,7 +312,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
 
   Future<void> _pickPhotoFromUrl() async {
     String? url;
-    final confirmed = await showDialog<bool>(context: context, builder: (ctx) {
+    final confirmed = await appDialog<bool>(context: context, builder: (ctx) {
       final urlCtrl = TextEditingController();
       final colors = Theme.of(ctx).colorScheme;
       return AlertDialog(
@@ -503,7 +504,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
   Future<bool> _confirmLeave() async {
     if (!_hasContent()) return true;
     final colors = Theme.of(context).colorScheme;
-    final result = await showDialog<bool>(
+    final result = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

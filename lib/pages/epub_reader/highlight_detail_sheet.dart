@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../utils/toast_util.dart';
 import 'highlight_share_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 句读详情弹窗 —— 类似分享卡片的样式
 /// 从 epub_detail_page 和 epub_highlights_page 共用
@@ -19,7 +20,7 @@ void showHighlightDetailSheet(
   final createdAt = highlight['created_at'] as String? ?? '';
   final bookTitle = book['title'] as String? ?? '';
 
-  showModalBottomSheet(
+  appModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
@@ -246,7 +247,7 @@ void showExcerptDetailSheet(
 }) {
   final colors = Theme.of(context).colorScheme;
 
-  showModalBottomSheet(
+  appModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,

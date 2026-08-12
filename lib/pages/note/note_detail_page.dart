@@ -15,6 +15,7 @@ import '../../utils/responsive.dart';
 import '../../widgets/vditor_editor.dart';
 import '../../widgets/tag_side_panel.dart';
 import 'note_share_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 笔记详情页
 class NoteDetailPage extends StatefulWidget {
@@ -804,7 +805,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   }
 
   void _showImagePreview(List<String> images, int initialIndex) {
-    showDialog(
+    appDialog(
       context: context,
       barrierDismissible: true,
       builder: (context) => GestureDetector(
@@ -920,7 +921,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   void _showDeleteDialog(BuildContext context) {
     final errorColor = Theme.of(context).colorScheme.error;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除笔记'),

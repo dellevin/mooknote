@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../widgets/app_overlay.dart';
 
 /// 时长选择器（时:分两个滚轮的底部弹窗）
 /// 返回总分钟数，取消返回 null
@@ -11,7 +12,7 @@ class DurationPicker {
     int initialMinutes = 0,
     String title = '影视总时长',
   }) {
-    return showModalBottomSheet<int>(
+    return appModalBottomSheet<int>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       isScrollControlled: true,

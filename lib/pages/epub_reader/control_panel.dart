@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'reader_style_sheet.dart';
+import '../../widgets/app_overlay.dart';
 
 class ControlPanel extends StatefulWidget {
   final bool showControls;
@@ -217,7 +218,7 @@ class _ControlPanelState extends State<ControlPanel> {
 
   void _openStyleSheet() {
     widget.onToggleStyleDrawer();
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

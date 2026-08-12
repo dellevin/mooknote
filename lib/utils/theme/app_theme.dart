@@ -181,6 +181,139 @@ class AppTheme {
     );
   }
 
+  // 毛玻璃主题 - 半透明面板透出背景的暗色玻璃
+  static ThemeData get frostedTheme {
+    const bg = Color(0xFF121418);      // 深冷玻璃底（兜底）
+    const surface = Color(0x52121418);   // 内容区 32%
+    const surfaceHigh = Color(0x8C121418); // 面板 55%
+    const surfaceHighest = Color(0xA6121418); // 卡片/输入 65%
+    const border = Color(0x1FFFFFFF);   // 白 12%
+    const borderStrong = Color(0x2EFFFFFF); // 白 18%
+    const onSurface = Colors.white;
+    const onSurfaceWeak = Color(0x99FFFFFF); // 白 60%
+    const onSurfaceFaint = Color(0x66FFFFFF); // 白 40%
+    const accent = Color(0xFF8AB4FF);   // 柔和玻璃蓝
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: Colors.transparent,
+      colorScheme: const ColorScheme.dark(
+        primary: accent,
+        onPrimary: Color(0xFF0B0D11),
+        secondary: Color(0xFF9AA5B5),
+        onSecondary: bg,
+        surface: surface,
+        onSurface: onSurface,
+        error: Color(0xFFEF6A6A),
+        onError: Color(0xFF2A0A0A),
+        surfaceContainerHigh: surfaceHigh,
+        surfaceContainerHighest: surfaceHighest,
+        outline: borderStrong,
+        outlineVariant: border,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: surfaceHigh,
+        foregroundColor: onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        titleSpacing: 24,
+        titleTextStyle: TextStyle(
+          fontFamily: _fontFamily, fontSize: 18, fontWeight: _semibold,
+          color: onSurface, letterSpacing: 0,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: surfaceHighest, elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: borderStrong),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0x99121418), // 60% 深色，透出外层磨砂
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: borderStrong),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: const Color(0xCC121418), // 80% 深色（封装 sheet 用 transparent + FrostedPanel）
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: borderStrong,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          side: const BorderSide(color: borderStrong),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        minLeadingWidth: 0, dense: true,
+      ),
+      dividerTheme: DividerThemeData(color: border, thickness: 0.5, space: 0),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return onSurface.withValues(alpha: 0.3);
+          return onSurface.withValues(alpha: 0.15);
+        }),
+        thickness: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) return 6.0;
+          return 4.0;
+        }),
+        radius: const Radius.circular(3),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: false,
+        border: UnderlineInputBorder(borderSide: const BorderSide(color: borderStrong, width: 0.5)),
+        enabledBorder: UnderlineInputBorder(borderSide: const BorderSide(color: borderStrong, width: 0.5)),
+        focusedBorder: UnderlineInputBorder(borderSide: const BorderSide(color: accent, width: 1)),
+        errorBorder: UnderlineInputBorder(borderSide: const BorderSide(color: Color(0xFFEF6A6A), width: 0.5)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        hintStyle: TextStyle(fontFamily: _fontFamily, fontSize: 15, fontWeight: _regular, color: onSurfaceFaint),
+        labelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 13, fontWeight: _medium, color: onSurfaceWeak),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accent, foregroundColor: const Color(0xFF0B0D11),
+          elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: TextStyle(fontFamily: _fontFamily, fontSize: 14, fontWeight: _medium, letterSpacing: 0.3),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: accent,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          textStyle: TextStyle(fontFamily: _fontFamily, fontSize: 14, fontWeight: _medium),
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: const Color(0xCC14161A),
+        selectedItemColor: accent,
+        unselectedItemColor: onSurfaceFaint,
+        elevation: 0, type: BottomNavigationBarType.fixed,
+        selectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium),
+        unselectedLabelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _regular, color: onSurfaceFaint),
+      ),
+      textTheme: TextTheme(
+        headlineLarge: TextStyle(fontFamily: _fontFamily, fontSize: 32, fontWeight: _semibold, color: onSurface, letterSpacing: 0, height: 1.2),
+        headlineMedium: TextStyle(fontFamily: _fontFamily, fontSize: 24, fontWeight: _semibold, color: onSurface, letterSpacing: 0, height: 1.3),
+        headlineSmall: TextStyle(fontFamily: _fontFamily, fontSize: 20, fontWeight: _semibold, color: onSurface, letterSpacing: 0, height: 1.4),
+        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, fontWeight: _regular, color: onSurfaceWeak, height: 1.6),
+        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 15, fontWeight: _regular, color: onSurfaceWeak, height: 1.5),
+        bodySmall: TextStyle(fontFamily: _fontFamily, fontSize: 13, fontWeight: _regular, color: onSurfaceFaint, height: 1.5),
+        labelLarge: TextStyle(fontFamily: _fontFamily, fontSize: 14, fontWeight: _medium, color: onSurface),
+        labelMedium: TextStyle(fontFamily: _fontFamily, fontSize: 12, fontWeight: _medium, color: onSurfaceWeak),
+        labelSmall: TextStyle(fontFamily: _fontFamily, fontSize: 11, fontWeight: _medium, color: onSurfaceFaint, letterSpacing: 0.3),
+      ),
+    );
+  }
+
   // 亮色主题 - 极简主义
   static ThemeData get lightTheme {
     return ThemeData(

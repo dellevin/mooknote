@@ -8,6 +8,7 @@ import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import 'epub_detail_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// EPUB 书架页面
 class EpubLibraryPage extends StatefulWidget {
@@ -88,7 +89,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     }
 
     if (!mounted) return;
-    showDialog(
+    appDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
@@ -107,7 +108,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
 
   Future<void> _deleteBook(Map<String, dynamic> book) async {
     final colors = Theme.of(context).colorScheme;
-    final confirm = await showDialog<bool>(
+    final confirm = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -166,7 +167,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
       (2, '按阅读进度排序', Icons.auto_stories_outlined),
       (3, '按书名排序', Icons.sort_by_alpha),
     ];
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),

@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../services/font_download_manager.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 字体选择页面
 ///
@@ -59,7 +60,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
   /// 显示权限提示弹窗
   void _showPermissionDialog() {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,

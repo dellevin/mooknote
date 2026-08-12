@@ -22,6 +22,7 @@ import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
 import '../character/character_list_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
@@ -786,7 +787,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   void _showEditCoverOptions() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context, backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(
@@ -826,7 +827,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   Future<void> _pickEditCoverFromUrl() async {
     final urlCtrl = TextEditingController();
-    final confirmed = await showDialog<bool>(context: context, builder: (ctx) {
+    final confirmed = await appDialog<bool>(context: context, builder: (ctx) {
       final colors = Theme.of(ctx).colorScheme;
       return AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
@@ -1197,7 +1198,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     const names = ['默认样式', '毛玻璃层叠'];
     const icons = [Icons.article_outlined, Icons.blur_on_outlined];
     const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片'];
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -2103,7 +2104,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   void _showDeleteDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface,

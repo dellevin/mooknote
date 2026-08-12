@@ -22,6 +22,8 @@ import 'services/usage_stats_service.dart';
 import 'services/sync/backup_service.dart';
 import 'providers/app_provider.dart';
 import 'widgets/app_shell.dart';
+import 'widgets/frosted_background.dart';
+import './widgets/app_overlay.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -234,7 +236,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _showUpdateDialog(BuildContext context, String version, List<String> features, String localVersion) {
     if (!context.mounted) return;
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
@@ -381,12 +383,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           return Consumer<AppProvider>(
             builder: (context, provider, _) {
               AppTheme.setFontFamily(provider.fontFamily);
+              final isFrosted = provider.frostedActive;
               final light = AppTheme.getLightTheme(
                 provider.colorSchemeIndex,
                 monetColor: monetColor,
               );
               ThemeData dark;
-              if (provider.colorSchemeIndex == -1 && monetColor != null) {
+              if (isFrosted) {
+                dark = AppTheme.frostedTheme;
+              } else if (provider.colorSchemeIndex == -1 && monetColor != null) {
                 final scheme = ColorScheme.fromSeed(
                   seedColor: monetColor,
                   brightness: Brightness.dark,
@@ -419,9 +424,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 debugShowCheckedModeBanner: false,
                 theme: light,
                 darkTheme: dark,
-                themeMode: provider.themeMode,
+                themeMode: isFrosted ? ThemeMode.dark : provider.themeMode,
                 builder: (ctx, nav) {
                   Widget shell = AppShell(child: nav!);
+                  // 毛玻璃主题：全局背景层（模糊封面 + 深色遮罩）垫底
+                  if (isFrosted) {
+                    shell = Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        FrostedBackground(coverPath: provider.frostedCoverPath),
+                        shell,
+                      ],
+                    );
+                  }
                   // Android: 点击空白区域收起键盘
                   if (Platform.isAndroid) {
                     shell = GestureDetector(

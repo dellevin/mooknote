@@ -10,6 +10,7 @@ import '../note/note_tab_page.dart';
 import '../game/game_tab_page.dart';
 import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页（PageView 滑动切换）
 class MainContentPage extends StatefulWidget {
@@ -149,7 +150,7 @@ class _MainContentPageState extends State<MainContentPage> {
   void _showModulePicker(BuildContext context, List<_TabItem> tabs, int currentIndex) {
     final colors = Theme.of(context).colorScheme;
     final provider = context.read<AppProvider>();
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -211,7 +212,7 @@ class _MainContentPageState extends State<MainContentPage> {
     final colors = Theme.of(context).colorScheme;
     final hasConfig = (await WebDAVService.instance.getConfig()) != null;
     if (!mounted) return;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -331,7 +332,7 @@ class _MainContentPageState extends State<MainContentPage> {
 
   void _showSortMenu(BuildContext context, String title, int current, List<(int, String, IconData)> options, ValueChanged<int> onSelected) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -663,7 +664,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
     // 使用保存的 navigator context，而非 state context（bottom sheet 已 pop）
     final overlayCtx = navigator.context;
     final colors = Theme.of(overlayCtx).colorScheme;
-    showDialog(
+    appDialog(
       context: overlayCtx,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

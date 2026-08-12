@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_overlay.dart';
 
 /// 类型/标签选择右侧弹窗（影视类型、导演、编剧、主演、书籍类型通用）
 class GenreSelectorPage extends StatefulWidget {
@@ -109,7 +110,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
 
   void _editItem(int index, String oldValue) {
     final editController = TextEditingController(text: oldValue);
-    showDialog<String>(
+    appDialog<String>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;

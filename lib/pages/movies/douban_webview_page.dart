@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 豆瓣影视WebView页面 - 用于抓取影视信息
 class DoubanWebViewPage extends StatefulWidget {
@@ -139,7 +140,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
 
     // 显示提取的信息
     if (mounted) {
-      showDialog(
+      appDialog(
         context: context,
         builder: (ctx) {
           final colors = Theme.of(ctx).colorScheme;
@@ -242,7 +243,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
       _isExtracting = true;
 
       // 显示加载提示
-      showDialog(
+      appDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => const Center(

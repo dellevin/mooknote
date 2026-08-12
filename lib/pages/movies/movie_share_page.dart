@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_overlay.dart';
 
 class MovieSharePage extends StatefulWidget {
   final Movie movie;
@@ -128,7 +129,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
     final colors = Theme.of(context).colorScheme;
     const icons = [Icons.image_outlined, Icons.confirmation_num_outlined, Icons.local_movies_outlined, Icons.card_giftcard_outlined];
     const subtitles = ['简约海报风格', '经典复古票根', '电影票票根样式', '高端收藏版票根'];
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -185,7 +186,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
 
   void _showEditSheet() {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: colors.surface,

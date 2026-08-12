@@ -45,7 +45,7 @@ mixin _LinkHandlingMixin on State<ReaderScreen> {
         } else if (linkHandling == ReaderLinkHandling.ask) {
           if (mounted && context.mounted) {
             final shouldOpen =
-                await showDialog<bool>(
+                await appDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('打开外部链接'),

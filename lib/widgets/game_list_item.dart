@@ -5,6 +5,7 @@ import '../providers/app_provider.dart';
 import '../widgets/fade_in_local_image.dart';
 import '../widgets/animated_star_rating.dart';
 import '../utils/toast_util.dart';
+import '../widgets/app_overlay.dart';
 
 /// 游戏列表项组件 - 网格布局设计
 class GameListItem extends StatelessWidget {
@@ -73,7 +74,7 @@ class GameListItem extends StatelessWidget {
 
   void _showDeleteDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface,

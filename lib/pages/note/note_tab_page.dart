@@ -11,6 +11,7 @@ import '../../widgets/master_detail_scaffold.dart';
 import '../../widgets/detail_placeholder.dart';
 import 'note_detail_page.dart';
 import 'note_add_page.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 笔记标签页（分页 + 触底加载）
 class NoteTabPage extends StatefulWidget {
@@ -355,7 +356,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   void _showNoteActions(Note note) {
     final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -398,7 +399,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   void _showDeleteDialog(Note note) {
     final colors = Theme.of(context).colorScheme;
-    showDialog(
+    appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,

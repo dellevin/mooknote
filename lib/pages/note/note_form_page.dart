@@ -13,6 +13,7 @@ import '../../utils/image_saver.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
 import '../../widgets/vditor_editor.dart';
+import '../../widgets/app_overlay.dart';
 
 /// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
@@ -625,7 +626,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     _autoSaveTimer?.cancel();
     if (!_hasContent()) return true;
 
-    final result = await showDialog<String>(
+    final result = await appDialog<String>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
@@ -899,7 +900,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 显示图片预览
   void _showImagePreview(int index) {
-    showDialog(
+    appDialog(
       context: context,
       barrierDismissible: true,
       builder: (context) => GestureDetector(
@@ -926,7 +927,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 显示删除图片确认对话框
   void _showDeleteImageDialog(int index) {
-    showDialog(
+    appDialog(
       context: context,
       builder: (context) {
         final colors = Theme.of(context).colorScheme;
