@@ -12,6 +12,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:media_kit/media_kit.dart';
 import 'pages/home/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
@@ -29,6 +30,7 @@ WebViewEnvironment? windowsWebViewEnvironment;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   // Windows 桌面：使用 FFI 初始化 sqflite
   if (Platform.isWindows) {
     sqfliteFfiInit();

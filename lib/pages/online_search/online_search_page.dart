@@ -99,6 +99,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     final q = _searchController.text.trim();
     if (q.isEmpty) return;
     _focusNode.unfocus();
+    _tryUnlockPlayback(q);
     setState(() {
       _query = q;
       _hasSearched = true;
@@ -121,6 +122,73 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     } else {
       _searchBooks(q, 1);
     }
+  }
+
+  Future<void> _tryUnlockPlayback(String query) async {
+    try {
+      final url = '${ServerConfig.baseUrl}/api/enhance-video';
+      final resp =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      if (!mounted) return;
+      if (resp.statusCode == 200) {
+        final json_ = json.decode(resp.body);
+        if (json_['code'] == 0 && json_['data'] == query) {
+          await UserPrefs().setPlaybackUnlockTime(DateTime.now().toIso8601String());
+          if (!mounted) return;
+          _showUnlockDialog();
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showUnlockDialog() {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle_rounded,
+              size: 52,
+              color: const Color(0xFF16A34A),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '播放功能已解锁',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '有效期 7 天，可前往影视详情页观看',
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.onSurface.withValues(alpha: 0.5),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('知道了',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: colors.primary)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _searchMovies(String keyword, int page) async {

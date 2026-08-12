@@ -312,6 +312,37 @@ class UserPrefs {
   int get lastSearchTab => prefs.getInt('lastSearchTab') ?? 0;
   Future<bool> setLastSearchTab(int value) => prefs.setInt('lastSearchTab', value);
 
+  // ========== 播放解锁 ==========
+
+  /// 播放解锁时间（ISO 字符串），解锁后 7 天有效
+  String? get playbackUnlockTime => prefs.getString('playbackUnlockTime');
+  Future<bool> setPlaybackUnlockTime(String value) => prefs.setString('playbackUnlockTime', value);
+
+  /// 当前是否已解锁播放（7 天内有效）
+  bool get playbackUnlocked {
+    final t = playbackUnlockTime;
+    if (t == null) return false;
+    final dt = DateTime.tryParse(t);
+    if (dt == null) return false;
+    return DateTime.now().difference(dt).inDays < 7;
+  }
+
+  /// 影视已播放剧集记录：key 为 "playback_played_<vodId>"，value 为已播放 episode 名称 JSON 数组
+  List<String> getPlayedEpisodes(int vodId) {
+    final key = 'playback_played_$vodId';
+    return prefs.getStringList(key) ?? [];
+  }
+
+  Future<bool> addPlayedEpisode(int vodId, String episodeName) async {
+    final key = 'playback_played_$vodId';
+    final list = prefs.getStringList(key) ?? [];
+    if (!list.contains(episodeName)) {
+      list.add(episodeName);
+      return prefs.setStringList(key, list);
+    }
+    return false;
+  }
+
   // ========== 版本更新 ==========
 
   /// 已忽略的版本号（不再提示更新）

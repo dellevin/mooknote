@@ -6,10 +6,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
   file_selector_windows
   flutter_inappwebview_windows
+  media_kit_video
   permission_handler_windows
   screen_retriever_windows
   share_plus
   url_launcher_windows
+  volume_controller
   window_manager
 )
 
