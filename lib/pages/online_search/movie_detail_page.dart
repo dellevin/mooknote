@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -52,6 +53,18 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   bool _playerCreating = false;
   bool _isFullscreen = false;
 
+  // 播放器实时状态
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _isPlayerPlaying = false;
+  bool _isBuffering = false;
+  double _rate = 1.0;
+  bool _showControls = true;
+  bool _isSeeking = false;
+  bool _isLongPress2x = false;
+  final List<StreamSubscription> _playerSubs = [];
+  Timer? _hideControlsTimer;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +75,11 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _hideControlsTimer?.cancel();
+    for (final sub in _playerSubs) {
+      sub.cancel();
+    }
+    _playerSubs.clear();
     _player?.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -216,8 +234,13 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       if (_player == null) {
         _player = Player();
         _videoController = VideoController(_player!);
+        _subscribePlayerStreams();
       }
       await _player!.open(Media(url));
+      // 切集后恢复倍速
+      if (_rate != 1.0) {
+        await _player!.setRate(_rate);
+      }
       if (!mounted) return;
       final epName = _playEpisodes[_currentSource][episodeIndex].name;
       await UserPrefs().addPlayedEpisode(widget.vodId, epName);
@@ -226,7 +249,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         _currentEpisode = episodeIndex;
         _playedEpisodes.add(epName);
         _playerCreating = false;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+        _showControls = true;
+        _isLongPress2x = false;
       });
+      _restartHideControlsTimer();
     } catch (_) {
       if (mounted) {
         ToastUtil.show(context, '播放失败');
@@ -235,6 +263,148 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         });
       }
     }
+  }
+
+  void _subscribePlayerStreams() {
+    final p = _player!;
+    _playerSubs.add(p.stream.playing.listen((v) {
+      if (mounted) setState(() => _isPlayerPlaying = v);
+    }));
+    _playerSubs.add(p.stream.position.listen((v) {
+      if (mounted && !_isSeeking) setState(() => _position = v);
+    }));
+    _playerSubs.add(p.stream.duration.listen((v) {
+      if (mounted) setState(() => _duration = v);
+    }));
+    _playerSubs.add(p.stream.buffering.listen((v) {
+      if (mounted) setState(() => _isBuffering = v);
+    }));
+    _playerSubs.add(p.stream.rate.listen((v) {
+      if (mounted) setState(() => _rate = v);
+    }));
+    _playerSubs.add(p.stream.completed.listen((completed) {
+      if (completed && mounted) _onPlayCompleted();
+    }));
+  }
+
+  void _onPlayCompleted() {
+    // 自动播放下一集
+    final episodes = _playEpisodes[_currentSource];
+    if (_currentEpisode == null) return;
+    if (_currentEpisode! < episodes.length - 1) {
+      _startPlay(episodes[_currentEpisode! + 1].url, _currentEpisode! + 1);
+    } else {
+      // 末集，退出播放
+      setState(() {
+        _isPlaying = false;
+        _isPlayerPlaying = false;
+      });
+    }
+  }
+
+  void _playPrevEpisode() {
+    if (_currentEpisode == null || _currentEpisode! <= 0) return;
+    final episodes = _playEpisodes[_currentSource];
+    _startPlay(episodes[_currentEpisode! - 1].url, _currentEpisode! - 1);
+  }
+
+  void _playNextEpisode() {
+    if (_currentEpisode == null) return;
+    final episodes = _playEpisodes[_currentSource];
+    if (_currentEpisode! >= episodes.length - 1) return;
+    _startPlay(episodes[_currentEpisode! + 1].url, _currentEpisode! + 1);
+  }
+
+  Future<void> _showRateSheet() async {
+    final colors = Theme.of(context).colorScheme;
+    final rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    final selected = await showModalBottomSheet<double>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                        color: colors.onSurface.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(2)))),
+            Text('播放速度',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: rates
+                  .map((r) => InkWell(
+                        onTap: () => Navigator.pop(ctx, r),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _rate == r
+                                ? colors.primaryContainer
+                                : colors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('${r}x',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: _rate == r
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: _rate == r
+                                      ? colors.onPrimaryContainer
+                                      : colors.onSurface)),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ]),
+        ),
+      ),
+    );
+    if (selected != null && _player != null) {
+      await _player!.setRate(selected);
+      // setRate 会通过 stream 回写 _rate，但同步设置避免延迟
+      if (mounted) setState(() => _rate = selected);
+    }
+  }
+
+  void _toggleControls() {
+    setState(() => _showControls = !_showControls);
+    if (_showControls) {
+      _restartHideControlsTimer();
+    } else {
+      _hideControlsTimer?.cancel();
+    }
+  }
+
+  void _restartHideControlsTimer() {
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && _isPlayerPlaying && !_isSeeking) {
+        setState(() => _showControls = false);
+      }
+    });
+  }
+
+  String _fmtDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
   void _closePlayer() {
@@ -476,21 +646,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       ),
       AspectRatio(
         aspectRatio: 16 / 9,
-        child: _videoController != null
-            ? MaterialVideoControlsTheme(
-                normal: const MaterialVideoControlsThemeData(
-                  seekBarThumbColor: Color(0xFFFFFFFF),
-                  seekBarPositionColor: Color(0xFFFFFFFF),
-                ),
-                fullscreen: const MaterialVideoControlsThemeData(),
-                child: Video(
-                  controller: _videoController!,
-                  controls: MaterialVideoControls,
-                  onEnterFullscreen: _enterFullscreen,
-                  onExitFullscreen: _exitFullscreen,
-                ),
-              )
-            : Container(color: Colors.black),
+        child: _buildVideoStack(colors, fullscreen: false),
       ),
     ]);
   }
@@ -498,19 +654,305 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   Widget _buildFullscreenPlayer(ColorScheme colors) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: _videoController != null
-          ? MaterialVideoControlsTheme(
-              normal: const MaterialVideoControlsThemeData(),
-              fullscreen: const MaterialVideoControlsThemeData(),
-              child: Video(
-                controller: _videoController!,
-                controls: MaterialVideoControls,
-                onEnterFullscreen: _enterFullscreen,
-                onExitFullscreen: _exitFullscreen,
-              ),
-            )
-          : const SizedBox.shrink(),
+      body: _buildVideoStack(colors, fullscreen: true),
     );
+  }
+
+  /// 自定义控件的视频区域：底层 Video + 叠加控件层
+  Widget _buildVideoStack(ColorScheme colors, {required bool fullscreen}) {
+    final hasController = _videoController != null;
+    final episodes = _playSources.isNotEmpty ? _playEpisodes[_currentSource] : <({String name, String url})>[];
+    final epName = (_currentEpisode != null && _currentEpisode! < episodes.length)
+        ? episodes[_currentEpisode!].name
+        : '';
+    final hasPrev = _currentEpisode != null && _currentEpisode! > 0;
+    final hasNext = _currentEpisode != null && _currentEpisode! < episodes.length - 1;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _toggleControls,
+      onLongPressStart: fullscreen ? (_) => _startLongPress2x() : null,
+      onLongPressEnd: fullscreen ? (_) => _stopLongPress2x() : null,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 视频画面
+          if (hasController)
+            Video(
+              controller: _videoController!,
+              controls: null,
+              fit: BoxFit.contain,
+              onEnterFullscreen: _enterFullscreen,
+              onExitFullscreen: _exitFullscreen,
+            )
+          else
+            Container(color: Colors.black),
+          // 缓冲指示
+          if (_isBuffering && hasController)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.5,
+              ),
+            ),
+          // 中央播放/暂停按钮（暂停且非缓冲时）
+          if (!_isPlayerPlaying && !_isBuffering && hasController)
+            Center(
+              child: GestureDetector(
+                onTap: () => _player?.play(),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.play_arrow,
+                      color: Colors.white, size: 36),
+                ),
+              ),
+            ),
+          // 长按 2x 提示
+          if (_isLongPress2x)
+            Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('2x',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ),
+          // 控件层
+          if (_showControls) ...[
+            // 顶部渐变 + 标题
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                    fullscreen ? 24 : 8, fullscreen ? 24 : 8, 8, 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.5),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Row(children: [
+                  if (fullscreen)
+                    GestureDetector(
+                      onTap: _exitFullscreen,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.arrow_back,
+                            color: Colors.white, size: 22),
+                      ),
+                    ),
+                  if (epName.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(epName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500)),
+                    ),
+                  ],
+                  const Spacer(),
+                  if (!fullscreen)
+                    GestureDetector(
+                      onTap: _enterFullscreen,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.fullscreen,
+                            color: Colors.white, size: 22),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
+            // 底部渐变 + 进度条 + 按钮
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                    8, 8, 8, fullscreen ? 16 : 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.5),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  // 进度条
+                  Row(children: [
+                    Text(_fmtDuration(_position),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontFeatures: [FontFeature.tabularFigures()])),
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderThemeData(
+                          trackHeight: 2,
+                          thumbShape:
+                              const RoundSliderThumbShape(enabledThumbRadius: 6),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 12),
+                          trackShape: const RectangularSliderTrackShape(),
+                          activeTrackColor: Colors.white,
+                          inactiveTrackColor:
+                              Colors.white.withValues(alpha: 0.3),
+                          thumbColor: Colors.white,
+                        ),
+                        child: Slider(
+                          value: _position.inMilliseconds.toDouble().clamp(
+                              0,
+                              _duration.inMilliseconds.toDouble() > 0
+                                  ? _duration.inMilliseconds.toDouble()
+                                  : 1),
+                          min: 0,
+                          max: _duration.inMilliseconds.toDouble() > 0
+                              ? _duration.inMilliseconds.toDouble()
+                              : 1,
+                          onChangeStart: (_) {
+                            setState(() => _isSeeking = true);
+                            _hideControlsTimer?.cancel();
+                          },
+                          onChanged: (v) {
+                            setState(() {
+                              _position =
+                                  Duration(milliseconds: v.round());
+                            });
+                          },
+                          onChangeEnd: (v) async {
+                            await _player
+                                ?.seek(Duration(milliseconds: v.round()));
+                            setState(() => _isSeeking = false);
+                            _restartHideControlsTimer();
+                          },
+                        ),
+                      ),
+                    ),
+                    Text(_fmtDuration(_duration),
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 11,
+                            fontFeatures: const [
+                              FontFeature.tabularFigures()
+                            ])),
+                  ]),
+                  // 按钮行
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 上一集
+                      if (hasPrev)
+                        IconButton(
+                          onPressed: _playPrevEpisode,
+                          icon: const Icon(Icons.skip_previous,
+                              color: Colors.white),
+                          iconSize: 22,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          constraints: const BoxConstraints(
+                              minWidth: 36, minHeight: 36),
+                        )
+                      else
+                        const SizedBox(width: 38),
+                      // 播放/暂停
+                      GestureDetector(
+                        onTap: () {
+                          if (_isPlayerPlaying) {
+                            _player?.pause();
+                          } else {
+                            _player?.play();
+                          }
+                          _restartHideControlsTimer();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Icon(
+                              _isPlayerPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 32),
+                        ),
+                      ),
+                      // 下一集
+                      if (hasNext)
+                        IconButton(
+                          onPressed: _playNextEpisode,
+                          icon: const Icon(Icons.skip_next,
+                              color: Colors.white),
+                          iconSize: 22,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          constraints: const BoxConstraints(
+                              minWidth: 36, minHeight: 36),
+                        )
+                      else
+                        const SizedBox(width: 38),
+                      const SizedBox(width: 16),
+                      // 倍速
+                      GestureDetector(
+                        onTap: _showRateSheet,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _rate == 1.0 ? '倍速' : '${_rate}x',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ]),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _startLongPress2x() {
+    if (!_isPlayerPlaying) return;
+    _player?.setRate(2.0);
+    setState(() => _isLongPress2x = true);
+    _hideControlsTimer?.cancel();
+  }
+
+  void _stopLongPress2x() {
+    _player?.setRate(_rate);
+    setState(() => _isLongPress2x = false);
+    _restartHideControlsTimer();
   }
 
   // ── Build ──────────────────────────────────────────────
