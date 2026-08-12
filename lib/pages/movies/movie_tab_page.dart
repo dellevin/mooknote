@@ -41,6 +41,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
   int _prevDisplayMode = -1;
   int _prevSortMode = -1;
   double _swipeOffset = 0.0; // 当前拖动偏移量（用于左右滑动切换状态）
+  int _direction = 1; // 翻页方向：+1 新页从右滑入，-1 新页从左滑入
+  int _prevTabIndex = -1; // 上一次的标签索引，用于计算翻页方向
 
   static const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
 
@@ -264,6 +266,17 @@ class _MovieTabPageState extends State<MovieTabPage> {
           );
         }();
 
+        // 当前标签索引（分类模式或观看状态模式）
+        final currentIndex =
+            provider.movieDisplayMode == 1 ? provider.movieCategoryIndex : provider.movieStatusIndex;
+        // 计算翻页方向（用于动画）：根据新旧索引的最短路径
+        if (_prevTabIndex != -1 && currentIndex != _prevTabIndex) {
+          final count = provider.movieDisplayMode == 1 ? MovieCategoryBar.count : 3;
+          final raw = currentIndex - _prevTabIndex;
+          _direction = raw.abs() <= count / 2 ? raw.sign : -raw.sign;
+        }
+        _prevTabIndex = currentIndex;
+
         // 用 GestureDetector 包裹，左右滑动切换状态/分类
         return GestureDetector(
           onHorizontalDragStart: (_) => _swipeOffset = 0.0,
@@ -288,13 +301,34 @@ class _MovieTabPageState extends State<MovieTabPage> {
             }
           },
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: _swipeOffset.clamp(-100.0, 100.0)),
-            duration: const Duration(milliseconds: 150),
+            tween: Tween(begin: 0.0, end: _swipeOffset.clamp(-80.0, 80.0)),
+            duration: const Duration(milliseconds: 120),
             curve: Curves.easeOut,
             builder: (context, value, child) {
               return Transform.translate(offset: Offset(value, 0), child: child);
             },
-            child: content,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                // 新页从滑动方向滑入，旧页朝反向滑出，形成翻页效果
+                final isIncoming = child.key == ValueKey<int>(currentIndex);
+                final dir = (isIncoming ? _direction : -_direction).toDouble();
+                final width = MediaQuery.of(context).size.width;
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(dir * width, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey<int>(currentIndex),
+                child: content,
+              ),
+            ),
           ),
         );
       },
