@@ -1506,11 +1506,37 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               provider.notes.where((n) => !n.isDeleted).toList());
       }
       if (!context.mounted) return;
-      ToastUtil.show(context, '已导出到 ${file.path}');
+      _showExportResult(context, true, '已导出到 ${file.path}');
     } catch (e) {
       if (!context.mounted) return;
-      ToastUtil.show(context, '导出失败：$e');
+      _showExportResult(context, false, '导出失败：$e');
     }
+  }
+
+  void _showExportResult(BuildContext context, bool success, String message) {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          success ? Icons.check_circle_outline : Icons.error_outline,
+          color: success ? colors.primary : colors.error,
+          size: 32,
+        ),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: colors.onSurface),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

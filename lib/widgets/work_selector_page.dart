@@ -78,11 +78,13 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
   int _tabIndex = 0;
   String _query = '';
 
-  /// 搜索模式：0=按作品标题 1=按人物名称
-  int _searchMode = 0;
+  /// 当前人物（widget.personId）在当前 Tab 类型下已关联的作品 ID 集合
+  /// 这些作品在列表中置顶并高亮显示
+  Set<String> _currentPersonWorkIds = {};
 
-  /// 人物名称搜索结果：personId → 该人物在当前 Tab 作品类型下的关联作品 ID 集合
-  List<Person> _matchedPeople = [];
+  /// 搜索关键字命中的人物所关联的作品 ID 集合（当前 Tab 类型）
+  /// 用于"按人物名称搜索"时把这些作品也纳入结果
+  Set<String> _searchMatchedWorkIds = {};
   bool _searching = false;
 
   static const _movieRoles = [('director', '导演'), ('writer', '编剧'), ('actor', '演员'), ('voiceActor', '配音')];
@@ -101,17 +103,38 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     for (final gp in widget.initialGames) {
       _entries.add(_WorkRoleEntry(workId: gp.gameId, workType: 'game', roleType: gp.roleType));
     }
+    _loadCurrentPersonWorkIds();
   }
 
   String get _currentWorkType => switch (_tabIndex) { 0 => 'movie', 1 => 'book', 2 => 'game', _ => 'movie' };
   List<(String, String)> get _currentRoleOptions => switch (_tabIndex) { 0 => _movieRoles, 1 => _bookRoles, 2 => _gameRoles, _ => _movieRoles };
 
-  /// 按人物名称搜索：找到匹配的人物，再反查他们参与的当前 Tab 类型作品
-  Future<void> _searchByPerson(String keyword) async {
-    final trimmed = keyword.trim();
+  /// 加载当前人物在当前 Tab 类型下的作品 ID 集合
+  Future<void> _loadCurrentPersonWorkIds() async {
+    final provider = context.read<AppProvider>();
+    Set<String> ids;
+    switch (_currentWorkType) {
+      case 'movie':
+        ids = (await provider.getPersonMovies(widget.personId)).map((r) => r.movieId).toSet();
+      case 'book':
+        ids = (await provider.getPersonBooks(widget.personId)).map((r) => r.bookId).toSet();
+      case 'game':
+        ids = (await provider.getPersonGames(widget.personId)).map((r) => r.gameId).toSet();
+      default:
+        ids = {};
+    }
+    if (!mounted) return;
+    setState(() => _currentPersonWorkIds = ids);
+  }
+
+  /// 搜索：同时匹配作品标题与人物名称
+  /// 匹配人物时，反查该人物在当前 Tab 类型下的作品 ID，纳入结果
+  Future<void> _onSearchChanged(String v) async {
+    setState(() => _query = v);
+    final trimmed = v.trim();
     if (trimmed.isEmpty) {
       setState(() {
-        _matchedPeople = [];
+        _searchMatchedWorkIds = {};
         _searching = false;
       });
       return;
@@ -119,28 +142,22 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     setState(() => _searching = true);
     final provider = context.read<AppProvider>();
     final people = await provider.searchPeople(trimmed);
+    final Set<String> matched = {};
+    for (final p in people) {
+      switch (_currentWorkType) {
+        case 'movie':
+          matched.addAll((await provider.getPersonMovies(p.id)).map((r) => r.movieId));
+        case 'book':
+          matched.addAll((await provider.getPersonBooks(p.id)).map((r) => r.bookId));
+        case 'game':
+          matched.addAll((await provider.getPersonGames(p.id)).map((r) => r.gameId));
+      }
+    }
     if (!mounted) return;
     setState(() {
-      _matchedPeople = people;
+      _searchMatchedWorkIds = matched;
       _searching = false;
     });
-  }
-
-  /// 获取人物在当前 Tab 类型下的作品 ID 集合
-  Future<Set<String>> _getPersonWorkIds(Person person) async {
-    final provider = context.read<AppProvider>();
-    switch (_currentWorkType) {
-      case 'movie':
-        final rels = await provider.getPersonMovies(person.id);
-        return rels.map((r) => r.movieId).toSet();
-      case 'book':
-        final rels = await provider.getPersonBooks(person.id);
-        return rels.map((r) => r.bookId).toSet();
-      case 'game':
-        final rels = await provider.getPersonGames(person.id);
-        return rels.map((r) => r.gameId).toSet();
-    }
-    return {};
   }
 
   void _changeRole(_WorkRoleEntry entry, String roleType) {
@@ -244,16 +261,14 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
         children: [
           // Tab 切换
           _buildTabs(colors),
-          // 搜索模式切换
-          _buildSearchModeToggle(colors),
-          // 搜索框
+          // 搜索框（同时匹配作品标题和人物名称）
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: TextField(
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               cursorColor: colors.primary,
               decoration: InputDecoration(
-                hintText: _searchMode == 0 ? '搜索作品标题' : '搜索人物名称',
+                hintText: '搜索作品标题或人物名称',
                 hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                 filled: true,
                 fillColor: colors.surfaceContainerHigh,
@@ -268,22 +283,19 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                         onPressed: () {
                           setState(() {
                             _query = '';
-                            _matchedPeople = [];
+                            _searchMatchedWorkIds = {};
                           });
                         },
                       )
                     : null,
               ),
-              onChanged: (v) {
-                setState(() => _query = v);
-                if (_searchMode == 1) {
-                  _searchByPerson(v);
-                }
-              },
+              onChanged: _onSearchChanged,
             ),
           ),
-          // 可选作品列表
-          Expanded(child: _searchMode == 0 ? _buildAvailableList(provider, colors) : _buildPersonSearchList(provider, colors)),
+          // 可选作品列表（当前人物作品置顶 + 高亮）
+          Expanded(child: _buildAvailableList(provider, colors)),
+          if (_searching)
+            LinearProgressIndicator(minHeight: 1, backgroundColor: Colors.transparent, color: colors.primary.withValues(alpha: 0.4)),
         ],
       ),
     );
@@ -298,7 +310,10 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
           final selected = _tabIndex == i;
           return Expanded(
             child: GestureDetector(
-              onTap: () => setState(() { _tabIndex = i; _query = ''; _matchedPeople = []; }),
+              onTap: () {
+                setState(() { _tabIndex = i; _query = ''; _searchMatchedWorkIds = {}; });
+                _loadCurrentPersonWorkIds();
+              },
               child: Container(
                 margin: EdgeInsets.only(right: i < 2 ? 8 : 0),
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -319,199 +334,6 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
             ),
           );
         }),
-      ),
-    );
-  }
-
-  Widget _buildSearchModeToggle(ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Row(
-        children: [
-          _buildModeChip(0, '按作品', colors),
-          const SizedBox(width: 8),
-          _buildModeChip(1, '按人物', colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModeChip(int mode, String label, ColorScheme colors) {
-    final selected = _searchMode == mode;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _searchMode = mode;
-        _query = '';
-        _matchedPeople = [];
-      }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? colors.primary : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
-            color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 按人物名称搜索结果列表
-  Widget _buildPersonSearchList(AppProvider provider, ColorScheme colors) {
-    if (_query.trim().isEmpty) {
-      return Center(
-        child: Text('输入人物名称搜索作品', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
-      );
-    }
-    if (_searching) {
-      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.onSurface.withValues(alpha: 0.3)));
-    }
-    if (_matchedPeople.isEmpty) {
-      return Center(
-        child: Text('未找到匹配的人物', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      itemCount: _matchedPeople.length,
-      itemBuilder: (_, i) => _buildPersonItem(_matchedPeople[i], provider, colors),
-    );
-  }
-
-  Widget _buildPersonItem(Person person, AppProvider provider, ColorScheme colors) {
-    return FutureBuilder<Set<String>>(
-      future: _getPersonWorkIds(person),
-      builder: (ctx, snapshot) {
-        final workIds = snapshot.data ?? {};
-        final works = _getWorksByIds(workIds, provider);
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 人物名
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(color: colors.surface, shape: BoxShape.circle),
-                    clipBehavior: Clip.antiAlias,
-                    child: person.photoPath != null && person.photoPath!.isNotEmpty
-                        ? FadeInLocalImage(path: person.photoPath, fit: BoxFit.cover)
-                        : Center(
-                            child: Text(
-                              person.name.isNotEmpty ? person.name[0] : '?',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4)),
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(person.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                        if (person.occupation.isNotEmpty)
-                          Text(person.occupation.join(' / '),
-                              style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-                      ],
-                    ),
-                  ),
-                  if (works.isEmpty)
-                    Text('暂无该类型作品', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-                ],
-              ),
-              // 该人物在当前 Tab 下的作品列表
-              ...works.map((work) => _buildPersonWorkItem(work, person, colors)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  /// 根据 ID 集合获取当前 Tab 类型的作品列表 (id, title, coverPath)
-  List<(String, String, String?)> _getWorksByIds(Set<String> ids, AppProvider provider) {
-    switch (_currentWorkType) {
-      case 'movie':
-        return provider.movies
-            .where((m) => !m.isDeleted && ids.contains(m.id))
-            .map((m) => (m.id, m.title, m.posterPath))
-            .toList();
-      case 'book':
-        return provider.books
-            .where((b) => !b.isDeleted && ids.contains(b.id))
-            .map((b) => (b.id, b.title, b.coverPath))
-            .toList();
-      case 'game':
-        return provider.games
-            .where((g) => !g.isDeleted && ids.contains(g.id))
-            .map((g) => (g.id, g.title, g.coverPath))
-            .toList();
-    }
-    return [];
-  }
-
-  Widget _buildPersonWorkItem((String, String, String?) work, Person person, ColorScheme colors) {
-    final id = work.$1;
-    final title = work.$2;
-    final coverPath = work.$3;
-    final workEntries = _entries.where((e) => e.workType == _currentWorkType && e.workId == id).toList();
-    final canAddMore = workEntries.length < _currentRoleOptions.length;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _buildCover(coverPath, 32, colors),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(title, style: TextStyle(fontSize: 13, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-                if (canAddMore)
-                  GestureDetector(
-                    onTap: () => _addRoleToWork(id),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.add, size: 14, color: colors.primary),
-                          const SizedBox(width: 2),
-                          Text('角色', style: TextStyle(fontSize: 11, color: colors.primary)),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Icon(Icons.check_circle, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
-              ],
-            ),
-            ...workEntries.map((entry) => _buildRoleRow(entry, colors)),
-          ],
-        ),
       ),
     );
   }
@@ -602,28 +424,42 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     final workType = _currentWorkType;
 
     List<(String id, String title, String? coverPath)> works;
+    bool matchSearchOrTitle(String id, String title) {
+      if (query.isEmpty) return true;
+      // 标题命中，或按人物名称搜索命中的作品
+      return title.toLowerCase().contains(query) || _searchMatchedWorkIds.contains(id);
+    }
+
     switch (workType) {
       case 'movie':
         works = provider.movies
-            .where((m) => !m.isDeleted && (query.isEmpty || m.title.toLowerCase().contains(query)))
+            .where((m) => !m.isDeleted && matchSearchOrTitle(m.id, m.title))
             .map((m) => (m.id, m.title, m.posterPath))
             .toList();
         break;
       case 'book':
         works = provider.books
-            .where((b) => !b.isDeleted && (query.isEmpty || b.title.toLowerCase().contains(query)))
+            .where((b) => !b.isDeleted && matchSearchOrTitle(b.id, b.title))
             .map((b) => (b.id, b.title, b.coverPath))
             .toList();
         break;
       case 'game':
         works = provider.games
-            .where((g) => !g.isDeleted && (query.isEmpty || g.title.toLowerCase().contains(query)))
+            .where((g) => !g.isDeleted && matchSearchOrTitle(g.id, g.title))
             .map((g) => (g.id, g.title, g.coverPath))
             .toList();
         break;
       default:
         works = [];
     }
+
+    // 当前人物的作品置顶，其余按标题排序
+    works.sort((a, b) {
+      final aPinned = _currentPersonWorkIds.contains(a.$1) ? 0 : 1;
+      final bPinned = _currentPersonWorkIds.contains(b.$1) ? 0 : 1;
+      if (aPinned != bPinned) return aPinned - bPinned;
+      return a.$2.compareTo(b.$2);
+    });
 
     if (works.isEmpty) {
       return Center(
@@ -647,6 +483,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     final coverPath = work.$3;
     final workEntries = _entries.where((e) => e.workType == _currentWorkType && e.workId == id).toList();
     final canAddMore = workEntries.length < _currentRoleOptions.length;
+    final isCurrentPerson = _currentPersonWorkIds.contains(id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -664,7 +501,24 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
               _buildCover(coverPath, 36, colors),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                    if (isCurrentPerson) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('参演', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: colors.primary)),
+                      ),
+                    ],
+                  ],
+                ),
               ),
               if (canAddMore)
                 GestureDetector(

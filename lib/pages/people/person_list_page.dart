@@ -146,6 +146,7 @@ class _PersonListPageState extends State<PersonListPage> {
 
   Widget _buildIndexBar(ColorScheme colors) {
     final present = _letterFirstIndex.keys.toSet();
+    final barKey = GlobalKey();
     return Positioned(
       right: 2,
       top: 0,
@@ -155,42 +156,64 @@ class _PersonListPageState extends State<PersonListPage> {
           final maxH = constraints.maxHeight;
           const barPadding = 4.0;
           final available = maxH - barPadding * 2;
-          final itemH = (available / _allLetters.length).clamp(8.0, 16.0);
+          final itemH = (available / _allLetters.length).clamp(12.0, 24.0);
+
+          String letterAtY(double y) {
+            final localY = (y - barPadding).clamp(0.0, available);
+            final i = (localY / itemH).floor().clamp(0, _allLetters.length - 1);
+            return _allLetters[i];
+          }
+
+          void handleAt(Offset globalPos) {
+            final robj = barKey.currentContext?.findRenderObject();
+            if (robj is! RenderBox) return;
+            final local = robj.globalToLocal(globalPos);
+            final letter = letterAtY(local.dy);
+            if (!present.contains(letter)) return;
+            if (_activeLetterNotifier.value != letter) {
+              _activeLetterNotifier.value = letter;
+              _jumpToLetter(letter);
+            }
+          }
+
           return Padding(
+            key: barKey,
             padding: const EdgeInsets.symmetric(vertical: barPadding),
             child: ValueListenableBuilder<String>(
               valueListenable: _activeLetterNotifier,
               builder: (context, activeLetter, _) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (final letter in _allLetters)
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          if (!present.contains(letter)) return;
-                          _activeLetterNotifier.value = letter;
-                          _jumpToLetter(letter);
-                        },
-                        child: SizedBox(
-                          height: itemH,
-                          width: itemH + 8,
-                          child: AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 150),
-                            curve: Curves.easeOut,
-                            style: TextStyle(
-                              fontSize: activeLetter == letter ? itemH * 1.1 : itemH * 0.65,
-                              fontWeight: activeLetter == letter ? FontWeight.w800 : FontWeight.w500,
-                              color: present.contains(letter)
-                                  ? (activeLetter == letter ? colors.primary : colors.onSurface.withValues(alpha: 0.7))
-                                  : colors.onSurface.withValues(alpha: 0.25),
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragDown: (d) => handleAt(d.globalPosition),
+                  onVerticalDragUpdate: (d) => handleAt(d.globalPosition),
+                  onTapDown: (d) => handleAt(d.globalPosition),
+                  child: Container(
+                    width: itemH + 12,
+                    color: Colors.transparent,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (final letter in _allLetters)
+                          SizedBox(
+                            height: itemH,
+                            width: itemH + 12,
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 150),
+                              curve: Curves.easeOut,
+                              style: TextStyle(
+                                fontSize: activeLetter == letter ? itemH * 0.95 : itemH * 0.7,
+                                fontWeight: activeLetter == letter ? FontWeight.w800 : FontWeight.w500,
+                                color: present.contains(letter)
+                                    ? (activeLetter == letter ? colors.primary : colors.onSurface.withValues(alpha: 0.7))
+                                    : colors.onSurface.withValues(alpha: 0.25),
+                              ),
+                              child: Text(letter, textAlign: TextAlign.center),
                             ),
-                            child: Text(letter, textAlign: TextAlign.center),
                           ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 );
               },
             ),

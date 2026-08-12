@@ -964,7 +964,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final totalSize = imageInfo.$2 + epubInfo.$2 + tempInfo.$2 + emptyDirInfo.$2;
     final totalCount = imageInfo.$1 + epubInfo.$1 + tempInfo.$1 + emptyDirInfo.$1;
     if (totalCount == 0) {
-      ToastUtil.show(pageContext, '没有需要清理的缓存');
+      _showCacheResult(pageContext, true, '没有需要清理的缓存', false);
       return;
     }
 
@@ -1044,17 +1044,44 @@ class _SettingsPageState extends State<SettingsPage> {
           builder: (_) => const Center(child: CircularProgressIndicator()));
       final result = await CacheCleaner.instance.clean();
       Navigator.pop(context);
-      if (context.mounted) {
-        if (result.total == 0) {
-          ToastUtil.show(context, '没有需要清理的缓存');
-        } else {
-          ToastUtil.show(context, result.description);
-        }
-      }
+      if (!context.mounted) return;
+      final success = result.total > 0;
+      _showCacheResult(
+          context, true, success ? result.description : '没有需要清理的缓存', success);
     } catch (e) {
       Navigator.pop(context);
-      if (context.mounted) ToastUtil.show(context, '清理失败: $e');
+      if (!context.mounted) return;
+      _showCacheResult(context, false, '清理失败: $e', false);
     }
+  }
+
+  void _showCacheResult(
+      BuildContext context, bool success, String message, bool cleaned) {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          success
+              ? (cleaned ? Icons.check_circle_outline : Icons.info_outline)
+              : Icons.error_outline,
+          color: success ? colors.primary : colors.error,
+          size: 32,
+        ),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: colors.onSurface),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 直接查 DB 收集所有图片路径（含软删除记录，与 CacheCleaner 保持一致）
