@@ -39,6 +39,7 @@ class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
   bool _isSwitchingPage = false;
   int _lastNavIndex = 0;
+  bool _drawerOpen = false;
 
   @override
   void initState() {
@@ -185,8 +186,11 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPhoneLayout(BuildContext context) {
     return Scaffold(
       drawer: context.watch<AppProvider>().bottomNavIndex != 1
-          ? const CustomDrawer()
+          ? CustomDrawer(isOpen: _drawerOpen)
           : null,
+      onDrawerChanged: (isOpen) {
+        if (_drawerOpen != isOpen) setState(() => _drawerOpen = isOpen);
+      },
 
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {

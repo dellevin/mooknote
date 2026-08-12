@@ -7,11 +7,15 @@ class ShimmerSkeleton extends StatefulWidget {
   final double height;
   final double borderRadius;
 
+  /// 覆盖默认颜色（默认 surfaceContainerHighest，在深色背景上对比弱时可用）
+  final Color? color;
+
   const ShimmerSkeleton({
     super.key,
     required this.width,
     required this.height,
     this.borderRadius = 6,
+    this.color,
   });
 
   @override
@@ -44,6 +48,7 @@ class _ShimmerSkeletonState extends State<ShimmerSkeleton>
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final baseColor = widget.color ?? colors.surfaceContainerHighest;
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -51,7 +56,7 @@ class _ShimmerSkeletonState extends State<ShimmerSkeleton>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest.withValues(alpha: _animation.value),
+            color: baseColor.withValues(alpha: _animation.value),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
         );

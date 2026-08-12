@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -25,11 +26,15 @@ import '../pages/game/game_form_page.dart';
 import '../pages/profile/settings_page.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
+import 'shimmer_skeleton.dart';
 
 /// 自定义侧边栏
 class CustomDrawer extends StatefulWidget {
   final bool embedded;
-  const CustomDrawer({super.key, this.embedded = false});
+
+  /// 抽屉是否处于打开状态（用于延迟构建重内容，避免打开时卡顿）
+  final bool isOpen;
+  const CustomDrawer({super.key, this.embedded = false, this.isOpen = false});
 
   @override
   State<CustomDrawer> createState() => _CustomDrawerState();
@@ -77,6 +82,39 @@ class _CustomDrawerState extends State<CustomDrawer> {
   void initState() {
     super.initState();
     _loadVersionInfo();
+    // 抽屉可能以已打开状态被重建，此时也延迟构建重内容
+    if (widget.isOpen) _scheduleDefer();
+  }
+
+  Timer? _deferTimer;
+
+  /// 是否已延迟构建重内容（热力图/最近/工具）
+  bool _deferReady = false;
+
+  void _scheduleDefer() {
+    _deferTimer?.cancel();
+    _deferTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) setState(() => _deferReady = true);
+    });
+  }
+
+  @override
+  void didUpdateWidget(CustomDrawer old) {
+    super.didUpdateWidget(old);
+    if (widget.isOpen && !old.isOpen) {
+      _deferReady = false;
+      _scheduleDefer();
+    } else if (!widget.isOpen && old.isOpen) {
+      // 关闭时重置，下次打开重新延迟构建
+      _deferTimer?.cancel();
+      _deferReady = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _deferTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadVersionInfo() async {
@@ -113,15 +151,24 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ],
             if (showHeatmap) ...[
               const SizedBox(height: 16),
-              _buildCalendarSection(context),
+              if (_deferReady)
+                _buildCalendarSection(context)
+              else
+                const _HeatmapSkeleton(),
             ],
             if (showRecent) ...[
               const SizedBox(height: 16),
-              _buildRecentSection(context),
+              if (_deferReady)
+                _buildRecentSection(context)
+              else
+                const _RecentSkeleton(),
             ],
             if (showTools) ...[
               const SizedBox(height: 16),
-              _buildToolsCard(context),
+              if (_deferReady)
+                _buildToolsCard(context)
+              else
+                const _ToolsSkeleton(),
             ],
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
@@ -844,4 +891,87 @@ class _RecentItem {
   final dynamic data;
   final String? imagePath;
   _RecentItem({required this.type, required this.title, required this.date, required this.data, this.imagePath});
+}
+
+// ─── 抽屉骨架屏 ────────────────────────────────────────────────────────
+
+/// 热力图骨架屏（模拟月份标签 + 贡献格子）
+class _HeatmapSkeleton extends StatelessWidget {
+  const _HeatmapSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme.outlineVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(6, (i) => Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ShimmerSkeleton(width: 22, height: 10, borderRadius: 3, color: c),
+          )),
+        ),
+        const SizedBox(height: 10),
+        for (var r = 0; r < 7; r++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: List.generate(6, (c2) => Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: ShimmerSkeleton(width: 14, height: 14, borderRadius: 3, color: c),
+              )),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// 最近添加骨架屏（模拟缩略图 + 标题行）
+class _RecentSkeleton extends StatelessWidget {
+  const _RecentSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme.outlineVariant;
+    return Column(
+      children: List.generate(4, (i) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Row(
+          children: [
+            ShimmerSkeleton(width: 44, height: 44, borderRadius: 8, color: c),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerSkeleton(width: 150, height: 13, borderRadius: 4, color: c),
+                  const SizedBox(height: 6),
+                  ShimmerSkeleton(width: 90, height: 11, borderRadius: 4, color: c),
+                ],
+              ),
+            ),
+          ],
+        ),
+      )),
+    );
+  }
+}
+
+/// 工具卡片骨架屏（模拟图标宫格）
+class _ToolsSkeleton extends StatelessWidget {
+  const _ToolsSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme.outlineVariant;
+    return Wrap(
+      spacing: 20,
+      runSpacing: 14,
+      children: List.generate(8, (i) => Column(
+        children: [
+          ShimmerSkeleton(width: 38, height: 38, borderRadius: 10, color: c),
+          const SizedBox(height: 6),
+          ShimmerSkeleton(width: 30, height: 10, borderRadius: 3, color: c),
+        ],
+      )),
+    );
+  }
 }

@@ -568,30 +568,29 @@ class _TagManagementPageState extends State<TagManagementPage> {
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Center(child: Container(
-                  width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
+                  width: 36, height: 4, margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
                 )),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+                // 紧凑标题
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
                   child: Row(
                     children: [
-                      Expanded(child: Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface))),
+                      Expanded(child: Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
                       if (isHidden) Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
                         child: Text('已隐藏', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _menuAction(
                   isHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                   isHidden ? '取消隐藏' : '隐藏',
@@ -614,6 +613,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   Navigator.pop(ctx);
                   _showRenameDialog(tag);
                 }),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Divider(height: 0.5, color: colors.outlineVariant),
+                ),
                 _menuAction(Icons.delete_outline, '删除', colors, () {
                   Navigator.pop(ctx);
                   _showDeleteDialog(tag);
@@ -631,15 +634,22 @@ class _TagManagementPageState extends State<TagManagementPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: isDestructive ? const Color(0xFFE53935) : colors.onSurface.withValues(alpha: 0.7)),
-            const SizedBox(width: 14),
+            Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: isDestructive ? colors.error : colors.onSurface.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(width: 12),
             Text(title, style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDestructive ? const Color(0xFFE53935) : colors.onSurface,
+              color: isDestructive ? colors.error : colors.onSurface,
             )),
           ],
         ),
@@ -761,14 +771,14 @@ class _TagManagementPageState extends State<TagManagementPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Center(child: Container(
-              width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+              width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 12),
               decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
             )),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('将「$name」移动到', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              child: Text('移动到「$name」', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             _moveOption(
               colors,
               icon: Icons.home_outlined,
@@ -776,20 +786,28 @@ class _TagManagementPageState extends State<TagManagementPage> {
               selected: currentParent.isEmpty,
               onTap: () => _doMoveParent(ctx, tagId, type, ''),
             ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.only(bottom: 16),
-                children: candidates.map((c) => _moveOption(
-                  colors,
-                  icon: Icons.folder_outlined,
-                  title: c['name'] as String,
-                  selected: c['id'] == currentParent,
-                  onTap: () => _doMoveParent(ctx, tagId, type, c['id'] as String),
-                )).toList(),
+            if (candidates.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('设为某分类的子级', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                ),
               ),
-            ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: 16),
+                  children: candidates.map((c) => _moveOption(
+                    colors,
+                    icon: Icons.folder_outlined,
+                    title: c['name'] as String,
+                    selected: c['id'] == currentParent,
+                    onTap: () => _doMoveParent(ctx, tagId, type, c['id'] as String),
+                  )).toList(),
+                ),
+              ),
+            ],
           ],
         ),
       ),

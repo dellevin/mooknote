@@ -15,7 +15,10 @@ import '../../widgets/detail_placeholder.dart';
 import 'game_detail_page.dart';
 import 'game_add_page.dart';
 
-/// 游戏标签页（分页 + 触底加载）
+/// 状态索引 → 状态值
+const _gameStatusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
+
+/// 游戏标签页（PageView 分页 + 触底加载），左右滑动丝滑切换
 class GameTabPage extends StatefulWidget {
   const GameTabPage({super.key});
 
@@ -24,22 +27,160 @@ class GameTabPage extends StatefulWidget {
 }
 
 class _GameTabPageState extends State<GameTabPage> {
+  late PageController _pageController;
+  int _currentPage = 0; // PageView 当前页的唯一真源
+  int? _pendingTarget; // 待跟随的页，避免重复调度动画
+  int _lastModeSignature = -1; // 编码 wall 模式，检测墙/状态切换
+  bool _modeInitialized = false; // 吞掉首次构建的伪"变化"
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    // 应用启动时保存的初始索引（可能 > 0）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final p = context.read<AppProvider>();
+      final initial = _activeIndexFor(p).clamp(0, _pageCountFor(p) - 1);
+      _currentPage = initial;
+      if (_pageController.hasClients && initial != 0) _pageController.jumpToPage(initial);
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  int _pageCountFor(AppProvider p) => p.gameWallMode ? 1 : 4;
+
+  int _activeIndexFor(AppProvider p) => p.gameWallMode ? 0 : p.gameStatusIndex;
+
+  int _modeSignature(AppProvider p) => p.gameWallMode ? 1 : 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWideContent = Breakpoint.isWideContent(context);
+    final provider = context.watch<AppProvider>();
+    final isWallMode = provider.gameWallMode;
+
+    final masterContent = Column(
+      children: [
+        if (!isWallMode) const GameStatusBar(),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildPageView(provider),
+              if (!isWallMode) const TopFadeScrim(),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (!isWideContent) return masterContent;
+
+    final selectedGame = provider.selectedGame;
+    final detailWidget = provider.isAdding && provider.addingType == 3
+        ? GameAddPage(onCancel: () => provider.cancelAdding())
+        : selectedGame != null
+            ? GameDetailPage(game: selectedGame, embedded: true)
+            : const DetailPlaceholder(icon: Icons.sports_esports_outlined, message: '选择一款游戏查看详情');
+    return MasterDetailScaffold(
+      master: masterContent,
+      detail: detailWidget,
+    );
+  }
+
+  Widget _buildPageView(AppProvider provider) {
+    final wall = provider.gameWallMode;
+    final pageCount = _pageCountFor(provider);
+    final mode = wall ? 1 : 0;
+
+    // (a) 首次构建作为基线，不当成模式切换
+    if (!_modeInitialized) {
+      _modeInitialized = true;
+      _lastModeSignature = _modeSignature(provider);
+    }
+    // (b) 模式切换（墙 <-> 状态）：跳到第 0 页 + 重置索引
+    else if (_modeSignature(provider) != _lastModeSignature) {
+      _lastModeSignature = _modeSignature(provider);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _currentPage = 0;
+        _pendingTarget = null;
+        if (!wall) provider.setGameStatusIndex(0);
+        _pageController.jumpToPage(0);
+      });
+    }
+    // (c) 外部索引变化（bar 点击等）：动画跟随
+    final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
+    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && _pendingTarget != target) {
+      _pendingTarget = target;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.animateToPage(
+          target,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
+
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: pageCount,
+      allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
+      onPageChanged: (index) => _onPageChanged(index, provider),
+      itemBuilder: (context, index) => _GameTabView(
+        key: ValueKey('$mode-$index'), // 模式切换时全部重建
+        index: index,
+        mode: mode,
+      ),
+    );
+  }
+
+  void _onPageChanged(int index, AppProvider provider) {
+    _currentPage = index;
+    _pendingTarget = null;
+    final wall = provider.gameWallMode;
+    final cur = wall ? 0 : provider.gameStatusIndex;
+    // 回显守卫：仅在真实拖动导致索引变化时推送，避免死循环
+    if (cur != index) {
+      if (!wall) provider.setGameStatusIndex(index);
+    }
+  }
+}
+
+/// 单页：独立持有列表数据、滚动与分页状态，滑走再滑回保留状态
+class _GameTabView extends StatefulWidget {
+  final int index; // 0..pageCount-1
+  final int mode; // 0=status, 1=wall(墙)
+  const _GameTabView({super.key, required this.index, required this.mode});
+
+  @override
+  State<_GameTabView> createState() => _GameTabViewState();
+}
+
+class _GameTabViewState extends State<_GameTabView>
+    with AutomaticKeepAliveClientMixin {
   final List<Game> _items = [];
   bool _hasMore = true;
   bool _isLoading = false;
   int _offset = 0;
   bool _initialized = false;
-  int _lastStatusIndex = -1;
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
   int _lastEditRefreshCounter = 0;
   int _prevGameCount = -1;
-  int _prevLayoutStyle = -1;
   int _prevSortMode = -1;
-  double _swipeOffset = 0.0;
 
-  static const _statusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
+  String? get _status => widget.mode == 0 ? _gameStatusMap[widget.index] : null;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -47,9 +188,13 @@ class _GameTabPageState extends State<GameTabPage> {
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final provider = context.read<AppProvider>();
-      _provider = provider;
-      provider.addListener(_onDataChanged);
+      final p = context.read<AppProvider>();
+      _provider = p;
+      _lastEditRefreshCounter = p.editRefreshCounter;
+      _lastScrollSignal = p.scrollToTopSignal;
+      _prevGameCount = p.games.length;
+      _prevSortMode = UserPrefs().gameSortMode;
+      p.addListener(_onDataChanged);
       _loadFirst();
     });
   }
@@ -63,34 +208,28 @@ class _GameTabPageState extends State<GameTabPage> {
 
   void _onDataChanged() {
     if (!_initialized || !mounted) return;
-    final provider = context.read<AppProvider>();
+    final p = context.read<AppProvider>();
 
-    if (provider.scrollToTopSignal != _lastScrollSignal && provider.scrollToTopSignal > 0) {
-      _lastScrollSignal = provider.scrollToTopSignal;
+    // 回到顶部信号：每页滚自己的 controller
+    if (p.scrollToTopSignal != _lastScrollSignal) {
+      _lastScrollSignal = p.scrollToTopSignal;
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        _scrollController.animateTo(0,
+            duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     }
 
-    final statusChanged = provider.gameStatusIndex != _lastStatusIndex;
-    final layoutChanged = provider.gameLayoutStyle != _prevLayoutStyle;
-    final countChanged = provider.games.length != _prevGameCount;
-    final sortModeChanged = UserPrefs().gameSortMode != _prevSortMode;
-    final editRefreshed = provider.editRefreshCounter > _lastEditRefreshCounter;
-    if (editRefreshed && provider.lastEditedItemId != null) {
-      _lastEditRefreshCounter = provider.editRefreshCounter;
-      _prevGameCount = provider.games.length;
-      final editedId = provider.lastEditedItemId!;
-      final idx = _items.indexWhere((g) => g.id == editedId);
-      final updated = provider.games.where((g) => g.id == editedId).firstOrNull;
+    // 就地编辑：更新本页匹配项；状态变更则移出本页，不重置分页
+    if (p.editRefreshCounter > _lastEditRefreshCounter && p.lastEditedItemId != null) {
+      _lastEditRefreshCounter = p.editRefreshCounter;
+      _prevGameCount = p.games.length;
+      final id = p.lastEditedItemId!;
+      final idx = _items.indexWhere((g) => g.id == id);
+      final updated = p.games.where((g) => g.id == id).firstOrNull;
       if (updated != null) {
-        final isWallMode = provider.gameWallMode;
-        final currentStatus = isWallMode ? null : (_statusMap[provider.gameStatusIndex] ?? 'completed');
-        if (currentStatus != null && updated.status != currentStatus) {
+        if (_status != null && updated.status != _status) {
           // 状态已变更，从当前列表移除
-          if (idx != -1) {
-            setState(() { _items.removeAt(idx); });
-          }
+          if (idx != -1) setState(() { _items.removeAt(idx); });
         } else if (idx != -1) {
           setState(() { _items[idx] = updated; });
         }
@@ -100,14 +239,14 @@ class _GameTabPageState extends State<GameTabPage> {
       }
       return;
     }
-    if (statusChanged || layoutChanged || sortModeChanged || countChanged || editRefreshed) {
-      _prevLayoutStyle = provider.gameLayoutStyle;
+
+    // 排序/数量变化才重新拉取（布局变化由 context.select 原地重渲染）
+    final sortChanged = UserPrefs().gameSortMode != _prevSortMode;
+    final countChanged = p.games.length != _prevGameCount;
+    if (sortChanged || countChanged) {
       _prevSortMode = UserPrefs().gameSortMode;
-      _prevGameCount = provider.games.length;
+      _prevGameCount = p.games.length;
       _loadFirst();
-    }
-    if (editRefreshed) {
-      _lastEditRefreshCounter = provider.editRefreshCounter;
     }
   }
 
@@ -119,14 +258,10 @@ class _GameTabPageState extends State<GameTabPage> {
 
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
-    final isWallMode = provider.gameWallMode;
-    final statusIdx = provider.gameStatusIndex;
-    _lastStatusIndex = statusIdx;
-    _initialized = true;
-    final status = isWallMode ? null : (_statusMap[statusIdx] ?? 'completed');
     final sortMode = UserPrefs().gameSortMode;
+    _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadGamesPaged(status: status, offset: 0, sortMode: sortMode);
+    final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
       _items.clear();
@@ -141,10 +276,8 @@ class _GameTabPageState extends State<GameTabPage> {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
-    final isWallMode = provider.gameWallMode;
-    final status = isWallMode ? null : (_statusMap[provider.gameStatusIndex] ?? 'completed');
     final sortMode = UserPrefs().gameSortMode;
-    final list = await provider.loadGamesPaged(status: status, offset: _offset, sortMode: sortMode);
+    final list = await provider.loadGamesPaged(status: _status, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
       _items.addAll(list);
@@ -170,95 +303,35 @@ class _GameTabPageState extends State<GameTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isWideContent = Breakpoint.isWideContent(context);
-    final provider = context.watch<AppProvider>();
-    final isWallMode = provider.gameWallMode;
-
-    final masterContent = Column(
-      children: [
-        if (!isWallMode) const GameStatusBar(),
-        Expanded(
-          child: Stack(
-            children: [
-              _buildBody(context),
-              if (!isWallMode) const TopFadeScrim(),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    if (!isWideContent) return masterContent;
-
-    final selectedGame = provider.selectedGame;
-    final detailWidget = provider.isAdding && provider.addingType == 3
-        ? GameAddPage(onCancel: () => provider.cancelAdding())
-        : selectedGame != null
-            ? GameDetailPage(game: selectedGame, embedded: true)
-            : const DetailPlaceholder(icon: Icons.sports_esports_outlined, message: '选择一款游戏查看详情');
-    return MasterDetailScaffold(
-      master: masterContent,
-      detail: detailWidget,
-    );
-  }
-
-  Widget _buildBody(BuildContext context) {
+    super.build(context);
     final colors = Theme.of(context).colorScheme;
-    return Consumer<AppProvider>(
-      builder: (context, provider, _) {
-        if (_initialized && provider.gameStatusIndex != _lastStatusIndex) {
-          _lastStatusIndex = provider.gameStatusIndex;
-          WidgetsBinding.instance.addPostFrameCallback((_) => _loadFirst());
-        }
+    final layoutStyle = context.select<AppProvider, int>((p) => p.gameLayoutStyle);
 
-        final content = () {
-          if (_items.isEmpty && _isLoading) return _buildSkeleton();
-          if (_items.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              color: colors.primary,
-              backgroundColor: colors.surface,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [_buildEmptyState(context, provider.gameStatusIndex)],
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            color: colors.primary,
-            backgroundColor: colors.surface,
-            child: provider.gameLayoutStyle == 1 ? _buildListView() : provider.gameLayoutStyle == 2 ? _buildCoverCardView() : _buildGridView(),
-          );
-        }();
-
-        return GestureDetector(
-          onHorizontalDragStart: (_) => _swipeOffset = 0.0,
-          onHorizontalDragUpdate: (details) => setState(() => _swipeOffset += details.primaryDelta ?? 0),
-          onHorizontalDragEnd: (details) {
-            final velocity = details.primaryVelocity;
-            if ((velocity ?? 0).abs() < 80) {
-              setState(() => _swipeOffset = 0.0);
-              return;
-            }
-            final direction = (velocity ?? 0) > 0 ? -1 : 1;
-            final currentIndex = provider.gameStatusIndex;
-            final newIndex = (currentIndex + direction + 4) % 4;
-            setState(() => _swipeOffset = 0.0);
-            provider.setGameStatusIndex(newIndex);
-          },
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: _swipeOffset.clamp(-100.0, 100.0)),
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            builder: (context, value, child) {
-              return Transform.translate(offset: Offset(value, 0), child: child);
-            },
-            child: content,
+    final content = () {
+      if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
+      if (_items.isEmpty) {
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          color: colors.primary,
+          backgroundColor: colors.surface,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [_buildEmptyState()],
           ),
         );
-      },
-    );
+      }
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        color: colors.primary,
+        backgroundColor: colors.surface,
+        child: layoutStyle == 1
+            ? _buildListView()
+            : layoutStyle == 2
+                ? _buildCoverCardView()
+                : _buildGridView(),
+      );
+    }();
+    return content;
   }
 
   Widget _buildGridView() {
@@ -475,8 +548,7 @@ class _GameTabPageState extends State<GameTabPage> {
     );
   }
 
-  Widget _buildSkeleton() {
-    final layoutStyle = context.read<AppProvider>().gameLayoutStyle;
+  Widget _buildSkeleton(int layoutStyle) {
     if (layoutStyle == 1) return _buildListSkeleton();
     if (layoutStyle == 2) return _buildCoverCardSkeleton();
     return const GameSkeletonGrid();
@@ -502,17 +574,16 @@ class _GameTabPageState extends State<GameTabPage> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, int statusIndex) {
+  Widget _buildEmptyState() {
     final colors = Theme.of(context).colorScheme;
-    final provider = context.read<AppProvider>();
-    final isWallMode = provider.gameWallMode;
-    final statusText = isWallMode ? '' : ['已通关', '在玩', '想玩', '弃游'][statusIndex];
+    final statusText = widget.mode == 1 ? '' : ['已通关', '在玩', '想玩', '弃游'][widget.index];
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.sports_esports_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
-      Text(isWallMode ? '暂无游戏' : '暂无$statusText的游戏', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(widget.mode == 1 ? '暂无游戏' : '暂无$statusText的游戏',
+          style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));
   }
 }

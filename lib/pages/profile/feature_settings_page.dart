@@ -336,7 +336,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.auto_stories_outlined, 'EPUB阅读', 'EPUB 电子书阅读器', _showEpub,
+              Icons.auto_stories_outlined, '阅读', 'EPUB 电子书阅读器', _showEpub,
               (v) async {
             await _userPrefs.setShowSidebarEpub(v);
             setState(() => _showEpub = v);
