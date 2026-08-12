@@ -170,9 +170,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
     if (Breakpoint.isDesktop(context)) {
       return _buildDesktopStyle(game, colors);
     }
-    return _detailStyle == 1
-        ? _buildOverlayStyle(game, colors)
-        : _buildStandardStyle(game, colors);
+    return switch (_detailStyle) {
+      1 => _buildOverlayStyle(game, colors),
+      2 => _buildMinimalLayeredStyle(game, colors),
+      _ => _buildStandardStyle(game, colors),
+    };
   }
 
   /// 桌面端左右分栏布局
@@ -1206,6 +1208,257 @@ class _GameDetailPageState extends State<GameDetailPage> {
     );
   }
 
+  /// 浅色极简层叠样式：封面卡片 + 浅色信息卡片层叠（无毛玻璃）
+  Widget _buildMinimalLayeredStyle(Game game, ColorScheme colors) {
+    final safeTop = MediaQuery.of(context).padding.top;
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Stack(
+        children: [
+          // 整体可滚动（封面卡片 + 内容一起滑动）
+          Padding(
+            padding: EdgeInsets.only(top: safeTop + 48),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: _buildLayeredCover(game)),
+                  const SizedBox(height: 20),
+                  _buildLayeredHeader(game),
+                  const SizedBox(height: 20),
+                  if (game.platforms.isNotEmpty)
+                    _buildLayeredInfoRow('平台', game.platforms.join('、'), colors),
+                  if (game.versions.isNotEmpty)
+                    _buildLayeredInfoRow('版本', game.versions.join('、'), colors),
+                  if (game.genres.isNotEmpty)
+                    _buildLayeredGenres(game),
+                  if (game.developer.isNotEmpty)
+                    _buildLayeredInfoRow('开发者', game.developer.join('、'), colors),
+                  if (game.releaseDate != null)
+                    _buildLayeredInfoRow('发售时间', _formatDate(game.releaseDate!), colors),
+                  if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
+                    _buildLayeredInfoRow('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟', colors),
+                  if (game.playCount > 0)
+                    _buildLayeredInfoRow('游玩次数', '${game.playCount} 次', colors),
+                  if (game.purchasePlatforms.isNotEmpty)
+                    _buildLayeredInfoRow('购买平台', game.purchasePlatforms.join('、'), colors),
+                  if (game.purchaseDate != null)
+                    _buildLayeredInfoRow('购买时间', _formatDate(game.purchaseDate!), colors),
+                  if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
+                    _buildLayeredInfoRow('购买价格', game.purchasePrice!, colors),
+                  CharacterPreviewSection(
+                    characters: _characters,
+                    onTap: _openCharacterSheet,
+                  ),
+                  WorkPeopleSection(workId: game.id, workType: 'game'),
+                  if (game.summary != null && game.summary!.isNotEmpty)
+                    _buildLayeredSummary(game),
+                  const SizedBox(height: 20),
+                  _buildLayeredExtraSections(game),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: Container(
+              padding: EdgeInsets.only(top: safeTop),
+              color: colors.surface,
+              child: SizedBox(
+                height: 48,
+                child: Row(children: [
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: widget.embedded
+                        ? Icon(Icons.arrow_back, color: colors.onSurface, size: 18)
+                        : Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
+                    onPressed: widget.embedded
+                        ? () => context.read<AppProvider>().selectGame(null)
+                        : () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(game.title,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.tune, color: colors.onSurface, size: 20),
+                    tooltip: '切换样式',
+                    onPressed: _showStylePicker,
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(game)),
+        ],
+      ),
+    );
+  }
+
+  /// 浅色极简：居中封面卡片
+  Widget _buildLayeredCover(Game game) {
+    final colors = Theme.of(context).colorScheme;
+    final hasCover = game.coverPath != null && game.coverPath!.isNotEmpty;
+    return Container(
+      width: 160, height: 230,
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: hasCover
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 20, offset: const Offset(0, 8))]
+            : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: hasCover
+          ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
+          : Center(child: Icon(Icons.sports_esports_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
+    );
+  }
+
+  /// 浅色极简：居中标题 + 评分/状态/分类
+  Widget _buildLayeredHeader(Game game) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Text(game.title,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3)),
+        if (game.genres.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(game.genres.join(' / '),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+        ],
+        const SizedBox(height: 12),
+        Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          if (game.rating != null) ...[
+            const Icon(Icons.star, size: 20, color: Colors.amber),
+            const SizedBox(width: 4),
+            Text(game.rating!.toStringAsFixed(1),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          ],
+          _buildStatusTag(game),
+          _buildCategoryTag(game),
+        ]),
+      ],
+    );
+  }
+
+  /// 浅色极简：信息卡片（平台/版本/开发者/发售时间等）
+  Widget _buildLayeredInfoRow(String label, String value, ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 72, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
+        ],
+      ),
+    );
+  }
+
+  /// 浅色极简：类型卡片
+  Widget _buildLayeredGenres(Game game) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 72, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(child: Wrap(spacing: 8, runSpacing: 8,
+            children: game.genres.map((g) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
+              child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+            )).toList(),
+          )),
+        ],
+      ),
+    );
+  }
+
+  /// 浅色极简：简介卡片
+  Widget _buildLayeredSummary(Game game) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 4, height: 14, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 8),
+          Text('游戏简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        ]),
+        const SizedBox(height: 12),
+        Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+      ]),
+    );
+  }
+
+  /// 浅色极简：更多（评价/截图/角色）
+  Widget _buildLayeredExtraSections(Game game) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.rate_review_outlined,
+        title: '游戏评价',
+        subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
+        emptyText: '暂无评价',
+        unit: '条评价',
+        onTap: () => _navigateToReviews(game),
+      ),
+      const SizedBox(height: 10),
+      _buildExtraSectionItem(
+        icon: Icons.photo_library_outlined,
+        title: '游戏截图',
+        subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
+        emptyText: '暂无截图',
+        unit: '张截图',
+        onTap: () => _navigateToScreenshots(game),
+      ),
+      const SizedBox(height: 10),
+      _buildExtraSectionItem(
+        icon: Icons.people_outline,
+        title: '角色',
+        subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
+        emptyText: '暂无角色',
+        unit: '个角色',
+        onTap: () => _navigateToCharacters(game),
+      ),
+    ]);
+  }
+
   Widget _buildOverlayHeader(Game game) {
     final hasCover = game.coverPath != null && game.coverPath!.isNotEmpty;
     return Row(
@@ -1870,9 +2123,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
   void _showStylePicker() {
     final colors = Theme.of(context).colorScheme;
     final currentStyle = UserPrefs().detailPageStyle;
-    const names = ['默认样式', '毛玻璃层叠'];
-    const icons = [Icons.article_outlined, Icons.blur_on_outlined];
-    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片'];
+    const names = ['默认样式', '毛玻璃层叠', '浅色极简'];
+    const icons = [Icons.article_outlined, Icons.blur_on_outlined, Icons.layers_outlined];
+    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片', '封面卡片 + 浅色信息卡片层叠'];
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
