@@ -33,18 +33,55 @@ class TagDao {
     return results.isNotEmpty ? results.first : null;
   });
 
-  /// 添加标签，返回新标签ID
-  Future<String> addTag(String name, String type) => _wrap('addTag', () async {
+  /// 添加标签，返回新标签ID。可选指定父级分类ID（空串为顶级）
+  Future<String> addTag(String name, String type, {String parentId = ''}) => _wrap('addTag', () async {
     final db = await _dbHelper.database;
     final id = 'tag_${DateTime.now().millisecondsSinceEpoch}';
     await db.insert('tags', {
       'id': id,
       'name': name,
       'type': type,
+      'parent_id': parentId,
       'created_at': DateTime.now().toIso8601String(),
     });
     return id;
   });
+
+  /// 设置标签的父级分类ID（空串表示顶级）。校验父级不能是自身或自己的后代，防止成环
+  Future<bool> setTagParent(String tagId, String parentId) => _wrap('setTagParent', () async {
+    final db = await _dbHelper.database;
+    final tag = await getTagById(tagId);
+    if (tag == null) return false;
+
+    if (parentId.isNotEmpty) {
+      if (parentId == tagId) return false;
+      final type = tag['type'] as String;
+      final descendants = await _collectDescendantIds(db, tagId, type);
+      if (descendants.contains(parentId)) return false;
+    }
+
+    await db.update('tags', {'parent_id': parentId},
+        where: 'id = ?', whereArgs: [tagId]);
+    return true;
+  });
+
+  /// 收集某标签的所有后代ID集合（BFS，用于环校验）
+  Future<Set<String>> _collectDescendantIds(Database db, String tagId, String type) async {
+    final result = <String>{};
+    final queue = <String>[tagId];
+    while (queue.isNotEmpty) {
+      final parent = queue.removeAt(0);
+      final children = await db.query('tags',
+          where: 'type = ? AND parent_id = ?', whereArgs: [type, parent]);
+      for (final child in children) {
+        final id = child['id'] as String;
+        if (result.add(id)) {
+          queue.add(id);
+        }
+      }
+    }
+    return result;
+  }
 
   /// 重命名标签，同时级联更新所有关联条目（事务保护）
   Future<bool> renameTag(String tagId, String newName) => _wrap('renameTag', () async {
@@ -114,6 +151,8 @@ class TagDao {
         }
       }
 
+      await txn.update('tags', {'parent_id': ''},
+          where: 'parent_id = ?', whereArgs: [tagId]);
       await txn.delete('tags', where: 'id = ?', whereArgs: [tagId]);
     });
   });
@@ -121,7 +160,11 @@ class TagDao {
   /// 仅删除标签本身，不级联影响已有条目（标签名保留在条目上）
   Future<void> deleteTagOnly(String tagId) => _wrap('deleteTagOnly', () async {
     final db = await _dbHelper.database;
-    await db.delete('tags', where: 'id = ?', whereArgs: [tagId]);
+    await db.transaction((txn) async {
+      await txn.update('tags', {'parent_id': ''},
+          where: 'parent_id = ?', whereArgs: [tagId]);
+      await txn.delete('tags', where: 'id = ?', whereArgs: [tagId]);
+    });
   });
 
   /// 切换标签的隐藏状态

@@ -1170,10 +1170,17 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String> addTag(String name, String type) async {
-    final id = await _tagDao.addTag(name, type);
+  Future<String> addTag(String name, String type, {String parentId = ''}) async {
+    final id = await _tagDao.addTag(name, type, parentId: parentId);
     await _reloadByTagType(type);
     return id;
+  }
+
+  /// 设置标签的父级分类ID（空串表示顶级）
+  Future<bool> setTagParent(String tagId, String type, String parentId) async {
+    final result = await _tagDao.setTagParent(tagId, parentId);
+    await _reloadByTagType(type);
+    return result;
   }
 
   Future<bool> renameTag(String tagId, String newName, String type) async {

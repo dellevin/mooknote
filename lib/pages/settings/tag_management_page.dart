@@ -25,7 +25,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
   String _searchQuery = '';
   final _searchController = TextEditingController();
   bool _showTypePicker = false;
-  int _selectedGroup = 0; // 0=已使用, 1=未使用, 2=隐藏
+  final Set<String> _collapsedIds = {}; // 已折叠的标签ID（默认展开）
 
   @override
   void initState() {
@@ -236,20 +236,17 @@ class _TagManagementPageState extends State<TagManagementPage> {
       );
     }
 
-    // 分组模式
-    final used = <Map<String, dynamic>>[];
-    final unused = <Map<String, dynamic>>[];
-    final hidden = <Map<String, dynamic>>[];
+    // 树形模式：按 parent_id 构建层级
+    final childrenByParent = _groupByParent(tags);
+    final roots = childrenByParent[''] ?? [];
+    // 兜底：父级不在标签集合中的节点也作为根显示，避免标签丢失
+    final allIds = tags.map((t) => t['id'] as String).toSet();
     for (final t in tags) {
-      if ((t['is_hidden'] as int?) == 1) { hidden.add(t); continue; }
-      if ((_usageCounts[t['name']] ?? 0) > 0) { used.add(t); continue; }
-      unused.add(t);
+      final pid = (t['parent_id'] as String?) ?? '';
+      if (pid.isNotEmpty && !allIds.contains(pid) && !roots.any((r) => r['id'] == t['id'])) {
+        roots.add(t);
+      }
     }
-    used.sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
-
-    final groups = [used, unused, hidden];
-    final groupLabels = ['已使用', '未使用', '隐藏'];
-    final currentGroup = groups[_selectedGroup];
 
     return SingleChildScrollView(
       key: ValueKey(type),
@@ -258,65 +255,173 @@ class _TagManagementPageState extends State<TagManagementPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSearchBar(colors),
-          // 分组切换Tab
-          Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 12),
-            child: Row(
-              children: [
-                _buildGroupTab(Icons.check_circle_outline, '已使用', used.length, 0, colors),
-                const SizedBox(width: 8),
-                _buildGroupTab(Icons.radio_button_unchecked, '未使用', unused.length, 1, colors),
-                const SizedBox(width: 8),
-                _buildGroupTab(Icons.visibility_off_outlined, '隐藏', hidden.length, 2, colors),
-              ],
-            ),
-          ),
-          if (currentGroup.isEmpty)
-            _buildEmptyGroup('暂无${groupLabels[_selectedGroup]}标签', colors)
+          const SizedBox(height: 8),
+          if (roots.isEmpty)
+            _buildEmptyGroup('暂无标签', colors)
           else
-            Wrap(spacing: 8, runSpacing: 6, children: currentGroup.map(_buildTagChip).toList()),
+            ..._buildTreeNodes(roots, childrenByParent, 0),
         ],
       ),
     );
   }
 
-  Widget _buildGroupTab(IconData icon, String label, int count, int index, ColorScheme colors) {
-    final selected = _selectedGroup == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedGroup = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-          decoration: BoxDecoration(
-            color: selected ? colors.primary : colors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? colors.primary : colors.outlineVariant,
-              width: selected ? 1 : 0.5,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
-              const SizedBox(width: 4),
-              Text(label, style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
-              )),
-              const SizedBox(width: 4),
-              Text('$count', style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.35),
-              )),
-            ],
+  /// 按 parent_id 将标签分组
+  Map<String, List<Map<String, dynamic>>> _groupByParent(List<Map<String, dynamic>> tags) {
+    final map = <String, List<Map<String, dynamic>>>{};
+    for (final t in tags) {
+      final parent = (t['parent_id'] as String?) ?? '';
+      map.putIfAbsent(parent, () => []).add(t);
+    }
+    return map;
+  }
+
+  /// 递归构建树节点列表
+  List<Widget> _buildTreeNodes(
+    List<Map<String, dynamic>> nodes,
+    Map<String, List<Map<String, dynamic>>> childrenByParent,
+    int depth,
+  ) {
+    final result = <Widget>[];
+    for (final tag in nodes) {
+      final id = tag['id'] as String;
+      final sub = childrenByParent[id] ?? [];
+      result.add(_buildTagRow(tag, sub, depth));
+      if (sub.isNotEmpty && !_collapsedIds.contains(id)) {
+        result.addAll(_buildTreeNodes(sub, childrenByParent, depth + 1));
+      }
+    }
+    return result;
+  }
+
+  Widget _buildTagRow(Map<String, dynamic> tag, List<Map<String, dynamic>> children, int depth) {
+    final colors = Theme.of(context).colorScheme;
+    final id = tag['id'] as String;
+    final name = tag['name'] as String;
+    final count = _usageCounts[name] ?? 0;
+    final isHidden = (tag['is_hidden'] as int?) == 1;
+    final isNew = id == _newlyAddedTagId;
+    final hasChildren = children.isNotEmpty;
+    final collapsed = _collapsedIds.contains(id);
+
+    final rowContent = Row(
+      children: [
+        SizedBox(width: depth * 20.0),
+        // 展开/收起箭头
+        SizedBox(
+          width: 28,
+          height: 44,
+          child: Center(
+            child: hasChildren
+                ? GestureDetector(
+                    onTap: () => setState(() {
+                          if (collapsed) {
+                            _collapsedIds.remove(id);
+                          } else {
+                            _collapsedIds.add(id);
+                          }
+                        }),
+                    child: Icon(
+                      collapsed ? Icons.chevron_right : Icons.expand_more,
+                      size: 20,
+                      color: colors.onSurface.withValues(alpha: 0.4),
+                    ),
+                  )
+                : Icon(Icons.circle, size: 4, color: colors.onSurface.withValues(alpha: 0.15)),
           ),
         ),
+        // 标签主体（点击打开菜单，长按拖拽移动分类）
+        Expanded(
+          child: GestureDetector(
+            key: ValueKey(id),
+            onTap: () => _showTagMenu(tag),
+            child: Opacity(
+              opacity: isHidden ? 0.4 : 1.0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: isNew
+                    ? _NewTagHighlight(child: _rowContent(name, count, colors, isHidden: isHidden))
+                    : _rowContent(name, count, colors, isHidden: isHidden),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // 拖动目标：把拖来的标签设为当前标签的子级
+    return DragTarget<Map<String, dynamic>>(
+      onWillAcceptWithDetails: (details) => _canDropOn(details.data, tag),
+      onAcceptWithDetails: (details) => _doDragMove(details.data, tag),
+      builder: (context, candidates, rejected) {
+        final isTarget = candidates.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            color: isTarget ? colors.primary.withValues(alpha: 0.08) : Colors.transparent,
+            border: depth == 0
+                ? Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))
+                : null,
+          ),
+          child: LongPressDraggable<Map<String, dynamic>>(
+            data: tag,
+            feedback: _dragFeedback(name, colors),
+            childWhenDragging: Opacity(opacity: 0.3, child: rowContent),
+            child: rowContent,
+          ),
+        );
+      },
+    );
+  }
+
+  /// 是否允许把 [dragged] 拖到 [target] 下（排除自身与成环）
+  bool _canDropOn(Map<String, dynamic> dragged, Map<String, dynamic> target) {
+    final draggedId = dragged['id'] as String;
+    final targetId = target['id'] as String;
+    if (draggedId == targetId) return false;
+    final allTags = _tagCache[target['type'] as String] ?? [];
+    final descendants = _collectDescendants(allTags, draggedId);
+    return !descendants.contains(targetId);
+  }
+
+  Future<void> _doDragMove(Map<String, dynamic> dragged, Map<String, dynamic> target) async {
+    final type = dragged['type'] as String;
+    final success = await context.read<AppProvider>().setTagParent(
+        dragged['id'] as String, type, target['id'] as String);
+    if (mounted) {
+      if (success) ToastUtil.show(context, '已移动到「${target['name']}」');
+      await _loadTags(type);
+    }
+  }
+
+  Widget _dragFeedback(String name, ColorScheme colors) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: colors.primary,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onPrimary)),
       ),
+    );
+  }
+
+  Widget _rowContent(String name, int count, ColorScheme colors, {bool isHidden = false}) {
+    return Row(
+      children: [
+        Flexible(
+          child: Text(name, style: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface,
+            decoration: isHidden ? TextDecoration.lineThrough : null,
+          )),
+        ),
+        if (count > 0) ...[
+          const SizedBox(width: 6),
+          Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.35))),
+        ],
+      ],
     );
   }
 
@@ -497,6 +602,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
                     await _loadTags(_currentType);
                   },
                 ),
+                _menuAction(Icons.drive_file_move_outlined, '移动到分类', colors, () {
+                  Navigator.pop(ctx);
+                  _showMoveDialog(tag);
+                }),
                 _menuAction(Icons.open_in_new_outlined, '查看相关${_typeLabels[_currentIndex].replaceAll('类型', '').replaceAll('标签', '')}', colors, () {
                   Navigator.pop(ctx);
                   _showTagItems(name);
@@ -607,6 +716,116 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   ),
                 );
               }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── 移动到分类 ─────────────────────────────────────────────────────────
+
+  Set<String> _collectDescendants(List<Map<String, dynamic>> allTags, String tagId) {
+    final result = <String>{};
+    final queue = <String>[tagId];
+    while (queue.isNotEmpty) {
+      final parent = queue.removeAt(0);
+      for (final t in allTags) {
+        if ((t['parent_id'] as String?) == parent) {
+          final id = t['id'] as String;
+          if (result.add(id)) queue.add(id);
+        }
+      }
+    }
+    return result;
+  }
+
+  void _showMoveDialog(Map<String, dynamic> tag) {
+    final colors = Theme.of(context).colorScheme;
+    final tagId = tag['id'] as String;
+    final type = tag['type'] as String;
+    final name = tag['name'] as String;
+    final currentParent = (tag['parent_id'] as String?) ?? '';
+
+    final allTags = _tagCache[type] ?? [];
+    final descendants = _collectDescendants(allTags, tagId);
+    final candidates = allTags
+        .where((t) => (t['id'] as String) != tagId && !descendants.contains(t['id'] as String))
+        .toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(child: Container(
+              width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
+            )),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text('将「$name」移动到', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            ),
+            const SizedBox(height: 8),
+            _moveOption(
+              colors,
+              icon: Icons.home_outlined,
+              title: '顶级（无父级）',
+              selected: currentParent.isEmpty,
+              onTap: () => _doMoveParent(ctx, tagId, type, ''),
+            ),
+            const SizedBox(height: 4),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 16),
+                children: candidates.map((c) => _moveOption(
+                  colors,
+                  icon: Icons.folder_outlined,
+                  title: c['name'] as String,
+                  selected: c['id'] == currentParent,
+                  onTap: () => _doMoveParent(ctx, tagId, type, c['id'] as String),
+                )).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _doMoveParent(BuildContext ctx, String tagId, String type, String parentId) async {
+    final success = await context.read<AppProvider>().setTagParent(tagId, type, parentId);
+    if (ctx.mounted) {
+      Navigator.pop(ctx);
+      ToastUtil.show(context, success ? '移动成功' : '无法移动到该分类');
+    }
+    await _loadTags(type);
+  }
+
+  Widget _moveOption(
+    ColorScheme colors, {
+    required IconData icon,
+    required String title,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.5)),
+            const SizedBox(width: 14),
+            Expanded(child: Text(title, style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w500,
+              color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.7),
+            ))),
+            if (selected) Icon(Icons.check, size: 18, color: colors.primary),
           ],
         ),
       ),

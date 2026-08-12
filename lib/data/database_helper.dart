@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 41,
+      version: 42,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -418,6 +418,17 @@ class DatabaseHelper {
       final movieCols = await db.rawQuery('PRAGMA table_info(movies)');
       if (!movieCols.any((col) => col['name'] == 'duration')) {
         await db.execute('ALTER TABLE movies ADD COLUMN duration INTEGER DEFAULT 0');
+      }
+    }
+    if (oldVersion < 42) {
+      // 标签表添加父级分类字段（分级分类）
+      try {
+        final tagCols = await db.rawQuery('PRAGMA table_info(tags)');
+        if (!tagCols.any((col) => col['name'] == 'parent_id')) {
+          await db.execute("ALTER TABLE tags ADD COLUMN parent_id TEXT DEFAULT ''");
+        }
+      } catch (e) {
+        debugPrint('Migration v42 failed: $e');
       }
     }
   }
@@ -924,6 +935,7 @@ class DatabaseHelper {
         type TEXT NOT NULL,
         created_at TEXT NOT NULL,
         is_hidden INTEGER NOT NULL DEFAULT 0,
+        parent_id TEXT DEFAULT '',
         UNIQUE(name, type)
       )
     ''');
