@@ -185,16 +185,7 @@ class _GameFormPageState extends State<GameFormPage> {
                       value: _titleController.text,
                       required: true,
                       icon: Icons.sports_esports_outlined,
-                      onTap: () async {
-                        final result = await TextInputPanel.show(
-                          context: context,
-                          title: '游戏名称',
-                          initialValue: _titleController.text,
-                          hint: '请输入游戏名称',
-                        );
-                        if (!mounted) return;
-                        if (result != null) setState(() => _titleController.text = result);
-                      },
+                      onTap: _editTitle,
                     ),
                   ),
                   // 平台
@@ -1005,6 +996,55 @@ class _GameFormPageState extends State<GameFormPage> {
     } finally {
       if (mounted) setState(() => _isDownloading = false);
     }
+  }
+
+  /// 编辑游戏名称（弹窗）
+  Future<void> _editTitle() async {
+    final controller = TextEditingController(text: _titleController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('游戏名称', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: TextStyle(fontSize: 15, color: colors.onSurface),
+            decoration: InputDecoration(
+              hintText: '请输入游戏名称',
+              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+              filled: true,
+              fillColor: colors.surfaceContainerHigh,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
+    if (!mounted) return;
+    if (result != null) setState(() => _titleController.text = result.trim());
   }
 
   Future<void> _editPlayCount() async {

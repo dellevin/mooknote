@@ -359,10 +359,6 @@ class UserPrefs {
   double get epubFontSize => prefs.getDouble('epubFontSize') ?? 18.0;
   Future<bool> setEpubFontSize(double value) => prefs.setDouble('epubFontSize', value);
 
-  /// EPUB 书架视图模式: 0=宽松, 1=紧凑
-  int get epubViewMode => prefs.getInt('epubViewMode') ?? 0;
-  Future<bool> setEpubViewMode(int value) => prefs.setInt('epubViewMode', value);
-
   /// EPUB 书架排序模式: 0=更新时间, 1=创建时间, 2=阅读进度, 3=书名
   int get epubSortMode => prefs.getInt('epubSortMode') ?? 0;
   Future<bool> setEpubSortMode(int value) => prefs.setInt('epubSortMode', value);

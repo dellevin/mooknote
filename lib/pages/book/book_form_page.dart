@@ -14,6 +14,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/text_input_panel.dart';
+import '../../widgets/alternate_titles_dialog.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -158,18 +159,10 @@ class _BookFormPageState extends State<BookFormPage> {
                 children: [
                   // 第一行：书名 + 别名
                   _halfCard('书名', _titleController.text, Icons.book_outlined, required: true,
-                    onTap: () async {
-                      final r = await TextInputPanel.show(context: context, title: '书名', initialValue: _titleController.text, hint: '请输入书名');
-                      if (!mounted) return;
-                      if (r != null) setState(() => _titleController.text = r);
-                    },
+                    onTap: () => _editTitle(),
                   ),
                   _halfCard('别名', _alternateTitles.isEmpty ? '' : '${_alternateTitles.length}个：${_alternateTitles.join('、')}', Icons.alternate_email_outlined,
-                    onTap: () async {
-                      final r = await GenreSelectorPage.show(context: context, title: '添加别名', existingTags: [], initialSelected: _alternateTitles, hint: '输入别名');
-                      if (!mounted) return;
-                      if (r != null) setState(() => _alternateTitles = r);
-                    },
+                    onTap: () => _editAlternateTitles(),
                   ),
 
                   // 第二行：作者 + 译者
@@ -570,6 +563,65 @@ class _BookFormPageState extends State<BookFormPage> {
   }
 
   // ─── 数据操作 ───
+
+  /// 编辑书名（弹窗）
+  Future<void> _editTitle() async {
+    final controller = TextEditingController(text: _titleController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('书名', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: TextStyle(fontSize: 15, color: colors.onSurface),
+            decoration: InputDecoration(
+              hintText: '请输入书名',
+              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+              filled: true,
+              fillColor: colors.surfaceContainerHigh,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
+    if (!mounted) return;
+    if (result != null) setState(() => _titleController.text = result.trim());
+  }
+
+  /// 编辑别名（弹窗 + 标签式输入）
+  Future<void> _editAlternateTitles() async {
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (ctx) => AlternateTitlesDialog(initial: _alternateTitles),
+    );
+    if (!mounted) return;
+    if (result != null) setState(() => _alternateTitles = result);
+  }
 
   Future<void> _selectPublishDate() async {
     final picked = await showDatePicker(context: context, initialDate: _publishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));

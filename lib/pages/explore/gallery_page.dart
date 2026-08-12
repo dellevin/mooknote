@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/gallery/gallery_dao.dart';
@@ -180,17 +182,11 @@ class _GalleryPageState extends State<GalleryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 图片
-          AspectRatio(
-            aspectRatio: _aspectRatioFor(item.category),
-            child: FadeInLocalImage(
-              path: item.path,
-              fit: BoxFit.cover,
-              errorWidget: Container(
-                color: colors.surfaceContainerHighest,
-                child: Icon(Icons.broken_image_outlined, color: colors.onSurface.withValues(alpha: 0.3)),
-              ),
-            ),
+          // 图片（按真实比例显示）
+          _GalleryImageCard(
+            path: item.path,
+            fallbackAspectRatio: _aspectRatioFor(item.category),
+            colors: colors,
           ),
           const SizedBox(height: 8),
           // 类别标签
@@ -228,7 +224,7 @@ class _GalleryPageState extends State<GalleryPage> {
     );
   }
 
-  /// 不同类别用不同宽高比，让瀑布流有错落感
+  /// 不同类别用作加载占位的默认宽高比；图片真实尺寸读出后会被覆盖
   double _aspectRatioFor(String category) {
     switch (category) {
       case 'movie_poster':
@@ -261,6 +257,82 @@ class _GalleryPageState extends State<GalleryPage> {
         onSelected: (_) => setState(() => _selectedCategory = selected ? null : category),
         showCheckmark: false,
         padding: const EdgeInsets.symmetric(horizontal: 4),
+      ),
+    );
+  }
+}
+
+/// 读取本地图片真实宽高，按真实比例显示；未读出前用 fallback 占位。
+class _GalleryImageCard extends StatefulWidget {
+  final String path;
+  final double fallbackAspectRatio;
+  final ColorScheme colors;
+
+  const _GalleryImageCard({
+    required this.path,
+    required this.fallbackAspectRatio,
+    required this.colors,
+  });
+
+  @override
+  State<_GalleryImageCard> createState() => _GalleryImageCardState();
+}
+
+class _GalleryImageCardState extends State<_GalleryImageCard> {
+  double? _aspectRatio;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveAspectRatio();
+  }
+
+  @override
+  void didUpdateWidget(_GalleryImageCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path) {
+      _aspectRatio = null;
+      _resolveAspectRatio();
+    }
+  }
+
+  Future<void> _resolveAspectRatio() async {
+    final path = widget.path;
+    try {
+      if (path.startsWith('http')) {
+        // 网络图片不解析尺寸，直接用占位比例
+        return;
+      }
+      final file = File(path);
+      if (!await file.exists()) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      final data = Uint8List.fromList(bytes);
+      final decoded = await decodeImageFromList(data);
+      if (!mounted) return;
+      if (decoded.width > 0 && decoded.height > 0) {
+        setState(() => _aspectRatio = decoded.width / decoded.height);
+      }
+    } catch (_) {
+      // 解析失败则保留占位比例
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = _aspectRatio ?? widget.fallbackAspectRatio;
+    return AspectRatio(
+      aspectRatio: ratio,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: FadeInLocalImage(
+          path: widget.path,
+          fit: BoxFit.cover,
+          errorWidget: Container(
+            color: widget.colors.surfaceContainerHighest,
+            child: Icon(Icons.broken_image_outlined, color: widget.colors.onSurface.withValues(alpha: 0.3)),
+          ),
+        ),
       ),
     );
   }

@@ -5,11 +5,9 @@ import '../../data/epub/reader_dao.dart';
 import '../../services/epub/epub_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
-import '../../utils/responsive.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import 'epub_detail_page.dart';
-import 'widgets/book_grid_item.dart';
 
 /// EPUB 书架页面
 class EpubLibraryPage extends StatefulWidget {
@@ -28,7 +26,6 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   bool _isSearching = false;
   final TextEditingController _searchCtrl = TextEditingController();
   int _sortMode = UserPrefs().epubSortMode;
-  int _viewMode = UserPrefs().epubViewMode; // 0=列表 1=网格
 
   @override
   void initState() {
@@ -236,7 +233,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
                 ),
                 onChanged: (_) => _onSearchChanged(),
               )
-            : Text('EPUB 阅读',
+            : Text('阅读',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
         leading: IconButton(
           icon: Icon(_isSearching ? Icons.close : Icons.arrow_back, size: 20),
@@ -262,14 +259,14 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
                         hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
                         border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
                       onChanged: (_) => _onSearchChanged())
-                  : Text('EPUB 阅读',
+                  : Text('阅读',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)))),
               ..._buildActions(colors),
             ]),
           ),
         // 主体
         Expanded(child: _isLoading && _books.isEmpty
-            ? const BookSkeletonGrid()
+            ? _buildSkeletonList(colors)
             : _books.isEmpty
                 ? _buildEmpty(colors)
                 : _filteredBooks.isEmpty
@@ -283,14 +280,14 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     );
   }
 
-  /// 主体内容：书架（列表/网格）
+  /// 主体内容：书架列表
   Widget _buildContent(ColorScheme colors) {
     return CustomScrollView(
       slivers: [
         // 书架分隔标题
         SliverToBoxAdapter(child: _buildSectionHeader(colors)),
-        // 书架列表/网格
-        _viewMode == 0 ? _buildSliverListView(colors) : _buildSliverGrid(colors),
+        // 书架列表
+        _buildSliverListView(colors),
       ],
     );
   }
@@ -312,15 +309,6 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
 
   List<Widget> _buildActions(ColorScheme colors) {
     return [
-      if (!_isSearching)
-        IconButton(
-          icon: Icon(_viewMode == 0 ? Icons.grid_view_outlined : Icons.view_list_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-          tooltip: _viewMode == 0 ? '网格视图' : '列表视图',
-          onPressed: () {
-            setState(() => _viewMode = _viewMode == 0 ? 1 : 0);
-            UserPrefs().setEpubViewMode(_viewMode);
-          },
-        ),
       if (!_isSearching)
         IconButton(
           icon: Icon(Icons.search, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
@@ -355,7 +343,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
                   size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
             ),
             const SizedBox(height: 24),
-            Text('EPUB 阅读',
+            Text('阅读',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const SizedBox(height: 8),
             Text('点击右上角导入 .epub 文件',
@@ -393,31 +381,36 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     );
   }
 
-  Widget _buildSliverGrid(ColorScheme colors) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      sliver: SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final crossAxisCount =
-              responsiveCrossAxisCount(constraints.crossAxisExtent, minItemWidth: 110);
-          return SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              childAspectRatio: 0.55,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 16,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => BookGridItem(
-                book: _filteredBooks[index],
-                viewMode: ViewMode.relaxed,
-                onTap: () => _openBook(_filteredBooks[index]),
-                onLongPress: () => _deleteBook(_filteredBooks[index]),
+  /// 加载骨架列表
+  Widget _buildSkeletonList(ColorScheme colors) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+      itemCount: 8,
+      itemBuilder: (_, __) => Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const ShimmerSkeleton(width: 48, height: 64, borderRadius: 6),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  ShimmerSkeleton(width: double.infinity, height: 15),
+                  SizedBox(height: 8),
+                  ShimmerSkeleton(width: 120, height: 12),
+                  SizedBox(height: 10),
+                  ShimmerSkeleton(width: 60, height: 11),
+                ],
               ),
-              childCount: _filteredBooks.length,
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

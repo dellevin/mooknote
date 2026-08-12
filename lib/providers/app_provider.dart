@@ -1457,6 +1457,11 @@ class AppProvider extends ChangeNotifier {
           final trimmed = name.trim();
           if (trimmed.isEmpty || !seen.add(trimmed)) continue;
           final person = await findOrCreate(trimmed, occupationLabel);
+          // 演员角色：若该影视已存在该人物的配音关联，则跳过添加演员关联
+          if (roleType == 'actor' &&
+              await _moviePersonDao.existsRelation(movie.id, person.id, 'voiceActor')) {
+            continue;
+          }
           if (!await _moviePersonDao.existsRelation(movie.id, person.id, roleType)) {
             await _moviePersonDao.insert(MoviePerson(
               id: uuid.v4(),
