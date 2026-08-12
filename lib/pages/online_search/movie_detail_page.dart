@@ -522,7 +522,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
     return Scaffold(
       backgroundColor: colors.surface,
       floatingActionButton:
-          (!_loading && _error == null && _localMovie == null && _data != null)
+          (!_loading && _error == null && _localMovie == null && _data != null && _currentTab != 2)
               ? FloatingActionButton(
                   onPressed: _showAddSheet,
                   backgroundColor: colors.primary,
