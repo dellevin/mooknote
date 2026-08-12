@@ -97,6 +97,7 @@
 - 数据统计与可视化图表（总览、状态分布、类型偏好、导演 / 作者 Top 5、月度活动日历、星期分布、累计增长曲线）
 - 媒体日历（按日期查看影视 / 书籍添加记录，展示封面缩略图）
 - 人物列表（汇总所有导演、编剧、演员、作者，关联其作品）
+- 角色档案（影视 / 书籍 / 游戏角色统一管理，含人物关系与作品关联）
 - 随机漫步（随机回顾影视 / 书籍 / 笔记内容）
 - 与你相遇（使用天数、总记录数、字数、图片数统计）
 - 回收站（软删除，支持恢复和彻底删除影视、书籍、笔记、游戏、影评、书评、书摘、游戏评测）
@@ -114,6 +115,21 @@
 - **Android** — 主要支持平台
 - **Windows** — 桌面端支持，笔记编辑器使用 Vditor 富文本编辑器
 
+## 技术栈
+
+| 层级 | 技术 |
+| :--- | :--- |
+| 框架 | Flutter 3.5+ / Dart 3.5+ |
+| 状态管理 | Provider（单一 `AppProvider` ChangeNotifier） |
+| 本地存储 | sqflite（`mooknote.db`，已迭代至 v13 迁移链） |
+| 远程同步 | 自建 Flask 服务端 + WebDAV |
+| 图表 | fl_chart |
+| Markdown | flutter_markdown_plus（移动端）/ Vditor（桌面端） |
+| Epub 渲染 | flutter_inappwebview + WebView |
+| 媒体播放 | media_kit |
+| 桌面适配 | window_manager |
+| 动态取色 | dynamic_color（Android 12+ Monet） |
+
 ## 数据存储
 
 - **数据库位置**：`<应用目录>/mooknote.db`
@@ -126,7 +142,7 @@
 
 - Flutter SDK 3.5+
 - Dart SDK 3.5+
-- Android SDK API 21+（Android 端）
+- Android minSdk 21+（Android 端）
 - Python 3.8+（服务端）
 
 ## 快速开始
@@ -173,14 +189,6 @@ flutter build apk --release --target-platform android-arm64
 flutter build appbundle --release
 ```
 
-## 服务端运行
-
-```bash
-cd server
-pip install -r requirements.txt
-python app.py
-# 服务端默认运行在 http://127.0.0.1:27047
-```
 
 ## 影视书籍资源数据对接
 
