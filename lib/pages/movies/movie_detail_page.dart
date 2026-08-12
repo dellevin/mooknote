@@ -1107,7 +1107,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                       isOverlay: true,
                     ),
                     // 关联人物
-                    WorkPeopleSection(workId: movie.id, workType: 'movie'),
+                    WorkPeopleSection(workId: movie.id, workType: 'movie', isOverlay: true),
                     const SizedBox(height: 12),
                     // 简介：内部已有毛玻璃卡片
                     if (movie.summary != null && movie.summary!.isNotEmpty)

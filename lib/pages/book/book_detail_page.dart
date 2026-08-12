@@ -947,7 +947,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           isOverlay: true,
                         ),
                         // 关联人物
-                        WorkPeopleSection(workId: book.id, workType: 'book'),
+                        WorkPeopleSection(workId: book.id, workType: 'book', isOverlay: true),
                         // 简介：内部已有毛玻璃卡片
                         if (book.summary != null && book.summary!.isNotEmpty) ...[
                           const SizedBox(height: 12),

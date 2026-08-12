@@ -1185,7 +1185,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       isOverlay: true,
                     ),
                     // 关联人物
-                    WorkPeopleSection(workId: game.id, workType: 'game'),
+                    WorkPeopleSection(workId: game.id, workType: 'game', isOverlay: true),
                     if (game.summary != null && game.summary!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _buildOverlaySummary(game),

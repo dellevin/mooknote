@@ -11,11 +11,13 @@ import 'person_info_sheet.dart';
 class WorkPeopleSection extends StatefulWidget {
   final String workId;
   final String workType; // 'movie' / 'book' / 'game'
+  final bool isOverlay; // 叠层模式（深色毛玻璃背景）下用白色文字
 
   const WorkPeopleSection({
     super.key,
     required this.workId,
     required this.workType,
+    this.isOverlay = false,
   });
 
   @override
@@ -170,6 +172,8 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
     if (_items.isEmpty) return const SizedBox.shrink();
 
     final colors = Theme.of(context).colorScheme;
+    final primaryColor = widget.isOverlay ? Colors.white : colors.onSurface;
+    final secondaryColor = widget.isOverlay ? Colors.white.withValues(alpha: 0.5) : colors.onSurface.withValues(alpha: 0.4);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -182,7 +186,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
                 width: 4,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: colors.onSurface,
+                  color: primaryColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -192,7 +196,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: colors.onSurface,
+                  color: primaryColor,
                 ),
               ),
             ],
@@ -220,7 +224,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
                   final idx = _items.indexOf(item);
                   return Padding(
                     padding: EdgeInsets.only(left: idx == 0 ? 0 : 16),
-                    child: _buildPersonChip(item, colors),
+                    child: _buildPersonChip(item, primaryColor, secondaryColor),
                   );
                 }).toList(),
               ),
@@ -231,7 +235,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
     );
   }
 
-  Widget _buildPersonChip(_PersonRole item, ColorScheme colors) {
+  Widget _buildPersonChip(_PersonRole item, Color primaryColor, Color secondaryColor) {
     final person = item.person;
     return GestureDetector(
       onTap: () => PersonInfoSheet.show(context, person),
@@ -248,7 +252,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
             const SizedBox(height: 8),
             Text(
               person.name,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurface),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: primaryColor),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -258,7 +262,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
               _buildRoleText(item),
               style: TextStyle(
                 fontSize: 10,
-                color: colors.onSurface.withValues(alpha: 0.4),
+                color: secondaryColor,
                 height: 1.3,
               ),
               maxLines: 2,

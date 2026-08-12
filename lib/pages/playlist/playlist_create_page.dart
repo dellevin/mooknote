@@ -15,15 +15,16 @@ class PlaylistCreatePage extends StatefulWidget {
 class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
   late final TextEditingController _nameController;
   late final TextEditingController _descController;
+  final FocusNode _nameFocusNode = FocusNode();
   late String _selectedType;
   bool _isSaving = false;
 
   bool get _isEdit => widget.playlist != null;
 
   static const _types = [
-    ('movie', '影视', Icons.movie_outlined, Colors.blue),
-    ('book', '书籍', Icons.menu_book_outlined, Colors.teal),
-    ('game', '游戏', Icons.sports_esports_outlined, Colors.orange),
+    ('movie', '影视', Icons.movie_outlined),
+    ('book', '书籍', Icons.menu_book_outlined),
+    ('game', '游戏', Icons.sports_esports_outlined),
   ];
 
   @override
@@ -38,12 +39,21 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
+    _nameFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      _nameFocusNode.requestFocus();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('请输入片单名称')));
+      }
+      return;
+    }
     if (_isSaving) return;
     setState(() => _isSaving = true);
 
@@ -80,15 +90,21 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEdit ? '编辑片单' : '创建片单'),
-        actions: [
-          TextButton(
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton(
             onPressed: _isSaving ? null : _save,
-            child: Text(_isEdit ? '保存' : '创建', style: TextStyle(
-              color: _nameController.text.trim().isEmpty ? colors.onSurface.withValues(alpha: 0.3) : colors.primary,
-              fontWeight: FontWeight.w600,
-            )),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isSaving
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                : Text(_isEdit ? '保存' : '创建', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
-        ],
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -97,36 +113,45 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
           if (!_isEdit) ...[
             Text('片单类型', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 10),
-            Row(
-              children: _types.map((t) {
-                final (type, label, icon, color) = t;
-                final selected = _selectedType == type;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedType = type),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: selected ? color.withValues(alpha: 0.1) : colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(10),
-                        border: selected ? Border.all(color: color.withValues(alpha: 0.3)) : null,
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(icon, size: 22, color: selected ? color : colors.onSurface.withValues(alpha: 0.4)),
-                          const SizedBox(height: 6),
-                          Text(label, style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                            color: selected ? color : colors.onSurface.withValues(alpha: 0.5),
-                          )),
-                        ],
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: _types.map((t) {
+                  final (type, label, icon) = t;
+                  final selected = _selectedType == type;
+                  return Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() => _selectedType = type),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeOut,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: selected ? colors.surface : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(icon, size: 16, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.4)),
+                            const SizedBox(width: 6),
+                            Text(label, style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
+                              color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+                            )),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 24),
           ],
@@ -135,6 +160,8 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
           const SizedBox(height: 8),
           TextField(
             controller: _nameController,
+            focusNode: _nameFocusNode,
+            autofocus: !_isEdit,
             maxLength: 30,
             decoration: InputDecoration(
               hintText: '输入片单名称',
