@@ -13,7 +13,6 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
-import '../../widgets/text_input_panel.dart';
 import '../../widgets/duration_picker.dart';
 import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';

@@ -6,7 +6,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'reviewed_stamp_icon.dart';
 import '../pages/explore/encounter_page.dart';
 import '../pages/explore/stroll_page.dart';
 import '../pages/explore/reviewed_page.dart';

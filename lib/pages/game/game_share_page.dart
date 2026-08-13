@@ -247,12 +247,12 @@ class _GameSharePageState extends State<GameSharePage> {
 
 class _DashedLinePainter extends CustomPainter {
   final Color color;
-  final double dashWidth;
-  final double dashSpace;
-  _DashedLinePainter({required this.color, this.dashWidth = 4, this.dashSpace = 4});
+  _DashedLinePainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
+    const dashWidth = 4.0;
+    const dashSpace = 4.0;
     final paint = Paint()..color = color..strokeWidth = 1..style = PaintingStyle.stroke;
     double x = 0;
     while (x < size.width) { canvas.drawLine(Offset(x, 0), Offset(x + dashWidth, 0), paint); x += dashWidth + dashSpace; }

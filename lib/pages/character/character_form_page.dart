@@ -68,13 +68,6 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
     super.dispose();
   }
 
-  String get _entityLabel => switch (widget.entityType) {
-    'movie' => '影视',
-    'book' => '书籍',
-    'game' => '游戏',
-    _ => '作品',
-  };
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
