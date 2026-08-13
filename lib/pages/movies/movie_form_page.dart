@@ -29,7 +29,10 @@ class MovieFormPage extends StatefulWidget {
   final Movie? movie;
   final String? initialStatus; // 添加时的默认状态
 
-  const MovieFormPage({super.key, this.movie, this.initialStatus});
+  /// 快捷添加预填充字段（movie 为 null 时生效，保持添加模式）
+  final Map<String, dynamic>? prefill;
+
+  const MovieFormPage({super.key, this.movie, this.initialStatus, this.prefill});
 
   @override
   State<MovieFormPage> createState() => _MovieFormPageState();
@@ -99,6 +102,25 @@ class _MovieFormPageState extends State<MovieFormPage> {
       // 添加模式：使用传入的默认状态
       _status = widget.initialStatus!;
     }
+
+    // 快捷添加预填充（保持添加模式）
+    if (movie == null && widget.prefill != null) {
+      _fillFromPrefill(widget.prefill!);
+    }
+  }
+
+  /// 从快捷添加的预填充 map 填充字段
+  void _fillFromPrefill(Map<String, dynamic> prefill) {
+    _titleController.text = prefill['title']?.toString() ?? '';
+    _ratingController.text = prefill['rating']?.toString() ?? '';
+    _summaryController.text = prefill['summary']?.toString() ?? '';
+    _genres = List<String>.from(prefill['genres'] ?? const []);
+    _posterPath = prefill['coverPath'] as String?;
+    _releaseDate = prefill['releaseDate'] as DateTime?;
+    _directors = List<String>.from(prefill['directors'] ?? const []);
+    _writers = List<String>.from(prefill['writers'] ?? const []);
+    _actors = List<String>.from(prefill['actors'] ?? const []);
+    _alternateTitles = List<String>.from(prefill['alternateTitles'] ?? const []);
   }
 
   @override
@@ -141,204 +163,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
         ),
       ),
     );
-  }
-
-  /// 显示快捷添加对话框
-  void _showQuickAddDialog() {
-    final textController = TextEditingController();
-
-    appDialog(
-      context: context,
-      builder: (dialogContext) {
-        final colors = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          backgroundColor: colors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text(
-            '快捷添加',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '请输入分享的豆瓣影视链接：',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colors.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: textController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'https://m.douban.com/subject/...',
-                  hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: colors.outline),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: colors.outline),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: colors.primary, width: 1.5),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                onSubmitted: (url) async {
-                  if (url.trim().isNotEmpty) {
-                    // 先移除焦点
-                    FocusManager.instance.primaryFocus?.unfocus();
-                    await Future.delayed(const Duration(milliseconds: 50));
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop(url);
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // 先移除焦点，等待一帧确保焦点已释放
-                FocusManager.instance.primaryFocus?.unfocus();
-                await Future.delayed(const Duration(milliseconds: 50));
-                if (dialogContext.mounted) {
-                  Navigator.of(dialogContext).pop(null);
-                }
-              },
-              child: Text(
-                '取消',
-                style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                final url = textController.text.trim();
-                if (url.isNotEmpty) {
-                  // 先移除焦点
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  await Future.delayed(const Duration(milliseconds: 50));
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop(url);
-                  }
-                }
-              },
-              child: Text(
-                '确定',
-                style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        );
-      },
-    ).then((result) {
-      // 延迟 dispose，确保 widget tree 已释放 controller
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        textController.dispose();
-      });
-      // 处理结果
-      if (result != null && result is String && result.isNotEmpty) {
-        _openDoubanWebView(result);
-      }
-    });
-  }
-
-  /// 打开豆瓣WebView页面
-  Future<void> _openDoubanWebView(String url) async {
-    // 导航到WebView页面并等待返回结果
-    final result = await Navigator.pushNamed(
-      context,
-      '/douban-webview',
-      arguments: url,
-    );
-
-    if (!mounted) return;
-    // 处理返回的影视信息
-    if (result != null && result is Map<String, dynamic>) {
-      _fillMovieInfo(result);
-    }
-  }
-
-  /// 填充影视信息到表单
-  void _fillMovieInfo(Map<String, dynamic> info) {
-    setState(() {
-      // 填充标题
-      if (info['title'] != null && info['title'].toString().isNotEmpty) {
-        _titleController.text = info['title'].toString();
-      }
-
-      // 填充评分
-      if (info['rating'] != null && info['rating'].toString().isNotEmpty) {
-        _ratingController.text = info['rating'].toString();
-      }
-
-      // 填充导演
-      if (info['director'] != null && info['director'].toString().isNotEmpty) {
-        _directors = [info['director'].toString()];
-      }
-
-      // 填充编剧
-      if (info['writers'] != null && info['writers'] is List) {
-        _writers = (info['writers'] as List).map((w) => w.toString()).toList();
-      }
-
-      // 填充演员
-      if (info['actors'] != null && info['actors'] is List) {
-        _actors = (info['actors'] as List).map((a) => a.toString()).toList();
-      }
-
-      // 填充类型
-      if (info['genres'] != null && info['genres'].toString().isNotEmpty) {
-        _genres = info['genres'].toString().split(',').map((g) => g.trim()).toList();
-      }
-
-      // 填充别名
-      if (info['alternateTitles'] != null && info['alternateTitles'] is List) {
-        _alternateTitles = (info['alternateTitles'] as List).map((t) => t.toString()).toList();
-      }
-
-      // 填充简介
-      if (info['summary'] != null && info['summary'].toString().isNotEmpty) {
-        _summaryController.text = info['summary'].toString();
-      }
-
-      // 填充上映日期
-      if (info['releaseDate'] != null && info['releaseDate'].toString().isNotEmpty) {
-        final dateStr = info['releaseDate'].toString();
-        // 尝试解析日期
-        try {
-          // 处理格式如 "2023-01-01(中国大陆)"
-          final cleanDate = dateStr.split('(')[0].trim();
-          _releaseDate = DateTime.parse(cleanDate);
-        } catch (e) {
-          // 解析失败则忽略
-        }
-      }
-
-      // 下载封面图
-      if (info['coverUrl'] != null && info['coverUrl'].toString().isNotEmpty) {
-        _downloadCoverFromUrl(info['coverUrl'].toString());
-      }
-
-    });
-
-    // 显示成功提示
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已自动填充影视信息')),
-      );
-    }
   }
 
   /// 从URL下载封面图
@@ -392,13 +216,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
         appBar: AppBar(
           title: Text(isEdit ? '编辑影视' : '添加影视'),
         actions: [
-          // 快捷添加按钮（仅添加模式显示）
-          if (!isEdit)
-            _buildActionButton(
-              icon: Icons.auto_fix_high_outlined,
-              onPressed: _showQuickAddDialog,
-              tooltip: '快捷添加',
-            ),
           // 保存按钮
           _buildActionButton(
             icon: Icons.save_outlined,

@@ -28,7 +28,10 @@ class GameFormPage extends StatefulWidget {
   final Game? game;
   final String? initialStatus;
 
-  const GameFormPage({super.key, this.game, this.initialStatus});
+  /// 快捷添加预填充字段（game 为 null 时生效，保持添加模式）
+  final Map<String, dynamic>? prefill;
+
+  const GameFormPage({super.key, this.game, this.initialStatus, this.prefill});
 
   @override
   State<GameFormPage> createState() => _GameFormPageState();
@@ -98,6 +101,23 @@ class _GameFormPageState extends State<GameFormPage> {
     } else if (widget.initialStatus != null) {
       _status = widget.initialStatus!;
     }
+
+    // 快捷添加预填充（保持添加模式）
+    if (game == null && widget.prefill != null) {
+      _fillFromPrefill(widget.prefill!);
+    }
+  }
+
+  /// 从快捷添加的预填充 map 填充字段
+  void _fillFromPrefill(Map<String, dynamic> prefill) {
+    _titleController.text = prefill['title']?.toString() ?? '';
+    _ratingController.text = prefill['rating']?.toString() ?? '';
+    _summaryController.text = prefill['summary']?.toString() ?? '';
+    _platforms = List<String>.from(prefill['platforms'] ?? const []);
+    _genres = List<String>.from(prefill['genres'] ?? const []);
+    _developer = List<String>.from(prefill['developer'] ?? const []);
+    _coverPath = prefill['coverPath'] as String?;
+    _releaseDate = prefill['releaseDate'] as DateTime?;
   }
 
   @override

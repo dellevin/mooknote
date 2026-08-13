@@ -21,6 +21,7 @@ import '../explore/stroll_page.dart';
 import '../sync/cloud_sync_page.dart';
 import 'settings_page.dart';
 import 'watchlist_page.dart';
+import '../quick_add/quick_add_page.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 个人中心页面
@@ -956,12 +957,18 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       ),
       (
         Icons.analytics_outlined,
-        '统计',
+        '数据统计',
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
       ),
-      (Icons.backup_outlined, '备份', () => _showBackupOptions(context)),
-      (Icons.ios_share_outlined, '导出', () => _showExportOptions(context)),
+      (
+        Icons.add_circle_outline,
+        '快捷添加',
+        () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const QuickAddPage()))
+      ),
+      (Icons.backup_outlined, '数据备份', () => _showBackupOptions(context)),
+      (Icons.ios_share_outlined, 'EXCEL导出', () => _showExportOptions(context)),
       (
         Icons.settings_outlined,
         '设置',
@@ -970,11 +977,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       ),
       (
         Icons.delete_outline,
-        '回收',
+        '回收站',
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
       ),
-      (Icons.feedback_outlined, '反馈', () => _showFeedbackDialog(context)),
+      (Icons.feedback_outlined, 'BUG反馈', () => _showFeedbackDialog(context)),
     ];
 
     return Padding(

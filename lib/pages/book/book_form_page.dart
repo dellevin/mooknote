@@ -29,7 +29,10 @@ class BookFormPage extends StatefulWidget {
   final Book? book;
   final String? initialStatus;
 
-  const BookFormPage({super.key, this.book, this.initialStatus});
+  /// 快捷添加预填充字段（book 为 null 时生效，保持添加模式）
+  final Map<String, dynamic>? prefill;
+
+  const BookFormPage({super.key, this.book, this.initialStatus, this.prefill});
 
   @override
   State<BookFormPage> createState() => _BookFormPageState();
@@ -91,6 +94,26 @@ class _BookFormPageState extends State<BookFormPage> {
     } else if (widget.initialStatus != null) {
       _status = widget.initialStatus!;
     }
+
+    // 快捷添加预填充（保持添加模式）
+    if (book == null && widget.prefill != null) {
+      _fillFromPrefill(widget.prefill!);
+    }
+  }
+
+  /// 从快捷添加的预填充 map 填充字段
+  void _fillFromPrefill(Map<String, dynamic> prefill) {
+    _titleController.text = prefill['title']?.toString() ?? '';
+    _publisherController.text = prefill['publisher']?.toString() ?? '';
+    _summaryController.text = prefill['summary']?.toString() ?? '';
+    _ratingController.text = prefill['rating']?.toString() ?? '';
+    _isbnController.text = prefill['isbn']?.toString() ?? '';
+    _authors = List<String>.from(prefill['authors'] ?? const []);
+    _translators = List<String>.from(prefill['translators'] ?? const []);
+    _alternateTitles = List<String>.from(prefill['alternateTitles'] ?? const []);
+    _genres = List<String>.from(prefill['genres'] ?? const []);
+    _coverPath = prefill['coverPath'] as String?;
+    _publishDate = prefill['publishDate'] as DateTime?;
   }
 
   @override

@@ -24,8 +24,10 @@ class AppRouter {
         final Movie? movie = args is Movie ? args : null;
         final String? initialStatus =
             args is Map<String, dynamic> ? (args['initialStatus'] as String?) : null;
+        final Map<String, dynamic>? prefill =
+            args is Map<String, dynamic> ? (args['prefill'] as Map<String, dynamic>?) : null;
         return SlideUpPageRoute(
-          page: MovieFormPage(movie: movie, initialStatus: initialStatus),
+          page: MovieFormPage(movie: movie, initialStatus: initialStatus, prefill: prefill),
         );
 
       case '/book-form':
@@ -33,8 +35,10 @@ class AppRouter {
         final Book? book = args is Book ? args : null;
         final String? initialStatus =
             args is Map<String, dynamic> ? (args['initialStatus'] as String?) : null;
+        final Map<String, dynamic>? prefill =
+            args is Map<String, dynamic> ? (args['prefill'] as Map<String, dynamic>?) : null;
         return SlideUpPageRoute(
-          page: BookFormPage(book: book, initialStatus: initialStatus),
+          page: BookFormPage(book: book, initialStatus: initialStatus, prefill: prefill),
         );
 
       case '/note-form':
@@ -68,8 +72,10 @@ class AppRouter {
         final Game? game = args is Game ? args : null;
         final String? initialStatus =
             args is Map<String, dynamic> ? (args['initialStatus'] as String?) : null;
+        final Map<String, dynamic>? prefill =
+            args is Map<String, dynamic> ? (args['prefill'] as Map<String, dynamic>?) : null;
         return SlideUpPageRoute(
-          page: GameFormPage(game: game, initialStatus: initialStatus),
+          page: GameFormPage(game: game, initialStatus: initialStatus, prefill: prefill),
         );
 
       case '/game-detail':
@@ -80,8 +86,22 @@ class AppRouter {
         return SlideUpPageRoute(page: GameDetailPage(game: game));
 
       case '/douban-webview':
-        final url = settings.arguments is String ? settings.arguments as String : null;
-        if (url == null) {
+        final args = settings.arguments;
+        final String url;
+        final String category;
+        final String source;
+        if (args is String) {
+          url = args;
+          category = 'movie';
+          source = 'douban';
+        } else if (args is Map<String, dynamic>) {
+          url = (args['url'] as String?) ?? '';
+          category = (args['category'] as String?) ?? 'movie';
+          source = (args['source'] as String?) ?? 'douban';
+        } else {
+          return _buildUnknownRoute(settings.name);
+        }
+        if (url.isEmpty) {
           return _buildUnknownRoute(settings.name);
         }
         if (Platform.isWindows) {
@@ -89,7 +109,8 @@ class AppRouter {
           launchUrl(Uri.parse(url));
           return null;
         }
-        return SlideUpPageRoute(page: DoubanWebViewPage(url: url));
+        return SlideUpPageRoute(
+            page: DoubanWebViewPage(url: url, category: category, source: source));
 
       case '/person-form':
         final args = settings.arguments;
