@@ -990,7 +990,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 children: [
                   Center(child: _buildLayeredCover(book)),
                   const SizedBox(height: 20),
-                  _buildLayeredHeader(book),
+                  SizedBox(width: double.infinity, child: _buildLayeredHeader(book)),
                   const SizedBox(height: 20),
                   _buildLayeredInfoRow('作者', book.authors.join('，'), colors),
                   if (book.translators.isNotEmpty)
@@ -1049,6 +1049,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildLayeredHeader(Book book) {
     final colors = Theme.of(context).colorScheme;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(book.title,
           textAlign: TextAlign.center,

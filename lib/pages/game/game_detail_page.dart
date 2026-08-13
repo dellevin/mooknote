@@ -1225,7 +1225,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 children: [
                   Center(child: _buildLayeredCover(game)),
                   const SizedBox(height: 20),
-                  _buildLayeredHeader(game),
+                  SizedBox(width: double.infinity, child: _buildLayeredHeader(game)),
                   const SizedBox(height: 20),
                   if (game.platforms.isNotEmpty)
                     _buildLayeredInfoRow('平台', game.platforms.join('、'), colors),
@@ -1322,6 +1322,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
   Widget _buildLayeredHeader(Game game) {
     final colors = Theme.of(context).colorScheme;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(game.title,
           textAlign: TextAlign.center,

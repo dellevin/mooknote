@@ -1148,7 +1148,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   // 居中海报卡片
                   Center(child: _buildLayeredPoster(movie)),
                   const SizedBox(height: 20),
-                  _buildLayeredHeader(movie),
+                  SizedBox(width: double.infinity, child: _buildLayeredHeader(movie)),
                   const SizedBox(height: 20),
                   if (movie.directors.isNotEmpty)
                     _buildLayeredInfoRow('导演', movie.directors.join('，'), colors),
@@ -1230,6 +1230,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   Widget _buildLayeredHeader(Movie movie) {
     final colors = Theme.of(context).colorScheme;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(movie.title,
           textAlign: TextAlign.center,
