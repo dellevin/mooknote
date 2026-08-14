@@ -867,18 +867,17 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // 上一集
-                      if (hasPrev)
-                        IconButton(
-                          onPressed: _playPrevEpisode,
-                          icon: const Icon(Icons.skip_previous,
-                              color: Colors.white),
-                          iconSize: 22,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          constraints: const BoxConstraints(
-                              minWidth: 36, minHeight: 36),
-                        )
-                      else
-                        const SizedBox(width: 38),
+                      IconButton(
+                        onPressed: hasPrev ? _playPrevEpisode : null,
+                        icon: Icon(Icons.skip_previous,
+                            color: hasPrev
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.3)),
+                        iconSize: 22,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        constraints: const BoxConstraints(
+                            minWidth: 36, minHeight: 36),
+                      ),
                       // 播放/暂停
                       GestureDetector(
                         onTap: () {
@@ -900,18 +899,17 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                         ),
                       ),
                       // 下一集
-                      if (hasNext)
-                        IconButton(
-                          onPressed: _playNextEpisode,
-                          icon: const Icon(Icons.skip_next,
-                              color: Colors.white),
-                          iconSize: 22,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          constraints: const BoxConstraints(
-                              minWidth: 36, minHeight: 36),
-                        )
-                      else
-                        const SizedBox(width: 38),
+                      IconButton(
+                        onPressed: hasNext ? _playNextEpisode : null,
+                        icon: Icon(Icons.skip_next,
+                            color: hasNext
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.3)),
+                        iconSize: 22,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        constraints: const BoxConstraints(
+                            minWidth: 36, minHeight: 36),
+                      ),
                       const SizedBox(width: 16),
                       // 倍速
                       GestureDetector(
