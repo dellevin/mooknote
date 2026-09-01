@@ -225,9 +225,21 @@ class UserPrefs {
   int get gameStatusBarStyle => prefs.getInt('gameStatusBarStyle') ?? 0;
   Future<bool> setGameStatusBarStyle(int value) => prefs.setInt('gameStatusBarStyle', value);
 
-  /// 游戏墙模式
+  /// 影视墙模式
   bool get gameWallMode => prefs.getBool('gameWallMode') ?? false;
   Future<bool> setGameWallMode(bool value) => prefs.setBool('gameWallMode', value);
+
+  /// 影视海报右下角显示上映日期
+  bool get showMovieCardDate => prefs.getBool('showMovieCardDate') ?? false;
+  Future<bool> setShowMovieCardDate(bool value) => prefs.setBool('showMovieCardDate', value);
+
+  /// 书籍封面右下角显示出版日期
+  bool get showBookCardDate => prefs.getBool('showBookCardDate') ?? false;
+  Future<bool> setShowBookCardDate(bool value) => prefs.setBool('showBookCardDate', value);
+
+  /// 游戏封面右下角显示发售日期
+  bool get showGameCardDate => prefs.getBool('showGameCardDate') ?? false;
+  Future<bool> setShowGameCardDate(bool value) => prefs.setBool('showGameCardDate', value);
 
   /// 已阅页布局样式 (0: 列表, 1: 网格)
   int get reviewedLayoutStyle => prefs.getInt('reviewedLayoutStyle') ?? 0;

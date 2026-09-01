@@ -20,7 +20,7 @@ class MainContentPage extends StatefulWidget {
   State<MainContentPage> createState() => _MainContentPageState();
 }
 
-class _MainContentPageState extends State<MainContentPage> {
+class _MainContentPageState extends State<MainContentPage> with SingleTickerProviderStateMixin {
   final UserPrefs _userPrefs = UserPrefs();
 
   bool _showMovieTab = true;
@@ -29,6 +29,7 @@ class _MainContentPageState extends State<MainContentPage> {
   bool _showGameTab = true;
 
   late PageController _pageController;
+  late final AnimationController _fadeCtrl; // 点击切换：淡出淡入，不经过中间页
   bool _isTabTap = false;
   bool _syncScheduled = false;
 
@@ -37,12 +38,27 @@ class _MainContentPageState extends State<MainContentPage> {
     super.initState();
     _loadTabSettings();
     _pageController = PageController(initialPage: 0);
+    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 140), value: 1);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
+  }
+
+  /// 点击标签：先淡出当前页 → 直接跳转目标页（不过中间页）→ 淡入
+  Future<void> _switchToTab(int enabledIndex, int originalIndex) async {
+    if (_pageController.hasClients && enabledIndex == (_pageController.page?.round() ?? -1)) return;
+    _isTabTap = true;
+    _fadeCtrl.stop();
+    await _fadeCtrl.animateTo(0);
+    if (!mounted) { _isTabTap = false; return; }
+    if (_pageController.hasClients) _pageController.jumpToPage(enabledIndex);
+    context.read<AppProvider>().setMainTabIndex(originalIndex);
+    _fadeCtrl.animateTo(1);
+    _isTabTap = false;
   }
 
   void _loadTabSettings() {
@@ -149,7 +165,6 @@ class _MainContentPageState extends State<MainContentPage> {
 
   void _showModulePicker(BuildContext context, List<_TabItem> tabs, int currentIndex) {
     final colors = Theme.of(context).colorScheme;
-    final provider = context.read<AppProvider>();
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
@@ -160,7 +175,7 @@ class _MainContentPageState extends State<MainContentPage> {
               decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           for (int i = 0; i < tabs.length; i++) ...[
             if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
-            _modulePickerItem(ctx, tabs[i], i, i == currentIndex, colors, provider),
+            _modulePickerItem(ctx, tabs[i], i, i == currentIndex, colors),
           ],
           const SizedBox(height: 12),
         ]),
@@ -168,7 +183,7 @@ class _MainContentPageState extends State<MainContentPage> {
     );
   }
 
-  Widget _modulePickerItem(BuildContext ctx, _TabItem tab, int idx, bool selected, ColorScheme colors, AppProvider provider) {
+  Widget _modulePickerItem(BuildContext ctx, _TabItem tab, int idx, bool selected, ColorScheme colors) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       leading: Container(width: 36, height: 36,
@@ -178,10 +193,7 @@ class _MainContentPageState extends State<MainContentPage> {
       trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
       onTap: () {
         Navigator.pop(ctx);
-        _isTabTap = true;
-        _pageController.jumpToPage(idx);
-        provider.setMainTabIndex(tab.originalIndex);
-        Future.delayed(const Duration(milliseconds: 50), () => _isTabTap = false);
+        _switchToTab(idx, tab.originalIndex);
       },
     );
   }
@@ -246,10 +258,7 @@ class _MainContentPageState extends State<MainContentPage> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        _isTabTap = true;
-                        _pageController.animateToPage(idx, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
-                        provider.setMainTabIndex(tab.originalIndex);
-                        Future.delayed(const Duration(milliseconds: 400), () => _isTabTap = false);
+                        _switchToTab(idx, tab.originalIndex);
                       },
                       onLongPress: tab.label == '影视'
                           ? () {
@@ -389,28 +398,23 @@ class _MainContentPageState extends State<MainContentPage> {
           });
         }
 
-        if (_isTabTap && _pageController.hasClients) {
-          _isTabTap = false;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || !_pageController.hasClients) return;
-            _pageController.animateToPage(safeIndex, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
-          });
-        }
-
-        return PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(), // 仅点击标签栏切换，禁止滑动切换
-          onPageChanged: (index) {
-            if (!_isTabTap && index < tabs.length) {
-              provider.setMainTabIndex(tabs[index].originalIndex);
-            }
-          },
-          children: [
-            if (_showMovieTab) const MovieTabPage(),
-            if (_showBookTab) const BookTabPage(),
-            if (_showGameTab) const GameTabPage(),
-            if (_showNoteTab) const NoteTabPage(),
-          ],
+        return FadeTransition(
+          opacity: _fadeCtrl,
+          child: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(), // 仅点击标签栏切换，禁止滑动切换
+            onPageChanged: (index) {
+              if (!_isTabTap && index < tabs.length) {
+                provider.setMainTabIndex(tabs[index].originalIndex);
+              }
+            },
+            children: [
+              if (_showMovieTab) const MovieTabPage(),
+              if (_showBookTab) const BookTabPage(),
+              if (_showGameTab) const GameTabPage(),
+              if (_showNoteTab) const NoteTabPage(),
+            ],
+          ),
         );
       },
     );

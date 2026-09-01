@@ -167,7 +167,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
           final keyboardH = MediaQuery.of(context).viewInsets.bottom;
           return Stack(
             children: [
-              Column(
+              Padding(
+                padding: EdgeInsets.only(bottom: keyboardH),
+                child: Column(
                 children: [
                   // 顶部区域 — 固定不动
                   _buildHeader(colors, topPadding),
@@ -207,6 +209,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                   ),
                 ],
               ),
+            ),
 
               // 底部浮动工具栏 — 跟随键盘上移
               Positioned(

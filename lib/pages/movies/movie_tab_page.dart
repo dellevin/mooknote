@@ -28,10 +28,10 @@ class MovieTabPage extends StatefulWidget {
   State<MovieTabPage> createState() => _MovieTabPageState();
 }
 
-class _MovieTabPageState extends State<MovieTabPage> {
+class _MovieTabPageState extends State<MovieTabPage> with SingleTickerProviderStateMixin {
   late PageController _pageController;
   int _currentPage = 0; // PageView 当前页的唯一真源
-  int? _pendingTarget; // 待跟随的页，避免重复调度动画
+  late final AnimationController _fadeCtrl; // 点击切换：淡出淡入，不经过中间页
   int _lastModeSignature = -1; // 编码 wall+displayMode，检测模式切换
   bool _modeInitialized = false; // 吞掉首次构建的伪"变化"
 
@@ -39,6 +39,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 140), value: 1);
     // 应用启动时保存的初始索引（可能 > 0）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -52,6 +53,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -118,42 +120,48 @@ class _MovieTabPageState extends State<MovieTabPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) return;
         _currentPage = 0;
-        _pendingTarget = null;
         if (isCategory) provider.setMovieCategoryIndex(0);
         else if (!wall) provider.setMovieStatusIndex(0);
         _pageController.jumpToPage(0);
       });
     }
-    // (c) 外部索引变化（bar 点击等）：动画跟随
+    // (c) 外部索引变化（bar 点击等）：淡出淡入切换，不经过中间页
     final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
-    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && _pendingTarget != target) {
-      _pendingTarget = target;
+    if (pageCount > 1 && _pageController.hasClients && target != _currentPage) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) return;
-        _pageController.animateToPage(
-          target,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        _fadeSwitchTo(target);
       });
     }
 
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: pageCount,
-      allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
-      onPageChanged: (index) => _onPageChanged(index, provider),
-      itemBuilder: (context, index) => _MovieTabView(
-        key: ValueKey('$mode-$index'), // 模式切换时全部重建
-        index: index,
-        mode: mode,
+    return FadeTransition(
+      opacity: _fadeCtrl,
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: pageCount,
+        allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
+        onPageChanged: (index) => _onPageChanged(index, provider),
+        itemBuilder: (context, index) => _MovieTabView(
+          key: ValueKey('$mode-$index'), // 模式切换时全部重建
+          index: index,
+          mode: mode,
+        ),
       ),
     );
   }
 
+  /// 点击切换：先淡出当前页 → 直接跳转到目标页（不过中间页）→ 淡入
+  Future<void> _fadeSwitchTo(int target) async {
+    _fadeCtrl.stop();
+    await _fadeCtrl.animateTo(0);
+    if (!mounted || !_pageController.hasClients) return;
+    _currentPage = target;
+    _pageController.jumpToPage(target);
+    _fadeCtrl.animateTo(1);
+  }
+
   void _onPageChanged(int index, AppProvider provider) {
     _currentPage = index;
-    _pendingTarget = null;
     final wall = provider.movieWallMode;
     final isCategory = provider.movieDisplayMode == 1;
     final cur = wall ? 0 : (isCategory ? provider.movieCategoryIndex : provider.movieStatusIndex);

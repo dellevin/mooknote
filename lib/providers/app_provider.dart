@@ -101,6 +101,11 @@ class AppProvider extends ChangeNotifier {
   // 影视墙模式（不显示分类，按创建时间排序）
   bool _movieWallMode = false;
 
+  // 各模块海报右下角显示日期
+  bool _showMovieCardDate = false;
+  bool _showBookCardDate = false;
+  bool _showGameCardDate = false;
+
   // 影视显示模式 (0: 观看状态, 1: 分类状态)
   int _movieDisplayMode = 0;
 
@@ -220,6 +225,9 @@ class AppProvider extends ChangeNotifier {
     _gameWallMode = userPrefs.gameWallMode;
     _gameStatusBarStyle = userPrefs.gameStatusBarStyle;
     _homeModuleSwitchMode = userPrefs.homeModuleSwitchMode;
+    _showMovieCardDate = userPrefs.showMovieCardDate;
+    _showBookCardDate = userPrefs.showBookCardDate;
+    _showGameCardDate = userPrefs.showGameCardDate;
     final defaultIndex = userPrefs.defaultMainTabIndex;
     // Windows 桌面端且主页开启时，强制默认为主页
     if (Platform.isWindows && userPrefs.showDesktopHomeTab) {
@@ -330,6 +338,9 @@ class AppProvider extends ChangeNotifier {
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
   bool get movieWallMode => _movieWallMode;
+  bool get showMovieCardDate => _showMovieCardDate;
+  bool get showBookCardDate => _showBookCardDate;
+  bool get showGameCardDate => _showGameCardDate;
   int get movieDisplayMode => _movieDisplayMode;
   int get movieStatusBarStyle => _movieStatusBarStyle;
   int get movieCategoryIndex => _movieCategoryIndex;
@@ -538,6 +549,24 @@ class AppProvider extends ChangeNotifier {
   void setMovieWallMode(bool enabled) {
     _movieWallMode = enabled;
     UserPrefs().setMovieWallMode(enabled);
+    notifyListeners();
+  }
+
+  void setShowMovieCardDate(bool enabled) {
+    _showMovieCardDate = enabled;
+    UserPrefs().setShowMovieCardDate(enabled);
+    notifyListeners();
+  }
+
+  void setShowBookCardDate(bool enabled) {
+    _showBookCardDate = enabled;
+    UserPrefs().setShowBookCardDate(enabled);
+    notifyListeners();
+  }
+
+  void setShowGameCardDate(bool enabled) {
+    _showGameCardDate = enabled;
+    UserPrefs().setShowGameCardDate(enabled);
     notifyListeners();
   }
 

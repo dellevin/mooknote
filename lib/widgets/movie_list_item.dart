@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
+import '../utils/user_prefs.dart';
 import '../widgets/fade_in_local_image.dart';
 import '../widgets/animated_star_rating.dart';
 import '../utils/toast_util.dart';
@@ -32,7 +33,7 @@ class MovieListItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: _buildPoster(colors),
+            child: _buildPosterWithDate(colors),
           ),
           const SizedBox(height: 8),
           Text(
@@ -53,6 +54,29 @@ class MovieListItem extends StatelessWidget {
         ],
       ),
       ),
+    );
+  }
+
+  Widget _buildPosterWithDate(ColorScheme colors) {
+    final poster = _buildPoster(colors);
+    if (!UserPrefs().showMovieCardDate) return poster;
+    final d = movie.releaseDate;
+    if (d == null) return poster;
+    final label = '${d.year}.${d.month.toString().padLeft(2, '0')}';
+    return Stack(children: [
+      Positioned.fill(child: poster),
+      Positioned(right: 4, bottom: 4, child: _dateBadge(label)),
+    ]);
+  }
+
+  Widget _dateBadge(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
     );
   }
 

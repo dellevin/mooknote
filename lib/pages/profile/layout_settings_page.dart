@@ -29,6 +29,9 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   int _bookSortMode = 0;
   int _noteSortMode = 0;
   int _gameSortMode = 0;
+  bool _showMovieCardDate = false;
+  bool _showBookCardDate = false;
+  bool _showGameCardDate = false;
 
   @override
   void initState() {
@@ -49,6 +52,9 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     _bookSortMode = _userPrefs.bookSortMode;
     _noteSortMode = _userPrefs.noteSortMode;
     _gameSortMode = _userPrefs.gameSortMode;
+    _showMovieCardDate = _userPrefs.showMovieCardDate;
+    _showBookCardDate = _userPrefs.showBookCardDate;
+    _showGameCardDate = _userPrefs.showGameCardDate;
   }
 
   @override
@@ -395,6 +401,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               title: '影视墙模式', subtitle: '显示全部影片，不区分状态',
               value: _movieWallMode, onChanged: (v) { _setWallMode('movie', v); setSheetState(() {}); }, colors: colors,
             ),
+            _sheetDivider(colors),
+            _sheetSwitchRow(
+              title: '海报显示日期', subtitle: '海报右下角显示上映日期',
+              value: _showMovieCardDate, onChanged: (v) { _setShowMovieCardDate(v); setSheetState(() {}); }, colors: colors,
+            ),
             if (!_movieWallMode) ...[
               _sheetDivider(colors),
               _sheetOptionRow(
@@ -459,6 +470,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             _sheetSwitchRow(
               title: '书架模式', subtitle: '显示全部书籍，不区分状态',
               value: _bookshelfMode, onChanged: (v) { _setWallMode('book', v); setSheetState(() {}); }, colors: colors,
+            ),
+            _sheetDivider(colors),
+            _sheetSwitchRow(
+              title: '封面显示日期', subtitle: '封面右下角显示出版日期',
+              value: _showBookCardDate, onChanged: (v) { _setShowBookCardDate(v); setSheetState(() {}); }, colors: colors,
             ),
             if (!_bookshelfMode) ...[
               _sheetDivider(colors),
@@ -553,6 +569,11 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               title: '游戏墙模式', subtitle: '显示全部游戏，不区分状态',
               value: _gameWallMode, onChanged: (v) { _setWallMode('game', v); setSheetState(() {}); }, colors: colors,
             ),
+            _sheetDivider(colors),
+            _sheetSwitchRow(
+              title: '封面显示日期', subtitle: '封面右下角显示发售日期',
+              value: _showGameCardDate, onChanged: (v) { _setShowGameCardDate(v); setSheetState(() {}); }, colors: colors,
+            ),
             if (!_gameWallMode) ...[
               _sheetDivider(colors),
               _sheetOptionRow(
@@ -607,6 +628,24 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   }
 
   // ─── 状态更新 ──────────────────────────────────────────────────
+
+  void _setShowMovieCardDate(bool value) async {
+    await _userPrefs.setShowMovieCardDate(value);
+    setState(() => _showMovieCardDate = value);
+    if (mounted) context.read<AppProvider>().setShowMovieCardDate(value);
+  }
+
+  void _setShowBookCardDate(bool value) async {
+    await _userPrefs.setShowBookCardDate(value);
+    setState(() => _showBookCardDate = value);
+    if (mounted) context.read<AppProvider>().setShowBookCardDate(value);
+  }
+
+  void _setShowGameCardDate(bool value) async {
+    await _userPrefs.setShowGameCardDate(value);
+    setState(() => _showGameCardDate = value);
+    if (mounted) context.read<AppProvider>().setShowGameCardDate(value);
+  }
 
   void _setWallMode(String type, bool value) async {
     switch (type) {

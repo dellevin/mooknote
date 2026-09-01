@@ -27,10 +27,10 @@ class BookTabPage extends StatefulWidget {
   State<BookTabPage> createState() => _BookTabPageState();
 }
 
-class _BookTabPageState extends State<BookTabPage> {
+class _BookTabPageState extends State<BookTabPage> with SingleTickerProviderStateMixin {
   late PageController _pageController;
   int _currentPage = 0; // PageView 当前页的唯一真源
-  int? _pendingTarget; // 待跟随的页，避免重复调度动画
+  late final AnimationController _fadeCtrl; // 点击切换：淡出淡入，不经过中间页
   int _lastModeSignature = -1; // 编码 wall 模式，检测书架/状态切换
   bool _modeInitialized = false; // 吞掉首次构建的伪"变化"
 
@@ -38,6 +38,7 @@ class _BookTabPageState extends State<BookTabPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 140), value: 1);
     // 应用启动时保存的初始索引（可能 > 0）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -51,6 +52,7 @@ class _BookTabPageState extends State<BookTabPage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -110,41 +112,47 @@ class _BookTabPageState extends State<BookTabPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) return;
         _currentPage = 0;
-        _pendingTarget = null;
         if (!wall) provider.setBookStatusIndex(0);
         _pageController.jumpToPage(0);
       });
     }
-    // (c) 外部索引变化（bar 点击等）：动画跟随
+    // (c) 外部索引变化（bar 点击等）：淡出淡入切换，不经过中间页
     final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
-    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && _pendingTarget != target) {
-      _pendingTarget = target;
+    if (pageCount > 1 && _pageController.hasClients && target != _currentPage) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) return;
-        _pageController.animateToPage(
-          target,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        _fadeSwitchTo(target);
       });
     }
 
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: pageCount,
-      allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
-      onPageChanged: (index) => _onPageChanged(index, provider),
-      itemBuilder: (context, index) => _BookTabView(
-        key: ValueKey('$mode-$index'), // 模式切换时全部重建
-        index: index,
-        mode: mode,
+    return FadeTransition(
+      opacity: _fadeCtrl,
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: pageCount,
+        allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
+        onPageChanged: (index) => _onPageChanged(index, provider),
+        itemBuilder: (context, index) => _BookTabView(
+          key: ValueKey('$mode-$index'), // 模式切换时全部重建
+          index: index,
+          mode: mode,
+        ),
       ),
     );
   }
 
+  /// 点击切换：先淡出当前页 → 直接跳转到目标页（不过中间页）→ 淡入
+  Future<void> _fadeSwitchTo(int target) async {
+    _fadeCtrl.stop();
+    await _fadeCtrl.animateTo(0);
+    if (!mounted || !_pageController.hasClients) return;
+    _currentPage = target;
+    _pageController.jumpToPage(target);
+    _fadeCtrl.animateTo(1);
+  }
+
   void _onPageChanged(int index, AppProvider provider) {
     _currentPage = index;
-    _pendingTarget = null;
     final wall = provider.bookshelfMode;
     final cur = wall ? 0 : provider.bookStatusIndex;
     // 回显守卫：仅在真实拖动导致索引变化时推送，避免死循环
