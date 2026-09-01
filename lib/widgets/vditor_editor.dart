@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import '../main.dart';
 import '../utils/image_path_helper.dart';
+import '../utils/user_prefs.dart';
 
 class VditorEditor extends StatefulWidget {
   final String? initialContent;
@@ -43,13 +44,23 @@ class VditorEditorState extends State<VditorEditor> {
   final Completer<void> _readyCompleter = Completer<void>();
   Timer? _fallbackTimer;
 
+  // 纯文本模式（native）：用 Flutter TextField 替代 WebView，可在设置中切换
+  bool _isNative = false;
+  TextEditingController? _nativeController;
+
   Future<void> get ready => _readyCompleter.future;
-  bool get isReady => _isReady;
+  bool get isReady => _isNative ? true : _isReady;
 
   @override
   void initState() {
     super.initState();
+    _isNative = UserPrefs().editorMode == 'native';
     _fallbackController = TextEditingController(text: widget.initialContent ?? '');
+    if (_isNative) {
+      // 纯文本模式：无需 WebView / 加载计时器
+      _nativeController = TextEditingController(text: widget.initialContent ?? '');
+      return;
+    }
     _startFallbackTimer();
     if (Platform.isWindows) {
       _locateDistDir();
@@ -89,6 +100,7 @@ class VditorEditorState extends State<VditorEditor> {
   @override
   void dispose() {
     _fallbackTimer?.cancel();
+    _nativeController?.dispose();
     _fallbackController.dispose();
     _destroyVditor();
     super.dispose();
@@ -103,6 +115,7 @@ class VditorEditorState extends State<VditorEditor> {
   }
 
   Future<String> getValue() async {
+    if (_isNative) return _nativeController?.text ?? widget.initialContent ?? '';
     if (_controller == null || !_isReady) return widget.initialContent ?? '';
     try {
       final result = await _controller!.evaluateJavascript(source: 'getValue()');
@@ -113,6 +126,10 @@ class VditorEditorState extends State<VditorEditor> {
   }
 
   Future<void> setValue(String text) async {
+    if (_isNative) {
+      _nativeController?.text = text;
+      return;
+    }
     if (_controller == null || !_isReady) return;
     try {
       final escaped = jsonEncode(text);
@@ -121,6 +138,7 @@ class VditorEditorState extends State<VditorEditor> {
   }
 
   Future<void> setTheme(bool isDark) async {
+    if (_isNative) return;
     if (_controller == null || !_isReady) return;
     final theme = isDark ? 'dark' : 'light';
     try {
@@ -129,6 +147,7 @@ class VditorEditorState extends State<VditorEditor> {
   }
 
   Future<void> setBgColor(String hexColor) async {
+    if (_isNative) return;
     if (_controller == null || !_isReady) return;
     try {
       final escaped = jsonEncode(hexColor);
@@ -137,11 +156,30 @@ class VditorEditorState extends State<VditorEditor> {
   }
 
   Future<void> insertValue(String text) async {
+    if (_isNative) {
+      _insertNative(text);
+      return;
+    }
     if (_controller == null || !_isReady) return;
     try {
       final escaped = jsonEncode(text);
       await _controller!.evaluateJavascript(source: 'insertValue($escaped)');
     } catch (_) {}
+  }
+
+  /// 纯文本模式：在当前光标处插入文本（光标处插入，选中则替换）
+  void _insertNative(String text) {
+    final c = _nativeController;
+    if (c == null) return;
+    final sel = c.selection;
+    final valid = sel.isValid && sel.start != sel.end;
+    final start = sel.isValid ? sel.start : c.text.length;
+    final newText = c.text.replaceRange(start, valid ? sel.end : start, text);
+    c.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + text.length),
+    );
+    widget.onContentChanged?.call(newText);
   }
 
   Future<void> _scrollToCursor() async {
@@ -159,6 +197,38 @@ class VditorEditorState extends State<VditorEditor> {
       await Future.delayed(const Duration(milliseconds: 300));
       await _controller!.evaluateJavascript(source: 'requestHeightUpdate()');
     } catch (_) {}
+  }
+
+  /// 纯文本模式的编辑框（Flutter TextField）：固定高度、内部滚动。
+  /// 高度约占可视区中部，键盘弹出时收缩到键盘上方，保证编辑器不被键盘遮挡
+  Widget _buildNativeEditor(ColorScheme colors) {
+    final size = MediaQuery.sizeOf(context);
+    final kb = MediaQuery.viewInsetsOf(context).bottom;
+    final topPad = MediaQuery.paddingOf(context).top;
+    final h = ((size.height - topPad - kb) * 0.5).clamp(160.0, size.height).toDouble();
+    return SizedBox(
+      height: h,
+      child: TextField(
+        controller: _nativeController,
+        maxLines: null,
+        minLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        keyboardType: TextInputType.multiline,
+        strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 15),
+        style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
+        cursorColor: colors.primary,
+        decoration: InputDecoration(
+          hintText: widget.placeholder,
+          hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        onChanged: (v) => widget.onContentChanged?.call(v),
+      ),
+    );
   }
 
   void _onVditorReady() {
@@ -226,6 +296,11 @@ class VditorEditorState extends State<VditorEditor> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
+    // 纯文本模式：直接渲染 Flutter TextField，不加载 WebView
+    if (_isNative) {
+      return _buildNativeEditor(colors);
+    }
 
     if (_loadFailed) {
       return TextField(
