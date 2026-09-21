@@ -69,7 +69,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-MookNote is a Flutter-based Android app for tracking movies, books, and notes. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
+MookNote is a Flutter media-tracking app centered on **影视 / 阅读 / 游戏 / 笔记** four media types, with additional people/characters, playlists, image galleries, EPUB reader, online search, and cloud/WebDAV sync. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
+
+**Platforms:** Android is primary. Windows desktop is fully supported (hidden title bar, FFI sqflite, WebView2 + `epub://` custom protocol). `ios/`, `linux/`, `macos/`, `web/` directories exist but are secondary.
 
 ## Common Commands
 
@@ -101,19 +103,24 @@ $env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
 
 ### App Structure (lib/)
 
-- **main.dart** — App entry; initializes `UserPrefs`, `AppProvider`, auto-backup, usage stats, and sync validation on startup
-- **models/data_models.dart** — All data models in one file: `Movie`, `Book`, `Note`, `MovieReview`, `BookReview`, `MoviePoster`, `BookExcerpt`. Each has `fromJson`/`toJson`/`copyWith`
-- **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) holds all app state. Manages movies, books, notes lists, theme mode, tab indices, drawer state. Uses DAO pattern for data access. Has a `_useRemote` flag to switch between local SQLite and remote server
-- **pages/** — UI pages organized by feature domain: `movies/`, `book/`, `note/`, `sync/`, `markdown_reader/`
-- **utils/** — Business logic layer:
-  - `database_helper.dart` — SQLite database (sqflite), version 13, with migration chain
-  - `movie/`, `book/`, `note/` — DAO classes for each entity (CRUD operations)
-  - `tag/tag_dao.dart` — Tag management
-  - `sync/` — Server sync, WebDAV sync, auto-backup, backup service
-  - `theme/app_theme.dart` — Minimalist black/white/gray theme with Material 3
-  - `user_prefs.dart` — SharedPreferences wrapper (singleton)
-- **widgets/** — Shared reusable widgets (list items, star rating, drawer, bottom nav, shimmer skeleton)
+- **main.dart** — App entry; initializes `UserPrefs`, `AppProvider`, auto-backup, usage stats, and sync validation on startup. Applies dynamic_color (Monet), frosted-glass theme, window_manager, media_kit, and WebView2 `epub://` protocol on Windows
+- **models/data_models.dart** — All data models in one file (~21 classes): `Movie`, `Book`, `Note`, `Game`, `Playlist`, `PlaylistItem`, `Person`, `MoviePerson`/`BookPerson`/`GamePerson`, `MovieCharacter`/`BookCharacter`/`GameCharacter`, `GalleryItem`, `MovieReview`, `BookReview`, `GameReview`, `MoviePoster`, `BookExcerpt`, `GameScreenshot`. Each has `fromJson`/`toJson`/`copyWith`
+- **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) has all app state (~260 members). Manages the four media type lists (movies, books, games, notes, playlists, people), theme mode, tab indices, drawer state, per-type UI preferences. Uses DAO pattern; `_useRemote` flag switches between local SQLite and remote server
+- **data/** — DAO layer + database:
+  - `database_helper.dart` — SQLite (sqflite), **version 42**, migration chain in `_onUpgrade`
+  - Per-entity DAOs: `movie/`, `book/`, `game/`, `note/`, `person/`, `character/`, `tag/`, `gallery/`, `epub/` (reader), `playlist/`, `book_source/` (CRUD operations)
+- **pages/** — UI by feature domain. Large subsystems:
+  - `movies/`, `book/`, `game/`, `note/` — detail/form/list pages per media type
+  - `epub_reader/` — full EPUB reader (webview renderer, page-turn sessions for Android/iOS, selection toolbar/handles, TOC, search, highlights, footnotes, image viewer, mixins)
+  - `people/`, `character/`, `playlist/`, `explore/` (stats, gallery, calendar), `online_search/`, `markdown_reader/`, `quick_add/`, `profile/`, `settings/`, `sync/`
+- **services/** — Non-UI logic: `epub/` (parser, stream service), `sync/` (server sync via ServerDataService, webdav, backup service), `usage_stats_service.dart`, `changelog_service.dart`, `font_download_manager.dart`, `app_icon_channel.dart`, `server_config.dart`
+- **utils/** — `image_path_helper.dart`, `responsive.dart`, `toast_util.dart`, `slide_up_page_route.dart`, `theme/app_theme.dart`, `user_prefs.dart`, `server_config.dart`, `book_source/`
+- **widgets/** — Shared widgets (list items, star rating, drawer, bottom nav, app shell, frosted background, shimmer skeleton, master-detail scaffold)
 - **utils/app_router.dart** — Named route generator using `onGenerateRoute` with `SlideUpPageRoute` transitions
+
+### UI / Tabs
+
+Main tabs (mobile `main_content_page.dart` / desktop `home_page.dart`) switch by **影视 → 阅读 → 游戏 → 笔记** via a swipeable `PageView`. Tab visibility is user-configurable (`UserPrefs.showMovieTab` / `showBookTab` / `showGameTab` / `showNoteTab`).
 
 ### State Management
 
@@ -121,10 +128,10 @@ Provider pattern. A single `AppProvider` (ChangeNotifier) is provided at the roo
 
 ### Data Layer
 
-- **Local**: SQLite via sqflite (`DatabaseHelper` singleton, DB name: `mooknote.db`)
+- **Local**: SQLite via sqflite (`DatabaseHelper` singleton, DB name: `mooknote.db`; FFI on Windows)
 - **Remote**: Optional server sync via `ServerSyncService` / `ServerDataService`. Controlled by `UserPrefs.syncEnabled` + activation code
-- **DAO pattern**: Each entity has its own DAO (`MovieDao`, `BookDao`, `NoteDao`, etc.) that can operate locally or remotely based on `_useRemote` flag in AppProvider
-- **Soft delete**: All models have `isDeleted` field; a recycle bin page manages restores
+- **DAO pattern**: Each entity has its own DAO operating locally or remotely based on the `_useRemote` flag in `AppProvider`
+- **Soft delete**: Models have `isDeleted`; recycle bin page manages restores
 
 ### Image Storage
 
@@ -132,7 +139,7 @@ Images stored at: `/mooknote/images/<category>/<entity_id>/<filename>` on device
 
 ### Server (server/)
 
-Python Flask backend for user stats and sync API. Not part of the Flutter build. Run with `python app.py` or gunicorn.
+Python Flask backend (auth, admin API, sync API, web UI) for user stats and sync. Not part of the Flutter build. Run with `python app.py` or gunicorn.
 
 ## Key Conventions
 
@@ -141,4 +148,4 @@ Python Flask backend for user stats and sync API. Not part of the Flutter build.
 - List fields (directors, actors, genres, tags) stored as JSON-encoded strings in SQLite, parsed via `Movie.parseStringList()`
 - `copyWith` uses a `_CopyWithNullSentinel` pattern to distinguish "not passed" from "passed null" for nullable fields
 - Route transitions use custom `SlideUpPageRoute` (bottom-to-top slide)
-- DB migrations in `DatabaseHelper._onUpgrade` — always add new migration blocks with version checks (`if (oldVersion < N)`)
+- DB migrations in `DatabaseHelper._onUpgrade` — always add new migration blocks with version checks (`if (oldVersion < N)`), and bump the version constant

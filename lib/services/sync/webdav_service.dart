@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -112,41 +114,23 @@ class WebDAVService {
   }) async {
     try {
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      var davUrl = '$baseUrl$path';
+      var davUrl = '$baseUrl${_normalizePath(path)}';
 
       final client = http.Client();
       try {
-        var propfindRequest = http.Request('PROPFIND', Uri.parse(davUrl));
-        propfindRequest.headers['Authorization'] = _basicAuth(username, password);
-        propfindRequest.headers['Depth'] = '0';
-        propfindRequest.body = '''<?xml version="1.0" encoding="utf-8"?>
+        const propfindBody = '''<?xml version="1.0" encoding="utf-8"?>
 <D:propfind xmlns:D="DAV:">
   <D:prop>
     <D:resourcetype/>
   </D:prop>
 </D:propfind>''';
 
-        var propfindResponse = await client.send(propfindRequest);
-
-        if (propfindResponse.statusCode == 301 ||
-            propfindResponse.statusCode == 302 ||
-            propfindResponse.statusCode == 307 ||
-            propfindResponse.statusCode == 308) {
-          final location = propfindResponse.headers['location'];
-          if (location != null) {
-            davUrl = location;
-            propfindRequest = http.Request('PROPFIND', Uri.parse(davUrl));
-            propfindRequest.headers['Authorization'] = _basicAuth(username, password);
-            propfindRequest.headers['Depth'] = '0';
-            propfindRequest.body = '''<?xml version="1.0" encoding="utf-8"?>
-<D:propfind xmlns:D="DAV:">
-  <D:prop>
-    <D:resourcetype/>
-  </D:prop>
-</D:propfind>''';
-            propfindResponse = await client.send(propfindRequest);
-          }
-        }
+        final propfindResponse = await _sendAuthed(
+          client, 'PROPFIND', davUrl, username, password,
+          headers: {'Depth': '0'},
+          body: propfindBody,
+          onRedirect: (newUrl) => davUrl = newUrl,
+        );
 
         if (propfindResponse.statusCode == 207) {
           return {'success': true, 'message': '连接成功'};
@@ -155,6 +139,7 @@ class WebDAVService {
         } else if (propfindResponse.statusCode == 404) {
           // 目录不存在，尝试创建
         } else {
+          await propfindResponse.stream.drain();
           return {'success': false, 'message': '服务器返回错误: ${propfindResponse.statusCode}'};
         }
       } catch (e) {
@@ -162,10 +147,9 @@ class WebDAVService {
       }
 
       try {
-        final mkcolRequest = http.Request('MKCOL', Uri.parse(davUrl));
-        mkcolRequest.headers['Authorization'] = _basicAuth(username, password);
-
-        final mkcolResponse = await client.send(mkcolRequest);
+        final mkcolResponse = await _sendAuthed(
+          client, 'MKCOL', davUrl, username, password,
+        );
 
         if (mkcolResponse.statusCode == 201) {
           return {'success': true, 'message': '连接成功，已创建目录'};
@@ -213,7 +197,7 @@ class WebDAVService {
       final path = config['path']!;
 
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      final dirUrl = '$baseUrl$path';
+      final dirUrl = '$baseUrl${_normalizePath(path)}';
 
       final client = http.Client();
       try {
@@ -264,7 +248,7 @@ class WebDAVService {
       final path = config['path']!;
 
       final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-      final dirUrl = '$baseUrl$path';
+      final dirUrl = '$baseUrl${_normalizePath(path)}';
 
       final client = http.Client();
       int uploadedFiles = 0;
@@ -377,26 +361,13 @@ class WebDAVService {
       }
       final bytes = await file.readAsBytes();
 
-      var request = http.Request('PUT', Uri.parse(url));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      request.headers['Content-Type'] = 'application/zip';
-      request.bodyBytes = bytes;
-
-      var response = await client.send(request).timeout(_httpTimeout);
-
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        await response.stream.drain();
-        if (location != null) {
-          request = http.Request('PUT', Uri.parse(location));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          request.headers['Content-Type'] = 'application/zip';
-          request.bodyBytes = bytes;
-          response = await client.send(request).timeout(_httpTimeout);
-        }
-      }
+      final response = await _sendAuthed(
+        client, 'PUT', url, username, password,
+        headers: {'Content-Type': 'application/zip'},
+        bodyBytes: bytes,
+        timeout: _httpTimeout,
+      );
+      await response.stream.drain();
 
       debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
       return response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204;
@@ -415,22 +386,10 @@ class WebDAVService {
     File localFile,
   ) async {
     try {
-      var request = http.Request('GET', Uri.parse(url));
-      request.headers['Authorization'] = _basicAuth(username, password);
-
-      var response = await client.send(request).timeout(_httpTimeout);
-
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        await response.stream.drain();
-        if (location != null) {
-          request = http.Request('GET', Uri.parse(location));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request).timeout(_httpTimeout);
-        }
-      }
+      final response = await _sendAuthed(
+        client, 'GET', url, username, password,
+        timeout: _httpTimeout,
+      );
 
       debugPrint('[WebDAV] GET $url -> ${response.statusCode}');
 
@@ -470,22 +429,11 @@ class WebDAVService {
       final latestFile = backups.last;
       final zipUrl = '$dirUrl/$latestFile';
 
-      var request = http.Request('HEAD', Uri.parse(zipUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-
-      var response = await client.send(request).timeout(_shortTimeout);
-
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        await response.stream.drain();
-        if (location != null) {
-          request = http.Request('HEAD', Uri.parse(location));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request).timeout(_shortTimeout);
-        }
-      }
+      final response = await _sendAuthed(
+        client, 'HEAD', zipUrl, username, password,
+        timeout: _shortTimeout,
+      );
+      await response.stream.drain();
 
       if (response.statusCode == 200) {
         final lastModified = response.headers['last-modified'];
@@ -522,27 +470,13 @@ class WebDAVService {
     String password,
   ) async {
     try {
-      var request = http.Request('PROPFIND', Uri.parse(dirUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-      request.headers['Depth'] = '1';
-
-      var response = await client.send(request).timeout(_shortTimeout);
-
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        await response.stream.drain();
-        if (location != null) {
-          dirUrl = location;
-          request = http.Request('PROPFIND', Uri.parse(dirUrl));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          request.headers['Depth'] = '1';
-          response = await client.send(request).timeout(_shortTimeout);
-        }
-      }
+      final response = await _sendAuthed(
+        client, 'PROPFIND', dirUrl, username, password,
+        headers: {'Depth': '1'},
+      );
 
       if (response.statusCode != 207) {
+        await response.stream.drain();
         debugPrint('[WebDAV] PROPFIND 返回 ${response.statusCode}，无法列出文件');
         return [];
       }
@@ -582,22 +516,10 @@ class WebDAVService {
     String password,
   ) async {
     try {
-      var request = http.Request('DELETE', Uri.parse(fileUrl));
-      request.headers['Authorization'] = _basicAuth(username, password);
-
-      var response = await client.send(request).timeout(_shortTimeout);
-
-      // 处理重定向
-      if (response.statusCode == 301 || response.statusCode == 302 ||
-          response.statusCode == 307 || response.statusCode == 308) {
-        final location = response.headers['location'];
-        await response.stream.drain();
-        if (location != null) {
-          request = http.Request('DELETE', Uri.parse(location));
-          request.headers['Authorization'] = _basicAuth(username, password);
-          response = await client.send(request).timeout(_shortTimeout);
-        }
-      }
+      final response = await _sendAuthed(
+        client, 'DELETE', fileUrl, username, password,
+      );
+      await response.stream.drain();
 
       debugPrint('[WebDAV] DELETE $fileUrl -> ${response.statusCode}');
       return response.statusCode == 200 || response.statusCode == 204 || response.statusCode == 404;
@@ -626,9 +548,157 @@ class WebDAVService {
     }
   }
 
+  /// 规范化路径：保证以 '/' 开头、不以 '/' 结尾；空或根路径返回空串，
+  /// 避免拼接出 '//'（部分服务器如 CloudMe 会返回 400）
+  String _normalizePath(String path) {
+    var p = path.trim();
+    if (p.isEmpty || p == '/') return '';
+    if (!p.startsWith('/')) p = '/$p';
+    while (p.endsWith('/')) {
+      p = p.substring(0, p.length - 1);
+    }
+    return p;
+  }
+
   /// Basic Auth 编码
   String _basicAuth(String username, String password) {
     final credentials = base64Encode(utf8.encode('$username:$password'));
     return 'Basic $credentials';
+  }
+
+  /// 发送带认证的请求：先发 Basic，若服务器返回 401 且要求 Digest，则按
+  /// RFC 7616 (MD5, qop=auth) 计算 Digest 头重试；同时处理重定向。
+  /// [onRedirect] 在最终 URL 发生变化时回调（用于调用方更新基准 URL）。
+  Future<http.StreamedResponse> _sendAuthed(
+    http.Client client,
+    String method,
+    String url,
+    String username,
+    String password, {
+    Map<String, String>? headers,
+    String? body,
+    List<int>? bodyBytes,
+    Duration? timeout,
+    void Function(String newUrl)? onRedirect,
+  }) async {
+    final uri = Uri.parse(url);
+
+    http.Request buildRequest(String? authorization) {
+      final req = http.Request(method, uri);
+      if (headers != null) req.headers.addAll(headers);
+      req.headers['Authorization'] = authorization ?? _basicAuth(username, password);
+      if (bodyBytes != null) {
+        req.bodyBytes = bodyBytes;
+      } else if (body != null) {
+        req.body = body;
+      }
+      return req;
+    }
+
+    var response = await client.send(buildRequest(null)).timeout(timeout ?? _shortTimeout);
+
+    // Digest 认证重试
+    if (response.statusCode == 401) {
+      final challenge = response.headers['www-authenticate'];
+      await response.stream.drain();
+      if (challenge != null && challenge.toLowerCase().startsWith('digest')) {
+        final digest = _buildDigestHeader(challenge, method, uri, username, password);
+        if (digest != null) {
+          response = await client.send(buildRequest(digest)).timeout(timeout ?? _shortTimeout);
+        }
+      }
+    }
+
+    // 重定向处理
+    if (response.statusCode == 301 || response.statusCode == 302 ||
+        response.statusCode == 307 || response.statusCode == 308) {
+      final location = response.headers['location'];
+      await response.stream.drain();
+      if (location != null) {
+        final newUrl = uri.resolve(location).toString();
+        onRedirect?.call(newUrl);
+        return _sendAuthed(
+          client, method, newUrl, username, password,
+          headers: headers, body: body, bodyBytes: bodyBytes,
+          timeout: timeout, onRedirect: onRedirect,
+        );
+      }
+    }
+
+    return response;
+  }
+
+  /// 解析 WWW-Authenticate: Digest 挑战并生成 Authorization 头（MD5 / MD5-sess, qop=auth）
+  String? _buildDigestHeader(
+    String challenge,
+    String method,
+    Uri uri,
+    String username,
+    String password,
+  ) {
+    final params = <String, String>{};
+    final paramReg = RegExp(r'(\w+)=(?:"([^"]*)"|([^,\s"]+))');
+    for (final m in paramReg.allMatches(challenge)) {
+      params[m.group(1)!.toLowerCase()] = m.group(2) ?? m.group(3) ?? '';
+    }
+
+    final realm = params['realm'];
+    final nonce = params['nonce'];
+    if (realm == null || nonce == null) return null;
+
+    final algorithm = (params['algorithm'] ?? 'MD5').toUpperCase();
+    if (algorithm != 'MD5' && algorithm != 'MD5-SESS') return null;
+
+    // qop 可能是 "auth,auth-int" 列表，只支持 auth
+    String? qop;
+    final qopRaw = params['qop'];
+    if (qopRaw != null) {
+      final qops = qopRaw.split(',').map((e) => e.trim().toLowerCase());
+      if (qops.contains('auth')) {
+        qop = 'auth';
+      }
+    }
+
+    String md5Hex(String s) => md5.convert(utf8.encode(s)).toString();
+
+    final cnonce = List.generate(
+      16, (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+
+    var ha1 = md5Hex('$username:$realm:$password');
+    if (algorithm == 'MD5-SESS') {
+      ha1 = md5Hex('$ha1:$nonce:$cnonce');
+    }
+
+    final path = uri.path.isEmpty ? '/' : uri.path;
+    final digestUri = uri.hasQuery ? '$path?${uri.query}' : path;
+    final ha2 = md5Hex('$method:$digestUri');
+
+    final buffer = StringBuffer()
+      ..write('Digest username="$username"')
+      ..write(', realm="$realm"')
+      ..write(', nonce="$nonce"')
+      ..write(', uri="$digestUri"')
+      ..write(', algorithm=$algorithm');
+
+    if (qop != null) {
+      const nc = '00000001';
+      final response = md5Hex('$ha1:$nonce:$nc:$cnonce:$qop:$ha2');
+      buffer
+        ..write(', response="$response"')
+        ..write(', qop=$qop')
+        ..write(', nc=$nc')
+        ..write(', cnonce="$cnonce"');
+    } else {
+      final response = md5Hex('$ha1:$nonce:$ha2');
+      buffer.write(', response="$response"');
+    }
+
+    final opaque = params['opaque'];
+    if (opaque != null) {
+      buffer.write(', opaque="$opaque"');
+    }
+
+    return buffer.toString();
   }
 }
