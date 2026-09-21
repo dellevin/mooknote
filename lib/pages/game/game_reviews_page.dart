@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'game_review_form_page.dart';
@@ -83,14 +84,14 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '搜索评价内容、评论人、来源...',
+                  hintText: '搜索评价内容、评论人、来源...'.tr,
                   hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
                   border: InputBorder.none,
                 ),
                 style: TextStyle(color: colors.onSurface),
                 onChanged: _onSearchChanged,
               )
-            : const Text('游戏评价'),
+            : Text('游戏评价'.tr),
         actions: [
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
@@ -102,7 +103,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToAddReview(),
         icon: const Icon(Icons.add, size: 20),
-        label: const Text('添加评价'),
+        label: Text('添加评价'.tr),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -124,7 +125,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
             child: Icon(Icons.rate_review_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 20),
-          Text('暂无评价', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('暂无评价'.tr, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 24),
         ],
       ),
@@ -166,7 +167,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                review.typeText,
+                review.typeText.tr,
                 style: TextStyle(
                   fontSize: 10,
                   color: review.reviewType == 1
@@ -232,27 +233,27 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
         return AlertDialog(
           backgroundColor: colors.surface, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('确定要删除这条评价吗？删除后可在回收站恢复。',
+          title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定要删除这条评价吗？删除后可在回收站恢复。'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeGameReview(review.id);
                 Navigator.pop(context);
                 _loadReviews();
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('删除'),
+              child: Text('删除'.tr),
             ),
           ],
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

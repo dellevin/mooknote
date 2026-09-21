@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 import '../../providers/app_provider.dart';
 import '../../data/epub/reader_dao.dart';
@@ -176,7 +177,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
       appBar: AppBar(
         backgroundColor: colors.surface,
         elevation: 0,
-        title: Text('编辑书籍信息',
+        title: Text('编辑书籍信息'.tr,
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
         leading: IconButton(
           icon: Icon(Icons.close, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
@@ -185,7 +186,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
         actions: [
           TextButton(
             onPressed: _save,
-            child: Text('保存', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
+            child: Text('保存'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
           ),
           const SizedBox(width: 4),
         ],
@@ -206,16 +207,16 @@ class _EpubEditPageState extends State<EpubEditPage> {
                 width: halfWidth,
                 height: 90,
                 child: _buildInfoCard(
-                  label: '标题',
+                  label: '标题'.tr,
                   value: _titleCtrl.text,
                   required: true,
                   icon: Icons.auto_stories_outlined,
                   onTap: () async {
                     final result = await TextInputPanel.show(
                       context: context,
-                      title: '书名',
+                      title: '书名'.tr,
                       initialValue: _titleCtrl.text,
-                      hint: '请输入书名',
+                      hint: '请输入书名'.tr,
                     );
                     if (result != null) setState(() => _titleCtrl.text = result);
                   },
@@ -227,18 +228,18 @@ class _EpubEditPageState extends State<EpubEditPage> {
                 width: halfWidth,
                 height: 90,
                 child: _buildInfoCard(
-                  label: '作者',
-                  value: _authors.isEmpty ? '' : '${_authors.length}人：${_authors.join('、')}',
+                  label: '作者'.tr,
+                  value: _authors.isEmpty ? '' : '{n}人：{authors}'.trf({'n': _authors.length, 'authors': _authors.join('、')}),
                   icon: Icons.person_outline,
                   onTap: () async {
                     final provider = context.read<AppProvider>();
                     final data = provider.books.map((b) => b.authors).toList();
                     final result = await GenreSelectorPage.show(
                       context: context,
-                      title: '选择作者',
+                      title: '选择作者'.tr,
                       existingTagsFuture: compute(_collectUnique, data),
                       initialSelected: _authors,
-                      hint: '如：余华、莫言',
+                      hint: '如：余华、莫言'.tr,
                     );
                     if (result != null) setState(() => _authors = result);
                   },
@@ -250,15 +251,15 @@ class _EpubEditPageState extends State<EpubEditPage> {
                 width: halfWidth,
                 height: 90,
                 child: _buildInfoCard(
-                  label: '出版社',
+                  label: '出版社'.tr,
                   value: _publisherCtrl.text,
                   icon: Icons.business_outlined,
                   onTap: () async {
                     final result = await TextInputPanel.show(
                       context: context,
-                      title: '出版社',
+                      title: '出版社'.tr,
                       initialValue: _publisherCtrl.text,
-                      hint: '请输入出版社',
+                      hint: '请输入出版社'.tr,
                     );
                     if (result != null) setState(() => _publisherCtrl.text = result);
                   },
@@ -278,7 +279,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
                       context: context,
                       title: 'ISBN',
                       initialValue: _isbnCtrl.text,
-                      hint: '请输入ISBN编号',
+                      hint: '请输入ISBN编号'.tr,
                       keyboardType: TextInputType.number,
                     );
                     if (result != null) setState(() => _isbnCtrl.text = result);
@@ -290,7 +291,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
               SizedBox(
                 width: double.infinity,
                 child: _buildInfoCard(
-                  label: '简介',
+                  label: '简介'.tr,
                   value: _summaryCtrl.text,
                   icon: Icons.description_outlined,
                   height: 160,
@@ -359,7 +360,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
                       Icon(Icons.add_photo_alternate_outlined, size: 14,
                           color: colors.onSurface.withValues(alpha: 0.6)),
                       const SizedBox(width: 4),
-                      Text('更换封面',
+                      Text('更换封面'.tr,
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6))),
                     ],
                   ),
@@ -380,7 +381,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
                       Icon(Icons.undo, size: 14,
                           color: colors.onSurface.withValues(alpha: 0.6)),
                       const SizedBox(width: 4),
-                      Text('恢复上次',
+                      Text('恢复上次'.tr,
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6))),
                     ],
                   ),
@@ -391,7 +392,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
         ],
         if (_hasLinkedBook) ...[
           const SizedBox(height: 8),
-          Text('封面由关联书籍提供',
+          Text('封面由关联书籍提供'.tr,
               style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
         ],
       ],
@@ -416,7 +417,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Text(
-              hasValue ? value : '点击填写',
+              hasValue ? value : '点击填写'.tr,
               style: TextStyle(
                 fontSize: 14,
                 color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.2),
@@ -427,7 +428,7 @@ class _EpubEditPageState extends State<EpubEditPage> {
         );
       }
       return Text(
-        hasValue ? value : '未设置',
+        hasValue ? value : '未设置'.tr,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
@@ -502,11 +503,11 @@ class _SummaryEditorPageState extends State<_SummaryEditorPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('简介'),
+        title: Text('简介'.tr),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, _controller.text.trim()),
-            child: Text('完成',
+            child: Text('完成'.tr,
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
           ),
           const SizedBox(width: 8),
@@ -519,7 +520,7 @@ class _SummaryEditorPageState extends State<_SummaryEditorPage> {
         textAlignVertical: TextAlignVertical.top,
         style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
         decoration: InputDecoration(
-          hintText: '写下书籍简介...',
+          hintText: '写下书籍简介...'.tr,
           hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
           contentPadding: const EdgeInsets.all(20),
           border: InputBorder.none,

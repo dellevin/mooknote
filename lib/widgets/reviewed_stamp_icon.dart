@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 已阅印章图标 — 双圈外圆 + 内框 + "已阅"文字
 class ReviewedStampIcon extends StatelessWidget {
@@ -44,7 +45,7 @@ class _ReviewedStampPainter extends CustomPainter {
     final fontSize = size.width * 0.32;
     final textPainter = TextPainter(
       text: TextSpan(
-        text: '已阅',
+        text: '已阅'.tr,
         style: TextStyle(
           color: color,
           fontSize: fontSize,

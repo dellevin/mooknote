@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../l10n/app_strings.dart';
 
 class PlaylistCreatePage extends StatefulWidget {
   final Playlist? playlist; // 传入则为编辑模式
@@ -50,7 +51,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('请输入片单名称')));
+          ..showSnackBar(SnackBar(content: Text('请输入片单名称'.tr)));
       }
       return;
     }
@@ -89,7 +90,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? '编辑片单' : '创建片单'),
+        title: Text(_isEdit ? '编辑片单'.tr : '创建片单'.tr),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -102,7 +103,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
             ),
             child: _isSaving
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                : Text(_isEdit ? '保存' : '创建', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                : Text(_isEdit ? '保存'.tr : '创建'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
       ),
@@ -111,7 +112,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
         children: [
           // 类型选择
           if (!_isEdit) ...[
-            Text('片单类型', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+            Text('片单类型'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(2),
@@ -140,7 +141,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
                           children: [
                             Icon(icon, size: 16, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.4)),
                             const SizedBox(width: 6),
-                            Text(label, style: TextStyle(
+                            Text(label.tr, style: TextStyle(
                               fontSize: 13,
                               fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
                               color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
@@ -156,7 +157,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
             const SizedBox(height: 24),
           ],
           // 片单名称
-          Text('片单名称', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+          Text('片单名称'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(height: 8),
           TextField(
             controller: _nameController,
@@ -164,7 +165,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
             autofocus: !_isEdit,
             maxLength: 30,
             decoration: InputDecoration(
-              hintText: '输入片单名称',
+              hintText: '输入片单名称'.tr,
               counterStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
               filled: true,
               fillColor: colors.surfaceContainerHighest,
@@ -175,14 +176,14 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
           ),
           const SizedBox(height: 16),
           // 片单详情
-          Text('片单详情', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+          Text('片单详情'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(height: 8),
           TextField(
             controller: _descController,
             maxLines: 3,
             maxLength: 200,
             decoration: InputDecoration(
-              hintText: '描述一下这个片单（选填）',
+              hintText: '描述一下这个片单（选填）'.tr,
               counterStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
               filled: true,
               fillColor: colors.surfaceContainerHighest,

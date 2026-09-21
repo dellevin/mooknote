@@ -7,6 +7,7 @@ import '../../utils/toast_util.dart';
 import 'movie_detail_page.dart';
 import 'book_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 在线搜索影视/书籍（带 Scaffold + AppBar）
 class OnlineSearchPage extends StatelessWidget {
@@ -18,7 +19,7 @@ class OnlineSearchPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('在线搜索'),
+        title: Text('在线搜索'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
@@ -159,7 +160,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
             ),
             const SizedBox(height: 14),
             Text(
-              '播放功能已解锁',
+              '播放功能已解锁'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -168,7 +169,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
             ),
             const SizedBox(height: 6),
             Text(
-              '有效期 7 天，可前往影视详情页观看',
+              '有效期 7 天，可前往影视详情页观看'.tr,
               style: TextStyle(
                 fontSize: 12,
                 color: colors.onSurface.withValues(alpha: 0.5),
@@ -181,7 +182,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('知道了',
+            child: Text('知道了'.tr,
                 style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -195,7 +196,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   Future<void> _searchMovies(String keyword, int page) async {
     final token = UserPrefs().movieSearchToken;
     if (token.isEmpty) {
-      if (mounted) ToastUtil.show(context, '请先在设置中配置影视搜索 Token');
+      if (mounted) ToastUtil.show(context, '请先在设置中配置影视搜索 Token'.tr);
       return;
     }
 
@@ -247,8 +248,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     } catch (e) {
       if (mounted) {
         final msg = e.toString().contains('TimeoutException')
-            ? '搜索超时，请稍后重试'
-            : '搜索失败，请检查网络';
+            ? '搜索超时，请稍后重试'.tr
+            : '搜索失败，请检查网络'.tr;
         ToastUtil.show(context, msg);
       }
     }
@@ -317,8 +318,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     } catch (e) {
       if (mounted) {
         final msg = e.toString().contains('TimeoutException')
-            ? '搜索超时，请稍后重试'
-            : '搜索失败，请检查网络';
+            ? '搜索超时，请稍后重试'.tr
+            : '搜索失败，请检查网络'.tr;
         ToastUtil.show(context, msg);
       }
     }
@@ -352,7 +353,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                 Expanded(child: _buildSearchBar(colors)),
                 TextButton(
                   onPressed: _doSearch,
-                  child: Text('搜索',
+                  child: Text('搜索'.tr,
                       style: TextStyle(fontSize: 14, color: colors.primary)),
                 ),
               ],
@@ -366,8 +367,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                       bottom: BorderSide(
                           color: colors.outlineVariant, width: 0.5))),
               child: Row(children: [
-                _buildTabButton(colors, '影视', 0, _movieTotal),
-                _buildTabButton(colors, '书籍', 1, _bookTotal),
+                _buildTabButton(colors, '影视'.tr, 0, _movieTotal),
+                _buildTabButton(colors, '书籍'.tr, 1, _bookTotal),
               ]),
             ),
           Expanded(
@@ -463,7 +464,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
               style: TextStyle(fontSize: 13, color: colors.onSurface),
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: '搜索影视、书籍...',
+                hintText: '搜索影视、书籍...'.tr,
                 hintStyle: TextStyle(
                     fontSize: 13,
                     color: colors.onSurface.withValues(alpha: 0.3)),
@@ -509,12 +510,12 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
           elevation: 0,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('Token 已过期',
+          title: Text('Token 已过期'.tr,
               style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: c.onSurface)),
-          content: Text('当前 Token 已过期，请重新获取',
+          content: Text('当前 Token 已过期，请重新获取'.tr,
               style: TextStyle(
                   fontSize: 14,
                   color: c.onSurface.withValues(alpha: 0.6),
@@ -532,7 +533,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('知道了', style: TextStyle(fontSize: 14)),
+              child: Text('知道了'.tr, style: const TextStyle(fontSize: 14)),
             ),
           ],
         );
@@ -544,13 +545,13 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
 
   Widget _buildMovieResults(ColorScheme colors) {
     if (!_hasSearched)
-      return _buildEmptyState(colors, '搜索你想看的影视作品', Icons.movie_outlined);
+      return _buildEmptyState(colors, '搜索你想看的影视作品'.tr, Icons.movie_outlined);
     if (UserPrefs().movieSearchToken.isEmpty)
       return _buildEmptyState(
-          colors, '填入 Token 后可正常使用该功能', Icons.vpn_key_outlined);
+          colors, '填入 Token 后可正常使用该功能'.tr, Icons.vpn_key_outlined);
     if (_movieLoading) return _buildLoadingState(colors);
     if (_movieList.isEmpty)
-      return _buildEmptyState(colors, '未找到相关内容', Icons.search_off_outlined);
+      return _buildEmptyState(colors, '未找到相关内容'.tr, Icons.search_off_outlined);
 
     final hasMore = _moviePage < _moviePageCount;
     final itemCount = _movieList.length + 1; // +1 for bottom indicator
@@ -695,7 +696,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        isFinished ? '已完结' : '连载中',
+        isFinished ? '已完结'.tr : '连载中'.tr,
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w500,
@@ -724,7 +725,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
       runSpacing: 4,
       children: [
         if (isManual == 1)
-          _buildSmallTag('官方优化', const Color(0xFF16A34A), isHighlight: true),
+          _buildSmallTag('官方优化'.tr, const Color(0xFF16A34A), isHighlight: true),
         ...tags.take(4).map((t) =>
             _buildSmallTag(t.trim(), colors.onSurface.withValues(alpha: 0.4))),
         if (tags.length > 4)
@@ -772,13 +773,13 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
 
   Widget _buildBookResults(ColorScheme colors) {
     if (!_hasSearched)
-      return _buildEmptyState(colors, '搜索你想看的书籍', Icons.menu_book_outlined);
+      return _buildEmptyState(colors, '搜索你想看的书籍'.tr, Icons.menu_book_outlined);
     if (UserPrefs().bookSearchToken.isEmpty)
       return _buildEmptyState(
-          colors, '填入 Token 后可正常使用该功能', Icons.vpn_key_outlined);
+          colors, '填入 Token 后可正常使用该功能'.tr, Icons.vpn_key_outlined);
     if (_bookLoading) return _buildLoadingState(colors);
     if (_bookList.isEmpty)
-      return _buildEmptyState(colors, '未找到相关书籍', Icons.search_off_outlined);
+      return _buildEmptyState(colors, '未找到相关书籍'.tr, Icons.search_off_outlined);
 
     final hasMore = _bookPage < _bookPageCount;
     final itemCount = _bookList.length + 1;
@@ -867,14 +868,14 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                     ],
                     if (year.toString().isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text('出版年份 $year',
+                      Text('出版年份 {y}'.trf({'y': year}),
                           style: TextStyle(
                               fontSize: 10,
                               color: colors.onSurface.withValues(alpha: 0.35))),
                     ],
                     if (isbn.toString().isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text('ISBN $isbn',
+                      Text('ISBN {i}'.trf({'i': isbn}),
                           style: TextStyle(
                               fontSize: 10,
                               color: colors.onSurface.withValues(alpha: 0.35))),
@@ -912,7 +913,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                 strokeWidth: 2.5, color: colors.primary),
           ),
           const SizedBox(height: 16),
-          Text('正在搜索...',
+          Text('正在搜索...'.tr,
               style: TextStyle(
                   fontSize: 13,
                   color: colors.onSurface.withValues(alpha: 0.4))),
@@ -935,7 +936,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: colors.primary)),
             const SizedBox(width: 8),
-            Text('加载中...',
+            Text('加载中...'.tr,
                 style: TextStyle(
                     fontSize: 12,
                     color: colors.onSurface.withValues(alpha: 0.4))),
@@ -952,7 +953,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
           const SizedBox(width: 10),
           Flexible(
             child: Text(
-              '已经是所有数据啦，要是没有的话，请联系开发者添加哦~',
+              '已经是所有数据啦，要是没有的话，请联系开发者添加哦~'.tr,
               style: TextStyle(
                   fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
               textAlign: TextAlign.center,
@@ -969,13 +970,13 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
 
   Widget _buildHistoryPanel(ColorScheme colors) {
     if (_history.isEmpty)
-      return _buildEmptyState(colors, '搜索你想看的影视/书籍作品', Icons.manage_search_outlined);
+      return _buildEmptyState(colors, '搜索你想看的影视/书籍作品'.tr, Icons.manage_search_outlined);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
         Row(
           children: [
-            Text('搜索历史',
+            Text('搜索历史'.tr,
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -992,12 +993,12 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
-                      title: Text('清空搜索记录',
+                      title: Text('清空搜索记录'.tr,
                           style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: c.onSurface)),
-                      content: Text('确定删除全部搜索记录？',
+                      content: Text('确定删除全部搜索记录？'.tr,
                           style: TextStyle(
                               fontSize: 14,
                               color: c.onSurface.withValues(alpha: 0.6),
@@ -1014,7 +1015,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8))),
                           child:
-                              const Text('取消', style: TextStyle(fontSize: 14)),
+                              Text('取消'.tr, style: const TextStyle(fontSize: 14)),
                         ),
                         ElevatedButton(
                           onPressed: () {
@@ -1033,14 +1034,14 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8))),
                           child:
-                              const Text('清空', style: TextStyle(fontSize: 14)),
+                              Text('清空'.tr, style: const TextStyle(fontSize: 14)),
                         ),
                       ],
                     );
                   },
                 );
               },
-              child: Text('清空',
+              child: Text('清空'.tr,
                   style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurface.withValues(alpha: 0.4))),
@@ -1067,12 +1068,12 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
-                            title: Text('删除搜索记录',
+                            title: Text('删除搜索记录'.tr,
                                 style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
                                     color: c.onSurface)),
-                            content: Text('确定删除「$kw」？',
+                            content: Text('确定删除「{kw}」？'.trf({'kw': kw}),
                                 style: TextStyle(
                                     fontSize: 14,
                                     color: c.onSurface.withValues(alpha: 0.6),
@@ -1090,8 +1091,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8)),
                                 ),
-                                child: const Text('取消',
-                                    style: TextStyle(fontSize: 14)),
+                                child: Text('取消'.tr,
+                                    style: const TextStyle(fontSize: 14)),
                               ),
                               ElevatedButton(
                                 onPressed: () {
@@ -1112,8 +1113,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8)),
                                 ),
-                                child: const Text('删除',
-                                    style: TextStyle(fontSize: 14)),
+                                child: Text('删除'.tr,
+                                    style: const TextStyle(fontSize: 14)),
                               ),
                             ],
                           );
@@ -1162,7 +1163,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                   fontSize: 14,
                   color: colors.onSurface.withValues(alpha: 0.35))),
           const SizedBox(height: 4),
-          Text('输入关键词后点击搜索',
+          Text('输入关键词后点击搜索'.tr,
               style: TextStyle(
                   fontSize: 12,
                   color: colors.onSurface.withValues(alpha: 0.2))),

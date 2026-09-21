@@ -7,6 +7,7 @@ import '../../utils/toast_util.dart';
 import 'movie_review_form_page.dart';
 import 'movie_review_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 影视影评列表页面
 class MovieReviewsPage extends StatefulWidget {
@@ -83,14 +84,14 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '搜索影评内容、评论人、来源...',
+                  hintText: '搜索影评内容、评论人、来源...'.tr,
                   hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
                   border: InputBorder.none,
                 ),
                 style: TextStyle(color: colors.onSurface),
                 onChanged: _onSearchChanged,
               )
-            : const Text('影评'),
+            : Text('影评'.tr),
         actions: [
           // 搜索按钮
           IconButton(
@@ -103,7 +104,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToAddReview(),
         icon: const Icon(Icons.add, size: 20),
-        label: const Text('添加影评'),
+        label: Text('添加影评'.tr),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -134,7 +135,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
           ),
           const SizedBox(height: 20),
           Text(
-            '暂无影评',
+            '暂无影评'.tr,
             style: TextStyle(
               fontSize: 16,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -184,7 +185,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                review.typeText,
+                review.typeText.tr,
                 style: TextStyle(
                   fontSize: 10,
                   color: review.reviewType == 1
@@ -295,27 +296,27 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('确定要删除这条影评吗？删除后可在回收站恢复。',
+          title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定要删除这条影评吗？删除后可在回收站恢复。'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeMovieReview(review.id);
                 Navigator.pop(context);
                 _loadReviews();
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('删除'),
+              child: Text('删除'.tr),
             ),
           ],
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

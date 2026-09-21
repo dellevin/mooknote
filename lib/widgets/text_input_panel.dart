@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 
 /// 右侧滑入文本输入弹窗（单行/多行编辑用，如影视名称、书籍名称、简介）
 class TextInputPanel extends StatefulWidget {
@@ -96,11 +97,11 @@ class _TextInputPanelState extends State<TextInputPanel> {
               ),
               child: Row(
                 children: [
-                  Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text(widget.title.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const Spacer(),
                   TextButton(
                     onPressed: _submit,
-                    child: Text('完成', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
+                    child: Text('完成'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
                   ),
                 ],
               ),
@@ -116,7 +117,7 @@ class _TextInputPanelState extends State<TextInputPanel> {
                 style: TextStyle(fontSize: 15, color: colors.onSurface),
                 cursorColor: colors.primary,
                 decoration: InputDecoration(
-                  hintText: widget.hint,
+                  hintText: widget.hint.tr,
                   hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: colors.surfaceContainerHigh,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../l10n/app_strings.dart';
 
 /// 影视分类选择栏 - 可横向滚动，带动画指示器
 class MovieCategoryBar extends StatelessWidget {
@@ -71,7 +72,7 @@ class MovieCategoryBar extends StatelessWidget {
                                 child: Center(
                                   child: FittedBox(
                                     child: Text(
-                                      _categories[i].$1,
+                                      _categories[i].$1.tr,
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

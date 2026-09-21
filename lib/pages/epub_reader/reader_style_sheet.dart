@@ -3,6 +3,7 @@ import '../../services/epub/epub_theme.dart';
 import 'widgets/integer_stepper.dart';
 import 'widgets/reader_scale_slider.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// Simplified reader style configuration bottom sheet.
 ///
@@ -102,11 +103,11 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // -- 缩放比例 --
-                const _SectionTitle(label: '缩放比例'),
+                _SectionTitle(label: '缩放比例'.tr),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const _SubLabel(label: '缩放'),
+                    _SubLabel(label: '缩放'.tr),
                     const Spacer(),
                     Text(
                       '${_scale.toStringAsFixed(1)}x',
@@ -132,11 +133,11 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                 const SizedBox(height: 20),
 
                 // -- 字号 --
-                const _SectionTitle(label: '字号'),
+                _SectionTitle(label: '字号'.tr),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const _SubLabel(label: '字号'),
+                    _SubLabel(label: '字号'.tr),
                     const Spacer(),
                     Text(
                       '${_fontSize.toInt()}px',
@@ -210,13 +211,13 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                 const SizedBox(height: 24),
 
                 // -- 边距 --
-                const _SectionTitle(label: '边距'),
+                _SectionTitle(label: '边距'.tr),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
                       child: IntegerStepper(
-                        label: '上',
+                        label: '上'.tr,
                         value: _topMargin,
                         min: _marginMin,
                         max: _marginMax,
@@ -230,7 +231,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: IntegerStepper(
-                        label: '下',
+                        label: '下'.tr,
                         value: _bottomMargin,
                         min: _marginMin,
                         max: _marginMax,
@@ -248,7 +249,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                   children: [
                     Expanded(
                       child: IntegerStepper(
-                        label: '左',
+                        label: '左'.tr,
                         value: _leftMargin,
                         min: _marginMin,
                         max: _marginMax,
@@ -262,7 +263,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: IntegerStepper(
-                        label: '右',
+                        label: '右'.tr,
                         value: _rightMargin,
                         min: _marginMin,
                         max: _marginMax,
@@ -279,7 +280,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                 const SizedBox(height: 24),
 
                 // -- 阅读主题 --
-                const _SectionTitle(label: '阅读主题'),
+                _SectionTitle(label: '阅读主题'.tr),
                 const SizedBox(height: 10),
                 _buildThemePresets(colorScheme),
               ],
@@ -391,7 +392,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
             return AlertDialog(
               backgroundColor: cs.surface,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('自定义颜色', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface)),
+              title: Text('自定义颜色'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -405,14 +406,14 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                       border: Border.all(color: cs.outlineVariant, width: 0.5),
                     ),
                     child: Center(
-                      child: Text('预览文字 Aa 字体',
+                      child: Text('预览文字 Aa 字体'.tr,
                           style: TextStyle(color: textColor, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 20),
                   // Background color
                   _buildColorRow(
-                    label: '背景色',
+                    label: '背景色'.tr,
                     color: bgColor,
                     onChanged: (c) => setDialogState(() => bgColor = c),
                     cs: cs,
@@ -420,7 +421,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                   const SizedBox(height: 12),
                   // Text color
                   _buildColorRow(
-                    label: '文字色',
+                    label: '文字色'.tr,
                     color: textColor,
                     onChanged: (c) => setDialogState(() => textColor = c),
                     cs: cs,
@@ -430,7 +431,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
+                  child: Text('取消'.tr, style: TextStyle(color: cs.onSurfaceVariant)),
                 ),
                 TextButton(
                   onPressed: () {
@@ -443,7 +444,7 @@ class _ReaderStyleSheetState extends State<ReaderStyleSheet> {
                     widget.onThemeIndexChanged(9);
                     Navigator.pop(ctx);
                   },
-                  child: Text('确定', style: TextStyle(fontWeight: FontWeight.w600, color: cs.primary)),
+                  child: Text('确定'.tr, style: TextStyle(fontWeight: FontWeight.w600, color: cs.primary)),
                 ),
               ],
             );

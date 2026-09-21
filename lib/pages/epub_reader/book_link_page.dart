@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 import '../../data/book/book_dao.dart';
 import '../../data/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
@@ -67,7 +68,7 @@ class _BookLinkPageState extends State<BookLinkPage> {
   Future<void> _selectBook(Book book) async {
     await _readerDao.linkToBook(widget.readerBookId, book.id);
     if (mounted) {
-      ToastUtil.show(context, '已关联《${book.title}》');
+      ToastUtil.show(context, '已关联《{title}》'.trf({'title': book.title}));
       Navigator.pop(context, true);
     }
   }
@@ -81,7 +82,7 @@ class _BookLinkPageState extends State<BookLinkPage> {
       appBar: AppBar(
         backgroundColor: colors.surface,
         elevation: 0,
-        title: Text('关联书籍',
+        title: Text('关联书籍'.tr,
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, size: 20),
@@ -132,7 +133,7 @@ class _BookLinkPageState extends State<BookLinkPage> {
           onChanged: _onSearch,
           style: TextStyle(fontSize: 14, color: colors.onSurface),
           decoration: InputDecoration(
-            hintText: '搜索书名或作者…',
+            hintText: '搜索书名或作者…'.tr,
             hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 14, right: 10),
@@ -205,7 +206,7 @@ class _BookLinkPageState extends State<BookLinkPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              _query.isEmpty ? '暂无书籍' : '未找到匹配的书籍',
+              _query.isEmpty ? '暂无书籍'.tr : '未找到匹配的书籍'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
             ),
           ],
@@ -312,7 +313,7 @@ class _BookLinkPageState extends State<BookLinkPage> {
                     children: [
                       Icon(Icons.link_rounded, size: 14, color: colors.primary),
                       const SizedBox(width: 4),
-                      Text('关联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
+                      Text('关联'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
                     ],
                   ),
                 ),

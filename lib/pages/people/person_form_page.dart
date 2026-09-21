@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -89,7 +90,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
-          title: Text(isEdit ? '编辑人物' : '添加人物'),
+          title: Text(isEdit ? '编辑人物'.tr : '添加人物'.tr),
           actions: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -99,7 +100,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('保存'),
+                child: Text('保存'.tr),
               ),
             ),
           ],
@@ -133,7 +134,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        opt.$1,
+                        opt.$1.tr,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
@@ -159,10 +160,10 @@ class _PersonFormPageState extends State<PersonFormPage> {
               _buildChipField('其他名称', _alternateNames, colors, onTap: () async {
                 final result = await GenreSelectorPage.show(
                   context: context,
-                  title: '添加其他名称',
+                  title: '添加其他名称'.tr,
                   existingTags: [],
                   initialSelected: _alternateNames,
-                  hint: '如：艺名、英文名',
+                  hint: '如：艺名、英文名'.tr,
                 );
                 if (result != null) setState(() => _alternateNames = result);
               }),
@@ -172,10 +173,10 @@ class _PersonFormPageState extends State<PersonFormPage> {
               _buildChipField('职业', _occupation, colors, onTap: () async {
                 final result = await GenreSelectorPage.show(
                   context: context,
-                  title: '选择职业',
+                  title: '选择职业'.tr,
                   existingTags: _occupationOptions,
                   initialSelected: _occupation,
-                  hint: '如：导演、演员',
+                  hint: '如：导演、演员'.tr,
                 );
                 if (result != null) setState(() => _occupation = result);
               }),
@@ -191,7 +192,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                   maxLines: null,
                   style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
                   decoration: InputDecoration(
-                    hintText: '写下人物简介...',
+                    hintText: '写下人物简介...'.tr,
                     hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                     filled: true,
                     fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -234,7 +235,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                     children: [
                       Icon(Icons.person_add_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                       const SizedBox(height: 4),
-                      Text('添加图片', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                      Text('添加图片'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
                     ],
                   ),
                 if (_isDownloading)
@@ -251,7 +252,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
             padding: const EdgeInsets.only(top: 8),
             child: GestureDetector(
               onTap: () => setState(() => _photoPath = null),
-              child: Text('移除图片', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+              child: Text('移除图片'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
             ),
           ),
       ],
@@ -275,17 +276,17 @@ class _PersonFormPageState extends State<PersonFormPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Align(alignment: Alignment.centerLeft,
-                  child: Text('添加图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface))),
+                  child: Text('添加图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface))),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: Icon(Icons.photo_library_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-                title: Text('从相册选择', style: TextStyle(color: colors.onSurface)),
+                title: Text('从相册选择'.tr, style: TextStyle(color: colors.onSurface)),
                 onTap: () { Navigator.pop(ctx); _pickPhoto(); },
               ),
               ListTile(
                 leading: Icon(Icons.link_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-                title: Text('网络链接', style: TextStyle(color: colors.onSurface)),
+                title: Text('网络链接'.tr, style: TextStyle(color: colors.onSurface)),
                 onTap: () { Navigator.pop(ctx); _pickPhotoFromUrl(); },
               ),
             ],
@@ -306,7 +307,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
       await File(picked.path).copy(targetPath);
       if (mounted) setState(() => _photoPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择图片失败: $e');
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -318,12 +319,12 @@ class _PersonFormPageState extends State<PersonFormPage> {
       return AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+            Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 12),
             TextField(
               controller: urlCtrl,
@@ -340,12 +341,12 @@ class _PersonFormPageState extends State<PersonFormPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () { url = urlCtrl.text.trim(); Navigator.pop(ctx, true); },
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确定'),
+            child: Text('确定'.tr),
           ),
         ],
       );
@@ -382,14 +383,14 @@ class _PersonFormPageState extends State<PersonFormPage> {
       setState(() => _photoPath = targetPath);
     } catch (e) {
       debugPrint('头像下载失败: $e');
-      if (mounted) ToastUtil.show(context, '下载失败: $e');
+      if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isDownloading = false);
     }
   }
 
   Widget _buildSectionLabel(String label, ColorScheme colors) {
-    return Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
+    return Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
   }
 
   Widget _buildField(String label, TextEditingController ctrl, {String hint = '', bool required = false, ValueChanged<String>? onChanged}) {
@@ -397,15 +398,15 @@ class _PersonFormPageState extends State<PersonFormPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+        Text(required ? '${label.tr} *' : label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
         const SizedBox(height: 6),
         TextFormField(
           controller: ctrl,
           style: TextStyle(fontSize: 14, color: colors.onSurface),
-          validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
+          validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入{label}'.trf({'label': label.tr}) : null : null,
           onChanged: onChanged,
           decoration: InputDecoration(
-            hintText: hint, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+            hintText: hint.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
             filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -421,7 +422,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+        Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -443,7 +444,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                 Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
                 Text(
-                  hasDate ? '${date!.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}' : '选择日期',
+                  hasDate ? '${date!.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
                   style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25)),
                 ),
                 const Spacer(),
@@ -464,7 +465,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+        Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: onTap,
@@ -476,13 +477,13 @@ class _PersonFormPageState extends State<PersonFormPage> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: chips.isEmpty
-                ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
+                ? Text('点击选择{label}'.trf({'label': label.tr}), style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
                 : Wrap(
                     spacing: 4, runSpacing: 4,
                     children: chips.map((c) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(4)),
-                      child: Text(c, style: TextStyle(fontSize: 12, color: colors.onSurface)),
+                      child: Text(c.tr, style: TextStyle(fontSize: 12, color: colors.onSurface)),
                     )).toList(),
                   ),
           ),
@@ -509,16 +510,16 @@ class _PersonFormPageState extends State<PersonFormPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('未保存', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('当前内容未保存，确定要离开吗？',
+        title: Text('未保存'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('当前内容未保存，确定要离开吗？'.tr,
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('离开'),
+            child: Text('离开'.tr),
           ),
         ],
       ),
@@ -572,11 +573,11 @@ class _PersonFormPageState extends State<PersonFormPage> {
       }
 
       if (!mounted) return;
-      ToastUtil.show(context, widget.person == null ? '添加成功' : '更新成功');
+      ToastUtil.show(context, widget.person == null ? '添加成功'.tr : '更新成功'.tr);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ToastUtil.show(context, '保存失败: $e');
+      ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 

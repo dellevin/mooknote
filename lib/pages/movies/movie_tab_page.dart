@@ -16,6 +16,7 @@ import '../../widgets/detail_placeholder.dart';
 import 'movie_detail_page.dart';
 import 'movie_add_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 状态索引 → 状态值
 const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
@@ -96,7 +97,7 @@ class _MovieTabPageState extends State<MovieTabPage> with SingleTickerProviderSt
         ? MovieAddPage(onCancel: () => provider.cancelAdding())
         : selectedMovie != null
             ? MovieDetailPage(movie: selectedMovie, embedded: true)
-            : const DetailPlaceholder(icon: Icons.movie_outlined, message: '选择一部影片查看详情');
+            : DetailPlaceholder(icon: Icons.movie_outlined, message: '选择一部影片查看详情'.tr);
     return MasterDetailScaffold(
       master: masterContent,
       detail: detailWidget,
@@ -394,7 +395,7 @@ class _MovieTabViewState extends State<_MovieTabView>
       child: Center(
         child: _isLoading
             ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary))
-            : Text('没有更多了', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
+            : Text('没有更多了'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
       ),
     );
   }
@@ -544,12 +545,12 @@ class _MovieTabViewState extends State<_MovieTabView>
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除《${movie.title}》吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': movie.title}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeMovie(movie.id);
@@ -560,7 +561,7 @@ class _MovieTabViewState extends State<_MovieTabView>
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -598,11 +599,11 @@ class _MovieTabViewState extends State<_MovieTabView>
     final colors = Theme.of(context).colorScheme;
     final String emptyText;
     if (widget.mode == 2) {
-      emptyText = '暂无影片';
+      emptyText = '暂无影片'.tr;
     } else if (widget.mode == 1) {
-      emptyText = '暂无${MovieCategoryBar.categoryLabel(widget.index)}';
+      emptyText = '暂无 {x}'.trf({'x': MovieCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      emptyText = '暂无${['已看', '在看', '想看'][widget.index]}的影片';
+      emptyText = '暂无 {x} 的影片'.trf({'x': ['已看'.tr, '在看'.tr, '想看'.tr][widget.index]});
     }
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,

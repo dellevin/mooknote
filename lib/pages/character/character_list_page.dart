@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'character_form_page.dart';
@@ -53,13 +54,13 @@ class _MovieCharactersPageState extends State<MovieCharactersPage> {
   Future<void> _delete(MovieCharacter c) async {
     await context.read<AppProvider>().deleteMovieCharacter(c.id);
     _loadCharacters();
-    if (mounted) ToastUtil.show(context, '已删除');
+    if (mounted) ToastUtil.show(context, '已删除'.tr);
   }
 
   @override
   Widget build(BuildContext context) {
     return _CharacterListScaffold(
-      title: '角色',
+      title: '角色'.tr,
       isLoading: _isLoading,
       characters: _characters,
       onAdd: () => _openForm(),
@@ -115,13 +116,13 @@ class _BookCharactersPageState extends State<BookCharactersPage> {
   Future<void> _delete(BookCharacter c) async {
     await context.read<AppProvider>().deleteBookCharacter(c.id);
     _loadCharacters();
-    if (mounted) ToastUtil.show(context, '已删除');
+    if (mounted) ToastUtil.show(context, '已删除'.tr);
   }
 
   @override
   Widget build(BuildContext context) {
     return _CharacterListScaffold(
-      title: '角色',
+      title: '角色'.tr,
       isLoading: _isLoading,
       characters: _characters,
       onAdd: () => _openForm(),
@@ -177,13 +178,13 @@ class _GameCharactersPageState extends State<GameCharactersPage> {
   Future<void> _delete(GameCharacter c) async {
     await context.read<AppProvider>().deleteGameCharacter(c.id);
     _loadCharacters();
-    if (mounted) ToastUtil.show(context, '已删除');
+    if (mounted) ToastUtil.show(context, '已删除'.tr);
   }
 
   @override
   Widget build(BuildContext context) {
     return _CharacterListScaffold(
-      title: '角色',
+      title: '角色'.tr,
       isLoading: _isLoading,
       characters: _characters,
       onAdd: () => _openForm(),
@@ -260,9 +261,9 @@ class _CharacterListScaffold extends StatelessWidget {
             child: Icon(Icons.people_outline, size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 20),
-          Text('暂无角色', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('暂无角色'.tr, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
-          Text('点击右下角 + 添加角色', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('点击右下角 + 添加角色'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -365,13 +366,13 @@ class _CharacterTile extends StatelessWidget {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除"$name"吗？',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除"{name}"吗？'.trf({'name': name}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -384,7 +385,7 @@ class _CharacterTile extends StatelessWidget {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 摘抄分享海报页面
 class BookExcerptSharePage extends StatefulWidget {
@@ -36,7 +37,7 @@ class _BookExcerptSharePageState extends State<BookExcerptSharePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '分享摘抄',
+          '分享摘抄'.tr,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface),
         ),
         centerTitle: true,
@@ -45,7 +46,7 @@ class _BookExcerptSharePageState extends State<BookExcerptSharePage> {
             onPressed: _isGenerating ? null : _generateAndShare,
             child: _isGenerating
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('分享', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                : Text('分享'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ),
           const SizedBox(width: 8),
         ],
@@ -256,10 +257,10 @@ class _BookExcerptSharePageState extends State<BookExcerptSharePage> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: '分享摘抄：${widget.book.title}',
+        text: '分享摘抄：{title}'.trf({'title': widget.book.title}),
       );
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '生成海报失败：$e');
+      if (mounted) ToastUtil.show(context, '生成海报失败：{e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }

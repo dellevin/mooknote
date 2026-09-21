@@ -16,6 +16,7 @@ import '../../widgets/vditor_editor.dart';
 import '../../widgets/tag_side_panel.dart';
 import 'note_share_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 笔记详情页
 class NoteDetailPage extends StatefulWidget {
@@ -29,7 +30,9 @@ class NoteDetailPage extends StatefulWidget {
 }
 
 class _NoteDetailPageState extends State<NoteDetailPage> {
-  static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+  List<String> get _weekdays => [
+    '周一'.tr, '周二'.tr, '周三'.tr, '周四'.tr, '周五'.tr, '周六'.tr, '周日'.tr,
+  ];
 
   // ─── 编辑模式 ───
   bool _isEditing = false;
@@ -114,7 +117,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       content = _contentCtrl.text.trim();
     }
     if (title.isEmpty && content.isEmpty) {
-      ToastUtil.show(context, '标题或内容不能为空');
+      ToastUtil.show(context, '标题或内容不能为空'.tr);
       return;
     }
     try {
@@ -126,10 +129,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       );
       await context.read<AppProvider>().updateNote(updated);
       if (!mounted) return;
-      ToastUtil.show(context, '保存成功');
+      ToastUtil.show(context, '保存成功'.tr);
       setState(() => _isEditing = false);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '保存失败: $e');
+      if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -186,7 +189,11 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')} 周${_weekdays[note.createdAt.weekday - 1]}',
+                          '{y}/{m} {w}'.trf({
+                            'y': note.createdAt.year,
+                            'm': note.createdAt.month.toString().padLeft(2, '0'),
+                            'w': _weekdays[note.createdAt.weekday - 1],
+                          }),
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.55)),
                         ),
                         const SizedBox(height: 1),
@@ -198,7 +205,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                     ),
                     const Spacer(),
                     Text(
-                      '${note.content.length} 字',
+                      '{n} 字'.trf({'n': note.content.length}),
                       style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
                     ),
                   ],
@@ -291,13 +298,18 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                       // 日期 + 字数
                       const SizedBox(height: 12),
                       Row(children: [
-                        Text('${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} 周${_weekdays[note.createdAt.weekday - 1]}',
+                        Text('{y}/{m}/{d} {w}'.trf({
+                          'y': note.createdAt.year,
+                          'm': note.createdAt.month.toString().padLeft(2, '0'),
+                          'd': note.createdAt.day.toString().padLeft(2, '0'),
+                          'w': _weekdays[note.createdAt.weekday - 1],
+                        }),
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                         const SizedBox(width: 12),
                         Text('${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')}',
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                         const SizedBox(width: 12),
-                        Text('${note.content.length} 字',
+                        Text('{n} 字'.trf({'n': note.content.length}),
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                       ]),
                       // 标签
@@ -351,7 +363,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 OutlinedButton.icon(
                   onPressed: () => _showDeleteDialog(context),
                   icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -361,7 +373,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 FilledButton.icon(
                   onPressed: _enterEditMode,
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('编辑'),
+                  label: Text('编辑'.tr),
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -390,7 +402,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
               const SizedBox(width: 8),
               IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
                 onPressed: () { _autoSaveTimer?.cancel(); if (_saveStatus == 'saved') _autoSave(); setState(() => _isEditing = false); }),
-              Expanded(child: Text(_titleCtrl.text.isNotEmpty ? _titleCtrl.text : '编辑笔记',
+              Expanded(child: Text(_titleCtrl.text.isNotEmpty ? _titleCtrl.text : '编辑笔记'.tr,
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
                 maxLines: 1, overflow: TextOverflow.ellipsis)),
               // 编辑/预览切换
@@ -398,8 +410,8 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  _editModeChip(Icons.edit_outlined, '编辑', 'edit', colors),
-                  _editModeChip(Icons.visibility_outlined, '预览', 'preview', colors),
+                  _editModeChip(Icons.edit_outlined, '编辑'.tr, 'edit', colors),
+                  _editModeChip(Icons.visibility_outlined, '预览'.tr, 'preview', colors),
                 ]),
               ),
               const SizedBox(width: 12),
@@ -408,10 +420,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
                     const SizedBox(width: 4),
-                    Text('已保存', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                    Text('已保存'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                   ])),
               FilledButton.icon(onPressed: _saveEdit,
-                icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                icon: const Icon(Icons.check, size: 16), label: Text('保存'.tr),
                 style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
               const SizedBox(width: 16),
@@ -450,7 +462,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
           child: TextField(controller: _titleCtrl, maxLines: 1,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.4),
-            decoration: InputDecoration(hintText: '添加标题',
+            decoration: InputDecoration(hintText: '添加标题'.tr,
               hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2), height: 1.4),
               border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
             onChanged: (_) => setState(() {})),
@@ -483,7 +495,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('{n} 字'.trf({'n': _contentCtrl.text.length}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
         ]),
       ),
     ]);
@@ -521,7 +533,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
               const SizedBox(width: 2),
-              Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+              Text('标签'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
             ]),
           ),
         ),
@@ -606,7 +618,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       if (mounted) setState(() => _editImages.add(targetPath));
       _onContentChanged();
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择图片失败: $e');
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -838,7 +850,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1')
         .replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]+\)'), '')
         .trim();
-    if (cleaned.isEmpty) return '无标题';
+    if (cleaned.isEmpty) return '无标题'.tr;
     return cleaned.length > 20 ? '${cleaned.substring(0, 20)}…' : cleaned;
   }
 
@@ -862,7 +874,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         _buildFloatingButton(
           icon: Icons.edit_outlined,
           onPressed: () => _navigateToEdit(context),
-          tooltip: '编辑',
+          tooltip: '编辑'.tr,
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
         ),
@@ -870,7 +882,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
         _buildFloatingButton(
           icon: Icons.delete_outline,
           onPressed: () => _showDeleteDialog(context),
-          tooltip: '删除',
+          tooltip: '删除'.tr,
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
@@ -879,7 +891,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           _buildFloatingButton(
             icon: Icons.share_outlined,
             onPressed: _shareNote,
-            tooltip: '分享',
+            tooltip: '分享'.tr,
             backgroundColor: const Color(0xFF4CAF50),
             foregroundColor: Colors.white,
           ),
@@ -924,12 +936,12 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除笔记'),
-        content: const Text('删除后将移至回收站，确定要删除吗？'),
+        title: Text('删除笔记'.tr),
+        content: Text('删除后将移至回收站，确定要删除吗？'.tr),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           TextButton(
             onPressed: () {
@@ -941,7 +953,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                 Navigator.pop(context);
               }
             },
-            child: Text('删除', style: TextStyle(color: errorColor)),
+            child: Text('删除'.tr, style: TextStyle(color: errorColor)),
           ),
         ],
       ),

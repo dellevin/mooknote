@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -53,7 +54,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text(isEdit ? '编辑评价' : '写评价')),
+      appBar: AppBar(title: Text((isEdit ? '编辑评价' : '写评价').tr)),
       body: Form(
         key: _formKey,
         child: Column(
@@ -66,7 +67,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                   children: [
                     if (game != null) _buildGameCard(game, colors),
                     if (game != null) const SizedBox(height: 20),
-                    Text('评价类型', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评价类型'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildTypeSelector(colors),
                     const SizedBox(height: 20),
@@ -74,7 +75,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                     const SizedBox(height: 12),
                     _buildMetaField(icon: Icons.link, hint: '来源（选填）', controller: _sourceController, colors: colors),
                     const SizedBox(height: 20),
-                    Text('评论内容', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评论内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildContentField(colors),
                   ],
@@ -99,7 +100,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                     backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(isEdit ? '更新评价' : '保存评价', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text((isEdit ? '更新评价' : '保存评价').tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -148,9 +149,9 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
 
   Widget _buildTypeSelector(ColorScheme colors) {
     return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(value: 1, label: Text('短评'), icon: Icon(Icons.short_text)),
-        ButtonSegment(value: 2, label: Text('长评'), icon: Icon(Icons.menu_book)),
+      segments: [
+        ButtonSegment(value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
+        ButtonSegment(value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
       ],
       selected: {_reviewType},
       onSelectionChanged: (v) => setState(() => _reviewType = v.first),
@@ -184,7 +185,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
               controller: controller,
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
-                hintText: hint,
+                hintText: hint.tr,
                 hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                 border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -207,13 +208,13 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
             textAlignVertical: TextAlignVertical.top,
             style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
             decoration: InputDecoration(
-              hintText: '写下你的游戏评价...',
+              hintText: '写下你的游戏评价...'.tr,
               hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
               border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.all(14),
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return '请输入评论内容';
+              if (value == null || value.trim().isEmpty) return '请输入评论内容'.tr;
               return null;
             },
           ),
@@ -221,7 +222,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
             padding: const EdgeInsets.only(right: 14, bottom: 10),
             child: Align(
               alignment: Alignment.centerRight,
-              child: Text('${_contentController.text.length} 字',
+              child: Text('{n} 字'.trf({'n': _contentController.text.length}),
                   style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
             ),
           ),
@@ -257,11 +258,11 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
         await context.read<AppProvider>().updateGameReview(updatedReview);
       }
       if (!mounted) return;
-      ToastUtil.show(context, widget.review == null ? '添加成功' : '更新成功');
+      ToastUtil.show(context, (widget.review == null ? '添加成功' : '更新成功').tr);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ToastUtil.show(context, '保存失败: $e');
+      ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 }

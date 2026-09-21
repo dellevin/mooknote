@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/data_models.dart';
+import '../l10n/app_strings.dart';
 import 'slide_up_page_route.dart';
 import '../pages/movies/movie_form_page.dart';
 import '../pages/book/book_form_page.dart';
@@ -135,7 +136,7 @@ class AppRouter {
   static Route<dynamic> _buildUnknownRoute(String? name) {
     return MaterialPageRoute(
       builder: (_) => Scaffold(
-        body: Center(child: Text('未找到页面：${name ?? ''}')),
+        body: Center(child: Text('未找到页面：{name}'.trf({'name': name ?? ''}))),
       ),
     );
   }

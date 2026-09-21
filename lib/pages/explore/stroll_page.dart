@@ -9,6 +9,7 @@ import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../note/note_detail_page.dart';
 import '../game/game_detail_page.dart';
+import '../../l10n/app_strings.dart';
 
 /// 漫步页面 - 随机发现内容
 class StrollPage extends StatefulWidget {
@@ -81,7 +82,7 @@ class _StrollPageState extends State<StrollPage> {
       for (final n in provider.notes.where((n) => !n.isDeleted)) {
         notePool.add(_StrollItem(
           type: 'note', data: n, id: 'n_${n.id}',
-          title: n.title.isNotEmpty ? n.title : '随手记',
+          title: n.title.isNotEmpty ? n.title : '随手记'.tr,
           subtitle: n.tags.take(3).join(' · '),
           detail: n.content,
           imagePath: n.images.isNotEmpty ? n.images.first : null,
@@ -245,19 +246,19 @@ class _StrollPageState extends State<StrollPage> {
 
   String _timeAgoText(DateTime date) {
     final diff = DateTime.now().difference(date);
-    if (diff.inDays >= 365) return '${(diff.inDays / 365).floor()}年前';
-    if (diff.inDays >= 30) return '${(diff.inDays / 30).floor()}个月前';
-    if (diff.inDays > 0) return '${diff.inDays}天前';
-    if (diff.inHours > 0) return '${diff.inHours}小时前';
-    return '刚刚';
+    if (diff.inDays >= 365) return '{n}年前'.trf({'n': (diff.inDays / 365).floor()});
+    if (diff.inDays >= 30) return '{n}个月前'.trf({'n': (diff.inDays / 30).floor()});
+    if (diff.inDays > 0) return '{n}天前'.trf({'n': diff.inDays});
+    if (diff.inHours > 0) return '{n}小时前'.trf({'n': diff.inHours});
+    return '刚刚'.tr;
   }
 
   String _actionVerb(String type) {
     switch (type) {
-      case 'movie': return '看过';
-      case 'book': return '读过';
-      case 'note': return '写下';
-      case 'game': return '玩过';
+      case 'movie': return '看过'.tr;
+      case 'book': return '读过'.tr;
+      case 'note': return '写下'.tr;
+      case 'game': return '玩过'.tr;
       default: return '';
     }
   }
@@ -342,7 +343,7 @@ class _StrollPageState extends State<StrollPage> {
               icon: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
             ),
             const Spacer(),
-            Text('漫步', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('漫步'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const Spacer(),
             // 占位，保持标题居中
             const SizedBox(width: 48),
@@ -364,7 +365,7 @@ class _StrollPageState extends State<StrollPage> {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.casino_outlined, size: 16, color: colors.onPrimary),
             const SizedBox(width: 6),
-            Text('随机一张', style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w600)),
+            Text('随机一张'.tr, style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w600)),
           ]),
         ),
       ),
@@ -412,7 +413,7 @@ class _StrollPageState extends State<StrollPage> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(f.$3, size: 14, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
-                      Text(f.$2, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      Text(f.$2.tr, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                           color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
                     ]),
                   ),
@@ -467,7 +468,7 @@ class _StrollPageState extends State<StrollPage> {
       key: key,
       behavior: HitTestBehavior.opaque,
       onTap: () => _openDetail(item),
-      onDoubleTap: () => ToastUtil.show(context, '已收藏'),
+      onDoubleTap: () => ToastUtil.show(context, '已收藏'.tr),
       onHorizontalDragStart: _onDragStart,
       onHorizontalDragUpdate: _onDragUpdate,
       onHorizontalDragEnd: _onDragEnd,
@@ -595,7 +596,7 @@ class _StrollPageState extends State<StrollPage> {
               Text('${_timeAgoText(item.createdAt)} ${_actionVerb(item.type)}',
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
               const Spacer(),
-              _actionBtn(Icons.visibility_outlined, '查看', () => _openDetail(item), colors: colors),
+              _actionBtn(Icons.visibility_outlined, '查看'.tr, () => _openDetail(item), colors: colors),
             ]),
           ],
         ),
@@ -614,7 +615,7 @@ class _StrollPageState extends State<StrollPage> {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(item.icon, size: 14, color: fg),
           const SizedBox(width: 4),
-          Text(item.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+          Text(item.label.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
         ]),
       ),
       const Spacer(),
@@ -675,7 +676,7 @@ class _StrollPageState extends State<StrollPage> {
           Text('${_timeAgoText(item.createdAt)} ${_actionVerb(item.type)}',
               style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.4))),
           const Spacer(),
-          _actionBtn(Icons.visibility_outlined, '查看', () => _openDetail(item)),
+          _actionBtn(Icons.visibility_outlined, '查看'.tr, () => _openDetail(item)),
         ]),
       ],
     );
@@ -712,9 +713,9 @@ class _StrollPageState extends State<StrollPage> {
               decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
               child: Icon(Icons.explore_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.2))),
           const SizedBox(height: 20),
-          Text('还没有内容', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('还没有内容'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
-          Text('去添加一些影视、书籍或笔记吧', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25))),
+          Text('去添加一些影视、书籍或笔记吧'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25))),
         ],
       ),
     );

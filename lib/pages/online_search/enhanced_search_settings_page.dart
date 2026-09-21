@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../utils/user_prefs.dart';
 import '../../utils/server_config.dart';
 import '../settings/legal_page.dart';
+import '../../l10n/app_strings.dart';
 
 /// 增强搜索设置页面
 class EnhancedSearchSettingsPage extends StatefulWidget {
@@ -63,8 +64,8 @@ class _EnhancedSearchSettingsPageState
           setState(() {
             _movieTokenValid = false;
             _movieTokenMessage = retry != null && retry['valid'] == true
-                ? '该 Token 可能是书籍类型，请检查是否填错位置'
-                : ((result != null ? result['messageString'] as String? : null) ?? '验证失败');
+                ? '该 Token 可能是书籍类型，请检查是否填错位置'.tr
+                : ((result != null ? result['messageString'] as String? : null) ?? '验证失败'.tr);
           });
         }
       });
@@ -85,8 +86,8 @@ class _EnhancedSearchSettingsPageState
           setState(() {
             _bookTokenValid = false;
             _bookTokenMessage = retry != null && retry['valid'] == true
-                ? '该 Token 可能是影视类型，请检查是否填错位置'
-                : ((result != null ? result['messageString'] as String? : null) ?? '验证失败');
+                ? '该 Token 可能是影视类型，请检查是否填错位置'.tr
+                : ((result != null ? result['messageString'] as String? : null) ?? '验证失败'.tr);
           });
         }
       });
@@ -133,12 +134,12 @@ class _EnhancedSearchSettingsPageState
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('增强搜索'),
+        title: Text('增强搜索'.tr),
         actions: [
           if (_enabled)
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: '刷新验证',
+              tooltip: '刷新验证'.tr,
               onPressed: () {
                 setState(() {
                   _movieTokenValid = null;
@@ -158,22 +159,22 @@ class _EnhancedSearchSettingsPageState
           const SizedBox(height: 16),
           _buildStatusBanner(colors),
           const SizedBox(height: 20),
-          _buildSectionLabel(colors, '影视增强搜索 Token'),
+          _buildSectionLabel(colors, '影视增强搜索 Token'.tr),
           const SizedBox(height: 8),
           _buildTokenInput(
             colors: colors,
             controller: _movieTokenController,
-            hint: '输入影视搜索 Token',
+            hint: '输入影视搜索 Token'.tr,
             valid: _movieTokenValid,
             message: _movieTokenMessage,
           ),
           const SizedBox(height: 16),
-          _buildSectionLabel(colors, '书籍增强搜索 Token'),
+          _buildSectionLabel(colors, '书籍增强搜索 Token'.tr),
           const SizedBox(height: 8),
           _buildTokenInput(
             colors: colors,
             controller: _bookTokenController,
-            hint: '输入书籍搜索 Token',
+            hint: '输入书籍搜索 Token'.tr,
             valid: _bookTokenValid,
             message: _bookTokenMessage,
           ),
@@ -216,13 +217,13 @@ class _EnhancedSearchSettingsPageState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('增强搜索',
+                Text('增强搜索'.tr,
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: colors.onSurface)),
                 const SizedBox(height: 1),
-                Text(_enabled ? '已开启' : '未开启',
+                Text(_enabled ? '已开启'.tr : '未开启'.tr,
                     style: TextStyle(
                         fontSize: 11,
                         color: colors.onSurface.withValues(alpha: 0.4))),
@@ -269,7 +270,7 @@ class _EnhancedSearchSettingsPageState
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              _enabled ? '增强搜索已开启' : '填写 Token 后开启增强搜索',
+              _enabled ? '增强搜索已开启'.tr : '填写 Token 后开启增强搜索'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: _enabled
@@ -348,7 +349,7 @@ class _EnhancedSearchSettingsPageState
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    message ?? (valid ? 'Token 有效' : 'Token 无效'),
+                    message ?? (valid ? 'Token 有效'.tr : 'Token 无效'.tr),
                     style: TextStyle(
                         fontSize: 11,
                         color: valid ? const Color(0xFF16A34A) : colors.error),
@@ -369,7 +370,7 @@ class _EnhancedSearchSettingsPageState
                         strokeWidth: 1.5,
                         color: colors.onSurface.withValues(alpha: 0.3))),
                 const SizedBox(width: 6),
-                Text('验证中...',
+                Text('验证中...'.tr,
                     style: TextStyle(
                         fontSize: 11,
                         color: colors.onSurface.withValues(alpha: 0.4))),
@@ -406,7 +407,7 @@ class _EnhancedSearchSettingsPageState
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
-              child: Text('保存并验证', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+              child: Text('保存并验证'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
             ),
           ),
         ),
@@ -415,8 +416,8 @@ class _EnhancedSearchSettingsPageState
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => const LegalPage(slug: 'token_doc', title: '获取Token'))),
-            child: Text('点击获取 Token', style: TextStyle(fontSize: 12, color: colors.primary)),
+                builder: (_) => LegalPage(slug: 'token_doc', title: '获取Token'.tr))),
+            child: Text('点击获取 Token'.tr, style: TextStyle(fontSize: 12, color: colors.primary)),
           ),
         ),
       ],
@@ -433,16 +434,16 @@ class _EnhancedSearchSettingsPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('说明',
+          Text('说明'.tr,
               style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: colors.onSurface.withValues(alpha: 0.4),
                   letterSpacing: 0.5)),
           const SizedBox(height: 10),
-          _tip(colors, '增强搜索可在线检索影视和书籍的详细信息'),
-          _tip(colors, 'Token 过期或失效后需重新获取并填写'),
-          _tip(colors, '作者会在 QQ 群不定期发放增强搜索的token'),
+          _tip(colors, '增强搜索可在线检索影视和书籍的详细信息'.tr),
+          _tip(colors, 'Token 过期或失效后需重新获取并填写'.tr),
+          _tip(colors, '作者会在 QQ 群不定期发放增强搜索的token'.tr),
         ],
       ),
     );

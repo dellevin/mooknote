@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// Markdown 文件查看页面
 class MdViewerPage extends StatefulWidget {
@@ -29,7 +30,7 @@ class _MdViewerPageState extends State<MdViewerPage> {
       final file = File(widget.filePath);
       if (!await file.exists()) {
         setState(() {
-          _error = '文件不存在';
+          _error = '文件不存在'.tr;
           _isLoading = false;
         });
         return;
@@ -42,7 +43,7 @@ class _MdViewerPageState extends State<MdViewerPage> {
       });
     } catch (e) {
       setState(() {
-        _error = '读取文件失败: $e';
+        _error = '读取文件失败: {e}'.trf({'e': e});
         _isLoading = false;
       });
     }
@@ -171,7 +172,7 @@ class _MdViewerPageState extends State<MdViewerPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    alt ?? '图片加载失败',
+                    alt ?? '图片加载失败'.tr,
                     style:
                         TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
                   ),

@@ -14,6 +14,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 class MovieAddPage extends StatefulWidget {
   final VoidCallback? onCancel;
@@ -43,9 +44,9 @@ class _MovieAddPageState extends State<MovieAddPage> {
   bool _isDownloading = false;
   String? _tempId;
 
-  static const _categories = [
-    ('电影', 'movie'), ('电视剧', 'tv'), ('动漫', 'anime'),
-    ('综艺', 'variety'), ('纪录片', 'documentary'), ('微短剧', 'short'), ('其他', 'other'),
+  List<(String, String)> get _categories => [
+    ('电影'.tr, 'movie'), ('电视剧'.tr, 'tv'), ('动漫'.tr, 'anime'),
+    ('综艺'.tr, 'variety'), ('纪录片'.tr, 'documentary'), ('微短剧'.tr, 'short'), ('其他'.tr, 'other'),
   ];
 
   @override
@@ -83,10 +84,10 @@ class _MovieAddPageState extends State<MovieAddPage> {
               child: Row(children: [
                 IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
                   onPressed: () => widget.onCancel?.call()),
-                Expanded(child: Text('添加影视',
+                Expanded(child: Text('添加影视'.tr,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
                 FilledButton.icon(onPressed: _save,
-                  icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                  icon: const Icon(Icons.check, size: 16), label: Text('保存'.tr),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
                 const SizedBox(width: 12),
@@ -106,7 +107,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
                         : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                             Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                             const SizedBox(height: 8),
-                            Text('点击添加海报', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                            Text('点击添加海报'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                           ]),
                       if (_isDownloading) Container(color: Colors.black.withValues(alpha: 0.4),
                         child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
@@ -114,7 +115,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
                   )),
                   if (hasPoster) Padding(padding: const EdgeInsets.only(top: 8),
                     child: GestureDetector(onTap: () => setState(() => _posterPath = null),
-                      child: Text('移除海报', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))))),
+                      child: Text('移除海报'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))))),
                   const SizedBox(height: 20),
                   _label('状态', colors), const SizedBox(height: 6),
                   Container(padding: const EdgeInsets.all(2),
@@ -142,22 +143,22 @@ class _MovieAddPageState extends State<MovieAddPage> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _field('名称', _titleCtrl, hint: '影视名称', required: true), const SizedBox(height: 16),
                     _chipField('别名', _alternateTitles, onTap: () async {
-                      final r = await GenreSelectorPage.show(context: context, title: '添加别名', existingTags: [], initialSelected: _alternateTitles, hint: '输入别名');
+                      final r = await GenreSelectorPage.show(context: context, title: '添加别名'.tr, existingTags: [], initialSelected: _alternateTitles, hint: '输入别名'.tr);
                       if (r != null) setState(() => _alternateTitles = r);
                     }), const SizedBox(height: 16),
                     _chipField('导演', _directors, onTap: () async {
                       final p = context.read<AppProvider>(); final d = p.movies.map((m) => m.directors).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择导演', existingTagsFuture: compute(_collectUnique, d), initialSelected: _directors, hint: '如：张艺谋');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择导演'.tr, existingTagsFuture: compute(_collectUnique, d), initialSelected: _directors, hint: '如：张艺谋'.tr);
                       if (r != null) setState(() => _directors = r);
                     }), const SizedBox(height: 16),
                     _chipField('编剧', _writers, onTap: () async {
                       final p = context.read<AppProvider>(); final d = p.movies.map((m) => m.writers).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择编剧', existingTagsFuture: compute(_collectUnique, d), initialSelected: _writers, hint: '如：刘慈欣');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择编剧'.tr, existingTagsFuture: compute(_collectUnique, d), initialSelected: _writers, hint: '如：刘慈欣'.tr);
                       if (r != null) setState(() => _writers = r);
                     }), const SizedBox(height: 16),
                     _chipField('主演', _actors, onTap: () async {
                       final p = context.read<AppProvider>(); final d = p.movies.map((m) => m.actors).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择主演', existingTagsFuture: compute(_collectUnique, d), initialSelected: _actors, hint: '如：梁朝伟');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择主演'.tr, existingTagsFuture: compute(_collectUnique, d), initialSelected: _actors, hint: '如：梁朝伟'.tr);
                       if (r != null) setState(() => _actors = r);
                     }), const SizedBox(height: 16),
                     _chipField('类型', _genres, onTap: () async {
@@ -165,7 +166,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
                       final tags = await p.getTags('movie_genre', excludeHidden: true);
                       final names = tags.map((t) => t['name'] as String).toList();
                       if (!mounted) return;
-                      final r = await GenreSelectorPage.show(context: context, title: '选择类型', existingTags: names, initialSelected: _genres, hint: '如：剧情、科幻');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: names, initialSelected: _genres, hint: '如：剧情、科幻'.tr);
                       if (r != null) setState(() => _genres = r);
                     }), const SizedBox(height: 16),
                     Row(children: [
@@ -177,7 +178,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
                     Container(constraints: const BoxConstraints(minHeight: 120),
                       child: TextFormField(controller: _summaryCtrl, maxLines: null,
                         style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-                        decoration: InputDecoration(hintText: '写下剧情简介...', hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                        decoration: InputDecoration(hintText: '写下剧情简介...'.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                           filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(12)))),
                   ]),
@@ -190,14 +191,14 @@ class _MovieAddPageState extends State<MovieAddPage> {
     );
   }
 
-  Widget _label(String l, ColorScheme c) => Text(l, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4)));
+  Widget _label(String l, ColorScheme c) => Text(l.tr, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4)));
   Widget _statusChip(String label, String value, ColorScheme c) {
     final sel = _status == value;
     return GestureDetector(onTap: () => setState(() => _status = value),
       child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(color: sel ? c.surface : Colors.transparent, borderRadius: BorderRadius.circular(6),
           boxShadow: sel ? [BoxShadow(color: c.onSurface.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))] : null),
-        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: sel ? FontWeight.w500 : FontWeight.normal,
+        child: Text(label.tr, style: TextStyle(fontSize: 13, fontWeight: sel ? FontWeight.w500 : FontWeight.normal,
           color: sel ? c.onSurface : c.onSurface.withValues(alpha: 0.4)))));
   }
 
@@ -229,11 +230,11 @@ class _MovieAddPageState extends State<MovieAddPage> {
   Widget _field(String label, TextEditingController ctrl, {String hint = '', bool required = false}) {
     final c = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
+      Text(required ? '${label.tr} *' : label.tr, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       TextFormField(controller: ctrl, style: TextStyle(fontSize: 14, color: c.onSurface),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
-        decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: c.onSurface.withValues(alpha: 0.25)),
+        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入 {x}'.trf({'x': label.tr}) : null : null,
+        decoration: InputDecoration(hintText: hint.tr, hintStyle: TextStyle(color: c.onSurface.withValues(alpha: 0.25)),
           filled: true, fillColor: c.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), isDense: true)),
@@ -243,13 +244,13 @@ class _MovieAddPageState extends State<MovieAddPage> {
   Widget _chipField(String label, List<String> chips, {required VoidCallback onTap}) {
     final c = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
+      Text(label.tr, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       GestureDetector(onTap: onTap,
         child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(color: c.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
           child: chips.isEmpty
-            ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: c.onSurface.withValues(alpha: 0.25)))
+            ? Text('点击选择 {x}'.trf({'x': label.tr}), style: TextStyle(fontSize: 14, color: c.onSurface.withValues(alpha: 0.25)))
             : Wrap(spacing: 4, runSpacing: 4, children: chips.map((e) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(4)),
@@ -260,7 +261,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
   Widget _dateField(String label, DateTime? date, ValueChanged<DateTime?> onChanged, {bool clearable = false}) {
     final c = Theme.of(context).colorScheme; final has = date != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
+      Text(label.tr, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       GestureDetector(onTap: () async {
         final picked = await showDatePicker(context: context, initialDate: date ?? DateTime.now(),
@@ -271,7 +272,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
         child: Row(children: [
           Icon(Icons.calendar_today_outlined, size: 14, color: c.onSurface.withValues(alpha: 0.4)),
           const SizedBox(width: 8),
-          Text(has ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期',
+          Text(has ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
             style: TextStyle(fontSize: 14, color: has ? c.onSurface : c.onSurface.withValues(alpha: 0.25))),
           const Spacer(),
           if (clearable && has) GestureDetector(onTap: () => onChanged(null),
@@ -289,12 +290,12 @@ class _MovieAddPageState extends State<MovieAddPage> {
           Container(width: 40, height: 4, decoration: BoxDecoration(color: c.outline, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Align(alignment: Alignment.centerLeft,
-            child: Text('添加海报', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)))),
+            child: Text('添加海报'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)))),
           const SizedBox(height: 16),
           ListTile(leading: Icon(Icons.photo_library_outlined, color: c.onSurface.withValues(alpha: 0.6)),
-            title: Text('从相册选择'), onTap: () { Navigator.pop(ctx); _pickCover(); }),
+            title: Text('从相册选择'.tr), onTap: () { Navigator.pop(ctx); _pickCover(); }),
           ListTile(leading: Icon(Icons.link_outlined, color: c.onSurface.withValues(alpha: 0.6)),
-            title: Text('网络链接'), onTap: () { Navigator.pop(ctx); _pickCoverFromUrl(); }),
+            title: Text('网络链接'.tr), onTap: () { Navigator.pop(ctx); _pickCoverFromUrl(); }),
         ]))));
   }
 
@@ -307,7 +308,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(picked.path).copy(targetPath);
       if (mounted) setState(() => _posterPath = targetPath);
-    } catch (e) { if (mounted) ToastUtil.show(context, '选择海报失败: $e'); }
+    } catch (e) { if (mounted) ToastUtil.show(context, '选择海报失败: {e}'.trf({'e': e})); }
   }
 
   Future<void> _pickCoverFromUrl() async {
@@ -315,13 +316,13 @@ class _MovieAddPageState extends State<MovieAddPage> {
     final ok = await appDialog<bool>(context: context, builder: (ctx) {
       final c = Theme.of(ctx).colorScheme;
       return AlertDialog(backgroundColor: c.surface, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)),
+        title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)),
         content: TextField(controller: ctrl, keyboardType: TextInputType.url, style: TextStyle(fontSize: 14, color: c.onSurface),
           decoration: InputDecoration(hintText: 'https://example.com/image.jpg', filled: true, fillColor: c.surfaceContainerHigh,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确定')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('确定'.tr)),
         ]);
     });
     final url = ctrl.text.trim(); ctrl.dispose();
@@ -341,7 +342,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(res.bodyBytes);
       if (mounted) setState(() => _posterPath = targetPath);
-    } catch (e) { if (mounted) ToastUtil.show(context, '下载失败: $e'); }
+    } catch (e) { if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e})); }
     finally { if (mounted) setState(() => _isDownloading = false); }
   }
 
@@ -377,8 +378,8 @@ class _MovieAddPageState extends State<MovieAddPage> {
       await context.read<AppProvider>().loadMovies();
       if (!mounted) return;
       context.read<AppProvider>().finishAdding();
-      ToastUtil.show(context, '添加成功');
-    } catch (e) { if (mounted) ToastUtil.show(context, '保存失败: $e'); }
+      ToastUtil.show(context, '添加成功'.tr);
+    } catch (e) { if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e})); }
   }
 
   static List<String> _collectUnique(List<List<String>> lists) {

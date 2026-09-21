@@ -23,6 +23,7 @@ import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
 import '../character/character_list_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
@@ -248,8 +249,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             child: Row(mainAxisSize: MainAxisSize.min, children: [
                               Text(
                                 _showExactDate
-                                    ? '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月${movie.releaseDate!.day.toString().padLeft(2, '0')}日上映'
-                                    : '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
+                                    ? '{y}年{m}月{d}日上映'.trf({'y': movie.releaseDate!.year, 'm': movie.releaseDate!.month.toString().padLeft(2, '0'), 'd': movie.releaseDate!.day.toString().padLeft(2, '0')})
+                                    : '{y}年{m}月上映'.trf({'y': movie.releaseDate!.year, 'm': movie.releaseDate!.month.toString().padLeft(2, '0')}),
                                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                               ),
                               const SizedBox(width: 4),
@@ -258,12 +259,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           ),
                         if (movie.watchDate != null) ...[
                           const SizedBox(height: 4),
-                          Text('观看于 ${_formatDate(movie.watchDate!)}',
+                          Text('观看于 {date}'.trf({'date': _formatDate(movie.watchDate!)}),
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
                         ],
                         if (movie.watchCount > 0) ...[
                           const SizedBox(height: 4),
-                          Text('已观看 ${movie.watchCount} 次',
+                          Text('已观看 {n} 次'.trf({'n': movie.watchCount}),
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
                         ],
                         if (movie.duration > 0) ...[
@@ -279,7 +280,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                         if (movie.genres.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
                             Expanded(child: Wrap(spacing: 8, runSpacing: 8,
                               children: movie.genres.map((g) => Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -299,7 +300,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           Row(children: [
                             Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                             const SizedBox(width: 8),
-                            Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                            Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                           ]),
                           const SizedBox(height: 12),
                           Text(movie.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
@@ -309,7 +310,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                         Row(children: [
                           Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                           const SizedBox(width: 8),
-                          Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                         ]),
                         const SizedBox(height: 16),
                         _buildExtraSectionItem(
@@ -359,7 +360,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 OutlinedButton.icon(
                   onPressed: () => _showDeleteDialog(context),
                   icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -369,7 +370,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 FilledButton.icon(
                   onPressed: _enterEditMode,
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('编辑'),
+                  label: Text('编辑'.tr),
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -384,9 +385,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   // ─── 桌面端编辑模式 ──────────────────────────────────────────
 
-  static const _categories = [
-    ('电影', 'movie'), ('电视剧', 'tv'), ('动漫', 'anime'),
-    ('综艺', 'variety'), ('纪录片', 'documentary'), ('微短剧', 'short'), ('其他', 'other'),
+  List<(String, String)> get _categories => [
+    ('电影'.tr, 'movie'), ('电视剧'.tr, 'tv'), ('动漫'.tr, 'anime'),
+    ('综艺'.tr, 'variety'), ('纪录片'.tr, 'documentary'), ('微短剧'.tr, 'short'), ('其他'.tr, 'other'),
   ];
 
   Widget _buildDesktopEditStyle(Movie movie, ColorScheme colors) {
@@ -410,13 +411,13 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   onPressed: () => setState(() => _isEditing = false),
                 ),
                 Expanded(
-                  child: Text('编辑影视',
+                  child: Text('编辑影视'.tr,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                 ),
                 FilledButton.icon(
                   onPressed: _saveEdit,
                   icon: const Icon(Icons.check, size: 16),
-                  label: const Text('保存'),
+                  label: Text('保存'.tr),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -452,7 +453,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                                   : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                                       Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                                       const SizedBox(height: 8),
-                                      Text('点击添加海报', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                                      Text('点击添加海报'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                                     ]),
                               if (_editIsDownloading)
                                 Container(color: Colors.black.withValues(alpha: 0.4),
@@ -465,7 +466,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             padding: const EdgeInsets.only(top: 8),
                             child: GestureDetector(
                               onTap: () => setState(() => _editPosterPath = null),
-                              child: Text('移除海报', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
+                              child: Text('移除海报'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
                           ),
                         const SizedBox(height: 20),
                         // 状态
@@ -564,8 +565,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           // 别名
                           _buildEditChipField('别名', _editAlternateTitles, onTap: () async {
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '添加别名', existingTags: [],
-                              initialSelected: _editAlternateTitles, hint: '输入别名',
+                              context: context, title: '添加别名'.tr, existingTags: [],
+                              initialSelected: _editAlternateTitles, hint: '输入别名'.tr,
                             );
                             if (result != null) setState(() => _editAlternateTitles = result);
                           }),
@@ -575,9 +576,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.movies.map((m) => m.directors).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择导演',
+                              context: context, title: '选择导演'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editDirectors, hint: '如：张艺谋、李安',
+                              initialSelected: _editDirectors, hint: '如：张艺谋、李安'.tr,
                             );
                             if (result != null) setState(() => _editDirectors = result);
                           }),
@@ -587,9 +588,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.movies.map((m) => m.writers).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择编剧',
+                              context: context, title: '选择编剧'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editWriters, hint: '如：刘慈欣、王家卫',
+                              initialSelected: _editWriters, hint: '如：刘慈欣、王家卫'.tr,
                             );
                             if (result != null) setState(() => _editWriters = result);
                           }),
@@ -599,9 +600,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.movies.map((m) => m.actors).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择主演',
+                              context: context, title: '选择主演'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editActors, hint: '如：梁朝伟、周星驰',
+                              initialSelected: _editActors, hint: '如：梁朝伟、周星驰'.tr,
                             );
                             if (result != null) setState(() => _editActors = result);
                           }),
@@ -613,8 +614,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             final names = tags.map((t) => t['name'] as String).toList();
                             if (!mounted) return;
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择类型', existingTags: names,
-                              initialSelected: _editGenres, hint: '如：剧情、科幻、悬疑',
+                              context: context, title: '选择类型'.tr, existingTags: names,
+                              initialSelected: _editGenres, hint: '如：剧情、科幻、悬疑'.tr,
                             );
                             if (result != null) setState(() => _editGenres = result);
                           }),
@@ -636,7 +637,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                               maxLines: null,
                               style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
                               decoration: InputDecoration(
-                                hintText: '写下剧情简介...',
+                                hintText: '写下剧情简介...'.tr,
                                 hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                                 filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -665,7 +666,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   OutlinedButton.icon(
                     onPressed: () => _showDeleteDialog(context),
                     icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                    label: Text('删除', style: TextStyle(color: colors.error)),
+                    label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -681,7 +682,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
 
   Widget _buildEditSectionLabel(String label, ColorScheme colors) {
-    return Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
+    return Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
   }
 
   Widget _buildEditStatusChip(String label, String value, ColorScheme colors) {
@@ -695,7 +696,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           borderRadius: BorderRadius.circular(6),
           boxShadow: selected ? [BoxShadow(color: colors.onSurface.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))] : null,
         ),
-        child: Text(label, style: TextStyle(
+        child: Text(label.tr, style: TextStyle(
           fontSize: 13, fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
           color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
         )),
@@ -706,14 +707,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   Widget _buildEditField(String label, TextEditingController ctrl, {String hint = '', bool required = false}) {
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(required ? '${label.tr} *' : label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       TextFormField(
         controller: ctrl,
         style: TextStyle(fontSize: 14, color: colors.onSurface),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
+        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入 {x}'.trf({'x': label.tr}) : null : null,
         decoration: InputDecoration(
-          hintText: hint, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+          hintText: hint.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
           filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -726,7 +727,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   Widget _buildEditChipField(String label, List<String> chips, {required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       GestureDetector(
         onTap: onTap,
@@ -738,7 +739,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: chips.isEmpty
-              ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
+              ? Text('点击选择 {x}'.trf({'x': label.tr}), style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
               : Wrap(spacing: 4, runSpacing: 4, children: chips.map((c) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(4)),
@@ -753,7 +754,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     final colors = Theme.of(context).colorScheme;
     final hasDate = date != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       GestureDetector(
         onTap: () async {
@@ -773,7 +774,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           child: Row(children: [
             Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             const SizedBox(width: 8),
-            Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期',
+            Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
               style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
             const Spacer(),
             if (clearable && hasDate)
@@ -799,13 +800,13 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
             Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Align(alignment: Alignment.centerLeft,
-              child: Text('添加海报', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+              child: Text('添加海报'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
             const SizedBox(height: 16),
             ListTile(leading: Icon(Icons.photo_library_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-              title: Text('从相册选择', style: TextStyle(color: colors.onSurface)),
+              title: Text('从相册选择'.tr, style: TextStyle(color: colors.onSurface)),
               onTap: () { Navigator.pop(ctx); _pickEditCover(); }),
             ListTile(leading: Icon(Icons.link_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-              title: Text('网络链接', style: TextStyle(color: colors.onSurface)),
+              title: Text('网络链接'.tr, style: TextStyle(color: colors.onSurface)),
               onTap: () { Navigator.pop(ctx); _pickEditCoverFromUrl(); }),
           ]),
         ),
@@ -823,7 +824,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       await File(picked.path).copy(targetPath);
       if (mounted) setState(() => _editPosterPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择海报失败: $e');
+      if (mounted) ToastUtil.show(context, '选择海报失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -834,9 +835,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       return AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+          Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(height: 12),
           TextField(controller: urlCtrl, keyboardType: TextInputType.url,
             style: TextStyle(fontSize: 14, color: colors.onSurface),
@@ -850,11 +851,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             )),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确定')),
+            child: Text('确定'.tr)),
         ],
       );
     });
@@ -882,7 +883,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       await File(targetPath).writeAsBytes(response.bodyBytes);
       if (mounted) setState(() => _editPosterPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '下载失败: $e');
+      if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _editIsDownloading = false);
     }
@@ -910,10 +911,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       );
       await context.read<AppProvider>().updateMovie(updated);
       if (!mounted) return;
-      ToastUtil.show(context, '更新成功');
+      ToastUtil.show(context, '更新成功'.tr);
       setState(() => _isEditing = false);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '保存失败: $e');
+      if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -930,7 +931,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 56, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 56, child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
         ],
       ),
@@ -1259,8 +1260,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text(
                 _showExactDate
-                    ? '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月${movie.releaseDate!.day.toString().padLeft(2, '0')}日上映'
-                    : '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
+                    ? '{y}年{m}月{d}日上映'.trf({'y': movie.releaseDate!.year, 'm': movie.releaseDate!.month.toString().padLeft(2, '0'), 'd': movie.releaseDate!.day.toString().padLeft(2, '0')})
+                    : '{y}年{m}月上映'.trf({'y': movie.releaseDate!.year, 'm': movie.releaseDate!.month.toString().padLeft(2, '0')}),
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
               ),
               const SizedBox(width: 4),
@@ -1270,12 +1271,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         ],
         if (movie.watchDate != null) ...[
           const SizedBox(height: 4),
-          Text('观看于 ${_formatDate(movie.watchDate!)}',
+          Text('观看于 {date}'.trf({'date': _formatDate(movie.watchDate!)}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
         ],
         if (movie.watchCount > 0) ...[
           const SizedBox(height: 4),
-          Text('已观看 ${movie.watchCount} 次',
+          Text('已观看 {n} 次'.trf({'n': movie.watchCount}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
         ],
         if (movie.duration > 0) ...[
@@ -1301,7 +1302,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 48, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 48, child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
         ],
       ),
@@ -1323,7 +1324,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 48, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 48, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Wrap(spacing: 8, runSpacing: 8,
             children: movie.genres.map((g) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1352,7 +1353,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         Row(children: [
           Container(width: 4, height: 14, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ]),
         const SizedBox(height: 12),
         Text(movie.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
@@ -1367,7 +1368,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       Row(children: [
         Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
       _buildExtraSectionItem(
@@ -1423,7 +1424,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             Text(movie.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
             if (movie.directors.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text('导演：${movie.directors.join(' / ')}', style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+            Text('导演：{x}'.trf({'x': movie.directors.join(' / ')}), style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
             ],
             const SizedBox(height: 12),
             Row(children: [
@@ -1443,9 +1444,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   Widget _statusChip(String status) {
     final (label, bg, fg) = switch (status) {
-      'watched' => ('已看', const Color(0xFF1A1A1A), Colors.white),
-      'watching' => ('在看', const Color(0xFF666666), Colors.white),
-      'want_to_watch' => ('想看', const Color(0xFF999999), Colors.white),
+      'watched' => ('已看'.tr, const Color(0xFF1A1A1A), Colors.white),
+      'watching' => ('在看'.tr, const Color(0xFF666666), Colors.white),
+      'want_to_watch' => ('想看'.tr, const Color(0xFF999999), Colors.white),
       _ => ('', const Color(0xFF999999), Colors.white),
     };
     if (label.isEmpty) return const SizedBox.shrink();
@@ -1459,7 +1460,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   Widget _buildStyleButton({Color color = Colors.white}) {
     return IconButton(
       icon: Icon(Icons.tune, color: color, size: 20),
-      tooltip: '切换样式',
+      tooltip: '切换样式'.tr,
       onPressed: _showStylePicker,
     );
   }
@@ -1478,7 +1479,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('详情页样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(alignment: Alignment.centerLeft, child: Text('详情页样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < names.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
@@ -1486,8 +1487,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               contentPadding: EdgeInsets.zero,
               leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                   child: Icon(icons[i], size: 20, color: _detailStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(names[i], style: TextStyle(fontSize: 13, fontWeight: _detailStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              title: Text(names[i].tr, style: TextStyle(fontSize: 13, fontWeight: _detailStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: _detailStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -1550,7 +1551,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     required Color foregroundColor,
   }) {
     return Tooltip(
-      message: tooltip,
+      message: tooltip.tr,
       child: GestureDetector(
         onTap: onPressed,
         child: Container(
@@ -1667,7 +1668,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Text('上下滑动调整图片位置',
+                                  child: Text('上下滑动调整图片位置'.tr,
                                       style: TextStyle(fontSize: 13, color: Colors.white70)),
                                 ),
                               ),
@@ -1699,7 +1700,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            '暂无海报',
+            '暂无海报'.tr,
             style: TextStyle(
               fontSize: 14,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -1771,8 +1772,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 children: [
                   Text(
                     _showExactDate
-                        ? '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月${movie.releaseDate!.day.toString().padLeft(2, '0')}日上映'
-                        : '${movie.releaseDate!.year}年${movie.releaseDate!.month.toString().padLeft(2, '0')}月上映',
+                        ? '{y}年{m}月{d}日上映'.trf({'y': movie.releaseDate!.year, 'm': movie.releaseDate!.month.toString().padLeft(2, '0'), 'd': movie.releaseDate!.day.toString().padLeft(2, '0')})
+                        : '{y}年{m}月上映'.trf({'y': movie.releaseDate!.year, 'm': movie.releaseDate!.month.toString().padLeft(2, '0')}),
                     style: TextStyle(
                       fontSize: 14,
                       color: colors.onSurface.withValues(alpha: 0.4),
@@ -1786,7 +1787,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           const SizedBox(height: 8),
           if (movie.watchDate != null)
             Text(
-              '观看于 ${_formatDate(movie.watchDate!)}',
+              '观看于 {date}'.trf({'date': _formatDate(movie.watchDate!)}),
               style: TextStyle(
                 fontSize: 14,
                 color: colors.onSurface.withValues(alpha: 0.4),
@@ -1794,7 +1795,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             ),
           if (movie.watchCount > 0)
             Text(
-              '已观看 ${movie.watchCount} 次',
+              '已观看 {n} 次'.trf({'n': movie.watchCount}),
               style: TextStyle(
                 fontSize: 14,
                 color: colors.onSurface.withValues(alpha: 0.4),
@@ -1820,22 +1821,22 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     Color textColor;
     switch (movie.status) {
       case 'watched':
-        label = '已看';
+        label = '已看'.tr;
         bgColor = colors.primary;
         textColor = colors.onPrimary;
         break;
       case 'watching':
-        label = '在看';
+        label = '在看'.tr;
         bgColor = colors.outlineVariant;
         textColor = colors.onSurface.withValues(alpha: 0.6);
         break;
       case 'want_to_watch':
-        label = '想看';
+        label = '想看'.tr;
         bgColor = colors.surfaceContainerHighest;
         textColor = colors.onSurface.withValues(alpha: 0.4);
         break;
       default:
-        label = '未知';
+        label = '未知'.tr;
         bgColor = colors.outlineVariant;
         textColor = colors.onSurface.withValues(alpha: 0.25);
     }
@@ -1876,7 +1877,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        label,
+        label.tr,
         style: TextStyle(
           fontSize: 12,
           color: colors.onSurface.withValues(alpha: 0.5),
@@ -1897,7 +1898,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           SizedBox(
             width: 48,
             child: Text(
-              '导演',
+              '导演'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1930,7 +1931,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           SizedBox(
             width: 48,
             child: Text(
-              '编剧',
+              '编剧'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1963,7 +1964,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           SizedBox(
             width: 48,
             child: Text(
-              '主演',
+              '主演'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1994,7 +1995,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         children: [
           SizedBox(
             width: 48,
-            child: Text('类型', style: TextStyle(fontSize: 13,
+            child: Text('类型'.tr, style: TextStyle(fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
@@ -2056,7 +2057,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '简介',
+                '简介'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -2111,7 +2112,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '更多',
+                '更多'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -2219,12 +2220,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                      Text(title.tr, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
                       FutureBuilder<int>(
                         future: subtitleFuture,
                         builder: (ctx, snap) {
                           final count = snap.data ?? 0;
-                          return Text(count > 0 ? '$count $unit' : emptyText,
+                          return Text(count > 0 ? '$count ${unit.tr}' : emptyText.tr,
                             style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)));
                         },
                       ),
@@ -2280,7 +2281,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    title.tr,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -2293,7 +2294,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     builder: (context, snapshot) {
                       final count = snapshot.data ?? 0;
                       return Text(
-                        count > 0 ? '$count $unit' : emptyText,
+                        count > 0 ? '$count ${unit.tr}' : emptyText.tr,
                         style: TextStyle(
                           fontSize: 13,
                           color: colors.onSurface.withValues(alpha: 0.4),
@@ -2360,9 +2361,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     if (minutes <= 0) return '';
     final h = minutes ~/ 60;
     final m = minutes % 60;
-    if (h > 0 && m > 0) return '时长 $h小时$m分';
-    if (h > 0) return '时长 $h小时';
-    return '时长 $m分';
+    if (h > 0 && m > 0) return '时长 {h}小时{m}分'.trf({'h': h, 'm': m});
+    if (h > 0) return '时长 {h}小时'.trf({'h': h});
+    return '时长 {m}分'.trf({'m': m});
   }
 
   void _navigateToEdit(BuildContext context) {
@@ -2382,7 +2383,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          '确认删除',
+          '确认删除'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -2390,7 +2391,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ),
         ),
         content: Text(
-          '确定要删除"${widget.movie.title}"吗？删除后可在回收站恢复。',
+          '确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': widget.movie.title}),
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -2404,7 +2405,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -2420,7 +2421,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 if (mounted) Navigator.of(context).pop(); // close detail page
               }
               if (mounted && context.mounted) {
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               }
             },
             style: ElevatedButton.styleFrom(
@@ -2432,7 +2433,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

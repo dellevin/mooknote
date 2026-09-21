@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 
 /// 别名标签式输入弹窗（影视/书籍共用）
 class AlternateTitlesDialog extends StatefulWidget {
@@ -46,7 +47,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
     return AlertDialog(
       backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text('添加别名', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      title: Text('添加别名'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -62,7 +63,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
                     focusNode: _focus,
                     style: TextStyle(fontSize: 14, color: colors.onSurface),
                     decoration: InputDecoration(
-                      hintText: '输入别名',
+                      hintText: '输入别名'.tr,
                       hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -87,7 +88,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
             if (_items.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('暂无别名', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
+                child: Text('暂无别名'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
               )
             else
               Flexible(
@@ -116,7 +117,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, _items),
@@ -125,7 +126,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           ),
-          child: const Text('确定'),
+          child: Text('确定'.tr),
         ),
       ],
     );

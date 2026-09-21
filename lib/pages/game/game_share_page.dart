@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -57,15 +58,15 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
         backgroundColor: colors.surface,
         elevation: 0,
         leading: IconButton(icon: Icon(Icons.close, color: colors.onSurface), onPressed: () => Navigator.pop(context)),
-        title: Text('分享海报', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('分享海报'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         centerTitle: true,
         actions: [
-          IconButton(icon: Icon(Icons.palette_outlined, color: colors.onSurface, size: 22), tooltip: '选择样式', onPressed: _showStylePicker),
+          IconButton(icon: Icon(Icons.palette_outlined, color: colors.onSurface, size: 22), tooltip: '选择样式'.tr, onPressed: _showStylePicker),
           TextButton(
             onPressed: _isGenerating ? null : _generateAndShare,
             child: _isGenerating
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('分享', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                : Text('分享'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ),
           const SizedBox(width: 4),
         ],
@@ -90,7 +91,7 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
                   GestureDetector(
                     onTap: () => setState(() => _ticketColorIndex = i),
                     child: Tooltip(
-                      message: _ticketThemes[i].name,
+                      message: _ticketThemes[i].name.tr,
                       child: Container(
                         width: 26, height: 26,
                         margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -129,7 +130,7 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('选择样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(alignment: Alignment.centerLeft, child: Text('选择样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < _styleNames.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
@@ -137,8 +138,8 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
               contentPadding: EdgeInsets.zero,
               leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                   child: Icon(icons[i], size: 20, color: _currentStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(_styleNames[i], style: TextStyle(fontSize: 13, fontWeight: _currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              title: Text(_styleNames[i].tr, style: TextStyle(fontSize: 13, fontWeight: _currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: _currentStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -193,12 +194,12 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
           if (game.platforms.isNotEmpty) _infoRow('平台', game.platforms.join(' / '), colors),
           if (game.genres.isNotEmpty) _infoRow('类型', game.genres.join(' / '), colors),
           if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-            _infoRow('时长', '${game.playTimeHours}时${game.playTimeMinutes}分', colors),
+            _infoRow('时长', '{h}时{m}分'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}), colors),
           if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
             _infoRow('价格', game.purchasePrice!, colors),
           if (game.summary != null && game.summary!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('简介', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            Text('简介'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 8),
             Text(game.summary!, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6), maxLines: 5, overflow: TextOverflow.ellipsis),
           ],
@@ -208,7 +209,7 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.sports_esports_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.5)),
             const SizedBox(width: 6),
-            Text('来自 MookNote', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+            Text('来自 MookNote'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
           ]),
         ]),
       ),
@@ -218,7 +219,7 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
 
   Widget _infoRow(String label, String value, ColorScheme colors) {
     return Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('$label：', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text('${label.tr}：', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
       Expanded(child: Text(value, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.75)))),
     ]));
   }
@@ -511,9 +512,9 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/game_poster_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());
-      await Share.shareXFiles([XFile(file.path)], text: '分享游戏：${widget.game.title}');
+      await Share.shareXFiles([XFile(file.path)], text: '分享游戏：{title}'.trf({'title': widget.game.title}));
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '生成海报失败：$e');
+      if (mounted) ToastUtil.show(context, '生成海报失败：{e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }

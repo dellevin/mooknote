@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 笔记列表项组件 - 卡片式设计，内容展示在卡片内
 class NoteListItem extends StatelessWidget {
@@ -68,7 +69,7 @@ class _NoteListItemContent extends StatelessWidget {
                   ),
                 Expanded(
                   child: Text(
-                    note.title.isNotEmpty ? note.title : previewText.isNotEmpty ? previewText : '(无内容)',
+                    note.title.isNotEmpty ? note.title : previewText.isNotEmpty ? previewText : '(无内容)'.tr,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -219,13 +220,13 @@ class _NoteListItemContent extends StatelessWidget {
                         : Icons.push_pin,
                     size: 20,
                     color: colors.onSurface.withValues(alpha: 0.6))),
-            title: Text(note.isPinned ? '取消置顶' : '置顶',
+            title: Text(note.isPinned ? '取消置顶'.tr : '置顶'.tr,
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: colors.onSurface)),
             subtitle: Text(
-                note.isPinned ? '取消置顶后按时间排序' : '置顶后始终显示在最前',
+                note.isPinned ? '取消置顶后按时间排序'.tr : '置顶后始终显示在最前'.tr,
                 style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.4))),
@@ -249,12 +250,12 @@ class _NoteListItemContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.delete_outline,
                     size: 20, color: colors.error)),
-            title: Text('删除',
+            title: Text('删除'.tr,
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: colors.error)),
-            subtitle: Text('删除后可在回收站恢复',
+            subtitle: Text('删除后可在回收站恢复'.tr,
                 style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.4))),
@@ -280,12 +281,12 @@ class _NoteListItemContent extends StatelessWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除',
+        title: Text('确认删除'.tr,
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: colors.onSurface)),
-        content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。',
+        content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。'.tr,
             style: TextStyle(
                 fontSize: 14,
                 color: colors.onSurface.withValues(alpha: 0.6),
@@ -293,7 +294,7 @@ class _NoteListItemContent extends StatelessWidget {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('取消',
+              child: Text('取消'.tr,
                   style: TextStyle(
                       color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
@@ -309,7 +310,7 @@ class _NoteListItemContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 8)),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding:
@@ -346,13 +347,13 @@ String _formatDate(DateTime date) {
   if (difference.inDays == 0) {
     if (difference.inHours == 0) {
       if (difference.inMinutes == 0) {
-        return '刚刚';
+        return '刚刚'.tr;
       }
-      return '${difference.inMinutes}分钟前';
+      return '{n}分钟前'.trf({'n': difference.inMinutes});
     }
-    return '${difference.inHours}小时前';
+    return '{n}小时前'.trf({'n': difference.inHours});
   } else if (difference.inDays < 7) {
-    return '${difference.inDays}天前';
+    return '{n}天前'.trf({'n': difference.inDays});
   } else {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }

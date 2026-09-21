@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
@@ -62,41 +63,41 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('布局设置')),
+      appBar: AppBar(title: Text('布局设置'.tr)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           _buildCategoryTile(
             icon: Icons.dashboard_outlined,
-            title: '主页模块显示方式',
+            title: '主页模块显示方式'.tr,
             color: colors.primary,
             subtitle: _homeModuleSubtitle,
             onTap: _showHomeModuleSheet,
           ),
           _buildCategoryTile(
             icon: Icons.movie_outlined,
-            title: '影视',
+            title: '影视'.tr,
             color: colors.primary,
             subtitle: _movieSubtitle,
             onTap: _showMovieSheet,
           ),
           _buildCategoryTile(
             icon: Icons.menu_book_outlined,
-            title: '阅读',
+            title: '阅读'.tr,
             color: colors.primary,
             subtitle: _bookSubtitle,
             onTap: _showBookSheet,
           ),
           _buildCategoryTile(
             icon: Icons.sports_esports_outlined,
-            title: '游戏',
+            title: '游戏'.tr,
             color: colors.primary,
             subtitle: _gameSubtitle,
             onTap: _showGameSheet,
           ),
           _buildCategoryTile(
             icon: Icons.sticky_note_2_outlined,
-            title: '笔记',
+            title: '笔记'.tr,
             color: colors.primary,
             subtitle: _noteSubtitle,
             onTap: _showNoteSheet,
@@ -107,52 +108,54 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   }
 
   String get _homeModuleSubtitle {
-    return _homeModuleSwitchMode == 1 ? '顶部下拉切换' : '模块标签切换';
+    return _homeModuleSwitchMode == 1 ? '顶部下拉切换'.tr : '模块标签切换'.tr;
   }
 
   String get _movieSubtitle {
     final parts = <String>[];
     if (_movieWallMode) {
-      parts.add('影视墙');
+      parts.add('影视墙'.tr);
     } else {
-      parts.add(_movieDisplayMode == 1 ? '分类状态' : '观看状态');
+      parts.add(_movieDisplayMode == 1 ? '分类状态'.tr : '观看状态'.tr);
       if (_movieDisplayMode == 0) {
-        parts.add(['胶囊', '下划线', '芯片', '下拉'][_movieStatusBarStyle]);
+        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_movieStatusBarStyle]);
       }
     }
-    parts.add(['海报网格', '列表', '大图卡片'][_movieLayout]);
-    parts.add(['更新时间', '创建时间', '评分', '观看日期', '上映时间'][_movieSortMode]);
+    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr][_movieLayout]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][_movieSortMode]);
     return parts.join(' · ');
   }
 
   String get _bookSubtitle {
     final parts = <String>[];
     if (_bookshelfMode) {
-      parts.add('书架模式');
+      parts.add('书架'.tr);
     } else {
-      parts.add(['胶囊', '下划线', '芯片', '下拉'][_bookStatusBarStyle]);
+      parts.add('阅读状态'.tr);
+      parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_bookStatusBarStyle]);
     }
-    parts.add(['海报网格', '列表'][_bookLayout]);
-    parts.add(['更新时间', '创建时间', '评分', '开始阅读', '出版时间'][_bookSortMode]);
+    parts.add(['海报网格'.tr, '列表'.tr][_bookLayout]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][_bookSortMode]);
     return parts.join(' · ');
   }
 
   String get _noteSubtitle {
     final parts = <String>[];
-    parts.add(['列表', '瀑布流', '时间线'][_noteLayout]);
-    parts.add(['更新时间', '创建时间'][_noteSortMode]);
+    parts.add(['列表'.tr, '瀑布流'.tr, '时间线'.tr][_noteLayout]);
+    parts.add(['更新时间'.tr, '创建时间'.tr][_noteSortMode]);
     return parts.join(' · ');
   }
 
   String get _gameSubtitle {
     final parts = <String>[];
     if (_gameWallMode) {
-      parts.add('游戏墙');
+      parts.add('游戏墙'.tr);
     } else {
-      parts.add(['胶囊', '下划线', '芯片', '下拉'][_gameStatusBarStyle]);
+      parts.add('游玩状态'.tr);
+      parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_gameStatusBarStyle]);
     }
-    parts.add(['海报网格', '列表', '大图卡片'][_gameLayout]);
-    parts.add(['更新时间', '创建时间', '评分', '发售时间'][_gameSortMode]);
+    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr][_gameLayout]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr][_gameSortMode]);
     return parts.join(' · ');
   }
 
@@ -353,13 +356,13 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               _sheetHandle(colors),
-              _sheetTitle('主页模块显示方式', colors),
+              _sheetTitle('主页模块显示方式'.tr, colors),
               _sheetOptionRow(
-                label: '切换方式',
+                label: '切换方式'.tr,
                 selected: _homeModuleSwitchMode,
-                options: const [
-                  (0, Icons.tab_outlined, '模块标签'),
-                  (1, Icons.arrow_drop_down_outlined, '顶部下拉'),
+                options: [
+                  (0, Icons.tab_outlined, '模块标签'.tr),
+                  (1, Icons.arrow_drop_down_outlined, '顶部下拉'.tr),
                 ],
                 onChanged: (v) {
                   _userPrefs.setHomeModuleSwitchMode(v);
@@ -373,8 +376,8 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                 child: Text(
                   _homeModuleSwitchMode == 1
-                      ? 'AppBar 标题显示当前模块，点击弹出选择菜单。'
-                      : '底部显示模块标签栏，点击切换。',
+                      ? 'AppBar 标题显示当前模块，点击弹出选择菜单。'.tr
+                      : '顶部显示模块标签栏，点击切换。'.tr,
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
                 ),
               ),
@@ -396,53 +399,59 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
-            _sheetTitle('影视布局', colors),
+            _sheetTitle('影视布局'.tr, colors),
             _sheetSwitchRow(
-              title: '影视墙模式', subtitle: '显示全部影片，不区分状态',
-              value: _movieWallMode, onChanged: (v) { _setWallMode('movie', v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetDivider(colors),
-            _sheetSwitchRow(
-              title: '海报显示日期', subtitle: '海报右下角显示上映日期',
+              title: '海报显示日期'.tr, subtitle: '海报右下角显示上映日期'.tr,
               value: _showMovieCardDate, onChanged: (v) { _setShowMovieCardDate(v); setSheetState(() {}); }, colors: colors,
             ),
-            if (!_movieWallMode) ...[
+            _sheetDivider(colors),
+            _sheetOptionRow(
+              label: '显示模式'.tr, selected: _movieWallMode ? 2 : _movieDisplayMode,
+              options: [
+                (0, Icons.visibility_outlined, '观看状态'.tr),
+                (1, Icons.category_outlined, '分类状态'.tr),
+                (2, Icons.movie_outlined, '影视墙'.tr),
+              ],
+              onChanged: (v) {
+                if (v == 2) {
+                  _setWallMode('movie', true);
+                } else {
+                  if (_movieWallMode) _setWallMode('movie', false);
+                  _setDisplayMode('movie', v);
+                }
+                setSheetState(() {});
+              },
+              colors: colors,
+            ),
+            if (!_movieWallMode && _movieDisplayMode == 0) ...[
               _sheetDivider(colors),
               _sheetOptionRow(
-                label: '显示模式', selected: _movieDisplayMode,
-                options: const [(0, Icons.check_circle_outline, '观看状态'), (1, Icons.category_outlined, '分类状态')],
-                onChanged: (v) { _setDisplayMode('movie', v); setSheetState(() {}); }, colors: colors,
+                label: '状态栏样式'.tr, selected: _movieStatusBarStyle,
+                options: [
+                  (0, Icons.circle, '胶囊'.tr),
+                  (1, Icons.format_underlined, '下划线'.tr),
+                  (2, Icons.square_outlined, '芯片'.tr),
+                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
+                ],
+                onChanged: (v) { _setStatusBarStyle('movie', v); setSheetState(() {}); }, colors: colors,
               ),
-              if (_movieDisplayMode == 0) ...[
-                _sheetDivider(colors),
-                _sheetOptionRow(
-                  label: '状态栏样式', selected: _movieStatusBarStyle,
-                  options: const [
-                    (0, Icons.circle, '胶囊'),
-                    (1, Icons.format_underlined, '下划线'),
-                    (2, Icons.square_outlined, '芯片'),
-                    (3, Icons.arrow_drop_down_circle_outlined, '下拉'),
-                  ],
-                  onChanged: (v) { _setStatusBarStyle('movie', v); setSheetState(() {}); }, colors: colors,
-                ),
-              ],
             ],
             _sheetDivider(colors),
             _sheetOptionRow(
-              label: '布局样式', selected: _movieLayout,
-              options: const [(0, Icons.grid_view_outlined, '海报网格'), (1, Icons.view_list_outlined, '列表'), (2, Icons.crop_landscape_outlined, '大图卡片')],
+              label: '布局样式'.tr, selected: _movieLayout,
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr)],
               onChanged: (v) { _setLayout('movie', v); setSheetState(() {}); }, colors: colors,
             ),
             _sheetDivider(colors),
             _sheetSortSection(
-              title: '排序方式',
+              title: '排序方式'.tr,
               current: _movieSortMode,
-              options: const [
-                (0, '按更新时间排序', Icons.update),
-                (1, '按创建时间排序', Icons.calendar_today_outlined),
-                (2, '按影视评分排序', Icons.star_outline),
-                (3, '按观看日期排序', Icons.visibility_outlined),
-                (4, '按上映时间排序', Icons.movie_creation_outlined),
+              options: [
+                (0, '按更新时间排序'.tr, Icons.update),
+                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+                (2, '按影视评分排序'.tr, Icons.star_outline),
+                (3, '按观看日期排序'.tr, Icons.visibility_outlined),
+                (4, '按上映时间排序'.tr, Icons.movie_creation_outlined),
               ],
               colors: colors,
               onChanged: (v) { _setSortMode('movie', v); setSheetState(() {}); },
@@ -466,45 +475,50 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
-            _sheetTitle('阅读布局', colors),
+            _sheetTitle('阅读布局'.tr, colors),
             _sheetSwitchRow(
-              title: '书架模式', subtitle: '显示全部书籍，不区分状态',
-              value: _bookshelfMode, onChanged: (v) { _setWallMode('book', v); setSheetState(() {}); }, colors: colors,
+              title: '封面显示日期'.tr, subtitle: '封面右下角显示出版日期'.tr,
+              value: _showBookCardDate, onChanged: (v) { _setShowBookCardDate(v); setSheetState(() {}); }, colors: colors,
             ),
             _sheetDivider(colors),
-            _sheetSwitchRow(
-              title: '封面显示日期', subtitle: '封面右下角显示出版日期',
-              value: _showBookCardDate, onChanged: (v) { _setShowBookCardDate(v); setSheetState(() {}); }, colors: colors,
+            _sheetOptionRow(
+              label: '显示模式'.tr, selected: _bookshelfMode ? 1 : 0,
+              options: [
+                (0, Icons.auto_stories_outlined, '阅读状态'.tr),
+                (1, Icons.menu_book_outlined, '书架'.tr),
+              ],
+              onChanged: (v) { _setWallMode('book', v == 1); setSheetState(() {}); },
+              colors: colors,
             ),
             if (!_bookshelfMode) ...[
               _sheetDivider(colors),
               _sheetOptionRow(
-                label: '状态栏样式', selected: _bookStatusBarStyle,
-                options: const [
-                  (0, Icons.circle, '胶囊'),
-                  (1, Icons.format_underlined, '下划线'),
-                  (2, Icons.square_outlined, '芯片'),
-                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'),
+                label: '状态栏样式'.tr, selected: _bookStatusBarStyle,
+                options: [
+                  (0, Icons.circle, '胶囊'.tr),
+                  (1, Icons.format_underlined, '下划线'.tr),
+                  (2, Icons.square_outlined, '芯片'.tr),
+                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
                 ],
                 onChanged: (v) { _setStatusBarStyle('book', v); setSheetState(() {}); }, colors: colors,
               ),
             ],
             _sheetDivider(colors),
             _sheetOptionRow(
-              label: '布局样式', selected: _bookLayout,
-              options: const [(0, Icons.grid_view_outlined, '海报网格'), (1, Icons.view_list_outlined, '列表')],
+              label: '布局样式'.tr, selected: _bookLayout,
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr)],
               onChanged: (v) { _setLayout('book', v); setSheetState(() {}); }, colors: colors,
             ),
             _sheetDivider(colors),
             _sheetSortSection(
-              title: '排序方式',
+              title: '排序方式'.tr,
               current: _bookSortMode,
-              options: const [
-                (0, '按更新时间排序', Icons.update),
-                (1, '按创建时间排序', Icons.calendar_today_outlined),
-                (2, '按书籍评分排序', Icons.star_outline),
-                (3, '按开始阅读时间排序', Icons.auto_stories_outlined),
-                (4, '按出版时间排序', Icons.auto_stories_outlined),
+              options: [
+                (0, '按更新时间排序'.tr, Icons.update),
+                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+                (2, '按书籍评分排序'.tr, Icons.star_outline),
+                (3, '按开始阅读时间排序'.tr, Icons.auto_stories_outlined),
+                (4, '按出版时间排序'.tr, Icons.auto_stories_outlined),
               ],
               colors: colors,
               onChanged: (v) { _setSortMode('book', v); setSheetState(() {}); },
@@ -528,19 +542,19 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
-            _sheetTitle('笔记布局', colors),
+            _sheetTitle('笔记布局'.tr, colors),
             _sheetOptionRow(
-              label: '布局样式', selected: _noteLayout,
-              options: const [(0, Icons.view_list_outlined, '列表'), (1, Icons.grid_view_outlined, '瀑布流'), (2, Icons.timeline_outlined, '时间线')],
+              label: '布局样式'.tr, selected: _noteLayout,
+              options: [(0, Icons.view_list_outlined, '列表'.tr), (1, Icons.grid_view_outlined, '瀑布流'.tr), (2, Icons.timeline_outlined, '时间线'.tr)],
               onChanged: (v) { _setLayout('note', v); setSheetState(() {}); }, colors: colors,
             ),
             _sheetDivider(colors),
             _sheetSortSection(
-              title: '排序方式',
+              title: '排序方式'.tr,
               current: _noteSortMode,
-              options: const [
-                (0, '按更新时间排序', Icons.update),
-                (1, '按创建时间排序', Icons.calendar_today_outlined),
+              options: [
+                (0, '按更新时间排序'.tr, Icons.update),
+                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
               ],
               colors: colors,
               onChanged: (v) { _setSortMode('note', v); setSheetState(() {}); },
@@ -564,44 +578,49 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
             _sheetHandle(colors),
-            _sheetTitle('游戏布局', colors),
+            _sheetTitle('游戏布局'.tr, colors),
             _sheetSwitchRow(
-              title: '游戏墙模式', subtitle: '显示全部游戏，不区分状态',
-              value: _gameWallMode, onChanged: (v) { _setWallMode('game', v); setSheetState(() {}); }, colors: colors,
+              title: '封面显示日期'.tr, subtitle: '封面右下角显示发售日期'.tr,
+              value: _showGameCardDate, onChanged: (v) { _setShowGameCardDate(v); setSheetState(() {}); }, colors: colors,
             ),
             _sheetDivider(colors),
-            _sheetSwitchRow(
-              title: '封面显示日期', subtitle: '封面右下角显示发售日期',
-              value: _showGameCardDate, onChanged: (v) { _setShowGameCardDate(v); setSheetState(() {}); }, colors: colors,
+            _sheetOptionRow(
+              label: '显示模式'.tr, selected: _gameWallMode ? 1 : 0,
+              options: [
+                (0, Icons.sports_esports_outlined, '游玩状态'.tr),
+                (1, Icons.grid_view_outlined, '游戏墙'.tr),
+              ],
+              onChanged: (v) { _setWallMode('game', v == 1); setSheetState(() {}); },
+              colors: colors,
             ),
             if (!_gameWallMode) ...[
               _sheetDivider(colors),
               _sheetOptionRow(
-                label: '状态栏样式', selected: _gameStatusBarStyle,
-                options: const [
-                  (0, Icons.circle, '胶囊'),
-                  (1, Icons.format_underlined, '下划线'),
-                  (2, Icons.square_outlined, '芯片'),
-                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'),
+                label: '状态栏样式'.tr, selected: _gameStatusBarStyle,
+                options: [
+                  (0, Icons.circle, '胶囊'.tr),
+                  (1, Icons.format_underlined, '下划线'.tr),
+                  (2, Icons.square_outlined, '芯片'.tr),
+                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
                 ],
                 onChanged: (v) { _setStatusBarStyle('game', v); setSheetState(() {}); }, colors: colors,
               ),
             ],
             _sheetDivider(colors),
             _sheetOptionRow(
-              label: '布局样式', selected: _gameLayout,
-              options: const [(0, Icons.grid_view_outlined, '海报网格'), (1, Icons.view_list_outlined, '列表'), (2, Icons.crop_landscape_outlined, '大图卡片')],
+              label: '布局样式'.tr, selected: _gameLayout,
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr)],
               onChanged: (v) { _setLayout('game', v); setSheetState(() {}); }, colors: colors,
             ),
             _sheetDivider(colors),
             _sheetSortSection(
-              title: '排序方式',
+              title: '排序方式'.tr,
               current: _gameSortMode,
-              options: const [
-                (0, '按更新时间排序', Icons.update),
-                (1, '按创建时间排序', Icons.calendar_today_outlined),
-                (2, '按游戏评分排序', Icons.star_outline),
-                (3, '按发售时间排序', Icons.event_outlined),
+              options: [
+                (0, '按更新时间排序'.tr, Icons.update),
+                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+                (2, '按游戏评分排序'.tr, Icons.star_outline),
+                (3, '按发售时间排序'.tr, Icons.event_outlined),
               ],
               colors: colors,
               onChanged: (v) { _setSortMode('game', v); setSheetState(() {}); },

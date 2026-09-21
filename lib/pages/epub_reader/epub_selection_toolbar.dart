@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 文本选中后弹出的工具条
 class EpubSelectionToolbar extends StatelessWidget {
@@ -85,7 +86,7 @@ class EpubSelectionToolbar extends StatelessWidget {
                   _buildButton(
                     context,
                     icon: Icons.copy_outlined,
-                    label: '复制',
+                    label: '复制'.tr,
                     onTap: onCopy,
                     color: colors.primary,
                   ),
@@ -94,7 +95,7 @@ class EpubSelectionToolbar extends StatelessWidget {
                     _buildButton(
                       context,
                       icon: Icons.highlight_off_outlined,
-                      label: '取消高亮',
+                      label: '取消高亮'.tr,
                       onTap: onRemoveHighlight!,
                       color: colors.error,
                     )
@@ -102,7 +103,7 @@ class EpubSelectionToolbar extends StatelessWidget {
                     _buildButton(
                       context,
                       icon: Icons.highlight_outlined,
-                      label: '高亮',
+                      label: '高亮'.tr,
                       onTap: onHighlight,
                       color: colors.primary,
                     ),
@@ -111,7 +112,7 @@ class EpubSelectionToolbar extends StatelessWidget {
                     _buildButton(
                       context,
                       icon: Icons.edit_off_outlined,
-                      label: '取消摘抄',
+                      label: '取消摘抄'.tr,
                       onTap: onRemoveExcerpt!,
                       color: colors.error,
                     )
@@ -119,7 +120,7 @@ class EpubSelectionToolbar extends StatelessWidget {
                     _buildButton(
                       context,
                       icon: Icons.edit_note_outlined,
-                      label: '摘抄',
+                      label: '摘抄'.tr,
                       onTap: onExcerpt,
                       color: colors.primary,
                     ),

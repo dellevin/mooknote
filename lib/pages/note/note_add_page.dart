@@ -12,6 +12,7 @@ import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
 import '../../widgets/vditor_editor.dart';
+import '../../l10n/app_strings.dart';
 
 class NoteAddPage extends StatefulWidget {
   final VoidCallback? onCancel;
@@ -67,7 +68,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
                 onPressed: () => widget.onCancel?.call(),
               ),
               Expanded(
-                child: Text('添加笔记',
+                child: Text('添加笔记'.tr,
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
               ),
               // 编辑/预览切换
@@ -75,15 +76,15 @@ class _NoteAddPageState extends State<NoteAddPage> {
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  _editModeChip(Icons.edit_outlined, '编辑', 'edit', colors),
-                  _editModeChip(Icons.visibility_outlined, '预览', 'preview', colors),
+                  _editModeChip(Icons.edit_outlined, '编辑'.tr, 'edit', colors),
+                  _editModeChip(Icons.visibility_outlined, '预览'.tr, 'preview', colors),
                 ]),
               ),
               const SizedBox(width: 12),
               FilledButton.icon(
                 onPressed: _save,
                 icon: const Icon(Icons.check, size: 16),
-                label: const Text('保存'),
+                label: Text('保存'.tr),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -133,7 +134,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
             maxLines: 1,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.4),
             decoration: InputDecoration(
-              hintText: '添加标题',
+              hintText: '添加标题'.tr,
               hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2), height: 1.4),
               border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
               isDense: true,
@@ -170,7 +171,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Text('${_contentCtrl.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('{n} 字'.trf({'n': _contentCtrl.text.length}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
         ]),
       ),
     ]);
@@ -208,7 +209,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
               const SizedBox(width: 2),
-              Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+              Text('标签'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
             ]),
           ),
         ),
@@ -353,7 +354,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
       await File(image.path).copy(targetPath);
       if (mounted) setState(() => _images.add(targetPath));
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择图片失败: $e');
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -400,7 +401,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
       content = _contentCtrl.text.trim();
     }
     if (title.isEmpty && content.isEmpty) {
-      ToastUtil.show(context, '标题或内容不能为空');
+      ToastUtil.show(context, '标题或内容不能为空'.tr);
       return;
     }
     try {
@@ -437,9 +438,9 @@ class _NoteAddPageState extends State<NoteAddPage> {
       await context.read<AppProvider>().loadNotes();
       if (!mounted) return;
       context.read<AppProvider>().finishAdding();
-      ToastUtil.show(context, '添加成功');
+      ToastUtil.show(context, '添加成功'.tr);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '保存失败: $e');
+      if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 

@@ -66,6 +66,10 @@ class UserPrefs {
   String get fontFamily => prefs.getString('fontFamily') ?? '';
   Future<bool> setFontFamily(String value) => prefs.setString('fontFamily', value);
 
+  /// 语言: 0=跟随系统, 1=中文, 2=English
+  int get languageMode => prefs.getInt('languageMode') ?? 0;
+  Future<bool> setLanguageMode(int value) => prefs.setInt('languageMode', value);
+
   /// 上映日期：显示到日（true）/ 显示到月（false）
   bool get showExactReleaseDate => prefs.getBool('showExactReleaseDate') ?? true;
   Future<bool> setShowExactReleaseDate(bool value) => prefs.setBool('showExactReleaseDate', value);

@@ -27,6 +27,7 @@ import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
 import '../utils/theme/app_theme.dart';
+import '../l10n/app_strings.dart';
 import '../services/font_download_manager.dart';
 
 /// 应用全局状态管理
@@ -91,6 +92,7 @@ class AppProvider extends ChangeNotifier {
 
   // 字体
   String _fontFamily = '';
+  int _languageMode = 0; // 0=跟随系统, 1=中文, 2=English
 
   // 观影选中的状态 (0: 已看，1: 想看，2: 在看)
   int _movieStatusIndex = 0;
@@ -360,6 +362,24 @@ class AppProvider extends ChangeNotifier {
   bool get frostedActive => _frostedActive;
   String? get frostedCoverPath => _frostedCoverPath;
   String get fontFamily => _fontFamily;
+
+  int get languageMode => _languageMode;
+
+  /// MaterialApp.locale：null 表示跟随系统
+  Locale? get locale => switch (_languageMode) {
+        1 => const Locale('zh', 'CN'),
+        2 => const Locale('en', 'US'),
+        _ => null,
+      };
+
+  void setLanguageMode(int mode) {
+    if (_languageMode != mode) {
+      _languageMode = mode;
+      AppStrings.isEnglish = mode == 2;
+      UserPrefs().setLanguageMode(mode);
+      notifyListeners();
+    }
+  }
   List<Movie> get movies => UnmodifiableListView(_movies);
   List<Book> get books => UnmodifiableListView(_books);
   List<Note> get notes => UnmodifiableListView(_notes);
@@ -521,6 +541,8 @@ class AppProvider extends ChangeNotifier {
     }
     _colorSchemeIndex = prefs.colorSchemeIndex.clamp(-1, AppTheme.seedColors.length - 1);
     _fontFamily = prefs.fontFamily;
+    _languageMode = prefs.languageMode;
+    AppStrings.isEnglish = _languageMode == 2;
     AppTheme.setFontFamily(_fontFamily);
     // 异步预加载已缓存的字体（不阻塞 UI）
     if (_fontFamily.isNotEmpty) {

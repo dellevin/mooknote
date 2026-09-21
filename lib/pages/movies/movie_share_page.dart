@@ -8,6 +8,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 class MovieSharePage extends StatefulWidget {
   final Movie movie;
@@ -41,13 +42,13 @@ class _MovieSharePageState extends State<MovieSharePage> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    final dateStr = '${now.year}年${now.month}月${now.day}日';
+    final dateStr = '{y}年{m}月{d}日'.trf({'y': now.year, 'm': now.month, 'd': now.day});
     final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     final issueStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final codeStr = 'MK${now.millisecondsSinceEpoch.toString().substring(1)}';
 
-    _cinemaCtrl = TextEditingController(text: '万达影城');
-    _hallCtrl = TextEditingController(text: '3号厅');
+    _cinemaCtrl = TextEditingController(text: '万达影城'.tr);
+    _hallCtrl = TextEditingController(text: '3号厅'.tr);
     _seatRowCtrl = TextEditingController(text: '8');
     _seatNumCtrl = TextEditingController(text: '12');
     _screeningDateCtrl = TextEditingController(text: dateStr);
@@ -55,7 +56,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
     _priceCtrl = TextEditingController(text: '39.90');
     _serviceFeeCtrl = TextEditingController(text: '5.00');
     _issueTimeCtrl = TextEditingController(text: issueStr);
-    _platformCtrl = TextEditingController(text: '喵眼电影');
+    _platformCtrl = TextEditingController(text: '喵眼电影'.tr);
     _ticketCodeCtrl = TextEditingController(text: codeStr);
   }
 
@@ -96,15 +97,15 @@ class _MovieSharePageState extends State<MovieSharePage> {
         backgroundColor: colors.surface,
         elevation: 0,
         leading: IconButton(icon: Icon(Icons.close, color: colors.onSurface), onPressed: () => Navigator.pop(context)),
-        title: Text('分享海报', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('分享海报'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         centerTitle: true,
         actions: [
-          IconButton(icon: Icon(Icons.palette_outlined, color: colors.onSurface, size: 22), tooltip: '选择样式', onPressed: _showStylePicker),
+          IconButton(icon: Icon(Icons.palette_outlined, color: colors.onSurface, size: 22), tooltip: '选择样式'.tr, onPressed: _showStylePicker),
           TextButton(
             onPressed: _isGenerating ? null : _generateAndShare,
             child: _isGenerating
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('分享', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                : Text('分享'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ),
           const SizedBox(width: 4),
         ],
@@ -138,7 +139,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('选择样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(alignment: Alignment.centerLeft, child: Text('选择样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < _styleNames.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
@@ -146,8 +147,8 @@ class _MovieSharePageState extends State<MovieSharePage> {
               contentPadding: EdgeInsets.zero,
               leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                   child: Icon(icons[i], size: 20, color: _currentStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(_styleNames[i], style: TextStyle(fontSize: 13, fontWeight: _currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              title: Text(_styleNames[i].tr, style: TextStyle(fontSize: 13, fontWeight: _currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: _currentStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -172,7 +173,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
         child: ElevatedButton.icon(
           onPressed: _showEditSheet,
           icon: const Icon(Icons.edit_outlined, size: 18),
-          label: const Text('编辑票根信息'),
+          label: Text('编辑票根信息'.tr),
           style: ElevatedButton.styleFrom(
             backgroundColor: colors.primary,
             foregroundColor: colors.onPrimary,
@@ -197,21 +198,21 @@ class _MovieSharePageState extends State<MovieSharePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('编辑票根信息', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('编辑票根信息'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const SizedBox(height: 16),
-            _sheetField('影院名称', _cinemaCtrl),
-            _sheetField('影厅', _hallCtrl),
+            _sheetField('影院名称'.tr, _cinemaCtrl),
+            _sheetField('影厅'.tr, _hallCtrl),
             Row(children: [
-              Expanded(child: _sheetField('排', _seatRowCtrl)),
+              Expanded(child: _sheetField('排'.tr, _seatRowCtrl)),
               const SizedBox(width: 12),
-              Expanded(child: _sheetField('座', _seatNumCtrl)),
+              Expanded(child: _sheetField('座'.tr, _seatNumCtrl)),
             ]),
             Row(children: [
-              Expanded(child: _sheetField('票价 (¥)', _priceCtrl)),
+              Expanded(child: _sheetField('票价 (¥)'.tr, _priceCtrl)),
               const SizedBox(width: 12),
-              Expanded(child: _sheetField('服务费 (¥)', _serviceFeeCtrl)),
+              Expanded(child: _sheetField('服务费 (¥)'.tr, _serviceFeeCtrl)),
             ]),
-            _sheetDatePicker('出票日期', _issueTimeCtrl, ctx),
+            _sheetDatePicker('出票日期'.tr, _issueTimeCtrl, ctx),
             _sheetCodeField(),
             const SizedBox(height: 16),
             SizedBox(
@@ -222,7 +223,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
                   backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('完成'),
+                child: Text('完成'.tr),
               ),
             ),
           ],
@@ -296,7 +297,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
           controller: _ticketCodeCtrl,
           style: TextStyle(fontSize: 14, color: colors.onSurface, fontFamily: 'monospace'),
           decoration: InputDecoration(
-            labelText: '编码',
+            labelText: '编码'.tr,
             labelStyle: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -354,14 +355,14 @@ class _MovieSharePageState extends State<MovieSharePage> {
             ]),
             const SizedBox(height: 12),
           ],
-          if (movie.directors.isNotEmpty) _infoRow('导演', movie.directors.join(' / '), colors),
-          if (movie.writers.isNotEmpty) _infoRow('编剧', movie.writers.join(' / '), colors),
-          if (movie.actors.isNotEmpty) _infoRow('主演', movie.actors.take(3).join(' / '), colors),
-          if (movie.genres.isNotEmpty) _infoRow('类型', movie.genres.join(' / '), colors),
-          if (movie.releaseDate != null) _infoRow('上映', _fmtDate(movie.releaseDate!), colors),
+          if (movie.directors.isNotEmpty) _infoRow('导演'.tr, movie.directors.join(' / '), colors),
+          if (movie.writers.isNotEmpty) _infoRow('编剧'.tr, movie.writers.join(' / '), colors),
+          if (movie.actors.isNotEmpty) _infoRow('主演'.tr, movie.actors.take(3).join(' / '), colors),
+          if (movie.genres.isNotEmpty) _infoRow('类型'.tr, movie.genres.join(' / '), colors),
+          if (movie.releaseDate != null) _infoRow('上映'.tr, _fmtDate(movie.releaseDate!), colors),
           if (movie.summary != null && movie.summary!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('简介', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            Text('简介'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 8),
             Text(movie.summary!, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6), maxLines: 5, overflow: TextOverflow.ellipsis),
           ],
@@ -371,7 +372,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.movie_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.5)),
             const SizedBox(width: 6),
-            Text('来自 MookNote', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+            Text('来自 MookNote'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
           ]),
         ])),
       ]),
@@ -485,9 +486,11 @@ class _MovieSharePageState extends State<MovieSharePage> {
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            Text('${_seatRowCtrl.text}排${_seatNumCtrl.text}座', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: text.withValues(alpha: 0.8))),
+            Text('{row}排{num}座'.trf({'row': _seatRowCtrl.text, 'num': _seatNumCtrl.text}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: text.withValues(alpha: 0.8))),
             Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('|', style: TextStyle(color: const Color(0xFFD0CCC0), fontWeight: FontWeight.w300))),
-            Text(widget.movie.releaseDate != null ? '${widget.movie.releaseDate!.year}年${widget.movie.releaseDate!.month}月${widget.movie.releaseDate!.day}日' : '待定', style: TextStyle(fontSize: 14, color: text.withValues(alpha: 0.6))),
+            Text(widget.movie.releaseDate != null
+                ? '{y}年{m}月{d}日'.trf({'y': widget.movie.releaseDate!.year, 'm': widget.movie.releaseDate!.month, 'd': widget.movie.releaseDate!.day})
+                : '待定'.tr, style: TextStyle(fontSize: 14, color: text.withValues(alpha: 0.6))),
           ]),
         ])),
 
@@ -501,10 +504,10 @@ class _MovieSharePageState extends State<MovieSharePage> {
               errorBuilder: (_, __, ___) => const SizedBox.shrink())),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _ticketDetail('票价', _priceCtrl.text, isPrice: true),
-            _ticketDetail('服务费', _serviceFeeCtrl.text),
-            _ticketDetail('出票日期', _issueTimeCtrl.text),
-            _ticketDetail(_platformCtrl.text.isNotEmpty ? _platformCtrl.text : '平台', '已出票'),
+            _ticketDetail('票价'.tr, _priceCtrl.text, isPrice: true),
+            _ticketDetail('服务费'.tr, _serviceFeeCtrl.text),
+            _ticketDetail('出票日期'.tr, _issueTimeCtrl.text),
+            _ticketDetail(_platformCtrl.text.isNotEmpty ? _platformCtrl.text : '平台'.tr, '已出票'.tr),
             const SizedBox(height: 4),
             Text(_ticketCodeCtrl.text, style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 0.8, color: muted)),
           ])),
@@ -579,11 +582,11 @@ class _MovieSharePageState extends State<MovieSharePage> {
             decoration: BoxDecoration(border: Border(top: BorderSide(color: line, width: 0.5), bottom: BorderSide(color: line, width: 0.5))),
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(children: [
-              _gridCol('影厅', _hallCtrl.text, red),
+              _gridCol('影厅'.tr, _hallCtrl.text, red),
               Container(width: 0.5, height: 36, color: const Color(0xFFF2EDE5)),
-              _gridCol('座位', '${_seatRowCtrl.text}排${_seatNumCtrl.text}座', text),
+              _gridCol('座位'.tr, '{row}排{num}座'.trf({'row': _seatRowCtrl.text, 'num': _seatNumCtrl.text}), text),
               Container(width: 0.5, height: 36, color: const Color(0xFFF2EDE5)),
-              _gridCol('上映', movie.releaseDate != null ? _fmtDate(movie.releaseDate!) : '--', red),
+              _gridCol('上映'.tr, movie.releaseDate != null ? _fmtDate(movie.releaseDate!) : '--', red),
             ]),
           ),
         ])),
@@ -598,11 +601,11 @@ class _MovieSharePageState extends State<MovieSharePage> {
               errorBuilder: (_, __, ___) => const SizedBox.shrink())),
           const SizedBox(width: 16),
           Expanded(child: Column(children: [
-            _collectInfo('票价', '¥${_priceCtrl.text}', isPrice: true),
-            _collectInfo('服务费', '¥${_serviceFeeCtrl.text}'),
-            _collectInfo('时间', _issueTimeCtrl.text),
-            _collectInfo('平台', 'MookNote'),
-            _collectInfo('编码', _ticketCodeCtrl.text, isCode: true),
+            _collectInfo('票价'.tr, '¥${_priceCtrl.text}', isPrice: true),
+            _collectInfo('服务费'.tr, '¥${_serviceFeeCtrl.text}'),
+            _collectInfo('时间'.tr, _issueTimeCtrl.text),
+            _collectInfo('平台'.tr, 'MookNote'),
+            _collectInfo('编码'.tr, _ticketCodeCtrl.text, isCode: true),
           ])),
         ])),
 
@@ -692,9 +695,9 @@ class _MovieSharePageState extends State<MovieSharePage> {
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/movie_poster_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());
-      await Share.shareXFiles([XFile(file.path)], text: '分享影视：${widget.movie.title}');
+      await Share.shareXFiles([XFile(file.path)], text: '分享影视：{title}'.trf({'title': widget.movie.title}));
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '生成海报失败：$e');
+      if (mounted) ToastUtil.show(context, '生成海报失败：{e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }

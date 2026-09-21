@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 浮动工具栏 — 参考微信阅读划线界面
 class SelectionOverlay extends StatefulWidget {
@@ -80,21 +81,21 @@ class _SelectionOverlayState extends State<SelectionOverlay> {
             ],
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            _ToolbarItem(icon: Icons.copy, label: '复制', onTap: () => _onItemTap(0), color: widget.colorScheme.primary),
+            _ToolbarItem(icon: Icons.copy, label: '复制'.tr, onTap: () => _onItemTap(0), color: widget.colorScheme.primary),
             const SizedBox(width: 12),
-            _ToolbarItem(icon: Icons.format_underlined, label: '划线', onTap: () => _onItemTap(1), color: widget.colorScheme.primary),
+            _ToolbarItem(icon: Icons.format_underlined, label: '划线'.tr, onTap: () => _onItemTap(1), color: widget.colorScheme.primary),
             const SizedBox(width: 12),
-            _ToolbarItem(icon: Icons.edit_note_outlined, label: '写想法', onTap: () => _onItemTap(2), color: widget.colorScheme.primary),
+            _ToolbarItem(icon: Icons.edit_note_outlined, label: '写想法'.tr, onTap: () => _onItemTap(2), color: widget.colorScheme.primary),
             if (widget.onExcerpt != null) ...[
               const SizedBox(width: 12),
               Container(width: 1, height: 28, color: Colors.white30),
               const SizedBox(width: 12),
-              _ToolbarItem(icon: Icons.bookmark_border, label: '书摘', onTap: () => _onItemTap(3), color: widget.colorScheme.primary),
+              _ToolbarItem(icon: Icons.bookmark_border, label: '书摘'.tr, onTap: () => _onItemTap(3), color: widget.colorScheme.primary),
             ],
             const SizedBox(width: 12),
-            _ToolbarItem(icon: Icons.search, label: 'AI 问书', onTap: () => _onItemTap(4), color: widget.colorScheme.primary),
+            _ToolbarItem(icon: Icons.search, label: 'AI 问书'.tr, onTap: () => _onItemTap(4), color: widget.colorScheme.primary),
             const SizedBox(width: 12),
-            _ToolbarItem(icon: Icons.headphones, label: '听当前', onTap: () => _onItemTap(5), color: widget.colorScheme.primary),
+            _ToolbarItem(icon: Icons.headphones, label: '听当前'.tr, onTap: () => _onItemTap(5), color: widget.colorScheme.primary),
           ]),
         ),
       ),

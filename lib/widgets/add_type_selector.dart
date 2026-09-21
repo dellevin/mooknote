@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/user_prefs.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 添加类型选择弹窗
 Future<void> showAddTypeDialog(BuildContext context) async {
@@ -48,7 +49,7 @@ class _AddTypeDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('选择添加类型', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('选择添加类型'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const SizedBox(height: 20),
             Wrap(
               spacing: 12,
@@ -85,7 +86,7 @@ class _AddTypeDialog extends StatelessWidget {
               child: Icon(item.icon, size: 24, color: colors.primary),
             ),
             const SizedBox(height: 10),
-            Text(item.label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
+            Text(item.label.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
           ],
         ),
       ),

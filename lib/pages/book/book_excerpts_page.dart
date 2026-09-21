@@ -8,6 +8,7 @@ import '../../data/epub/reader_dao.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'book_excerpt_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书籍摘抄列表页面
 class BookExcerptsPage extends StatefulWidget {
@@ -41,7 +42,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      if (mounted) ToastUtil.show(context, '加载失败: $e');
+      if (mounted) ToastUtil.show(context, '加载失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -53,16 +54,16 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('摘抄', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        title: Text('摘抄'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         actions: [
           IconButton(
             icon: const Icon(Icons.note_add_outlined),
-            tooltip: '导入',
+            tooltip: '导入'.tr,
             onPressed: _showImportSheet,
           ),
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined),
-            tooltip: '删除全部',
+            tooltip: '删除全部'.tr,
             onPressed: _excerpts.isEmpty ? null : _showDeleteAllDialog,
           ),
         ],
@@ -82,7 +83,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToAddExcerpt,
         icon: const Icon(Icons.add, size: 20),
-        label: const Text('添加摘抄'),
+        label: Text('添加摘抄'.tr),
       ),
     );
   }
@@ -137,10 +138,10 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                 // 统计行
                 Row(
                   children: [
-                    _buildStatChip(colors, Icons.format_quote, '${_excerpts.length} 条摘抄'),
+                    _buildStatChip(colors, Icons.format_quote, '{n} 条摘抄'.trf({'n': _excerpts.length})),
                     if (_thoughtCount > 0) ...[
                       const SizedBox(width: 12),
-                      _buildStatChip(colors, Icons.chat_bubble_outline, '$_thoughtCount 条想法'),
+                      _buildStatChip(colors, Icons.chat_bubble_outline, '{n} 条想法'.trf({'n': _thoughtCount})),
                     ],
                   ],
                 ),
@@ -185,9 +186,9 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
               child: Icon(Icons.format_quote_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
             ),
             const SizedBox(height: 20),
-            Text('暂无摘抄', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+            Text('暂无摘抄'.tr, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 8),
-            Text('记录书中触动人心的文字', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25))),
+            Text('记录书中触动人心的文字'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25))),
           ],
         ),
       ),
@@ -213,7 +214,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
   Map<String, List<BookExcerpt>> _groupExcerptsByChapter() {
     final groups = <String, List<BookExcerpt>>{};
     for (final e in _excerpts) {
-      final chapter = e.chapter.isEmpty ? '未分类' : e.chapter;
+      final chapter = e.chapter.isEmpty ? '未分类'.tr : e.chapter;
       (groups[chapter] ??= []).add(e);
     }
     for (final key in groups.keys) {
@@ -371,13 +372,13 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('确定删除这条摘抄吗？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+          title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定删除这条摘抄吗？'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-              child: const Text('取消'),
+              child: Text('取消'.tr),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -391,14 +392,14 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                 }
                 await this.context.read<AppProvider>().removeBookExcerpt(excerpt.id);
                 _loadExcerpts();
-                if (mounted) ToastUtil.show(this.context, '已删除');
+                if (mounted) ToastUtil.show(this.context, '已删除'.tr);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('删除'),
+              child: Text('删除'.tr),
             ),
           ],
         );
@@ -415,13 +416,13 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('确定删除全部 ${_excerpts.length} 条摘抄吗？此操作不可恢复。', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+          title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定删除全部 {n} 条摘抄吗？此操作不可恢复。'.trf({'n': _excerpts.length}), style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-              child: const Text('取消'),
+              child: Text('取消'.tr),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -431,14 +432,14 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                   await provider.removeBookExcerpt(excerpt.id);
                 }
                 _loadExcerpts();
-                if (mounted) ToastUtil.show(this.context, '已删除全部摘抄');
+                if (mounted) ToastUtil.show(this.context, '已删除全部摘抄'.tr);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('删除全部'),
+              child: Text('删除全部'.tr),
             ),
           ],
         );
@@ -478,7 +479,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     children: [
-                      Text('导入摘抄', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      Text('导入摘抄'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                     ],
                   ),
                 ),
@@ -510,9 +511,9 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('微信读书', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                              Text('微信读书'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: colors.onSurface)),
                               const SizedBox(height: 2),
-                              Text('粘贴微信读书导出的笔记', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                              Text('粘贴微信读书导出的笔记'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                             ],
                           ),
                         ),
@@ -566,7 +567,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         children: [
-                          Text('微信读书导入', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          Text('微信读书导入'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                           const Spacer(),
                           TextButton(
                             onPressed: () async {
@@ -575,7 +576,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                                 controller.text = data!.text!;
                               }
                             },
-                            child: Text('粘贴', style: TextStyle(color: colors.primary, fontSize: 14)),
+                            child: Text('粘贴'.tr, style: TextStyle(color: colors.primary, fontSize: 14)),
                           ),
                         ],
                       ),
@@ -587,7 +588,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                         controller: controller,
                         maxLines: 8,
                         decoration: InputDecoration(
-                          hintText: '粘贴微信读书导出的笔记内容...',
+                          hintText: '粘贴微信读书导出的笔记内容...'.tr,
                           hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                           filled: true,
                           fillColor: colors.surfaceContainerHighest,
@@ -605,7 +606,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                           onPressed: () {
                             final text = controller.text.trim();
                             if (text.isEmpty) {
-                              ToastUtil.show(sheetContext, '请粘贴内容');
+                              ToastUtil.show(sheetContext, '请粘贴内容'.tr);
                               return;
                             }
                             Navigator.pop(sheetContext);
@@ -618,7 +619,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text('导入', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          child: Text('导入'.tr, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -636,7 +637,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
   void _importWechatRead(String text) {
     final excerpts = _parseWechatRead(text);
     if (excerpts.isEmpty) {
-      ToastUtil.show(context, '未识别到有效摘抄');
+      ToastUtil.show(context, '未识别到有效摘抄'.tr);
       return;
     }
     _saveImportedExcerpts(excerpts);
@@ -755,7 +756,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
 
     _loadExcerpts();
     if (mounted) {
-      ToastUtil.show(context, '成功导入 $imported 条摘抄');
+      ToastUtil.show(context, '成功导入 {n} 条摘抄'.trf({'n': imported}));
     }
   }
 }

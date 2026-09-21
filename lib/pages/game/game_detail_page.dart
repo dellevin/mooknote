@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import '../../widgets/fade_in_local_image.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -265,7 +266,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         if (game.genres.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
                             Expanded(child: Wrap(spacing: 8, runSpacing: 8,
                               children: game.genres.map((g) => Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -280,9 +281,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         if (game.releaseDate != null)
                           _buildDesktopInfoRow('发售时间', _formatDate(game.releaseDate!), colors),
                         if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                          _buildDesktopInfoRow('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟', colors),
+                          _buildDesktopInfoRow('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}), colors),
                         if (game.playCount > 0)
-                          _buildDesktopInfoRow('游玩次数', '${game.playCount} 次', colors),
+                          _buildDesktopInfoRow('游玩次数', '{n} 次'.trf({'n': game.playCount}), colors),
                         if (game.purchasePlatforms.isNotEmpty)
                           _buildDesktopInfoRow('购买平台', game.purchasePlatforms.join('、'), colors),
                         if (game.purchaseDate != null)
@@ -299,7 +300,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           Row(children: [
                             Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                             const SizedBox(width: 8),
-                            Text('游戏简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                            Text('游戏简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                           ]),
                           const SizedBox(height: 12),
                           Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
@@ -308,7 +309,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         Row(children: [
                           Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                           const SizedBox(width: 8),
-                          Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                         ]),
                         const SizedBox(height: 16),
                         _buildExtraSectionItem(
@@ -358,7 +359,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 OutlinedButton.icon(
                   onPressed: () => _showDeleteDialog(context),
                   icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -368,7 +369,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 FilledButton.icon(
                   onPressed: _enterEditMode,
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('编辑'),
+                  label: Text('编辑'.tr),
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -412,13 +413,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   onPressed: () => setState(() => _isEditing = false),
                 ),
                 Expanded(
-                  child: Text('编辑游戏',
+                  child: Text('编辑游戏'.tr,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                 ),
                 FilledButton.icon(
                   onPressed: _saveEdit,
                   icon: const Icon(Icons.check, size: 16),
-                  label: const Text('保存'),
+                  label: Text('保存'.tr),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -454,7 +455,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                                   : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                                       Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                                       const SizedBox(height: 8),
-                                      Text('点击添加封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                                      Text('点击添加封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                                     ]),
                               if (_editIsDownloading)
                                 Container(color: Colors.black.withValues(alpha: 0.4),
@@ -467,7 +468,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             padding: const EdgeInsets.only(top: 8),
                             child: GestureDetector(
                               onTap: () => setState(() => _editCoverPath = null),
-                              child: Text('移除封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
+                              child: Text('移除封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
                           ),
                         const SizedBox(height: 20),
                         // 状态
@@ -542,7 +543,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                                 color: selected ? colors.primary : colors.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(c.$1, style: TextStyle(
+                              child: Text(
+                                c.$1.tr, style: TextStyle(
                                 fontSize: 11, fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
                                 color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
                               )),
@@ -567,9 +569,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.games.map((g) => g.platforms).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择平台',
+                              context: context, title: '选择平台'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editPlatforms, hint: '如：Switch、PS5、Steam',
+                              initialSelected: _editPlatforms, hint: '如：Switch、PS5、Steam'.tr,
                             );
                             if (result != null) setState(() => _editPlatforms = result);
                           }),
@@ -579,9 +581,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.games.map((g) => g.versions).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择版本',
+                              context: context, title: '选择版本'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editVersions, hint: '如：标准版、豪华版',
+                              initialSelected: _editVersions, hint: '如：标准版、豪华版'.tr,
                             );
                             if (result != null) setState(() => _editVersions = result);
                           }),
@@ -593,8 +595,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             final names = tags.map((t) => t['name'] as String).toList();
                             if (!mounted) return;
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择类型', existingTags: names,
-                              initialSelected: _editGenres, hint: '如：RPG、动作、冒险',
+                              context: context, title: '选择类型'.tr, existingTags: names,
+                              initialSelected: _editGenres, hint: '如：RPG、动作、冒险'.tr,
                             );
                             if (result != null) setState(() => _editGenres = result);
                           }),
@@ -604,9 +606,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.games.map((g) => g.developer).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择开发者',
+                              context: context, title: '选择开发者'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editDeveloper, hint: '如：任天堂、FromSoftware',
+                              initialSelected: _editDeveloper, hint: '如：任天堂、FromSoftware'.tr,
                             );
                             if (result != null) setState(() => _editDeveloper = result);
                           }),
@@ -619,9 +621,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             final provider = context.read<AppProvider>();
                             final data = provider.games.map((g) => g.purchasePlatforms).toList();
                             final result = await GenreSelectorPage.show(
-                              context: context, title: '选择购买平台',
+                              context: context, title: '选择购买平台'.tr,
                               existingTagsFuture: compute(_collectUnique, data),
-                              initialSelected: _editPurchasePlatforms, hint: '如：eShop、Steam、PS Store',
+                              initialSelected: _editPurchasePlatforms, hint: '如：eShop、Steam、PS Store'.tr,
                             );
                             if (result != null) setState(() => _editPurchasePlatforms = result);
                           }),
@@ -641,7 +643,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                 style: TextStyle(fontSize: 14, color: colors.onSurface),
                                 decoration: InputDecoration(
-                                  hintText: '小时', hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                                  hintText: '小时'.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                                   filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -650,7 +652,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text('小时', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                            Text('小时'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                             const SizedBox(width: 12),
                             Container(
                               width: 80,
@@ -660,7 +662,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                 style: TextStyle(fontSize: 14, color: colors.onSurface),
                                 decoration: InputDecoration(
-                                  hintText: '分钟', hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                                  hintText: '分钟'.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                                   filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -669,7 +671,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text('分钟', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                            Text('分钟'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                           ]),
                           const SizedBox(height: 16),
                           // 购买日期
@@ -685,7 +687,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                               maxLines: null,
                               style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
                               decoration: InputDecoration(
-                                hintText: '写下游戏简介...',
+                                hintText: '写下游戏简介...'.tr,
                                 hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                                 filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -714,7 +716,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   OutlinedButton.icon(
                     onPressed: () => _showDeleteDialog(context),
                     icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                    label: Text('删除', style: TextStyle(color: colors.error)),
+                    label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -730,7 +732,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
   }
 
   Widget _buildEditSectionLabel(String label, ColorScheme colors) {
-    return Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
+    return Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)));
   }
 
   Widget _buildEditStatusChip(String label, String value, ColorScheme colors) {
@@ -744,7 +746,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
           borderRadius: BorderRadius.circular(6),
           boxShadow: selected ? [BoxShadow(color: colors.onSurface.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))] : null,
         ),
-        child: Text(label, style: TextStyle(
+        child: Text(label.tr, style: TextStyle(
           fontSize: 13, fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
           color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
         )),
@@ -755,14 +757,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
   Widget _buildEditField(String label, TextEditingController ctrl, {String hint = '', bool required = false}) {
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(required ? '${label.tr} *' : label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       TextFormField(
         controller: ctrl,
         style: TextStyle(fontSize: 14, color: colors.onSurface),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
+        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入 {label}'.trf({'label': label.tr}) : null : null,
         decoration: InputDecoration(
-          hintText: hint, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+          hintText: hint.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
           filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -775,7 +777,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
   Widget _buildEditChipField(String label, List<String> chips, {required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       GestureDetector(
         onTap: onTap,
@@ -787,7 +789,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: chips.isEmpty
-              ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
+              ? Text('点击选择{label}'.trf({'label': label.tr}), style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
               : Wrap(spacing: 4, runSpacing: 4, children: chips.map((c) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(4)),
@@ -802,7 +804,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     final colors = Theme.of(context).colorScheme;
     final hasDate = date != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       GestureDetector(
         onTap: () async {
@@ -822,7 +824,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
           child: Row(children: [
             Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             const SizedBox(width: 8),
-            Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期',
+            Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
               style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25))),
             const Spacer(),
             if (clearable && hasDate)
@@ -848,13 +850,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
             Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
             Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Align(alignment: Alignment.centerLeft,
-              child: Text('添加封面', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+              child: Text('添加封面'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
             const SizedBox(height: 16),
             ListTile(leading: Icon(Icons.photo_library_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-              title: Text('从相册选择', style: TextStyle(color: colors.onSurface)),
+              title: Text('从相册选择'.tr, style: TextStyle(color: colors.onSurface)),
               onTap: () { Navigator.pop(ctx); _pickEditCover(); }),
             ListTile(leading: Icon(Icons.link_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-              title: Text('网络链接', style: TextStyle(color: colors.onSurface)),
+              title: Text('网络链接'.tr, style: TextStyle(color: colors.onSurface)),
               onTap: () { Navigator.pop(ctx); _pickEditCoverFromUrl(); }),
           ]),
         ),
@@ -872,7 +874,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       await File(picked.path).copy(targetPath);
       if (mounted) setState(() => _editCoverPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择封面失败: $e');
+      if (mounted) ToastUtil.show(context, '选择封面失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -883,9 +885,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
       return AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+          Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(height: 12),
           TextField(controller: urlCtrl, keyboardType: TextInputType.url,
             style: TextStyle(fontSize: 14, color: colors.onSurface),
@@ -899,11 +901,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
             )),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确定')),
+            child: Text('确定'.tr)),
         ],
       );
     });
@@ -931,7 +933,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       await File(targetPath).writeAsBytes(response.bodyBytes);
       if (mounted) setState(() => _editCoverPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '下载失败: $e');
+      if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _editIsDownloading = false);
     }
@@ -962,10 +964,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
       );
       await context.read<AppProvider>().updateGame(updated);
       if (!mounted) return;
-      ToastUtil.show(context, '更新成功');
+      ToastUtil.show(context, '更新成功'.tr);
       setState(() => _isEditing = false);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '保存失败: $e');
+      if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -982,7 +984,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 56, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 56, child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
         ],
       ),
@@ -1019,9 +1021,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   if (game.releaseDate != null)
                     _buildInfoSection('发售时间', _formatDate(game.releaseDate!)),
                   if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                    _buildInfoSection('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟'),
+                    _buildInfoSection('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
                   if (game.playCount > 0)
-                    _buildInfoSection('游玩次数', '${game.playCount} 次'),
+                    _buildInfoSection('游玩次数', '{n} 次'.trf({'n': game.playCount})),
                   if (game.purchasePlatforms.isNotEmpty)
                     _buildInfoSection('购买平台', game.purchasePlatforms.join('、')),
                   if (game.purchaseDate != null)
@@ -1067,7 +1069,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   ),
                   IconButton(
                     icon: Icon(Icons.tune, color: colors.onSurface, size: 20),
-                    tooltip: '切换样式',
+                    tooltip: '切换样式'.tr,
                     onPressed: _showStylePicker,
                   ),
                 ]),
@@ -1148,7 +1150,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.tune, color: Colors.white, size: 20),
-                    tooltip: '切换样式',
+                    tooltip: '切换样式'.tr,
                     onPressed: _showStylePicker,
                   ),
                 ]),
@@ -1173,9 +1175,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                     if (game.releaseDate != null)
                       _buildOverlayInfoRow('发售时间', _formatDate(game.releaseDate!)),
                     if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                      _buildOverlayInfoRow('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟'),
+                      _buildOverlayInfoRow('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
                     if (game.playCount > 0)
-                      _buildOverlayInfoRow('游玩次数', '${game.playCount} 次'),
+                      _buildOverlayInfoRow('游玩次数', '{n} 次'.trf({'n': game.playCount})),
                     if (game.purchasePlatforms.isNotEmpty)
                       _buildOverlayInfoRow('购买平台', game.purchasePlatforms.join('、')),
                     if (game.purchaseDate != null)
@@ -1238,9 +1240,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   if (game.releaseDate != null)
                     _buildLayeredInfoRow('发售时间', _formatDate(game.releaseDate!), colors),
                   if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                    _buildLayeredInfoRow('游玩时长', '${game.playTimeHours}小时${game.playTimeMinutes}分钟', colors),
+                    _buildLayeredInfoRow('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}), colors),
                   if (game.playCount > 0)
-                    _buildLayeredInfoRow('游玩次数', '${game.playCount} 次', colors),
+                    _buildLayeredInfoRow('游玩次数', '{n} 次'.trf({'n': game.playCount}), colors),
                   if (game.purchasePlatforms.isNotEmpty)
                     _buildLayeredInfoRow('购买平台', game.purchasePlatforms.join('、'), colors),
                   if (game.purchaseDate != null)
@@ -1285,7 +1287,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   ),
                   IconButton(
                     icon: Icon(Icons.tune, color: colors.onSurface, size: 20),
-                    tooltip: '切换样式',
+                    tooltip: '切换样式'.tr,
                     onPressed: _showStylePicker,
                   ),
                 ]),
@@ -1362,7 +1364,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 72, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 72, child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
         ],
       ),
@@ -1384,7 +1386,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 72, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 72, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Wrap(spacing: 8, runSpacing: 8,
             children: game.genres.map((g) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1413,7 +1415,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         Row(children: [
           Container(width: 4, height: 14, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          Text('游戏简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text('游戏简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ]),
         const SizedBox(height: 12),
         Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
@@ -1428,7 +1430,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       Row(children: [
         Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
       _buildExtraSectionItem(
@@ -1513,7 +1515,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+      child: Text(label.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
     );
   }
 
@@ -1521,7 +1523,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 72, child: Text(label, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
+        SizedBox(width: 72, child: Text(label.tr, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
         Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: Colors.white.withValues(alpha: 0.9), height: 1.5))),
       ]),
     );
@@ -1531,7 +1533,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 72, child: Text('类型', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
+        SizedBox(width: 72, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
         Expanded(
           child: Wrap(
             spacing: 8, runSpacing: 8,
@@ -1550,7 +1552,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('游戏简介', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
+        Text('游戏简介'.tr, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
         const SizedBox(height: 8),
         Text(game.summary!, style: TextStyle(fontSize: 15, color: Colors.white.withValues(alpha: 0.9), height: 1.6)),
       ]),
@@ -1693,7 +1695,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     required Color foregroundColor,
   }) {
     return Tooltip(
-      message: tooltip,
+      message: tooltip.tr,
       child: GestureDetector(
         onTap: onPressed,
         child: Container(
@@ -1834,8 +1836,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Text('上下滑动调整图片位置',
-                                      style: TextStyle(fontSize: 13, color: Colors.white70)),
+                                  child: Text('上下滑动调整图片位置'.tr,
+                                      style: const TextStyle(fontSize: 13, color: Colors.white70)),
                                 ),
                               ),
                             ),
@@ -1861,7 +1863,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           Icon(Icons.sports_esports_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
-          Text('暂无封面', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('暂无封面'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
         ],
       ),
     );
@@ -1928,7 +1930,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w600)),
+      child: Text(label.tr, style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -1940,7 +1942,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5), fontWeight: FontWeight.w500)),
+      child: Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5), fontWeight: FontWeight.w500)),
     );
   }
 
@@ -1953,7 +1955,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           SizedBox(
             width: 72,
-            child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
             child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5)),
@@ -1972,7 +1974,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           SizedBox(
             width: 72,
-            child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
             child: Wrap(
@@ -2007,7 +2009,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(width: 8),
-              Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
           ),
           const SizedBox(height: 16),
@@ -2076,14 +2078,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text(title.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const SizedBox(height: 4),
                   FutureBuilder<int>(
                     future: subtitleFuture,
                     builder: (context, snapshot) {
                       final count = snapshot.data ?? 0;
                       return Text(
-                        count > 0 ? '$count $unit' : emptyText,
+                        count > 0 ? '{n} {unit}'.trf({'n': count, 'unit': unit.tr}) : emptyText.tr,
                         style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
                       );
                     },
@@ -2136,7 +2138,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('详情页样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(alignment: Alignment.centerLeft, child: Text('详情页样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < names.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
@@ -2144,8 +2146,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
               contentPadding: EdgeInsets.zero,
               leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                   child: Icon(icons[i], size: 20, color: currentStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(names[i], style: TextStyle(fontSize: 13, fontWeight: currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              title: Text(names[i].tr, style: TextStyle(fontSize: 13, fontWeight: currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: currentStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -2177,15 +2179,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除"${widget.game.title}"吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除"{title}"吗？删除后可在回收站恢复。'.trf({'title': widget.game.title}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -2201,13 +2203,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 navigator.pop();
               }
               if (mounted && context.mounted) {
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

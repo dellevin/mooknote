@@ -12,6 +12,7 @@ import '../../widgets/detail_placeholder.dart';
 import 'note_detail_page.dart';
 import 'note_add_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 笔记标签页（分页 + 触底加载）
 class NoteTabPage extends StatefulWidget {
@@ -148,7 +149,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
           ? NoteAddPage(onCancel: () => provider.cancelAdding())
           : provider.selectedNote != null
               ? NoteDetailPage(note: provider.selectedNote!, embedded: true)
-              : const DetailPlaceholder(icon: Icons.sticky_note_2_outlined, message: '选择一条笔记查看详情');
+              : DetailPlaceholder(icon: Icons.sticky_note_2_outlined, message: '选择一条笔记查看详情'.tr);
       return MasterDetailScaffold(
         master: masterContent,
         detail: detailWidget,
@@ -339,10 +340,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
 
   String _formatTime(DateTime date) {
     final diff = DateTime.now().difference(date);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
+    if (diff.inMinutes < 1) return '刚刚'.tr;
+    if (diff.inHours < 1) return '{n}分钟前'.trf({'n': diff.inMinutes});
+    if (diff.inDays < 1) return '{n}小时前'.trf({'n': diff.inHours});
+    if (diff.inDays < 7) return '{n}天前'.trf({'n': diff.inDays});
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
@@ -350,7 +351,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
     return Padding(padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(child: _isLoading
           ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary))
-          : Text('没有更多了', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)))),
+          : Text('没有更多了'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)))),
     );
   }
 
@@ -369,8 +370,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
             contentPadding: EdgeInsets.zero,
             leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(note.isPinned ? Icons.push_pin_outlined : Icons.push_pin, size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
-            title: Text(note.isPinned ? '取消置顶' : '置顶', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-            subtitle: Text(note.isPinned ? '取消置顶后按时间排序' : '置顶后始终显示在最前', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            title: Text(note.isPinned ? '取消置顶'.tr : '置顶'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+            subtitle: Text(note.isPinned ? '取消置顶后按时间排序'.tr : '置顶后始终显示在最前'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
             onTap: () async {
               Navigator.pop(ctx);
@@ -383,8 +384,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
             contentPadding: EdgeInsets.zero,
             leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.delete_outline, size: 20, color: colors.error)),
-            title: Text('删除', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.error)),
-            subtitle: Text('删除后可在回收站恢复', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            title: Text('删除'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.error)),
+            subtitle: Text('删除后可在回收站恢复'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
             onTap: () {
               Navigator.pop(ctx);
@@ -404,18 +405,18 @@ class _NoteTabPageState extends State<NoteTabPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除这条笔记吗？删除后可在回收站恢复。'.tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async { await context.read<AppProvider>().removeNote(note.id); if (!ctx.mounted) return; Navigator.pop(ctx); if (mounted) _loadFirst(); },
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -430,7 +431,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.sticky_note_2_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
-      Text('暂无笔记', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+      Text('暂无笔记'.tr, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));
   }
 }

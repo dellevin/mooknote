@@ -8,6 +8,7 @@ import '../book/book_detail_page.dart';
 import '../note/note_detail_page.dart';
 import '../game/game_detail_page.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../l10n/app_strings.dart';
 
 /// 搜索页面（带 Scaffold + AppBar）
 class SearchPage extends StatelessWidget {
@@ -19,7 +20,7 @@ class SearchPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('搜索'),
+        title: Text('搜索'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
@@ -203,7 +204,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
         focusNode: _focusNode,
         style: TextStyle(fontSize: 15, color: colors.onSurface),
         decoration: InputDecoration(
-          hintText: '搜索标题、作者、标签...',
+          hintText: '搜索标题、作者、标签...'.tr,
           hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3), fontSize: 15),
           prefixIcon: Icon(Icons.search, color: colors.onSurface.withValues(alpha: 0.4), size: 22),
           suffixIcon: _searchController.text.isNotEmpty
@@ -243,13 +244,13 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Row(children: [
-        Expanded(child: _filterChip('影视', Icons.movie_outlined, _showMovies, movieCount, () { setState(() { _showMovies = !_showMovies; _performSearch(); }); })),
+        Expanded(child: _filterChip('影视'.tr, Icons.movie_outlined, _showMovies, movieCount, () { setState(() { _showMovies = !_showMovies; _performSearch(); }); })),
         const SizedBox(width: 8),
-        Expanded(child: _filterChip('书籍', Icons.menu_book_outlined, _showBooks, bookCount, () { setState(() { _showBooks = !_showBooks; _performSearch(); }); })),
+        Expanded(child: _filterChip('书籍'.tr, Icons.menu_book_outlined, _showBooks, bookCount, () { setState(() { _showBooks = !_showBooks; _performSearch(); }); })),
         const SizedBox(width: 8),
-        Expanded(child: _filterChip('笔记', Icons.sticky_note_2_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); })),
+        Expanded(child: _filterChip('笔记'.tr, Icons.sticky_note_2_outlined, _showNotes, noteCount, () { setState(() { _showNotes = !_showNotes; _performSearch(); }); })),
         const SizedBox(width: 8),
-        Expanded(child: _filterChip('游戏', Icons.sports_esports_outlined, _showGames, gameCount, () { setState(() { _showGames = !_showGames; _performSearch(); }); })),
+        Expanded(child: _filterChip('游戏'.tr, Icons.sports_esports_outlined, _showGames, gameCount, () { setState(() { _showGames = !_showGames; _performSearch(); }); })),
       ]),
     );
   }
@@ -286,9 +287,9 @@ class _SearchPageBodyState extends State<SearchPageBody> {
           child: Icon(Icons.search_rounded, size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
         ),
         const SizedBox(height: 20),
-        Text('输入关键词搜索', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.35))),
+        Text('输入关键词搜索'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.35))),
         const SizedBox(height: 4),
-        Text('支持标题、导演、作者、标签、简介', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
+        Text('支持标题、导演、作者、标签、简介'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
       ]),
     );
   }
@@ -303,9 +304,9 @@ class _SearchPageBodyState extends State<SearchPageBody> {
           child: Icon(Icons.search_off_rounded, size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
         ),
         const SizedBox(height: 20),
-        Text('未找到相关内容', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.35))),
+        Text('未找到相关内容'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.35))),
         const SizedBox(height: 4),
-        Text('换个关键词试试', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
+        Text('换个关键词试试'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.2))),
       ]),
     );
   }
@@ -318,8 +319,8 @@ class _SearchPageBodyState extends State<SearchPageBody> {
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
         child: Text(_selectedTag != null
-            ? '标签 "$_selectedTag" 共 ${_results.length} 条'
-            : '找到 ${_results.length} 条结果',
+            ? '标签 "{tag}" 共 {n} 条'.trf({'tag': _selectedTag, 'n': _results.length})
+            : '找到 {n} 条结果'.trf({'n': _results.length}),
             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
       ),
       Expanded(
@@ -354,12 +355,12 @@ class _SearchPageBodyState extends State<SearchPageBody> {
           Row(children: [
             Icon(Icons.label_outline, size: 14, color: colors.onSurface.withValues(alpha: 0.35)),
             const SizedBox(width: 4),
-            Text('匹配标签', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+            Text('匹配标签'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
             if (_selectedTag != null) ...[
               const Spacer(),
               GestureDetector(
                 onTap: () { setState(() { _selectedTag = null; }); _performSearch(); },
-                child: Text('清除筛选', style: TextStyle(fontSize: 12, color: colors.primary)),
+                child: Text('清除筛选'.tr, style: TextStyle(fontSize: 12, color: colors.primary)),
               ),
             ],
           ]),
@@ -407,7 +408,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _typeBadge('影视'),
+                _typeBadge('影视'.tr),
                 const Spacer(),
                 _statusBadge(movie.status, colors),
               ]),
@@ -447,7 +448,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _typeBadge('书籍'),
+                _typeBadge('书籍'.tr),
                 const Spacer(),
                 _statusBadge(book.status, colors),
               ]),
@@ -475,7 +476,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
 
   Widget _buildNoteItem(Note note) {
     final colors = Theme.of(context).colorScheme;
-    final summary = note.summary.trim().isEmpty ? '(无内容)' : note.summary.trim();
+    final summary = note.summary.trim().isEmpty ? '(无内容)'.tr : note.summary.trim();
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteDetailPage(note: note))),
       child: Container(
@@ -485,7 +486,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: _typeBadge('笔记'),
+            child: _typeBadge('笔记'.tr),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -525,7 +526,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _typeBadge('游戏'),
+                _typeBadge('游戏'.tr),
                 const Spacer(),
                 _statusBadge(game.status, colors),
               ]),
@@ -575,10 +576,10 @@ class _SearchPageBodyState extends State<SearchPageBody> {
 
   Widget _statusBadge(String status, ColorScheme colors) {
     final (label, bg, fg) = switch (status) {
-      'watched' || 'read' || 'completed' => ('已看' , colors.primary, colors.onPrimary),
-      'watching' || 'reading' || 'playing' => ('在看', colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
-      'want_to_watch' || 'want_to_read' || 'want_to_play' => ('想看', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
-      'abandoned' => ('弃游', colors.errorContainer, colors.onError),
+      'watched' || 'read' || 'completed' => ('已看'.tr, colors.primary, colors.onPrimary),
+      'watching' || 'reading' || 'playing' => ('在看'.tr, colors.outlineVariant, colors.onSurface.withValues(alpha: 0.6)),
+      'want_to_watch' || 'want_to_read' || 'want_to_play' => ('想看'.tr, colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.4)),
+      'abandoned' => ('弃游'.tr, colors.errorContainer, colors.onError),
       _ => ('', colors.surfaceContainerHighest, colors.onSurface.withValues(alpha: 0.3)),
     };
     if (label.isEmpty) return const SizedBox.shrink();

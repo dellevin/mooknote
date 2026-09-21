@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 豆瓣WebView页面 - 用于抓取 影视/书籍/游戏 信息
 class DoubanWebViewPage extends StatefulWidget {
@@ -30,11 +31,11 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
   bool _isExtracting = false; // 防止重复提取
 
   String _titleFor() {
-    if (widget.source == 'fanqie') return '番茄阅读';
+    if (widget.source == 'fanqie') return '番茄阅读'.tr;
     return switch (widget.category) {
-      'book' => '豆瓣书籍',
-      'game' => '豆瓣游戏',
-      _ => '豆瓣影视',
+      'book' => '豆瓣书籍'.tr,
+      'game' => '豆瓣游戏'.tr,
+      _ => '豆瓣影视'.tr,
     };
   }
 
@@ -52,14 +53,14 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
             colors: colors,
             icon: Icons.auto_fix_high_outlined,
             onPressed: _showExtractedInfo,
-            tooltip: '提取信息',
+            tooltip: '提取信息'.tr,
           ),
           // 刷新按钮
           _buildActionButton(
             colors: colors,
             icon: Icons.refresh,
             onPressed: () => _controller?.reload(),
-            tooltip: '刷新',
+            tooltip: '刷新'.tr,
           ),
           const SizedBox(width: 8),
         ],
@@ -159,9 +160,9 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
     if (info == null) return;
 
     final secondaryLabel = switch (widget.category) {
-      'book' => '作者',
-      'game' => '开发商',
-      _ => '导演',
+      'book' => '作者'.tr,
+      'game' => '开发商'.tr,
+      _ => '导演'.tr,
     };
 
     // 显示提取的信息
@@ -173,26 +174,26 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
           final isFanqie = widget.source == 'fanqie';
           final rows = isFanqie
               ? <Widget>[
-                  _buildInfoRow(colors, '书名', info['title']?.toString() ?? '未提取到'),
-                  _buildInfoRow(colors, '作者', info['author']?.toString() ?? '未提取到'),
-                  _buildInfoRow(colors, '类型', info['genres']?.toString() ?? '未提取到'),
+                  _buildInfoRow(colors, '书名'.tr, info['title']?.toString() ?? '未提取到'.tr),
+                  _buildInfoRow(colors, '作者'.tr, info['author']?.toString() ?? '未提取到'.tr),
+                  _buildInfoRow(colors, '类型'.tr, info['genres']?.toString() ?? '未提取到'.tr),
                   if (info['summary'] != null)
-                    _buildInfoRow(colors, '简介', _truncate(info['summary'])),
+                    _buildInfoRow(colors, '简介'.tr, _truncate(info['summary'])),
                 ]
               : <Widget>[
-                  _buildInfoRow(colors, '标题', info['title']?.toString() ?? '未提取到'),
-                  _buildInfoRow(colors, '评分', info['rating']?.toString() ?? '未提取到'),
-                  _buildInfoRow(colors, secondaryLabel, info['director']?.toString() ?? '未提取到'),
-                  _buildInfoRow(colors, '类型', info['genres']?.toString() ?? '未提取到'),
-                  _buildInfoRow(colors, '日期', info['releaseDate']?.toString() ?? '未提取到'),
+                  _buildInfoRow(colors, '标题'.tr, info['title']?.toString() ?? '未提取到'.tr),
+                  _buildInfoRow(colors, '评分'.tr, info['rating']?.toString() ?? '未提取到'.tr),
+                  _buildInfoRow(colors, secondaryLabel, info['director']?.toString() ?? '未提取到'.tr),
+                  _buildInfoRow(colors, '类型'.tr, info['genres']?.toString() ?? '未提取到'.tr),
+                  _buildInfoRow(colors, '日期'.tr, info['releaseDate']?.toString() ?? '未提取到'.tr),
                   if (info['summary'] != null)
-                    _buildInfoRow(colors, '简介', _truncate(info['summary'])),
+                    _buildInfoRow(colors, '简介'.tr, _truncate(info['summary'])),
                 ];
           return AlertDialog(
             backgroundColor: colors.surface,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             title: Text(
-              '提取的信息',
+              '提取的信息'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -210,7 +211,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
                 child: Text(
-                  '取消',
+                  '取消'.tr,
                   style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
                 ),
               ),
@@ -220,7 +221,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
                   Navigator.pop(context, info);
                 },
                 child: Text(
-                  '使用此信息',
+                  '使用此信息'.tr,
                   style: TextStyle(
                       color: colors.onSurface, fontWeight: FontWeight.w600),
                 ),
@@ -304,7 +305,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('提取信息失败: $e')),
+          SnackBar(content: Text('提取信息失败: {e}'.trf({'e': e}))),
         );
       }
       return null;

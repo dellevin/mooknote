@@ -6,6 +6,7 @@ import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'movie_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 影评详情页
 class MovieReviewDetailPage extends StatefulWidget {
@@ -52,13 +53,13 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除这条影评吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除这条影评吗？删除后可在回收站恢复。'.tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -67,7 +68,7 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -75,7 +76,7 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
     );
     if (confirmed == true) {
       await context.read<AppProvider>().removeMovieReview(_review.id);
-      if (mounted) { ToastUtil.show(context, '已删除'); Navigator.pop(context); }
+      if (mounted) { ToastUtil.show(context, '已删除'.tr); Navigator.pop(context); }
     }
   }
 
@@ -98,10 +99,10 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
-        title: const Text('影评详情'),
+        title: Text('影评详情'.tr),
         actions: [
-          IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _navigateToEdit(context), tooltip: '编辑'),
-          IconButton(icon: Icon(Icons.delete_outline, size: 20, color: colors.error.withValues(alpha: 0.7)), onPressed: _deleteReview, tooltip: '删除'),
+          IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _navigateToEdit(context), tooltip: '编辑'.tr),
+          IconButton(icon: Icon(Icons.delete_outline, size: 20, color: colors.error.withValues(alpha: 0.7)), onPressed: _deleteReview, tooltip: '删除'.tr),
           const SizedBox(width: 4),
         ],
       ),
@@ -159,7 +160,7 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-          child: Text(_review.typeText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
+          child: Text(_review.typeText.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
         ),
       ]),
     ]),
@@ -170,13 +171,13 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(12)),
     child: Column(children: [
-      _infoRow(Icons.person_outline, '影评人', _review.reviewer.isNotEmpty ? _review.reviewer : '匿名', colors),
+      _infoRow(Icons.person_outline, '影评人'.tr, _review.reviewer.isNotEmpty ? _review.reviewer : '匿名'.tr, colors),
       Divider(height: 24, color: colors.outlineVariant),
       if (_review.source.isNotEmpty) ...[
-        _infoRow(Icons.link, '来源', _review.source, colors),
+        _infoRow(Icons.link, '来源'.tr, _review.source, colors),
         const Divider(height: 24),
       ],
-      _infoRow(Icons.access_time, '时间', _formatDate(_review.createdAt), colors),
+      _infoRow(Icons.access_time, '时间'.tr, _formatDate(_review.createdAt), colors),
     ]),
   );
 

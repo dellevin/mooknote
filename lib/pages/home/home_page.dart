@@ -27,6 +27,7 @@ import '../online_search/search_page.dart';
 import '../online_search/online_search_page.dart';
 import '../profile/profile_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 主页 - 包含底部导航，可切换主页/我的
 class HomePage extends StatefulWidget {
@@ -161,16 +162,16 @@ class _HomePageState extends State<HomePage> {
                 onDestinationSelected: (index) {
                   provider.setBottomNavIndex(index == 0 ? 0 : 2);
                 },
-                destinations: const [
+                destinations: [
                   NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home),
-                    label: Text('首页'),
+                    icon: const Icon(Icons.home_outlined),
+                    selectedIcon: const Icon(Icons.home),
+                    label: Text('首页'.tr),
                   ),
                   NavigationRailDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: Text('我的'),
+                    icon: const Icon(Icons.person_outline),
+                    selectedIcon: const Icon(Icons.person),
+                    label: Text('我的'.tr),
                   ),
                 ],
               ),
@@ -434,7 +435,7 @@ class _DesktopIconRail extends StatelessWidget {
                   Text(nickname, maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const SizedBox(height: 1),
-                  Text(motto, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  Text(motto.tr, maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
                 ],
               ),
@@ -480,16 +481,16 @@ class _DesktopIconRail extends StatelessWidget {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Text('BUG反馈', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('BUG反馈'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: SizedBox(
           width: 400,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _feedbackRow(ctx, Icons.email_outlined, '作者邮箱', email, colors),
+              _feedbackRow(ctx, Icons.email_outlined, '作者邮箱'.tr, email, colors),
               const SizedBox(height: 12),
-              _feedbackRow(ctx, Icons.group_outlined, 'QQ 群', qqGroup, colors),
+              _feedbackRow(ctx, Icons.group_outlined, 'QQ 群'.tr, qqGroup, colors),
             ],
           ),
         ),
@@ -521,7 +522,7 @@ class _DesktopIconRail extends StatelessWidget {
           GestureDetector(
             onTap: () {
               Clipboard.setData(ClipboardData(text: value));
-              ToastUtil.show(ctx, '已复制');
+              ToastUtil.show(ctx, '已复制'.tr);
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -529,7 +530,7 @@ class _DesktopIconRail extends StatelessWidget {
                 color: colors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text('复制', style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
+              child: Text('复制'.tr, style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -598,7 +599,7 @@ class _EncounterDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-      title: const Text('统计'),
+      title: Text('统计'.tr),
       content: SizedBox(
         width: 420,
         height: 620,
@@ -619,25 +620,28 @@ class _EncounterDialog extends StatelessWidget {
               children: [
                 // 相遇天数
                 const SizedBox(height: 16),
-                Text('与你', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: colors.onSurface, letterSpacing: 4)),
+                Text('与你'.tr, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: colors.onSurface, letterSpacing: 4)),
                 const SizedBox(height: 8),
                 RichText(text: TextSpan(children: [
-                  TextSpan(text: '相遇的第', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: colors.onSurface.withValues(alpha: 0.5))),
+                  TextSpan(text: '相遇的第'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: colors.onSurface.withValues(alpha: 0.5))),
                   TextSpan(text: '$days', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: colors.primary)),
-                  TextSpan(text: '天', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: colors.onSurface.withValues(alpha: 0.5))),
+                  TextSpan(text: '天'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: colors.onSurface.withValues(alpha: 0.5))),
                 ]), textAlign: TextAlign.center),
                 const SizedBox(height: 4),
-                Text('${firstUse.year}年${firstUse.month}月${firstUse.day}日 — ${now.year}年${now.month}月${now.day}日',
+                Text('{y1}年{m1}月{d1}日 — {y2}年{m2}月{d2}日'.trf({
+                    'y1': firstUse.year, 'm1': firstUse.month, 'd1': firstUse.day,
+                    'y2': now.year, 'm2': now.month, 'd2': now.day,
+                  }),
                     style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
                 const Spacer(),
                 Divider(color: colors.outlineVariant, thickness: 0.5),
                 const SizedBox(height: 16),
-                Text('已记录', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5), letterSpacing: 2)),
+                Text('已记录'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5), letterSpacing: 2)),
                 const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _recordItem(context, '$totalRecords', '条记录', colors),
-                  _recordItem(context, _formatCount(noteWords), '文字', colors),
-                  _recordItem(context, '$imageCount', '张图片', colors),
+                  _recordItem(context, '$totalRecords', '条记录'.tr, colors),
+                  _recordItem(context, _formatCount(noteWords), '文字'.tr, colors),
+                  _recordItem(context, '$imageCount', '张图片'.tr, colors),
                 ]),
                 const SizedBox(height: 16),
                 Divider(color: colors.outlineVariant, thickness: 0.5),
@@ -654,7 +658,11 @@ class _EncounterDialog extends StatelessWidget {
   }
 
   String _formatCount(int count) {
-    if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
+    if (count >= 10000) {
+      return AppStrings.isEnglish
+          ? '${(count / 1000).toStringAsFixed(0)}k'
+          : '${(count / 10000).toStringAsFixed(1)}万';
+    }
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return '$count';
   }
@@ -883,7 +891,7 @@ class _StrollDialogState extends State<_StrollDialog> {
     }
     if (_filter == 'all' || _filter == 'note') {
       for (final n in provider.notes.where((n) => !n.isDeleted)) {
-        notePool.add(_StrollItem(type: 'note', data: n, id: 'n_${n.id}', title: n.title.isNotEmpty ? n.title : '随手记',
+        notePool.add(_StrollItem(type: 'note', data: n, id: 'n_${n.id}', title: n.title.isNotEmpty ? n.title : '随手记'.tr,
           subtitle: n.tags.take(3).join(' · '), detail: n.content, imagePath: n.images.isNotEmpty ? n.images.first : null,
           icon: Icons.sticky_note_2_outlined, label: '笔记', createdAt: n.createdAt,
           tags: n.tags.take(3).toList(), color: const Color(0xFF66BB6A)));
@@ -929,18 +937,18 @@ class _StrollDialogState extends State<_StrollDialog> {
 
   String _timeAgoText(DateTime date) {
     final diff = DateTime.now().difference(date);
-    if (diff.inDays >= 365) return '${(diff.inDays / 365).floor()}年前';
-    if (diff.inDays >= 30) return '${(diff.inDays / 30).floor()}个月前';
-    if (diff.inDays > 0) return '${diff.inDays}天前';
-    if (diff.inHours > 0) return '${diff.inHours}小时前';
-    return '刚刚';
+    if (diff.inDays >= 365) return '{n}年前'.trf({'n': (diff.inDays / 365).floor()});
+    if (diff.inDays >= 30) return '{n}个月前'.trf({'n': (diff.inDays / 30).floor()});
+    if (diff.inDays > 0) return '{n}天前'.trf({'n': diff.inDays});
+    if (diff.inHours > 0) return '{n}小时前'.trf({'n': diff.inHours});
+    return '刚刚'.tr;
   }
 
   String _actionVerb(String type) {
     switch (type) {
-      case 'movie': return '看过';
-      case 'book': return '读过';
-      case 'note': return '写下';
+      case 'movie': return '看过'.tr;
+      case 'book': return '读过'.tr;
+      case 'note': return '写下'.tr;
       default: return '';
     }
   }
@@ -964,7 +972,7 @@ class _StrollDialogState extends State<_StrollDialog> {
       case 'note': await provider.removeNote(item.data.id);
     }
     setState(() => _items.remove(item));
-    if (mounted) ToastUtil.show(context, '已删除');
+    if (mounted) ToastUtil.show(context, '已删除'.tr);
   }
 
   @override
@@ -977,7 +985,7 @@ class _StrollDialogState extends State<_StrollDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
-        const Text('漫步'),
+        Text('漫步'.tr),
         const Spacer(),
         ...[('all', '全部'), ('movie', '影视'), ('book', '书籍'), ('note', '笔记')].map((f) => Padding(
           padding: const EdgeInsets.only(left: 4),
@@ -986,7 +994,7 @@ class _StrollDialogState extends State<_StrollDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(color: _filter == f.$1 ? colors.primary : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
-              child: Text(f.$2, style: TextStyle(fontSize: 11, fontWeight: _filter == f.$1 ? FontWeight.w600 : FontWeight.normal,
+              child: Text(f.$2.tr, style: TextStyle(fontSize: 11, fontWeight: _filter == f.$1 ? FontWeight.w600 : FontWeight.normal,
                   color: _filter == f.$1 ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
             ),
           ),
@@ -1000,7 +1008,7 @@ class _StrollDialogState extends State<_StrollDialog> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.casino_outlined, size: 13, color: colors.onPrimary),
               const SizedBox(width: 3),
-              Text('随机', style: TextStyle(fontSize: 11, color: colors.onPrimary, fontWeight: FontWeight.w500)),
+              Text('随机'.tr, style: TextStyle(fontSize: 11, color: colors.onPrimary, fontWeight: FontWeight.w500)),
             ]),
           ),
         ),
@@ -1012,7 +1020,7 @@ class _StrollDialogState extends State<_StrollDialog> {
             ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.explore_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
                 const SizedBox(height: 12),
-                Text('还没有内容', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text('还没有内容'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
               ]))
             : Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -1088,9 +1096,9 @@ class _StrollDialogState extends State<_StrollDialog> {
             Text('${_timeAgoText(item.createdAt)} ${_actionVerb(item.type)}',
                 style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
             const Spacer(),
-            _actionBtn(Icons.visibility_outlined, '查看', () => _openDetail(item), colors: colors),
+            _actionBtn(Icons.visibility_outlined, '查看'.tr, () => _openDetail(item), colors: colors),
             const SizedBox(width: 6),
-            _actionBtn(Icons.delete_outline, '删除', () => _showDeleteConfirm(item), colors: colors),
+            _actionBtn(Icons.delete_outline, '删除'.tr, () => _showDeleteConfirm(item), colors: colors),
           ]),
         ],
       )),
@@ -1105,7 +1113,7 @@ class _StrollDialogState extends State<_StrollDialog> {
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(item.icon, size: 13, color: fg), const SizedBox(width: 3),
-          Text(item.label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+          Text(item.label.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
         ])),
       const Spacer(),
       if (item.rating != null) Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -1143,9 +1151,9 @@ class _StrollDialogState extends State<_StrollDialog> {
         Text('${_timeAgoText(item.createdAt)} ${_actionVerb(item.type)}',
             style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.4))),
         const Spacer(),
-        _actionBtn(Icons.visibility_outlined, '查看', () => _openDetail(item)),
+        _actionBtn(Icons.visibility_outlined, '查看'.tr, () => _openDetail(item)),
         const SizedBox(width: 8),
-        _actionBtn(Icons.delete_outline, '删除', () => _showDeleteConfirm(item)),
+        _actionBtn(Icons.delete_outline, '删除'.tr, () => _showDeleteConfirm(item)),
       ]),
     ]);
   }
@@ -1169,15 +1177,15 @@ class _StrollDialogState extends State<_StrollDialog> {
     appDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: colors.surface, elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-      content: Text('确定要删除"${item.title}"吗？删除后可在回收站恢复。',
+      title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      content: Text('确定要删除"{title}"吗？删除后可在回收站恢复。'.trf({'title': item.title}),
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
         ElevatedButton(onPressed: () { Navigator.pop(ctx); _deleteItem(item); },
           style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          child: const Text('删除')),
+          child: Text('删除'.tr)),
       ],
     ));
   }
@@ -1255,7 +1263,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
-        const Text('书影日历'),
+        Text('书影日历'.tr),
         const Spacer(),
         IconButton(onPressed: () => setState(() { _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1); _selectedDay = null; }),
           icon: Icon(Icons.chevron_left, size: 20, color: colors.onSurface.withValues(alpha: 0.6)), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
@@ -1272,7 +1280,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
             // 星期头
             Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(children: ['一', '二', '三', '四', '五', '六', '日'].map((d) =>
-                Expanded(child: Center(child: Text(d, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.35))))),
+                Expanded(child: Center(child: Text(d.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.35))))),
               ).toList())),
             // 日历网格
             _buildCalendarGrid(colors, today),
@@ -1351,15 +1359,15 @@ class _CalendarDialogState extends State<_CalendarDialog> {
     final items = _dayItems[_selectedDay] ?? [];
     if (items.isEmpty) {
       return Padding(padding: const EdgeInsets.all(16),
-        child: Text('${_selectedDay!.month}月${_selectedDay!.day}日  暂无记录',
+        child: Text('{m}月{d}日  暂无记录'.trf({'m': _selectedDay!.month, 'd': _selectedDay!.day}),
             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))));
     }
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
         child: Row(children: [
-          Text('${_selectedDay!.month}月${_selectedDay!.day}日', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+          Text('{m}月{d}日'.trf({'m': _selectedDay!.month, 'd': _selectedDay!.day}), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(width: 6),
-          Text('${items.length}条记录', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+          Text('{n}条记录'.trf({'n': items.length}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
         ])),
       Expanded(child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1378,7 +1386,7 @@ class _CalendarDialogState extends State<_CalendarDialog> {
             trailing: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(color: item.type == 'movie' ? const Color(0xFF4A90D9).withValues(alpha: 0.1) : const Color(0xFF7E57C2).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4)),
-              child: Text(item.type == 'movie' ? '影视' : '书籍',
+              child: Text((item.type == 'movie' ? '影视' : '书籍').tr,
                 style: TextStyle(fontSize: 10, color: item.type == 'movie' ? const Color(0xFF4A90D9) : const Color(0xFF7E57C2)))),
             onTap: () {
               final nav = Navigator.of(context);
@@ -1485,7 +1493,7 @@ class _PersonListDialogState extends State<_PersonListDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
-        const Text('角色信息'),
+        Text('角色信息'.tr),
         const Spacer(),
         if (_loading)
           SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
@@ -1514,7 +1522,7 @@ class _PersonListDialogState extends State<_PersonListDialog> {
                     style: TextStyle(fontSize: 14, color: colors.onSurface),
                     cursorColor: colors.primary,
                     decoration: InputDecoration(
-                      hintText: '搜索导演、编剧、演员、作者、译者',
+                      hintText: '搜索导演、编剧、演员、作者、译者'.tr,
                       hintStyle: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -1554,7 +1562,7 @@ class _PersonListDialogState extends State<_PersonListDialog> {
                           color: _filter == f ? colors.primary : colors.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Text(f == 'all' ? '全部' : f,
+                        child: Text((f == 'all' ? '全部' : f).tr,
                             style: TextStyle(fontSize: 11, fontWeight: _filter == f ? FontWeight.w600 : FontWeight.normal,
                                 color: _filter == f ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
                       ),
@@ -1564,12 +1572,12 @@ class _PersonListDialogState extends State<_PersonListDialog> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-              child: Align(alignment: Alignment.centerLeft, child: Text('共 ${filtered.length} 人', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)))),
+              child: Align(alignment: Alignment.centerLeft, child: Text('共 {n} 人'.trf({'n': filtered.length}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)))),
             ),
             // 列表
             Expanded(
               child: filtered.isEmpty
-                  ? Center(child: Text('暂无数据', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))))
+                  ? Center(child: Text('暂无数据'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))))
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: filtered.length,
@@ -1608,9 +1616,9 @@ class _PersonListDialogState extends State<_PersonListDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(color: (roleColors[role] ?? colors.outline).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(3)),
-              child: Text(role, style: TextStyle(fontSize: 9, color: roleColors[role] ?? colors.onSurface)),
+              child: Text(role.tr, style: TextStyle(fontSize: 9, color: roleColors[role] ?? colors.onSurface)),
             ),
-          Text('$totalWorks 部作品', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.35))),
+          Text('{n} 部作品'.trf({'n': totalWorks}), style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.35))),
         ]),
       ),
       trailing: Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -1669,18 +1677,18 @@ class _PersonListDialogState extends State<_PersonListDialog> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(color: (roleColors[role] ?? colors.outline).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                    child: Text(role, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: roleColors[role] ?? colors.onSurface)),
+                    child: Text(role.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: roleColors[role] ?? colors.onSurface)),
                   ),
               ]),
               const SizedBox(height: 20),
               if (movieItems.isNotEmpty) ...[
-                Text('影视作品（${movieItems.length}）', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+                Text('影视作品（{n}）'.trf({'n': movieItems.length}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
                 const SizedBox(height: 8),
                 for (final item in movieItems) _buildWorkTile(item, colors, isMovie: true),
                 const SizedBox(height: 16),
               ],
               if (bookItems.isNotEmpty) ...[
-                Text('书籍作品（${bookItems.length}）', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+                Text('书籍作品（{n}）'.trf({'n': bookItems.length}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
                 const SizedBox(height: 8),
                 for (final item in bookItems) _buildWorkTile(item, colors, isMovie: false),
               ],
@@ -1722,7 +1730,7 @@ class _PersonListDialogState extends State<_PersonListDialog> {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(item.title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 3),
-              Text(item.roles.join(' · '), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text(item.roles.map((r) => r.tr).join(' · '), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             ])),
             Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
           ]),
@@ -1763,6 +1771,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
 
   static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag', 'game_genre'];
   static const _typeLabels = ['影视类型', '书籍类型', '笔记标签', '游戏类型'];
+  static const _typeBases = ['影视', '书籍', '笔记', '游戏'];
   static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.sticky_note_2_outlined, Icons.sports_esports_outlined];
 
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
@@ -1811,7 +1820,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       final provider = context.read<AppProvider>();
       final count = await provider.syncTagsFromData();
       if (mounted) {
-        ToastUtil.show(context, count > 0 ? '已同步 $count 个新标签' : '标签已是最新');
+        ToastUtil.show(context, count > 0 ? '已同步 {n} 个新标签'.trf({'n': count}) : '标签已是最新'.tr);
         await _loadTags(_currentType);
         _updateUsageCounts();
       }
@@ -1832,7 +1841,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
-        const Text('标签管理'),
+        Text('标签管理'.tr),
         const Spacer(),
         // Tab 切换
         Container(
@@ -1846,7 +1855,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
         if (_isSyncing)
           SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
         else
-          IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签', onPressed: _syncTags, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+          IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签'.tr, onPressed: _syncTags, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
       ]),
       content: SizedBox(
         width: 420,
@@ -1868,7 +1877,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
                     style: TextStyle(fontSize: 14, color: colors.onSurface),
                     cursorColor: colors.primary,
                     decoration: InputDecoration(
-                      hintText: '搜索标签...',
+                      hintText: '搜索标签...'.tr,
                       hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -1901,13 +1910,13 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('关闭'),
+          child: Text('关闭'.tr),
         ),
         ElevatedButton(
           onPressed: _showAddDialog,
           style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-          child: Text('添加${_typeLabels[_currentIndex]}', style: const TextStyle(fontSize: 13)),
+          child: Text('添加{type}'.trf({'type': _typeBases[_currentIndex].tr}), style: const TextStyle(fontSize: 13)),
         ),
       ],
     );
@@ -1920,7 +1929,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(color: active ? colors.primary : Colors.transparent, borderRadius: BorderRadius.circular(6)),
-        child: Text(label.replaceAll('类型', '').replaceAll('标签', ''),
+        child: Text(label.replaceAll('类型', '').replaceAll('标签', '').tr,
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
       ),
     );
@@ -1936,7 +1945,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(_typeIcons[_currentIndex], size: 28, color: colors.onSurface.withValues(alpha: 0.15)),
           const SizedBox(height: 8),
-          Text('暂无${_typeLabels[_currentIndex]}', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('暂无{type}'.trf({'type': _typeBases[_currentIndex].tr}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
         ]),
       );
     }
@@ -1945,7 +1954,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       final filtered = tags.where((t) => (t['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList()
         ..sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
       if (filtered.isEmpty) {
-        return Center(child: Text('没有找到"$_searchQuery"相关标签', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))));
+        return Center(child: Text('没有找到"{q}"相关标签'.trf({'q': _searchQuery}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))));
       }
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
@@ -1969,24 +1978,24 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // 统计
         Row(children: [
-          _statChip(Icons.check_circle_outline, '已使用', used.length, colors),
+          _statChip(Icons.check_circle_outline, '已使用'.tr, used.length, colors),
           const SizedBox(width: 8),
-          _statChip(Icons.radio_button_unchecked, '未使用', unused.length, colors),
+          _statChip(Icons.radio_button_unchecked, '未使用'.tr, unused.length, colors),
           const SizedBox(width: 8),
-          _statChip(Icons.visibility_off_outlined, '隐藏', hidden.length, colors),
+          _statChip(Icons.visibility_off_outlined, '隐藏'.tr, hidden.length, colors),
         ]),
         const SizedBox(height: 10),
-        _groupHeader('已使用', used.length, colors),
+        _groupHeader('已使用'.tr, used.length, colors),
         const SizedBox(height: 4),
-        used.isNotEmpty ? Wrap(spacing: 8, runSpacing: 6, children: used.map(_buildTagChip).toList()) : _emptyGroup('暂无', colors),
+        used.isNotEmpty ? Wrap(spacing: 8, runSpacing: 6, children: used.map(_buildTagChip).toList()) : _emptyGroup('暂无'.tr, colors),
         const SizedBox(height: 12),
-        _groupHeader('未使用', unused.length, colors),
+        _groupHeader('未使用'.tr, unused.length, colors),
         const SizedBox(height: 4),
-        unused.isNotEmpty ? Wrap(spacing: 8, runSpacing: 6, children: unused.map(_buildTagChip).toList()) : _emptyGroup('暂无', colors),
+        unused.isNotEmpty ? Wrap(spacing: 8, runSpacing: 6, children: unused.map(_buildTagChip).toList()) : _emptyGroup('暂无'.tr, colors),
         const SizedBox(height: 12),
-        _groupHeader('隐藏', hidden.length, colors),
+        _groupHeader('隐藏'.tr, hidden.length, colors),
         const SizedBox(height: 4),
-        hidden.isNotEmpty ? Wrap(spacing: 8, runSpacing: 6, children: hidden.map(_buildTagChip).toList()) : _emptyGroup('暂无', colors),
+        hidden.isNotEmpty ? Wrap(spacing: 8, runSpacing: 6, children: hidden.map(_buildTagChip).toList()) : _emptyGroup('暂无'.tr, colors),
       ]),
     );
   }
@@ -2078,22 +2087,22 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
                 if (isHidden) Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(4)),
-                  child: Text('已隐藏', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                  child: Text('已隐藏'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                 ),
               ]),
             ),
             const SizedBox(height: 16),
-            _menuAction(isHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined, isHidden ? '取消隐藏' : '隐藏', colors, () async {
+            _menuAction(isHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined, (isHidden ? '取消隐藏' : '隐藏').tr, colors, () async {
               Navigator.pop(ctx);
               await context.read<AppProvider>().toggleTagHidden(tag['id'] as String);
               await _loadTags(_currentType);
             }),
-            _menuAction(Icons.open_in_new_outlined, '查看相关${_typeLabels[_currentIndex].replaceAll('类型', '').replaceAll('标签', '')}', colors, () {
+            _menuAction(Icons.open_in_new_outlined, '查看相关{name}'.trf({'name': _typeBases[_currentIndex].tr}), colors, () {
               Navigator.pop(ctx);
               _showTagItems(name);
             }),
-            _menuAction(Icons.edit_outlined, '重命名', colors, () { Navigator.pop(ctx); _showRenameDialog(tag); }),
-            _menuAction(Icons.delete_outline, '删除', colors, () { Navigator.pop(ctx); _showDeleteDialog(tag); }, isDestructive: true),
+            _menuAction(Icons.edit_outlined, '重命名'.tr, colors, () { Navigator.pop(ctx); _showRenameDialog(tag); }),
+            _menuAction(Icons.delete_outline, '删除'.tr, colors, () { Navigator.pop(ctx); _showDeleteDialog(tag); }, isDestructive: true),
           ]),
         ),
       ),
@@ -2126,7 +2135,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     } else if (_currentType == 'game_genre') {
       for (final g in provider.games.where((g) => !g.isDeleted && g.genres.contains(tagName))) items.add((title: g.title, subtitle: g.platforms.take(2).join(' / '), type: '游戏'));
     } else {
-      for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) items.add((title: n.title.isNotEmpty ? n.title : '随手记', subtitle: null, type: '笔记'));
+      for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) items.add((title: n.title.isNotEmpty ? n.title : '随手记'.tr, subtitle: null, type: '笔记'));
     }
     appModalBottomSheet(
       context: context,
@@ -2136,10 +2145,10 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
         child: ListView(shrinkWrap: true, padding: const EdgeInsets.only(bottom: 24), children: [
           Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
               decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)))),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text('$tagName（${items.length}）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text('{tag}（{n}）'.trf({'tag': tagName, 'n': items.length}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
           const SizedBox(height: 8),
           if (items.isEmpty)
-            Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: Text('暂无相关内容', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))))
+            Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: Text('暂无相关内容'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))))
           else
             ...items.asMap().entries.map((entry) {
               final item = entry.value;
@@ -2149,7 +2158,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
                   subtitle: item.subtitle != null && item.subtitle!.isNotEmpty ? Text(item.subtitle!, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))) : null,
                   trailing: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)),
-                    child: Text(item.type, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5)))),
+                    child: Text(item.type.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5)))),
                 ),
               ]));
             }),
@@ -2166,11 +2175,11 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('添加${_typeLabels[_currentIndex]}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('添加{type}'.trf({'type': _typeBases[_currentIndex].tr}), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
           controller: controller, autofocus: true, style: TextStyle(fontSize: 15, color: colors.onSurface),
           decoration: InputDecoration(
-            hintText: '输入标签名称', hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+            hintText: '输入标签名称'.tr, hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
             filled: true, fillColor: colors.surfaceContainerHigh, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.primary, width: 1)),
@@ -2178,11 +2187,11 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
           onSubmitted: (value) => _doAddTag(ctx, controller.text.trim(), type),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           ElevatedButton(onPressed: () => _doAddTag(ctx, controller.text.trim(), type),
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('添加')),
+            child: Text('添加'.tr)),
         ],
       ),
     );
@@ -2194,12 +2203,12 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       final provider = context.read<AppProvider>();
       final newId = await provider.addTag(name, type);
       if (!mounted) return;
-      if (ctx.mounted) { Navigator.pop(ctx); ToastUtil.show(context, '添加成功'); }
+      if (ctx.mounted) { Navigator.pop(ctx); ToastUtil.show(context, '添加成功'.tr); }
       setState(() => _newlyAddedTagId = newId);
       Timer(const Duration(milliseconds: 1500), () { if (mounted) setState(() => _newlyAddedTagId = null); });
       await _loadTags(type);
     } catch (e) {
-      if (ctx.mounted) ToastUtil.show(ctx, '添加失败：该标签已存在');
+      if (ctx.mounted) ToastUtil.show(ctx, '添加失败：该标签已存在'.tr);
     }
   }
 
@@ -2213,11 +2222,11 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('重命名标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('重命名标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
           controller: controller, autofocus: true, style: TextStyle(fontSize: 15, color: colors.onSurface),
           decoration: InputDecoration(
-            hintText: '输入新名称', hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+            hintText: '输入新名称'.tr, hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
             filled: true, fillColor: colors.surfaceContainerHigh, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.primary, width: 1)),
@@ -2225,11 +2234,11 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
           onSubmitted: (value) => _doRenameTag(ctx, tagId, value.trim(), type, oldName),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           ElevatedButton(onPressed: () => _doRenameTag(ctx, tagId, controller.text.trim(), type, oldName),
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('确定')),
+            child: Text('确定'.tr)),
         ],
       ),
     );
@@ -2238,7 +2247,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
   Future<void> _doRenameTag(BuildContext ctx, String tagId, String newName, String type, String oldName) async {
     if (newName.isEmpty || newName == oldName) { if (ctx.mounted) Navigator.pop(ctx); return; }
     final success = await context.read<AppProvider>().renameTag(tagId, newName, type);
-    if (ctx.mounted) { Navigator.pop(ctx); ToastUtil.show(context, success ? '重命名成功' : '重命名失败：标签名已存在'); }
+    if (ctx.mounted) { Navigator.pop(ctx); ToastUtil.show(context, (success ? '重命名成功' : '重命名失败：标签名已存在').tr); }
     if (success) await _loadTags(type);
   }
 
@@ -2262,25 +2271,25 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
               decoration: BoxDecoration(color: bc.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
               child: Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: bc.onSurface.withValues(alpha: 0.6)))),
             const SizedBox(width: 10),
-            Text('删除标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: bc.onSurface)),
+            Text('删除标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: bc.onSurface)),
           ]),
           content: SizedBox(width: double.maxFinite, child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.45),
             child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               const SizedBox(height: 4),
               _buildDeleteOption(value: 'deleteOnly', groupValue: selectedAction, onChanged: (v) => setDialogState(() { selectedAction = v; selectedReplacement = null; }),
-                title: '仅删除标签', subtitle: '保留已有条目上的标签名，不影响数据', colors: bc),
+                title: '仅删除标签'.tr, subtitle: '保留已有条目上的标签名，不影响数据'.tr, colors: bc),
               const SizedBox(height: 8),
               GestureDetector(onTap: () => setDialogState(() => showAdvanced = !showAdvanced),
-                child: Row(children: [Text('更多选项', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: bc.primary)),
+                child: Row(children: [Text('更多选项'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: bc.primary)),
                   Icon(showAdvanced ? Icons.expand_less : Icons.expand_more, size: 16, color: bc.primary)])),
               if (showAdvanced) ...[
                 const SizedBox(height: 10),
                 _buildDeleteOption(value: 'remove', groupValue: selectedAction, onChanged: (v) => setDialogState(() { selectedAction = v; selectedReplacement = null; }),
-                  title: '从所有条目中移除', subtitle: '彻底清除该标签在所有条目中的记录', colors: bc),
+                  title: '从所有条目中移除'.tr, subtitle: '彻底清除该标签在所有条目中的记录'.tr, colors: bc),
                 const SizedBox(height: 4),
                 _buildDeleteOption(value: 'replace', groupValue: selectedAction, onChanged: (v) => setDialogState(() { selectedAction = v; selectedReplacement = null; }),
-                  title: '替换为其他标签', subtitle: '选择一个已有标签替代', colors: bc),
+                  title: '替换为其他标签'.tr, subtitle: '选择一个已有标签替代'.tr, colors: bc),
                 if (selectedAction == 'replace')
                   Padding(padding: const EdgeInsets.only(left: 40, top: 10),
                     child: otherTags.isNotEmpty
@@ -2294,19 +2303,19 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
                         }).toList())
                       : Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(color: bc.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
-                          child: Text('无其他标签可替换', style: TextStyle(fontSize: 13, color: bc.onSurface.withValues(alpha: 0.35)))),
+                          child: Text('无其他标签可替换'.tr, style: TextStyle(fontSize: 13, color: bc.onSurface.withValues(alpha: 0.35)))),
                   ),
               ],
             ])),
           )),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: bc.onSurface.withValues(alpha: 0.4)))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: bc.onSurface.withValues(alpha: 0.4)))),
             ElevatedButton(onPressed: () {
               if (selectedAction == 'replace' && (selectedReplacement == null || selectedReplacement!.isEmpty)) return;
               Navigator.pop(ctx, {'action': selectedAction, 'replacement': selectedReplacement});
             }, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('删除')),
+              child: Text('删除'.tr)),
           ],
         );
       }),
@@ -2319,7 +2328,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
       if (action == 'deleteOnly') { await provider.deleteTagOnly(tagId, type); }
       else { await provider.deleteTag(tagId, type, replacementName: replacement); }
       if (!mounted) return;
-      ToastUtil.show(context, '删除成功');
+      ToastUtil.show(context, '删除成功'.tr);
       await _loadTags(type);
     });
   }
@@ -2421,7 +2430,7 @@ class _BackupChoiceDialogState extends State<_BackupChoiceDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
-        const Text('备份'),
+        Text('备份'.tr),
         const Spacer(),
         // Tab 切换
         Container(
@@ -2430,7 +2439,7 @@ class _BackupChoiceDialogState extends State<_BackupChoiceDialog> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(children: [
-            _tabButton(colors, '本地备份', 0),
+            _tabButton(colors, '本地备份'.tr, 0),
             _tabButton(colors, 'WebDAV', 1),
           ]),
         ),
@@ -2488,20 +2497,20 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
       children: [
         _buildActionCard(
           colors: colors,
-          title: '导出数据',
-          description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备',
+          title: '导出数据'.tr,
+          description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备'.tr,
           icon: Icons.upload_outlined,
-          buttonText: '导出',
+          buttonText: '导出'.tr,
           isLoading: _isExporting,
           onTap: _exportData,
         ),
         const SizedBox(height: 8),
         _buildActionCard(
           colors: colors,
-          title: '导入数据',
-          description: '从备份文件导入数据，将覆盖当前所有数据',
+          title: '导入数据'.tr,
+          description: '从备份文件导入数据，将覆盖当前所有数据'.tr,
           icon: Icons.download_outlined,
-          buttonText: '导入',
+          buttonText: '导入'.tr,
           isLoading: _isImporting,
           onTap: _importData,
           isDestructive: true,
@@ -2580,16 +2589,16 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
             Container(width: 32, height: 32, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
               child: Icon(Icons.info_outline, size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(width: 10),
-            Text('使用说明', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+            Text('使用说明'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
           ]),
           const SizedBox(height: 12),
-          _infoItem(colors, '导出数据会生成一个 .zip 文件，包含所有数据和图片'),
+          _infoItem(colors, '导出数据会生成一个 .zip 文件，包含所有数据和图片'.tr),
           const SizedBox(height: 8),
-          _infoItem(colors, '选择保存路径后，可以通过微信、邮件等方式发送备份文件'),
+          _infoItem(colors, '选择保存路径后，可以通过微信、邮件等方式发送备份文件'.tr),
           const SizedBox(height: 8),
-          _infoItem(colors, '在新设备上选择导入数据，选择备份文件即可恢复'),
+          _infoItem(colors, '在新设备上选择导入数据，选择备份文件即可恢复'.tr),
           const SizedBox(height: 8),
-          _infoItem(colors, '导入数据会完全覆盖当前设备的数据，请谨慎操作'),
+          _infoItem(colors, '导入数据会完全覆盖当前设备的数据，请谨慎操作'.tr),
         ],
       ),
     );
@@ -2612,14 +2621,14 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
       final result = await BackupService.instance.exportDataWithImages();
       if (!mounted) return;
       if (result.cancelled) {
-        ToastUtil.show(context, '已取消导出');
+        ToastUtil.show(context, '已取消导出'.tr);
       } else if (result.success) {
-        ToastUtil.show(context,'导出成功');
+        ToastUtil.show(context,'导出成功'.tr);
       } else {
-        ToastUtil.show(context,result.errorMessage ?? '导出失败');
+        ToastUtil.show(context,result.errorMessage ?? '导出失败'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context,'导出失败: $e');
+      if (mounted) ToastUtil.show(context,'导出失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -2637,17 +2646,17 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
             Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
               child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22)),
             const SizedBox(width: 12),
-            Text('确认导入', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('确认导入'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ]),
           content: Padding(padding: const EdgeInsets.only(top: 16),
-            child: Text('导入数据将覆盖当前所有数据，此操作不可恢复。',
+            child: Text('导入数据将覆盖当前所有数据，此操作不可恢复。'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6))),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('确认导入', style: TextStyle(fontWeight: FontWeight.w600))),
+              child: Text('确认导入'.tr, style: const TextStyle(fontWeight: FontWeight.w600))),
           ],
         );
       },
@@ -2659,7 +2668,7 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
       final result = await BackupService.instance.importData();
       if (!mounted) return;
       if (result.cancelled) {
-        ToastUtil.show(context,'已取消导入');
+        ToastUtil.show(context,'已取消导入'.tr);
       } else if (result.success) {
         await context.read<AppProvider>().loadMovies();
         await context.read<AppProvider>().loadBooks();
@@ -2668,12 +2677,12 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
         await context.read<AppProvider>().loadPlaylists();
         await context.read<AppProvider>().loadPeople();
         if (!mounted) return;
-        ToastUtil.show(context,'导入成功');
+        ToastUtil.show(context,'导入成功'.tr);
       } else {
-        ToastUtil.show(context,result.errorMessage ?? '导入失败');
+        ToastUtil.show(context,result.errorMessage ?? '导入失败'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context,'导入失败: $e');
+      if (mounted) ToastUtil.show(context,'导入失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isImporting = false);
     }
@@ -2751,9 +2760,9 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
     final password = _passwordController.text;
     final path = _pathController.text.trim();
 
-    if (url.isEmpty) { ToastUtil.show(context,'请输入服务器地址'); return; }
-    if (username.isEmpty) { ToastUtil.show(context,'请输入用户名'); return; }
-    if (password.isEmpty) { ToastUtil.show(context,'请输入密码'); return; }
+    if (url.isEmpty) { ToastUtil.show(context,'请输入服务器地址'.tr); return; }
+    if (username.isEmpty) { ToastUtil.show(context,'请输入用户名'.tr); return; }
+    if (password.isEmpty) { ToastUtil.show(context,'请输入密码'.tr); return; }
 
     setState(() => _isLoading = true);
     try {
@@ -2763,12 +2772,12 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         await WebDAVService.instance.saveConfig(url: url, username: username, password: password, path: path);
         setState(() => _isConfigured = true);
         _loadRemoteInfo();
-        ToastUtil.show(context,result['message'] ?? '连接成功，配置已保存');
+        ToastUtil.show(context,result['message'] ?? '连接成功，配置已保存'.tr);
       } else {
-        ToastUtil.show(context,result['message'] ?? '连接失败，请检查配置');
+        ToastUtil.show(context,result['message'] ?? '连接失败，请检查配置'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context,'连接失败: $e');
+      if (mounted) ToastUtil.show(context,'连接失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -2779,19 +2788,19 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
     try {
       SyncResult result;
       if (direction == SyncDirection.upload) {
-        setState(() => _syncStep = '正在打包数据...');
+        setState(() => _syncStep = '正在打包数据...'.tr);
         await Future.delayed(Duration.zero);
         final exportResult = await WebDAVService.instance.exportLocalData();
         if (!exportResult.success || exportResult.zipPath == null) {
-          if (mounted) { setState(() { _isLoading = false; _syncStep = ''; }); ToastUtil.show(context,exportResult.errorMessage ?? '创建备份失败'); }
+          if (mounted) { setState(() { _isLoading = false; _syncStep = ''; }); ToastUtil.show(context,exportResult.errorMessage ?? '创建备份失败'.tr); }
           return;
         }
         if (!mounted) return;
-        setState(() => _syncStep = '正在上传到云端...');
+        setState(() => _syncStep = '正在上传到云端...'.tr);
         await Future.delayed(Duration.zero);
         result = await WebDAVService.instance.uploadExportedData(exportResult);
       } else {
-        setState(() => _syncStep = '正在从云端下载...');
+        setState(() => _syncStep = '正在从云端下载...'.tr);
         await Future.delayed(Duration.zero);
         result = await WebDAVService.instance.syncData(direction: SyncDirection.download);
       }
@@ -2808,12 +2817,12 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           await provider.loadPlaylists();
           await provider.loadPeople();
         }
-        ToastUtil.show(context,'同步成功');
+        ToastUtil.show(context,'同步成功'.tr);
       } else {
         ToastUtil.show(context,result.message);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context,'同步失败: $e');
+      if (mounted) ToastUtil.show(context,'同步失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() { _isLoading = false; _syncStep = ''; });
     }
@@ -2828,15 +2837,15 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         return AlertDialog(
           backgroundColor: colors.surface, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text(isUpload ? '确认上传' : '确认下载', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text(isUpload ? '该操作会覆盖远程数据，请谨慎操作' : '该操作会拉取远程数据覆盖本地数据，请谨慎操作',
+          title: Text((isUpload ? '确认上传' : '确认下载').tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text((isUpload ? '该操作会覆盖远程数据，请谨慎操作' : '该操作会拉取远程数据覆盖本地数据，请谨慎操作').tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('确定')),
+              child: Text('确定'.tr)),
           ],
         );
       },
@@ -2856,16 +2865,16 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
             Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
               child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22)),
             const SizedBox(width: 12),
-            Text('清除配置', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('清除配置'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ]),
           content: Padding(padding: const EdgeInsets.only(top: 16),
-            child: Text('确定要清除 WebDAV 配置吗？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6))),
+            child: Text('确定要清除 WebDAV 配置吗？'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6))),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('清除', style: TextStyle(fontWeight: FontWeight.w600))),
+              child: Text('清除'.tr, style: const TextStyle(fontWeight: FontWeight.w600))),
           ],
         );
       },
@@ -2879,7 +2888,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         _pathController.text = '/mooknote';
         _isConfigured = false;
       });
-      if (mounted) ToastUtil.show(context,'配置已清除');
+      if (mounted) ToastUtil.show(context,'配置已清除'.tr);
     }
   }
 
@@ -2894,13 +2903,13 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           _buildRemoteInfoCard(colors),
           const SizedBox(height: 16),
         ],
-        _buildSectionLabel(colors, '服务器配置'),
+        _buildSectionLabel(colors, '服务器配置'.tr),
         const SizedBox(height: 10),
-        _buildInput(colors: colors, controller: _urlController, hint: '服务器地址，如 https://dav.example.com', icon: Icons.link),
+        _buildInput(colors: colors, controller: _urlController, hint: '服务器地址，如 https://dav.example.com'.tr, icon: Icons.link),
         const SizedBox(height: 8),
-        _buildInput(colors: colors, controller: _usernameController, hint: '用户名', icon: Icons.person_outline),
+        _buildInput(colors: colors, controller: _usernameController, hint: '用户名'.tr, icon: Icons.person_outline),
         const SizedBox(height: 8),
-        _buildInput(colors: colors, controller: _passwordController, hint: '密码', icon: Icons.lock_outline,
+        _buildInput(colors: colors, controller: _passwordController, hint: '密码'.tr, icon: Icons.lock_outline,
           obscure: _obscurePassword,
           suffix: GestureDetector(
             onTap: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -2908,15 +2917,15 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           ),
         ),
         const SizedBox(height: 8),
-        _buildInput(colors: colors, controller: _pathController, hint: '同步路径，如 /mooknote', icon: Icons.folder_outlined),
+        _buildInput(colors: colors, controller: _pathController, hint: '同步路径，如 /mooknote'.tr, icon: Icons.folder_outlined),
         const SizedBox(height: 14),
-        _buildBtn(colors, '测试并保存', onTap: _isLoading ? null : _saveConfig),
+        _buildBtn(colors, '测试并保存'.tr, onTap: _isLoading ? null : _saveConfig),
         if (_isConfigured) ...[
           const SizedBox(height: 8),
           Center(child: GestureDetector(
             onTap: _isLoading ? null : _clearConfig,
             child: Padding(padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text('清除配置', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)))),
+              child: Text('清除配置'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)))),
           )),
         ],
         const SizedBox(height: 20),
@@ -2934,7 +2943,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle)),
         const SizedBox(width: 10),
         Expanded(child: Text(_urlController.text, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6)), maxLines: 1, overflow: TextOverflow.ellipsis)),
-        Text('已连接', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+        Text('已连接'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       ]),
     );
   }
@@ -2980,13 +2989,13 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
     String timeText;
     String sizeText = '';
     if (_isLoadingRemoteInfo) {
-      timeText = '加载中...';
+      timeText = '加载中...'.tr;
     } else if (_remoteModifiedTime != null) {
       final dt = _remoteModifiedTime!;
       timeText = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       if (_remoteFileSize != null) sizeText = _formatFileSize(_remoteFileSize!);
     } else {
-      timeText = '暂无备份文件';
+      timeText = '暂无备份文件'.tr;
     }
 
     return Container(
@@ -2999,7 +3008,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           Row(children: [
             Icon(Icons.cloud_outlined, size: 18, color: colors.primary),
             const SizedBox(width: 8),
-            Text('云端备份', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('云端备份'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const Spacer(),
             if (_isLoadingRemoteInfo)
               SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
@@ -3009,13 +3018,13 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           const SizedBox(height: 10),
           Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('上传时间', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('上传时间'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(height: 3),
               Text(timeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
             ])),
             if (sizeText.isNotEmpty)
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('文件大小', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text('文件大小'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                 const SizedBox(height: 3),
                 Text(sizeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
               ])),
@@ -3029,9 +3038,9 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
             Text(_syncStep, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
           ] else ...[
             Row(children: [
-              Expanded(child: _buildBtn(colors, '上传', onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))),
+              Expanded(child: _buildBtn(colors, '上传'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))),
               const SizedBox(width: 12),
-              Expanded(child: _buildBtn(colors, '下载', onTap: _isLoading ? null : () => _confirmSync(SyncDirection.download))),
+              Expanded(child: _buildBtn(colors, '下载'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.download))),
             ]),
           ],
         ],
@@ -3053,11 +3062,11 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('支持的服务', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4), letterSpacing: 0.5)),
+          Text('支持的服务'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4), letterSpacing: 0.5)),
           const SizedBox(height: 10),
-          _tip(colors, '坚果云、Nextcloud、AList 等 WebDAV 服务'),
-          _tip(colors, '服务器地址需包含 https://'),
-          _tip(colors, '首次同步可能需要较长时间'),
+          _tip(colors, '坚果云、Nextcloud、AList 等 WebDAV 服务'.tr),
+          _tip(colors, '服务器地址需包含 https://'.tr),
+          _tip(colors, '首次同步可能需要较长时间'.tr),
         ],
       ),
     );
@@ -3092,42 +3101,58 @@ class _BinItem {
 
   _BinItem.movie(Movie m)
       : type = _BinItemType.movie, id = m.id, title = m.title,
-        subtitle = '删除于 ${m.updatedAt.year}.${m.updatedAt.month.toString().padLeft(2, '0')}.${m.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': m.updatedAt.year,
+            'm': m.updatedAt.month.toString().padLeft(2, '0'),
+            'd': m.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.movie_outlined, typeLabel = '影视';
 
   _BinItem.book(Book b)
       : type = _BinItemType.book, id = b.id, title = b.title,
-        subtitle = '删除于 ${b.updatedAt.year}.${b.updatedAt.month.toString().padLeft(2, '0')}.${b.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': b.updatedAt.year,
+            'm': b.updatedAt.month.toString().padLeft(2, '0'),
+            'd': b.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.menu_book_outlined, typeLabel = '书籍';
 
   _BinItem.note(Note n)
       : type = _BinItemType.note, id = n.id, title = n.title.isNotEmpty ? n.title : n.summary,
-        subtitle = '删除于 ${n.updatedAt.year}.${n.updatedAt.month.toString().padLeft(2, '0')}.${n.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': n.updatedAt.year,
+            'm': n.updatedAt.month.toString().padLeft(2, '0'),
+            'd': n.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.description_outlined, typeLabel = '笔记';
 
   _BinItem.game(Game g)
       : type = _BinItemType.game, id = g.id, title = g.title,
-        subtitle = '删除于 ${g.updatedAt.year}.${g.updatedAt.month.toString().padLeft(2, '0')}.${g.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': g.updatedAt.year,
+            'm': g.updatedAt.month.toString().padLeft(2, '0'),
+            'd': g.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.sports_esports_outlined, typeLabel = '游戏';
 
   _BinItem.movieReview(MovieReview r)
-      : type = _BinItemType.movieReview, id = r.id, title = r.content.isNotEmpty ? r.content : '影评',
-        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+      : type = _BinItemType.movieReview, id = r.id, title = r.content.isNotEmpty ? r.content : '影评'.tr,
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': r.updatedAt.year,
+            'm': r.updatedAt.month.toString().padLeft(2, '0'),
+            'd': r.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.rate_review_outlined, typeLabel = '影评';
 
   _BinItem.bookReview(BookReview r)
-      : type = _BinItemType.bookReview, id = r.id, title = r.content.isNotEmpty ? r.content : '书评',
-        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+      : type = _BinItemType.bookReview, id = r.id, title = r.content.isNotEmpty ? r.content : '书评'.tr,
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': r.updatedAt.year,
+            'm': r.updatedAt.month.toString().padLeft(2, '0'),
+            'd': r.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.rate_review_outlined, typeLabel = '书评';
 
   _BinItem.bookExcerpt(BookExcerpt e)
-      : type = _BinItemType.bookExcerpt, id = e.id, title = e.content.isNotEmpty ? e.content : '摘抄',
-        subtitle = '删除于 ${e.updatedAt.year}.${e.updatedAt.month.toString().padLeft(2, '0')}.${e.updatedAt.day.toString().padLeft(2, '0')}',
+      : type = _BinItemType.bookExcerpt, id = e.id, title = e.content.isNotEmpty ? e.content : '摘抄'.tr,
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': e.updatedAt.year,
+            'm': e.updatedAt.month.toString().padLeft(2, '0'),
+            'd': e.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.format_quote_outlined, typeLabel = '书摘';
 
   _BinItem.gameReview(GameReview r)
-      : type = _BinItemType.gameReview, id = r.id, title = r.content.isNotEmpty ? r.content : '游戏评价',
-        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+      : type = _BinItemType.gameReview, id = r.id, title = r.content.isNotEmpty ? r.content : '游戏评价'.tr,
+        subtitle = '删除于 {y}.{m}.{d}'.trf({'y': r.updatedAt.year,
+            'm': r.updatedAt.month.toString().padLeft(2, '0'),
+            'd': r.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.rate_review_outlined, typeLabel = '游戏评价';
 }
 
@@ -3189,7 +3214,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       title: Row(children: [
-        const Text('回收站'),
+        Text('回收站'.tr),
         const Spacer(),
         if (_allItems.isNotEmpty)
           TextButton(
@@ -3199,7 +3224,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               minimumSize: Size.zero,
             ),
-            child: const Text('清空', style: TextStyle(fontSize: 12)),
+            child: Text('清空'.tr, style: const TextStyle(fontSize: 12)),
           ),
       ]),
       content: SizedBox(
@@ -3251,7 +3276,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
           color: active ? colors.primary : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Text('$label · $count',
+        child: Text('${label.tr} · $count',
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
             color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
       ),
@@ -3286,7 +3311,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(3),
                   border: Border.all(color: colors.outlineVariant, width: 0.5)),
-                child: Text(item.typeLabel,
+                child: Text(item.typeLabel.tr,
                   style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
               ),
             ]),
@@ -3319,7 +3344,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(Icons.delete_outline, size: 40, color: colors.onSurface.withValues(alpha: 0.15)),
       const SizedBox(height: 12),
-      Text(_filterType == null ? '回收站是空的' : '没有删除的项目',
+      Text((_filterType == null ? '回收站是空的' : '没有删除的项目').tr,
         style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
     ]));
   }
@@ -3337,7 +3362,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
       case _BinItemType.gameReview: await provider.restoreGameReview(item.id);
     }
     if (mounted) {
-      ToastUtil.show(context, '${item.typeLabel}已恢复');
+      ToastUtil.show(context, '{label}已恢复'.trf({'label': item.typeLabel}));
       _loadDeletedItems();
     }
   }
@@ -3349,17 +3374,17 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要彻底删除吗？此操作不可恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要彻底删除吗？此操作不可恢复。'.tr,
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6)),
-            child: const Text('取消')),
+            child: Text('取消'.tr)),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('删除')),
+            child: Text('删除'.tr)),
         ],
       ),
     );
@@ -3376,7 +3401,7 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
       case _BinItemType.gameReview: await provider.permanentDeleteGameReview(item.id);
     }
     if (mounted) {
-      ToastUtil.show(context, '已彻底删除');
+      ToastUtil.show(context, '已彻底删除'.tr);
       _loadDeletedItems();
     }
   }
@@ -3391,26 +3416,26 @@ class _RecycleBinDialogState extends State<_RecycleBinDialog> {
         title: Row(children: [
           const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
           const SizedBox(width: 8),
-          Text('清空回收站', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text('清空回收站'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ]),
-        content: Text('所有项目将被彻底删除，此操作不可恢复。',
+        content: Text('所有项目将被彻底删除，此操作不可恢复。'.tr,
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6)),
-            child: const Text('取消')),
+            child: Text('取消'.tr)),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<AppProvider>().clearRecycleBin();
               if (mounted) {
-                ToastUtil.show(context, '回收站已清空');
+                ToastUtil.show(context, '回收站已清空'.tr);
                 _loadDeletedItems();
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('清空')),
+            child: Text('清空'.tr)),
         ],
       ),
     );
@@ -3484,13 +3509,13 @@ class _SearchDialogState extends State<_SearchDialog> {
       child: Row(
         children: [
           Expanded(
-            child: _toggleBtn('本地搜索', !_isOnline, () {
+            child: _toggleBtn('本地搜索'.tr, !_isOnline, () {
               if (!mounted) return;
               setState(() => _isOnline = false);
             }, colors),
           ),
           Expanded(
-            child: _toggleBtn('增强搜索', _isOnline, () {
+            child: _toggleBtn('增强搜索'.tr, _isOnline, () {
               if (!mounted) return;
               setState(() => _isOnline = true);
             }, colors),
@@ -3573,7 +3598,7 @@ class _IconRailItem extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  label,
+                  label.tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: selected ? accentColor : colors.onSurface.withValues(alpha: 0.55),
@@ -3648,7 +3673,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
                     onChanged: _onSearchChanged,
                     style: TextStyle(fontSize: 13, color: colors.onSurface),
                     decoration: InputDecoration(
-                      hintText: '搜索...',
+                      hintText: '搜索...'.tr,
                       hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
                       prefixIcon: Icon(Icons.search, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
                       suffixIcon: _keyword.isNotEmpty
@@ -3716,7 +3741,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     final (currentSort, sortOptions, _, onSortSelected) = _sortConfig(context);
     final statusOptions = _statusFilterOptions();
     return PopupMenuButton<String>(
-      tooltip: '排序与筛选',
+      tooltip: '排序与筛选'.tr,
       position: PopupMenuPosition.under,
       color: colors.surface,
       elevation: 4,
@@ -3727,7 +3752,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
           value: '__sort_header__',
           enabled: false,
           height: 28,
-          child: Text('排序', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
+          child: Text('排序'.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
         ),
         for (final (value, text, icon) in sortOptions)
           PopupMenuItem<String>(
@@ -3735,7 +3760,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             child: Row(children: [
               Icon(icon, size: 16, color: currentSort == value ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
               const SizedBox(width: 10),
-              Text(text, style: TextStyle(fontSize: 13, color: currentSort == value ? colors.primary : colors.onSurface)),
+              Text(text.tr, style: TextStyle(fontSize: 13, color: currentSort == value ? colors.primary : colors.onSurface)),
               const Spacer(),
               if (currentSort == value)
                 Icon(Icons.check, size: 14, color: colors.primary),
@@ -3748,7 +3773,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
             value: '__filter_header__',
             enabled: false,
             height: 28,
-            child: Text('状态筛选', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text('状态筛选'.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           for (final (value, text, icon) in statusOptions)
             PopupMenuItem<String>(
@@ -3756,7 +3781,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
               child: Row(children: [
                 Icon(icon, size: 16, color: _statusFilter == value ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
                 const SizedBox(width: 10),
-                Text(text, style: TextStyle(fontSize: 13, color: _statusFilter == value ? colors.primary : colors.onSurface)),
+                Text(text.tr, style: TextStyle(fontSize: 13, color: _statusFilter == value ? colors.primary : colors.onSurface)),
                 const Spacer(),
                 if (_statusFilter == value)
                   Icon(Icons.check, size: 14, color: colors.primary),
@@ -4012,12 +4037,12 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Theme.of(ctx).colorScheme.surface,
-        title: const Text('确认删除'),
-        content: Text('确定要删除「$title」吗？'),
+        title: Text('确认删除'.tr),
+        content: Text('确定要删除「{title}」吗？'.trf({'title': title})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr)),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-            child: Text('删除', style: TextStyle(color: Theme.of(ctx).colorScheme.error))),
+            child: Text('删除'.tr, style: TextStyle(color: Theme.of(ctx).colorScheme.error))),
         ],
       ),
     );
@@ -4045,7 +4070,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
 
     if (totalCount == 0) {
       return Center(
-        child: Text('未找到相关结果', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+        child: Text('未找到相关结果'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
       );
     }
 
@@ -4097,7 +4122,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
         if (notes.isNotEmpty) ...[
           _SearchGroupHeader(label: '笔记', count: notes.length, color: const Color(0xFF9333EA)),
           ...notes.map((n) => _CompactListItem(
-            title: n.title.isNotEmpty ? n.title : '随手记',
+            title: n.title.isNotEmpty ? n.title : '随手记'.tr,
             subtitle: n.content.length > 40 ? '${n.content.substring(0, 40)}...' : null,
             imagePath: null,
             accentColor: const Color(0xFF9333EA),
@@ -4168,7 +4193,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
         children: [
           Icon(icon, size: 36, color: colors.onSurface.withValues(alpha: 0.15)),
           const SizedBox(height: 8),
-          Text(text, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+          Text(text.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
         ],
       ),
     );
@@ -4290,7 +4315,7 @@ class _CompactListItem extends StatelessWidget {
                       color: effectiveStatusColor.withValues(alpha: isDark ? 0.15 : 0.08),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(statusLabel!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: effectiveStatusColor)),
+                    child: Text(statusLabel!.tr, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: effectiveStatusColor)),
                   ),
                 ],
               ],
@@ -4317,7 +4342,7 @@ class _CompactListItem extends StatelessWidget {
             child: Row(children: [
               Icon(Icons.edit_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.6)),
               const SizedBox(width: 8),
-              const Text('编辑', style: TextStyle(fontSize: 13)),
+              Text('编辑'.tr, style: const TextStyle(fontSize: 13)),
             ]),
           ),
         if (onDelete != null)
@@ -4327,7 +4352,7 @@ class _CompactListItem extends StatelessWidget {
             child: Row(children: [
               Icon(Icons.delete_outline, size: 16, color: colors.error),
               const SizedBox(width: 8),
-              Text('删除', style: TextStyle(color: colors.error, fontSize: 13)),
+              Text('删除'.tr, style: TextStyle(color: colors.error, fontSize: 13)),
             ]),
           ),
       ],
@@ -4356,7 +4381,7 @@ class _DesktopNoteItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDark = colors.brightness == Brightness.dark;
-    final title = note.title.isNotEmpty ? note.title : '随手记';
+    final title = note.title.isNotEmpty ? note.title : '随手记'.tr;
     final preview = note.content.length > 60 ? '${note.content.substring(0, 60)}...' : note.content;
     final dateStr = '${note.updatedAt.month}/${note.updatedAt.day}';
 
@@ -4431,7 +4456,7 @@ class _DesktopNoteItem extends StatelessWidget {
           child: Row(children: [
             Icon(note.isPinned ? Icons.push_pin_outlined : Icons.push_pin, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
             const SizedBox(width: 8),
-            Text(note.isPinned ? '取消置顶' : '置顶', style: const TextStyle(fontSize: 13)),
+            Text(note.isPinned ? '取消置顶'.tr : '置顶'.tr, style: const TextStyle(fontSize: 13)),
           ]),
         ),
         PopupMenuItem<String>(
@@ -4440,7 +4465,7 @@ class _DesktopNoteItem extends StatelessWidget {
           child: Row(children: [
             Icon(Icons.edit_outlined, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
             const SizedBox(width: 8),
-            const Text('编辑', style: TextStyle(fontSize: 13)),
+            Text('编辑'.tr, style: const TextStyle(fontSize: 13)),
           ]),
         ),
         PopupMenuItem<String>(
@@ -4449,7 +4474,7 @@ class _DesktopNoteItem extends StatelessWidget {
           child: Row(children: [
             Icon(Icons.delete_outline, size: 16, color: Theme.of(context).colorScheme.error),
             const SizedBox(width: 8),
-            Text('删除', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
+            Text('删除'.tr, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
           ]),
         ),
       ],
@@ -4468,12 +4493,12 @@ class _DesktopNoteItem extends StatelessWidget {
             context: context,
             builder: (ctx) => AlertDialog(
               backgroundColor: Theme.of(ctx).colorScheme.surface,
-              title: const Text('确认删除'),
-              content: Text('确定要删除「${note.title.isNotEmpty ? note.title : '随手记'}」吗？'),
+              title: Text('确认删除'.tr),
+              content: Text('确定要删除「{title}」吗？'.trf({'title': note.title.isNotEmpty ? note.title : '随手记'.tr})),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr)),
                 TextButton(onPressed: () => Navigator.pop(ctx, true),
-                  child: Text('删除', style: TextStyle(color: Theme.of(ctx).colorScheme.error))),
+                  child: Text('删除'.tr, style: TextStyle(color: Theme.of(ctx).colorScheme.error))),
               ],
             ),
           );
@@ -4507,7 +4532,7 @@ class _SearchGroupHeader extends StatelessWidget {
             decoration: BoxDecoration(color: color.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5))),
+          Text(label.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.5))),
           const SizedBox(width: 4),
           Text('$count', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
         ],

@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书籍分享海报页面
 class BookSharePage extends StatefulWidget {
@@ -35,7 +36,7 @@ class _BookSharePageState extends State<BookSharePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '分享海报',
+          '分享海报'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -53,7 +54,7 @@ class _BookSharePageState extends State<BookSharePage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    '分享',
+                    '分享'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -174,23 +175,23 @@ class _BookSharePageState extends State<BookSharePage> {
 
                 // 作者
                 if (book.authors.isNotEmpty)
-                  _buildInfoRow('作者', book.authors.join(' / '), colors),
+                  _buildInfoRow('作者'.tr, book.authors.join(' / '), colors),
 
                 // 出版社
                 if (book.publisher != null && book.publisher!.isNotEmpty)
-                  _buildInfoRow('出版社', book.publisher!, colors),
+                  _buildInfoRow('出版社'.tr, book.publisher!, colors),
 
                 // 出版时间
                 if (book.publishDate != null)
                   _buildInfoRow(
-                    '出版',
+                    '出版'.tr,
                     '${book.publishDate!.year}.${book.publishDate!.month.toString().padLeft(2, '0')}.${book.publishDate!.day.toString().padLeft(2, '0')}',
                     colors,
                   ),
 
                 // 类型
                 if (book.genres.isNotEmpty)
-                  _buildInfoRow('类型', book.genres.join(' / '), colors),
+                  _buildInfoRow('类型'.tr, book.genres.join(' / '), colors),
 
                 // ISBN
                 if (book.isbn != null && book.isbn!.isNotEmpty)
@@ -201,7 +202,7 @@ class _BookSharePageState extends State<BookSharePage> {
                 // 简介
                 if (book.summary != null && book.summary!.isNotEmpty) ...[
                   Text(
-                    '简介',
+                    '简介'.tr,
                     style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurface.withValues(alpha: 0.4),
@@ -235,7 +236,7 @@ class _BookSharePageState extends State<BookSharePage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '来自 MookNote',
+                      '来自 MookNote'.tr,
                       style: TextStyle(
                         fontSize: 12,
                         color: colors.onSurface.withValues(alpha: 0.5),
@@ -259,7 +260,7 @@ class _BookSharePageState extends State<BookSharePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$label：',
+            '{label}：'.trf({'label': label}),
             style: TextStyle(
               fontSize: 13,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -308,11 +309,11 @@ class _BookSharePageState extends State<BookSharePage> {
       // 分享
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: '分享书籍：${widget.book.title}',
+        text: '分享书籍：{title}'.trf({'title': widget.book.title}),
       );
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '生成海报失败：$e');
+        ToastUtil.show(context, '生成海报失败：{e}'.trf({'e': e}));
       }
     } finally {
       if (mounted) {

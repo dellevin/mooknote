@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import 'webdav_sync_page.dart';
 
 /// 云备份主页面 - 选择备份方式
@@ -10,17 +11,17 @@ class CloudSyncPage extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
-      appBar: AppBar(title: const Text('云备份')),
+      appBar: AppBar(title: Text('云备份'.tr)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildSectionTitle(colors, '选择备份方式'),
+          _buildSectionTitle(colors, '选择备份方式'.tr),
           const SizedBox(height: 10),
           _buildOption(
             colors: colors,
             icon: Icons.storage_outlined,
-            title: 'WebDAV 备份',
-            subtitle: '通过 WebDAV 协议备份到个人云盘',
+            title: 'WebDAV 备份'.tr,
+            subtitle: '通过 WebDAV 协议备份到个人云盘'.tr,
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())),
           ),
@@ -28,8 +29,8 @@ class CloudSyncPage extends StatelessWidget {
           _buildOption(
             colors: colors,
             icon: Icons.cloud_sync_outlined,
-            title: '服务器云同步',
-            subtitle: '自建云同步服务器，多端同步更改',
+            title: '服务器云同步'.tr,
+            subtitle: '自建云同步服务器，多端同步更改'.tr,
             onTap: () {},
             enabled: false,
           ),
@@ -134,14 +135,14 @@ class CloudSyncPage extends StatelessWidget {
               child: Icon(Icons.info_outline,
                   size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(width: 10),
-          Text('使用说明',
+          Text('使用说明'.tr,
               style: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
         ]),
         const SizedBox(height: 12),
-        _infoItem(colors, 'WebDAV 备份：将数据备份到支持 WebDAV 的云盘'),
+        _infoItem(colors, 'WebDAV 备份：将数据备份到支持 WebDAV 的云盘'.tr),
         const SizedBox(height: 8),
-        _infoItem(colors, '建议定期备份到本地或云盘'),
+        _infoItem(colors, '建议定期备份到本地或云盘'.tr),
       ]),
     );
   }

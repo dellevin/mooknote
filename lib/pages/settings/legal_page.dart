@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:http/http.dart' as http;
+import '../../l10n/app_strings.dart';
 import '../../utils/server_config.dart';
 
 /// 用户服务协议 / 隐私政策查看页面
@@ -60,7 +61,7 @@ class _LegalPageState extends State<LegalPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(title: Text(widget.title.tr)),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : _error != null
@@ -107,11 +108,11 @@ class _LegalPageState extends State<LegalPage> {
         children: [
           Icon(Icons.article_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
-          Text(_error!, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text(_error!.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 16),
           TextButton(
             onPressed: () { setState(() { _isLoading = true; _error = null; }); _load(); },
-            child: Text('重试', style: TextStyle(color: colors.primary)),
+            child: Text('重试'.tr, style: TextStyle(color: colors.primary)),
           ),
         ],
       ),

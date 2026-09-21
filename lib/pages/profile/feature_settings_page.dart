@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
@@ -85,12 +86,12 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   List<(int, String, IconData)> get _enabledTabs {
     final all = <(int, String, IconData)>[];
-    if (_showDesktopHomeTab && Platform.isWindows) all.add((-1, '主页', Icons.dashboard_outlined));
+    if (_showDesktopHomeTab && Platform.isWindows) all.add((-1, '主页'.tr, Icons.dashboard_outlined));
     all.addAll([
-      (0, '影视', Icons.movie_outlined),
-      (1, '阅读', Icons.menu_book_outlined),
-      (2, '笔记', Icons.sticky_note_2_outlined),
-      (3, '游戏', Icons.sports_esports_outlined),
+      (0, '影视'.tr, Icons.movie_outlined),
+      (1, '阅读'.tr, Icons.menu_book_outlined),
+      (2, '笔记'.tr, Icons.sticky_note_2_outlined),
+      (3, '游戏'.tr, Icons.sports_esports_outlined),
     ].where((t) {
       return switch (t.$1) {
         0 => _showMovieTab,
@@ -113,7 +114,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   Future<void> _toggleMovieTab(bool value) async {
     if (!value && _enabledTabCount <= 1) {
-      ToastUtil.show(context, '至少保留一个标签页');
+      ToastUtil.show(context, '至少保留一个标签页'.tr);
       return;
     }
     await _userPrefs.setShowMovieTab(value);
@@ -126,7 +127,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   Future<void> _toggleBookTab(bool value) async {
     if (!value && _enabledTabCount <= 1) {
-      ToastUtil.show(context, '至少保留一个标签页');
+      ToastUtil.show(context, '至少保留一个标签页'.tr);
       return;
     }
     await _userPrefs.setShowBookTab(value);
@@ -139,7 +140,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   Future<void> _toggleNoteTab(bool value) async {
     if (!value && _enabledTabCount <= 1) {
-      ToastUtil.show(context, '至少保留一个标签页');
+      ToastUtil.show(context, '至少保留一个标签页'.tr);
       return;
     }
     await _userPrefs.setShowNoteTab(value);
@@ -152,7 +153,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   Future<void> _toggleGameTab(bool value) async {
     if (!value && _enabledTabCount <= 1) {
-      ToastUtil.show(context, '至少保留一个标签页');
+      ToastUtil.show(context, '至少保留一个标签页'.tr);
       return;
     }
     await _userPrefs.setShowGameTab(value);
@@ -169,11 +170,11 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('功能设置')),
+      appBar: AppBar(title: Text('功能设置'.tr)),
       body: ListView(
         children: [
           // ── 启动设置 ──
-          _buildSectionHeader('启动设置'),
+          _buildSectionHeader('启动设置'.tr),
           _buildDefaultTabSelector(),
           Divider(
               height: 0.5,
@@ -182,7 +183,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               color: colors.outlineVariant),
 
           // ── 笔记编辑器 ──
-          _buildSectionHeader('笔记编辑器'),
+          _buildSectionHeader('笔记编辑器'.tr),
           _buildEditorModeSelector(),
           Divider(
               height: 0.5,
@@ -191,9 +192,9 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               color: colors.outlineVariant),
 
           // ── 模块开关 ──
-          _buildSectionHeader('模块开关'),
+          _buildSectionHeader('模块开关'.tr),
           if (Platform.isWindows) ...[
-            _buildSwitchItem(Icons.dashboard_outlined, '主页', '桌面端数据概览与分析', _showDesktopHomeTab, (v) async {
+            _buildSwitchItem(Icons.dashboard_outlined, '主页'.tr, '桌面端数据概览与分析'.tr, _showDesktopHomeTab, (v) async {
               await _userPrefs.setShowDesktopHomeTab(v);
               setState(() {
                 _showDesktopHomeTab = v;
@@ -202,28 +203,28 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
             }),
             Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
           ],
-          _buildSwitchItem(Icons.movie_outlined, '观影', '记录和管理观影记录',
+          _buildSwitchItem(Icons.movie_outlined, '观影'.tr, '记录和管理观影记录'.tr,
               _showMovieTab, _toggleMovieTab),
           Divider(
               height: 0.5,
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.menu_book_outlined, '阅读', '记录和管理阅读记录',
+          _buildSwitchItem(Icons.menu_book_outlined, '阅读'.tr, '记录和管理阅读记录'.tr,
               _showBookTab, _toggleBookTab),
           Divider(
               height: 0.5,
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.sticky_note_2_outlined, '笔记', '记录和管理笔记', _showNoteTab,
+          _buildSwitchItem(Icons.sticky_note_2_outlined, '笔记'.tr, '记录和管理笔记'.tr, _showNoteTab,
               _toggleNoteTab),
           Divider(
               height: 0.5,
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.sports_esports_outlined, '游戏', '记录和管理游戏记录', _showGameTab,
+          _buildSwitchItem(Icons.sports_esports_outlined, '游戏'.tr, '记录和管理游戏记录'.tr, _showGameTab,
               _toggleGameTab),
           Divider(
               height: 0.5,
@@ -231,9 +232,9 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           // ── 侧边栏：信息模块 ──
-          _buildSectionHeader('侧边栏 · 信息模块'),
+          _buildSectionHeader('侧边栏 · 信息模块'.tr),
           _buildSwitchItem(
-              Icons.calendar_today, '热力图', '显示创作活跃度热力图', _showHeatmap,
+              Icons.calendar_today, '热力图'.tr, '显示创作活跃度热力图'.tr, _showHeatmap,
               (v) async {
             await _userPrefs.setShowSidebarHeatmap(v);
             setState(() => _showHeatmap = v);
@@ -243,7 +244,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.schedule, '最近添加', '显示最近添加的记录', _showRecent,
+          _buildSwitchItem(Icons.schedule, '最近添加'.tr, '显示最近添加的记录'.tr, _showRecent,
               (v) async {
             await _userPrefs.setShowSidebarRecent(v);
             setState(() => _showRecent = v);
@@ -253,7 +254,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.bolt_outlined, '快捷操作', '快速新建笔记/影视/导入EPUB', _showQuickActions,
+          _buildSwitchItem(Icons.bolt_outlined, '快捷操作'.tr, '快速新建笔记/影视/导入EPUB'.tr, _showQuickActions,
               (v) async {
             await _userPrefs.setShowSidebarQuickActions(v);
             setState(() => _showQuickActions = v);
@@ -264,15 +265,15 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.favorite_border, '统计', '与应用相遇的天数和数据概览', _showEncounter,
+              Icons.favorite_border, '统计'.tr, '与应用相遇的天数和数据概览'.tr, _showEncounter,
               (v) async {
             await _userPrefs.setShowSidebarEncounter(v);
             setState(() => _showEncounter = v);
           }),
 
           // ── 侧边栏：快捷功能 ──
-          _buildSectionHeader('侧边栏 · 快捷功能'),
-          _buildSwitchItem(Icons.explore_outlined, '漫步', '随机发现内容', _showStroll,
+          _buildSectionHeader('侧边栏 · 快捷功能'.tr),
+          _buildSwitchItem(Icons.explore_outlined, '漫步'.tr, '随机发现内容'.tr, _showStroll,
               (v) async {
             await _userPrefs.setShowSidebarStroll(v);
             setState(() => _showStroll = v);
@@ -282,7 +283,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.done_all, '已阅', '查看已看/已读/已通关记录', _showReviewed,
+          _buildSwitchItem(Icons.done_all, '已阅'.tr, '查看已看/已读/已通关记录'.tr, _showReviewed,
               (v) async {
             await _userPrefs.setShowSidebarReviewed(v);
             setState(() => _showReviewed = v);
@@ -292,7 +293,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.playlist_play, '书影片单', '创建和管理自定义片单', _showPlaylist,
+          _buildSwitchItem(Icons.playlist_play, '书影片单'.tr, '创建和管理自定义片单'.tr, _showPlaylist,
               (v) async {
             await _userPrefs.setShowSidebarPlaylist(v);
             setState(() => _showPlaylist = v);
@@ -303,7 +304,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.calendar_month_outlined, '书影日历', '按日历查看记录', _showCalendar,
+              Icons.calendar_month_outlined, '书影日历'.tr, '按日历查看记录'.tr, _showCalendar,
               (v) async {
             await _userPrefs.setShowSidebarCalendar(v);
             setState(() => _showCalendar = v);
@@ -314,7 +315,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.people_outline, '人物', '管理影视、书籍和游戏中的人物', _showPerson,
+              Icons.people_outline, '人物'.tr, '管理影视、书籍和游戏中的人物'.tr, _showPerson,
               (v) async {
             await _userPrefs.setShowSidebarPerson(v);
             setState(() => _showPerson = v);
@@ -325,7 +326,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.photo_library_outlined, '图库', '浏览所有保存过的图片', _showGallery,
+              Icons.photo_library_outlined, '图库'.tr, '浏览所有保存过的图片'.tr, _showGallery,
               (v) async {
             await _userPrefs.setShowSidebarGallery(v);
             setState(() => _showGallery = v);
@@ -335,7 +336,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.label_outline, '标签管理', '管理所有标签', _showTags,
+          _buildSwitchItem(Icons.label_outline, '标签管理'.tr, '管理所有标签'.tr, _showTags,
               (v) async {
             await _userPrefs.setShowSidebarTags(v);
             setState(() => _showTags = v);
@@ -345,7 +346,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.description_outlined, 'MD阅读', 'Markdown 文件阅读器',
+          _buildSwitchItem(Icons.description_outlined, 'MD阅读'.tr, 'Markdown 文件阅读器'.tr,
               _showMdReader, (v) async {
             await _userPrefs.setShowSidebarMdReader(v);
             setState(() => _showMdReader = v);
@@ -356,14 +357,14 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           _buildSwitchItem(
-              Icons.auto_stories_outlined, '阅读', 'EPUB 电子书阅读器', _showEpub,
+              Icons.auto_stories_outlined, '阅读'.tr, 'EPUB 电子书阅读器'.tr, _showEpub,
               (v) async {
             await _userPrefs.setShowSidebarEpub(v);
             setState(() => _showEpub = v);
           }),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Text('关闭后对应功能将从界面中隐藏。',
+            child: Text('关闭后对应功能将从界面中隐藏。'.tr,
                 style: TextStyle(
                     fontSize: 11,
                     color: colors.onSurface.withValues(alpha: 0.3))),
@@ -440,7 +441,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
                     color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('默认启动标签',
+              child: Text('默认启动标签'.tr,
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -481,19 +482,19 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('笔记编辑器',
+                  Text('笔记编辑器'.tr,
                       style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: colors.onSurface)),
-                  Text(_editorMode == 'native' ? '纯文本（轻量快速）' : '富文本（所见即所得）',
+                  Text(_editorMode == 'native' ? '纯文本（轻量快速）'.tr : '富文本（所见即所得）'.tr,
                       style: TextStyle(
                           fontSize: 11,
                           color: colors.onSurface.withValues(alpha: 0.4))),
                 ],
               ),
             ),
-            Text(_editorMode == 'native' ? '纯文本' : '富文本',
+            Text(_editorMode == 'native' ? '纯文本'.tr : '富文本'.tr,
                 style: TextStyle(
                     fontSize: 13,
                     color: colors.onSurface.withValues(alpha: 0.5))),
@@ -508,9 +509,9 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   void _showEditorModePicker() {
     final colors = Theme.of(context).colorScheme;
-    const modes = [
-      ('vditor', '富文本', 'Vditor 所见即所得，支持图文混排、加载稍慢'),
-      ('native', '纯文本', '轻量快速，无加载等待，支持 Markdown 语法'),
+    final modes = [
+      ('vditor', '富文本'.tr, 'Vditor 所见即所得，支持图文混排、加载稍慢'.tr),
+      ('native', '纯文本'.tr, '轻量快速，无加载等待，支持 Markdown 语法'.tr),
     ];
     appModalBottomSheet(
       context: context,
@@ -535,7 +536,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
                 alignment: Alignment.centerLeft,
                 child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text('笔记编辑器',
+                    child: Text('笔记编辑器'.tr,
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -618,7 +619,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
                 alignment: Alignment.centerLeft,
                 child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text('默认启动标签',
+                    child: Text('默认启动标签'.tr,
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

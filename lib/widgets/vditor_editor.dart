@@ -6,6 +6,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import '../main.dart';
+import '../l10n/app_strings.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
 
@@ -219,7 +220,7 @@ class VditorEditorState extends State<VditorEditor> {
         style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
         cursorColor: colors.primary,
         decoration: InputDecoration(
-          hintText: widget.placeholder,
+          hintText: widget.placeholder.tr,
           hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -311,7 +312,7 @@ class VditorEditorState extends State<VditorEditor> {
         strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
         style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
         decoration: InputDecoration(
-          hintText: widget.placeholder,
+          hintText: widget.placeholder.tr,
           hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -338,7 +339,7 @@ class VditorEditorState extends State<VditorEditor> {
         strutStyle: const StrutStyle(forceStrutHeight: true, height: 1.6, fontSize: 14),
         style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
         decoration: InputDecoration(
-          hintText: widget.placeholder,
+          hintText: widget.placeholder.tr,
           hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25), height: 1.6),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -426,7 +427,7 @@ class VditorEditorState extends State<VditorEditor> {
             },
             onLoadStop: (controller, url) async {
               final theme = widget.isDark ? 'dark' : 'light';
-              final escapedPlaceholder = jsonEncode(widget.placeholder);
+              final escapedPlaceholder = jsonEncode(widget.placeholder.tr);
               await controller.evaluateJavascript(
                 source: 'initVditor("$theme", $escapedPlaceholder)',
               );
@@ -450,7 +451,7 @@ class VditorEditorState extends State<VditorEditor> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      '编辑器加载中...',
+                      '编辑器加载中...'.tr,
                       style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],
@@ -519,7 +520,7 @@ class VditorEditorState extends State<VditorEditor> {
               },
               onLoadStop: (controller, url) async {
                 final theme = widget.isDark ? 'dark' : 'light';
-                final escapedPlaceholder = jsonEncode(widget.placeholder);
+                final escapedPlaceholder = jsonEncode(widget.placeholder.tr);
                 await controller.evaluateJavascript(
                   source: 'initVditor("$theme", $escapedPlaceholder)',
                 );
@@ -544,7 +545,7 @@ class VditorEditorState extends State<VditorEditor> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      '编辑器加载中...',
+                      '编辑器加载中...'.tr,
                       style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],

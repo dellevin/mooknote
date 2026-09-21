@@ -6,6 +6,7 @@ import '../../data/gallery/gallery_dao.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'gallery_viewer_page.dart';
+import '../../l10n/app_strings.dart';
 
 /// 类别显示名映射
 const _categoryLabels = {
@@ -53,7 +54,7 @@ class _GalleryPageState extends State<GalleryPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '加载失败：$e';
+        _error = '加载失败：{e}'.trf({'e': e});
         _loading = false;
       });
     }
@@ -92,12 +93,12 @@ class _GalleryPageState extends State<GalleryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('图库'),
+        title: Text('图库'.tr),
         actions: [
           if (!_loading && _allItems.isNotEmpty)
             IconButton(
               icon: Icon(_descending ? Icons.arrow_downward : Icons.arrow_upward, size: 20),
-              tooltip: _descending ? '当前：最新在前' : '当前：最早在前',
+              tooltip: _descending ? '当前：最新在前'.tr : '当前：最早在前'.tr,
               onPressed: () => setState(() => _descending = !_descending),
             ),
         ],
@@ -118,7 +119,7 @@ class _GalleryPageState extends State<GalleryPage> {
                         children: [
                           Icon(Icons.photo_library_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.2)),
                           const SizedBox(height: 12),
-                          Text('还没有保存过图片', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+                          Text('还没有保存过图片'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
                         ],
                       ),
                     )
@@ -133,8 +134,8 @@ class _GalleryPageState extends State<GalleryPage> {
                                 scrollDirection: Axis.horizontal,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 children: [
-                                  _buildChip(null, '全部', colors),
-                                  ..._availableCategories.map((c) => _buildChip(c, _categoryLabels[c] ?? c, colors)),
+                                  _buildChip(null, '全部'.tr, colors),
+                                  ..._availableCategories.map((c) => _buildChip(c, (_categoryLabels[c] ?? c).tr, colors)),
                                 ],
                               ),
                             ),
@@ -161,7 +162,7 @@ class _GalleryPageState extends State<GalleryPage> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Center(
                                 child: Text(
-                                  '共 ${_filteredItems.length} 张图片',
+                                  '共 {n} 张图片'.trf({'n': _filteredItems.length}),
                                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
                                 ),
                               ),
@@ -175,8 +176,7 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Widget _buildCard(GalleryItem item, int index, ColorScheme colors) {
     final categoryLabel = _categoryLabels[item.category] ?? item.category;
-    final title = item.entityTitle.isNotEmpty ? item.entityTitle : '未命名';
-
+    final title = item.entityTitle.isNotEmpty ? item.entityTitle : '未命名'.tr;
     return GestureDetector(
       onTap: () => _openPreview(index),
       child: Column(
@@ -197,7 +197,7 @@ class _GalleryPageState extends State<GalleryPage> {
               borderRadius: BorderRadius.circular(2),
             ),
             child: Text(
-              categoryLabel,
+              categoryLabel.tr,
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
             ),
           ),

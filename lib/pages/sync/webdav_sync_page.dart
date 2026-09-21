@@ -4,6 +4,7 @@ import '../../utils/toast_util.dart';
 import '../../services/sync/webdav_service.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// WebDAV 备份页面
 class WebDAVSyncPage extends StatefulWidget {
@@ -78,15 +79,15 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     final path = _pathController.text.trim();
 
     if (url.isEmpty) {
-      ToastUtil.show(context, '请输入服务器地址');
+      ToastUtil.show(context, '请输入服务器地址'.tr);
       return;
     }
     if (username.isEmpty) {
-      ToastUtil.show(context, '请输入用户名');
+      ToastUtil.show(context, '请输入用户名'.tr);
       return;
     }
     if (password.isEmpty) {
-      ToastUtil.show(context, '请输入密码');
+      ToastUtil.show(context, '请输入密码'.tr);
       return;
     }
 
@@ -112,12 +113,12 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         setState(() => _isConfigured = true);
         // 保存成功后立即加载远程备份信息
         _loadRemoteInfo();
-        ToastUtil.show(context, result['message'] ?? '连接成功，配置已保存');
+        ToastUtil.show(context, result['message'] ?? '连接成功，配置已保存'.tr);
       } else {
-        ToastUtil.show(context, result['message'] ?? '连接失败，请检查配置');
+        ToastUtil.show(context, result['message'] ?? '连接失败，请检查配置'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '连接失败: $e');
+      if (mounted) ToastUtil.show(context, '连接失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -131,23 +132,23 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
 
       if (_syncDirection == SyncDirection.upload) {
         // 上传：先打包再上传，分步显示
-        setState(() => _syncStep = '正在打包数据...');
+        setState(() => _syncStep = '正在打包数据...'.tr);
         await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
         final exportResult = await WebDAVService.instance.exportLocalData();
         if (!exportResult.success || exportResult.zipPath == null) {
           if (mounted) {
             setState(() { _isLoading = false; _syncStep = ''; });
-            ToastUtil.show(context, exportResult.errorMessage ?? '创建备份失败');
+            ToastUtil.show(context, exportResult.errorMessage ?? '创建备份失败'.tr);
           }
           return;
         }
         if (!mounted) return;
-        setState(() => _syncStep = '正在上传到云端...');
+        setState(() => _syncStep = '正在上传到云端...'.tr);
         await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
         result = await WebDAVService.instance.uploadExportedData(exportResult);
       } else {
         // 下载
-        setState(() => _syncStep = '正在从云端下载...');
+        setState(() => _syncStep = '正在从云端下载...'.tr);
         await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
         result = await WebDAVService.instance.syncData(direction: SyncDirection.download);
       }
@@ -157,11 +158,16 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       if (result.success) {
         // 同步成功后刷新远程文件信息
         _loadRemoteInfo();
-        final details = '上传: ${result.uploadedFiles} 文件, ${result.uploadedImages} 图片\n'
-            '下载: ${result.downloadedFiles} 文件, ${result.downloadedImages} 图片';
+        final details = '上传: {files} 文件, {images} 图片\n下载: {dfiles} 文件, {dimages} 图片'
+            .trf({
+          'files': result.uploadedFiles,
+          'images': result.uploadedImages,
+          'dfiles': result.downloadedFiles,
+          'dimages': result.downloadedImages,
+        });
 
         if (result.needReload) {
-          ToastUtil.show(context, '数据已更新，正在重新加载...');
+          ToastUtil.show(context, '数据已更新，正在重新加载...'.tr);
           final provider = context.read<AppProvider>();
           await provider.loadMovies();
           await provider.loadBooks();
@@ -169,15 +175,15 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           await provider.loadGames();
           await provider.loadPlaylists();
           await provider.loadPeople();
-          if (mounted) _showResultDialog('同步成功', details);
+          if (mounted) _showResultDialog('同步成功'.tr, details);
         } else {
-          _showResultDialog('同步成功', details);
+          _showResultDialog('同步成功'.tr, details);
         }
       } else {
         ToastUtil.show(context, result.message);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '同步失败: $e');
+      if (mounted) ToastUtil.show(context, '同步失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() { _isLoading = false; _syncStep = ''; });
     }
@@ -223,7 +229,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
               style: TextButton.styleFrom(
                   minimumSize: const Size(120, 40),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: Text('确定', style: TextStyle(fontSize: 14, color: colors.primary)),
+              child: Text('确定'.tr, style: TextStyle(fontSize: 14, color: colors.primary)),
             ),
           ],
         );
@@ -240,14 +246,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认上传',
+          title: Text('确认上传'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('该操作会覆盖掉远程数据，请谨慎操作，点击确定继续上传',
+          content: Text('该操作会覆盖掉远程数据，请谨慎操作，点击确定继续上传'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -257,7 +263,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('确定'),
+              child: Text('确定'.tr),
             ),
           ],
         );
@@ -278,14 +284,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认下载',
+          title: Text('确认下载'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('该操作会拉取远程数据覆盖掉本地数据，请谨慎操作，点击确定将数据拉取到本地',
+          content: Text('该操作会拉取远程数据覆盖掉本地数据，请谨慎操作，点击确定将数据拉取到本地'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -295,7 +301,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('确定'),
+              child: Text('确定'.tr),
             ),
           ],
         );
@@ -326,14 +332,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                 child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
               ),
               const SizedBox(width: 12),
-              Text('清除配置',
+              Text('清除配置'.tr,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           content: Padding(
             padding: const EdgeInsets.only(top: 16),
-            child: Text('确定要清除 WebDAV 配置吗？',
+            child: Text('确定要清除 WebDAV 配置吗？'.tr,
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           ),
           contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
@@ -345,7 +351,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   foregroundColor: colors.onSurface.withValues(alpha: 0.6),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('取消', style: TextStyle(fontSize: 14)),
+              child: Text('取消'.tr, style: const TextStyle(fontSize: 14)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -355,7 +361,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('清除', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text('清除'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ],
         );
@@ -371,7 +377,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         _pathController.text = '/mooknote';
         _isConfigured = false;
       });
-      if (mounted) ToastUtil.show(context, '配置已清除');
+      if (mounted) ToastUtil.show(context, '配置已清除'.tr);
     }
   }
 
@@ -385,7 +391,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
-          title: const Text('WebDAV 备份'),
+          title: Text('WebDAV 备份'.tr),
           leading: _isLoading ? const SizedBox.shrink() : null,
         ),
       body: Stack(
@@ -405,26 +411,26 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
               ],
 
               // 服务器配置
-              _buildSectionLabel(colors, '服务器配置'),
+              _buildSectionLabel(colors, '服务器配置'.tr),
                 const SizedBox(height: 12),
                 _buildInput(
                   colors: colors,
                   controller: _urlController,
-                  hint: '服务器地址，如 https://dav.example.com',
+                  hint: '服务器地址，如 https://dav.example.com'.tr,
                   icon: Icons.link,
                 ),
                 const SizedBox(height: 8),
                 _buildInput(
                   colors: colors,
                   controller: _usernameController,
-                  hint: '用户名',
+                  hint: '用户名'.tr,
                   icon: Icons.person_outline,
                 ),
                 const SizedBox(height: 8),
                 _buildInput(
                   colors: colors,
                   controller: _passwordController,
-                  hint: '密码',
+                  hint: '密码'.tr,
                   icon: Icons.lock_outline,
                   obscure: _obscurePassword,
                   suffix: GestureDetector(
@@ -439,13 +445,13 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                 _buildInput(
                   colors: colors,
                   controller: _pathController,
-                  hint: '同步路径，如 /mooknote',
+                  hint: '同步路径，如 /mooknote'.tr,
                   icon: Icons.folder_outlined,
                 ),
                 const SizedBox(height: 16),
 
                 // 测试并保存
-                _buildBtn(colors, '测试并保存', onTap: _isLoading ? null : _saveConfig),
+                _buildBtn(colors, '测试并保存'.tr, onTap: _isLoading ? null : _saveConfig),
                 if (_isConfigured) ...[
                   const SizedBox(height: 8),
                   Center(
@@ -453,7 +459,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                       onTap: _isLoading ? null : _clearConfig,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text('清除配置',
+                        child: Text('清除配置'.tr,
                             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
                       ),
                     ),
@@ -498,7 +504,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text('已连接',
+          Text('已连接'.tr,
               style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
         ],
       ),
@@ -580,7 +586,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     String sizeText = '';
 
     if (_isLoadingRemoteInfo) {
-      timeText = '加载中...';
+      timeText = '加载中...'.tr;
     } else if (_remoteModifiedTime != null) {
       final dt = _remoteModifiedTime!;
       timeText = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -588,7 +594,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         sizeText = _formatFileSize(_remoteFileSize!);
       }
     } else {
-      timeText = '暂无备份文件';
+      timeText = '暂无备份文件'.tr;
     }
 
     return Container(
@@ -605,7 +611,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             children: [
               Icon(Icons.cloud_outlined, size: 18, color: colors.primary),
               const SizedBox(width: 8),
-              Text('云端备份', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              Text('云端备份'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
               const Spacer(),
               if (_isLoadingRemoteInfo)
                 SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
@@ -623,7 +629,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('上传时间', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                    Text('上传时间'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                     const SizedBox(height: 4),
                     Text(timeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                   ],
@@ -634,7 +640,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('文件大小', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                      Text('文件大小'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                       const SizedBox(height: 4),
                       Text(sizeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
                     ],
@@ -661,11 +667,11 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             Row(
               children: [
                 Expanded(
-                  child: _buildBtn(colors, '上传', onTap: _isLoading ? null : () => _showUploadConfirm()),
+                  child: _buildBtn(colors, '上传'.tr, onTap: _isLoading ? null : () => _showUploadConfirm()),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildBtn(colors, '下载', onTap: _isLoading ? null : () => _showDownloadConfirm()),
+                  child: _buildBtn(colors, '下载'.tr, onTap: _isLoading ? null : () => _showDownloadConfirm()),
                 ),
               ],
             ),
@@ -692,16 +698,16 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('支持的服务',
+          Text('支持的服务'.tr,
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: colors.onSurface.withValues(alpha: 0.4),
                   letterSpacing: 0.5)),
           const SizedBox(height: 10),
-          _tip(colors, '坚果云、Nextcloud、AList 等 WebDAV 服务'),
-          _tip(colors, '服务器地址需包含 https://'),
-          _tip(colors, '首次同步可能需要较长时间'),
+          _tip(colors, '坚果云、Nextcloud、AList 等 WebDAV 服务'.tr),
+          _tip(colors, '服务器地址需包含 https://'.tr),
+          _tip(colors, '首次同步可能需要较长时间'.tr),
         ],
       ),
     );

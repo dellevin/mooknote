@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../pages/character/character_form_page.dart';
 import 'fade_in_local_image.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 角色信息底部弹窗
 ///
@@ -178,7 +179,7 @@ class _CharacterInfoSheetState extends State<CharacterInfoSheet> {
             }
           },
           icon: const Icon(Icons.edit_outlined, size: 16),
-          label: const Text('编辑', style: TextStyle(fontSize: 13)),
+          label: Text('编辑'.tr, style: const TextStyle(fontSize: 13)),
           style: TextButton.styleFrom(
             foregroundColor: colors.primary,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -199,7 +200,7 @@ class _CharacterInfoSheetState extends State<CharacterInfoSheet> {
           decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text(title.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ],
     );
   }
@@ -212,7 +213,7 @@ class _CharacterInfoSheetState extends State<CharacterInfoSheet> {
         children: [
           SizedBox(
             width: 56,
-            child: Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
             child: Text(value, style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.5)),
@@ -238,7 +239,7 @@ class _CharacterInfoSheetState extends State<CharacterInfoSheet> {
           GestureDetector(
             onTap: () => setState(() => _summaryExpanded = !_summaryExpanded),
             child: Text(
-              _summaryExpanded ? '收起' : '展开',
+              _summaryExpanded ? '收起'.tr : '展开'.tr,
               style: TextStyle(fontSize: 12, color: colors.primary),
             ),
           ),

@@ -6,6 +6,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../l10n/app_strings.dart';
 
 /// 桌面端主页 - 多维度数据分析概览
 class DesktopHomePage extends StatefulWidget {
@@ -147,7 +148,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
   Widget _buildHeroSection(List<Movie> fm, List<Book> fb, List<Note> fn, List<Game> fg,
       double completionRate, int thisMonth, double avgRating, ColorScheme colors) {
     final hour = DateTime.now().hour;
-    final greeting = hour < 6 ? '夜深了' : hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+    final greeting = (hour < 6 ? '夜深了' : hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好').tr;
     final nickname = UserPrefs().nickname;
     final firstUse = UserPrefs().firstUseDate;
     final now = DateTime.now();
@@ -159,20 +160,24 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     final items = <_ModuleData>[];
     if (_showMovies) {
       final watched = fm.where((m) => m.status == 'watched').length;
-      items.add(_ModuleData(Icons.movie_outlined, '影视', fm.length, '已看$watched', _movieColor, 0));
+      items.add(_ModuleData(Icons.movie_outlined, '影视', fm.length, '已看 {n}'.trf({'n': watched}), _movieColor, 0));
     }
     if (_showBooks) {
       final read = fb.where((b) => b.status == 'read').length;
-      items.add(_ModuleData(Icons.menu_book_outlined, '阅读', fb.length, '已读$read', _bookColor, 1));
+      items.add(_ModuleData(Icons.menu_book_outlined, '阅读', fb.length, '已读 {n}'.trf({'n': read}), _bookColor, 1));
     }
     if (_showNotes) {
       final words = fn.fold<int>(0, (sum, n) => sum + n.content.length);
-      final ws = words >= 10000 ? '${(words / 10000).toStringAsFixed(1)}万' : '$words';
-      items.add(_ModuleData(Icons.sticky_note_2_outlined, '笔记', fn.length, '$ws字', _noteColor, 2));
+      final ws = words >= 10000
+          ? (AppStrings.isEnglish
+              ? '${(words / 1000).round()}k'
+              : '${(words / 10000).toStringAsFixed(1)}万')
+          : '$words';
+      items.add(_ModuleData(Icons.sticky_note_2_outlined, '笔记', fn.length, '{n}字'.trf({'n': ws}), _noteColor, 2));
     }
     if (_showGames) {
       final completed = fg.where((g) => g.status == 'completed').length;
-      items.add(_ModuleData(Icons.sports_esports_outlined, '游戏', fg.length, '通关$completed', _gameColor, 3));
+      items.add(_ModuleData(Icons.sports_esports_outlined, '游戏', fg.length, '通关 {n}'.trf({'n': completed}), _gameColor, 3));
     }
 
     return Column(
@@ -185,18 +190,18 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$greeting，$nickname', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: colors.onSurface)),
+                Text('{greeting}，{name}'.trf({'greeting': greeting, 'name': nickname}), style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: colors.onSurface)),
                 const SizedBox(height: 4),
-                Text('${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}  ·  相遇第 $days 天', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+                Text('相遇第 {n} 天'.trf({'n': days}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
               ],
             ),
             const Spacer(),
             // 右侧快捷指标
-            _buildQuickChip('完成率', completionRate > 0 ? '${(completionRate * 100).toStringAsFixed(0)}%' : '-', Icons.check_circle_outline, colors.primary, colors),
+            _buildQuickChip('完成率'.tr, completionRate > 0 ? '${(completionRate * 100).toStringAsFixed(0)}%' : '-', Icons.check_circle_outline, colors.primary, colors),
             const SizedBox(width: 8),
-            _buildQuickChip('本月', '$thisMonth', Icons.trending_up, const Color(0xFF66BB6A), colors),
+            _buildQuickChip('本月'.tr, '$thisMonth', Icons.trending_up, const Color(0xFF66BB6A), colors),
             const SizedBox(width: 8),
-            _buildQuickChip('均分', avgRating > 0 ? avgRating.toStringAsFixed(1) : '-', Icons.star_outline, const Color(0xFFFFB800), colors),
+            _buildQuickChip('均分'.tr, avgRating > 0 ? avgRating.toStringAsFixed(1) : '-', Icons.star_outline, const Color(0xFFFFB800), colors),
           ],
         ),
         const SizedBox(height: 20),
@@ -229,7 +234,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
                           child: Icon(d.icon, size: 15, color: d.color),
                         ),
                         const SizedBox(width: 8),
-                        Text(d.label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                        Text(d.label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
                       ]),
                       const SizedBox(height: 14),
                       Text('${d.count}', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: d.color, height: 1)),
@@ -270,25 +275,25 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
 
   Widget _buildAllStatus(List<Movie> fm, List<Book> fb, List<Game> fg, ColorScheme colors) {
     return _buildCard(
-        title: '状态分布',
+        title: '状态分布'.tr,
         colors: colors,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_showMovies) ...[
-            _buildModuleStatusChip(Icons.movie_outlined, '影视', _movieColor, colors),
+            _buildModuleStatusChip(Icons.movie_outlined, '影视'.tr, _movieColor, colors),
             const SizedBox(height: 10),
             ..._buildStatusRows(fm, (m) => m.status, {'已看': 'watched', '在看': 'watching', '想看': 'want_to_watch'}, _movieColor, colors),
             if (_showBooks || _showGames) ...[const SizedBox(height: 16), Divider(height: 1, color: colors.outlineVariant), const SizedBox(height: 16)],
           ],
           if (_showBooks) ...[
-            _buildModuleStatusChip(Icons.menu_book_outlined, '阅读', _bookColor, colors),
+            _buildModuleStatusChip(Icons.menu_book_outlined, '阅读'.tr, _bookColor, colors),
             const SizedBox(height: 10),
             ..._buildStatusRows(fb, (b) => b.status, {'已读': 'read', '在读': 'reading', '想读': 'want_to_read'}, _bookColor, colors),
             if (_showGames) ...[const SizedBox(height: 16), Divider(height: 1, color: colors.outlineVariant), const SizedBox(height: 16)],
           ],
           if (_showGames) ...[
-            _buildModuleStatusChip(Icons.sports_esports_outlined, '游戏', _gameColor, colors),
+            _buildModuleStatusChip(Icons.sports_esports_outlined, '游戏'.tr, _gameColor, colors),
             const SizedBox(height: 10),
             ..._buildStatusRows(fg, (g) => g.status, {'通关': 'completed', '在玩': 'playing', '想玩': 'want_to_play', '弃游': 'abandoned'}, _gameColor, colors),
           ],
@@ -320,7 +325,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           children: [
-            SizedBox(width: 48, child: Text(e.key, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
+            SizedBox(width: 48, child: Text(e.key.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)))),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(3),
@@ -365,24 +370,24 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     final playedDates = fg.where((g) => g.status == 'completed').map((g) => g.createdAt).toList()..sort();
 
     return _buildCard(
-      title: '习惯洞察',
+      title: '习惯洞察'.tr,
       colors: colors,
       child: Column(
         children: [
-          _buildInsightRow(Icons.calendar_month_outlined, '最活跃月份', monthNames[busiestMonth], colors),
+          _buildInsightRow(Icons.calendar_month_outlined, '最活跃月份'.tr, monthNames[busiestMonth].tr, colors),
           Divider(height: 1, color: colors.outlineVariant),
-          _buildInsightRow(Icons.speed_outlined, '记录频率', '每月 $avgPerMonth 条', colors),
+          _buildInsightRow(Icons.speed_outlined, '记录频率'.tr, '每月 {n} 条'.trf({'n': avgPerMonth}), colors),
           if (watchedDates.length >= 2) ...[
             Divider(height: 1, color: colors.outlineVariant),
-            _buildInsightRow(Icons.movie_outlined, '观影节奏', '${_calcAvgGap(watchedDates).toStringAsFixed(0)} 天/部', colors),
+            _buildInsightRow(Icons.movie_outlined, '观影节奏'.tr, '{n} 天/部'.trf({'n': _calcAvgGap(watchedDates).toStringAsFixed(0)}), colors),
           ],
           if (readDates.length >= 2) ...[
             Divider(height: 1, color: colors.outlineVariant),
-            _buildInsightRow(Icons.menu_book_outlined, '阅读节奏', '${_calcAvgGap(readDates).toStringAsFixed(0)} 天/本', colors),
+            _buildInsightRow(Icons.menu_book_outlined, '阅读节奏'.tr, '{n} 天/本'.trf({'n': _calcAvgGap(readDates).toStringAsFixed(0)}), colors),
           ],
           if (playedDates.length >= 2) ...[
             Divider(height: 1, color: colors.outlineVariant),
-            _buildInsightRow(Icons.sports_esports_outlined, '游戏节奏', '${_calcAvgGap(playedDates).toStringAsFixed(0)} 天/款', colors),
+            _buildInsightRow(Icons.sports_esports_outlined, '游戏节奏'.tr, '{n} 天/款'.trf({'n': _calcAvgGap(playedDates).toStringAsFixed(0)}), colors),
           ],
         ],
       ),
@@ -437,7 +442,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     if (gameGenres.isNotEmpty) dataSets.add(RadarDataSet(dataEntries: top6.map((e) => RadarEntry(value: (gameGenres[e.key] ?? 0) / math.max(1, maxVal))).toList(), borderColor: _gameColor, fillColor: _gameColor.withValues(alpha: 0.12), borderWidth: 2));
 
     return _buildCard(
-      title: '类型偏好',
+      title: '类型偏好'.tr,
       colors: colors,
       child: Column(
         children: [
@@ -455,9 +460,9 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
           ))),
           const SizedBox(height: 8),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            if (movieGenres.isNotEmpty) ...[_buildLegend(_movieColor, '影视', colors), const SizedBox(width: 14)],
-            if (bookGenres.isNotEmpty) ...[_buildLegend(_bookColor, '书籍', colors), const SizedBox(width: 14)],
-            if (gameGenres.isNotEmpty) _buildLegend(_gameColor, '游戏', colors),
+            if (movieGenres.isNotEmpty) ...[_buildLegend(_movieColor, '影视'.tr, colors), const SizedBox(width: 14)],
+            if (bookGenres.isNotEmpty) ...[_buildLegend(_bookColor, '书籍'.tr, colors), const SizedBox(width: 14)],
+            if (gameGenres.isNotEmpty) _buildLegend(_gameColor, '游戏'.tr, colors),
           ]),
         ],
       ),
@@ -473,13 +478,13 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     final top5 = sorted.take(5).toList();
     if (top5.isEmpty) return const SizedBox.shrink();
     final maxVal = top5.first.value.toDouble();
-    return _buildCard(title: '导演 TOP 5', colors: colors, child: Column(children: top5.map((e) {
+    return _buildCard(title: '导演 TOP 5'.tr, colors: colors, child: Column(children: top5.map((e) {
       return Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [
         SizedBox(width: 56, child: Text(e.key, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.7)), overflow: TextOverflow.ellipsis)),
         const SizedBox(width: 8),
         Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: e.value / maxVal, backgroundColor: colors.outlineVariant, color: _movieColor, minHeight: 4))),
         const SizedBox(width: 8),
-        Text('${e.value}部', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('{n}部'.trf({'n': e.value}), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]));
     }).toList()));
   }
@@ -491,13 +496,13 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     final top5 = sorted.take(5).toList();
     if (top5.isEmpty) return const SizedBox.shrink();
     final maxVal = top5.first.value.toDouble();
-    return _buildCard(title: '作者 TOP 5', colors: colors, child: Column(children: top5.map((e) {
+    return _buildCard(title: '作者 TOP 5'.tr, colors: colors, child: Column(children: top5.map((e) {
       return Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [
         SizedBox(width: 56, child: Text(e.key, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.7)), overflow: TextOverflow.ellipsis)),
         const SizedBox(width: 8),
         Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: e.value / maxVal, backgroundColor: colors.outlineVariant, color: _bookColor, minHeight: 4))),
         const SizedBox(width: 8),
-        Text('${e.value}本', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('{n}本'.trf({'n': e.value}), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]));
     }).toList()));
   }
@@ -512,7 +517,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
 
     // 三列并排
     return _buildCard(
-      title: '高分之最',
+      title: '高分之最'.tr,
       colors: colors,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,7 +525,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
           if (ratedMovies.isNotEmpty) Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionChip(Icons.movie_outlined, '影视', _movieColor, colors),
+              _buildSectionChip(Icons.movie_outlined, '影视'.tr, _movieColor, colors),
               const SizedBox(height: 8),
               ...ratedMovies.take(5).map((m) => _buildTopRatedItem(m.title, m.rating!, m.posterPath, colors)),
             ],
@@ -530,7 +535,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
           if (ratedBooks.isNotEmpty) Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionChip(Icons.menu_book_outlined, '书籍', _bookColor, colors),
+              _buildSectionChip(Icons.menu_book_outlined, '书籍'.tr, _bookColor, colors),
               const SizedBox(height: 8),
               ...ratedBooks.take(5).map((b) => _buildTopRatedItem(b.title, b.rating!, b.coverPath, colors)),
             ],
@@ -540,7 +545,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
           if (ratedGames.isNotEmpty) Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionChip(Icons.sports_esports_outlined, '游戏', _gameColor, colors),
+              _buildSectionChip(Icons.sports_esports_outlined, '游戏'.tr, _gameColor, colors),
               const SizedBox(height: 8),
               ...ratedGames.take(5).map((g) => _buildTopRatedItem(g.title, g.rating!, g.coverPath, colors)),
             ],
@@ -601,9 +606,9 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
       Color(0xFFFFB74D), Color(0xFFFFB74D), Color(0xFFFFA726), Color(0xFFFFA726),
       Color(0xFFFFB800), Color(0xFFFFB800)];
 
-    return _buildCard(title: '评分分布', colors: colors, child: Column(children: [
+    return _buildCard(title: '评分分布'.tr, colors: colors, child: Column(children: [
       Row(children: [
-        Text('平均评分', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+        Text('平均评分'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
         const Spacer(),
         Text(avg.toStringAsFixed(1), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: colors.onSurface)),
         Text(' / 10', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
@@ -614,7 +619,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
         maxY: maxCount * 1.2, minY: 0,
         barTouchData: BarTouchData(touchTooltipData: BarTouchTooltipData(
           getTooltipColor: (_) => colors.inverseSurface,
-          getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem('${group.x + 1}星 ${rod.toY.toInt()}个', TextStyle(color: colors.onInverseSurface, fontSize: 11, fontWeight: FontWeight.w600)),
+          getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem('{s}星 {n}个'.trf({'s': group.x + 1, 'n': rod.toY.toInt()}), TextStyle(color: colors.onInverseSurface, fontSize: 11, fontWeight: FontWeight.w600)),
         )),
         titlesData: FlTitlesData(show: true,
           bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => Padding(padding: const EdgeInsets.only(top: 4), child: Text('${value.toInt() + 1}', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.4)))), reservedSize: 20)),
@@ -653,12 +658,12 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
       if (_showGames) _buildLineData(gameData, _gameColor),
     ];
     final legends = <(Color, String)>[];
-    if (_showMovies) legends.add((_movieColor, '影视'));
-    if (_showBooks) legends.add((_bookColor, '书籍'));
-    if (_showNotes) legends.add((_noteColor, '笔记'));
-    if (_showGames) legends.add((_gameColor, '游戏'));
+    if (_showMovies) legends.add((_movieColor, '影视'.tr));
+    if (_showBooks) legends.add((_bookColor, '书籍'.tr));
+    if (_showNotes) legends.add((_noteColor, '笔记'.tr));
+    if (_showGames) legends.add((_gameColor, '游戏'.tr));
 
-    return _buildCard(title: '年度趋势', colors: colors, child: Column(children: [
+    return _buildCard(title: '年度趋势'.tr, colors: colors, child: Column(children: [
       SizedBox(
         height: 280,
         child: LineChart(LineChartData(
@@ -668,7 +673,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
             bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 2, getTitlesWidget: (value, meta) {
               final idx = value.toInt();
               if (idx < 0 || idx >= months.length) return const SizedBox.shrink();
-              return Padding(padding: const EdgeInsets.only(top: 6), child: Text(months[idx], style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))));
+              return Padding(padding: const EdgeInsets.only(top: 6), child: Text(months[idx].tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))));
             }, reservedSize: 24)),
             leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))), reservedSize: 28)),
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -681,7 +686,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
             getTooltipColor: (_) => colors.inverseSurface,
             getTooltipItems: (spots) => spots.map((s) {
               final labels = legends.map((l) => l.$2).toList();
-              return LineTooltipItem('${labels[s.barIndex]} ${s.y.toInt()}', TextStyle(color: colors.onInverseSurface, fontSize: 11, fontWeight: FontWeight.w600));
+              return LineTooltipItem('{label} {n}'.trf({'label': labels[s.barIndex], 'n': s.y.toInt()}), TextStyle(color: colors.onInverseSurface, fontSize: 11, fontWeight: FontWeight.w600));
             }).toList(),
           )),
         )),
@@ -717,7 +722,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     if (maxCount == 0) return const SizedBox.shrink();
     final dayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
-    return _buildCard(title: '星期分布', colors: colors, child: SizedBox(height: 130, child: Row(
+    return _buildCard(title: '星期分布'.tr, colors: colors, child: SizedBox(height: 130, child: Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(7, (i) {
         final ratio = weekdayCounts[i] / maxCount;
@@ -729,7 +734,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
             Container(height: (ratio * 80).clamp(4.0, 80.0), decoration: BoxDecoration(
               color: colors.primary.withValues(alpha: 0.5 + ratio * 0.5), borderRadius: BorderRadius.circular(3))),
             const SizedBox(height: 5),
-            Text(dayLabels[i], style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.45))),
+            Text(dayLabels[i].tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.45))),
           ],
         )));
       }),
@@ -754,7 +759,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     final maxVal = cumulative.toDouble();
     if (maxVal == 0) return const SizedBox.shrink();
 
-    return _buildCard(title: '累计增长', colors: colors, child: SizedBox(height: 150, child: LineChart(LineChartData(
+    return _buildCard(title: '累计增长'.tr, colors: colors, child: SizedBox(height: 150, child: LineChart(LineChartData(
       minY: 0, maxY: maxVal * 1.2,
       lineBarsData: [LineChartBarData(
         spots: List.generate(12, (i) => FlSpot(i.toDouble(), (monthlyCumulative[i] ?? 0).toDouble())),
@@ -765,7 +770,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
       titlesData: FlTitlesData(
         bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 2, getTitlesWidget: (value, meta) {
           final d = DateTime(now.year, now.month - (11 - value.toInt()), 1);
-          return Padding(padding: const EdgeInsets.only(top: 6), child: Text('${d.month}月', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.4))));
+          return Padding(padding: const EdgeInsets.only(top: 6), child: Text('{n}月'.trf({'n': d.month}), style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.4))));
         }, reservedSize: 20)),
         leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))), reservedSize: 28)),
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -801,14 +806,14 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     final range = math.max(maxCount - minCount, 1);
     const cloudColors = [Color(0xFFE53935), Color(0xFF4A90D9), Color(0xFF7E57C2), Color(0xFF66BB6A), Color(0xFFFF8F00), Color(0xFF00ACC1), Color(0xFF5C6BC0), Color(0xFF26A69A), Color(0xFF8D6E63)];
 
-    return _buildCard(title: '标签词云', colors: colors, child: Column(children: [
+    return _buildCard(title: '标签词云'.tr, colors: colors, child: Column(children: [
       Row(children: tabs.asMap().entries.map((e) {
         final selected = _cloudTabIndex == e.key;
         return Expanded(child: GestureDetector(
           onTap: () => setState(() => _cloudTabIndex = e.key),
           child: Container(padding: const EdgeInsets.symmetric(vertical: 6), margin: EdgeInsets.only(right: e.key < tabs.length - 1 ? 4 : 0),
             decoration: BoxDecoration(color: selected ? colors.primary : colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-            child: Text(e.value, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)))),
+            child: Text(e.value.tr, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)))),
         ));
       }).toList()),
       const SizedBox(height: 14),
@@ -839,10 +844,10 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
     for (final g in fg) { for (final ge in g.genres) { tagCounts[ge] = (tagCounts[ge] ?? 0) + 1; } }
     final topTag = tagCounts.entries.isEmpty ? null : tagCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
 
-    return _buildCard(title: '趣味统计', colors: colors, child: Column(children: [
-      _buildFunCard(Icons.local_fire_department_outlined, '连续记录', maxStreak > 1 ? '$maxStreak 天' : '-', '最长连续记录天数', const Color(0xFFFF8F00), colors),
+    return _buildCard(title: '趣味统计'.tr, colors: colors, child: Column(children: [
+      _buildFunCard(Icons.local_fire_department_outlined, '连续记录'.tr, maxStreak > 1 ? '{n} 天'.trf({'n': maxStreak}) : '-', '最长连续记录天数'.tr, const Color(0xFFFF8F00), colors),
       const SizedBox(height: 10),
-      _buildFunCard(Icons.label_outlined, '最常用标签', topTag != null ? topTag.key : '-', topTag != null ? '使用 ${topTag.value} 次' : '', const Color(0xFF26A69A), colors),
+      _buildFunCard(Icons.label_outlined, '最常用标签'.tr, topTag != null ? topTag.key : '-', topTag != null ? '使用 {n} 次'.trf({'n': topTag.value}) : '', const Color(0xFF26A69A), colors),
     ]));
   }
 

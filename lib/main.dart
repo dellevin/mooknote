@@ -21,6 +21,7 @@ import 'services/changelog_service.dart';
 import 'services/usage_stats_service.dart';
 import 'services/sync/backup_service.dart';
 import 'providers/app_provider.dart';
+import 'l10n/app_strings.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/frosted_background.dart';
 import './widgets/app_overlay.dart';
@@ -246,7 +247,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           children: [
             Icon(Icons.system_update, size: 22, color: colors.primary),
             const SizedBox(width: 8),
-            Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('发现新版本'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ],
         ),
         content: ConstrainedBox(
@@ -256,14 +257,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('当前版本：$localVersion',
+                Text('当前版本：{v}'.trf({'v': localVersion}),
                     style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                 const SizedBox(height: 4),
-                Text('最新版本：$version',
+                Text('最新版本：{v}'.trf({'v': version}),
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.primary)),
                 if (features.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('更新内容', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text('更新内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const SizedBox(height: 8),
                   ...features.map((f) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
@@ -303,7 +304,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               UserPrefs().setDismissedUpdateUntil(until);
               Navigator.pop(ctx);
             },
-            child: Text('24小时内不显示', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('24小时内不显示'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -314,7 +315,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               } catch (_) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('链接失效')));
+                      SnackBar(content: Text('链接失效'.tr)));
                 }
               }
             },
@@ -323,7 +324,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('去官网下载'),
+            child: Text('去官网下载'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -455,6 +456,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   Locale('zh', 'CN'),
                   Locale('en', 'US'),
                 ],
+                locale: provider.locale,
                 home: const HomePage(),
                 navigatorKey: _navigatorKey,
                 navigatorObservers: [routeObserver],

@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../l10n/app_strings.dart';
 
 /// 笔记分享海报页面
 class NoteSharePage extends StatefulWidget {
@@ -22,7 +23,9 @@ class _NoteSharePageState extends State<NoteSharePage> {
   final GlobalKey _posterKey = GlobalKey();
   bool _isGenerating = false;
 
-  static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+  List<String> get _weekdays => [
+    '周一'.tr, '周二'.tr, '周三'.tr, '周四'.tr, '周五'.tr, '周六'.tr, '周日'.tr,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +40,7 @@ class _NoteSharePageState extends State<NoteSharePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '分享笔记',
+          '分享笔记'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -55,7 +58,7 @@ class _NoteSharePageState extends State<NoteSharePage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    '分享',
+                    '分享'.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -84,7 +87,7 @@ class _NoteSharePageState extends State<NoteSharePage> {
     final hasImages = note.images.isNotEmpty;
     final dateStr =
         '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
-        '周${_weekdays[note.createdAt.weekday - 1]} '
+        '${_weekdays[note.createdAt.weekday - 1]} '
         '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')}';
 
     return Container(
@@ -186,10 +189,10 @@ class _NoteSharePageState extends State<NoteSharePage> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    _buildMetaChip(Icons.text_fields_outlined, '${note.content.length} 字'),
+                    _buildMetaChip(Icons.text_fields_outlined, '{n} 字'.trf({'n': note.content.length})),
                     if (hasImages) ...[
                       const SizedBox(width: 12),
-                      _buildMetaChip(Icons.image_outlined, '${note.images.length} 图'),
+                      _buildMetaChip(Icons.image_outlined, '{n} 图'.trf({'n': note.images.length})),
                     ],
                     const Spacer(),
                     // Mooknote 品牌
@@ -251,11 +254,11 @@ class _NoteSharePageState extends State<NoteSharePage> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: '分享笔记：${widget.note.title.isNotEmpty ? widget.note.title : '无标题'}',
+        text: '分享笔记：{title}'.trf({'title': widget.note.title.isNotEmpty ? widget.note.title : '无标题'.tr}),
       );
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '生成海报失败：$e');
+        ToastUtil.show(context, '生成海报失败：{e}'.trf({'e': e}));
       }
     } finally {
       if (mounted) {

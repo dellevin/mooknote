@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:xml/xml.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 import '../../services/epub/epub_stream_service.dart';
 import 'book_session.dart';
@@ -166,7 +167,7 @@ class _SearchSheetState extends State<SearchSheet> {
     for (final entry in toc) {
       if (entry.spineIndex == index) return entry.label;
     }
-    return '第${index + 1}章';
+    return '第{n}章'.trf({'n': index + 1});
   }
 
   List<TextSpan> _buildHighlightedText(String text, String query, ColorScheme colors) {
@@ -243,7 +244,7 @@ class _SearchSheetState extends State<SearchSheet> {
                     textInputAction: TextInputAction.search,
                     onSubmitted: _performSearch,
                     decoration: InputDecoration(
-                      hintText: '搜索书籍内容...',
+                      hintText: '搜索书籍内容...'.tr,
                       hintStyle: TextStyle(
                         fontSize: 14,
                         color: colors.onSurface.withValues(alpha: 0.35),
@@ -273,7 +274,7 @@ class _SearchSheetState extends State<SearchSheet> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => _performSearch(_controller.text),
-                  child: Text('搜索',
+                  child: Text('搜索'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           color: colors.primary,
@@ -289,7 +290,7 @@ class _SearchSheetState extends State<SearchSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('共找到 ${_allResults.length} 条结果',
+                child: Text('共找到 {n} 条结果'.trf({'n': _allResults.length}),
                     style: TextStyle(fontSize: 12,
                         color: colors.onSurface.withValues(alpha: 0.4))),
               ),
@@ -303,7 +304,7 @@ class _SearchSheetState extends State<SearchSheet> {
                       children: [
                         CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
                         const SizedBox(height: 12),
-                        Text('搜索中...',
+                        Text('搜索中...'.tr,
                             style: TextStyle(fontSize: 13,
                                 color: colors.onSurface.withValues(alpha: 0.5))),
                       ],
@@ -311,13 +312,13 @@ class _SearchSheetState extends State<SearchSheet> {
                   )
                 : !_searched
                     ? Center(
-                        child: Text('输入关键词搜索书籍内容',
+                        child: Text('输入关键词搜索书籍内容'.tr,
                             style: TextStyle(
                                 fontSize: 13,
                                 color: colors.onSurface.withValues(alpha: 0.35))))
                     : _allResults.isEmpty
                         ? Center(
-                            child: Text('未找到相关内容',
+                            child: Text('未找到相关内容'.tr,
                                 style: TextStyle(
                                     fontSize: 13,
                                     color: colors.onSurface.withValues(alpha: 0.35))))

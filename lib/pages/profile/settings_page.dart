@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/theme/app_theme.dart';
@@ -49,15 +50,15 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(title: Text('设置'.tr)),
       body: ListView(
         children: [
-          _buildSectionHeader('显示设置'),
+          _buildSectionHeader('显示设置'.tr),
           if (!Platform.isWindows)
             _buildNavigationItem(
               icon: Icons.apps_outlined,
-              title: '应用图标',
-              subtitle: '更换桌面应用图标',
+              title: '应用图标'.tr,
+              subtitle: '更换桌面应用图标'.tr,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
             ),
@@ -70,8 +71,8 @@ class _SettingsPageState extends State<SettingsPage> {
           if (!Platform.isWindows) ...[
             _buildNavigationItem(
               icon: Icons.tune_outlined,
-              title: '功能设置',
-              subtitle: '启动标签、模块开关、侧边栏功能',
+              title: '功能设置'.tr,
+              subtitle: '启动标签、模块开关、侧边栏功能'.tr,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const FeatureSettingsPage())),
             ),
@@ -82,8 +83,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: colors.outlineVariant),
             _buildNavigationItem(
               icon: Icons.dashboard_outlined,
-              title: '布局设置',
-              subtitle: '影视、阅读、笔记的展示样式',
+              title: '布局设置'.tr,
+              subtitle: '影视、阅读、笔记的展示样式'.tr,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
             ),
@@ -106,11 +107,18 @@ class _SettingsPageState extends State<SettingsPage> {
               endIndent: 24,
               color: colors.outlineVariant),
           if (!Platform.isWindows) _buildFontSelector(),
-          _buildSectionHeader('其他设置'),
+          if (!Platform.isWindows)
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+          _buildLanguageSelector(),
+          _buildSectionHeader('其他设置'.tr),
           _buildActionItem(
             icon: Icons.person_outline,
-            title: '个人信息',
-            subtitle: '修改昵称和座右铭',
+            title: '个人信息'.tr,
+            subtitle: '修改昵称和座右铭'.tr,
             onTap: () => _showProfileEditDialog(context),
           ),
           Divider(
@@ -120,8 +128,8 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.manage_search,
-            title: '增强搜索',
-            subtitle: '在线搜索影视和书籍信息',
+            title: '增强搜索'.tr,
+            subtitle: '在线搜索影视和书籍信息'.tr,
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -135,8 +143,8 @@ class _SettingsPageState extends State<SettingsPage> {
           if (!Platform.isWindows) ...[
             _buildSwitchItem(
               icon: Icons.swipe_vertical_outlined,
-              title: '底部导航栏滚动隐藏',
-              subtitle: '下滑时自动隐藏底部导航栏',
+              title: '底部导航栏滚动隐藏'.tr,
+              subtitle: '下滑时自动隐藏底部导航栏'.tr,
               value: _hideBottomNavOnScroll,
               onChanged: _toggleHideBottomNavOnScroll,
             ),
@@ -146,11 +154,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 endIndent: 24,
                 color: colors.outlineVariant),
           ],
-          _buildSectionHeader('数据管理'),
+          _buildSectionHeader('数据管理'.tr),
           _buildActionItem(
             icon: Icons.cleaning_services_outlined,
-            title: '清除缓存数据',
-            subtitle: '清理未在数据库中引用的文件',
+            title: '清除缓存数据'.tr,
+            subtitle: '清理未在数据库中引用的文件'.tr,
             onTap: () => _showClearCacheDialog(context),
           ),
           Divider(
@@ -161,8 +169,8 @@ class _SettingsPageState extends State<SettingsPage> {
           if (!Platform.isWindows) ...[
             _buildActionItem(
               icon: Icons.folder_outlined,
-              title: '获取系统权限',
-              subtitle: '前往系统设置开启存储权限',
+              title: '获取系统权限'.tr,
+              subtitle: '前往系统设置开启存储权限'.tr,
               onTap: _showStoragePermissionDialog,
             ),
             Divider(
@@ -171,11 +179,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 endIndent: 24,
                 color: colors.outlineVariant),
           ],
-          _buildSectionHeader('帮助'),
+          _buildSectionHeader('帮助'.tr),
           _buildActionItem(
             icon: Icons.language_outlined,
-            title: '查看官网',
-            subtitle: '在浏览器中打开官方网站',
+            title: '查看官网'.tr,
+            subtitle: '在浏览器中打开官方网站'.tr,
             onTap: () =>
                 launchUrl(Uri.parse('https://mooknote.iletter.top/#/')),
           ),
@@ -186,8 +194,8 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.open_in_new_outlined,
-            title: '项目源码',
-            subtitle: '查看 GitHub 项目仓库',
+            title: '项目源码'.tr,
+            subtitle: '查看 GitHub 项目仓库'.tr,
             onTap: () =>
                 launchUrl(Uri.parse('https://github.com/dellevin/mooknote')),
           ),
@@ -198,8 +206,8 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.code_outlined,
-            title: '开发日志',
-            subtitle: '在浏览器中查看项目开发记录',
+            title: '开发日志'.tr,
+            subtitle: '在浏览器中查看项目开发记录'.tr,
             onTap: () => launchUrl(Uri.parse(
                 'http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC')),
           ),
@@ -210,8 +218,8 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.update_outlined,
-            title: '更新日志',
-            subtitle: '查看版本更新内容',
+            title: '更新日志'.tr,
+            subtitle: '查看版本更新内容'.tr,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const ChangelogPage())),
           ),
@@ -222,8 +230,8 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.description_outlined,
-            title: '用户服务协议',
-            subtitle: '查看用户服务协议',
+            title: '用户服务协议'.tr,
+            subtitle: '查看用户服务协议'.tr,
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -237,8 +245,8 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.shield_outlined,
-            title: '隐私政策',
-            subtitle: '查看隐私政策',
+            title: '隐私政策'.tr,
+            subtitle: '查看隐私政策'.tr,
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -270,7 +278,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('个人信息',
+        title: Text('个人信息'.tr,
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -282,7 +290,7 @@ class _SettingsPageState extends State<SettingsPage> {
               controller: nicknameController,
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
-                labelText: '昵称',
+                labelText: '昵称'.tr,
                 labelStyle: TextStyle(
                     fontSize: 13,
                     color: colors.onSurface.withValues(alpha: 0.5)),
@@ -301,7 +309,7 @@ class _SettingsPageState extends State<SettingsPage> {
               maxLines: 2,
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
-                labelText: '座右铭',
+                labelText: '座右铭'.tr,
                 labelStyle: TextStyle(
                     fontSize: 13,
                     color: colors.onSurface.withValues(alpha: 0.5)),
@@ -326,7 +334,7 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('取消', style: TextStyle(fontSize: 14)),
+            child: Text('取消'.tr, style: const TextStyle(fontSize: 14)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -335,7 +343,7 @@ class _SettingsPageState extends State<SettingsPage> {
               if (nickname.isNotEmpty) await _userPrefs.setNickname(nickname);
               if (motto.isNotEmpty) await _userPrefs.setMotto(motto);
               if (ctx.mounted) Navigator.pop(ctx);
-              if (context.mounted) ToastUtil.show(context, '已保存');
+              if (context.mounted) ToastUtil.show(context, '已保存'.tr);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.primary,
@@ -345,14 +353,14 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('保存', style: TextStyle(fontSize: 14)),
+            child: Text('保存'.tr, style: const TextStyle(fontSize: 14)),
           ),
         ],
       ),
     );
   }
 
-  static const _themeModeLabels = ['跟随系统', '浅色模式', '深色模式', '毛玻璃'];
+  static List<String> get _themeModeLabels => ['跟随系统'.tr, '浅色模式'.tr, '深色模式'.tr, '毛玻璃'.tr];
   static const _themeModeIcons = [
     Icons.brightness_auto,
     Icons.light_mode,
@@ -381,7 +389,7 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('主题模式',
+                    Text('主题模式'.tr,
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -426,7 +434,7 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('主题模式',
+                  child: Text('主题模式'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -489,7 +497,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final provider = context.watch<AppProvider>();
     final currentIndex = provider.colorSchemeIndex;
     final label =
-        currentIndex == -1 ? '莫奈取色' : AppTheme.colorSchemeNames[currentIndex];
+        currentIndex == -1 ? '莫奈取色'.tr : AppTheme.colorSchemeNames[currentIndex].tr;
     return InkWell(
       onTap: () => _showColorSchemePicker(),
       child: Container(
@@ -513,7 +521,7 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('配色方案',
+                    Text('配色方案'.tr,
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -559,7 +567,7 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('配色方案',
+                  child: Text('配色方案'.tr,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -612,7 +620,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   color: AppTheme.seedColors[i],
                                   shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Text(AppTheme.colorSchemeNames[i],
+                          Text(AppTheme.colorSchemeNames[i].tr,
                               style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: selected
@@ -682,7 +690,7 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('莫奈取色',
+                    Text('莫奈取色'.tr,
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight:
@@ -690,7 +698,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             color: available
                                 ? colors.onSurface
                                 : colors.onSurface.withValues(alpha: 0.35))),
-                    Text(available ? '从系统壁纸自动提取配色' : '此设备不支持',
+                    Text(available ? '从系统壁纸自动提取配色'.tr : '此设备不支持'.tr,
                         style: TextStyle(
                             fontSize: 11,
                             color: colors.onSurface.withValues(alpha: 0.35))),
@@ -709,7 +717,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildFontSelector() {
     final colors = Theme.of(context).colorScheme;
-    final label = _fontFamily.isEmpty ? '系统默认' : _fontFamily;
+    final label = _fontFamily.isEmpty ? '系统默认'.tr : _fontFamily;
     return InkWell(
       onTap: () async {
         final result = await Navigator.push<String>(
@@ -737,7 +745,7 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text('字体',
+                Text('字体'.tr,
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -758,6 +766,120 @@ class _SettingsPageState extends State<SettingsPage> {
   void _setFontFamily(String family) {
     setState(() => _fontFamily = family);
     context.read<AppProvider>().setFontFamily(family);
+  }
+
+  // ─── 语言选择器 ───
+
+  static List<String> get _languageLabels => ['跟随系统'.tr, '中文', 'English'];
+  static const _languageIcons = [
+    Icons.settings_suggest_outlined,
+    Icons.translate,
+    Icons.abc,
+  ];
+
+  Widget _buildLanguageSelector() {
+    final colors = Theme.of(context).colorScheme;
+    final languageMode = context.watch<AppProvider>().languageMode;
+    return InkWell(
+      onTap: () => _showLanguagePicker(languageMode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.language_outlined,
+                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('语言'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(_languageLabels[languageMode],
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: colors.onSurface.withValues(alpha: 0.4))),
+                  ]),
+            ),
+            Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguagePicker(int current) {
+    final colors = Theme.of(context).colorScheme;
+    appModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16))),
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('语言'.tr,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface))),
+            ),
+            const SizedBox(height: 8),
+            for (int i = 0; i < _languageLabels.length; i++)
+              InkWell(
+                onTap: () {
+                  context.read<AppProvider>().setLanguageMode(i);
+                  Navigator.pop(ctx);
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(_languageIcons[i],
+                          size: 18,
+                          color: colors.onSurface.withValues(alpha: 0.6)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text(_languageLabels[i],
+                              style: TextStyle(
+                                  fontSize: 13, color: colors.onSurface))),
+                      if (current == i)
+                        Icon(Icons.check, color: colors.onSurface, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSwitchItem(
@@ -919,13 +1041,13 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('需要存储权限',
+        title: Text('需要存储权限'.tr,
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: colors.onSurface)),
         content: Text(
-          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能扫描字体文件。\n\n是否前往设置？',
+          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能扫描字体文件。\n\n是否前往设置？'.tr,
           style: TextStyle(
               fontSize: 14,
               color: colors.onSurface.withValues(alpha: 0.6),
@@ -934,7 +1056,7 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消',
+            child: Text('取消'.tr,
                 style:
                     TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
           ),
@@ -944,7 +1066,7 @@ class _SettingsPageState extends State<SettingsPage> {
               // 跳转到应用设置页（用户可在权限中找到"所有文件访问"）
               openAppSettings();
             },
-            child: Text('前往设置', style: TextStyle(color: colors.primary)),
+            child: Text('前往设置'.tr, style: TextStyle(color: colors.primary)),
           ),
         ],
       ),
@@ -973,7 +1095,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final totalSize = imageInfo.$2 + epubInfo.$2 + tempInfo.$2 + emptyDirInfo.$2;
     final totalCount = imageInfo.$1 + epubInfo.$1 + tempInfo.$1 + emptyDirInfo.$1;
     if (totalCount == 0) {
-      _showCacheResult(pageContext, true, '没有需要清理的缓存', false);
+      _showCacheResult(pageContext, true, '没有需要清理的缓存'.tr, false);
       return;
     }
 
@@ -983,25 +1105,25 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('缓存分析',
+        title: Text('缓存分析'.tr,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('共发现 $totalCount 项可清理缓存，合计 ${_formatSize(totalSize)}',
+            Text('共发现 {n} 项可清理缓存，合计 {size}'.trf({'n': totalCount, 'size': _formatSize(totalSize)}),
                 style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
             const SizedBox(height: 14),
-            if (imageInfo.$1 > 0) _buildCacheItem('孤立图片', imageInfo.$1, imageInfo.$2, Icons.image_outlined, colors),
-            if (epubInfo.$1 > 0) _buildCacheItem('孤立电子书', epubInfo.$1, epubInfo.$2, Icons.menu_book_outlined, colors),
-            if (tempInfo.$1 > 0) _buildCacheItem('临时文件', tempInfo.$1, tempInfo.$2, Icons.folder_outlined, colors),
-            if (emptyDirInfo.$1 > 0) _buildCacheItem('空文件夹', emptyDirInfo.$1, emptyDirInfo.$2, Icons.folder_off_outlined, colors),
+            if (imageInfo.$1 > 0) _buildCacheItem('孤立图片'.tr, imageInfo.$1, imageInfo.$2, Icons.image_outlined, colors),
+            if (epubInfo.$1 > 0) _buildCacheItem('孤立电子书'.tr, epubInfo.$1, epubInfo.$2, Icons.menu_book_outlined, colors),
+            if (tempInfo.$1 > 0) _buildCacheItem('临时文件'.tr, tempInfo.$1, tempInfo.$2, Icons.folder_outlined, colors),
+            if (emptyDirInfo.$1 > 0) _buildCacheItem('空文件夹'.tr, emptyDirInfo.$1, emptyDirInfo.$2, Icons.folder_off_outlined, colors),
           ],
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
@@ -1013,7 +1135,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确认清除'),
+            child: Text('确认清除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1032,7 +1154,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Text(label,
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
           ),
-          Text('$count项  ${_formatSize(size)}',
+          Text('{n}项  {size}'.trf({'n': count, 'size': _formatSize(size)}),
               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
         ],
       ),
@@ -1056,11 +1178,11 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!context.mounted) return;
       final success = result.total > 0;
       _showCacheResult(
-          context, true, success ? result.description : '没有需要清理的缓存', success);
+          context, true, success ? result.description : '没有需要清理的缓存'.tr, success);
     } catch (e) {
       Navigator.pop(context);
       if (!context.mounted) return;
-      _showCacheResult(context, false, '清理失败: $e', false);
+      _showCacheResult(context, false, '清理失败: {e}'.trf({'e': e}), false);
     }
   }
 
@@ -1086,7 +1208,7 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('确定'),
+            child: Text('确定'.tr),
           ),
         ],
       ),

@@ -14,6 +14,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
 import '../../widgets/vditor_editor.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 添加/编辑笔记页面 - 极简书写界面
 class NoteFormPage extends StatefulWidget {
@@ -42,7 +43,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
   final _scrollController = ScrollController();
   bool _editorTouched = false;
 
-  static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+  List<String> get _weekdays => [
+    '周一'.tr, '周二'.tr, '周三'.tr, '周四'.tr, '周五'.tr, '周六'.tr, '周日'.tr,
+  ];
 
   @override
   void initState() {
@@ -199,7 +202,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                         SliverToBoxAdapter(child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           child: Text(
-                            '一共${_contentController.text.length}字',
+                            '一共{n}字'.trf({'n': _contentController.text.length}),
                             style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)),
                           ),
                         )),
@@ -251,7 +254,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                     final shouldPop = await _confirmLeave();
                     if (shouldPop && context.mounted) Navigator.pop(context);
                   }),
-                Expanded(child: Text(_titleController.text.isNotEmpty ? _titleController.text : '新建笔记',
+                Expanded(child: Text(_titleController.text.isNotEmpty ? _titleController.text : '新建笔记'.tr,
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
                   maxLines: 1, overflow: TextOverflow.ellipsis)),
                 if (_saveStatus == 'saved')
@@ -259,10 +262,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
                       const SizedBox(width: 4),
-                      Text('已保存', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                      Text('已保存'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                     ])),
                 FilledButton.icon(onPressed: _saveNote,
-                  icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                  icon: const Icon(Icons.check, size: 16), label: Text('保存'.tr),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
                 const SizedBox(width: 16),
@@ -274,7 +277,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
               child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720),
                 child: TextField(controller: _titleController, maxLines: 1,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.4),
-                  decoration: InputDecoration(hintText: '添加标题',
+                  decoration: InputDecoration(hintText: '添加标题'.tr,
                     hintStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2), height: 1.4),
                     border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
                   onChanged: (_) => setState(() {})),
@@ -307,7 +310,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text('${_contentController.text.length} 字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                Text('{n} 字'.trf({'n': _contentController.text.length}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
               ]),
             ),
           ],
@@ -368,7 +371,12 @@ class _NoteFormPageState extends State<NoteFormPage> {
           ),
           Expanded(
             child: Text(
-              '${_createdAt.year}年${_createdAt.month}月${_createdAt.day}日 周${_weekdays[_createdAt.weekday - 1]}',
+              '{y}年{m}月{d}日 {w}'.trf({
+                'y': _createdAt.year,
+                'm': _createdAt.month,
+                'd': _createdAt.day,
+                'w': _weekdays[_createdAt.weekday - 1],
+              }),
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface),
             ),
           ),
@@ -381,7 +389,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                   Container(width: 6, height: 6,
                     decoration: BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
                   const SizedBox(width: 4),
-                  Text('已保存', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                  Text('已保存'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                 ],
               ),
             ),
@@ -393,7 +401,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 color: colors.primary,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text('保存', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+              child: Text('保存'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onPrimary)),
             ),
           ),
         ],
@@ -427,22 +435,22 @@ class _NoteFormPageState extends State<NoteFormPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _toolBtn(Icons.title, '标题', _insertHeading),
-                  _toolBtn(Icons.format_bold, '粗体', () => _insertMarkdown('**', '**')),
-                  _toolBtn(Icons.format_italic, '斜体', () => _insertMarkdown('*', '*')),
-                  _toolBtn(Icons.format_strikethrough, '删除线', () => _insertMarkdown('~~', '~~')),
+                  _toolBtn(Icons.title, '标题'.tr, _insertHeading),
+                  _toolBtn(Icons.format_bold, '粗体'.tr, () => _insertMarkdown('**', '**')),
+                  _toolBtn(Icons.format_italic, '斜体'.tr, () => _insertMarkdown('*', '*')),
+                  _toolBtn(Icons.format_strikethrough, '删除线'.tr, () => _insertMarkdown('~~', '~~')),
                   _toolGap(),
-                  _toolBtn(Icons.format_list_bulleted, '无序列表', () => _insertMarkdown('- ', '')),
-                  _toolBtn(Icons.format_list_numbered, '有序列表', () => _insertMarkdown('1. ', '')),
-                  _toolBtn(Icons.check_box_outlined, '待办', () => _insertMarkdown('- [ ] ', '')),
-                  _toolBtn(Icons.format_quote, '引用', () => _insertMarkdown('> ', '')),
-                  _toolBtn(Icons.insert_link, '链接', () => _insertMarkdown('[', '](url)')),
+                  _toolBtn(Icons.format_list_bulleted, '无序列表'.tr, () => _insertMarkdown('- ', '')),
+                  _toolBtn(Icons.format_list_numbered, '有序列表'.tr, () => _insertMarkdown('1. ', '')),
+                  _toolBtn(Icons.check_box_outlined, '待办'.tr, () => _insertMarkdown('- [ ] ', '')),
+                  _toolBtn(Icons.format_quote, '引用'.tr, () => _insertMarkdown('> ', '')),
+                  _toolBtn(Icons.insert_link, '链接'.tr, () => _insertMarkdown('[', '](url)')),
                   _toolGap(),
-                  _toolBtn(Icons.code, '行内代码', () => _insertMarkdown('`', '`')),
-                  _toolBtn(Icons.data_object, '代码块', () => _insertMarkdown('```\n', '\n```')),
-                  _toolBtn(Icons.horizontal_rule, '分割线', () => _insertMarkdown('---\n', '')),
+                  _toolBtn(Icons.code, '行内代码'.tr, () => _insertMarkdown('`', '`')),
+                  _toolBtn(Icons.data_object, '代码块'.tr, () => _insertMarkdown('```\n', '\n```')),
+                  _toolBtn(Icons.horizontal_rule, '分割线'.tr, () => _insertMarkdown('---\n', '')),
                   _toolGap(),
-                  _toolBtn(Icons.add_photo_alternate_outlined, '图片', _pickImage),
+                  _toolBtn(Icons.add_photo_alternate_outlined, '图片'.tr, _pickImage),
                 ],
               ),
             ),
@@ -565,7 +573,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           children: [
             Icon(Icons.add, size: 12, color: colors.onSurface.withValues(alpha: 0.35)),
             const SizedBox(width: 2),
-            Text('标签', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+            Text('标签'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
           ],
         ),
       ),
@@ -601,7 +609,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         maxLines: 1,
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: colors.onSurface),
         decoration: InputDecoration(
-          hintText: '添加标题',
+          hintText: '添加标题'.tr,
           hintStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: colors.onSurface.withValues(alpha: 0.2)),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -637,8 +645,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('确认离开', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          content: const Text('内容尚未保存，是否保存后离开？', style: TextStyle(fontSize: 14, height: 1.5)),
+          title: Text('确认离开'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          content: Text('内容尚未保存，是否保存后离开？'.tr, style: const TextStyle(fontSize: 14, height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, 'discard'),
@@ -646,7 +654,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 foregroundColor: colors.error,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('丢弃'),
+              child: Text('丢弃'.tr),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, 'cancel'),
@@ -654,7 +662,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 foregroundColor: colors.onSurface.withValues(alpha: 0.6),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('继续编辑'),
+              child: Text('继续编辑'.tr),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, 'save'),
@@ -665,7 +673,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('保存'),
+              child: Text('保存'.tr),
             ),
           ],
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -694,7 +702,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     final title = _titleController.text.trim();
 
     if (title.isEmpty && content.isEmpty) {
-      ToastUtil.show(context, '标题或内容不能为空');
+      ToastUtil.show(context, '标题或内容不能为空'.tr);
       return;
     }
 
@@ -748,7 +756,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     if (!mounted) return;
 
-    ToastUtil.show(context, _isEditing ? '保存成功' : '添加成功');
+    ToastUtil.show(context, (_isEditing ? '保存成功' : '添加成功').tr);
 
     // 刷新笔记列表
     await context.read<AppProvider>().loadNotes();
@@ -757,7 +765,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ToastUtil.show(context, '保存失败: $e');
+      ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -834,7 +842,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         setState(() => _images.add(targetPath));
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择图片失败: $e');
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -938,15 +946,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          '确认删除',
-          style: TextStyle(
+        title: Text(
+          '确认删除'.tr,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
-          '确定要删除这张图片吗？此操作不可恢复。',
+          '确定要删除这张图片吗？此操作不可恢复。'.tr,
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -960,7 +968,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
               foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () {
@@ -976,7 +984,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

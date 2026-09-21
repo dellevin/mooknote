@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../utils/user_prefs.dart';
 import 'md_viewer_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// Markdown 阅读器 - 文件浏览器
 class MdReaderTabPage extends StatefulWidget {
@@ -94,23 +95,23 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
         return AlertDialog(
-          title: const Text('需要存储权限',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          title: Text('需要存储权限'.tr,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           content: Text(
-            'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能读取目录中的 Markdown 文件。\n\n是否前往设置？',
+            'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能读取目录中的 Markdown 文件。\n\n是否前往设置？'.tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 openAppSettings();
               },
-              child: Text('前往设置', style: TextStyle(color: colors.onSurface)),
+              child: Text('前往设置'.tr, style: TextStyle(color: colors.onSurface)),
             ),
           ],
         );
@@ -198,7 +199,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
       if (!exists) {
         if (mounted) {
           setState(() {
-            _error = '目录不存在: $_currentPath';
+            _error = '目录不存在: {path}'.trf({'path': _currentPath});
             _isLoading = false;
           });
         }
@@ -248,7 +249,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
           _currentPath = null;
         }
         setState(() {
-          _error = isPermissionError ? '权限不足，请重新选择目录' : '读取失败: $e';
+          _error = isPermissionError ? '权限不足，请重新选择目录'.tr : '读取失败: {e}'.trf({'e': e});
           _isLoading = false;
         });
       }
@@ -302,17 +303,17 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('目录显示设置',
+                  child: Text('目录显示设置'.tr,
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('显示空目录',
+                  title: Text('显示空目录'.tr,
                       style: TextStyle(
                           fontSize: 14, color: colors.onSurface.withValues(alpha: 0.75))),
-                  subtitle: Text('关闭后隐藏无 Markdown 文件的目录',
+                  subtitle: Text('关闭后隐藏无 Markdown 文件的目录'.tr,
                       style:
                           TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                   value: _showEmptyDirs,
@@ -327,10 +328,10 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                 Divider(height: 0.5, color: colors.outlineVariant),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('显示纯图片目录',
+                  title: Text('显示纯图片目录'.tr,
                       style: TextStyle(
                           fontSize: 14, color: colors.onSurface.withValues(alpha: 0.75))),
-                  subtitle: Text('关闭后隐藏只含图片、无 Markdown 的目录',
+                  subtitle: Text('关闭后隐藏只含图片、无 Markdown 的目录'.tr,
                       style:
                           TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                   value: _showImageOnlyDirs,
@@ -363,7 +364,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         title: Text(
-          _currentPath != null ? p.basename(_currentPath!) : 'Markdown 阅读',
+          _currentPath != null ? p.basename(_currentPath!) : 'Markdown 阅读'.tr,
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface),
         ),
         leading: IconButton(
@@ -383,7 +384,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: colors.outline, width: 0.5),
                   ),
-                  child: Text('更换目录',
+                  child: Text('更换目录'.tr,
                       style: TextStyle(
                           fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
                 ),
@@ -499,11 +500,11 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                   size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
             ),
             const SizedBox(height: 24),
-            Text('Markdown 阅读',
+            Text('Markdown 阅读'.tr,
                 style: TextStyle(
                     fontSize: 20, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const SizedBox(height: 8),
-            Text('选择一个包含 .md 文件的文件夹',
+            Text('选择一个包含 .md 文件的文件夹'.tr,
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 32),
             GestureDetector(
@@ -514,7 +515,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                   color: colors.primary,
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: Text('选择目录',
+                child: Text('选择目录'.tr,
                     style: TextStyle(
                         fontSize: 15, color: colors.onPrimary, fontWeight: FontWeight.w500)),
               ),
@@ -532,7 +533,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
         children: [
           Icon(Icons.folder_open_outlined, size: 64, color: colors.outline),
           const SizedBox(height: 16),
-          Text('此目录下没有 Markdown 文件',
+          Text('此目录下没有 Markdown 文件'.tr,
               style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 4),
           Text(_currentPath ?? '',
@@ -547,7 +548,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                _canGoBack ? '返回上级目录' : '换一个目录',
+                _canGoBack ? '返回上级目录'.tr : '换一个目录'.tr,
                 style: TextStyle(
                     fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5)),
               ),
@@ -572,7 +573,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                 textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            Text('路径: ${_currentPath ?? ""}',
+            Text('路径: {path}'.trf({'path': _currentPath ?? ""}),
                 style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
             const SizedBox(height: 24),
             Row(
@@ -586,7 +587,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                       color: colors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('重试',
+                    child: Text('重试'.tr,
                         style: TextStyle(fontSize: 13, color: colors.onPrimary)),
                   ),
                 ),
@@ -599,7 +600,7 @@ class _MdReaderTabPageState extends State<MdReaderTabPage> {
                       border: Border.all(color: colors.onSurface.withValues(alpha: 0.15)),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('更换目录',
+                    child: Text('更换目录'.tr,
                         style: TextStyle(
                             fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
                   ),

@@ -5,6 +5,7 @@ import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import 'person_avatar.dart';
 import 'person_info_sheet.dart';
+import '../l10n/app_strings.dart';
 
 /// 作品详情页使用的"关联人物"区块
 /// 根据 workType + workId 加载关联的 Person 列表并展示
@@ -146,7 +147,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
     // 非演员/配音角色：去重后按权重排序
     final nonPerf = item.roleTypes.where((r) => !perfRoleTypes.contains(r)).toSet().toList()
       ..sort((a, b) => _roleWeight(a).compareTo(_roleWeight(b)));
-    parts.addAll(nonPerf.map(_roleLabel));
+    parts.addAll(nonPerf.map((r) => _roleLabel(r).tr));
 
     // 演员/配音角色：每个饰演角色名单独成段
     for (final roleType in perfRoleTypes) {
@@ -154,10 +155,10 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
       final label = _roleLabel(roleType);
       final names = item.characters[roleType] ?? const [];
       if (names.isEmpty) {
-        parts.add(label);
+        parts.add(label.tr);
       } else {
         for (final c in names) {
-          parts.add('$label 饰 $c');
+          parts.add('{label} 饰 {name}'.trf({'label': label.tr, 'name': c}));
         }
       }
     }
@@ -192,7 +193,7 @@ class _WorkPeopleSectionState extends State<WorkPeopleSection> {
               ),
               const SizedBox(width: 8),
               Text(
-                '人物',
+                '人物'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

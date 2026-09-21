@@ -24,6 +24,7 @@ import 'search_sheet.dart';
 import 'epub_selection_toolbar.dart';
 import 'selection_handles.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 part 'mixins/spine_navigation_mixin.dart';
 part 'mixins/page_navigation_mixin.dart';
@@ -305,7 +306,7 @@ class _ReaderScreenState extends State<ReaderScreen>
       if (epubInfo == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('EPUB 解析失败')),
+            SnackBar(content: Text('EPUB 解析失败'.tr)),
           );
           Navigator.of(context).pop();
         }
@@ -329,7 +330,7 @@ class _ReaderScreenState extends State<ReaderScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载书籍失败: $e')),
+          SnackBar(content: Text('加载书籍失败: {e}'.trf({'e': e}))),
         );
         Navigator.of(context).pop();
       }
@@ -356,7 +357,7 @@ class _ReaderScreenState extends State<ReaderScreen>
     if (existing != null) {
       // 删除已有书签
       await _readerDao.deleteBookmark(existing['id'] as int);
-      if (mounted) ToastUtil.show(context, '已移除书签');
+      if (mounted) ToastUtil.show(context, '已移除书签'.tr);
     } else {
       // 添加书签
       // 尝试从 TOC 找更友好的标题
@@ -383,7 +384,7 @@ class _ReaderScreenState extends State<ReaderScreen>
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       });
-      if (mounted) ToastUtil.show(context, '已添加书签');
+      if (mounted) ToastUtil.show(context, '已添加书签'.tr);
     }
     await _loadBookmarks();
   }
@@ -453,7 +454,7 @@ class _ReaderScreenState extends State<ReaderScreen>
             setState(() => currentSpineItemIndex = spineIndex);
             loadCarousel(restoreScrollRatio: scrollRatio);
           } else if (mounted) {
-            ToastUtil.show(context, '章节位置无效');
+            ToastUtil.show(context, '章节位置无效'.tr);
           }
         },
       ),

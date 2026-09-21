@@ -114,14 +114,14 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     final spineIndex = _selectionSpineIndex;
     final info = _selectionInfo;
     if (text == null || spineIndex == null || info == null) {
-      ToastUtil.show(context, '选区信息已失效，请重新选择');
+      ToastUtil.show(context, '选区信息已失效，请重新选择'.tr);
       _dismissSelectionToolbar();
       return;
     }
 
     final controller = _webViewControllerMixin;
     if (controller == null) {
-      ToastUtil.show(context, '阅读器未就绪');
+      ToastUtil.show(context, '阅读器未就绪'.tr);
       return;
     }
 
@@ -133,7 +133,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
         h['color'] != 'excerpt');
     if (dup) {
       if (!mounted) return;
-      ToastUtil.show(context, '该内容已高亮');
+      ToastUtil.show(context, '该内容已高亮'.tr);
       _dismissSelectionToolbar();
       return;
     }
@@ -163,7 +163,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     await controller.applyHighlight(info, id.toString(), color: 'highlight', text: text);
 
     if (!mounted) return;
-    ToastUtil.show(context, '已高亮');
+    ToastUtil.show(context, '已高亮'.tr);
     _dismissSelectionToolbar();
   }
 
@@ -173,7 +173,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     if (text == null) return;
     await copyTextToClipboard(text);
     if (!mounted) return;
-    ToastUtil.show(context, '已复制');
+    ToastUtil.show(context, '已复制'.tr);
     _dismissSelectionToolbar();
   }
 
@@ -183,14 +183,14 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     final spineIndex = _selectionSpineIndex;
     final info = _selectionInfo;
     if (text == null || info == null) {
-      ToastUtil.show(context, '选区信息已失效，请重新选择');
+      ToastUtil.show(context, '选区信息已失效，请重新选择'.tr);
       _dismissSelectionToolbar();
       return;
     }
 
     final linkedBookId = bookSession.book['book_id'] as String? ?? '';
     if (linkedBookId.isEmpty) {
-      ToastUtil.show(context, '请先在 EPUB 详情页关联书籍后再摘抄');
+      ToastUtil.show(context, '请先在 EPUB 详情页关联书籍后再摘抄'.tr);
       _dismissSelectionToolbar();
       return;
     }
@@ -203,7 +203,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
         h['color'] == 'excerpt');
     if (dup) {
       if (!mounted) return;
-      ToastUtil.show(context, '该内容已摘抄');
+      ToastUtil.show(context, '该内容已摘抄'.tr);
       _dismissSelectionToolbar();
       return;
     }
@@ -257,7 +257,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     }
 
     if (!mounted) return;
-    ToastUtil.show(context, '已保存到摘抄');
+    ToastUtil.show(context, '已保存到摘抄'.tr);
     _dismissSelectionToolbar();
   }
 
@@ -276,7 +276,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
       await controller.removeHighlight(id.toString());
     }
     if (!mounted) return;
-    ToastUtil.show(context, '已取消高亮');
+    ToastUtil.show(context, '已取消高亮'.tr);
     _dismissSelectionToolbar();
   }
 
@@ -311,7 +311,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     }
 
     if (!mounted) return;
-    ToastUtil.show(context, '已取消摘抄');
+    ToastUtil.show(context, '已取消摘抄'.tr);
     _dismissSelectionToolbar();
   }
 

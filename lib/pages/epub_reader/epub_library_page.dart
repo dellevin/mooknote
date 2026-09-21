@@ -9,6 +9,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import 'epub_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// EPUB 书架页面
 class EpubLibraryPage extends StatefulWidget {
@@ -83,7 +84,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     if (path == null) return;
     if (!path.toLowerCase().endsWith('.epub')) {
       if (mounted) {
-        ToastUtil.show(context, '\u4EC5\u652F\u6301\u5BFC\u5165 .epub \u683C\u5F0F\u7684\u6587\u4EF6');
+        ToastUtil.show(context, '\u4EC5\u652F\u6301\u5BFC\u5165 .epub \u683C\u5F0F\u7684\u6587\u4EF6'.tr);
       }
       return;
     }
@@ -102,7 +103,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     if (imported != null) {
       await _loadBooks();
     } else if (mounted) {
-      ToastUtil.show(context, 'EPUB \u89E3\u6790\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u6587\u4EF6');
+      ToastUtil.show(context, 'EPUB \u89E3\u6790\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u6587\u4EF6'.tr);
     }
   }
 
@@ -114,9 +115,9 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('删除书籍',
+        title: Text('删除书籍'.tr,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定删除《${book['title']}》？',
+        content: Text('确定删除《{title}》？'.trf({'title': book['title']}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
@@ -126,7 +127,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -137,7 +138,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
       ),
@@ -162,10 +163,10 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   void _showSortMenu() {
     final colors = Theme.of(context).colorScheme;
     final options = [
-      (0, '按更新时间排序', Icons.update),
-      (1, '按创建时间排序', Icons.calendar_today_outlined),
-      (2, '按阅读进度排序', Icons.auto_stories_outlined),
-      (3, '按书名排序', Icons.sort_by_alpha),
+      (0, '按更新时间排序'.tr, Icons.update),
+      (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+      (2, '按阅读进度排序'.tr, Icons.auto_stories_outlined),
+      (3, '按书名排序'.tr, Icons.sort_by_alpha),
     ];
     appModalBottomSheet(
       context: context,
@@ -176,7 +177,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
           Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
               decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('书架排序', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+              child: Text('书架排序'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
           const SizedBox(height: 8),
           for (int i = 0; i < options.length; i++) ...[
             if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
@@ -228,13 +229,13 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
                 autofocus: true,
                 style: TextStyle(fontSize: 16, color: colors.onSurface),
                 decoration: InputDecoration(
-                  hintText: '搜索书名或作者',
+                  hintText: '搜索书名或作者'.tr,
                   hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.35)),
                   border: InputBorder.none,
                 ),
                 onChanged: (_) => _onSearchChanged(),
               )
-            : Text('阅读',
+            : Text('阅读'.tr,
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
         leading: IconButton(
           icon: Icon(_isSearching ? Icons.close : Icons.arrow_back, size: 20),
@@ -256,11 +257,11 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
               Expanded(child: _isSearching
                   ? TextField(controller: _searchCtrl, autofocus: true,
                       style: TextStyle(fontSize: 14, color: colors.onSurface),
-                      decoration: InputDecoration(hintText: '搜索书名或作者',
+                      decoration: InputDecoration(hintText: '搜索书名或作者'.tr,
                         hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
                         border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
                       onChanged: (_) => _onSearchChanged())
-                  : Text('阅读',
+                  : Text('阅读'.tr,
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)))),
               ..._buildActions(colors),
             ]),
@@ -271,7 +272,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
             : _books.isEmpty
                 ? _buildEmpty(colors)
                 : _filteredBooks.isEmpty
-                    ? Center(child: Text('无搜索结果', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))))
+                    ? Center(child: Text('无搜索结果'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))))
                     : RefreshIndicator(
                         color: colors.primary,
                         onRefresh: _loadBooks,
@@ -298,7 +299,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Text(
-        '书架 (${_filteredBooks.length})',
+        '书架 ({n})'.trf({'n': _filteredBooks.length}),
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
@@ -344,10 +345,10 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
                   size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
             ),
             const SizedBox(height: 24),
-            Text('阅读',
+            Text('阅读'.tr,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: colors.onSurface)),
             const SizedBox(height: 8),
-            Text('点击右上角导入 .epub 文件',
+            Text('点击右上角导入 .epub 文件'.tr,
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 32),
             GestureDetector(
@@ -358,7 +359,7 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
                   color: colors.primary,
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: Text('导入 EPUB',
+                child: Text('导入 EPUB'.tr,
                     style: TextStyle(fontSize: 15, color: colors.onPrimary, fontWeight: FontWeight.w500)),
               ),
             ),
@@ -427,13 +428,13 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
     final String statusLabel;
     final Color statusColor;
     if (progress >= 1.0) {
-      statusLabel = '已读';
+      statusLabel = '已读'.tr;
       statusColor = const Color(0xFF16A34A);
     } else if (progress > 0.0) {
-      statusLabel = '在读';
+      statusLabel = '在读'.tr;
       statusColor = colors.primary;
     } else {
-      statusLabel = '未读';
+      statusLabel = '未读'.tr;
       statusColor = const Color(0xFFDC2626);
     }
 
@@ -569,19 +570,19 @@ class _EpubLibraryPageState extends State<EpubLibraryPage> {
   String _formatRelativeDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
-    if (diff.isNegative) return '${date.month}月${date.day}日';
+    if (diff.isNegative) return '{m}月{d}日'.trf({'m': date.month, 'd': date.day});
     if (diff.inDays == 0) {
       if (diff.inHours == 0) {
-        if (diff.inMinutes == 0) return '刚刚';
-        return '${diff.inMinutes}分钟前';
+        if (diff.inMinutes == 0) return '刚刚'.tr;
+        return '{n}分钟前'.trf({'n': diff.inMinutes});
       }
-      return '${diff.inHours}小时前';
+      return '{n}小时前'.trf({'n': diff.inHours});
     } else if (diff.inDays < 7) {
-      return '${diff.inDays}天前';
+      return '{n}天前'.trf({'n': diff.inDays});
     } else if (diff.inDays < 30) {
-      return '${(diff.inDays / 7).floor()}周前';
+      return '{n}周前'.trf({'n': (diff.inDays / 7).floor()});
     } else {
-      return '${date.month}月${date.day}日';
+      return '{m}月{d}日'.trf({'m': date.month, 'd': date.day});
     }
   }
 }

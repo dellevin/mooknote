@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/font_download_manager.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
@@ -66,23 +67,23 @@ class _FontPickerPageState extends State<FontPickerPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('需要存储权限',
+        title: Text('需要存储权限'.tr,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Text(
-          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能扫描字体文件。\n\n是否前往设置？',
+          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能扫描字体文件。\n\n是否前往设置？'.tr,
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               openAppSettings();
             },
-            child: Text('前往设置', style: TextStyle(color: colors.primary)),
+            child: Text('前往设置'.tr, style: TextStyle(color: colors.primary)),
           ),
         ],
       ),
@@ -102,13 +103,13 @@ class _FontPickerPageState extends State<FontPickerPage> {
           _isScanning = false;
         });
         if (fonts.isEmpty) {
-          ToastUtil.show(context, '未找到字体文件');
+          ToastUtil.show(context, '未找到字体文件'.tr);
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isScanning = false);
-        ToastUtil.show(context, '扫描失败: $e');
+        ToastUtil.show(context, '扫描失败: {e}'.trf({'e': e}));
       }
     }
   }
@@ -116,7 +117,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
   /// 扫描当前目录字体
   Future<void> _rescanDirectory() async {
     if (_currentDirPath == null || _currentDirPath!.isEmpty) {
-      ToastUtil.show(context, '请先选择字体目录');
+      ToastUtil.show(context, '请先选择字体目录'.tr);
       return;
     }
     await _scanDirectory(_currentDirPath!);
@@ -139,7 +140,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
         await _scanDirectory(result);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择目录失败: $e');
+      if (mounted) ToastUtil.show(context, '选择目录失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -153,14 +154,14 @@ class _FontPickerPageState extends State<FontPickerPage> {
       if (family != null) {
         setState(() => _selectedFamily = family);
         if (mounted) {
-          ToastUtil.show(context, '已应用: ${font.displayName}');
+          ToastUtil.show(context, '已应用: {name}'.trf({'name': font.displayName}));
           Navigator.pop(context, family);
         }
       } else {
-        if (mounted) ToastUtil.show(context, '字体加载失败');
+        if (mounted) ToastUtil.show(context, '字体加载失败'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '加载失败: $e');
+      if (mounted) ToastUtil.show(context, '加载失败: {e}'.trf({'e': e}));
     } finally {
       setState(() => _loadingPath = null);
     }
@@ -172,13 +173,13 @@ class _FontPickerPageState extends State<FontPickerPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('选择字体'),
+        title: Text('选择字体'.tr),
         actions: [
           // 默认字体按钮
           TextButton(
             onPressed: () => Navigator.pop(context, ''),
             child: Text(
-              '恢复默认',
+              '恢复默认'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: colors.primary,
@@ -203,7 +204,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '字体目录',
+                  '字体目录'.tr,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -233,7 +234,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  _currentDirPath ?? '点击选择字体目录',
+                                  _currentDirPath ?? '点击选择字体目录'.tr,
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: _currentDirPath != null
@@ -269,7 +270,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('扫描', style: TextStyle(fontSize: 13)),
+                      child: Text('扫描'.tr, style: const TextStyle(fontSize: 13)),
                     ),
                   ],
                 ),
@@ -320,7 +321,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            '未找到字体文件',
+            '未找到字体文件'.tr,
             style: TextStyle(
               fontSize: 14,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -328,7 +329,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            '支持 .ttf / .otf / .ttc 格式',
+            '支持 .ttf / .otf / .ttc 格式'.tr,
             style: TextStyle(
               fontSize: 12,
               color: colors.onSurface.withValues(alpha: 0.25),

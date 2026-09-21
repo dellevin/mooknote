@@ -7,6 +7,7 @@ import '../../widgets/fade_in_local_image.dart';
 import 'playlist_create_page.dart';
 import 'playlist_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 class PlaylistListPage extends StatefulWidget {
   const PlaylistListPage({super.key});
@@ -66,7 +67,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('书影片单'),
+            title: Text('书影片单'.tr),
             actions: [
               IconButton(
                 icon: Icon(_layoutStyle == 0 ? Icons.grid_view : Icons.view_list, size: 20),
@@ -113,9 +114,9 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
             child: Icon(Icons.playlist_play, size: 36, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 16),
-          Text('还没有片单', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('还没有片单'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
-          Text('点击右上角 + 创建一个片单吧', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('点击右上角 + 创建一个片单吧'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -307,7 +308,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                                 children: [
                                   Icon(Icons.collections_outlined, size: 13, color: colors.onSurface.withValues(alpha: 0.3)),
                                   const SizedBox(width: 4),
-                                  Text('${playlist.itemCount} 个条目',
+                                  Text('{n} 个条目'.trf({'n': playlist.itemCount}),
                                       style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
                                   const Spacer(),
                                   Text(_formatDate(playlist.updatedAt),
@@ -412,7 +413,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(compact ? 3 : 4),
       ),
-      child: Text(label,
+      child: Text(label.tr,
           style: TextStyle(
             fontSize: compact ? 9 : 10,
             fontWeight: FontWeight.w500,
@@ -433,9 +434,9 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inDays == 0) return '今天';
-    if (diff.inDays == 1) return '昨天';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
+    if (diff.inDays == 0) return '今天'.tr;
+    if (diff.inDays == 1) return '昨天'.tr;
+    if (diff.inDays < 7) return '{n}天前'.trf({'n': diff.inDays});
     return '${dt.month}/${dt.day}';
   }
 
@@ -583,7 +584,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
             _buildSheetAction(
               context: ctx,
               icon: Icons.edit_outlined,
-              label: '编辑片单',
+              label: '编辑片单'.tr,
               color: colors.primary,
               onTap: () async {
                 Navigator.pop(ctx);
@@ -601,7 +602,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
             _buildSheetAction(
               context: ctx,
               icon: Icons.delete_outline,
-              label: '删除片单',
+              label: '删除片单'.tr,
               color: colors.error,
               onTap: () async {
                 Navigator.pop(ctx);
@@ -649,13 +650,13 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除片单「${playlist.name}」吗？',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除片单「{name}」吗？'.trf({'name': playlist.name}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -670,7 +671,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

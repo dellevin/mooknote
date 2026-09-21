@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../widgets/person_avatar.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
+import '../../l10n/app_strings.dart';
 
 /// 角色信息页面 - 列出所有导演/主演/编剧/作者
 class PersonListPage extends StatefulWidget {
@@ -89,7 +90,7 @@ class _PersonListPageState extends State<PersonListPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('角色信息'),
+        title: Text('角色信息'.tr),
         actions: [
           IconButton(
             icon: _loading
@@ -121,7 +122,7 @@ class _PersonListPageState extends State<PersonListPage> {
                       style: TextStyle(fontSize: 15, color: colors.onSurface),
                       cursorColor: colors.primary,
                       decoration: InputDecoration(
-                        hintText: '搜索导演、编剧、演员、作者、译者',
+                        hintText: '搜索导演、编剧、演员、作者、译者'.tr,
                         hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -169,7 +170,7 @@ class _PersonListPageState extends State<PersonListPage> {
                           color: _filter == f ? colors.primary : colors.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(f == 'all' ? '全部' : f,
+                        child: Text(f == 'all' ? '全部'.tr : f.tr,
                             style: TextStyle(fontSize: 12, fontWeight: _filter == f ? FontWeight.w600 : FontWeight.normal,
                                 color: _filter == f ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
                       ),
@@ -184,14 +185,14 @@ class _PersonListPageState extends State<PersonListPage> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('共 ${filtered.length} 人', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+              child: Text('共 {n} 人'.trf({'n': filtered.length}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
             ),
           ),
 
           // 列表
           Expanded(
             child: filtered.isEmpty
-                ? Center(child: Text('暂无数据', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))))
+                ? Center(child: Text('暂无数据'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))))
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: filtered.length,
@@ -235,9 +236,9 @@ class _PersonListPageState extends State<PersonListPage> {
                   color: (roleColors[role] ?? colors.outline).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(role, style: TextStyle(fontSize: 10, color: roleColors[role] ?? colors.onSurface)),
+                child: Text(role.tr, style: TextStyle(fontSize: 10, color: roleColors[role] ?? colors.onSurface)),
               ),
-            Text('$totalWorks 部作品', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.35))),
+            Text('{n} 部作品'.trf({'n': totalWorks}), style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.35))),
           ],
         ),
       ),
@@ -301,7 +302,7 @@ class _PersonDetailPage extends StatelessWidget {
                     color: (roleColors[role] ?? colors.outline).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(role, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: roleColors[role] ?? colors.onSurface)),
+                  child: Text(role.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: roleColors[role] ?? colors.onSurface)),
                 ),
             ],
           ),
@@ -309,7 +310,7 @@ class _PersonDetailPage extends StatelessWidget {
 
           // 影视作品
           if (movieItems.isNotEmpty) ...[
-            Text('影视作品（${movieItems.length}）', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+            Text('影视作品（{n}）'.trf({'n': movieItems.length}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 8),
             for (final item in movieItems) _buildWorkTile(context, item, colors, isMovie: true),
             const SizedBox(height: 16),
@@ -317,7 +318,7 @@ class _PersonDetailPage extends StatelessWidget {
 
           // 书籍作品
           if (bookItems.isNotEmpty) ...[
-            Text('书籍作品（${bookItems.length}）', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+            Text('书籍作品（{n}）'.trf({'n': bookItems.length}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 8),
             for (final item in bookItems) _buildWorkTile(context, item, colors, isMovie: false),
           ],
@@ -366,7 +367,7 @@ class _PersonDetailPage extends StatelessWidget {
                   Text(item.title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 3),
-                  Text(item.roles.join(' · '), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                  Text(item.roles.map((r) => r.tr).join(' · '), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                 ]),
               ),
               Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),

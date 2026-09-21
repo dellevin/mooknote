@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../main.dart' show routeObserver;
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
@@ -101,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     onPressed: () => Scaffold.of(context).openDrawer(),
                   ),
                 ),
-          title: const Text('我的'),
+          title: Text('我的'.tr),
         ),
         Expanded(
           child: Consumer<AppProvider>(
@@ -233,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                                       ? Colors.white
                                       : colors.onSurface)),
                           const SizedBox(height: 4),
-                          Text(_motto,
+                          Text(_motto.tr,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -250,10 +251,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    if (_userPrefs.showMovieTab) _buildHeroStat(_formatCount(movies.length), '观影', hasData),
-                    if (_userPrefs.showBookTab) _buildHeroStat(_formatCount(books.length), '阅读', hasData),
-                    if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记', hasData),
-                    if (_userPrefs.showGameTab) _buildHeroStat(_formatCount(games.length), '游戏', hasData),
+                    if (_userPrefs.showMovieTab) _buildHeroStat(_formatCount(movies.length), '观影'.tr, hasData),
+                    if (_userPrefs.showBookTab) _buildHeroStat(_formatCount(books.length), '阅读'.tr, hasData),
+                    if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记'.tr, hasData),
+                    if (_userPrefs.showGameTab) _buildHeroStat(_formatCount(games.length), '游戏'.tr, hasData),
                   ],
                 ),
               ],
@@ -356,7 +357,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Text(title,
+              Text(title.tr,
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -412,11 +413,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            _buildStatusTag('已通关', completed, true, colors),
+            _buildStatusTag('已通关'.tr, completed, true, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('在玩', playing, false, colors),
+            _buildStatusTag('在玩'.tr, playing, false, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('想玩', wantTo, false, colors),
+            _buildStatusTag('想玩'.tr, wantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 10),
@@ -437,7 +438,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             ),
           )
         else
-          _buildEmptyHint('暂无游戏记录'),
+          _buildEmptyHint('暂无游戏记录'.tr),
       ],
     );
   }
@@ -458,11 +459,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            _buildStatusTag('已看', watched, true, colors),
+            _buildStatusTag('已看'.tr, watched, true, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('在看', watching, false, colors),
+            _buildStatusTag('在看'.tr, watching, false, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('想看', wantTo, false, colors),
+            _buildStatusTag('想看'.tr, wantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 10),
@@ -483,7 +484,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             ),
           )
         else
-          _buildEmptyHint('暂无影视记录'),
+          _buildEmptyHint('暂无影视记录'.tr),
       ],
     );
   }
@@ -504,11 +505,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            _buildStatusTag('已读', read, true, colors),
+            _buildStatusTag('已读'.tr, read, true, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('在读', reading, false, colors),
+            _buildStatusTag('在读'.tr, reading, false, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('想读', wantTo, false, colors),
+            _buildStatusTag('想读'.tr, wantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 10),
@@ -529,7 +530,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             ),
           )
         else
-          _buildEmptyHint('暂无阅读记录'),
+          _buildEmptyHint('暂无阅读记录'.tr),
       ],
     );
   }
@@ -540,7 +541,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     final recent = notes.toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    if (recent.isEmpty) return _buildEmptyHint('暂无笔记记录');
+    if (recent.isEmpty) return _buildEmptyHint('暂无笔记记录'.tr);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -737,7 +738,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Text('想看清单',
+              Text('想看清单'.tr,
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -751,7 +752,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('全部',
+                    Text('全部'.tr,
                         style: TextStyle(
                             fontSize: 12,
                             color: colors.onSurface.withValues(alpha: 0.4))),
@@ -769,15 +770,15 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
             if (_userPrefs.showMovieTab) ...[
-              _buildStatusTag('影视', movieWantTo, true, colors),
+              _buildStatusTag('影视'.tr, movieWantTo, true, colors),
               const SizedBox(width: 10),
             ],
             if (_userPrefs.showBookTab) ...[
-              _buildStatusTag('书籍', bookWantTo, false, colors),
+              _buildStatusTag('书籍'.tr, bookWantTo, false, colors),
               const SizedBox(width: 10),
             ],
             if (_userPrefs.showGameTab)
-              _buildStatusTag('游戏', gameWantTo, false, colors),
+              _buildStatusTag('游戏'.tr, gameWantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 12),
@@ -785,7 +786,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Center(
-                child: Text('暂无想看记录',
+                child: Text('暂无想看记录'.tr,
                     style: TextStyle(
                         fontSize: 13,
                         color: colors.onSurface.withValues(alpha: 0.3)))),
@@ -891,7 +892,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              Text('常用标签',
+              Text('常用标签'.tr,
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -905,7 +906,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('管理',
+                    Text('管理'.tr,
                         style: TextStyle(
                             fontSize: 12,
                             color: colors.onSurface.withValues(alpha: 0.4))),
@@ -951,37 +952,37 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     final tools = [
       (
         Icons.explore_outlined,
-        '漫步',
+        '漫步'.tr,
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const StrollPage()))
       ),
       (
         Icons.analytics_outlined,
-        '数据统计',
+        '数据统计'.tr,
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
       ),
       (
         Icons.add_circle_outline,
-        '快捷添加',
+        '快捷添加'.tr,
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const QuickAddPage()))
       ),
-      (Icons.backup_outlined, '数据备份', () => _showBackupOptions(context)),
-      (Icons.ios_share_outlined, 'EXCEL导出', () => _showExportOptions(context)),
+      (Icons.backup_outlined, '数据备份'.tr, () => _showBackupOptions(context)),
+      (Icons.ios_share_outlined, 'EXCEL导出'.tr, () => _showExportOptions(context)),
       (
         Icons.settings_outlined,
-        '设置',
+        '设置'.tr,
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const SettingsPage()))
       ),
       (
         Icons.delete_outline,
-        '回收站',
+        '回收站'.tr,
         () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
       ),
-      (Icons.feedback_outlined, 'BUG反馈', () => _showFeedbackDialog(context)),
+      (Icons.feedback_outlined, 'BUG反馈'.tr, () => _showFeedbackDialog(context)),
     ];
 
     return Padding(
@@ -1051,7 +1052,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   }
 
   String _formatCount(int count) {
-    if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
+    if (count >= 10000) {
+      return AppStrings.isEnglish
+          ? '${(count / 1000000).toStringAsFixed(1)}M'
+          : '${(count / 10000).toStringAsFixed(1)}万';
+    }
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return count.toString();
   }
@@ -1079,7 +1084,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('反馈',
+                  child: Text('反馈'.tr,
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -1102,7 +1107,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('作者邮箱',
+                        Text('作者邮箱'.tr,
                             style: TextStyle(
                                 fontSize: 12,
                                 color:
@@ -1119,7 +1124,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   GestureDetector(
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: email));
-                      ToastUtil.show(context, '已复制到剪贴板');
+                      ToastUtil.show(context, '已复制到剪贴板'.tr);
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -1133,7 +1138,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         children: [
                           Icon(Icons.copy, size: 14, color: colors.primary),
                           const SizedBox(width: 4),
-                          Text('复制',
+                          Text('复制'.tr,
                               style: TextStyle(
                                   fontSize: 12,
                                   color: colors.primary,
@@ -1164,7 +1169,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('QQ 群',
+                        Text('QQ 群'.tr,
                             style: TextStyle(
                                 fontSize: 12,
                                 color:
@@ -1181,7 +1186,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   GestureDetector(
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: '1087203310'));
-                      ToastUtil.show(context, '已复制到剪贴板');
+                      ToastUtil.show(context, '已复制到剪贴板'.tr);
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -1195,7 +1200,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         children: [
                           Icon(Icons.copy, size: 14, color: colors.primary),
                           const SizedBox(width: 4),
-                          Text('复制',
+                          Text('复制'.tr,
                               style: TextStyle(
                                   fontSize: 12,
                                   color: colors.primary,
@@ -1236,7 +1241,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('更换头像',
+                  child: Text('更换头像'.tr,
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -1252,7 +1257,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.folder_outlined,
                     size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
-            title: Text('从文件管理器选择',
+            title: Text('从文件管理器选择'.tr,
                 style: TextStyle(fontSize: 14, color: colors.onSurface)),
             trailing: Icon(Icons.chevron_right,
                 color: colors.onSurface.withValues(alpha: 0.25)),
@@ -1277,7 +1282,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       borderRadius: BorderRadius.circular(10)),
                   child: Icon(Icons.delete_outline,
                       size: 20, color: colors.error)),
-              title: Text('移除头像',
+              title: Text('移除头像'.tr,
                   style: TextStyle(fontSize: 14, color: colors.error)),
               trailing: Icon(Icons.chevron_right,
                   color: colors.onSurface.withValues(alpha: 0.25)),
@@ -1312,7 +1317,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         setState(() => _avatarPath = savedPath);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择头像失败');
+      if (mounted) ToastUtil.show(context, '选择头像失败'.tr);
     }
   }
 
@@ -1339,7 +1344,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             const SizedBox(height: 20),
             Align(
                 alignment: Alignment.centerLeft,
-                child: Text('选择备份方式',
+                child: Text('选择备份方式'.tr,
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1355,12 +1360,12 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       borderRadius: BorderRadius.circular(10)),
                   child: Icon(Icons.folder_outlined,
                       color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('本地备份',
+              title: Text('本地备份'.tr,
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: colors.onSurface)),
-              subtitle: Text('备份到本地文件夹，支持恢复',
+              subtitle: Text('备份到本地文件夹，支持恢复'.tr,
                   style: TextStyle(
                       fontSize: 11,
                       color: colors.onSurface.withValues(alpha: 0.4))),
@@ -1382,12 +1387,12 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                       borderRadius: BorderRadius.circular(10)),
                   child: Icon(Icons.cloud_outlined,
                       color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('云备份',
+              title: Text('云备份'.tr,
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: colors.onSurface)),
-              subtitle: Text('通过 WebDAV 同步到云端',
+              subtitle: Text('通过 WebDAV 同步到云端'.tr,
                   style: TextStyle(
                       fontSize: 11,
                       color: colors.onSurface.withValues(alpha: 0.4))),
@@ -1441,7 +1446,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             const SizedBox(height: 20),
             Align(
                 alignment: Alignment.centerLeft,
-                child: Text('选择导出类型',
+                child: Text('选择导出类型'.tr,
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1449,7 +1454,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             const SizedBox(height: 4),
             Align(
                 alignment: Alignment.centerLeft,
-                child: Text('导出为 Excel (.xlsx) 格式',
+                child: Text('导出为 Excel (.xlsx) 格式'.tr,
                     style: TextStyle(
                         fontSize: 11,
                         color: colors.onSurface.withValues(alpha: 0.4)))),
@@ -1466,12 +1471,12 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     child: Icon(icon,
                         size: 18,
                         color: colors.onSurface.withValues(alpha: 0.6))),
-                title: Text(label,
+                title: Text(label.tr,
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: colors.onSurface)),
-                subtitle: Text('$count 条记录',
+                subtitle: Text('{n} 条记录'.trf({'n': count}),
                     style: TextStyle(
                         fontSize: 11,
                         color: colors.onSurface.withValues(alpha: 0.4))),
@@ -1514,10 +1519,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               provider.notes.where((n) => !n.isDeleted).toList());
       }
       if (!context.mounted) return;
-      _showExportResult(context, true, '已导出到 ${file.path}');
+      _showExportResult(context, true, '已导出到 {path}'.trf({'path': file.path}));
     } catch (e) {
       if (!context.mounted) return;
-      _showExportResult(context, false, '导出失败：$e');
+      _showExportResult(context, false, '导出失败：{e}'.trf({'e': e}));
     }
   }
 
@@ -1540,7 +1545,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('确定'),
+            child: Text('确定'.tr),
           ),
         ],
       ),

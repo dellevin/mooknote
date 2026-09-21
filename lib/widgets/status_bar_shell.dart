@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 
 /// 通用状态选择栏，支持 4 种样式
 ///   0: 胶囊滑块（默认）
@@ -123,19 +124,22 @@ class _PillItem extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           child: SizedBox.expand(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(tab.icon, size: 16, color: isSelected ? colors.onPrimary : colors.onSurface),
-                const SizedBox(width: 6),
-                Text(tab.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? colors.onPrimary : colors.onSurface,
-                    )),
-              ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(tab.icon, size: 16, color: isSelected ? colors.onPrimary : colors.onSurface),
+                  const SizedBox(width: 6),
+                  Text(tab.label.tr,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected ? colors.onPrimary : colors.onSurface,
+                      )),
+                ],
+              ),
             ),
           ),
         ),
@@ -169,19 +173,22 @@ class _UnderlineBar extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(tabs[i].icon, size: 16,
-                              color: currentIndex == i ? colors.primary : colors.onSurfaceVariant),
-                          const SizedBox(width: 6),
-                          Text(tabs[i].label,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
-                                color: currentIndex == i ? colors.primary : colors.onSurfaceVariant,
-                              )),
-                        ],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(tabs[i].icon, size: 16,
+                                color: currentIndex == i ? colors.primary : colors.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(tabs[i].label.tr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
+                                  color: currentIndex == i ? colors.primary : colors.onSurfaceVariant,
+                                )),
+                          ],
+                        ),
                       ),
                     ),
                     Container(
@@ -233,20 +240,23 @@ class _ChipBar extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(tabs[i].icon, size: 15,
-                          color: currentIndex == i ? colors.onPrimary : colors.onSurfaceVariant),
-                      const SizedBox(width: 5),
-                      Text(tabs[i].label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
-                            color: currentIndex == i ? colors.onPrimary : colors.onSurfaceVariant,
-                          )),
-                    ],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(tabs[i].icon, size: 15,
+                            color: currentIndex == i ? colors.onPrimary : colors.onSurfaceVariant),
+                        const SizedBox(width: 5),
+                        Text(tabs[i].label.tr,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
+                              color: currentIndex == i ? colors.onPrimary : colors.onSurfaceVariant,
+                            )),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -286,7 +296,7 @@ class _DropdownBar extends StatelessWidget {
                       Icon(tabs[i].icon, size: 18,
                           color: i == currentIndex ? colors.primary : colors.onSurfaceVariant),
                       const SizedBox(width: 8),
-                      Text(tabs[i].label,
+                      Text(tabs[i].label.tr,
                           style: TextStyle(
                             fontWeight: i == currentIndex ? FontWeight.w600 : FontWeight.w500,
                             color: i == currentIndex ? colors.primary : colors.onSurfaceVariant,
@@ -306,7 +316,7 @@ class _DropdownBar extends StatelessWidget {
                 children: [
                   Icon(current.icon, size: 16, color: colors.primary),
                   const SizedBox(width: 6),
-                  Text(current.label,
+                  Text(current.label.tr,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

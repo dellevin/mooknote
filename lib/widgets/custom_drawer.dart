@@ -28,6 +28,7 @@ import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
 import 'shimmer_skeleton.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 自定义侧边栏
 class CustomDrawer extends StatefulWidget {
@@ -269,7 +270,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       children: [
                         Text(nickname, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                         const SizedBox(height: 2),
-                        Text(motto, maxLines: 2, overflow: TextOverflow.ellipsis,
+                        Text(motto.tr, maxLines: 2, overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                       ],
                     ),
@@ -293,7 +294,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             children: [
                               Icon(icon, size: 11, color: colors.onSurface.withValues(alpha: 0.4)),
                               const SizedBox(width: 3),
-                              Text(label, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                              Text(label.tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
                             ],
                           ),
                         ],
@@ -310,7 +311,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   String _formatCount(int count) {
-    if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
+    if (count >= 10000) return '{n}万'.trf({'n': (count / 10000).toStringAsFixed(1)});
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return count.toString();
   }
@@ -383,7 +384,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+                    Text(label.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
                   ],
                 ),
               ),
@@ -437,7 +438,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Widget _buildGroupTitle(String title, ColorScheme colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.3), letterSpacing: 1)),
+      child: Text(title.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.3), letterSpacing: 1)),
     );
   }
 
@@ -484,7 +485,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           children: [
             SizedBox(width: 20, height: 20, child: Opacity(opacity: iconOpacity, child: icon)),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: textOpacity)))),
+            Expanded(child: Text(title.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: textOpacity)))),
             Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
           ],
         ),
@@ -547,7 +548,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
       items.add(_RecentItem(type: 'book', title: b.title, date: b.createdAt, data: b, imagePath: b.coverPath));
     }
     for (final n in notes.where((n) => !n.isDeleted)) {
-      items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记', date: n.createdAt, data: n));
+      items.add(_RecentItem(type: 'note', title: n.title.isNotEmpty ? n.title : '随手记'.tr, date: n.createdAt, data: n));
     }
     for (final g in games.where((g) => !g.isDeleted)) {
       items.add(_RecentItem(type: 'game', title: g.title, date: g.createdAt, data: g, imagePath: g.coverPath));
@@ -608,7 +609,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           final date = lastSunday.subtract(Duration(days: (totalWeeks - 1 - week) * 7));
           final key = date.month;
           if (!monthLabels.containsKey(key) || date.day <= 7) {
-            monthLabels[week] = '${date.month}月';
+            monthLabels[week] = '{n}月'.trf({'n': date.month});
           }
         }
         final sortedWeeks = monthLabels.keys.toList()..sort();
@@ -625,12 +626,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 children: [
                   Icon(Icons.calendar_today, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 8),
-                  Text('热力图', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+                  Text('热力图'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
                   const Spacer(),
                   if (streak > 0) ...[
                     Icon(Icons.local_fire_department, size: 14, color: const Color(0xFFFF6D00)),
                     const SizedBox(width: 3),
-                    Text('连续 $streak 天', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFFFF6D00))),
+                    Text('连续 {n} 天'.trf({'n': streak}), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFFFF6D00))),
                   ],
                 ],
               ),
@@ -659,7 +660,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                         return GestureDetector(
                           onTap: count > 0 ? () => _showDayDetail(context, date, dailyCounts[date] ?? 0, movies, books, notes, games) : null,
                           child: Tooltip(
-                            message: '${date.month}月${date.day}日${count > 0 ? ' · $count条' : ''}',
+                            message: '{m}月{d}日'.trf({'m': date.month, 'd': date.day}) +
+                                (count > 0 ? ' · {n}条'.trf({'n': count}) : ''),
                             child: Container(
                               width: cellSize, height: cellSize,
                               margin: EdgeInsets.only(right: week < totalWeeks - 1 ? cellGap : 0, bottom: day < weekDays - 1 ? cellGap : 0),
@@ -679,7 +681,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text('少', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
+                  Text('少'.tr, style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
                   const SizedBox(width: 3),
                   _legendCell(const Color(0xFFF0F0F0)),
                   _legendCell(const Color(0xFFC8E6C9)),
@@ -687,7 +689,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   _legendCell(const Color(0xFF2E7D32)),
                   _legendCell(const Color(0xFF1B5E20)),
                   const SizedBox(width: 3),
-                  Text('多', style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
+                  Text('多'.tr, style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3))),
                 ],
               ),
             ],
@@ -716,9 +718,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
               child: Row(
                 children: [
-                  Text('${date.month}月${date.day}日', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text('{m}月{d}日'.trf({'m': date.month, 'd': date.day}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const SizedBox(width: 8),
-                  Text('$count条记录', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.45))),
+                  Text('{n}条记录'.trf({'n': count}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.45))),
                 ],
               ),
             ),
@@ -734,7 +736,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     for (final b in dayBooks) _dayDetailItem(ctx, Icons.menu_book_outlined, b.title, const Color(0xFF16A34A)),
                   ],
                   if (dayNotes.isNotEmpty) ...[
-                    for (final n in dayNotes) _dayDetailItem(ctx, Icons.sticky_note_2_outlined, n.title.isNotEmpty ? n.title : '随手记', const Color(0xFF9333EA)),
+                    for (final n in dayNotes) _dayDetailItem(ctx, Icons.sticky_note_2_outlined, n.title.isNotEmpty ? n.title : '随手记'.tr, const Color(0xFF9333EA)),
                   ],
                   if (dayGames.isNotEmpty) ...[
                     for (final g in dayGames) _dayDetailItem(ctx, Icons.sports_esports_outlined, g.title, const Color(0xFFEA580C)),
@@ -802,7 +804,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
             children: [
               Icon(Icons.schedule, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
               const SizedBox(width: 8),
-              Text('最近添加', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
+              Text('最近添加'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
             ],
           ),
           const SizedBox(height: 14),
@@ -846,11 +848,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
   String _recentTimeAgo(DateTime date) {
     final diff = DateTime.now().difference(date);
-    if (diff.inDays >= 365) return '${(diff.inDays / 365).floor()}年前';
-    if (diff.inDays >= 30) return '${(diff.inDays / 30).floor()}月前';
-    if (diff.inDays > 0) return '${diff.inDays}天前';
-    if (diff.inHours > 0) return '${diff.inHours}小时前';
-    return '刚刚';
+    if (diff.inDays >= 365) return '{n}年前'.trf({'n': (diff.inDays / 365).floor()});
+    if (diff.inDays >= 30) return '{n}月前'.trf({'n': (diff.inDays / 30).floor()});
+    if (diff.inDays > 0) return '{n}天前'.trf({'n': diff.inDays});
+    if (diff.inHours > 0) return '{n}小时前'.trf({'n': diff.inHours});
+    return '刚刚'.tr;
   }
 
   Widget _buildRecentLeading(_RecentItem item, ColorScheme colors) {

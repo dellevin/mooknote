@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
+import '../../l10n/app_strings.dart';
 
 /// 豆瓣官方 logo（绿色）
 const _doubanSvg = '''
@@ -55,7 +56,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('快捷添加'),
+        title: Text('快捷添加'.tr),
         backgroundColor: colors.surface,
         actions: [
           Padding(
@@ -106,8 +107,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
                 height: 20,
                 child: SvgPicture.string(_doubanSvg, fit: BoxFit.contain)),
             iconTileColor: _doubanColor,
-            title: '豆瓣',
-            subtitle: '输入豆瓣链接，自动解析并填充信息',
+            title: '豆瓣'.tr,
+            subtitle: '输入豆瓣链接，自动解析并填充信息'.tr,
             controller: _doubanController,
             expanded: _doubanExpanded,
             onToggle: () => setState(() => _doubanExpanded = !_doubanExpanded),
@@ -122,8 +123,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
                   height: 20,
                   child: SvgPicture.string(_fanqieSvg, fit: BoxFit.contain)),
               iconTileColor: _fanqieColor,
-              title: '番茄阅读',
-              subtitle: '输入番茄小说链接，自动解析并填充信息',
+              title: '番茄阅读'.tr,
+              subtitle: '输入番茄小说链接，自动解析并填充信息'.tr,
               controller: _fanqieController,
               expanded: _fanqieExpanded,
               onToggle: () => setState(() => _fanqieExpanded = !_fanqieExpanded),
@@ -131,7 +132,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
             ),
           ],
           const SizedBox(height: 12),
-          Text('点击右侧箭头展开，填入链接后点「解析」，跳转到对应表单',
+          Text('点击右侧箭头展开，填入链接后点「解析」，跳转到对应表单'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
         ],
@@ -249,7 +250,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                       icon: _parsing
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.auto_fix_high_outlined, size: 18),
-                      label: Text(_parsing ? '解析中...' : '解析'),
+                      label: Text(_parsing ? '解析中...'.tr : '解析'.tr),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -268,7 +269,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   Future<void> _parseDouban() async {
     final url = _doubanController.text.trim();
     if (url.isEmpty) {
-      ToastUtil.show(context, '请输入豆瓣链接');
+      ToastUtil.show(context, '请输入豆瓣链接'.tr);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
@@ -288,7 +289,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   Future<void> _parseFanqie() async {
     final url = _fanqieController.text.trim();
     if (url.isEmpty) {
-      ToastUtil.show(context, '请输入番茄小说链接');
+      ToastUtil.show(context, '请输入番茄小说链接'.tr);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();

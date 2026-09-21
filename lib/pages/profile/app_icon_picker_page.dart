@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../services/app_icon_channel.dart';
@@ -39,12 +40,12 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
       if (success) {
         await _userPrefs.setAppIconName(iconName);
         setState(() => _currentIconName = iconName);
-        if (mounted) ToastUtil.show(context, '图标已切换，请返回桌面查看');
+        if (mounted) ToastUtil.show(context, '图标已切换，请返回桌面查看'.tr);
       } else {
-        if (mounted) ToastUtil.show(context, '图标切换失败');
+        if (mounted) ToastUtil.show(context, '图标切换失败'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '切换出错: $e');
+      if (mounted) ToastUtil.show(context, '切换出错: {e}'.trf({'e': e}));
     }
   }
 
@@ -54,7 +55,7 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
-        title: const Text('应用图标'),
+        title: Text('应用图标'.tr),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -105,7 +106,7 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      icon['label']!,
+                      icon['label']!.tr,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,

@@ -7,6 +7,7 @@ import '../widgets/fade_in_local_image.dart';
 import '../widgets/animated_star_rating.dart';
 import '../utils/toast_util.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 观影列表项组件 - 网格布局设计
 class MovieListItem extends StatelessWidget {
@@ -105,7 +106,7 @@ class MovieListItem extends StatelessWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          '确认删除',
+          '确认删除'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -113,7 +114,8 @@ class MovieListItem extends StatelessWidget {
           ),
         ),
         content: Text(
-          '确定要删除《${movie.title}》吗？删除后可在回收站恢复。',
+          '确定要删除《{title}》吗？删除后可在回收站恢复。'
+              .trf({'title': movie.title}),
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -127,13 +129,13 @@ class MovieListItem extends StatelessWidget {
               foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeMovie(movie.id);
               Navigator.pop(context);
-              ToastUtil.show(context, '已删除');
+              ToastUtil.show(context, '已删除'.tr);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,
@@ -144,7 +146,7 @@ class MovieListItem extends StatelessWidget {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -49,11 +50,11 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('游戏截图')),
+      appBar: AppBar(title: Text('游戏截图'.tr)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _pickScreenshot,
         icon: const Icon(Icons.add_photo_alternate, size: 20),
-        label: const Text('添加截图'),
+        label: Text('添加截图'.tr),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -75,7 +76,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
             child: Icon(Icons.photo_library_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 20),
-          Text('暂无截图', style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('暂无截图'.tr, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 24),
         ],
       ),
@@ -167,12 +168,12 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(children: [
-                      Text('添加截图', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      Text('添加截图'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                     ]),
                   ),
                   const SizedBox(height: 16),
-                  _buildAddOption(colors: colors, icon: Icons.photo_library_outlined, title: '从相册选择', subtitle: '选择本地图片', onTap: () => Navigator.pop(context, 0)),
-                  _buildAddOption(colors: colors, icon: Icons.link_outlined, title: '网络链接', subtitle: '输入图片URL地址', onTap: () => Navigator.pop(context, 1)),
+                  _buildAddOption(colors: colors, icon: Icons.photo_library_outlined, title: '从相册选择'.tr, subtitle: '选择本地图片'.tr, onTap: () => Navigator.pop(context, 0)),
+                  _buildAddOption(colors: colors, icon: Icons.link_outlined, title: '网络链接'.tr, subtitle: '输入图片URL地址'.tr, onTap: () => Navigator.pop(context, 1)),
                 ],
               ),
             ),
@@ -239,10 +240,10 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
         );
         await context.read<AppProvider>().addGameScreenshot(newScreenshot);
         _loadScreenshots();
-        if (mounted) ToastUtil.show(context, '添加成功');
+        if (mounted) ToastUtil.show(context, '添加成功'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '添加截图失败: $e');
+      if (mounted) ToastUtil.show(context, '添加截图失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -255,12 +256,12 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
         return AlertDialog(
           backgroundColor: colors.surface, elevation: 0,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('添加网络图片'),
+          title: Text('添加网络图片'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+              Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
               const SizedBox(height: 12),
               TextField(
                 controller: urlController,
@@ -277,8 +278,8 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: Text('确定', style: TextStyle(color: colors.onSurface))),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(context, true), child: Text('确定'.tr, style: TextStyle(color: colors.onSurface))),
           ],
         );
       },
@@ -289,12 +290,12 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       urlController.dispose();
     });
-    if (url.isEmpty) { if (mounted) ToastUtil.show(context, '请输入图片链接'); return; }
+    if (url.isEmpty) { if (mounted) ToastUtil.show(context, '请输入图片链接'.tr); return; }
 
     try {
       await _downloadAndSaveScreenshot(url);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '添加失败: $e');
+      if (mounted) ToastUtil.show(context, '添加失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -326,7 +327,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
       );
       await context.read<AppProvider>().addGameScreenshot(newScreenshot);
       _loadScreenshots();
-      if (mounted) ToastUtil.show(context, '添加成功');
+      if (mounted) ToastUtil.show(context, '添加成功'.tr);
     } catch (e) {
       throw Exception('下载图片失败: $e');
     }
@@ -340,24 +341,24 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
         return AlertDialog(
           backgroundColor: colors.surface, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('确定要删除这张截图吗？',
+          title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定要删除这张截图吗？'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeGameScreenshot(screenshot.id);
                 Navigator.pop(context);
                 _loadScreenshots();
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('删除'),
+              child: Text('删除'.tr),
             ),
           ],
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

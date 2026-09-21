@@ -16,6 +16,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 影视详情页 - 在线版
 class MovieDetailPage extends StatefulWidget {
@@ -115,13 +116,13 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         }
       }
       setState(() {
-        _error = '加载失败';
+        _error = '加载失败'.tr;
         _loading = false;
       });
     } catch (_) {
       if (mounted)
         setState(() {
-          _error = '网络错误';
+          _error = '网络错误'.tr;
           _loading = false;
         });
     }
@@ -212,14 +213,14 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       }
       if (mounted) {
         setState(() {
-          _playError = '加载失败';
+          _playError = '加载失败'.tr;
           _playLoading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _playError = '网络错误';
+          _playError = '网络错误'.tr;
           _playLoading = false;
         });
       }
@@ -258,7 +259,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       _restartHideControlsTimer();
     } catch (_) {
       if (mounted) {
-        ToastUtil.show(context, '播放失败');
+        ToastUtil.show(context, '播放失败'.tr);
         setState(() {
           _playerCreating = false;
         });
@@ -336,7 +337,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                     decoration: BoxDecoration(
                         color: colors.onSurface.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(2)))),
-            Text('播放速度',
+            Text('播放速度'.tr,
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -523,7 +524,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       setState(() {
         _localMovie = provider.movies.firstWhere((m) => m.id == movie.id);
       });
-      ToastUtil.show(context, '已添加到${_statusLabel(status)}');
+      ToastUtil.show(context, '已添加到{status}'.trf({'status': _statusLabel(status)}));
     }
   }
 
@@ -536,11 +537,11 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   String _statusLabel(String status) {
     switch (status) {
       case 'watched':
-        return '已看';
+        return '已看'.tr;
       case 'watching':
-        return '在看';
+        return '在看'.tr;
       case 'want_to_watch':
-        return '想看';
+        return '想看'.tr;
       default:
         return '';
     }
@@ -565,18 +566,18 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                     decoration: BoxDecoration(
                         color: colors.onSurface.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(2)))),
-            Text('添加到',
+            Text('添加到'.tr,
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: colors.onSurface)),
             const SizedBox(height: 14),
             _sheetItem(
-                ctx, colors, Icons.check_circle_outline, '已看', 'watched'),
+                ctx, colors, Icons.check_circle_outline, '已看'.tr, 'watched'),
             _sheetItem(
-                ctx, colors, Icons.play_circle_outline, '在看', 'watching'),
+                ctx, colors, Icons.play_circle_outline, '在看'.tr, 'watching'),
             _sheetItem(
-                ctx, colors, Icons.bookmark_outline, '想看', 'want_to_watch'),
+                ctx, colors, Icons.bookmark_outline, '想看'.tr, 'want_to_watch'),
           ]),
         ),
       ),
@@ -635,7 +636,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                 decoration: BoxDecoration(
                     color: colors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(18)),
-                child: Text('关闭播放器',
+                child: Text('关闭播放器'.tr,
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -922,7 +923,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            _rate == 1.0 ? '倍速' : '${_rate}x',
+                            _rate == 1.0 ? '倍速'.tr : '${_rate}x',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -999,7 +1000,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
               });
               _load();
             },
-            child: Text('重试', style: TextStyle(color: colors.primary))),
+            child: Text('重试'.tr, style: TextStyle(color: colors.primary))),
       ],
     ));
   }
@@ -1099,7 +1100,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                                       Text(' /10', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
                                     ]),
                                     const SizedBox(height: 2),
-                                    Text('评分来源于网络资源收集，并非官方评分', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
+                                    Text('评分来源于网络资源收集，并非官方评分'.tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
                                     const SizedBox(height: 8),
                                   ],
                                   _endTag(isEnd),
@@ -1138,9 +1139,9 @@ class _MovieDetailPageState extends State<MovieDetailPage>
               border: Border(
                   bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
           child: Row(children: [
-            _buildTabButton('概要', 0),
-            _buildTabButton('演职人员', 1),
-            if (UserPrefs().playbackUnlocked) _buildTabButton('在线播放', 2),
+            _buildTabButton('概要'.tr, 0),
+            _buildTabButton('演职人员'.tr, 1),
+            if (UserPrefs().playbackUnlocked) _buildTabButton('在线播放'.tr, 2),
           ]),
         ),
         // Tab 内容
@@ -1270,9 +1271,9 @@ class _MovieDetailPageState extends State<MovieDetailPage>
               color: colors.surface,
               border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
           child: Row(children: [
-            _buildTabButton('概要', 0),
-            _buildTabButton('演职人员', 1),
-            if (UserPrefs().playbackUnlocked) _buildTabButton('在线播放', 2),
+            _buildTabButton('概要'.tr, 0),
+            _buildTabButton('演职人员'.tr, 1),
+            if (UserPrefs().playbackUnlocked) _buildTabButton('在线播放'.tr, 2),
           ]),
         ),
         // Tab 内容
@@ -1305,7 +1306,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
             : const Color(0xFFF59E0B).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(finished ? '已完结' : '连载中',
+      child: Text(finished ? '已完结'.tr : '连载中'.tr,
           style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -1336,7 +1337,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           height: 6,
           decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
       const SizedBox(width: 6),
-      Text('已在本地 · $label',
+      Text('已在本地 · {label}'.trf({'label': label}),
           style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -1385,11 +1386,11 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
         // 信息行
-        _infoRow(colors, '导演', m['vod_director']),
-        _infoRow(colors, '主演', _formatActors()),
-        _infoRow(colors, '语言', m['vod_lang']),
-        _infoRow(colors, '时长', m['vod_duration']),
-        _infoRow(colors, '上映', m['vod_pubdate']),
+        _infoRow(colors, '导演'.tr, m['vod_director']),
+        _infoRow(colors, '主演'.tr, _formatActors()),
+        _infoRow(colors, '语言'.tr, m['vod_lang']),
+        _infoRow(colors, '时长'.tr, m['vod_duration']),
+        _infoRow(colors, '上映'.tr, m['vod_pubdate']),
         const SizedBox(height: 16),
 
         // 标签
@@ -1461,7 +1462,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       runSpacing: 6,
       children: [
         if (isManual == 1)
-          _tag('官方优化', const Color(0xFF16A34A), highlight: true),
+          _tag('官方优化'.tr, const Color(0xFF16A34A), highlight: true),
         ...tags.map(
             (t) => _tag(t.trim(), colors.onSurface.withValues(alpha: 0.5))),
       ],
@@ -1521,7 +1522,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           onTap: () => setState(() => _expanded = !_expanded),
           child: Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(_expanded ? '收起' : '展开全文',
+            child: Text(_expanded ? '收起'.tr : '展开全文'.tr,
                 style: TextStyle(
                     fontSize: 12,
                     color: colors.primary,
@@ -1544,13 +1545,13 @@ class _MovieDetailPageState extends State<MovieDetailPage>
               Icon(Icons.lock_outline,
                   size: 40, color: colors.onSurface.withValues(alpha: 0.2)),
               const SizedBox(height: 12),
-              Text('播放功能未解锁',
+              Text('播放功能未解锁'.tr,
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: colors.onSurface.withValues(alpha: 0.5))),
               const SizedBox(height: 6),
-              Text('请在增强搜索中输入验证码以解锁（7天有效）',
+              Text('请在增强搜索中输入验证码以解锁（7天有效）'.tr,
                   style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurface.withValues(alpha: 0.35))),
@@ -1586,7 +1587,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
             const SizedBox(height: 12),
             TextButton(
               onPressed: _loadPlayInfo,
-              child: Text('重试', style: TextStyle(color: colors.primary)),
+              child: Text('重试'.tr, style: TextStyle(color: colors.primary)),
             ),
           ],
         ),
@@ -1594,7 +1595,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
     }
     if (_playSources.isEmpty || _playEpisodes.isEmpty) {
       return Center(
-        child: Text('暂无播放资源',
+        child: Text('暂无播放资源'.tr,
             style: TextStyle(
                 fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
       );
@@ -1701,7 +1702,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                   strokeWidth: 2, color: colors.primary)));
     if (_staffList.isEmpty)
       return Center(
-          child: Text('暂无演职信息',
+          child: Text('暂无演职信息'.tr,
               style: TextStyle(
                   fontSize: 13,
                   color: colors.onSurface.withValues(alpha: 0.35))));

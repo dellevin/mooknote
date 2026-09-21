@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 import '../../data/epub/reader_dao.dart';
 import '../../services/epub/epub_parser.dart';
@@ -95,7 +96,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
   void _navigateToReader() {
     if (Platform.isWindows) {
-      ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能');
+      ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能'.tr);
       return;
     }
     final coverPath = _linkedBookCoverPath ?? _book['cover_path'] as String?;
@@ -179,7 +180,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               const SizedBox(width: 8),
               IconButton(icon: Icon(Icons.arrow_back, color: colors.onSurface, size: 18),
                 onPressed: () => Navigator.pop(context)),
-              Expanded(child: Text(title.isNotEmpty ? title : 'EPUB 详情',
+              Expanded(child: Text(title.isNotEmpty ? title : 'EPUB 详情'.tr,
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
                 maxLines: 1, overflow: TextOverflow.ellipsis)),
               IconButton(
@@ -217,7 +218,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(8)),
-                            child: Text('${_bookInfo!.spine.length}章', style: TextStyle(fontSize: 11, color: colors.onPrimaryContainer, fontWeight: FontWeight.w500)),
+                            child: Text('{n}章'.trf({'n': _bookInfo!.spine.length}), style: TextStyle(fontSize: 11, color: colors.onPrimaryContainer, fontWeight: FontWeight.w500)),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -232,7 +233,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                           child: LinearProgressIndicator(value: progress > 0 ? progress : 0, minHeight: 3,
                             backgroundColor: colors.surfaceContainerHighest))),
                         const SizedBox(width: 8),
-                        Text(progress > 0 ? '${(progress * 100).toInt()}%' : '未开始',
+                        Text(progress > 0 ? '${(progress * 100).toInt()}%' : '未开始'.tr,
                             style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                       ]),
                     ])),
@@ -248,7 +249,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                       style: FilledButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: Text(progress > 0 ? '继续阅读' : '开始阅读',
+                      child: Text(progress > 0 ? '继续阅读'.tr : '开始阅读'.tr,
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     )),
                 if (isWin) const SizedBox(height: 16),
@@ -257,7 +258,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
                 // ── 描述 ──
                 if (description.isNotEmpty) ...[
-                  _buildSectionHeader('\u7B80\u4ECB', colors),
+                  _buildSectionHeader('\u7B80\u4ECB'.tr, colors),
                   Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
                     child: GestureDetector(
                       onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
@@ -271,7 +272,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
                 // ── 出版信息 ──
                 if (publisher.isNotEmpty || isbn.isNotEmpty) ...[
-                  _buildSectionHeader('\u51FA\u7248\u4FE1\u606F', colors),
+                  _buildSectionHeader('\u51FA\u7248\u4FE1\u606F'.tr, colors),
                   Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
                     child: Wrap(spacing: 16, runSpacing: 6, children: [
                       if (publisher.isNotEmpty) Row(mainAxisSize: MainAxisSize.min, children: [
@@ -289,7 +290,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                 ],
 
                 // ── 关联书籍 ──
-                _buildSectionHeader('\u5173\u8054\u4E66\u7C4D', colors),
+                _buildSectionHeader('\u5173\u8054\u4E66\u7C4D'.tr, colors),
                 Padding(padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
                   child: _buildLinkedBookCard(colors)),
 
@@ -310,7 +311,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                 // ── 其他作品 ──
                 if (author.isNotEmpty) ...[
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  _buildSectionHeader('\u5176\u4ED6\u4F5C\u54C1', colors),
+                  _buildSectionHeader('\u5176\u4ED6\u4F5C\u54C1'.tr, colors),
                   _buildOtherWorks(author, colors),
                   const SizedBox(height: 24),
                 ],
@@ -337,7 +338,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              progress > 0 ? '\u7EE7\u7EED\u9605\u8BFB' : '\u5F00\u59CB\u9605\u8BFB',
+              progress > 0 ? '\u7EE7\u7EED\u9605\u8BFB'.tr : '\u5F00\u59CB\u9605\u8BFB'.tr,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onPrimary),
             ),
           ),
@@ -387,9 +388,9 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('关联书籍', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text('关联书籍'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const SizedBox(height: 4),
-                  Text('点击选择要关联的书籍', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+                  Text('点击选择要关联的书籍'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                 ],
               ),
             ),
@@ -402,7 +403,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     return FutureBuilder<Book?>(
       future: _bookDao.getBookById(linkedBookId),
       builder: (context, snapshot) {
-        final linkedTitle = snapshot.data?.title ?? '未知书籍';
+        final linkedTitle = snapshot.data?.title ?? '未知书籍'.tr;
         final linkedAuthor = snapshot.data?.authors.take(2).join(' / ') ?? '';
         return GestureDetector(
           onTap: () => _showLinkedBookActions(colors, linkedTitle),
@@ -432,7 +433,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                     const SizedBox(height: 4),
                     Text(
-                      linkedAuthor.isNotEmpty ? '已关联 · $linkedAuthor' : '已关联',
+                      linkedAuthor.isNotEmpty ? '已关联 · {author}'.trf({'author': linkedAuthor}) : '已关联'.tr,
                       style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],
@@ -464,7 +465,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               children: [
                 Icon(Icons.format_quote, size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
                 const SizedBox(width: 8),
-                Text('暂无摘抄', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+                Text('暂无摘抄'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
               ],
             ),
           );
@@ -537,7 +538,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                 if (hasComment) ...[
                   Icon(Icons.lightbulb_outline, size: 10, color: colors.primary.withValues(alpha: 0.4)),
                   const SizedBox(width: 3),
-                  Text('有感悟', style: TextStyle(fontSize: 9, color: colors.primary.withValues(alpha: 0.4))),
+                  Text('有感悟'.tr, style: TextStyle(fontSize: 9, color: colors.primary.withValues(alpha: 0.4))),
                 ],
                 const Spacer(),
                 Text(
@@ -561,7 +562,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
         Container(width: 4, height: 14,
             decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('句读', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('句读'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
         const Spacer(),
         TextButton(
           onPressed: _navigateToHighlightsPage,
@@ -573,7 +574,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('详情', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+              Text('详情'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
               Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.5)),
             ],
           ),
@@ -591,7 +592,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
         Container(width: 4, height: 14,
             decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('书籍摘抄', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('书籍摘抄'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
         const Spacer(),
         TextButton(
           onPressed: _navigateToExcerptsPage,
@@ -603,7 +604,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('详情', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
+              Text('详情'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
               Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.5)),
             ],
           ),
@@ -635,7 +636,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
               children: [
                 Icon(Icons.highlight_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
                 const SizedBox(width: 8),
-                Text('暂无句读', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+                Text('暂无句读'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
               ],
             ),
           );
@@ -685,7 +686,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '第${chapterNum + 1}章',
+                      '第{n}章'.trf({'n': chapterNum + 1}),
                       style: const TextStyle(fontSize: 9, color: Color(0xFF795548), fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -734,11 +735,11 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     final confirmed = appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除摘抄', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        content: Text('确定删除这条摘抄吗？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+        title: Text('删除摘抄'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        content: Text('确定删除这条摘抄吗？'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('删除', style: TextStyle(color: colors.error))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('删除'.tr, style: TextStyle(color: colors.error))),
         ],
       ),
     );
@@ -760,7 +761,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
       setState(() {
         _refreshBook();
       });
-      ToastUtil.show(context, '已删除');
+      ToastUtil.show(context, '已删除'.tr);
     }
   }
 
@@ -778,16 +779,16 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
     final confirmed = appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除句读', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        content: Text('确定删除这条句读？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+        title: Text('删除句读'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        content: Text('确定删除这条句读？'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('删除', style: TextStyle(color: colors.error)),
+            child: Text('删除'.tr, style: TextStyle(color: colors.error)),
           ),
         ],
       ),
@@ -812,7 +813,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
 
   void _navigateToHighlight(Map<String, dynamic> highlight) {
     if (Platform.isWindows) {
-      ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能');
+      ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能'.tr);
       return;
     }
     final chapter = int.tryParse(highlight['chapter'] as String? ?? '') ?? 0;
@@ -895,7 +896,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
             leading: Container(width: 36, height: 36,
                 decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.menu_book_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
-            title: Text('查看书籍详情', style: TextStyle(fontSize: 13, color: colors.onSurface)),
+            title: Text('查看书籍详情'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface)),
             onTap: () async {
               Navigator.pop(ctx);
               final bookId = _book['book_id'] as String? ?? '';
@@ -912,22 +913,22 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
             leading: Container(width: 36, height: 36,
                 decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.link_off, size: 18, color: colors.error)),
-            title: Text('取消关联', style: TextStyle(fontSize: 13, color: colors.error)),
+            title: Text('取消关联'.tr, style: TextStyle(fontSize: 13, color: colors.error)),
             onTap: () {
               Navigator.pop(ctx);
               appDialog(
                 context: context,
                 builder: (confirmCtx) => AlertDialog(
-                  title: const Text('取消关联', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  title: Text('取消关联'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   content: Text(
-                    '取消关联会清除掉阅读界面的蓝色划线且重新关联后不可恢复，确定要取消关联吗？',
+                    '取消关联会清除掉阅读界面的蓝色划线且重新关联后不可恢复，确定要取消关联吗？'.tr,
                     style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6)),
                   ),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(confirmCtx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+                    TextButton(onPressed: () => Navigator.pop(confirmCtx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
                     TextButton(
                       onPressed: () { Navigator.pop(confirmCtx); _unlinkBook(); },
-                      child: Text('确定', style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+                      child: Text('确定'.tr, style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -961,7 +962,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-            child: Text('暂未收藏该作者其他作品',
+            child: Text('暂未收藏该作者其他作品'.tr,
                 style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
           );
         }
@@ -969,7 +970,7 @@ class _EpubDetailPageState extends State<EpubDetailPage> {
         if (books.isEmpty) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-            child: Text('暂未收藏该作者其他作品',
+            child: Text('暂未收藏该作者其他作品'.tr,
                 style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
           );
         }

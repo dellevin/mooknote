@@ -6,6 +6,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../l10n/app_strings.dart';
 
 /// 数据统计页面 - 多维度数据分析
 class StatisticsPage extends StatefulWidget {
@@ -95,7 +96,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('数据统计'),
+        title: Text('数据统计'.tr),
         actions: [
           _buildTimeRangeSelector(colors),
         ],
@@ -174,7 +175,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   color: selected ? colors.primary : null,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(labels[i], style: TextStyle(
+                child: Text(labels[i].tr, style: TextStyle(
                   fontSize: 12,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
@@ -231,23 +232,23 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ];
     final daysTracked = allDates.isNotEmpty ? now.difference(allDates.reduce((a, b) => a.isBefore(b) ? a : b)).inDays + 1 : 0;
 
-    final periodLabel = _timeRange == 0 ? '本周' : _timeRange == 1 ? '本月' : '本年';
+    final periodLabel = _timeRange == 0 ? '本周'.tr : _timeRange == 1 ? '本月'.tr : '本年'.tr;
 
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _buildOverviewCard('完成率', completionRate == 0 ? '-' : '${(completionRate * 100).toStringAsFixed(0)}%', Icons.check_circle_outline, colors.primary, subtitle: completionRate > 0 ? '已看+已读' : null)),
+            Expanded(child: _buildOverviewCard('完成率'.tr, completionRate == 0 ? '-' : '${(completionRate * 100).toStringAsFixed(0)}%', Icons.check_circle_outline, colors.primary, subtitle: completionRate > 0 ? '已看+已读'.tr : null)),
             const SizedBox(width: 10),
-            Expanded(child: _buildOverviewCard('$periodLabel新增', '$thisPeriod', Icons.trending_up, const Color(0xFF66BB6A), subtitle: diff >= 0 ? '↑$diff' : '↓${diff.abs()}')),
+            Expanded(child: _buildOverviewCard('{period}新增'.trf({'period': periodLabel}), '$thisPeriod', Icons.trending_up, const Color(0xFF66BB6A), subtitle: diff >= 0 ? '↑$diff' : '↓${diff.abs()}')),
           ],
         ),
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _buildOverviewCard('平均评分', avgRating > 0 ? avgRating.toStringAsFixed(1) : '-', Icons.star_outline, const Color(0xFFFFB800), subtitle: avgRating > 0 ? '/ 10' : null)),
+            Expanded(child: _buildOverviewCard('平均评分'.tr, avgRating > 0 ? avgRating.toStringAsFixed(1) : '-', Icons.star_outline, const Color(0xFFFFB800), subtitle: avgRating > 0 ? '/ 10' : null)),
             const SizedBox(width: 10),
-            Expanded(child: _buildOverviewCard('记录天数', daysTracked > 0 ? '$daysTracked' : '-', Icons.calendar_today_outlined, const Color(0xFF7E57C2), subtitle: daysTracked > 0 ? '天' : null)),
+            Expanded(child: _buildOverviewCard('记录天数'.tr, daysTracked > 0 ? '$daysTracked' : '-', Icons.calendar_today_outlined, const Color(0xFF7E57C2), subtitle: daysTracked > 0 ? '天'.tr : null)),
           ],
         ),
       ],
@@ -291,16 +292,20 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 Text(label, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                 const SizedBox(height: 2),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
-                    if (subtitle != null) ...[
-                      const SizedBox(width: 3),
-                      Text(subtitle, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
+                      if (subtitle != null) ...[
+                        const SizedBox(width: 3),
+                        Text(subtitle, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -324,7 +329,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final total = tab.$2.length;
 
     return _buildCard(
-      title: '状态分布',
+      title: '状态分布'.tr,
       action: tabs.length > 1 ? _buildTabChips(tabs.map((e) => e.$1).toList(), _statusTabIndex, (i) => setState(() => _statusTabIndex = i), colors) : null,
       child: Column(
         children: tab.$4.entries.map((e) {
@@ -337,7 +342,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               children: [
                 Row(
                   children: [
-                    Text(e.key, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+                    Text(e.key.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
                     const Spacer(),
                     Text('$count', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
                     const SizedBox(width: 4),
@@ -388,19 +393,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final readAvgGap = _calcAvgGap(readDates);
 
     return _buildCard(
-      title: '习惯洞察',
+      title: '习惯洞察'.tr,
       child: Column(
         children: [
-          _buildInsightRow(Icons.calendar_month_outlined, '最活跃月份', monthNames[busiestMonth]),
+          _buildInsightRow(Icons.calendar_month_outlined, '最活跃月份'.tr, monthNames[busiestMonth].tr),
           Divider(height: 1, color: colors.outlineVariant),
-          _buildInsightRow(Icons.speed_outlined, '记录频率', '平均每月 $avgPerMonth 条'),
+          _buildInsightRow(Icons.speed_outlined, '记录频率'.tr, '平均每月 {n} 条'.trf({'n': avgPerMonth})),
           if (watchedAvgGap > 0) ...[
             Divider(height: 1, color: colors.outlineVariant),
-            _buildInsightRow(Icons.movie_outlined, '观影节奏', '平均 ${watchedAvgGap.toStringAsFixed(0)} 天一部'),
+            _buildInsightRow(Icons.movie_outlined, '观影节奏'.tr, '平均 {n} 天一部'.trf({'n': watchedAvgGap.toStringAsFixed(0)})),
           ],
           if (readAvgGap > 0) ...[
             Divider(height: 1, color: colors.outlineVariant),
-            _buildInsightRow(Icons.menu_book_outlined, '阅读节奏', '平均 ${readAvgGap.toStringAsFixed(0)} 天一本'),
+            _buildInsightRow(Icons.menu_book_outlined, '阅读节奏'.tr, '平均 {n} 天一本'.trf({'n': readAvgGap.toStringAsFixed(0)})),
           ],
         ],
       ),
@@ -425,7 +430,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.5)),
           const SizedBox(width: 12),
-          Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          Flexible(
+            child: Text(label, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
           const Spacer(),
           Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ],
@@ -452,7 +459,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final maxVal = top6.first.value.toDouble();
 
     return _buildCard(
-      title: '类型偏好',
+      title: '类型偏好'.tr,
       child: Column(
         children: [
           SizedBox(
@@ -492,10 +499,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (movieGenres.isNotEmpty) ...[
-                _buildLegend(const Color(0xFF4A90D9), '影视'),
+                _buildLegend(const Color(0xFF4A90D9), '影视'.tr),
                 const SizedBox(width: 16),
               ],
-              if (bookGenres.isNotEmpty) _buildLegend(const Color(0xFF7E57C2), '书籍'),
+              if (bookGenres.isNotEmpty) _buildLegend(const Color(0xFF7E57C2), '书籍'.tr),
             ],
           ),
         ],
@@ -531,7 +538,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final unit = tab.$1 == '导演' ? '部' : '本';
 
     return _buildCard(
-      title: '${tab.$1} TOP 5',
+      title: '${tab.$1.tr} TOP 5',
       action: tabs.length > 1 ? _buildTabChips(tabs.map((e) => e.$1).toList(), _top5TabIndex, (i) => setState(() => _top5TabIndex = i), colors) : null,
       child: Column(
         children: items.map((e) {
@@ -549,7 +556,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('${e.$2}$unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                Text('${e.$2}${unit.tr}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ],
             ),
           );
@@ -580,12 +587,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (_topRatedTabIndex >= tabs.length) _topRatedTabIndex = 0;
 
     return _buildCard(
-      title: '高分之最',
+      title: '高分之最'.tr,
       action: _buildTabChips(tabs.map((e) => e.$1).toList(), _topRatedTabIndex, (i) => setState(() => _topRatedTabIndex = i), colors),
       child: tabs[_topRatedTabIndex].$2.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: Text('暂无评分记录', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
+              child: Center(child: Text('暂无评分记录'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
             )
           : Column(
               children: tabs[_topRatedTabIndex].$2.map((item) => _buildTopRatedItem(item.$1, item.$2, item.$3, colors)).toList(),
@@ -638,12 +645,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ];
 
     return _buildCard(
-      title: '评分分布',
+      title: '评分分布'.tr,
       child: Column(
         children: [
           Row(
             children: [
-              Text('平均评分', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+              Text('平均评分'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
               const Spacer(),
               Text(avg.toStringAsFixed(1), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface)),
               Text(' / 10', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
@@ -661,7 +668,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   touchTooltipData: BarTouchTooltipData(
                     getTooltipColor: (_) => colors.inverseSurface,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      return BarTooltipItem('${group.x + 1}星 ${rod.toY.toInt()}部', TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600));
+                      return BarTooltipItem('{s}星 {n}部'.trf({'s': group.x + 1, 'n': rod.toY.toInt()}), TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600));
                     },
                   ),
                 ),
@@ -694,7 +701,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
           ),
           const SizedBox(height: 8),
-          Text('星级评分', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('星级评分'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -777,7 +784,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final maxVal = allValues.isEmpty ? 1 : allValues.reduce((a, b) => a > b ? a : b);
     final safeMax = maxVal == 0 ? 1 : maxVal;
 
-    final title = _timeRange == 0 ? '周趋势' : _timeRange == 1 ? '月趋势' : '年度趋势';
+    final title = _timeRange == 0 ? '周趋势'.tr : _timeRange == 1 ? '月趋势'.tr : '年度趋势'.tr;
 
     return _buildCard(
       title: title,
@@ -803,7 +810,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       if (idx < 0 || idx >= xLabels.length) return const SizedBox.shrink();
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text(xLabels[idx], style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                        child: Text(xLabels[idx].tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
                       );
                     },
                     reservedSize: 24,
@@ -832,7 +839,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       if (_showBooks) labels.add('书籍');
                       if (_showNotes) labels.add('笔记');
                       if (s.barIndex >= labels.length) return null;
-                      return LineTooltipItem('${labels[s.barIndex]} ${s.y.toInt()}', TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600));
+                      return LineTooltipItem('${labels[s.barIndex].tr} ${s.y.toInt()}', TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600));
                     }).whereType<LineTooltipItem>().toList(),
                   ),
                 ),
@@ -844,14 +851,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_showMovies) ...[
-                _buildLegend(const Color(0xFF4A90D9), '影视'),
+                _buildLegend(const Color(0xFF4A90D9), '影视'.tr),
                 const SizedBox(width: 16),
               ],
               if (_showBooks) ...[
-                _buildLegend(const Color(0xFF7E57C2), '书籍'),
+                _buildLegend(const Color(0xFF7E57C2), '书籍'.tr),
                 const SizedBox(width: 16),
               ],
-              if (_showNotes) _buildLegend(const Color(0xFF66BB6A), '笔记'),
+              if (_showNotes) _buildLegend(const Color(0xFF66BB6A), '笔记'.tr),
             ],
           ),
         ],
@@ -899,10 +906,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
     final maxCount = weekdayCounts.reduce((a, b) => a > b ? a : b).toDouble();
     if (maxCount == 0) return const SizedBox.shrink();
-    final dayLabels = ['一', '二', '三', '四', '五', '六', '日'];
+    final dayLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
     return _buildCard(
-      title: '星期分布',
+      title: '星期分布'.tr,
       child: SizedBox(
         height: 140,
         child: Row(
@@ -926,7 +933,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(dayLabels[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text(dayLabels[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                   ],
                 ),
               ),
@@ -1002,7 +1009,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (maxVal == 0) return const SizedBox.shrink();
 
     return _buildCard(
-      title: '累计增长',
+      title: '累计增长'.tr,
       child: SizedBox(
         height: 160,
         child: LineChart(
@@ -1028,7 +1035,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   if (idx < 0 || idx >= xLabels.length) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(xLabels[idx], style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                    child: Text(xLabels[idx].tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
                   );
                 },
                 reservedSize: 24,
@@ -1087,12 +1094,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ];
 
     return _buildCard(
-      title: '标签词云',
+      title: '标签词云'.tr,
       action: _buildTabChips(tabs, _cloudTabIndex, (i) => setState(() => _cloudTabIndex = i), colors),
       child: sorted.isEmpty
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: Text('暂无标签', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
+              child: Center(child: Text('暂无标签'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
             )
           : Wrap(
               spacing: 6,
@@ -1146,11 +1153,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return Row(
       children: [
         Expanded(
-          child: _buildFunCard(Icons.local_fire_department_outlined, '连续记录', maxStreak > 1 ? '$maxStreak 天' : '-', '最长连续记录天数', const Color(0xFFFF8F00), colors),
+          child: _buildFunCard(Icons.local_fire_department_outlined, '连续记录'.tr, maxStreak > 1 ? '{n} 天'.trf({'n': maxStreak}) : '-', '最长连续记录天数'.tr, const Color(0xFFFF8F00), colors),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildFunCard(Icons.label_outlined, '最常用标签', topTag != null ? topTag.key : '-', topTag != null ? '使用 ${topTag.value} 次' : '', const Color(0xFF26A69A), colors),
+          child: _buildFunCard(Icons.label_outlined, '最常用标签'.tr, topTag != null ? topTag.key : '-', topTag != null ? '使用 {n} 次'.trf({'n': topTag.value}) : '', const Color(0xFF26A69A), colors),
         ),
       ],
     );
@@ -1194,11 +1201,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(width: 3, height: 14, decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 8),
-              Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
-              const Spacer(),
+              Flexible(
+                child: Text(title, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              ),
               if (action != null) action,
             ],
           ),
@@ -1224,7 +1233,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               color: selected ? colors.primary : colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(e.value, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
+            child: Text(e.value.tr, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w600 : FontWeight.w500, color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5))),
           ),
         );
       }).toList(),

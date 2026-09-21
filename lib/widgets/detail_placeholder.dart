@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 
 /// Master-Detail 布局中右侧详情区的空白占位
 class DetailPlaceholder extends StatelessWidget {
@@ -20,7 +21,7 @@ class DetailPlaceholder extends StatelessWidget {
         children: [
           Icon(icon, size: 64, color: colors.onSurface.withValues(alpha: 0.12)),
           const SizedBox(height: 16),
-          Text(message,
+          Text(message.tr,
               style: TextStyle(
                   fontSize: 15,
                   color: colors.onSurface.withValues(alpha: 0.25))),

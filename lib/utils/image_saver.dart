@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../l10n/app_strings.dart';
 import '../widgets/app_overlay.dart';
 
 /// 图片保存工具 —— 将图片复制/写入到 /sdcard/Pictures/mooknote/
@@ -56,7 +57,7 @@ class ImageSaver {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final src = File(sourcePath);
     if (!await src.exists()) {
-      _toast(messenger, '原文件不存在');
+      _toast(messenger, '原文件不存在'.tr);
       return;
     }
     if (!context.mounted) return;
@@ -115,7 +116,7 @@ class ImageSaver {
                     children: [
                       Icon(Icons.download_outlined, size: 20, color: colors.primary),
                       const SizedBox(width: 12),
-                      const Text('下载图片'),
+                      Text('下载图片'.tr),
                     ],
                   ),
                 ),
@@ -129,7 +130,7 @@ class ImageSaver {
                     children: [
                       Icon(Icons.close, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
                       const SizedBox(width: 12),
-                      Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+                      Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
                     ],
                   ),
                 ),
@@ -149,7 +150,7 @@ class ImageSaver {
     final messenger = context != null ? ScaffoldMessenger.maybeOf(context) : null;
     final src = File(sourcePath);
     if (!await src.exists()) {
-      _toast(messenger, '原文件不存在');
+      _toast(messenger, '原文件不存在'.tr);
       return false;
     }
     return _saveBytes(await src.readAsBytes(), _buildFileName(sourcePath), messenger);
@@ -167,17 +168,17 @@ class ImageSaver {
 
   static Future<bool> _saveBytes(Uint8List bytes, String fileName, ScaffoldMessengerState? messenger) async {
     if (!await requestPermission()) {
-      _toast(messenger, '存储权限被拒绝');
+      _toast(messenger, '存储权限被拒绝'.tr);
       return false;
     }
     try {
       final dir = await _getSaveDir();
       final target = File(p.join(dir.path, fileName));
       await target.writeAsBytes(bytes);
-      _toast(messenger, '已保存到 ${dir.path}');
+      _toast(messenger, '已保存到 {path}'.trf({'path': dir.path}));
       return true;
     } catch (e) {
-      _toast(messenger, '保存失败：$e');
+      _toast(messenger, '保存失败：{e}'.trf({'e': e}));
       return false;
     }
   }

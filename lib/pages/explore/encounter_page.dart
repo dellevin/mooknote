@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../l10n/app_strings.dart';
 
 /// 相遇统计页
 class EncounterPage extends StatelessWidget {
@@ -20,7 +21,7 @@ class EncounterPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('统计')),
+      appBar: AppBar(title: Text('统计'.tr)),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           final movies = provider.movies.where((m) => !m.isDeleted).toList();
@@ -51,7 +52,7 @@ class EncounterPage extends StatelessWidget {
                     children: [
                       const SizedBox(height: 48),
                       Text(
-                        '与你',
+                        '与你'.tr,
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w700,
@@ -64,7 +65,7 @@ class EncounterPage extends StatelessWidget {
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text: '相遇的第',
+                              text: '相遇的第'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
@@ -80,7 +81,7 @@ class EncounterPage extends StatelessWidget {
                               ),
                             ),
                             TextSpan(
-                              text: '天',
+                              text: AppStrings.isEnglish ? '' : '天',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
@@ -93,7 +94,10 @@ class EncounterPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${firstUse.year}年${firstUse.month}月${firstUse.day}日 — ${now.year}年${now.month}月${now.day}日',
+                        '{y}年{m}月{d}日 — {y2}年{m2}月{d2}日'.trf({
+                          'y': firstUse.year, 'm': firstUse.month, 'd': firstUse.day,
+                          'y2': now.year, 'm2': now.month, 'd2': now.day,
+                        }),
                         style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
                       ),
                     ],
@@ -111,7 +115,7 @@ class EncounterPage extends StatelessWidget {
                       Divider(color: colors.outlineVariant, thickness: 0.5),
                       const SizedBox(height: 24),
                       Text(
-                        '已记录',
+                        '已记录'.tr,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -123,9 +127,9 @@ class EncounterPage extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _recordItem(context, '$totalRecords', '条记录'),
-                          _recordItem(context, _formatCount(noteWords), '文字'),
-                          _recordItem(context, '$imageCount', '张图片'),
+                          _recordItem(context, '$totalRecords', '条记录'.tr),
+                          _recordItem(context, _formatCount(noteWords), '文字'.tr),
+                          _recordItem(context, '$imageCount', '张图片'.tr),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -145,7 +149,9 @@ class EncounterPage extends StatelessWidget {
   }
 
   String _formatCount(int count) {
-    if (count >= 10000) return '${(count / 10000).toStringAsFixed(1)}万';
+    if (count >= 10000 && !AppStrings.isEnglish) {
+      return '${(count / 10000).toStringAsFixed(1)}万';
+    }
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return '$count';
   }

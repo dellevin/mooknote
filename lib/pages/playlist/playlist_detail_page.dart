@@ -8,6 +8,7 @@ import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
 import 'playlist_add_item_page.dart';
+import '../../l10n/app_strings.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final Playlist playlist;
@@ -178,9 +179,9 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
             child: Icon(Icons.playlist_add_check_outlined, size: 36, color: colors.onSurface.withValues(alpha: 0.2)),
           ),
           const SizedBox(height: 16),
-          Text('还没有添加条目', style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('还没有添加条目'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
-          Text('点击右上角 + 添加', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('点击右上角 + 添加'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -364,7 +365,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                                   if (item.rating != null)
                                     AnimatedStarRating(rating: item.rating!, starSize: 11, showNumber: true)
                                   else
-                                    Text('未评分', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25))),
+                                    Text('未评分'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25))),
                                 ],
                               ),
                             ),
@@ -404,7 +405,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(label,
+                  Text(label.tr,
                       style: TextStyle(
                         fontSize: 7,
                         fontWeight: FontWeight.w900,

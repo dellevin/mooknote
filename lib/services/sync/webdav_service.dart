@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'backup_service.dart';
+import '../../l10n/app_strings.dart';
 
 /// WebDAV 同步结果
 class SyncResult {
@@ -133,14 +134,14 @@ class WebDAVService {
         );
 
         if (propfindResponse.statusCode == 207) {
-          return {'success': true, 'message': '连接成功'};
+          return {'success': true, 'message': '连接成功'.tr};
         } else if (propfindResponse.statusCode == 401) {
-          return {'success': false, 'message': '认证失败，请检查用户名和密码'};
+          return {'success': false, 'message': '认证失败，请检查用户名和密码'.tr};
         } else if (propfindResponse.statusCode == 404) {
           // 目录不存在，尝试创建
         } else {
           await propfindResponse.stream.drain();
-          return {'success': false, 'message': '服务器返回错误: ${propfindResponse.statusCode}'};
+          return {'success': false, 'message': '服务器返回错误: {code}'.trf({'code': propfindResponse.statusCode})};
         }
       } catch (e) {
         // ignore
@@ -152,23 +153,23 @@ class WebDAVService {
         );
 
         if (mkcolResponse.statusCode == 201) {
-          return {'success': true, 'message': '连接成功，已创建目录'};
+          return {'success': true, 'message': '连接成功，已创建目录'.tr};
         } else if (mkcolResponse.statusCode == 405) {
-          return {'success': true, 'message': '连接成功，目录已存在'};
+          return {'success': true, 'message': '连接成功，目录已存在'.tr};
         } else if (mkcolResponse.statusCode == 401) {
-          return {'success': false, 'message': '认证失败，请检查用户名和密码'};
+          return {'success': false, 'message': '认证失败，请检查用户名和密码'.tr};
         } else if (mkcolResponse.statusCode == 409) {
-          return {'success': false, 'message': '父目录不存在，请检查路径'};
+          return {'success': false, 'message': '父目录不存在，请检查路径'.tr};
         } else {
-          return {'success': false, 'message': '创建目录失败: ${mkcolResponse.statusCode}'};
+          return {'success': false, 'message': '创建目录失败: {code}'.trf({'code': mkcolResponse.statusCode})};
         }
       } catch (e) {
-        return {'success': false, 'message': '连接失败: $e'};
+        return {'success': false, 'message': '连接失败: {e}'.trf({'e': e})};
       } finally {
         client.close();
       }
     } catch (e) {
-      return {'success': false, 'message': '连接失败: $e'};
+      return {'success': false, 'message': '连接失败: {e}'.trf({'e': e})};
     }
   }
 
@@ -181,13 +182,13 @@ class WebDAVService {
   Future<SyncResult> uploadExportedData(AutoBackupExportResult exportResult) async {
     if (!exportResult.success || exportResult.zipPath == null) {
       _isSyncing = false;
-      return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败');
+      return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
     }
 
     final config = await getConfig();
     if (config == null) {
       _isSyncing = false;
-      return SyncResult(success: false, message: '未配置 WebDAV');
+      return SyncResult(success: false, message: '未配置 WebDAV'.tr);
     }
 
     try {
@@ -211,17 +212,17 @@ class WebDAVService {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
           return SyncResult(
-            success: true, message: '同步完成',
+            success: true, message: '同步完成'.tr,
             uploadedFiles: 1, uploadedImages: exportResult.imageCount,
           );
         } else {
-          return SyncResult(success: false, message: '上传备份文件失败');
+          return SyncResult(success: false, message: '上传备份文件失败'.tr);
         }
       } finally {
         client.close();
       }
     } catch (e) {
-      return SyncResult(success: false, message: '上传失败: $e');
+      return SyncResult(success: false, message: '上传失败: {e}'.trf({'e': e}));
     } finally {
       _isSyncing = false;
     }
@@ -231,14 +232,14 @@ class WebDAVService {
   Future<SyncResult> syncData({SyncDirection direction = SyncDirection.upload}) async {
     // 防止并发同步
     if (_isSyncing) {
-      return SyncResult(success: false, message: '同步正在进行中，请稍后再试');
+      return SyncResult(success: false, message: '同步正在进行中，请稍后再试'.tr);
     }
     _isSyncing = true;
 
     final config = await getConfig();
     if (config == null) {
       _isSyncing = false;
-      return SyncResult(success: false, message: '未配置 WebDAV');
+      return SyncResult(success: false, message: '未配置 WebDAV'.tr);
     }
 
     try {
@@ -261,7 +262,7 @@ class WebDAVService {
         if (direction == SyncDirection.upload) {
           final exportResult = await BackupService.instance.exportDataForAutoBackup();
           if (!exportResult.success || exportResult.zipPath == null) {
-            return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败');
+            return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
           }
 
           final fileName = _generateBackupFileName();
@@ -276,14 +277,14 @@ class WebDAVService {
             // 清理旧备份
             await _cleanupOldBackups(client, dirUrl, username, password);
           } else {
-            return SyncResult(success: false, message: '上传备份文件失败');
+            return SyncResult(success: false, message: '上传备份文件失败'.tr);
           }
 
         } else if (direction == SyncDirection.download) {
           // 找到最新的备份文件
           final backups = await _listRemoteBackups(client, dirUrl, username, password);
           if (backups.isEmpty) {
-            return SyncResult(success: false, message: '服务器上没有备份文件，请先从其他设备上传');
+            return SyncResult(success: false, message: '服务器上没有备份文件，请先从其他设备上传'.tr);
           }
           final latestFile = backups.last;
           final zipUrl = '$dirUrl/$latestFile';
@@ -303,11 +304,11 @@ class WebDAVService {
               needReload = true;
               debugPrint('[WebDAV] 备份恢复成功 ($latestFile): ${importResult.statsText}');
             } else {
-              return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败');
+              return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败'.tr);
             }
           } else {
             try { await tempZip.delete(); } catch (_) {}
-            return SyncResult(success: false, message: '下载备份文件失败');
+            return SyncResult(success: false, message: '下载备份文件失败'.tr);
           }
         }
 
@@ -321,7 +322,7 @@ class WebDAVService {
 
         return SyncResult(
           success: anySuccess,
-          message: anySuccess ? '同步完成' : '同步未完成，未传输任何数据',
+          message: anySuccess ? '同步完成'.tr : '同步未完成，未传输任何数据'.tr,
           lastSyncTime: DateTime.now(),
           uploadedFiles: uploadedFiles,
           downloadedFiles: downloadedFiles,
@@ -333,7 +334,7 @@ class WebDAVService {
         client.close();
       }
     } catch (e) {
-      return SyncResult(success: false, message: '同步失败: $e');
+      return SyncResult(success: false, message: '同步失败: {e}'.trf({'e': e}));
     } finally {
       _isSyncing = false;
     }

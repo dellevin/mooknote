@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../../data/epub/reader_models.dart';
+import '../../l10n/app_strings.dart';
 
 /// Helper class to represent a visible row in the flattened TOC list
 class _TocRowItem {
@@ -208,9 +209,9 @@ class _TocDrawerState extends State<TocDrawer> with SingleTickerProviderStateMix
                 indicatorSize: TabBarIndicatorSize.label,
                 indicatorWeight: 2,
                 dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: '目录'),
-                  Tab(text: '书签'),
+                tabs: [
+                  Tab(text: '目录'.tr),
+                  Tab(text: '书签'.tr),
                 ],
               ),
             ),
@@ -325,9 +326,9 @@ class _TocDrawerState extends State<TocDrawer> with SingleTickerProviderStateMix
           children: [
             Icon(Icons.bookmark_outline, size: 48, color: colors.onSurfaceVariant.withValues(alpha: 0.3)),
             const SizedBox(height: 12),
-            Text('暂无书签', style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant.withValues(alpha: 0.5))),
+            Text('暂无书签'.tr, style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant.withValues(alpha: 0.5))),
             const SizedBox(height: 4),
-            Text('阅读时点击顶部书签图标添加', style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant.withValues(alpha: 0.3))),
+            Text('阅读时点击顶部书签图标添加'.tr, style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant.withValues(alpha: 0.3))),
           ],
         ),
       );
@@ -356,7 +357,7 @@ class _TocDrawerState extends State<TocDrawer> with SingleTickerProviderStateMix
       final parts = cfi.split(':');
       if (parts.length >= 2) {
         final chapterIdx = int.tryParse(parts[0]) ?? 0;
-        pageInfo = '第 ${chapterIdx + 1} 章';
+        pageInfo = '第 {n} 章'.trf({'n': chapterIdx + 1});
       }
     }
 
@@ -489,7 +490,7 @@ class _TocDrawerState extends State<TocDrawer> with SingleTickerProviderStateMix
                   ],
                   const SizedBox(height: 8),
                   Text(
-                    '共 ${widget.totalChapters} 章',
+                    '共 {n} 章'.trf({'n': widget.totalChapters}),
                     style: widget.themeData.textTheme.bodySmall?.copyWith(
                       color: widget.themeData.colorScheme.onSurfaceVariant,
                       fontSize: 11,

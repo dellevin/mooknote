@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../../data/database_helper.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/user_prefs.dart';
 
@@ -317,5 +318,6 @@ class CacheCleanResult {
   int get total => images + epubs + temp + emptyDirs;
 
   String get description =>
-      '已清理 $images 个孤立图片，$epubs 个孤立电子书，$temp 个临时文件，$emptyDirs 个空文件夹';
+      '已清理 {images} 个孤立图片，{epubs} 个孤立电子书，{temp} 个临时文件，{emptyDirs} 个空文件夹'
+          .trf({'images': images, 'epubs': epubs, 'temp': temp, 'emptyDirs': emptyDirs});
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 类型/标签选择右侧弹窗（影视类型、导演、编剧、主演、书籍类型通用）
 class GenreSelectorPage extends StatefulWidget {
@@ -117,7 +118,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('编辑', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          title: Text('编辑'.tr, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: TextField(
             controller: editController,
             autofocus: true,
@@ -133,11 +134,11 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
             onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, editController.text.trim()),
               style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('确定'),
+              child: Text('确定'.tr),
             ),
           ],
         );
@@ -157,7 +158,9 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
     final query = _query.toLowerCase();
     final available = allTags
         .where((t) => !_selected.contains(t))
-        .where((t) => query.isEmpty || t.toLowerCase().contains(query))
+        .where((t) => query.isEmpty ||
+            t.toLowerCase().contains(query) ||
+            t.tr.toLowerCase().contains(query))
         .toList();
 
     return Material(
@@ -174,7 +177,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
               padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 14, 8, 14),
               child: Row(
                 children: [
-                  Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text(widget.title.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const Spacer(),
                   TextButton(
                     onPressed: () {
@@ -184,7 +187,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
                       }
                       Navigator.pop(context, _selected);
                     },
-                    child: Text('完成', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
+                    child: Text('完成'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
                   ),
                 ],
               ),
@@ -198,7 +201,9 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
                 style: TextStyle(fontSize: 14, color: colors.onSurface),
                 cursorColor: colors.primary,
                 decoration: InputDecoration(
-                  hintText: widget.hint.isNotEmpty ? '搜索或${widget.hint}' : '搜索或输入',
+                  hintText: widget.hint.isNotEmpty
+                      ? '搜索或{hint}'.trf({'hint': widget.hint})
+                      : '搜索或输入'.tr,
                   hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: colors.surfaceContainerHigh,
@@ -238,7 +243,11 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  _loading ? '加载中...' : (query.isEmpty ? '可选 (${available.length})' : '匹配结果 (${available.length})'),
+                  _loading
+                      ? '加载中...'.tr
+                      : (query.isEmpty
+                          ? '可选 ({n})'.trf({'n': available.length})
+                          : '匹配结果 ({n})'.trf({'n': available.length})),
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
                 ),
               ),
@@ -253,7 +262,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 32),
                             child: Text(
-                              query.isEmpty ? '暂无可选' : '无匹配结果，回车添加',
+                              query.isEmpty ? '暂无可选'.tr : '无匹配结果，回车添加'.tr,
                               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
                             ),
                           ),
@@ -297,7 +306,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(tag, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+                Text(tag.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onPrimary)),
                 const SizedBox(width: 4),
                 Icon(Icons.close, size: 14, color: colors.onPrimary.withValues(alpha: 0.85)),
               ],
@@ -319,7 +328,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
           children: [
             Expanded(
               child: Text(
-                tag,
+                tag.tr,
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.8)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

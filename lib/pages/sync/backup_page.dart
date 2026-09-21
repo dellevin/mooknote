@@ -6,6 +6,7 @@ import '../../services/sync/backup_service.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 本地备份页面
 class BackupPage extends StatefulWidget {
@@ -41,30 +42,30 @@ class _BackupPageState extends State<BackupPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('本地备份'),
+        title: Text('本地备份'.tr),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // 手动备份
-          _buildSectionTitle(colors, '手动备份'),
+          _buildSectionTitle(colors, '手动备份'.tr),
           const SizedBox(height: 10),
           _buildActionCard(
             colors: colors,
-            title: '导出数据',
-            description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备',
+            title: '导出数据'.tr,
+            description: '将所有数据导出为 zip 文件，可用于备份或迁移到其他设备'.tr,
             icon: Icons.upload_outlined,
-            buttonText: '导出',
+            buttonText: '导出'.tr,
             isLoading: _isExporting,
             onTap: _exportData,
           ),
           const SizedBox(height: 8),
           _buildActionCard(
             colors: colors,
-            title: '导入数据',
-            description: '从备份文件导入数据，将覆盖当前所有数据',
+            title: '导入数据'.tr,
+            description: '从备份文件导入数据，将覆盖当前所有数据'.tr,
             icon: Icons.download_outlined,
-            buttonText: '导入',
+            buttonText: '导入'.tr,
             isLoading: _isImporting,
             onTap: _importData,
             isDestructive: true,
@@ -74,7 +75,7 @@ class _BackupPageState extends State<BackupPage> {
 
           // 自动备份
           if (Platform.isAndroid) ...[
-            _buildSectionTitle(colors, '自动备份'),
+            _buildSectionTitle(colors, '自动备份'.tr),
             const SizedBox(height: 10),
             _buildAutoBackupSection(colors),
           ],
@@ -249,7 +250,7 @@ class _BackupPageState extends State<BackupPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '自动备份',
+                      '自动备份'.tr,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -259,8 +260,8 @@ class _BackupPageState extends State<BackupPage> {
                     const SizedBox(height: 1),
                     Text(
                       isEnabled
-                          ? '每 $intervalHours 小时自动备份一次，保留最新 5 个'
-                          : '开启后自动定期备份数据',
+                          ? '每 {h} 小时自动备份一次，保留最新 5 个'.trf({'h': intervalHours})
+                          : '开启后自动定期备份数据'.tr,
                       style: TextStyle(
                         fontSize: 11,
                         color: colors.onSurface.withValues(alpha: 0.4),
@@ -308,7 +309,7 @@ class _BackupPageState extends State<BackupPage> {
                           ),
                         )
                       : Text(
-                          '立即备份',
+                          '立即备份'.tr,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -322,7 +323,7 @@ class _BackupPageState extends State<BackupPage> {
             if (lastTime != null) ...[
               const SizedBox(height: 8),
               Text(
-                '上次备份: ${_formatBackupTime(lastTime)}',
+                '上次备份: {t}'.trf({'t': _formatBackupTime(lastTime)}),
                 style: TextStyle(
                   fontSize: 11,
                   color: colors.onSurface.withValues(alpha: 0.35),
@@ -363,7 +364,7 @@ class _BackupPageState extends State<BackupPage> {
               ),
               child: Center(
                 child: Text(
-                  h < 24 ? '$h小时' : '${h ~/ 24}天',
+                  h < 24 ? '{h}小时'.trf({'h': h}) : '{d}天'.trf({'d': h ~/ 24}),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -448,7 +449,7 @@ class _BackupPageState extends State<BackupPage> {
               ),
               const SizedBox(height: 10),
               Text(
-                '使用说明',
+                '使用说明'.tr,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -458,13 +459,13 @@ class _BackupPageState extends State<BackupPage> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildInfoItem(colors, '导出数据会生成一个 .zip 文件，包含所有数据和图片'),
+          _buildInfoItem(colors, '导出数据会生成一个 .zip 文件，包含所有数据和图片'.tr),
           const SizedBox(height: 8),
-          _buildInfoItem(colors, '选择保存路径后，可以通过微信、邮件等方式发送备份文件'),
+          _buildInfoItem(colors, '选择保存路径后，可以通过微信、邮件等方式发送备份文件'.tr),
           const SizedBox(height: 8),
-          _buildInfoItem(colors, '在新设备上选择导入数据，选择备份文件即可恢复'),
+          _buildInfoItem(colors, '在新设备上选择导入数据，选择备份文件即可恢复'.tr),
           const SizedBox(height: 8),
-          _buildInfoItem(colors, '导入数据会完全覆盖当前设备的数据，请谨慎操作'),
+          _buildInfoItem(colors, '导入数据会完全覆盖当前设备的数据，请谨慎操作'.tr),
         ],
       ),
     );
@@ -558,7 +559,7 @@ class _BackupPageState extends State<BackupPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('确定', style: TextStyle(fontSize: 14)),
+              child: Text('确定'.tr, style: const TextStyle(fontSize: 14)),
             ),
           ],
         );
@@ -576,20 +577,25 @@ class _BackupPageState extends State<BackupPage> {
       if (!mounted) return;
 
       if (result.cancelled) {
-        ToastUtil.show(context, '已取消导出');
+        ToastUtil.show(context, '已取消导出'.tr);
       } else if (result.success) {
         _showSuccessDialog(
-          title: '导出成功',
-          content:
-              '备份文件已保存，包含:\n影视 ${result.movieCount} · 书籍 ${result.bookCount} · 笔记 ${result.noteCount} · 图片 ${result.imageCount}',
+          title: '导出成功'.tr,
+          content: '备份文件已保存，包含:\n影视 {movies} · 书籍 {books} · 笔记 {notes} · 图片 {images}'
+              .trf({
+            'movies': result.movieCount,
+            'books': result.bookCount,
+            'notes': result.noteCount,
+            'images': result.imageCount,
+          }),
           detail: result.filePath ?? '',
         );
       } else {
-        ToastUtil.show(context, result.errorMessage ?? '导出失败');
+        ToastUtil.show(context, result.errorMessage ?? '导出失败'.tr);
       }
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '导出失败: $e');
+        ToastUtil.show(context, '导出失败: {e}'.trf({'e': e}));
       }
     } finally {
       if (mounted) {
@@ -621,7 +627,7 @@ class _BackupPageState extends State<BackupPage> {
                 child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
               ),
               const SizedBox(width: 12),
-              Text('确认导入',
+              Text('确认导入'.tr,
                   style: TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ],
@@ -630,7 +636,7 @@ class _BackupPageState extends State<BackupPage> {
           content: Padding(
             padding: const EdgeInsets.only(top: 16),
             child: Text(
-              '导入数据将覆盖当前所有数据，此操作不可恢复。',
+              '导入数据将覆盖当前所有数据，此操作不可恢复。'.tr,
               style: TextStyle(
                   fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6),
             ),
@@ -645,7 +651,7 @@ class _BackupPageState extends State<BackupPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('取消', style: TextStyle(fontSize: 14)),
+              child: Text('取消'.tr, style: const TextStyle(fontSize: 14)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -656,7 +662,7 @@ class _BackupPageState extends State<BackupPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('确认导入', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text('确认导入'.tr, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ],
         );
@@ -673,7 +679,7 @@ class _BackupPageState extends State<BackupPage> {
       if (!mounted) return;
 
       if (result.cancelled) {
-        ToastUtil.show(context, '已取消导入');
+        ToastUtil.show(context, '已取消导入'.tr);
       } else if (result.success) {
         // 刷新数据
         await context.read<AppProvider>().loadMovies();
@@ -686,15 +692,15 @@ class _BackupPageState extends State<BackupPage> {
         if (!mounted) return;
 
         _showSuccessDialog(
-          title: '导入成功',
+          title: '导入成功'.tr,
           content: result.statsText,
         );
       } else {
-        ToastUtil.show(context, result.errorMessage ?? '导入失败');
+        ToastUtil.show(context, result.errorMessage ?? '导入失败'.tr);
       }
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '导入失败: $e');
+        ToastUtil.show(context, '导入失败: {e}'.trf({'e': e}));
       }
     } finally {
       if (mounted) {
@@ -710,13 +716,13 @@ class _BackupPageState extends State<BackupPage> {
       final result = await BackupService.instance.performLocalAutoBackup();
       if (!mounted) return;
       if (result.success) {
-        ToastUtil.show(context, '自动备份完成');
+        ToastUtil.show(context, '自动备份完成'.tr);
         await _loadAutoBackupFiles();
       } else {
-        ToastUtil.show(context, result.errorMessage ?? '自动备份失败');
+        ToastUtil.show(context, result.errorMessage ?? '自动备份失败'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '自动备份失败: $e');
+      if (mounted) ToastUtil.show(context, '自动备份失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isRunningAutoBackup = false);
     }

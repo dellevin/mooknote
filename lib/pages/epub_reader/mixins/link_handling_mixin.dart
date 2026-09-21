@@ -48,16 +48,16 @@ mixin _LinkHandlingMixin on State<ReaderScreen> {
                 await appDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('打开外部链接'),
-                    content: Text('是否打开链接: $url'),
+                    title: Text('打开外部链接'.tr),
+                    content: Text('是否打开链接: {url}'.trf({'url': url})),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('取消'),
+                        child: Text('取消'.tr),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('打开'),
+                        child: Text('打开'.tr),
                       ),
                     ],
                   ),
@@ -73,7 +73,7 @@ mixin _LinkHandlingMixin on State<ReaderScreen> {
       } else {
         if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('无法打开链接: $url')),
+            SnackBar(content: Text('无法打开链接: {url}'.trf({'url': url}))),
           );
         }
       }

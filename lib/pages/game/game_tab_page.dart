@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
@@ -89,7 +90,7 @@ class _GameTabPageState extends State<GameTabPage> with SingleTickerProviderStat
         ? GameAddPage(onCancel: () => provider.cancelAdding())
         : selectedGame != null
             ? GameDetailPage(game: selectedGame, embedded: true)
-            : const DetailPlaceholder(icon: Icons.sports_esports_outlined, message: '选择一款游戏查看详情');
+            : DetailPlaceholder(icon: Icons.sports_esports_outlined, message: '选择一款游戏查看详情'.tr);
     return MasterDetailScaffold(
       master: masterContent,
       detail: detailWidget,
@@ -388,7 +389,7 @@ class _GameTabViewState extends State<_GameTabView>
       child: Center(
         child: _isLoading
             ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary))
-            : Text('没有更多了', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
+            : Text('没有更多了'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
       ),
     );
   }
@@ -435,7 +436,7 @@ class _GameTabViewState extends State<_GameTabView>
     if (game.platforms.isNotEmpty) parts.add(game.platforms.take(2).join('、'));
     if (game.genres.isNotEmpty) parts.add(game.genres.take(2).join('、'));
     if (game.playTimeHours > 0 || game.playTimeMinutes > 0) {
-      parts.add('${game.playTimeHours}时${game.playTimeMinutes}分');
+      parts.add('{h}时{m}分'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}));
     }
     return parts.join(' · ');
   }
@@ -533,12 +534,12 @@ class _GameTabViewState extends State<_GameTabView>
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除《${game.title}》吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': game.title}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeGame(game.id);
@@ -549,7 +550,7 @@ class _GameTabViewState extends State<_GameTabView>
             style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -585,13 +586,13 @@ class _GameTabViewState extends State<_GameTabView>
 
   Widget _buildEmptyState() {
     final colors = Theme.of(context).colorScheme;
-    final statusText = widget.mode == 1 ? '' : ['已通关', '在玩', '想玩', '弃游'][widget.index];
+    final statusText = widget.mode == 1 ? '' : ['已通关', '在玩', '想玩', '弃游'][widget.index].tr;
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.sports_esports_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
       const SizedBox(height: 20),
-      Text(widget.mode == 1 ? '暂无游戏' : '暂无$statusText的游戏',
+      Text(widget.mode == 1 ? '暂无游戏'.tr : '暂无{status}的游戏'.trf({'status': statusText}),
           style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
     ]));
   }

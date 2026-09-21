@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 
 /// 标签侧边面板 - 从右侧滑入，用于选择和新建标签
 class TagSidePanel extends StatefulWidget {
@@ -105,7 +106,7 @@ class _TagSidePanelState extends State<TagSidePanel> {
               ),
               child: Row(
                 children: [
-                  Text('标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text('标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
@@ -115,7 +116,7 @@ class _TagSidePanelState extends State<TagSidePanel> {
                         color: colors.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text('保存', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onPrimary)),
+                      child: Text('保存'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onPrimary)),
                     ),
                   ),
                 ],
@@ -130,7 +131,7 @@ class _TagSidePanelState extends State<TagSidePanel> {
                 style: TextStyle(fontSize: 14, color: colors.onSurface),
                 cursorColor: colors.primary,
                 decoration: InputDecoration(
-                  hintText: '输入新标签，回车添加',
+                  hintText: '输入新标签，回车添加'.tr,
                   hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: colors.surfaceContainerHigh,
@@ -162,7 +163,7 @@ class _TagSidePanelState extends State<TagSidePanel> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('已选标签', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                  child: Text('已选标签'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                 ),
               ),
               Padding(
@@ -204,7 +205,7 @@ class _TagSidePanelState extends State<TagSidePanel> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('全部标签', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                child: Text('全部标签'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
               ),
             ),
             Expanded(

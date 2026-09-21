@@ -5,6 +5,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'book_excerpt_share_page.dart';
 import 'package:uuid/uuid.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 摘抄表单页面 - 新增/编辑摘抄
 class BookExcerptFormPage extends StatefulWidget {
@@ -72,7 +73,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: Text(_isEditing ? '编辑摘抄' : '添加摘抄'),
+        title: Text(_isEditing ? '编辑摘抄'.tr : '添加摘抄'.tr),
         actions: [
           if (_isLoading)
             const Padding(
@@ -83,12 +84,12 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
             if (_isEditing)
               IconButton(
                 icon: const Icon(Icons.ios_share),
-                tooltip: '分享',
+                tooltip: '分享'.tr,
                 onPressed: _shareExcerpt,
               ),
             TextButton(
               onPressed: _saveExcerpt,
-              child: Text('保存', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
+              child: Text('保存'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
             ),
           ],
           const SizedBox(width: 4),
@@ -108,23 +109,23 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
               ],
 
               // 章节
-              _buildLabel(colors, Icons.bookmark_outlined, '章节'),
+              _buildLabel(colors, Icons.bookmark_outlined, '章节'.tr),
               const SizedBox(height: 8),
               _buildInput(
                 colors: colors,
                 controller: _chapterController,
-                hintText: '例如：第一章、第3节',
+                hintText: '例如：第一章、第3节'.tr,
               ),
               const SizedBox(height: 24),
 
               // 摘抄内容
-              _buildLabel(colors, Icons.format_quote, '摘抄内容', required: true),
+              _buildLabel(colors, Icons.format_quote, '摘抄内容'.tr, required: true),
               const SizedBox(height: 8),
               _buildContentInput(colors),
               const SizedBox(height: 24),
 
               // 我的感悟
-              _buildLabel(colors, Icons.lightbulb_outline, '我的感悟'),
+              _buildLabel(colors, Icons.lightbulb_outline, '我的感悟'.tr),
               const SizedBox(height: 8),
               _buildCommentInput(colors),
             ],
@@ -195,7 +196,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
   Future<void> _editContent() async {
     final result = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => _FullTextEditPage(title: '摘抄内容', initialText: _contentController.text, hintText: '在这里粘贴或输入书中的原文段落…')),
+      MaterialPageRoute(builder: (_) => _FullTextEditPage(title: '摘抄内容'.tr, initialText: _contentController.text, hintText: '在这里粘贴或输入书中的原文段落…'.tr)),
     );
     if (result != null) {
       _contentController.text = result;
@@ -208,7 +209,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
   Future<void> _editComment() async {
     final result = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => _FullTextEditPage(title: '我的感悟', initialText: _commentController.text, hintText: '记录思考、联想或评论…')),
+      MaterialPageRoute(builder: (_) => _FullTextEditPage(title: '我的感悟'.tr, initialText: _commentController.text, hintText: '记录思考、联想或评论…'.tr)),
     );
     if (result != null) {
       _commentController.text = result;
@@ -236,7 +237,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
               textAlignVertical: TextAlignVertical.top,
               style: TextStyle(fontSize: 15, height: 1.8, color: colors.onSurface),
               decoration: InputDecoration(
-                hintText: '在这里粘贴或输入书中的原文段落…',
+                hintText: '在这里粘贴或输入书中的原文段落…'.tr,
                 hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
@@ -247,7 +248,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text('$_contentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+              Text('{n}字'.trf({'n': _contentChars}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: _editContent,
@@ -280,7 +281,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
               textAlignVertical: TextAlignVertical.top,
               style: TextStyle(fontSize: 15, height: 1.8, color: colors.onSurface),
               decoration: InputDecoration(
-                hintText: '记录思考、联想或评论…',
+                hintText: '记录思考、联想或评论…'.tr,
                 hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
@@ -291,7 +292,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text('$_commentChars字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+              Text('{n}字'.trf({'n': _commentChars}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: _editComment,
@@ -337,7 +338,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
       suffix: charCount != null
           ? Padding(
               padding: const EdgeInsets.only(bottom: 2),
-              child: Text('$charCount字', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+              child: Text('{n}字'.trf({'n': charCount}), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
             )
           : null,
     );
@@ -348,7 +349,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
   Future<void> _saveExcerpt() async {
     if (!_formKey.currentState!.validate()) return;
     if (_contentController.text.trim().isEmpty) {
-      ToastUtil.show(context, '请输入摘抄内容');
+      ToastUtil.show(context, '请输入摘抄内容'.tr);
       return;
     }
     setState(() => _isLoading = true);
@@ -371,10 +372,10 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
       }
       if (mounted) {
         Navigator.pop(context);
-        ToastUtil.show(context, _isEditing ? '摘抄已更新' : '摘抄已添加');
+        ToastUtil.show(context, _isEditing ? '摘抄已更新'.tr : '摘抄已添加'.tr);
       }
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '保存失败: $e');
+      if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -426,7 +427,7 @@ class _FullTextEditPageState extends State<_FullTextEditPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, _controller.text.trim()),
-            child: Text('完成', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
+            child: Text('完成'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
           ),
           const SizedBox(width: 8),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../utils/toast_util.dart';
 import 'highlight_share_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 句读详情弹窗 —— 类似分享卡片的样式
 /// 从 epub_detail_page 和 epub_highlights_page 共用
@@ -81,7 +82,7 @@ void showHighlightDetailSheet(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '第 ${chapterNum + 1} 章',
+                            '第 {n} 章'.trf({'n': chapterNum + 1}),
                             style: const TextStyle(fontSize: 11, color: Color(0xFF795548), fontWeight: FontWeight.w500),
                           ),
                         ),
@@ -137,11 +138,11 @@ void showHighlightDetailSheet(
                       _buildActionButton(
                         colors,
                         icon: Icons.ios_share_outlined,
-                        label: '分享',
+                        label: '分享'.tr,
                         onTap: () {
                           Navigator.pop(ctx);
                           String chapterLabel = '';
-                          if (chapterNum != null) chapterLabel = '第${chapterNum + 1}章';
+                          if (chapterNum != null) chapterLabel = '第{n}章'.trf({'n': chapterNum + 1});
                           String dateLabel = '';
                           if (createdAt.isNotEmpty) dateLabel = _formatDate(createdAt);
                           Navigator.push(context, MaterialPageRoute(
@@ -157,18 +158,18 @@ void showHighlightDetailSheet(
                       _buildActionButton(
                         colors,
                         icon: Icons.content_copy_outlined,
-                        label: '复制',
+                        label: '复制'.tr,
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: content));
                           Navigator.pop(ctx);
-                          ToastUtil.show(context, '已复制');
+                          ToastUtil.show(context, '已复制'.tr);
                         },
                       ),
                       if (onNavigate != null)
                         _buildActionButton(
                           colors,
                           icon: Icons.menu_book_outlined,
-                          label: '跳转',
+                          label: '跳转'.tr,
                           onTap: () {
                             Navigator.pop(ctx);
                             onNavigate();
@@ -177,7 +178,7 @@ void showHighlightDetailSheet(
                       _buildActionButton(
                         colors,
                         icon: Icons.delete_outline,
-                        label: '删除',
+                        label: '删除'.tr,
                         onTap: () {
                           Navigator.pop(ctx);
                           onDelete();
@@ -386,7 +387,7 @@ void showExcerptDetailSheet(
                         _buildActionButton(
                           colors,
                           icon: Icons.ios_share_outlined,
-                          label: '分享',
+                          label: '分享'.tr,
                           onTap: () {
                             Navigator.pop(ctx);
                             Navigator.push(context, MaterialPageRoute(
@@ -402,17 +403,17 @@ void showExcerptDetailSheet(
                         _buildActionButton(
                           colors,
                           icon: Icons.content_copy_outlined,
-                          label: '复制',
+                          label: '复制'.tr,
                           onTap: () {
                             Clipboard.setData(ClipboardData(text: content));
                             Navigator.pop(ctx);
-                            ToastUtil.show(context, '已复制');
+                            ToastUtil.show(context, '已复制'.tr);
                           },
                         ),
                         _buildActionButton(
                           colors,
                           icon: Icons.delete_outline,
-                          label: '删除',
+                          label: '删除'.tr,
                           onTap: () {
                             Navigator.pop(ctx);
                             onDelete();

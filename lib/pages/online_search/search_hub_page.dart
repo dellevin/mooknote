@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/user_prefs.dart';
+import '../../l10n/app_strings.dart';
 import 'search_page.dart';
 import 'online_search_page.dart';
 
@@ -32,7 +33,7 @@ class _SearchHubPageState extends State<SearchHubPage> {
     final showToggle = UserPrefs().enhancedSearchEnabled;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('搜索'),
+        title: Text('搜索'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
@@ -61,8 +62,8 @@ class _SearchHubPageState extends State<SearchHubPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _toggleBtn('本地', !_isOnline, () => _switchTo(false), colors),
-          _toggleBtn('增强', _isOnline, () => _switchTo(true), colors),
+          _toggleBtn('本地'.tr, !_isOnline, () => _switchTo(false), colors),
+          _toggleBtn('增强'.tr, _isOnline, () => _switchTo(true), colors),
         ],
       ),
     );

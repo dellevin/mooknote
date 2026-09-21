@@ -14,6 +14,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/app_overlay.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 class BookAddPage extends StatefulWidget {
   final VoidCallback? onCancel;
@@ -83,10 +84,10 @@ class _BookAddPageState extends State<BookAddPage> {
               child: Row(children: [
                 IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
                   onPressed: () => widget.onCancel?.call()),
-                Expanded(child: Text('添加书籍',
+                Expanded(child: Text('添加书籍'.tr,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
                 FilledButton.icon(onPressed: _save,
-                  icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                  icon: const Icon(Icons.check, size: 16), label: Text('保存'.tr),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
                 const SizedBox(width: 12),
@@ -106,7 +107,7 @@ class _BookAddPageState extends State<BookAddPage> {
                         : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                             Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                             const SizedBox(height: 8),
-                            Text('点击添加封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                            Text('点击添加封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                           ]),
                       if (_isDownloading) Container(color: Colors.black.withValues(alpha: 0.4),
                         child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
@@ -114,60 +115,60 @@ class _BookAddPageState extends State<BookAddPage> {
                   )),
                   if (hasCover) Padding(padding: const EdgeInsets.only(top: 8),
                     child: GestureDetector(onTap: () => setState(() => _coverPath = null),
-                      child: Text('移除封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))))),
+                      child: Text('移除封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))))),
                   const SizedBox(height: 20),
-                  _label('状态', colors), const SizedBox(height: 6),
+                  _label('状态'.tr, colors), const SizedBox(height: 6),
                   Container(padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                     child: Wrap(spacing: 0, runSpacing: 4, children: [
-                      _statusChip('想读', 'want_to_read', colors), _statusChip('在读', 'reading', colors),
-                      _statusChip('已读', 'read', colors), _statusChip('弃读', 'abandoned', colors),
+                      _statusChip('想读'.tr, 'want_to_read', colors), _statusChip('在读'.tr, 'reading', colors),
+                      _statusChip('已读'.tr, 'read', colors), _statusChip('弃读'.tr, 'abandoned', colors),
                     ])),
                   const SizedBox(height: 16),
-                  _label('评分', colors), const SizedBox(height: 6),
+                  _label('评分'.tr, colors), const SizedBox(height: 6),
                   _buildRatingRow(colors),
                 ])),
                 // 右侧表单
                 Expanded(child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(0, 20, 24, 80),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _field('名称', _titleCtrl, hint: '书籍名称', required: true), const SizedBox(height: 16),
-                    _chipField('别名', _alternateTitles, onTap: () async {
-                      final r = await GenreSelectorPage.show(context: context, title: '添加别名', existingTags: [], initialSelected: _alternateTitles, hint: '输入别名');
+                    _field('名称'.tr, _titleCtrl, hint: '书籍名称'.tr, required: true), const SizedBox(height: 16),
+                    _chipField('别名'.tr, _alternateTitles, onTap: () async {
+                      final r = await GenreSelectorPage.show(context: context, title: '添加别名'.tr, existingTags: [], initialSelected: _alternateTitles, hint: '输入别名'.tr);
                       if (r != null) setState(() => _alternateTitles = r);
                     }), const SizedBox(height: 16),
-                    _chipField('作者', _authors, onTap: () async {
+                    _chipField('作者'.tr, _authors, onTap: () async {
                       final p = context.read<AppProvider>(); final d = p.books.map((b) => b.authors).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择作者', existingTagsFuture: compute(_collectUnique, d), initialSelected: _authors, hint: '如：余华');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择作者'.tr, existingTagsFuture: compute(_collectUnique, d), initialSelected: _authors, hint: '如：余华'.tr);
                       if (r != null) setState(() => _authors = r);
                     }), const SizedBox(height: 16),
-                    _chipField('译者', _translators, onTap: () async {
+                    _chipField('译者'.tr, _translators, onTap: () async {
                       final p = context.read<AppProvider>(); final d = p.books.map((b) => b.translators).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择译者', existingTagsFuture: compute(_collectUnique, d), initialSelected: _translators, hint: '如：李继宏');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择译者'.tr, existingTagsFuture: compute(_collectUnique, d), initialSelected: _translators, hint: '如：李继宏'.tr);
                       if (r != null) setState(() => _translators = r);
                     }), const SizedBox(height: 16),
-                    _chipField('类型', _genres, onTap: () async {
+                    _chipField('类型'.tr, _genres, onTap: () async {
                       final p = context.read<AppProvider>();
                       final tags = await p.getTags('book_genre', excludeHidden: true);
                       final names = tags.map((t) => t['name'] as String).toList();
                       if (!mounted) return;
-                      final r = await GenreSelectorPage.show(context: context, title: '选择类型', existingTags: names, initialSelected: _genres, hint: '如：小说、历史');
+                      final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: names, initialSelected: _genres, hint: '如：小说、历史'.tr);
                       if (r != null) setState(() => _genres = r);
                     }), const SizedBox(height: 16),
-                    _field('出版社', _publisherCtrl, hint: '出版社名称'), const SizedBox(height: 16),
-                    _field('ISBN', _isbnCtrl, hint: 'ISBN编号'), const SizedBox(height: 16),
+                    _field('出版社'.tr, _publisherCtrl, hint: '出版社名称'.tr), const SizedBox(height: 16),
+                    _field('ISBN', _isbnCtrl, hint: 'ISBN编号'.tr), const SizedBox(height: 16),
                     Row(children: [
-                      Expanded(child: _dateField('出版日期', _publishDate, (d) => setState(() => _publishDate = d))),
+                      Expanded(child: _dateField('出版日期'.tr, _publishDate, (d) => setState(() => _publishDate = d))),
                       const SizedBox(width: 12),
-                      Expanded(child: _dateField('开始日期', _startDate, (d) => setState(() => _startDate = d), clearable: true)),
+                      Expanded(child: _dateField('开始日期'.tr, _startDate, (d) => setState(() => _startDate = d), clearable: true)),
                       const SizedBox(width: 12),
-                      Expanded(child: _dateField('读完日期', _finishDate, (d) => setState(() => _finishDate = d), clearable: true)),
+                      Expanded(child: _dateField('读完日期'.tr, _finishDate, (d) => setState(() => _finishDate = d), clearable: true)),
                     ]), const SizedBox(height: 16),
-                    _label('简介', colors), const SizedBox(height: 6),
+                    _label('简介'.tr, colors), const SizedBox(height: 6),
                     Container(constraints: const BoxConstraints(minHeight: 120),
                       child: TextFormField(controller: _summaryCtrl, maxLines: null,
                         style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-                        decoration: InputDecoration(hintText: '写下书籍简介...', hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                        decoration: InputDecoration(hintText: '写下书籍简介...'.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                           filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(12)))),
                   ]),
@@ -222,7 +223,7 @@ class _BookAddPageState extends State<BookAddPage> {
       Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: c.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       TextFormField(controller: ctrl, style: TextStyle(fontSize: 14, color: c.onSurface),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
+        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入{label}'.trf({'label': label}) : null : null,
         decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: c.onSurface.withValues(alpha: 0.25)),
           filled: true, fillColor: c.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -239,7 +240,7 @@ class _BookAddPageState extends State<BookAddPage> {
         child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(color: c.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
           child: chips.isEmpty
-            ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: c.onSurface.withValues(alpha: 0.25)))
+            ? Text('点击选择{label}'.trf({'label': label}), style: TextStyle(fontSize: 14, color: c.onSurface.withValues(alpha: 0.25)))
             : Wrap(spacing: 4, runSpacing: 4, children: chips.map((e) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(4)),
@@ -261,7 +262,7 @@ class _BookAddPageState extends State<BookAddPage> {
         child: Row(children: [
           Icon(Icons.calendar_today_outlined, size: 14, color: c.onSurface.withValues(alpha: 0.4)),
           const SizedBox(width: 8),
-          Text(has ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期',
+          Text(has ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
             style: TextStyle(fontSize: 14, color: has ? c.onSurface : c.onSurface.withValues(alpha: 0.25))),
           const Spacer(),
           if (clearable && has) GestureDetector(onTap: () => onChanged(null),
@@ -279,12 +280,12 @@ class _BookAddPageState extends State<BookAddPage> {
           Container(width: 40, height: 4, decoration: BoxDecoration(color: c.outline, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Align(alignment: Alignment.centerLeft,
-            child: Text('添加封面', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)))),
+            child: Text('添加封面'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)))),
           const SizedBox(height: 16),
           ListTile(leading: Icon(Icons.photo_library_outlined, color: c.onSurface.withValues(alpha: 0.6)),
-            title: Text('从相册选择'), onTap: () { Navigator.pop(ctx); _pickCover(); }),
+            title: Text('从相册选择'.tr), onTap: () { Navigator.pop(ctx); _pickCover(); }),
           ListTile(leading: Icon(Icons.link_outlined, color: c.onSurface.withValues(alpha: 0.6)),
-            title: Text('网络链接'), onTap: () { Navigator.pop(ctx); _pickCoverFromUrl(); }),
+            title: Text('网络链接'.tr), onTap: () { Navigator.pop(ctx); _pickCoverFromUrl(); }),
         ]))));
   }
 
@@ -297,7 +298,7 @@ class _BookAddPageState extends State<BookAddPage> {
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(picked.path).copy(targetPath);
       if (mounted) setState(() => _coverPath = targetPath);
-    } catch (e) { if (mounted) ToastUtil.show(context, '选择封面失败: $e'); }
+    } catch (e) { if (mounted) ToastUtil.show(context, '选择封面失败: {e}'.trf({'e': e})); }
   }
 
   Future<void> _pickCoverFromUrl() async {
@@ -305,13 +306,13 @@ class _BookAddPageState extends State<BookAddPage> {
     final ok = await appDialog<bool>(context: context, builder: (ctx) {
       final c = Theme.of(ctx).colorScheme;
       return AlertDialog(backgroundColor: c.surface, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)),
+        title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)),
         content: TextField(controller: ctrl, keyboardType: TextInputType.url, style: TextStyle(fontSize: 14, color: c.onSurface),
           decoration: InputDecoration(hintText: 'https://example.com/image.jpg', filled: true, fillColor: c.surfaceContainerHigh,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确定')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('确定'.tr)),
         ]);
     });
     final url = ctrl.text.trim(); ctrl.dispose();
@@ -331,7 +332,7 @@ class _BookAddPageState extends State<BookAddPage> {
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(res.bodyBytes);
       if (mounted) setState(() => _coverPath = targetPath);
-    } catch (e) { if (mounted) ToastUtil.show(context, '下载失败: $e'); }
+    } catch (e) { if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e})); }
     finally { if (mounted) setState(() => _isDownloading = false); }
   }
 
@@ -370,8 +371,8 @@ class _BookAddPageState extends State<BookAddPage> {
       await context.read<AppProvider>().loadBooks();
       if (!mounted) return;
       context.read<AppProvider>().finishAdding();
-      ToastUtil.show(context, '添加成功');
-    } catch (e) { if (mounted) ToastUtil.show(context, '保存失败: $e'); }
+      ToastUtil.show(context, '添加成功'.tr);
+    } catch (e) { if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e})); }
   }
 
   static List<String> _collectUnique(List<List<String>> lists) {

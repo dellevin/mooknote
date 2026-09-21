@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书评详情页
 class BookReviewDetailPage extends StatefulWidget {
@@ -55,7 +56,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('书评详情'),
+        title: Text('书评详情'.tr),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -96,8 +97,8 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             // 书评人
             _buildInfoRow(
               icon: Icons.person_outline,
-              label: '书评人：',
-              value: _review.reviewer.isNotEmpty ? _review.reviewer : '匿名',
+              label: '书评人：'.tr,
+              value: _review.reviewer.isNotEmpty ? _review.reviewer : '匿名'.tr,
               colors: colors,
             ),
 
@@ -107,7 +108,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             if (_review.source.isNotEmpty)
               _buildInfoRow(
                 icon: Icons.source_outlined,
-                label: '来源：',
+                label: '来源：'.tr,
                 value: _review.source,
                 colors: colors,
               ),
@@ -117,8 +118,8 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             // 类型
             _buildInfoRow(
               icon: Icons.category_outlined,
-              label: '类型：',
-              value: _review.typeText,
+              label: '类型：'.tr,
+              value: _review.typeText.tr,
               colors: colors,
             ),
 
@@ -127,7 +128,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             // 时间
             _buildInfoRow(
               icon: Icons.access_time,
-              label: '时间：',
+              label: '时间：'.tr,
               value: _formatDate(_review.createdAt),
               colors: colors,
             ),
@@ -181,13 +182,13 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除这条书评吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除这条书评吗？删除后可在回收站恢复。'.tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -196,7 +197,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -204,7 +205,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
     );
     if (confirmed == true) {
       await context.read<AppProvider>().removeBookReview(_review.id);
-      if (mounted) { ToastUtil.show(context, '已删除'); Navigator.pop(context); }
+      if (mounted) { ToastUtil.show(context, '已删除'.tr); Navigator.pop(context); }
     }
   }
 

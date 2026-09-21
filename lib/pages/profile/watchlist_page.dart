@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -111,7 +112,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: const Text('想看清单')),
+      appBar: AppBar(title: Text('想看清单'.tr)),
       body: CustomScrollView(
         slivers: _buildSlivers(
           colors: colors,
@@ -183,7 +184,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(_typeLabel[group.type]!,
+              Text(_typeLabel[group.type]!.tr,
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -261,7 +262,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                       Icon(_typeIcon[item.type],
                           size: 11, color: _typeColor[item.type]),
                       const SizedBox(width: 3),
-                      Text(_typeLabel[item.type]!,
+                      Text(_typeLabel[item.type]!.tr,
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -290,7 +291,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
           Icon(Icons.bookmark_border,
               size: 48, color: colors.onSurface.withValues(alpha: 0.15)),
           const SizedBox(height: 12),
-          Text('暂无想看记录',
+          Text('暂无想看记录'.tr,
               style: TextStyle(
                   fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
         ],
@@ -301,12 +302,12 @@ class _WatchlistPageState extends State<WatchlistPage> {
   String _formatRelative(DateTime d) {
     final now = DateTime.now();
     final diff = now.difference(d);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    if (diff.inDays < 30) return '${diff.inDays}天前';
-    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}个月前';
-    return '${(diff.inDays / 365).floor()}年前';
+    if (diff.inMinutes < 1) return '刚刚'.tr;
+    if (diff.inHours < 1) return '{n}分钟前'.trf({'n': diff.inMinutes});
+    if (diff.inDays < 1) return '{n}小时前'.trf({'n': diff.inHours});
+    if (diff.inDays < 30) return '{n}天前'.trf({'n': diff.inDays});
+    if (diff.inDays < 365) return '{n}个月前'.trf({'n': (diff.inDays / 30).floor()});
+    return '{n}年前'.trf({'n': (diff.inDays / 365).floor()});
   }
 }
 
@@ -353,7 +354,7 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
                       : colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(visibleFilters[i].$1,
+                child: Text(visibleFilters[i].$1.tr,
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight:
@@ -365,7 +366,7 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
             ),
           ],
           const Spacer(),
-          Text('$count项',
+          Text('{n}项'.trf({'n': count}),
               style: TextStyle(
                   fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
         ],

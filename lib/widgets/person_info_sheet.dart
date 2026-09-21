@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import 'fade_in_local_image.dart';
 import 'person_avatar.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 人物信息浮动面板（底部 ModalBottomSheet）
 /// 展示人物基本信息 + 关联作品，点击「查看全部」跳转到原详情页
@@ -173,7 +174,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
             ));
           },
           icon: const Icon(Icons.arrow_outward, size: 16),
-          label: const Text('详情', style: TextStyle(fontSize: 13)),
+          label: Text('详情'.tr, style: const TextStyle(fontSize: 13)),
           style: TextButton.styleFrom(
             foregroundColor: colors.primary,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -194,7 +195,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
           decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text(title.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ],
     );
   }
@@ -207,10 +208,10 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
         children: [
           SizedBox(
             width: 72,
-            child: Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
-            child: Text(value, style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.5)),
+            child: Text(value.tr, style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.5)),
           ),
         ],
       ),
@@ -233,7 +234,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
           GestureDetector(
             onTap: () => setState(() => _summaryExpanded = !_summaryExpanded),
             child: Text(
-              _summaryExpanded ? '收起' : '展开',
+              _summaryExpanded ? '收起'.tr : '展开'.tr,
               style: TextStyle(fontSize: 12, color: colors.primary),
             ),
           ),
@@ -263,7 +264,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Center(
-          child: Text('暂无关联作品', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
+          child: Text('暂无关联作品'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
         ),
       );
     }
@@ -274,7 +275,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (movieGroups.isNotEmpty) ...[
-          Text('影视 (${movieGroups.length})', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('影视 ({n})'.trf({'n': movieGroups.length}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
           ...movieGroups.entries.map((entry) {
             final movie = provider.movies.where((m) => m.id == entry.key).firstOrNull;
@@ -286,9 +287,9 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
               if (!seen.add(key)) continue;
               final label = _roleTypeLabel(mp.roleType);
               if (mp.characterName != null && mp.characterName!.isNotEmpty) {
-                roles.add('$label 饰 ${mp.characterName}');
+                roles.add('{label} 饰 {name}'.trf({'label': label.tr, 'name': mp.characterName}));
               } else {
-                roles.add(label);
+                roles.add(label.tr);
               }
             }
             return _buildWorkItem(
@@ -301,7 +302,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
           const SizedBox(height: 12),
         ],
         if (bookGroups.isNotEmpty) ...[
-          Text('书籍 (${bookGroups.length})', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('书籍 ({n})'.trf({'n': bookGroups.length}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
           ...bookGroups.entries.map((entry) {
             final book = provider.books.where((b) => b.id == entry.key).firstOrNull;
@@ -310,7 +311,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
             final roles = <String>[];
             for (final bp in entry.value) {
               if (!seen.add(bp.roleType)) continue;
-              roles.add(_roleTypeLabel(bp.roleType));
+              roles.add(_roleTypeLabel(bp.roleType).tr);
             }
             return _buildWorkItem(
               title: book.title,
@@ -322,7 +323,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
           const SizedBox(height: 12),
         ],
         if (gameGroups.isNotEmpty) ...[
-          Text('游戏 (${gameGroups.length})', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('游戏 ({n})'.trf({'n': gameGroups.length}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
           ...gameGroups.entries.map((entry) {
             final game = provider.games.where((g) => g.id == entry.key).firstOrNull;
@@ -331,7 +332,7 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
             final roles = <String>[];
             for (final gp in entry.value) {
               if (!seen.add(gp.roleType)) continue;
-              roles.add(_roleTypeLabel(gp.roleType));
+              roles.add(_roleTypeLabel(gp.roleType).tr);
             }
             return _buildWorkItem(
               title: game.title,
@@ -416,6 +417,10 @@ class _PersonInfoSheetState extends State<PersonInfoSheet> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.year}年${date.month.toString().padLeft(2, '0')}月${date.day.toString().padLeft(2, '0')}日';
+    return '{y}年{m}月{d}日'.trf({
+      'y': date.year,
+      'm': date.month.toString().padLeft(2, '0'),
+      'd': date.day.toString().padLeft(2, '0'),
+    });
   }
 }

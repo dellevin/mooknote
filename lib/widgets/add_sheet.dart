@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 新增记录弹窗 — 供底部导航栏和 NavigationRail 共用
 
@@ -44,8 +45,8 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.movie_outlined,
-      title: '添加观影',
-      subtitle: '记录你看过的电影',
+      title: '添加观影'.tr,
+      subtitle: '记录你看过的电影'.tr,
       onTap: () {
         Navigator.pop(outerContext);
         final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
@@ -59,8 +60,8 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.menu_book_outlined,
-      title: '添加阅读',
-      subtitle: '记录你读过的书',
+      title: '添加阅读'.tr,
+      subtitle: '记录你读过的书'.tr,
       onTap: () {
         Navigator.pop(outerContext);
         final statusMap = {0: 'read', 1: 'reading', 2: 'want_to_read', 3: 'abandoned'};
@@ -74,8 +75,8 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.sticky_note_2_outlined,
-      title: '添加笔记',
-      subtitle: '记录你的想法和笔记',
+      title: '添加笔记'.tr,
+      subtitle: '记录你的想法和笔记'.tr,
       onTap: () {
         Navigator.pop(outerContext);
         Navigator.pushNamed(outerContext, '/note-form');
@@ -86,8 +87,8 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.sports_esports_outlined,
-      title: '添加游戏',
-      subtitle: '记录你玩过的游戏',
+      title: '添加游戏'.tr,
+      subtitle: '记录你玩过的游戏'.tr,
       onTap: () {
         Navigator.pop(outerContext);
         final statusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
@@ -109,7 +110,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
-          title: Text('新增记录',
+          title: Text('新增记录'.tr,
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -149,7 +150,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      Text('新增记录',
+                      Text('新增记录'.tr,
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

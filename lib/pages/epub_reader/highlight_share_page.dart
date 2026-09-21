@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 
 /// 句读分享海报页面
@@ -42,7 +43,7 @@ class _HighlightSharePageState extends State<HighlightSharePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '分享句读',
+          '分享句读'.tr,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface),
         ),
         centerTitle: true,
@@ -51,7 +52,7 @@ class _HighlightSharePageState extends State<HighlightSharePage> {
             onPressed: _isGenerating ? null : _generateAndShare,
             child: _isGenerating
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('分享', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                : Text('分享'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ),
           const SizedBox(width: 8),
         ],
@@ -201,10 +202,10 @@ class _HighlightSharePageState extends State<HighlightSharePage> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: '分享句读：${widget.bookTitle}',
+        text: '分享句读：{title}'.trf({'title': widget.bookTitle}),
       );
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '生成海报失败：$e');
+      if (mounted) ToastUtil.show(context, '生成海报失败：{e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }

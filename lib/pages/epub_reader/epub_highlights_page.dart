@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 import '../../data/epub/reader_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
@@ -47,7 +48,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      if (mounted) ToastUtil.show(context, '加载失败: $e');
+      if (mounted) ToastUtil.show(context, '加载失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -62,13 +63,13 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: Text('句读', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+        title: Text('句读'.tr, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
         actions: [
           IconButton(
             icon: _isLoading
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : Icon(Icons.refresh_rounded, size: 22),
-            tooltip: '刷新',
+            tooltip: '刷新'.tr,
             onPressed: _isLoading ? null : _loadHighlights,
           ),
           IconButton(
@@ -76,7 +77,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
               _isListMode ? Icons.grid_view_rounded : Icons.view_agenda_outlined,
               size: 22,
             ),
-            tooltip: _isListMode ? '瀑布流' : '列表',
+            tooltip: _isListMode ? '瀑布流'.tr : '列表'.tr,
             onPressed: _toggleViewMode,
           ),
         ],
@@ -143,7 +144,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      '第${chapterNum + 1}章',
+                      '第{n}章'.trf({'n': chapterNum + 1}),
                       style: const TextStyle(fontSize: 9, color: Color(0xFF795548), fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -205,7 +206,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      '第${chapterNum + 1}章',
+                      '第{n}章'.trf({'n': chapterNum + 1}),
                       style: const TextStyle(fontSize: 10, color: Color(0xFF795548), fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -245,7 +246,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
         children: [
           Icon(Icons.highlight_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.2)),
           const SizedBox(height: 12),
-          Text('暂无句读', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))),
+          Text('暂无句读'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35))),
         ],
       ),
     );
@@ -324,13 +325,13 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定删除这条句读？', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定删除这条句读？'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () { Navigator.pop(ctx); _deleteHighlight(id); },
@@ -339,7 +340,7 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
       ),
@@ -349,6 +350,6 @@ class _EpubHighlightsPageState extends State<EpubHighlightsPage> {
   Future<void> _deleteHighlight(int id) async {
     await _dao.deleteHighlight(id);
     _loadHighlights();
-    if (mounted) ToastUtil.show(context, '已删除');
+    if (mounted) ToastUtil.show(context, '已删除'.tr);
   }
 }

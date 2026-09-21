@@ -26,6 +26,7 @@ import '../../data/epub/reader_dao.dart';
 import '../epub_reader/epub_highlights_page.dart';
 import '../epub_reader/reader_screen.dart';
 import '../../widgets/app_overlay.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书籍详情页 - 极简主义设计
 class BookDetailPage extends StatefulWidget {
@@ -240,17 +241,17 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           _buildStatusTag(book),
                         ]),
                         const SizedBox(height: 8),
-                        Text('添加于 ${_formatDate(book.createdAt)}',
+                        Text('添加于 {date}'.trf({'date': _formatDate(book.createdAt)}),
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
                         // 详细信息
-                        _buildDesktopInfoRow('作者', book.authors.join('，'), colors),
+                        _buildDesktopInfoRow('作者'.tr, book.authors.join('，'), colors),
                         if (book.translators.isNotEmpty)
-                          _buildDesktopInfoRow('译者', book.translators.join('，'), colors),
+                          _buildDesktopInfoRow('译者'.tr, book.translators.join('，'), colors),
                         if (book.genres.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
                             Expanded(child: Wrap(spacing: 8, runSpacing: 8,
                               children: book.genres.map((g) => Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -263,24 +264,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         if (book.isbn != null && book.isbn!.isNotEmpty)
                           _buildDesktopInfoRow('ISBN', book.isbn!, colors),
                         if (book.publisher != null && book.publisher!.isNotEmpty)
-                          _buildDesktopInfoRow('出版社', book.publisher!, colors),
+                          _buildDesktopInfoRow('出版社'.tr, book.publisher!, colors),
                         if (book.publishDate != null)
-                          _buildDesktopInfoRow('出版时间', '${book.publishDate!.year}年${book.publishDate!.month.toString().padLeft(2, '0')}月', colors),
+                          _buildDesktopInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors),
                         if (book.startDate != null || book.finishDate != null) ...[
                           const SizedBox(height: 8),
                           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('阅读日期', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            SizedBox(width: 56, child: Text('阅读日期'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
                             Expanded(child: Wrap(spacing: 12, runSpacing: 8, children: [
-                              if (book.startDate != null) _buildDateChip('开始', book.startDate!, false),
-                              if (book.finishDate != null) _buildDateChip('读完', book.finishDate!, false),
+                              if (book.startDate != null) _buildDateChip('开始'.tr, book.startDate!, false),
+                              if (book.finishDate != null) _buildDateChip('读完'.tr, book.finishDate!, false),
                             ])),
                           ]),
                         ],
                         if (book.readCount > 0) ...[
                           const SizedBox(height: 8),
                           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('阅读次数', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-                            Expanded(child: Text('${book.readCount} 次', style: TextStyle(fontSize: 13, color: colors.onSurface))),
+                            SizedBox(width: 56, child: Text('阅读次数'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                            Expanded(child: Text('{n} 次'.trf({'n': book.readCount}), style: TextStyle(fontSize: 13, color: colors.onSurface))),
                           ]),
                         ],
                         CharacterPreviewSection(
@@ -293,7 +294,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           Row(children: [
                             Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                             const SizedBox(width: 8),
-                            Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                            Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                           ]),
                           const SizedBox(height: 12),
                           Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
@@ -302,42 +303,42 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         Row(children: [
                           Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                           const SizedBox(width: 8),
-                          Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                         ]),
                         const SizedBox(height: 16),
                         _buildExtraSectionItem(
                           icon: Icons.rate_review_outlined,
-                          title: '书评',
+                          title: '书评'.tr,
                           subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-                          emptyText: '暂无书评',
-                          unit: '条书评',
+                          emptyText: '暂无书评'.tr,
+                          unit: '条书评'.tr,
                           onTap: () => _navigateToReviews(book),
                         ),
                         const SizedBox(height: 12),
                         _buildExtraSectionItem(
                           icon: Icons.format_quote_outlined,
-                          title: '摘抄',
+                          title: '摘抄'.tr,
                           subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-                          emptyText: '暂无摘抄',
-                          unit: '条摘抄',
+                          emptyText: '暂无摘抄'.tr,
+                          unit: '条摘抄'.tr,
                           onTap: () => _navigateToExcerpts(book),
                         ),
                         const SizedBox(height: 12),
                         _buildExtraSectionItem(
                           icon: Icons.highlight_outlined,
-                          title: '句读',
+                          title: '句读'.tr,
                           subtitleFuture: _getEpubHighlightCount(book.id),
-                          emptyText: '暂无句读',
-                          unit: '条句读',
+                          emptyText: '暂无句读'.tr,
+                          unit: '条句读'.tr,
                           onTap: () => _navigateToEpubHighlights(book),
                         ),
                         const SizedBox(height: 12),
                         _buildExtraSectionItem(
                           icon: Icons.people_outline,
-                          title: '角色',
+                          title: '角色'.tr,
                           subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-                          emptyText: '暂无角色',
-                          unit: '个角色',
+                          emptyText: '暂无角色'.tr,
+                          unit: '个角色'.tr,
                           onTap: () => _navigateToCharacters(book),
                         ),
                       ],
@@ -362,7 +363,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 OutlinedButton.icon(
                   onPressed: () => _showDeleteDialog(context),
                   icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -372,7 +373,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 FilledButton.icon(
                   onPressed: _enterEditMode,
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('编辑'),
+                  label: Text('编辑'.tr),
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -402,10 +403,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
               child: Row(children: [
                 IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
                   onPressed: () => setState(() => _isEditing = false)),
-                Expanded(child: Text('编辑书籍',
+                Expanded(child: Text('编辑书籍'.tr,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
                 FilledButton.icon(onPressed: _saveEdit,
-                  icon: const Icon(Icons.check, size: 16), label: const Text('保存'),
+                  icon: const Icon(Icons.check, size: 16), label: Text('保存'.tr),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
                 const SizedBox(width: 12),
@@ -424,7 +425,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                             Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
                             const SizedBox(height: 8),
-                            Text('点击添加封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                            Text('点击添加封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                           ]),
                       if (_editIsDownloading) Container(color: Colors.black.withValues(alpha: 0.4),
                         child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
@@ -432,20 +433,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   )),
                   if (hasCover) Padding(padding: const EdgeInsets.only(top: 8),
                     child: GestureDetector(onTap: () => setState(() => _editCoverPath = null),
-                      child: Text('移除封面', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))))),
+                      child: Text('移除封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))))),
                   const SizedBox(height: 20),
-                  _buildEditSectionLabel('状态', colors),
+                  _buildEditSectionLabel('状态'.tr, colors),
                   const SizedBox(height: 6),
                   Container(padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                     child: Wrap(spacing: 0, runSpacing: 4, children: [
-                      _buildEditStatusChip('想读', 'want_to_read', colors),
-                      _buildEditStatusChip('在读', 'reading', colors),
-                      _buildEditStatusChip('已读', 'read', colors),
-                      _buildEditStatusChip('弃读', 'abandoned', colors),
+                      _buildEditStatusChip('想读'.tr, 'want_to_read', colors),
+                      _buildEditStatusChip('在读'.tr, 'reading', colors),
+                      _buildEditStatusChip('已读'.tr, 'read', colors),
+                      _buildEditStatusChip('弃读'.tr, 'abandoned', colors),
                     ])),
                   const SizedBox(height: 16),
-                  _buildEditSectionLabel('评分', colors),
+                  _buildEditSectionLabel('评分'.tr, colors),
                   const SizedBox(height: 6),
                   Row(children: [
                     ...List.generate(5, (i) {
@@ -480,58 +481,58 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 Expanded(child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(0, 20, 24, 80),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _buildEditField('名称', _titleCtrl, hint: '书籍名称', required: true),
+                    _buildEditField('名称'.tr, _titleCtrl, hint: '书籍名称'.tr, required: true),
                     const SizedBox(height: 16),
-                    _buildEditChipField('作者', _editAuthors, onTap: () async {
+                    _buildEditChipField('作者'.tr, _editAuthors, onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.authors).toList();
-                      final result = await GenreSelectorPage.show(context: context, title: '选择作者',
-                        existingTagsFuture: compute(_collectUnique, data), initialSelected: _editAuthors, hint: '如：余华、莫言');
+                      final result = await GenreSelectorPage.show(context: context, title: '选择作者'.tr,
+                        existingTagsFuture: compute(_collectUnique, data), initialSelected: _editAuthors, hint: '如：余华、莫言'.tr);
                       if (result != null) setState(() => _editAuthors = result);
                     }),
                     const SizedBox(height: 16),
-                    _buildEditChipField('译者', _editTranslators, onTap: () async {
+                    _buildEditChipField('译者'.tr, _editTranslators, onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.translators).toList();
-                      final result = await GenreSelectorPage.show(context: context, title: '选择译者',
-                        existingTagsFuture: compute(_collectUnique, data), initialSelected: _editTranslators, hint: '如：林少华');
+                      final result = await GenreSelectorPage.show(context: context, title: '选择译者'.tr,
+                        existingTagsFuture: compute(_collectUnique, data), initialSelected: _editTranslators, hint: '如：林少华'.tr);
                       if (result != null) setState(() => _editTranslators = result);
                     }),
                     const SizedBox(height: 16),
-                    _buildEditChipField('别名', _editAlternateTitles, onTap: () async {
-                      final result = await GenreSelectorPage.show(context: context, title: '添加别名',
-                        existingTags: [], initialSelected: _editAlternateTitles, hint: '输入别名');
+                    _buildEditChipField('别名'.tr, _editAlternateTitles, onTap: () async {
+                      final result = await GenreSelectorPage.show(context: context, title: '添加别名'.tr,
+                        existingTags: [], initialSelected: _editAlternateTitles, hint: '输入别名'.tr);
                       if (result != null) setState(() => _editAlternateTitles = result);
                     }),
                     const SizedBox(height: 16),
-                    _buildEditChipField('类型', _editGenres, onTap: () async {
+                    _buildEditChipField('类型'.tr, _editGenres, onTap: () async {
                       final provider = context.read<AppProvider>();
                       final tags = await provider.getTags('book_genre', excludeHidden: true);
                       final names = tags.map((t) => t['name'] as String).toList();
                       if (!mounted) return;
-                      final result = await GenreSelectorPage.show(context: context, title: '选择类型',
-                        existingTags: names, initialSelected: _editGenres, hint: '如：小说、科幻');
+                      final result = await GenreSelectorPage.show(context: context, title: '选择类型'.tr,
+                        existingTags: names, initialSelected: _editGenres, hint: '如：小说、科幻'.tr);
                       if (result != null) setState(() => _editGenres = result);
                     }),
                     const SizedBox(height: 16),
-                    _buildEditField('出版社', _publisherCtrl, hint: '出版社名称'),
+                    _buildEditField('出版社'.tr, _publisherCtrl, hint: '出版社名称'.tr),
                     const SizedBox(height: 16),
-                    _buildEditField('ISBN', _isbnCtrl, hint: 'ISBN编号'),
+                    _buildEditField('ISBN', _isbnCtrl, hint: 'ISBN编号'.tr),
                     const SizedBox(height: 16),
                     Row(children: [
-                      Expanded(child: _buildEditDateField('出版时间', _editPublishDate, (d) => setState(() => _editPublishDate = d))),
+                      Expanded(child: _buildEditDateField('出版时间'.tr, _editPublishDate, (d) => setState(() => _editPublishDate = d))),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildEditDateField('开始阅读', _editStartDate, (d) => setState(() => _editStartDate = d), clearable: true)),
+                      Expanded(child: _buildEditDateField('开始阅读'.tr, _editStartDate, (d) => setState(() => _editStartDate = d), clearable: true)),
                     ]),
                     const SizedBox(height: 16),
-                    _buildEditDateField('读完日期', _editFinishDate, (d) => setState(() => _editFinishDate = d), clearable: true),
+                    _buildEditDateField('读完日期'.tr, _editFinishDate, (d) => setState(() => _editFinishDate = d), clearable: true),
                     const SizedBox(height: 16),
-                    _buildEditSectionLabel('简介', colors),
+                    _buildEditSectionLabel('简介'.tr, colors),
                     const SizedBox(height: 6),
                     Container(constraints: const BoxConstraints(minHeight: 120),
                       child: TextFormField(controller: _summaryCtrl, maxLines: null,
                         style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-                        decoration: InputDecoration(hintText: '写下书籍简介...',
+                        decoration: InputDecoration(hintText: '写下书籍简介...'.tr,
                           hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
                           filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -547,7 +548,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 OutlinedButton.icon(onPressed: () => _showDeleteDialog(context),
                   icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
-                  label: Text('删除', style: TextStyle(color: colors.error)),
+                  label: Text('删除'.tr, style: TextStyle(color: colors.error)),
                   style: OutlinedButton.styleFrom(side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))),
               ])),
@@ -578,7 +579,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       Text(required ? '$label *' : label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       const SizedBox(height: 6),
       TextFormField(controller: ctrl, style: TextStyle(fontSize: 14, color: colors.onSurface),
-        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null : null,
+        validator: required ? (v) => (v == null || v.trim().isEmpty) ? '请输入{label}'.trf({'label': label}) : null : null,
         decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
           filled: true, fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -595,7 +596,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(color: colors.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
           child: chips.isEmpty
-            ? Text('点击选择$label', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
+            ? Text('点击选择{label}'.trf({'label': label}), style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
             : Wrap(spacing: 4, runSpacing: 4, children: chips.map((c) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(4)),
@@ -619,7 +620,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           child: Row(children: [
             Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             const SizedBox(width: 8),
-            Expanded(child: Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '\u9009\u62E9\u65E5\u671F',
+            Expanded(child: Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
               style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25)), overflow: TextOverflow.ellipsis)),
             if (clearable && hasDate) GestureDetector(onTap: () => onChanged(null),
               child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3))),
@@ -636,13 +637,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
           Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Align(alignment: Alignment.centerLeft,
-            child: Text('添加封面', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+            child: Text('添加封面'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)))),
           const SizedBox(height: 16),
           ListTile(leading: Icon(Icons.photo_library_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-            title: Text('从相册选择', style: TextStyle(color: colors.onSurface)),
+            title: Text('从相册选择'.tr, style: TextStyle(color: colors.onSurface)),
             onTap: () { Navigator.pop(ctx); _pickEditCover(); }),
           ListTile(leading: Icon(Icons.link_outlined, color: colors.onSurface.withValues(alpha: 0.6)),
-            title: Text('网络链接', style: TextStyle(color: colors.onSurface)),
+            title: Text('网络链接'.tr, style: TextStyle(color: colors.onSurface)),
             onTap: () { Navigator.pop(ctx); _pickEditCoverFromUrl(); }),
         ]))));
   }
@@ -657,7 +658,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       await File(picked.path).copy(targetPath);
       if (mounted) setState(() => _editCoverPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择封面失败: $e');
+      if (mounted) ToastUtil.show(context, '选择封面失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -667,9 +668,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
       final colors = Theme.of(ctx).colorScheme;
       return AlertDialog(backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+          Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(height: 12),
           TextField(controller: urlCtrl, keyboardType: TextInputType.url, style: TextStyle(fontSize: 14, color: colors.onSurface),
             decoration: InputDecoration(hintText: 'https://example.com/image.jpg',
@@ -681,11 +682,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)))),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: const Text('确定')),
+            child: Text('确定'.tr)),
         ]);
     });
     final url = urlCtrl.text.trim(); urlCtrl.dispose();
@@ -711,7 +712,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       await File(targetPath).writeAsBytes(response.bodyBytes);
       if (mounted) setState(() => _editCoverPath = targetPath);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '下载失败: $e');
+      if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _editIsDownloading = false);
     }
@@ -740,10 +741,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
       );
       await context.read<AppProvider>().updateBook(updated);
       if (!mounted) return;
-      ToastUtil.show(context, '更新成功');
+      ToastUtil.show(context, '更新成功'.tr);
       setState(() => _isEditing = false);
     } catch (e) {
-      if (mounted) ToastUtil.show(context, '保存失败: $e');
+      if (mounted) ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -779,7 +780,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           FilledButton.tonalIcon(
             onPressed: () {
               if (Platform.isWindows) {
-                ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能');
+                ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能'.tr);
                 return;
               }
               Navigator.push(context, MaterialPageRoute(
@@ -793,7 +794,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ));
             },
             icon: const Icon(Icons.auto_stories_outlined, size: 16),
-            label: const Text('EPUB 阅读'),
+            label: Text('EPUB 阅读'.tr),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF6750A4).withValues(alpha: 0.15),
               foregroundColor: const Color(0xFF6750A4),
@@ -992,15 +993,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   const SizedBox(height: 20),
                   SizedBox(width: double.infinity, child: _buildLayeredHeader(book)),
                   const SizedBox(height: 20),
-                  _buildLayeredInfoRow('作者', book.authors.join('，'), colors),
+                  _buildLayeredInfoRow('作者'.tr, book.authors.join('，'), colors),
                   if (book.translators.isNotEmpty)
-                    _buildLayeredInfoRow('译者', book.translators.join('，'), colors),
+                    _buildLayeredInfoRow('译者'.tr, book.translators.join('，'), colors),
                   if (book.isbn != null && book.isbn!.isNotEmpty)
                     _buildLayeredInfoRow('ISBN', book.isbn!, colors),
                   if (book.publisher != null && book.publisher!.isNotEmpty)
-                    _buildLayeredInfoRow('出版社', book.publisher!, colors),
+                    _buildLayeredInfoRow('出版社'.tr, book.publisher!, colors),
                   if (book.publishDate != null)
-                    _buildLayeredInfoRow('出版时间', '${book.publishDate!.year}年${book.publishDate!.month.toString().padLeft(2, '0')}月', colors),
+                    _buildLayeredInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors),
                   if (book.startDate != null || book.finishDate != null || book.readCount > 0)
                     _buildLayeredReadingDates(book),
                   if (book.genres.isNotEmpty)
@@ -1072,7 +1073,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           _buildStatusTag(book),
         ]),
         const SizedBox(height: 8),
-        Text('添加于 ${_formatDate(book.createdAt)}',
+        Text('添加于 {date}'.trf({'date': _formatDate(book.createdAt)}),
           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       ],
     );
@@ -1114,16 +1115,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 64, child: Text('阅读日期', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 64, child: Text('阅读日期'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(
             child: Wrap(spacing: 12, runSpacing: 8, children: [
-              if (book.startDate != null) _buildDateChip('开始', book.startDate!, false),
-              if (book.finishDate != null) _buildDateChip('读完', book.finishDate!, false),
+              if (book.startDate != null) _buildDateChip('开始'.tr, book.startDate!, false),
+              if (book.finishDate != null) _buildDateChip('读完'.tr, book.finishDate!, false),
               if (book.readCount > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-                  child: Text('共 ${book.readCount} 次', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
+                  child: Text('共 {n} 次'.trf({'n': book.readCount}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
                 ),
             ]),
           ),
@@ -1147,7 +1148,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 64, child: Text('类型', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(width: 64, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(child: Wrap(spacing: 8, runSpacing: 8,
             children: book.genres.map((g) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1176,7 +1177,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         Row(children: [
           Container(width: 4, height: 14, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ]),
         const SizedBox(height: 12),
         Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
@@ -1191,42 +1192,42 @@ class _BookDetailPageState extends State<BookDetailPage> {
       Row(children: [
         Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('更多', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
       _buildExtraSectionItem(
         icon: Icons.rate_review_outlined,
-        title: '书评',
+        title: '书评'.tr,
         subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-        emptyText: '暂无书评',
-        unit: '条书评',
+        emptyText: '暂无书评'.tr,
+        unit: '条书评'.tr,
         onTap: () => _navigateToReviews(book),
       ),
       const SizedBox(height: 10),
       _buildExtraSectionItem(
         icon: Icons.format_quote_outlined,
-        title: '摘抄',
+        title: '摘抄'.tr,
         subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-        emptyText: '暂无摘抄',
-        unit: '条摘抄',
+        emptyText: '暂无摘抄'.tr,
+        unit: '条摘抄'.tr,
         onTap: () => _navigateToExcerpts(book),
       ),
       const SizedBox(height: 10),
       _buildExtraSectionItem(
         icon: Icons.highlight_outlined,
-        title: '句读',
+        title: '句读'.tr,
         subtitleFuture: _getEpubHighlightCount(book.id),
-        emptyText: '暂无句读',
-        unit: '条句读',
+        emptyText: '暂无句读'.tr,
+        unit: '条句读'.tr,
         onTap: () => _navigateToEpubHighlights(book),
       ),
       const SizedBox(height: 10),
       _buildExtraSectionItem(
         icon: Icons.people_outline,
-        title: '角色',
+        title: '角色'.tr,
         subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-        emptyText: '暂无角色',
-        unit: '个角色',
+        emptyText: '暂无角色'.tr,
+        unit: '个角色'.tr,
         onTap: () => _navigateToCharacters(book),
       ),
     ]);
@@ -1287,7 +1288,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _buildFloatingButton(
           icon: Icons.edit_outlined,
           onPressed: () => _navigateToEdit(context),
-          tooltip: '编辑',
+          tooltip: '编辑'.tr,
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
         ),
@@ -1295,7 +1296,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _buildFloatingButton(
           icon: Icons.people_outline,
           onPressed: () => _navigateToCharacters(book),
-          tooltip: '角色',
+          tooltip: '角色'.tr,
           backgroundColor: colors.secondaryContainer,
           foregroundColor: colors.onSecondaryContainer,
         ),
@@ -1303,7 +1304,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _buildFloatingButton(
           icon: Icons.delete_outline,
           onPressed: () => _showDeleteDialog(context),
-          tooltip: '删除',
+          tooltip: '删除'.tr,
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
@@ -1314,7 +1315,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           _buildFloatingButton(
             icon: Icons.share_outlined,
             onPressed: () => _showSharePoster(book),
-            tooltip: '分享海报',
+            tooltip: '分享海报'.tr,
             backgroundColor: const Color(0xFF4CAF50),
             foregroundColor: Colors.white,
           ),
@@ -1337,7 +1338,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           onPressed: () {
             if (Platform.isWindows) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能')),
+                SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能'.tr)),
               );
               return;
             }
@@ -1354,7 +1355,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
             );
           },
-          tooltip: 'EPUB 阅读',
+          tooltip: 'EPUB 阅读'.tr,
           backgroundColor: const Color(0xFF6750A4),
           foregroundColor: Colors.white,
         );
@@ -1516,8 +1517,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Text('上下滑动调整图片位置',
-                                      style: TextStyle(fontSize: 13, color: Colors.white70)),
+                                  child: Text('上下滑动调整图片位置'.tr,
+                                      style: const TextStyle(fontSize: 13, color: Colors.white70)),
                                 ),
                               ),
                             ),
@@ -1548,7 +1549,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            '暂无封面',
+            '暂无封面'.tr,
             style: TextStyle(
               fontSize: 14,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -1563,7 +1564,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildStyleButton({Color color = Colors.white}) {
     return IconButton(
       icon: Icon(Icons.tune, color: color, size: 20),
-      tooltip: '切换样式',
+      tooltip: '切换样式'.tr,
       onPressed: _showStylePicker,
     );
   }
@@ -1582,7 +1583,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('详情页样式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(alignment: Alignment.centerLeft, child: Text('详情页样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < names.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
@@ -1590,8 +1591,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
               contentPadding: EdgeInsets.zero,
               leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                   child: Icon(icons[i], size: 20, color: _detailStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(names[i], style: TextStyle(fontSize: 13, fontWeight: _detailStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i], style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              title: Text(names[i].tr, style: TextStyle(fontSize: 13, fontWeight: _detailStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: _detailStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -1617,7 +1618,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+      child: Text(label.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 
@@ -1701,7 +1702,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '添加于 ${_formatDate(book.createdAt)}',
+            '添加于 {date}'.trf({'date': _formatDate(book.createdAt)}),
             style: TextStyle(
               fontSize: 12,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -1751,7 +1752,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        label,
+        label.tr,
         style: TextStyle(
           fontSize: 12,
           color: textColor,
@@ -1772,7 +1773,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           SizedBox(
             width: 64,
             child: Text(
-              '作者',
+              '作者'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1805,7 +1806,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           SizedBox(
             width: 64,
             child: Text(
-              '译者',
+              '译者'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1871,7 +1872,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           SizedBox(
             width: 64,
             child: Text(
-              '出版社',
+              '出版社'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1904,7 +1905,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           SizedBox(
             width: 64,
             child: Text(
-              '出版时间',
+              '出版时间'.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1913,7 +1914,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           Expanded(
             child: Text(
-              '${book.publishDate!.year}年${book.publishDate!.month.toString().padLeft(2, '0')}月',
+              '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}),
               style: TextStyle(
                 fontSize: 15,
                 color: isOverlay ? Colors.white : colors.onSurface,
@@ -1940,7 +1941,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 SizedBox(
                   width: 64,
                   child: Text(
-                    '阅读日期',
+                    '阅读日期'.tr,
                     style: TextStyle(
                       fontSize: 13,
                       color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1953,9 +1954,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     runSpacing: 8,
                     children: [
                       if (book.startDate != null)
-                        _buildDateChip('开始', book.startDate!, isOverlay),
+                        _buildDateChip('开始'.tr, book.startDate!, isOverlay),
                       if (book.finishDate != null)
-                        _buildDateChip('读完', book.finishDate!, isOverlay),
+                        _buildDateChip('读完'.tr, book.finishDate!, isOverlay),
                     ],
                   ),
                 ),
@@ -1970,7 +1971,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 SizedBox(
                   width: 64,
                   child: Text(
-                    '阅读次数',
+                    '阅读次数'.tr,
                     style: TextStyle(
                       fontSize: 13,
                       color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
@@ -1979,7 +1980,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 ),
                 Expanded(
                   child: Text(
-                    '${book.readCount} 次',
+                    '{n} 次'.trf({'n': book.readCount}),
                     style: TextStyle(fontSize: 13, color: isOverlay ? Colors.white70 : colors.onSurface),
                   ),
                 ),
@@ -2017,7 +2018,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         children: [
           SizedBox(
             width: 48,
-            child: Text('类型', style: TextStyle(fontSize: 13,
+            child: Text('类型'.tr, style: TextStyle(fontSize: 13,
                 color: isOverlay ? const Color(0x66FFFFFF) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
@@ -2079,7 +2080,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '简介',
+                '简介'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -2134,7 +2135,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '更多',
+                '更多'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -2146,37 +2147,37 @@ class _BookDetailPageState extends State<BookDetailPage> {
           const SizedBox(height: 16),
           _buildExtraSectionItem(
             icon: Icons.rate_review_outlined,
-            title: '书评',
+            title: '书评'.tr,
             subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-            emptyText: '暂无书评',
-            unit: '条书评',
+            emptyText: '暂无书评'.tr,
+            unit: '条书评'.tr,
             onTap: () => _navigateToReviews(book),
           ),
           const SizedBox(height: 12),
           _buildExtraSectionItem(
             icon: Icons.format_quote_outlined,
-            title: '摘抄',
+            title: '摘抄'.tr,
             subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-            emptyText: '暂无摘抄',
-            unit: '条摘抄',
+            emptyText: '暂无摘抄'.tr,
+            unit: '条摘抄'.tr,
             onTap: () => _navigateToExcerpts(book),
           ),
           const SizedBox(height: 12),
           _buildExtraSectionItem(
             icon: Icons.highlight_outlined,
-            title: '句读',
+            title: '句读'.tr,
             subtitleFuture: _getEpubHighlightCount(book.id),
-            emptyText: '暂无句读',
-            unit: '条句读',
+            emptyText: '暂无句读'.tr,
+            unit: '条句读'.tr,
             onTap: () => _navigateToEpubHighlights(book),
           ),
           const SizedBox(height: 12),
           _buildExtraSectionItem(
             icon: Icons.people_outline,
-            title: '角色',
+            title: '角色'.tr,
             subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-            emptyText: '暂无角色',
-            unit: '个角色',
+            emptyText: '暂无角色'.tr,
+            unit: '个角色'.tr,
             onTap: () => _navigateToCharacters(book),
           ),
         ],
@@ -2193,37 +2194,37 @@ class _BookDetailPageState extends State<BookDetailPage> {
         children: [
           _buildFrostedExtraItem(
             icon: Icons.rate_review_outlined,
-            title: '书评',
+            title: '书评'.tr,
             subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-            emptyText: '暂无书评',
-            unit: '条书评',
+            emptyText: '暂无书评'.tr,
+            unit: '条书评'.tr,
             onTap: () => _navigateToReviews(book),
           ),
           const SizedBox(height: 12),
           _buildFrostedExtraItem(
             icon: Icons.format_quote_outlined,
-            title: '摘抄',
+            title: '摘抄'.tr,
             subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-            emptyText: '暂无摘抄',
-            unit: '条摘抄',
+            emptyText: '暂无摘抄'.tr,
+            unit: '条摘抄'.tr,
             onTap: () => _navigateToExcerpts(book),
           ),
           const SizedBox(height: 12),
           _buildFrostedExtraItem(
             icon: Icons.highlight_outlined,
-            title: '句读',
+            title: '句读'.tr,
             subtitleFuture: _getEpubHighlightCount(book.id),
-            emptyText: '暂无句读',
-            unit: '条句读',
+            emptyText: '暂无句读'.tr,
+            unit: '条句读'.tr,
             onTap: () => _navigateToEpubHighlights(book),
           ),
           const SizedBox(height: 12),
           _buildFrostedExtraItem(
             icon: Icons.people_outline,
-            title: '角色',
+            title: '角色'.tr,
             subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-            emptyText: '暂无角色',
-            unit: '个角色',
+            emptyText: '暂无角色'.tr,
+            unit: '个角色'.tr,
             onTap: () => _navigateToCharacters(book),
           ),
         ],
@@ -2406,7 +2407,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final readerBook = await ReaderDao().getReaderBookByBookId(book.id);
     if (!mounted) return;
     if (readerBook == null) {
-      ToastUtil.show(context, '该书籍尚未关联EPUB数据，请关联后使用');
+      ToastUtil.show(context, '该书籍尚未关联EPUB数据，请关联后使用'.tr);
       return;
     }
     Navigator.push(
@@ -2441,7 +2442,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          '确认删除',
+          '确认删除'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -2449,7 +2450,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
         ),
         content: Text(
-          '确定要删除"${widget.book.title}"吗？删除后可在回收站恢复。',
+          '确定要删除"{title}"吗？删除后可在回收站恢复。'.trf({'title': widget.book.title}),
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -2463,7 +2464,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               foregroundColor: colors.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -2476,7 +2477,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 Navigator.pop(context);
               }
               if (mounted && context.mounted) {
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               }
             },
             style: ElevatedButton.styleFrom(
@@ -2488,7 +2489,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

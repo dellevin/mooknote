@@ -13,6 +13,7 @@ import '../book/book_detail_page.dart';
 import '../note/note_detail_page.dart';
 import '../game/game_detail_page.dart';
 import '../people/person_detail_page.dart';
+import '../../l10n/app_strings.dart';
 
 /// 图库全屏预览页 —— 支持左右滑动、双指缩放、归属信息展示与跳转
 class GalleryViewerPage extends StatefulWidget {
@@ -49,9 +50,9 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
 
   String _buildInfoText(GalleryItem item) {
     if (item.parentTitle != null && item.parentTitle!.isNotEmpty) {
-      return '来自：《${item.parentTitle}》— ${item.entityTitle}';
+      return '来自：《{title}》— {name}'.trf({'title': item.parentTitle, 'name': item.entityTitle});
     }
-    return '来自：《${item.entityTitle}》';
+    return '来自：《{title}》'.trf({'title': item.entityTitle});
   }
 
   Future<void> _navigateToDetail(GalleryItem item) async {
@@ -77,7 +78,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
     if (!mounted) return;
     if (target == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('原记录已不存在'), duration: Duration(seconds: 2)),
+        SnackBar(content: Text('原记录已不存在'.tr), duration: const Duration(seconds: 2)),
       );
       return;
     }

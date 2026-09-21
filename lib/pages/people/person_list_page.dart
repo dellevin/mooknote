@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/person_avatar.dart';
 import 'person_detail_page.dart';
@@ -250,16 +251,16 @@ class _PersonListPageState extends State<PersonListPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('人物'),
+        title: Text('人物'.tr),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: '扫描作品自动关联',
+            tooltip: '扫描作品自动关联'.tr,
             onPressed: () => _refreshRelations(),
           ),
           IconButton(
             icon: const Icon(Icons.add_outlined),
-            tooltip: '添加人物',
+            tooltip: '添加人物'.tr,
             onPressed: () => _navigateToForm(),
           ),
         ],
@@ -330,7 +331,7 @@ class _PersonListPageState extends State<PersonListPage> {
                 style: TextStyle(fontSize: 14, color: colors.onSurface),
                 cursorColor: colors.primary,
                 decoration: InputDecoration(
-                  hintText: '搜索人物名称或别名',
+                  hintText: '搜索人物名称或别名'.tr,
                   hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -411,7 +412,7 @@ class _PersonListPageState extends State<PersonListPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                label,
+                label.tr,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
@@ -467,7 +468,7 @@ class _PersonListPageState extends State<PersonListPage> {
                   if (person.occupation.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      person.occupation.join(' / '),
+                      person.occupation.map((o) => o.tr).join(' / '),
                       style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -476,7 +477,7 @@ class _PersonListPageState extends State<PersonListPage> {
                   if (person.alternateNames.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      '又名：${person.alternateNames.join('、')}',
+                      '又名：{names}'.trf({'names': person.alternateNames.join('、')}),
                       style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -500,14 +501,14 @@ class _PersonListPageState extends State<PersonListPage> {
           Icon(Icons.people_outline, size: 64, color: colors.onSurface.withValues(alpha: 0.15)),
           const SizedBox(height: 16),
           Text(
-            _searchKeyword.isNotEmpty ? '未找到匹配的人物' : '暂无人物',
+            _searchKeyword.isNotEmpty ? '未找到匹配的人物'.tr : '暂无人物'.tr,
             style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.3)),
           ),
           if (_searchKeyword.isEmpty) ...[
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => _navigateToForm(),
-              child: const Text('添加人物'),
+              child: Text('添加人物'.tr),
             ),
           ],
         ],
@@ -553,18 +554,18 @@ class _PersonListPageState extends State<PersonListPage> {
       if (!mounted) return;
       Navigator.pop(context); // 关闭加载弹窗
       if (result.newPersons == 0 && result.newRelations == 0 && result.merged == 0) {
-        ToastUtil.show(context, '已是最新，无新增关联');
+        ToastUtil.show(context, '已是最新，无新增关联'.tr);
       } else {
         final parts = <String>[];
-        if (result.merged > 0) parts.add('合并 ${result.merged} 个重复人物');
-        if (result.newPersons > 0) parts.add('新增 ${result.newPersons} 个人物');
-        if (result.newRelations > 0) parts.add('${result.newRelations} 条关联');
+        if (result.merged > 0) parts.add('合并 {n} 个重复人物'.trf({'n': result.merged}));
+        if (result.newPersons > 0) parts.add('新增 {n} 个人物'.trf({'n': result.newPersons}));
+        if (result.newRelations > 0) parts.add('{n} 条关联'.trf({'n': result.newRelations}));
         ToastUtil.show(context, parts.join('，'));
       }
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      ToastUtil.show(context, '刷新失败：$e');
+      ToastUtil.show(context, '刷新失败：{e}'.trf({'e': e}));
     }
   }
 

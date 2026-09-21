@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 时长选择器（时:分两个滚轮的底部弹窗）
 /// 返回总分钟数，取消返回 null
@@ -90,16 +91,16 @@ class _DurationPickerSheetState extends State<_DurationPickerSheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, null),
-                  child: Text('取消', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+                  child: Text('取消'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
                 ),
                 Expanded(
                   child: Center(
-                    child: Text(widget.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                    child: Text(widget.title.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                   ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context, _hours * 60 + _minutes),
-                  child: Text('确定', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
+                  child: Text('确定'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
                 ),
               ],
             ),
@@ -161,7 +162,7 @@ class _DurationPickerSheetState extends State<_DurationPickerSheet> {
       children: List.generate(itemCount, (i) {
         return Center(
           child: Text(
-            '$i $suffix',
+            '{n} {suffix}'.trf({'n': i, 'suffix': suffix.tr}),
             style: TextStyle(
               fontSize: 16,
               color: colors.onSurface,
@@ -173,10 +174,10 @@ class _DurationPickerSheetState extends State<_DurationPickerSheet> {
   }
 
   String _formatDisplay() {
-    if (_hours == 0 && _minutes == 0) return '未设置';
+    if (_hours == 0 && _minutes == 0) return '未设置'.tr;
     final parts = <String>[];
-    if (_hours > 0) parts.add('$_hours 小时');
-    if (_minutes > 0) parts.add('$_minutes 分');
+    if (_hours > 0) parts.add('{n} 小时'.trf({'n': _hours}));
+    if (_minutes > 0) parts.add('{n} 分'.trf({'n': _minutes}));
     return parts.join(' ');
   }
 }

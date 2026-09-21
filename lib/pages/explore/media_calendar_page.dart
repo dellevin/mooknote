@@ -9,6 +9,7 @@ import '../movies/movie_form_page.dart';
 import '../book/book_detail_page.dart';
 import '../book/book_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 书影日历 - 按月展示影视/书籍添加记录
 class MediaCalendarPage extends StatefulWidget {
@@ -83,7 +84,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           });
         },
         icon: Icon(_dateMode == 0 ? Icons.calendar_today_outlined : Icons.visibility_outlined, size: 16, color: colors.primary),
-        label: Text(_dateMode == 0 ? '创建日期' : '观看/阅读', style: TextStyle(fontSize: 12, color: colors.primary)),
+        label: Text(_dateMode == 0 ? '创建日期'.tr : '观看/阅读'.tr, style: TextStyle(fontSize: 12, color: colors.primary)),
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           minimumSize: Size.zero,
@@ -116,7 +117,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('书影日历'),
+        title: Text('书影日历'.tr),
         actions: [
           _buildDateModeToggle(colors),
         ],
@@ -161,7 +162,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           ),
           Expanded(
             child: Text(
-              '${_currentMonth.year}年${months[_currentMonth.month - 1]}',
+              '{y}年{m}'.trf({'y': _currentMonth.year, 'm': months[_currentMonth.month - 1].tr}),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface),
             ),
@@ -178,12 +179,12 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
   // ─── 星期头 ───
 
   Widget _buildWeekdayLabels(ColorScheme colors) {
-    const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: weekdays.map((d) => Expanded(
-          child: Center(child: Text(d, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.35)))),
+          child: Center(child: Text(d.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.35)))),
         )).toList(),
       ),
     );
@@ -374,7 +375,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
       return Container(
         padding: const EdgeInsets.all(16),
         child: Text(
-          '${_selectedDay!.month}月${_selectedDay!.day}日  暂无记录',
+          '{m}月{d}日  暂无记录'.trf({'m': _selectedDay!.month, 'd': _selectedDay!.day}),
           style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
         ),
       );
@@ -392,12 +393,12 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
             child: Row(
               children: [
                 Text(
-                  '${_selectedDay!.month}月${_selectedDay!.day}日',
+                  '{m}月{d}日'.trf({'m': _selectedDay!.month, 'd': _selectedDay!.day}),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6)),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '${items.length}条记录',
+                  '{n}条记录'.trf({'n': items.length}),
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
                 ),
               ],
@@ -435,7 +436,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      item.type == 'movie' ? '影视' : '书籍',
+                      item.type == 'movie' ? '影视'.tr : '书籍'.tr,
                       style: TextStyle(fontSize: 11, color: item.type == 'movie' ? const Color(0xFF4A90D9) : const Color(0xFF7E57C2)),
                     ),
                   ),
@@ -467,14 +468,14 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
               decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('添加记录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+              child: Text('添加记录'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
           const SizedBox(height: 8),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.movie_outlined, size: 20, color: const Color(0xFF4A90D9))),
-            title: Text('添加影视', style: TextStyle(fontSize: 14, color: colors.onSurface)),
-            subtitle: Text('记录一部影视作品', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            title: Text('添加影视'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface)),
+            subtitle: Text('记录一部影视作品'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
             onTap: () {
               Navigator.pop(ctx);
@@ -486,8 +487,8 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
                 child: Icon(Icons.menu_book_outlined, size: 20, color: const Color(0xFF7E57C2))),
-            title: Text('添加书籍', style: TextStyle(fontSize: 14, color: colors.onSurface)),
-            subtitle: Text('记录一本书籍', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+            title: Text('添加书籍'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface)),
+            subtitle: Text('记录一本书籍'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
             onTap: () {
               Navigator.pop(ctx);

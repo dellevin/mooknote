@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
@@ -17,8 +18,11 @@ class _TagManagementPageState extends State<TagManagementPage> {
   bool _isSyncing = false;
 
   static const _tabTypes = ['movie_genre', 'book_genre', 'note_tag', 'game_genre'];
-  static const _typeLabels = ['影视类型', '书籍类型', '笔记标签', '游戏类型'];
+  static const _typeBaseNames = ['影视', '书籍', '笔记', '游戏'];
   static const _typeIcons = [Icons.movie_outlined, Icons.menu_book_outlined, Icons.sticky_note_2_outlined, Icons.sports_esports_outlined];
+
+  List<String> get _typeLabels =>
+      ['影视类型'.tr, '书籍类型'.tr, '笔记标签'.tr, '游戏类型'.tr];
 
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
   Map<String, int> _usageCounts = {};
@@ -86,7 +90,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
       final provider = context.read<AppProvider>();
       final count = await provider.syncTagsFromData();
       if (mounted) {
-        ToastUtil.show(context, count > 0 ? '已同步 $count 个新标签' : '标签已是最新');
+        ToastUtil.show(context,
+            count > 0
+                ? '已同步 {n} 个新标签'.trf({'n': count})
+                : '标签已是最新'.tr);
         await _loadTags(_currentType);
         _updateUsageCounts();
       }
@@ -110,11 +117,11 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
-      appBar: AppBar(title: const Text('标签'), actions: [
+      appBar: AppBar(title: Text('标签'.tr), actions: [
         _isSyncing
             ? Padding(padding: const EdgeInsets.all(16),
                 child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
-            : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签', onPressed: _syncTags),
+            : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签'.tr, onPressed: _syncTags),
       ]),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
@@ -186,7 +193,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.add, size: 18, color: colors.onPrimary),
                     const SizedBox(width: 6),
-                    Text('添加${_typeLabels[_currentIndex]}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
+                    Text('添加{type}'.trf({'type': _typeLabels[_currentIndex]}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onPrimary)),
                   ]),
                 ),
               ),
@@ -229,7 +236,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           if (filtered.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: Text('没有找到"$_searchQuery"相关标签', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+              child: Center(child: Text('没有找到"{q}"相关标签'.trf({'q': _searchQuery}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
             )
           else
             Wrap(spacing: 8, runSpacing: 6, children: filtered.map(_buildTagChip).toList()),
@@ -258,7 +265,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           _buildSearchBar(colors),
           const SizedBox(height: 8),
           if (roots.isEmpty)
-            _buildEmptyGroup('暂无标签', colors)
+            _buildEmptyGroup('暂无标签'.tr, colors)
           else
             ..._buildTreeNodes(roots, childrenByParent, 0),
         ],
@@ -389,7 +396,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final success = await context.read<AppProvider>().setTagParent(
         dragged['id'] as String, type, target['id'] as String);
     if (mounted) {
-      if (success) ToastUtil.show(context, '已移动到「${target['name']}」');
+      if (success) ToastUtil.show(context, '已移动到「{name}」'.trf({'name': target['name']}));
       await _loadTags(type);
     }
   }
@@ -445,7 +452,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               cursorColor: colors.primary,
               decoration: InputDecoration(
-                hintText: '搜索标签...',
+                hintText: '搜索标签...'.tr,
                 hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -533,7 +540,12 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final idx = _tabTypes.indexOf(type);
     final icon = _typeIcons[idx];
     final label = _typeLabels[idx];
-    final hints = ['同步或手动添加影视类型', '同步或手动添加书籍类型', '同步或手动添加笔记标签', '同步或手动添加游戏类型'];
+    final hints = [
+      '同步或手动添加影视类型'.tr,
+      '同步或手动添加书籍类型'.tr,
+      '同步或手动添加笔记标签'.tr,
+      '同步或手动添加游戏类型'.tr,
+    ];
 
     return Center(
       key: ValueKey('empty_$type'),
@@ -546,7 +558,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
             child: Icon(icon, size: 28, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 16),
-          Text('暂无$label',
+          Text('暂无{label}'.trf({'label': label}),
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3), fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
           Text(hints[idx], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.15))),
@@ -586,7 +598,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                       if (isHidden) Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
-                        child: Text('已隐藏', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                        child: Text('已隐藏'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                       ),
                     ],
                   ),
@@ -594,7 +606,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 const SizedBox(height: 8),
                 _menuAction(
                   isHidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  isHidden ? '取消隐藏' : '隐藏',
+                  (isHidden ? '取消隐藏' : '隐藏').tr,
                   colors,
                   () async {
                     Navigator.pop(ctx);
@@ -602,15 +614,18 @@ class _TagManagementPageState extends State<TagManagementPage> {
                     await _loadTags(_currentType);
                   },
                 ),
-                _menuAction(Icons.drive_file_move_outlined, '移动到分类', colors, () {
+                _menuAction(Icons.drive_file_move_outlined, '移动到分类'.tr, colors, () {
                   Navigator.pop(ctx);
                   _showMoveDialog(tag);
                 }),
-                _menuAction(Icons.open_in_new_outlined, '查看相关${_typeLabels[_currentIndex].replaceAll('类型', '').replaceAll('标签', '')}', colors, () {
+                _menuAction(
+                    Icons.open_in_new_outlined,
+                    '查看相关{name}'.trf({'name': _typeBaseNames[_currentIndex].tr}),
+                    colors, () {
                   Navigator.pop(ctx);
                   _showTagItems(name);
                 }),
-                _menuAction(Icons.edit_outlined, '重命名', colors, () {
+                _menuAction(Icons.edit_outlined, '重命名'.tr, colors, () {
                   Navigator.pop(ctx);
                   _showRenameDialog(tag);
                 }),
@@ -618,7 +633,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Divider(height: 0.5, color: colors.outlineVariant),
                 ),
-                _menuAction(Icons.delete_outline, '删除', colors, () {
+                _menuAction(Icons.delete_outline, '删除'.tr, colors, () {
                   Navigator.pop(ctx);
                   _showDeleteDialog(tag);
                 }, isDestructive: true),
@@ -677,7 +692,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
       }
     } else {
       for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) {
-        items.add((title: n.title.isNotEmpty ? n.title : '随手记', subtitle: null, type: '笔记'));
+        items.add((title: n.title.isNotEmpty ? n.title : '随手记'.tr, subtitle: null, type: '笔记'));
       }
     }
 
@@ -694,13 +709,13 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('$tagName（${items.length}）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              child: Text('{name}（{n}）'.trf({'name': tagName, 'n': items.length}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ),
             const SizedBox(height: 8),
             if (items.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('暂无相关内容', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+                child: Center(child: Text('暂无相关内容'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
               )
             else
               ...items.asMap().entries.map((entry) {
@@ -720,7 +735,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)),
-                          child: Text(item.type, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                          child: Text(item.type.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
                         ),
                       ),
                     ],
@@ -777,13 +792,13 @@ class _TagManagementPageState extends State<TagManagementPage> {
             )),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('移动到「$name」', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              child: Text('移动到「{name}」'.trf({'name': name}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
             ),
             const SizedBox(height: 4),
             _moveOption(
               colors,
               icon: Icons.home_outlined,
-              title: '顶级（无父级）',
+              title: '顶级（无父级）'.tr,
               selected: currentParent.isEmpty,
               onTap: () => _doMoveParent(ctx, tagId, type, ''),
             ),
@@ -792,7 +807,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('设为某分类的子级', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                  child: Text('设为某分类的子级'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                 ),
               ),
               Flexible(
@@ -819,7 +834,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final success = await context.read<AppProvider>().setTagParent(tagId, type, parentId);
     if (ctx.mounted) {
       Navigator.pop(ctx);
-      ToastUtil.show(context, success ? '移动成功' : '无法移动到该分类');
+      ToastUtil.show(context, success ? '移动成功'.tr : '无法移动到该分类'.tr);
     }
     await _loadTags(type);
   }
@@ -863,13 +878,13 @@ class _TagManagementPageState extends State<TagManagementPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('添加${_typeLabels[_currentIndex]}',
+        title: Text('添加{type}'.trf({'type': _typeLabels[_currentIndex]}),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
           controller: controller, autofocus: true,
           style: TextStyle(fontSize: 15, color: colors.onSurface),
           decoration: InputDecoration(
-            hintText: '输入标签名称',
+            hintText: '输入标签名称'.tr,
             hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
             filled: true, fillColor: colors.surfaceContainerHigh,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -879,7 +894,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           onSubmitted: (value) => _doAddTag(ctx, controller.text.trim(), type),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           Container(
             decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
             child: Material(
@@ -889,7 +904,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text('添加', style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w500)),
+                  child: Text('添加'.tr, style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w500)),
                 ),
               ),
             ),
@@ -907,7 +922,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
       if (!mounted) return;
       if (ctx.mounted) {
         Navigator.pop(ctx);
-        ToastUtil.show(context, '添加成功');
+        ToastUtil.show(context, '添加成功'.tr);
       }
       setState(() => _newlyAddedTagId = newId);
       Timer(const Duration(milliseconds: 1500), () {
@@ -915,7 +930,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
       });
       await _loadTags(type);
     } catch (e) {
-      if (ctx.mounted) ToastUtil.show(ctx, '添加失败：该标签已存在');
+      if (ctx.mounted) ToastUtil.show(ctx, '添加失败：该标签已存在'.tr);
     }
   }
 
@@ -933,12 +948,12 @@ class _TagManagementPageState extends State<TagManagementPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('重命名标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('重命名标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
           controller: controller, autofocus: true,
           style: TextStyle(fontSize: 15, color: colors.onSurface),
           decoration: InputDecoration(
-            hintText: '输入新名称',
+            hintText: '输入新名称'.tr,
             hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
             filled: true, fillColor: colors.surfaceContainerHigh,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -948,7 +963,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           onSubmitted: (value) => _doRenameTag(ctx, tagId, value.trim(), type, oldName),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)))),
           Container(
             decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
             child: Material(
@@ -958,7 +973,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text('确定', style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w500)),
+                  child: Text('确定'.tr, style: TextStyle(fontSize: 14, color: colors.onPrimary, fontWeight: FontWeight.w500)),
                 ),
               ),
             ),
@@ -976,7 +991,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final success = await context.read<AppProvider>().renameTag(tagId, newName, type);
     if (ctx.mounted) {
       Navigator.pop(ctx);
-      ToastUtil.show(context, success ? '重命名成功' : '重命名失败：标签名已存在');
+      ToastUtil.show(context, success ? '重命名成功'.tr : '重命名失败：标签名已存在'.tr);
     }
     if (success) await _loadTags(type);
   }
@@ -1012,7 +1027,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                   child: Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: bc.onSurface.withValues(alpha: 0.6))),
                 ),
                 const SizedBox(width: 10),
-                Text('删除标签', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: bc.onSurface)),
+                Text('删除标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: bc.onSurface)),
               ],
             ),
             titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -1031,8 +1046,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
                         value: 'deleteOnly',
                         groupValue: selectedAction,
                         onChanged: (v) => setDialogState(() { selectedAction = v; selectedReplacement = null; }),
-                        title: '仅删除标签',
-                        subtitle: '保留已有条目上的标签名，不影响数据',
+                        title: '仅删除标签'.tr,
+                        subtitle: '保留已有条目上的标签名，不影响数据'.tr,
                         colors: bc,
                       ),
                       const SizedBox(height: 8),
@@ -1041,7 +1056,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                         onTap: () => setDialogState(() => showAdvanced = !showAdvanced),
                         child: Row(
                           children: [
-                            Text('更多选项', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: bc.primary)),
+                            Text('更多选项'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: bc.primary)),
                             Icon(showAdvanced ? Icons.expand_less : Icons.expand_more, size: 16, color: bc.primary),
                           ],
                         ),
@@ -1052,8 +1067,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
                           value: 'remove',
                           groupValue: selectedAction,
                           onChanged: (v) => setDialogState(() { selectedAction = v; selectedReplacement = null; }),
-                          title: '从所有条目中移除',
-                          subtitle: '彻底清除该标签在所有条目中的记录',
+                          title: '从所有条目中移除'.tr,
+                          subtitle: '彻底清除该标签在所有条目中的记录'.tr,
                           colors: bc,
                         ),
                         const SizedBox(height: 4),
@@ -1061,8 +1076,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
                           value: 'replace',
                           groupValue: selectedAction,
                           onChanged: (v) => setDialogState(() { selectedAction = v; selectedReplacement = null; }),
-                          title: '替换为其他标签',
-                          subtitle: '选择一个已有标签替代',
+                          title: '替换为其他标签'.tr,
+                          subtitle: '选择一个已有标签替代'.tr,
                           colors: bc,
                         ),
                         if (selectedAction == 'replace')
@@ -1090,7 +1105,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                                 : Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                     decoration: BoxDecoration(color: bc.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
-                                    child: Text('无其他标签可替换', style: TextStyle(fontSize: 13, color: bc.onSurface.withValues(alpha: 0.35))),
+                                    child: Text('无其他标签可替换'.tr, style: TextStyle(fontSize: 13, color: bc.onSurface.withValues(alpha: 0.35))),
                                   ),
                           ),
                       ],
@@ -1101,7 +1116,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
             ),
             contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: bc.onSurface.withValues(alpha: 0.4)))),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: bc.onSurface.withValues(alpha: 0.4)))),
               Container(
                 decoration: BoxDecoration(color: const Color(0xFFE53935), borderRadius: BorderRadius.circular(20)),
                 child: Material(
@@ -1112,9 +1127,9 @@ class _TagManagementPageState extends State<TagManagementPage> {
                       Navigator.pop(ctx, {'action': selectedAction, 'replacement': selectedReplacement});
                     },
                     borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: Text('删除', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Text('删除'.tr, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
                     ),
                   ),
                 ),
@@ -1136,7 +1151,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         await provider.deleteTag(tagId, type, replacementName: replacement);
       }
       if (!mounted) return;
-      ToastUtil.show(context, '删除成功');
+      ToastUtil.show(context, '删除成功'.tr);
       await _loadTags(type);
     });
   }

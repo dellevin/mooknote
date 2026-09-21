@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/work_selector_page.dart';
@@ -64,17 +65,17 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_link_outlined),
-            tooltip: '关联作品',
+            tooltip: '关联作品'.tr,
             onPressed: () => _editWorks(),
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            tooltip: '编辑',
+            tooltip: '编辑'.tr,
             onPressed: () => _navigateToEdit(person),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: '删除',
+            tooltip: '删除'.tr,
             onPressed: () => _showDeleteDialog(person),
           ),
         ],
@@ -89,11 +90,11 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
             const SizedBox(height: 24),
 
             // 详细信息
-            if (person.gender != null) _buildInfoRow('性别', _genderLabel(person.gender!), colors),
-            if (person.occupation.isNotEmpty) _buildInfoRow('职业', person.occupation.join(' / '), colors),
-            if (person.birthPlace != null) _buildInfoRow('出生地', person.birthPlace!, colors),
-            if (person.birthDate != null) _buildInfoRow('出生日期', _formatDate(person.birthDate!), colors),
-            if (person.alternateNames.isNotEmpty) _buildInfoRow('其他名称', person.alternateNames.join('、'), colors),
+            if (person.gender != null) _buildInfoRow('性别'.tr, _genderLabel(person.gender!).tr, colors),
+            if (person.occupation.isNotEmpty) _buildInfoRow('职业'.tr, person.occupation.map((o) => o.tr).join(' / '), colors),
+            if (person.birthPlace != null) _buildInfoRow('出生地'.tr, person.birthPlace!, colors),
+            if (person.birthDate != null) _buildInfoRow('出生日期'.tr, _formatDate(person.birthDate!), colors),
+            if (person.alternateNames.isNotEmpty) _buildInfoRow('其他名称'.tr, person.alternateNames.join('、'), colors),
 
             // 简介
             if (person.summary != null && person.summary!.isNotEmpty) ...[
@@ -103,7 +104,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
               Row(children: [
                 Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 8),
-                Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ]),
               const SizedBox(height: 12),
               _buildSummary(person.summary!, colors),
@@ -117,7 +118,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
               Row(children: [
                 Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 8),
-                Text('作品', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                Text('作品'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ]),
               const SizedBox(height: 12),
               _buildWorksSection(colors),
@@ -176,7 +177,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
                       color: colors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(occ, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6))),
+                    child: Text(occ.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6))),
                   )).toList(),
                 ),
               ],
@@ -221,7 +222,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
           GestureDetector(
             onTap: () => setState(() => _summaryExpanded = !_summaryExpanded),
             child: Text(
-              _summaryExpanded ? '收起' : '展开',
+              _summaryExpanded ? '收起'.tr : '展开'.tr,
               style: TextStyle(fontSize: 13, color: colors.primary),
             ),
           ),
@@ -253,7 +254,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Center(
-          child: Text('暂无关联作品', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))),
+          child: Text('暂无关联作品'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))),
         ),
       );
     }
@@ -265,7 +266,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
       children: [
         // 影视作品
         if (movieGroups.isNotEmpty) ...[
-          Text('影视 (${movieGroups.length})', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('影视 ({n})'.trf({'n': movieGroups.length}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
           ...movieGroups.entries.map((entry) {
             final movie = provider.movies.where((m) => m.id == entry.key).firstOrNull;
@@ -276,9 +277,9 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
             for (final mp in entry.value) {
               final key = '${mp.roleType}|${mp.characterName ?? ''}';
               if (!seen.add(key)) continue;
-              final label = _roleTypeLabel(mp.roleType);
+              final label = _roleTypeLabel(mp.roleType).tr;
               if (mp.characterName != null && mp.characterName!.isNotEmpty) {
-                roles.add('$label 饰 ${mp.characterName}');
+                roles.add('{label} 饰 {name}'.trf({'label': label, 'name': mp.characterName}));
               } else {
                 roles.add(label);
               }
@@ -297,7 +298,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
         ],
         // 书籍作品
         if (bookGroups.isNotEmpty) ...[
-          Text('书籍 (${bookGroups.length})', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('书籍 ({n})'.trf({'n': bookGroups.length}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
           ...bookGroups.entries.map((entry) {
             final book = provider.books.where((b) => b.id == entry.key).firstOrNull;
@@ -306,7 +307,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
             final roles = <String>[];
             for (final bp in entry.value) {
               if (!seen.add(bp.roleType)) continue;
-              roles.add(_roleTypeLabel(bp.roleType));
+              roles.add(_roleTypeLabel(bp.roleType).tr);
             }
             return _buildWorkItem(
               title: book.title,
@@ -322,7 +323,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
         ],
         // 游戏作品
         if (gameGroups.isNotEmpty) ...[
-          Text('游戏 (${gameGroups.length})', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('游戏 ({n})'.trf({'n': gameGroups.length}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
           ...gameGroups.entries.map((entry) {
             final game = provider.games.where((g) => g.id == entry.key).firstOrNull;
@@ -331,7 +332,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
             final roles = <String>[];
             for (final gp in entry.value) {
               if (!seen.add(gp.roleType)) continue;
-              roles.add(_roleTypeLabel(gp.roleType));
+              roles.add(_roleTypeLabel(gp.roleType).tr);
             }
             return _buildWorkItem(
               title: game.title,
@@ -424,7 +425,11 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.year}年${date.month.toString().padLeft(2, '0')}月${date.day.toString().padLeft(2, '0')}日';
+    return '{y}年{m}月{d}日'.trf({
+      'y': date.year,
+      'm': date.month.toString().padLeft(2, '0'),
+      'd': date.day.toString().padLeft(2, '0'),
+    });
   }
 
   void _navigateToEdit(Person person) {
@@ -459,7 +464,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
     ]);
     if (!mounted) return;
     await _loadRelations();
-    if (mounted) ToastUtil.show(context, '作品关联已更新');
+    if (mounted) ToastUtil.show(context, '作品关联已更新'.tr);
   }
 
   void _showDeleteDialog(Person person) {
@@ -470,13 +475,13 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除"${person.name}"吗？删除后可在回收站恢复。',
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要删除"{name}"吗？删除后可在回收站恢复。'.trf({'name': person.name}),
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -485,14 +490,14 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
               if (!mounted || !context.mounted) return;
               Navigator.pop(context); // close dialog
               Navigator.pop(this.context); // close detail page
-              ToastUtil.show(this.context, '已删除');
+              ToastUtil.show(this.context, '已删除'.tr);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
       ),

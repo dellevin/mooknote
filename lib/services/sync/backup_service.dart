@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../data/database_helper.dart';
+import '../../l10n/app_strings.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/image_path_helper.dart';
 
@@ -212,7 +213,7 @@ class BackupService {
       if (Platform.isAndroid) {
         final hasPermission = await requestStoragePermission();
         if (!hasPermission) {
-          return ExportResult.error('需要存储权限才能导出备份文件，请在设置中授予"所有文件访问权限"');
+          return ExportResult.error('需要存储权限才能导出备份文件，请在设置中授予"所有文件访问权限"'.tr);
         }
       }
 
@@ -223,7 +224,7 @@ class BackupService {
       String? finalPath;
       try {
         final outputPath = await FilePicker.platform.saveFile(
-          dialogTitle: '保存备份文件',
+          dialogTitle: '保存备份文件'.tr,
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['zip'],
@@ -252,14 +253,14 @@ class BackupService {
         imageCount: data.imageCount,
       );
     } catch (e) {
-      return ExportResult.error('导出失败: $e');
+      return ExportResult.error('导出失败: {e}'.trf({'e': e}));
     }
   }
 
   /// 分享备份文件
   Future<void> shareBackup(String filePath) async {
     final file = XFile(filePath);
-    await Share.shareXFiles([file], subject: 'MookNote 数据备份', text: '这是我的 MookNote 数据备份文件');
+    await Share.shareXFiles([file], subject: 'MookNote 数据备份'.tr, text: '这是我的 MookNote 数据备份文件'.tr);
   }
 
   // ─── 自动备份导出 ─────────────────────────────────────
@@ -277,7 +278,7 @@ class BackupService {
         epubCount: data.epubCount,
       );
     } catch (e) {
-      return AutoBackupExportResult.error('导出失败: $e');
+      return AutoBackupExportResult.error('导出失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -287,7 +288,7 @@ class BackupService {
       if (Platform.isAndroid) {
         final hasPermission = await requestStoragePermission();
         if (!hasPermission) {
-          return AutoBackupExportResult.error('需要存储权限才能自动备份');
+          return AutoBackupExportResult.error('需要存储权限才能自动备份'.tr);
         }
       }
 
@@ -324,7 +325,7 @@ class BackupService {
         epubCount: data.epubCount,
       );
     } catch (e) {
-      return AutoBackupExportResult.error('自动备份失败: $e');
+      return AutoBackupExportResult.error('自动备份失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -373,7 +374,7 @@ class BackupService {
       if (result == null || result.files.isEmpty) return ImportResult.cancelled();
 
       final filePath = result.files.first.path;
-      if (filePath == null) return ImportResult.error('无法读取文件路径');
+      if (filePath == null) return ImportResult.error('无法读取文件路径'.tr);
 
       final file = File(filePath);
       final extension = path.extension(filePath).toLowerCase();
@@ -390,7 +391,7 @@ class BackupService {
         final archive = ZipDecoder().decodeBytes(bytes);
 
         final dataFile = archive.findFile('data.json');
-        if (dataFile == null) return ImportResult.error('备份文件中没有找到数据文件');
+        if (dataFile == null) return ImportResult.error('备份文件中没有找到数据文件'.tr);
 
         backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
 
@@ -429,7 +430,7 @@ class BackupService {
         backupData = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       }
 
-      if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式');
+      if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式'.tr);
 
       // 验证版本
       final version = backupData['version'] as int? ?? 1;
@@ -610,7 +611,7 @@ class BackupService {
 
       return ImportResult.success(_buildStats(data, imageCount));
     } catch (e) {
-      return ImportResult.error('导入失败: $e');
+      return ImportResult.error('导入失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -619,7 +620,7 @@ class BackupService {
     try {
       final archive = ZipDecoder().decodeBytes(zipBytes);
       final dataFile = archive.findFile('data.json');
-      if (dataFile == null) return ImportResult.error('备份文件中没有找到数据文件');
+      if (dataFile == null) return ImportResult.error('备份文件中没有找到数据文件'.tr);
 
       final backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
       final imagePathMap = <String, String>{};
@@ -655,7 +656,7 @@ class BackupService {
         }
       }
 
-      if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式');
+      if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式'.tr);
 
       final version = backupData['version'] as int? ?? 1;
       if (version > 2) {
@@ -833,7 +834,7 @@ class BackupService {
       await _restoreUserInfo(backupData, imagePathMap);
       return ImportResult.success(_buildStats(data, imageCount));
     } catch (e) {
-      return ImportResult.error('恢复失败: $e');
+      return ImportResult.error('恢复失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -1164,8 +1165,8 @@ class ImportResult {
   }
 
   String get statsText {
-    if (stats == null || stats!.isEmpty) return '没有导入任何数据';
-    return stats!.entries.map((e) => '${e.key}: ${e.value}').join('，');
+    if (stats == null || stats!.isEmpty) return '没有导入任何数据'.tr;
+    return stats!.entries.map((e) => '${e.key.tr}: ${e.value}').join(AppStrings.isEnglish ? ', ' : '，');
   }
 }
 

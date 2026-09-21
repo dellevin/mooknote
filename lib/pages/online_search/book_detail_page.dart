@@ -13,6 +13,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 书籍详情页 - 在线版
 class BookDetailPage extends StatefulWidget {
@@ -62,12 +63,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
         }
       }
       setState(() {
-        _error = '加载失败';
+        _error = '加载失败'.tr;
         _loading = false;
       });
     } catch (_) {
       if (mounted) setState(() {
-        _error = '网络错误';
+        _error = '网络错误'.tr;
         _loading = false;
       });
     }
@@ -203,7 +204,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       setState(() {
         _localBook = provider.books.firstWhere((b) => b.id == book.id);
       });
-      ToastUtil.show(context, '已添加到${_statusLabel(status)}');
+      ToastUtil.show(context, '已添加到{status}'.trf({'status': _statusLabel(status)}));
     }
   }
 
@@ -216,11 +217,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
   String _statusLabel(String status) {
     switch (status) {
       case 'read':
-        return '已读';
+        return '已读'.tr;
       case 'reading':
-        return '在读';
+        return '在读'.tr;
       case 'want_to_read':
-        return '想读';
+        return '想读'.tr;
       default:
         return '';
     }
@@ -245,15 +246,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     decoration: BoxDecoration(
                         color: colors.onSurface.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(2)))),
-            Text('添加到',
+            Text('添加到'.tr,
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: colors.onSurface)),
             const SizedBox(height: 14),
-            _sheetItem(ctx, colors, Icons.check_circle_outline, '已读', 'read'),
-            _sheetItem(ctx, colors, Icons.play_circle_outline, '在读', 'reading'),
-            _sheetItem(ctx, colors, Icons.bookmark_outline, '想读', 'want_to_read'),
+            _sheetItem(ctx, colors, Icons.check_circle_outline, '已读'.tr, 'read'),
+            _sheetItem(ctx, colors, Icons.play_circle_outline, '在读'.tr, 'reading'),
+            _sheetItem(ctx, colors, Icons.bookmark_outline, '想读'.tr, 'want_to_read'),
           ]),
         ),
       ),
@@ -320,7 +321,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               setState(() { _loading = true; _error = null; });
               _load();
             },
-            child: Text('重试', style: TextStyle(color: colors.primary))),
+            child: Text('重试'.tr, style: TextStyle(color: colors.primary))),
       ],
     ));
   }
@@ -391,15 +392,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             ],
                             if (year.toString().isNotEmpty) ...[
                               const SizedBox(height: 6),
-                              Text('出版年份：$year', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                              Text('出版年份：{y}'.trf({'y': year}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                             ],
                             if (isbn.toString().isNotEmpty) ...[
                               const SizedBox(height: 4),
-                              Text('ISBN：$isbn', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                              Text('ISBN：{i}'.trf({'i': isbn}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                             ],
                             if (pages != null && pages != 0) ...[
                               const SizedBox(height: 4),
-                              Text('页数：$pages', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                              Text('页数：{p}'.trf({'p': pages}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                             ],
                             if (_localBook != null) ...[
                               const SizedBox(height: 10),
@@ -418,10 +419,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
               border: Border(
                   bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
           child: Row(children: [
-            _buildTabButton('基础信息', 0),
-            _buildTabButton('国图信息', 1),
-            _buildTabButton('网购地址', 2),
-            _buildTabButton('书籍目录', 3),
+            _buildTabButton('基础信息'.tr, 0),
+            _buildTabButton('国图信息'.tr, 1),
+            _buildTabButton('网购地址'.tr, 2),
+            _buildTabButton('书籍目录'.tr, 3),
           ]),
         ),
         // Tab 内容
@@ -473,7 +474,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
       children: [
         // 分类
-        _buildSectionTitle(colors, '分类', Icons.category_outlined),
+        _buildSectionTitle(colors, '分类'.tr, Icons.category_outlined),
         const SizedBox(height: 6),
         if (sub1.toString().isNotEmpty)
           _buildChipWrap(colors, sub1.toString().split(RegExp(r'[,，]')))
@@ -481,7 +482,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           _buildEmptyHint(colors),
         const SizedBox(height: 16),
         // 标签
-        _buildSectionTitle(colors, '标签', Icons.sell_outlined),
+        _buildSectionTitle(colors, '标签'.tr, Icons.sell_outlined),
         const SizedBox(height: 6),
         if (tags.toString().isNotEmpty)
           _buildChipWrap(colors, tags.toString().split(RegExp(r'[,，]')))
@@ -489,7 +490,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           _buildEmptyHint(colors),
         const SizedBox(height: 16),
         // 内容简介
-        _buildSectionTitle(colors, '内容简介', Icons.article_outlined),
+        _buildSectionTitle(colors, '内容简介'.tr, Icons.article_outlined),
         const SizedBox(height: 8),
         if (sub2.toString().isNotEmpty)
           Text(sub2.toString().replaceAll(RegExp(r'<[^>]*>'), ''),
@@ -501,7 +502,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _buildEmptyHint(ColorScheme colors) {
-    return Text('暂无该信息数据',
+    return Text('暂无该信息数据'.tr,
         style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)));
   }
 
@@ -515,7 +516,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
     if (opac == null) {
       return Center(
-          child: Text('暂无国图信息',
+          child: Text('暂无国图信息'.tr,
               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))));
     }
     return ListView(
@@ -539,7 +540,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
     if (links.isEmpty) {
       return Center(
-          child: Text('暂无网购地址',
+          child: Text('暂无网购地址'.tr,
               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))));
     }
     return ListView.separated(
@@ -558,7 +559,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
     if (_catalog == null || _catalog!.isEmpty) {
       return Center(
-          child: Text('暂无目录信息',
+          child: Text('暂无目录信息'.tr,
               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))));
     }
     final lines = _catalog!.split('\n').where((l) => l.trim().isNotEmpty).toList();
@@ -629,16 +630,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Widget _buildOpacInfo(ColorScheme colors, Map<String, dynamic> opac) {
     final items = <List<String>>[];
-    if (opac['title'] != null && opac['title'].toString().isNotEmpty) items.add(['题名', opac['title'].toString()]);
+    if (opac['title'] != null && opac['title'].toString().isNotEmpty) items.add(['题名'.tr, opac['title'].toString()]);
     if (opac['authors'] != null) {
       final authors = (opac['authors'] as List).map((e) => e.toString()).join('；');
-      if (authors.isNotEmpty) items.add(['作者', authors]);
+      if (authors.isNotEmpty) items.add(['作者'.tr, authors]);
     }
-    if (opac['publisher'] != null && opac['publisher'].toString().isNotEmpty) items.add(['出版社', opac['publisher'].toString()]);
-    if (opac['pubdate'] != null && opac['pubdate'].toString().isNotEmpty) items.add(['出版日期', opac['pubdate'].toString()]);
+    if (opac['publisher'] != null && opac['publisher'].toString().isNotEmpty) items.add(['出版社'.tr, opac['publisher'].toString()]);
+    if (opac['pubdate'] != null && opac['pubdate'].toString().isNotEmpty) items.add(['出版日期'.tr, opac['pubdate'].toString()]);
     if (opac['isbn'] != null && opac['isbn'].toString().isNotEmpty) items.add(['ISBN', opac['isbn'].toString()]);
-    if (opac['clc'] != null && opac['clc'].toString().isNotEmpty) items.add(['中图分类号', opac['clc'].toString()]);
-    if (opac['tags'] != null && opac['tags'].toString().isNotEmpty) items.add(['主题词', opac['tags'].toString()]);
+    if (opac['clc'] != null && opac['clc'].toString().isNotEmpty) items.add(['中图分类号'.tr, opac['clc'].toString()]);
+    if (opac['tags'] != null && opac['tags'].toString().isNotEmpty) items.add(['主题词'.tr, opac['tags'].toString()]);
 
     if (items.isEmpty) return const SizedBox.shrink();
 
@@ -746,7 +747,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           height: 6,
           decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
       const SizedBox(width: 6),
-      Text('已在本地 · $label',
+      Text('已在本地 · {label}'.trf({'label': label}),
           style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,

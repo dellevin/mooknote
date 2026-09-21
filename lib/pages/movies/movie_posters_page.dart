@@ -13,6 +13,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import 'poster_gallery_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 影视海报墙页面
 class MoviePostersPage extends StatefulWidget {
@@ -50,12 +51,12 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('海报墙'),
+        title: Text('海报墙'.tr),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _pickPoster,
         icon: const Icon(Icons.add_photo_alternate, size: 20),
-        label: const Text('添加海报'),
+        label: Text('添加海报'.tr),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -86,7 +87,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
           ),
           const SizedBox(height: 20),
           Text(
-            '暂无海报',
+            '暂无海报'.tr,
             style: TextStyle(
               fontSize: 16,
               color: colors.onSurface.withValues(alpha: 0.4),
@@ -220,7 +221,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
                     child: Row(
                       children: [
                         Text(
-                          '添加海报',
+                          '添加海报'.tr,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -298,12 +299,12 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
         _loadPosters();
 
         if (mounted) {
-          ToastUtil.show(context, '添加成功');
+          ToastUtil.show(context, '添加成功'.tr);
         }
       }
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '添加海报失败: $e');
+        ToastUtil.show(context, '添加海报失败: {e}'.trf({'e': e}));
       }
     }
   }
@@ -320,13 +321,13 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('添加网络图片'),
+          title: Text('添加网络图片'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '请输入图片链接地址',
+                '请输入图片链接地址'.tr,
                 style: TextStyle(
                   fontSize: 14,
                   color: colors.onSurface.withValues(alpha: 0.6),
@@ -354,11 +355,11 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text('确定', style: TextStyle(color: colors.onSurface)),
+              child: Text('确定'.tr, style: TextStyle(color: colors.onSurface)),
             ),
           ],
         );
@@ -369,7 +370,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
 
     final url = urlController.text.trim();
     if (url.isEmpty) {
-      ToastUtil.show(context, '请输入图片链接');
+      ToastUtil.show(context, '请输入图片链接'.tr);
       return;
     }
 
@@ -378,7 +379,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       await _downloadAndSavePoster(url);
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '添加失败: $e');
+        ToastUtil.show(context, '添加失败: {e}'.trf({'e': e}));
       }
     }
   }
@@ -435,7 +436,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       _loadPosters();
 
       if (mounted) {
-        ToastUtil.show(context, '添加成功');
+        ToastUtil.show(context, '添加成功'.tr);
       }
     } catch (e) {
       throw Exception('下载图片失败: $e');
@@ -475,7 +476,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    title.tr,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -484,7 +485,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    subtitle,
+                    subtitle.tr,
                     style: TextStyle(
                       fontSize: 13,
                       color: colors.onSurface.withValues(alpha: 0.4),
@@ -513,27 +514,27 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('确定要删除这张海报吗？删除后可在回收站恢复。',
+          title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('确定要删除这张海报吗？删除后可在回收站恢复。'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeMoviePoster(poster.id);
                 Navigator.pop(context);
                 _loadPosters();
-                ToastUtil.show(context, '已删除');
+                ToastUtil.show(context, '已删除'.tr);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('删除'),
+              child: Text('删除'.tr),
             ),
           ],
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

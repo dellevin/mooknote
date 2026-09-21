@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'fade_in_local_image.dart';
+import '../l10n/app_strings.dart';
 
 /// 角色卡片横向预览组件
 ///
@@ -41,7 +42,7 @@ class CharacterPreviewSection extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '角色',
+                '角色'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

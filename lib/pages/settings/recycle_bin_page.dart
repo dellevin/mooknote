@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -27,98 +28,100 @@ class _DeletedItem {
       : type = _ItemType.movie,
         id = m.id,
         title = m.title,
-        subtitle = '删除于 ${m.updatedAt.year}.${m.updatedAt.month.toString().padLeft(2, '0')}.${m.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(m.updatedAt)}),
         icon = Icons.movie_outlined,
-        typeLabel = '影视';
+        typeLabel = '影视'.tr;
 
   _DeletedItem.book(Book b)
       : type = _ItemType.book,
         id = b.id,
         title = b.title,
-        subtitle = '删除于 ${b.updatedAt.year}.${b.updatedAt.month.toString().padLeft(2, '0')}.${b.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(b.updatedAt)}),
         icon = Icons.menu_book_outlined,
-        typeLabel = '书籍';
+        typeLabel = '书籍'.tr;
 
   _DeletedItem.note(Note n)
       : type = _ItemType.note,
         id = n.id,
         title = n.title.isNotEmpty ? n.title : n.summary,
-        subtitle = '删除于 ${n.updatedAt.year}.${n.updatedAt.month.toString().padLeft(2, '0')}.${n.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(n.updatedAt)}),
         icon = Icons.description_outlined,
-        typeLabel = '笔记';
+        typeLabel = '笔记'.tr;
 
   _DeletedItem.movieReview(MovieReview r)
       : type = _ItemType.movieReview,
         id = r.id,
-        title = r.content.isNotEmpty ? r.content : '影评',
-        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+        title = r.content.isNotEmpty ? r.content : '影评'.tr,
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(r.updatedAt)}),
         icon = Icons.rate_review_outlined,
-        typeLabel = '影评';
+        typeLabel = '影评'.tr;
 
   _DeletedItem.bookReview(BookReview r)
       : type = _ItemType.bookReview,
         id = r.id,
-        title = r.content.isNotEmpty ? r.content : '书评',
-        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+        title = r.content.isNotEmpty ? r.content : '书评'.tr,
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(r.updatedAt)}),
         icon = Icons.rate_review_outlined,
-        typeLabel = '书评';
+        typeLabel = '书评'.tr;
 
   _DeletedItem.bookExcerpt(BookExcerpt e)
       : type = _ItemType.bookExcerpt,
         id = e.id,
-        title = e.content.isNotEmpty ? e.content : '摘抄',
-        subtitle = '删除于 ${e.updatedAt.year}.${e.updatedAt.month.toString().padLeft(2, '0')}.${e.updatedAt.day.toString().padLeft(2, '0')}',
+        title = e.content.isNotEmpty ? e.content : '摘抄'.tr,
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(e.updatedAt)}),
         icon = Icons.format_quote_outlined,
-        typeLabel = '书摘';
+        typeLabel = '书摘'.tr;
 
   _DeletedItem.game(Game g)
       : type = _ItemType.game,
         id = g.id,
         title = g.title,
-        subtitle = '删除于 ${g.updatedAt.year}.${g.updatedAt.month.toString().padLeft(2, '0')}.${g.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(g.updatedAt)}),
         icon = Icons.sports_esports_outlined,
-        typeLabel = '游戏';
+        typeLabel = '游戏'.tr;
 
   _DeletedItem.gameReview(GameReview r)
       : type = _ItemType.gameReview,
         id = r.id,
-        title = r.content.isNotEmpty ? r.content : '游戏评价',
-        subtitle = '删除于 ${r.updatedAt.year}.${r.updatedAt.month.toString().padLeft(2, '0')}.${r.updatedAt.day.toString().padLeft(2, '0')}',
+        title = r.content.isNotEmpty ? r.content : '游戏评价'.tr,
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(r.updatedAt)}),
         icon = Icons.rate_review_outlined,
-        typeLabel = '游戏评价';
+        typeLabel = '游戏评价'.tr;
 
   _DeletedItem.person(Person p)
       : type = _ItemType.person,
         id = p.id,
         title = p.name,
-        subtitle = '删除于 ${p.updatedAt.year}.${p.updatedAt.month.toString().padLeft(2, '0')}.${p.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(p.updatedAt)}),
         icon = Icons.person_outline,
-        typeLabel = '人物';
+        typeLabel = '人物'.tr;
 
   _DeletedItem.movieCharacter(MovieCharacter c)
       : type = _ItemType.movieCharacter,
         id = c.id,
         title = c.name,
-        subtitle = '删除于 ${c.updatedAt.year}.${c.updatedAt.month.toString().padLeft(2, '0')}.${c.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(c.updatedAt)}),
         icon = Icons.movie_outlined,
-        typeLabel = '影视角色';
+        typeLabel = '影视角色'.tr;
 
   _DeletedItem.bookCharacter(BookCharacter c)
       : type = _ItemType.bookCharacter,
         id = c.id,
         title = c.name,
-        subtitle = '删除于 ${c.updatedAt.year}.${c.updatedAt.month.toString().padLeft(2, '0')}.${c.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(c.updatedAt)}),
         icon = Icons.menu_book_outlined,
-        typeLabel = '书籍角色';
+        typeLabel = '书籍角色'.tr;
 
   _DeletedItem.gameCharacter(GameCharacter c)
       : type = _ItemType.gameCharacter,
         id = c.id,
         title = c.name,
-        subtitle = '删除于 ${c.updatedAt.year}.${c.updatedAt.month.toString().padLeft(2, '0')}.${c.updatedAt.day.toString().padLeft(2, '0')}',
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(c.updatedAt)}),
         icon = Icons.sports_esports_outlined,
-        typeLabel = '游戏角色';
+        typeLabel = '游戏角色'.tr;
 
+  static String _fmtDate(DateTime dt) =>
+      '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
 }
 
 class _RecycleBinPageState extends State<RecycleBinPage> {
@@ -176,7 +179,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('回收站'),
+        title: Text('回收站'.tr),
         actions: [
           if (_allItems.isNotEmpty)
             Padding(
@@ -193,7 +196,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                   ),
                   minimumSize: Size.zero,
                 ),
-                child: const Text('清空', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                child: Text('清空'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
               ),
             ),
         ],
@@ -223,19 +226,19 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
   Widget _buildFilterRow() {
     final colors = Theme.of(context).colorScheme;
     final chips = <Widget>[
-      _filterChip('全部', null),
-      _filterChip('影视', _ItemType.movie),
-      _filterChip('书籍', _ItemType.book),
-      _filterChip('笔记', _ItemType.note),
-      _filterChip('游戏', _ItemType.game),
-      _filterChip('影评', _ItemType.movieReview),
-      _filterChip('书评', _ItemType.bookReview),
-      _filterChip('书摘', _ItemType.bookExcerpt),
-      _filterChip('游戏评价', _ItemType.gameReview),
-      _filterChip('人物', _ItemType.person),
-      _filterChip('影视角色', _ItemType.movieCharacter),
-      _filterChip('书籍角色', _ItemType.bookCharacter),
-      _filterChip('游戏角色', _ItemType.gameCharacter),
+      _filterChip('全部'.tr, null),
+      _filterChip('影视'.tr, _ItemType.movie),
+      _filterChip('书籍'.tr, _ItemType.book),
+      _filterChip('笔记'.tr, _ItemType.note),
+      _filterChip('游戏'.tr, _ItemType.game),
+      _filterChip('影评'.tr, _ItemType.movieReview),
+      _filterChip('书评'.tr, _ItemType.bookReview),
+      _filterChip('书摘'.tr, _ItemType.bookExcerpt),
+      _filterChip('游戏评价'.tr, _ItemType.gameReview),
+      _filterChip('人物'.tr, _ItemType.person),
+      _filterChip('影视角色'.tr, _ItemType.movieCharacter),
+      _filterChip('书籍角色'.tr, _ItemType.bookCharacter),
+      _filterChip('游戏角色'.tr, _ItemType.gameCharacter),
     ];
     return Container(
       width: double.infinity,
@@ -304,7 +307,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       key: Key('${item.type.name}_${item.id}'),
       direction: DismissDirection.endToStart,
       background: _buildDismissBackground(),
-      confirmDismiss: (_) async => _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。'),
+      confirmDismiss: (_) async =>
+          _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。'.tr),
       onDismissed: (_) => _permanentDelete(item),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -367,9 +371,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                 ),
               ),
               const SizedBox(width: 8),
-              _actionBtn(Icons.restore, '恢复', colors.primary, () => _restore(item)),
+              _actionBtn(Icons.restore, '恢复'.tr, colors.primary, () => _restore(item)),
               const SizedBox(width: 6),
-              _actionBtn(Icons.delete_outline, '删除', colors.error, () => _permanentDelete(item)),
+              _actionBtn(Icons.delete_outline, '删除'.tr, colors.error, () => _permanentDelete(item)),
             ],
           ),
         ),
@@ -431,11 +435,11 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            _filterType == null ? '回收站是空的' : '没有删除的项目',
+            (_filterType == null ? '回收站是空的' : '没有删除的项目').tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
           ),
           const SizedBox(height: 4),
-          Text('删除的项目会显示在这里', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
+          Text('删除的项目会显示在这里'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.25))),
         ],
       ),
     );
@@ -448,13 +452,16 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认恢复', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-        content: Text('确定要恢复"${item.title}"到${item.typeLabel}里面吗？', style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        title: Text('确认恢复'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+        content: Text(
+          '确定要恢复"{title}"到{type}里面吗？'.trf({'title': item.title, 'type': item.typeLabel}),
+          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -464,7 +471,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('恢复'),
+            child: Text('恢复'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -475,46 +482,47 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     switch (item.type) {
       case _ItemType.movie:
         await provider.restoreMovie(item.id);
-        if (mounted) ToastUtil.show(context, '影视已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '影视'.tr}));
       case _ItemType.book:
         await provider.restoreBook(item.id);
-        if (mounted) ToastUtil.show(context, '书籍已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '书籍'.tr}));
       case _ItemType.note:
         await provider.restoreNote(item.id);
-        if (mounted) ToastUtil.show(context, '笔记已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '笔记'.tr}));
       case _ItemType.game:
         await provider.restoreGame(item.id);
-        if (mounted) ToastUtil.show(context, '游戏已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '游戏'.tr}));
       case _ItemType.movieReview:
         await provider.restoreMovieReview(item.id);
-        if (mounted) ToastUtil.show(context, '影评已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '影评'.tr}));
       case _ItemType.bookReview:
         await provider.restoreBookReview(item.id);
-        if (mounted) ToastUtil.show(context, '书评已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '书评'.tr}));
       case _ItemType.bookExcerpt:
         await provider.restoreBookExcerpt(item.id);
-        if (mounted) ToastUtil.show(context, '书摘已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '书摘'.tr}));
       case _ItemType.gameReview:
         await provider.restoreGameReview(item.id);
-        if (mounted) ToastUtil.show(context, '游戏评价已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '游戏评价'.tr}));
       case _ItemType.person:
         await provider.restorePerson(item.id);
-        if (mounted) ToastUtil.show(context, '人物已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '人物'.tr}));
       case _ItemType.movieCharacter:
         await provider.restoreMovieCharacter(item.id);
-        if (mounted) ToastUtil.show(context, '影视角色已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '影视角色'.tr}));
       case _ItemType.bookCharacter:
         await provider.restoreBookCharacter(item.id);
-        if (mounted) ToastUtil.show(context, '书籍角色已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '书籍角色'.tr}));
       case _ItemType.gameCharacter:
         await provider.restoreGameCharacter(item.id);
-        if (mounted) ToastUtil.show(context, '游戏角色已恢复');
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '游戏角色'.tr}));
     }
     _loadDeletedItems();
   }
 
   Future<void> _permanentDelete(_DeletedItem item) async {
-    final confirmed = await _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。');
+    final confirmed =
+        await _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。'.tr);
     if (!confirmed) return;
     final provider = context.read<AppProvider>();
     switch (item.type) {
@@ -544,7 +552,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         await provider.permanentDeleteGameCharacter(item.id);
     }
     _loadDeletedItems();
-    if (mounted) ToastUtil.show(context, '已彻底删除');
+    if (mounted) ToastUtil.show(context, '已彻底删除'.tr);
   }
 
   Future<bool> _showConfirmDialog(String message) async {
@@ -555,13 +563,13 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Text(message, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6)),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -571,7 +579,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('删除'),
+            child: Text('删除'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -593,25 +601,25 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 22),
             const SizedBox(width: 8),
-            Text('清空回收站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            Text('清空回收站'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           ],
         ),
         content: Text(
-          '确定要清空回收站吗？所有项目将被彻底删除，此操作不可恢复。',
+          '确定要清空回收站吗？所有项目将被彻底删除，此操作不可恢复。'.tr,
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6)),
-            child: const Text('取消'),
+            child: Text('取消'.tr),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await pageContext.read<AppProvider>().clearRecycleBin();
               _loadDeletedItems();
-              if (mounted) ToastUtil.show(pageContext, '回收站已清空');
+              if (mounted) ToastUtil.show(pageContext, '回收站已清空'.tr);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,
@@ -619,7 +627,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('清空'),
+            child: Text('清空'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

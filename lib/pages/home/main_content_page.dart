@@ -11,6 +11,7 @@ import '../game/game_tab_page.dart';
 import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 主内容页 - 观影/阅读/笔记标签页（PageView 滑动切换）
 class MainContentPage extends StatefulWidget {
@@ -136,7 +137,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
         children: [
           Icon(_tabIcon(currentLabel), size: 20, color: colors.primary),
           const SizedBox(width: 6),
-          Text(currentLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          Text(currentLabel.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(width: 2),
           Icon(Icons.arrow_drop_down, size: 22, color: colors.onSurface.withValues(alpha: 0.5)),
         ],
@@ -170,7 +171,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
       leading: Container(width: 36, height: 36,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
           child: Icon(_tabIcon(tab.label), size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-      title: Text(tab.label, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+      title: Text(tab.label.tr, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
       trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
       onTap: () {
         Navigator.pop(ctx);
@@ -181,11 +182,11 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
 
   String _getAppBarTitle(AppProvider provider) {
     switch (provider.mainTabIndex) {
-      case -1: return '主页';
+      case -1: return '主页'.tr;
       case 0: case 1: case 2: case 3:
         // 只剩一个模块时，不显示模块分类名称
         if (_enabledTabs.length <= 1) return 'MookNote';
-        return const ['影视', '阅读', '笔记', '游戏'][provider.mainTabIndex];
+        return const ['影视', '阅读', '笔记', '游戏'][provider.mainTabIndex].tr;
       default: return 'MookNote';
     }
   }
@@ -196,7 +197,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
   Widget _buildCloudSyncButton(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.cloud_sync_outlined),
-      tooltip: '云备份',
+      tooltip: '云备份'.tr,
       onPressed: () => _showCloudSheet(context),
     );
   }
@@ -281,11 +282,14 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
                                       : null,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-                          Icon(_tabIcon(tab.label), size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
-                          const SizedBox(width: 5),
-                          Text(tab.label, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3))),
-                        ]),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+                            Icon(_tabIcon(tab.label), size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
+                            const SizedBox(width: 5),
+                            Text(tab.label.tr, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3))),
+                          ]),
+                        ),
                       ),
                     ),
                   );
@@ -331,7 +335,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
           Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 16),
               decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
           Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
+              child: Text(title.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)))),
           const SizedBox(height: 8),
           for (int i = 0; i < options.length; i++) ...[
             if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant),
@@ -349,7 +353,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
+      title: Text(label.tr, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
       trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
       onTap: () {
         Navigator.pop(ctx);
@@ -463,18 +467,18 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
 
     if (direction == SyncDirection.upload) {
       // 上传：先打包，再上传
-      setState(() => _syncStep = '正在打包数据...');
+      setState(() => _syncStep = '正在打包数据...'.tr);
       await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final exportResult = await WebDAVService.instance.exportLocalData();
       if (!exportResult.success || exportResult.zipPath == null) {
         if (mounted) {
           Navigator.pop(context); // 关闭 bottom sheet
-          _showResultDialog(navigator, title: '同步失败', message: exportResult.errorMessage ?? '创建备份失败', isSuccess: false);
+          _showResultDialog(navigator, title: '同步失败'.tr, message: exportResult.errorMessage ?? '创建备份失败'.tr, isSuccess: false);
         }
         return;
       }
       if (!mounted) return;
-      setState(() => _syncStep = '正在上传到云端...');
+      setState(() => _syncStep = '正在上传到云端...'.tr);
       await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final result = await WebDAVService.instance.uploadExportedData(exportResult);
       if (result.success && result.needReload && mounted) {
@@ -491,20 +495,20 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         Navigator.pop(context); // 关闭 bottom sheet
       }
       _showResultDialog(navigator,
-        title: result.success ? '同步成功' : '同步失败',
-        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
+        title: (result.success ? '同步成功' : '同步失败').tr,
+        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败').tr,
         isSuccess: result.success,
         details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
       );
     } else {
       // 下载
-      setState(() => _syncStep = '正在从云端下载...');
+      setState(() => _syncStep = '正在从云端下载...'.tr);
       await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final config = await WebDAVService.instance.getConfig();
       if (config == null) {
         if (mounted) {
           Navigator.pop(context);
-          _showResultDialog(navigator, title: '同步失败', message: '请先配置 WebDAV 服务器', isSuccess: false);
+          _showResultDialog(navigator, title: '同步失败'.tr, message: '请先配置 WebDAV 服务器'.tr, isSuccess: false);
         }
         return;
       }
@@ -523,8 +527,8 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         Navigator.pop(context); // 关闭 bottom sheet
       }
       _showResultDialog(navigator,
-        title: result.success ? '同步成功' : '同步失败',
-        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败'),
+        title: (result.success ? '同步成功' : '同步失败').tr,
+        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败').tr,
         isSuccess: result.success,
         details: {'uploaded': result.uploadedFiles + result.uploadedImages, 'downloaded': result.downloadedFiles + result.downloadedImages},
       );
@@ -550,7 +554,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
             width: 36, height: 4, margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(color: bc.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
           )),
-          Text('云备份', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
+          Text('云备份'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
           if (_loading)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -567,7 +571,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
               child: Row(children: [
                 Icon(Icons.info_outline, size: 14, color: bc.onSurface.withValues(alpha: 0.3)),
                 const SizedBox(width: 6),
-                Text('云端备份', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.4))),
+                Text('云端备份'.tr, style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.4))),
                 const Spacer(),
                 if (_modifiedTime != null) Text(_formatDateTime(_modifiedTime!), style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.5))),
                 if (_modifiedTime != null && _remoteSize != null) Text('  ·  ', style: TextStyle(fontSize: 11, color: bc.onSurface.withValues(alpha: 0.2))),
@@ -594,11 +598,11 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
               ]),
             ),
           ] else ...[
-            _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据', desc: widget.hasConfig ? '将本地数据同步到云端' : '请先配置 WebDAV 服务器', enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc),
+            _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据'.tr, desc: widget.hasConfig ? '将本地数据同步到云端'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc),
             const SizedBox(height: 8),
-            _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据', desc: widget.hasConfig ? '从云端恢复数据到本地' : '请先配置 WebDAV 服务器', enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.download) : null, colors: bc),
+            _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据'.tr, desc: widget.hasConfig ? '从云端恢复数据到本地'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.download) : null, colors: bc),
             const SizedBox(height: 8),
-            _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置', desc: '配置服务器地址与认证信息', enabled: true, onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
+            _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置'.tr, desc: '配置服务器地址与认证信息'.tr, enabled: true, onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
           ],
         ]),
       ),
@@ -608,10 +612,10 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
   String _formatDateTime(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
+    if (diff.inMinutes < 1) return '刚刚'.tr;
+    if (diff.inHours < 1) return '{n}分钟前'.trf({'n': diff.inMinutes});
+    if (diff.inDays < 1) return '{n}小时前'.trf({'n': diff.inHours});
+    if (diff.inDays < 7) return '{n}天前'.trf({'n': diff.inDays});
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
@@ -657,16 +661,16 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         title: Row(children: [
           Container(width: 40, height: 40, decoration: BoxDecoration(color: isSuccess ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(10)), child: Icon(isSuccess ? Icons.check_circle : Icons.error, color: isSuccess ? const Color(0xFF4CAF50) : const Color(0xFFE57373), size: 24)),
           const SizedBox(width: 12),
-          Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text(title.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ]),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(message, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+          Text(message.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           if (details != null) ...[const SizedBox(height: 16), Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (details['uploaded'] != null) _detailRow('上传文件', '${details['uploaded']} 个', colors),
-            if (details['downloaded'] != null) _detailRow('下载文件', '${details['downloaded']} 个', colors),
+            if (details['uploaded'] != null) _detailRow('上传文件', '{n} 个'.trf({'n': details['uploaded']}), colors),
+            if (details['downloaded'] != null) _detailRow('下载文件', '{n} 个'.trf({'n': details['downloaded']}), colors),
           ]))],
         ]),
-        actions: [ElevatedButton(onPressed: () => Navigator.pop(dialogCtx), style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: const Text('确定'))],
+        actions: [ElevatedButton(onPressed: () => Navigator.pop(dialogCtx), style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: Text('确定'.tr))],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
@@ -675,7 +679,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
   Widget _detailRow(String label, String value, ColorScheme colors) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Row(children: [
-      Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+      Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
       const Spacer(),
       Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
     ]),

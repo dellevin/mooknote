@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/changelog_service.dart';
 import '../../widgets/app_overlay.dart';
 
@@ -41,7 +42,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
       if (hasUpdate) {
         final latest = _items != null && _items!.isNotEmpty
             ? _items!.first.version
-            : '新版本';
+            : '新版本'.tr;
         final latestVersion = await ChangelogService.fetchLatestVersion();
         _showUpdateDialog(
           version: latestVersion ?? latest,
@@ -62,13 +63,13 @@ class _ChangelogPageState extends State<ChangelogPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('检查更新', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('已是最新版本（当前 $localVersion）',
+        title: Text('检查更新'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('已是最新版本（当前 {v}）'.trf({'v': localVersion}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('好的', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('好的'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -84,24 +85,24 @@ class _ChangelogPageState extends State<ChangelogPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('发现新版本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('发现新版本'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (localVersion != null) ...[
-              Text('当前版本：$localVersion',
+              Text('当前版本：{v}'.trf({'v': localVersion}),
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
               const SizedBox(height: 6),
             ],
-            Text('最新版本 $version 已发布，是否下载更新？',
+            Text('最新版本 {v} 已发布，是否下载更新？'.trf({'v': version}),
                 style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('稍后再说', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('稍后再说'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -115,7 +116,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('去官网下载'),
+            child: Text('去官网下载'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -129,7 +130,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('更新日志'),
+        title: Text('更新日志'.tr),
         actions: [
           _checking
               ? const Padding(
@@ -137,7 +138,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
                   child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
               : IconButton(
                   icon: const Icon(Icons.refresh, size: 20),
-                  tooltip: '检查更新',
+                  tooltip: '检查更新'.tr,
                   onPressed: _checkUpdate,
                 ),
         ],
@@ -146,7 +147,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
           ? const Center(child: CircularProgressIndicator())
           : _items == null || _items!.isEmpty
               ? Center(
-                  child: Text('暂无更新日志',
+                  child: Text('暂无更新日志'.tr,
                       style: TextStyle(color: colors.onSurface.withValues(alpha: 0.4))))
               : ListView(
                   padding: const EdgeInsets.all(20),
@@ -178,7 +179,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
               children: [
                 Icon(Icons.language, size: 18, color: colors.primary),
                 const SizedBox(width: 8),
-                Text('官方网站',
+                Text('官方网站'.tr,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
               ],
             ),
@@ -203,9 +204,9 @@ class _ChangelogPageState extends State<ChangelogPage> {
                 child: InkWell(
                   onTap: () {
                     Clipboard.setData(const ClipboardData(text: _websiteUrl));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('已复制到剪贴板'),
-                      duration: Duration(seconds: 1),
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('已复制到剪贴板'.tr),
+                      duration: const Duration(seconds: 1),
                     ));
                   },
                   child: Container(
@@ -216,7 +217,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
                       children: [
                         Icon(Icons.copy, size: 16, color: colors.onSurface.withValues(alpha: 0.5)),
                         const SizedBox(width: 6),
-                        Text('复制链接',
+                        Text('复制链接'.tr,
                             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
                       ],
                     ),
@@ -239,7 +240,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
                       children: [
                         Icon(Icons.open_in_browser, size: 16, color: colors.primary),
                         const SizedBox(width: 6),
-                        Text('浏览器打开',
+                        Text('浏览器打开'.tr,
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.primary)),
                       ],
                     ),

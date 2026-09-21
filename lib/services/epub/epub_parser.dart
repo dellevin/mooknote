@@ -4,6 +4,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
 import '../../data/epub/reader_models.dart';
+import '../../l10n/app_strings.dart';
 
 /// EPUB 解析器 - 从 ZIP 归档中解析 EPUB 结构
 class EpubParser {
@@ -212,7 +213,7 @@ class EpubParser {
       for (final si in spineItems) {
         if (!si.linear) continue;
         toc.add(TocEntry(
-          label: '第 $chNum 章',
+          label: '第 {n} 章'.trf({'n': chNum}),
           href: '${si.href}#top',
           spineIndex: si.index,
         ));

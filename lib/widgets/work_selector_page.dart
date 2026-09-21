@@ -5,6 +5,7 @@ import '../models/data_models.dart';
 import '../providers/app_provider.dart';
 import 'fade_in_local_image.dart';
 import '../widgets/app_overlay.dart';
+import '../l10n/app_strings.dart';
 
 /// 人物详情页使用的作品关联结果（按媒体类型分组）
 class WorkSelectionResult {
@@ -250,11 +251,11 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('关联作品'),
+        title: Text('关联作品'.tr),
         actions: [
           TextButton(
             onPressed: _onConfirm,
-            child: Text('完成', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
+            child: Text('完成'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
           ),
         ],
       ),
@@ -269,7 +270,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               cursorColor: colors.primary,
               decoration: InputDecoration(
-                hintText: '搜索作品标题或人物名称',
+                hintText: '搜索作品标题或人物名称'.tr,
                 hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                 filled: true,
                 fillColor: colors.surfaceContainerHigh,
@@ -324,7 +325,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  labels[i],
+                  labels[i].tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -353,7 +354,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
         isDense: true,
         style: TextStyle(fontSize: 12, color: colors.onSurface),
         items: _roleOptionsFor(entry.workType)
-            .map((r) => DropdownMenuItem(value: r.$1, child: Text(r.$2, style: const TextStyle(fontSize: 12))))
+            .map((r) => DropdownMenuItem(value: r.$1, child: Text(r.$2.tr, style: const TextStyle(fontSize: 12))))
             .toList(),
         onChanged: (v) { if (v != null) _changeRole(entry, v); },
       ),
@@ -390,14 +391,14 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          title: Text(title.tr, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: TextField(
             controller: ctrl,
             autofocus: true,
             style: TextStyle(fontSize: 15, color: colors.onSurface),
             cursorColor: colors.primary,
             decoration: InputDecoration(
-              hintText: hint,
+              hintText: hint.tr,
               hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
               filled: true,
               fillColor: colors.surfaceContainerHigh,
@@ -408,11 +409,11 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
             onSubmitted: (v) { Navigator.pop(ctx); _editCharacterName(entry, v.trim()); },
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(
               onPressed: () { Navigator.pop(ctx); _editCharacterName(entry, ctrl.text.trim()); },
               style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('确定'),
+              child: Text('确定'.tr),
             ),
           ],
         );
@@ -465,7 +466,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     if (works.isEmpty) {
       return Center(
         child: Text(
-          query.isEmpty ? '暂无可选作品' : '无匹配结果',
+          query.isEmpty ? '暂无可选作品'.tr : '无匹配结果'.tr,
           style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)),
         ),
       );
@@ -515,7 +516,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                           color: colors.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text('参演', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: colors.primary)),
+                        child: Text('参演'.tr, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: colors.primary)),
                       ),
                     ],
                   ],
@@ -532,7 +533,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                       children: [
                         Icon(Icons.add, size: 14, color: colors.primary),
                         const SizedBox(width: 2),
-                        Text('角色', style: TextStyle(fontSize: 11, color: colors.primary)),
+                        Text('角色'.tr, style: TextStyle(fontSize: 11, color: colors.primary)),
                       ],
                     ),
                   ),
@@ -568,7 +569,9 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      entry.characterName != null && entry.characterName!.isNotEmpty ? '饰 ${entry.characterName}' : '设置角色',
+                      entry.characterName != null && entry.characterName!.isNotEmpty
+                          ? '饰 {name}'.trf({'name': entry.characterName})
+                          : '设置角色'.tr,
                       style: TextStyle(fontSize: 12, color: entry.characterName != null ? colors.onSurface : colors.onSurface.withValues(alpha: 0.3)),
                     ),
                     const SizedBox(width: 4),

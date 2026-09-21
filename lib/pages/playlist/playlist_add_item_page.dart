@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/animated_star_rating.dart';
 
@@ -92,7 +93,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('添加${widget.playlist.typeLabel}'),
+        title: Text('添加{type}'.trf({'type': widget.playlist.typeLabel.tr})),
       ),
       body: Column(
         children: [
@@ -103,7 +104,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
               controller: _searchController,
               style: TextStyle(fontSize: 15, color: colors.onSurface),
               decoration: InputDecoration(
-                hintText: '搜索${widget.playlist.typeLabel}名称',
+                hintText: '搜索{type}名称'.trf({'type': widget.playlist.typeLabel.tr}),
                 hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3), fontSize: 15),
                 prefixIcon: Icon(Icons.search, color: colors.onSurface.withValues(alpha: 0.4), size: 22),
                 suffixIcon: _searchController.text.isNotEmpty
@@ -138,7 +139,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
                 ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                 : items.isEmpty
                     ? Center(
-                        child: Text('没有找到${widget.playlist.typeLabel}',
+                        child: Text('没有找到{type}'.trf({'type': widget.playlist.typeLabel.tr}),
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))),
                       )
                     : ListView.builder(

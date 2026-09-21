@@ -6,6 +6,7 @@ import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
+import 'package:mooknote/l10n/app_strings.dart';
 
 /// 添加/编辑书评页面
 class BookReviewFormPage extends StatefulWidget {
@@ -55,7 +56,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: Text(isEdit ? '编辑书评' : '写书评'),
+        title: Text(isEdit ? '编辑书评'.tr : '写书评'.tr),
       ),
       body: Form(
         key: _formKey,
@@ -72,7 +73,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
                     const SizedBox(height: 20),
 
                     // ── 类型选择 ──────────────────────
-                    Text('书评类型', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('书评类型'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildTypeSelector(colors),
                     const SizedBox(height: 20),
@@ -80,21 +81,21 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
                     // ── 元信息 ────────────────────────
                     _buildMetaField(
                       icon: Icons.person_outline,
-                      hint: '评论人（选填）',
+                      hint: '评论人（选填）'.tr,
                       controller: _reviewerController,
                       colors: colors,
                     ),
                     const SizedBox(height: 12),
                     _buildMetaField(
                       icon: Icons.link,
-                      hint: '来源（选填）',
+                      hint: '来源（选填）'.tr,
                       controller: _sourceController,
                       colors: colors,
                     ),
                     const SizedBox(height: 20),
 
                     // ── 评论内容 ──────────────────────
-                    Text('评论内容', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评论内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildContentField(colors),
                   ],
@@ -123,7 +124,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(isEdit ? '更新书评' : '保存书评',
+                  child: Text(isEdit ? '更新书评'.tr : '保存书评'.tr,
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
@@ -193,9 +194,9 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
 
   Widget _buildTypeSelector(ColorScheme colors) {
     return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(value: 1, label: Text('短评'), icon: Icon(Icons.short_text)),
-        ButtonSegment(value: 2, label: Text('长评'), icon: Icon(Icons.menu_book)),
+      segments: [
+        ButtonSegment(value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
+        ButtonSegment(value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
       ],
       selected: {_reviewType},
       onSelectionChanged: (v) => setState(() => _reviewType = v.first),
@@ -274,7 +275,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
             textAlignVertical: TextAlignVertical.top,
             style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
             decoration: InputDecoration(
-              hintText: '写下你的书评...',
+              hintText: '写下你的书评...'.tr,
               hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -282,7 +283,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
               contentPadding: const EdgeInsets.all(14),
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return '请输入评论内容';
+              if (value == null || value.trim().isEmpty) return '请输入评论内容'.tr;
               return null;
             },
             onChanged: (_) => setState(() {}),
@@ -292,7 +293,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                '${_contentController.text.length} 字',
+                '{n} 字'.trf({'n': _contentController.text.length}),
                 style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
               ),
             ),
@@ -337,11 +338,11 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
       }
 
       if (!mounted) return;
-      ToastUtil.show(context, widget.review == null ? '添加成功' : '更新成功');
+      ToastUtil.show(context, widget.review == null ? '添加成功'.tr : '更新成功'.tr);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ToastUtil.show(context, '保存失败: $e');
+      ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 }

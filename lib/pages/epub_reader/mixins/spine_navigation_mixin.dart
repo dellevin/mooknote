@@ -162,7 +162,7 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
 
   Future<void> previousSpineItem() async {
     if (currentSpineItemIndex <= 0) {
-      _showToast('已经是第一章');
+      _showToast('已经是第一章'.tr);
       return;
     }
 
@@ -185,7 +185,7 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
 
   Future<void> previousSpineItemFirstPage() async {
     if (currentSpineItemIndex <= 0) {
-      _showToast('已经是第一章');
+      _showToast('已经是第一章'.tr);
       return;
     }
 
@@ -210,7 +210,7 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
 
   Future<void> nextSpineItem() async {
     if (currentSpineItemIndex >= bookSession.spine.length - 1) {
-      _showToast('已经是最后一章');
+      _showToast('已经是最后一章'.tr);
       return;
     }
 
@@ -237,7 +237,7 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
     final targetHref = bookSession.findFirstValidHref(item);
 
     if (targetHref == null) {
-      _showToast('该章节无内容');
+      _showToast('该章节无内容'.tr);
       return;
     }
 
@@ -249,7 +249,7 @@ mixin _SpineNavigationMixin on State<ReaderScreen> {
           : 'top';
       await navigateToSpineItem(index, anchor);
     } else {
-      _showToast('目录章节未找到');
+      _showToast('目录章节未找到'.tr);
       debugPrint(
         'Warning: Chapter with href ${targetHref.href} not found in spine.',
       );

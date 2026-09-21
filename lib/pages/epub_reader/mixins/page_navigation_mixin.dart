@@ -29,12 +29,12 @@ mixin _PageNavigationMixin on State<ReaderScreen> {
     if (isNext) {
       if (currentPageInChapter >= totalPagesInChapter - 1 &&
           currentSpineItemIndex >= bookSession.spine.length - 1) {
-        _showToast('已经是最后一页');
+        _showToast('已经是最后一页'.tr);
         return false;
       }
     } else {
       if (currentPageInChapter <= 0 && currentSpineItemIndex <= 0) {
-        _showToast('已经是第一页');
+        _showToast('已经是第一页'.tr);
         return false;
       }
     }

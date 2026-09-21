@@ -9,6 +9,7 @@ import '../../utils/responsive.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
+import '../../l10n/app_strings.dart';
 
 enum _ItemType { movie, book, game }
 
@@ -67,7 +68,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('已阅'),
+            title: Text('已阅'.tr),
             actions: [
               if (allItems.isNotEmpty)
                 IconButton(
@@ -91,7 +92,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
               Expanded(
                 child: filtered.isEmpty
                     ? Center(
-                        child: Text('暂无已阅记录',
+                        child: Text('暂无已阅记录'.tr,
                             style: TextStyle(
                                 fontSize: 14,
                                 color: Theme.of(context)
@@ -203,7 +204,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
                   color: typeColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(3),
                 ),
-                child: Text(typeLabel,
+                child: Text(typeLabel.tr,
                     style: TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: typeColor)),
               ),
             ],
@@ -244,16 +245,16 @@ class _ReviewedPageState extends State<ReviewedPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildStatItem('${filtered.length}', '已阅', colors.primary, Icons.done_all_rounded, colors),
+                  _buildStatItem('${filtered.length}', '已阅'.tr, colors.primary, Icons.done_all_rounded, colors),
                   _buildStatDivider(colors),
-                  _buildStatItem(avg, '均分', Colors.amber, Icons.star_rounded, colors),
+                  _buildStatItem(avg, '均分'.tr, Colors.amber, Icons.star_rounded, colors),
                   _buildStatDivider(colors),
                   // 分类计数
-                  _buildMiniCategory('影视', movieCount, Colors.blue, _ItemType.movie, colors),
+                  _buildMiniCategory('影视'.tr, movieCount, Colors.blue, _ItemType.movie, colors),
                   const SizedBox(width: 12),
-                  _buildMiniCategory('书籍', bookCount, Colors.teal, _ItemType.book, colors),
+                  _buildMiniCategory('书籍'.tr, bookCount, Colors.teal, _ItemType.book, colors),
                   const SizedBox(width: 12),
-                  _buildMiniCategory('游戏', gameCount, Colors.orange, _ItemType.game, colors),
+                  _buildMiniCategory('游戏'.tr, gameCount, Colors.orange, _ItemType.game, colors),
                 ],
               ),
             ),
@@ -407,7 +408,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Center(
-        child: Text(label,
+        child: Text(label.tr,
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
       ),
     );
@@ -614,7 +615,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
                         if (item.rating != null)
                           AnimatedStarRating(rating: item.rating!, starSize: 11, showNumber: true)
                         else
-                          Text('未评分', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25))),
+                          Text('未评分'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25))),
                         const Spacer(),
                         if (item.year != null)
                           Text('${item.year}',
@@ -628,7 +629,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
                             color: typeColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(typeLabel,
+                          child: Text(typeLabel.tr,
                               style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,

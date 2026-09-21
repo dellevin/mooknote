@@ -16,6 +16,7 @@ import '../../widgets/genre_selector_page.dart';
 import '../../widgets/duration_picker.dart';
 import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
+import '../../l10n/app_strings.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -193,7 +194,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       setState(() => _posterPath = targetPath);
     } catch (e) {
       debugPrint('封面下载失败: $e');
-      if (mounted) ToastUtil.show(context, '下载失败: $e');
+      if (mounted) ToastUtil.show(context, '下载失败: {e}'.trf({'e': e}));
     } finally {
       if (mounted) setState(() => _isDownloading = false);
     }
@@ -214,13 +215,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
-          title: Text(isEdit ? '编辑影视' : '添加影视'),
+          title: Text(isEdit ? '编辑影视'.tr : '添加影视'.tr),
         actions: [
           // 保存按钮
           _buildActionButton(
             icon: Icons.save_outlined,
             onPressed: _saveMovie,
-            tooltip: '保存',
+            tooltip: '保存'.tr,
           ),
           const SizedBox(width: 8),
         ],
@@ -264,7 +265,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     label: '别名',
                     value: _alternateTitles.isEmpty
                         ? ''
-                        : '${_alternateTitles.length}个：${_alternateTitles.join('、')}',
+                        : '{n}个：{x}'.trf({'n': _alternateTitles.length, 'x': _alternateTitles.join('、')}),
                     icon: Icons.alternate_email_outlined,
                     scrollable: true,
                     onTap: () => _editAlternateTitles(),
@@ -279,17 +280,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     label: '导演',
                     value: _directors.isEmpty
                         ? ''
-                        : '${_directors.length}人：${_directors.join('、')}',
+                        : '{n}人：{x}'.trf({'n': _directors.length, 'x': _directors.join('、')}),
                     icon: Icons.videocam_outlined,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.movies.map((m) => m.directors).toList();
                       final result = await GenreSelectorPage.show(
                         context: context,
-                        title: '选择导演',
+                        title: '选择导演'.tr,
                         existingTagsFuture: compute(_collectUnique, data),
                         initialSelected: _directors,
-                        hint: '如：张艺谋、李安',
+                        hint: '如：张艺谋、李安'.tr,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _directors = result);
@@ -303,17 +304,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     label: '编剧',
                     value: _writers.isEmpty
                         ? ''
-                        : '${_writers.length}人：${_writers.join('、')}',
+                        : '{n}人：{x}'.trf({'n': _writers.length, 'x': _writers.join('、')}),
                     icon: Icons.edit_note_outlined,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.movies.map((m) => m.writers).toList();
                       final result = await GenreSelectorPage.show(
                         context: context,
-                        title: '选择编剧',
+                        title: '选择编剧'.tr,
                         existingTagsFuture: compute(_collectUnique, data),
                         initialSelected: _writers,
-                        hint: '如：刘慈欣、王家卫',
+                        hint: '如：刘慈欣、王家卫'.tr,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _writers = result);
@@ -329,17 +330,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     label: '主演',
                     value: _actors.isEmpty
                         ? ''
-                        : '${_actors.length}人：${_actors.join('、')}',
+                        : '{n}人：{x}'.trf({'n': _actors.length, 'x': _actors.join('、')}),
                     icon: Icons.people_outline,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.movies.map((m) => m.actors).toList();
                       final result = await GenreSelectorPage.show(
                         context: context,
-                        title: '选择主演',
+                        title: '选择主演'.tr,
                         existingTagsFuture: compute(_collectUnique, data),
                         initialSelected: _actors,
-                        hint: '如：梁朝伟、周星驰',
+                        hint: '如：梁朝伟、周星驰'.tr,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _actors = result);
@@ -353,7 +354,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     label: '类型',
                     value: _genres.isEmpty
                         ? ''
-                        : '${_genres.length}个：${_genres.join('、')}',
+                        : '{n}个：{x}'.trf({'n': _genres.length, 'x': _genres.join('、')}),
                     icon: Icons.category_outlined,
                     onTap: () async {
                       final provider = context.read<AppProvider>();
@@ -362,10 +363,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
                       if (!mounted) return;
                       final result = await GenreSelectorPage.show(
                         context: context,
-                        title: '选择类型',
+                        title: '选择类型'.tr,
                         existingTags: existingNames,
                         initialSelected: _genres,
-                        hint: '如：剧情、科幻、悬疑',
+                        hint: '如：剧情、科幻、悬疑'.tr,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _genres = result);
@@ -411,7 +412,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   height: 90,
                   child: _buildInfoCard(
                     label: '观看次数',
-                    value: _watchCount > 0 ? '$_watchCount 次' : '',
+                    value: _watchCount > 0 ? '{n} 次'.trf({'n': _watchCount}) : '',
                     icon: Icons.repeat_outlined,
                     onTap: () => _editWatchCount(),
                   ),
@@ -473,7 +474,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Text(
-              hasValue ? value : '点击填写',
+              hasValue ? value : '点击填写'.tr,
               style: TextStyle(
                 fontSize: 15,
                 color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
@@ -488,7 +489,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           child: Text(
-            hasValue ? value : '点击填写',
+            hasValue ? value : '点击填写'.tr,
             style: TextStyle(
               fontSize: 15,
               color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
@@ -499,7 +500,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       } else {
         // 普通模式：只显示一行
         return Text(
-          hasValue ? value : '点击填写',
+          hasValue ? value : '点击填写'.tr,
           style: TextStyle(
             fontSize: 15,
             color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
@@ -540,7 +541,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   const SizedBox(width: 6),
                 ],
                 Text(
-                  required ? '$label *' : label,
+                  required ? '${label.tr} *' : label.tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
@@ -572,13 +573,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
         return AlertDialog(
           backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('影视名称', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          title: Text('影视名称'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: TextField(
             controller: controller,
             autofocus: true,
             style: TextStyle(fontSize: 15, color: colors.onSurface),
             decoration: InputDecoration(
-              hintText: '请输入影视名称',
+              hintText: '请输入 {x}'.trf({'x': '影视名称'.tr}),
               hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
               filled: true,
               fillColor: colors.surfaceContainerHigh,
@@ -590,7 +591,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
             onSubmitted: (v) => Navigator.pop(ctx, v),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, controller.text),
               style: ElevatedButton.styleFrom(
@@ -598,7 +599,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('确定'),
+              child: Text('确定'.tr),
             ),
           ],
         );
@@ -627,16 +628,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
     final result = await appDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('观看次数'),
+        title: Text('观看次数'.tr),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: const InputDecoration(hintText: '输入次数'),
+          decoration: InputDecoration(hintText: '输入次数'.tr),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('确定')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr)),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: Text('确定'.tr)),
         ],
       ),
     );
@@ -659,9 +660,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
     if (minutes <= 0) return '';
     final h = minutes ~/ 60;
     final m = minutes % 60;
-    if (h > 0 && m > 0) return '$h小时$m分';
-    if (h > 0) return '$h小时';
-    return '$m分';
+    if (h > 0 && m > 0) return '{h}小时{m}分'.trf({'h': h, 'm': m});
+    if (h > 0) return '{h}小时'.trf({'h': h});
+    return '{m}分'.trf({'m': m});
   }
 
   /// 全屏编辑剧情简介
@@ -696,7 +697,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 状态
           Row(
             children: [
-              Text('状态', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('状态'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.all(2),
@@ -719,7 +720,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 评分
           Row(
             children: [
-              Text('评分', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('评分'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               // 星星
               ...List.generate(5, (index) {
@@ -775,7 +776,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 分类
           Row(
             children: [
-              Text('分类', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('分类'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               Expanded(
                 child: SingleChildScrollView(
@@ -816,14 +817,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
   }
 
   /// 影视分类选项
-  static const _categories = [
-    ('电影', 'movie'),
-    ('电视剧', 'tv'),
-    ('动漫', 'anime'),
-    ('综艺', 'variety'),
-    ('纪录片', 'documentary'),
-    ('微短剧', 'short'),
-    ('其他', 'other'),
+  List<(String, String)> get _categories => [
+    ('电影'.tr, 'movie'),
+    ('电视剧'.tr, 'tv'),
+    ('动漫'.tr, 'anime'),
+    ('综艺'.tr, 'variety'),
+    ('纪录片'.tr, 'documentary'),
+    ('微短剧'.tr, 'short'),
+    ('其他'.tr, 'other'),
   ];
 
   /// 构建状态选项
@@ -850,7 +851,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
               : null,
         ),
         child: Text(
-          label,
+          label.tr,
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
@@ -917,7 +918,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '移除海报',
+                      '移除海报'.tr,
                       style: TextStyle(
                         fontSize: 12,
                         color: colors.onSurface.withValues(alpha: 0.6),
@@ -965,7 +966,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '添加海报',
+                      '添加海报'.tr,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -978,7 +979,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 // 本地图片选项
                 _buildCoverOption(
                   icon: Icons.photo_library_outlined,
-                  title: '从相册选择',
+                  title: '从相册选择'.tr,
                   onTap: () {
                     Navigator.pop(context);
                     _pickCover();
@@ -987,7 +988,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 // 网络链接选项
                 _buildCoverOption(
                   icon: Icons.link_outlined,
-                  title: '网络链接',
+                  title: '网络链接'.tr,
                   onTap: () {
                     Navigator.pop(context);
                     _pickCoverFromUrl();
@@ -1029,7 +1030,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
             ),
             const SizedBox(width: 16),
             Text(
-              title,
+              title.tr,
               style: TextStyle(
                 fontSize: 16,
                 color: colors.onSurface,
@@ -1059,7 +1060,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          '海报',
+          '海报'.tr,
           style: TextStyle(
             fontSize: 12,
             color: colors.onSurface.withValues(alpha: 0.35),
@@ -1100,7 +1101,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ToastUtil.show(context, '选择海报失败: $e');
+        ToastUtil.show(context, '选择海报失败: {e}'.trf({'e': e}));
       }
     }
   }
@@ -1117,12 +1118,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('添加网络图片', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('请输入图片链接地址', style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+              Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
               const SizedBox(height: 12),
               TextField(
                 controller: urlController,
@@ -1144,7 +1145,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -1153,7 +1154,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('确定'),
+              child: Text('确定'.tr),
             ),
           ],
         );
@@ -1223,13 +1224,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('未保存', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('当前内容未保存，确定要离开吗？',
+        title: Text('未保存'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('当前内容未保存，确定要离开吗？'.tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1240,7 +1241,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('离开'),
+            child: Text('离开'.tr),
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1320,12 +1321,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
     if (!mounted) return;
 
-    ToastUtil.show(context, widget.movie == null ? '添加成功' : '更新成功');
+    ToastUtil.show(context, widget.movie == null ? '添加成功'.tr : '更新成功'.tr);
 
     Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ToastUtil.show(context, '保存失败: $e');
+      ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
     }
   }
 
@@ -1401,11 +1402,11 @@ class _SummaryEditorPageState extends State<_SummaryEditorPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('剧情简介'),
+        title: Text('剧情简介'.tr),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, _controller.text.trim()),
-            child: Text('完成', style: TextStyle(
+            child: Text('完成'.tr, style: TextStyle(
               fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary,
             )),
           ),
@@ -1419,7 +1420,7 @@ class _SummaryEditorPageState extends State<_SummaryEditorPage> {
         textAlignVertical: TextAlignVertical.top,
         style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
         decoration: InputDecoration(
-          hintText: '写下剧情简介...',
+          hintText: '写下剧情简介...'.tr,
           hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
           contentPadding: const EdgeInsets.all(20),
           border: InputBorder.none,
