@@ -23,10 +23,13 @@ class MainContentPage extends StatefulWidget {
 class _MainContentPageState extends State<MainContentPage> with SingleTickerProviderStateMixin {
   final UserPrefs _userPrefs = UserPrefs();
 
-  bool _showMovieTab = true;
-  bool _showBookTab = true;
-  bool _showNoteTab = true;
-  bool _showGameTab = true;
+  // 直接读取 UserPrefs，不缓存到 State——否则 AppProvider 通知重建时
+  // 拿到的仍是旧值（Consumer 的依赖注册在内部 element 上，
+  // 不会触发本 State 的 didChangeDependencies）
+  bool get _showMovieTab => _userPrefs.showMovieTab;
+  bool get _showBookTab => _userPrefs.showBookTab;
+  bool get _showNoteTab => _userPrefs.showNoteTab;
+  bool get _showGameTab => _userPrefs.showGameTab;
 
   late PageController _pageController;
   late final AnimationController _fadeCtrl; // 点击切换：淡出淡入，不经过中间页
@@ -36,7 +39,6 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _loadTabSettings();
     _pageController = PageController(initialPage: 0);
     _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 140), value: 1);
   }
@@ -59,28 +61,6 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
     context.read<AppProvider>().setMainTabIndex(originalIndex);
     _fadeCtrl.animateTo(1);
     _isTabTap = false;
-  }
-
-  void _loadTabSettings() {
-    final newMovie = _userPrefs.showMovieTab;
-    final newBook = _userPrefs.showBookTab;
-    final newNote = _userPrefs.showNoteTab;
-    final newGame = _userPrefs.showGameTab;
-    if (newMovie != _showMovieTab || newBook != _showBookTab ||
-        newNote != _showNoteTab || newGame != _showGameTab) {
-      setState(() {
-        _showMovieTab = newMovie;
-        _showBookTab = newBook;
-        _showNoteTab = newNote;
-        _showGameTab = newGame;
-      });
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadTabSettings();
   }
 
   List<_TabItem> get _enabledTabs {
@@ -109,7 +89,8 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
           children: [
             if (!Breakpoint.isDesktop(context)) ...[
               _buildAppBar(context, isDropdown),
-              if (!isDropdown) _buildTabBar(context),
+              // 只剩一个模块时，顶部模块分类栏没有显示必要
+              if (!isDropdown && _enabledTabs.length > 1) _buildTabBar(context),
             ],
             Expanded(child: _buildTabContent()),
           ],
@@ -127,7 +108,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
         return AppBar(
           titleSpacing: 8,
           leadingWidth: 44,
-          title: isDropdown
+          title: isDropdown && _enabledTabs.length > 1
               ? _buildDropdownTitle(context, provider, colors)
               : Text(_getAppBarTitle(provider)),
           actionsPadding: const EdgeInsets.only(right: 4),
@@ -201,10 +182,10 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
   String _getAppBarTitle(AppProvider provider) {
     switch (provider.mainTabIndex) {
       case -1: return '主页';
-      case 0: return '影视';
-      case 1: return '阅读';
-      case 2: return '笔记';
-      case 3: return '游戏';
+      case 0: case 1: case 2: case 3:
+        // 只剩一个模块时，不显示模块分类名称
+        if (_enabledTabs.length <= 1) return 'MookNote';
+        return const ['影视', '阅读', '笔记', '游戏'][provider.mainTabIndex];
       default: return 'MookNote';
     }
   }

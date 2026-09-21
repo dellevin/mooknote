@@ -389,6 +389,17 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 模块开关等设置变更后调用，通知各页面重新读取 UserPrefs
+  void refreshTabSettings() {
+    // 当前标签被关闭时，回退到第一个启用的标签
+    final userPrefs = UserPrefs();
+    final enabled = [userPrefs.showMovieTab, userPrefs.showBookTab, userPrefs.showNoteTab, userPrefs.showGameTab];
+    if (_mainTabIndex >= 0 && _mainTabIndex < enabled.length && !enabled[_mainTabIndex]) {
+      _mainTabIndex = enabled.indexWhere((e) => e);
+    }
+    notifyListeners();
+  }
+
   void setBottomNavIndex(int index) {
     if (index == 0 && _bottomNavIndex == 0) {
       // 已在首页，再次点击 → 回到顶部

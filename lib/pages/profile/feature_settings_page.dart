@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
@@ -119,6 +121,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showMovieTab = value;
       _fixDefaultTabIndex();
     });
+    if (mounted) context.read<AppProvider>().refreshTabSettings();
   }
 
   Future<void> _toggleBookTab(bool value) async {
@@ -131,6 +134,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showBookTab = value;
       _fixDefaultTabIndex();
     });
+    if (mounted) context.read<AppProvider>().refreshTabSettings();
   }
 
   Future<void> _toggleNoteTab(bool value) async {
@@ -143,6 +147,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showNoteTab = value;
       _fixDefaultTabIndex();
     });
+    if (mounted) context.read<AppProvider>().refreshTabSettings();
   }
 
   Future<void> _toggleGameTab(bool value) async {
@@ -155,6 +160,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showGameTab = value;
       _fixDefaultTabIndex();
     });
+    if (mounted) context.read<AppProvider>().refreshTabSettings();
   }
 
 
