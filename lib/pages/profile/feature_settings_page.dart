@@ -36,7 +36,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showPerson = true;
   bool _showGallery = true;
   bool _showTags = true;
-  bool _showMdReader = true;
   bool _showQuickActions = true;
 
   // 笔记编辑器
@@ -66,7 +65,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showPerson = _userPrefs.showSidebarPerson;
       _showGallery = _userPrefs.showSidebarGallery;
       _showTags = _userPrefs.showSidebarTags;
-      _showMdReader = _userPrefs.showSidebarMdReader;
       _showQuickActions = _userPrefs.showSidebarQuickActions;
       _editorMode = _userPrefs.editorMode;
     });
@@ -339,21 +337,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
             await _userPrefs.setShowSidebarTags(v);
             setState(() => _showTags = v);
           }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(Icons.description_outlined, 'MD阅读'.tr, 'Markdown 文件阅读器'.tr,
-              _showMdReader, (v) async {
-            await _userPrefs.setShowSidebarMdReader(v);
-            setState(() => _showMdReader = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Text('关闭后对应功能将从界面中隐藏。'.tr,

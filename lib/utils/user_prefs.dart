@@ -156,9 +156,6 @@ class UserPrefs {
   bool get showSidebarTags => prefs.getBool('showSidebarTags') ?? true;
   Future<bool> setShowSidebarTags(bool value) => prefs.setBool('showSidebarTags', value);
 
-  bool get showSidebarMdReader => prefs.getBool('showSidebarMdReader') ?? false;
-  Future<bool> setShowSidebarMdReader(bool value) => prefs.setBool('showSidebarMdReader', value);
-
   bool get showSidebarQuickActions => prefs.getBool('showSidebarQuickActions') ?? true;
   Future<bool> setShowSidebarQuickActions(bool value) => prefs.setBool('showSidebarQuickActions', value);
 
@@ -255,22 +252,6 @@ class UserPrefs {
   /// 片单页布局样式 (0: 列表, 1: 网格)
   int get playlistLayoutStyle => prefs.getInt('playlistLayoutStyle') ?? 0;
   Future<bool> setPlaylistLayoutStyle(int value) => prefs.setInt('playlistLayoutStyle', value);
-
-  // ========== 应用图标设置 ==========
-
-  // ========== Markdown 阅读器 ==========
-
-  /// Markdown 阅读器最近选择的目录
-  String? get lastMdFolder => prefs.getString('lastMdFolder');
-  Future<bool> setLastMdFolder(String value) => prefs.setString('lastMdFolder', value);
-
-  /// 是否显示空目录（无 Markdown 文件的目录）
-  bool get showEmptyDirs => prefs.getBool('showEmptyDirs') ?? true;
-  Future<bool> setShowEmptyDirs(bool value) => prefs.setBool('showEmptyDirs', value);
-
-  /// 是否显示纯图片目录（只有图片、无 Markdown 文件的目录）
-  bool get showImageOnlyDirs => prefs.getBool('showImageOnlyDirs') ?? true;
-  Future<bool> setShowImageOnlyDirs(bool value) => prefs.setBool('showImageOnlyDirs', value);
 
   // ========== 应用图标设置 ==========
 

@@ -187,8 +187,6 @@ const Map<String, String> enProfile = {
       'Manage people in movies, books and games',
   '浏览所有保存过的图片': 'Browse all saved images',
   '管理所有标签': 'Manage all tags',
-  'MD阅读': 'MD Reader',
-  'Markdown 文件阅读器': 'Markdown file reader',
   '关闭后对应功能将从界面中隐藏。':
       'When turned off, the feature will be hidden in the interface.',
   '默认启动标签': 'Default Startup Tab',
