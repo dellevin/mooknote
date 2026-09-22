@@ -344,8 +344,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: isDark ? Colors.black : Colors.white,
-      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
     // Windows: 同步窗口边框明暗
     if (Platform.isWindows) {
