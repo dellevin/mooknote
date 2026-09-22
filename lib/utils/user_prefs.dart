@@ -167,12 +167,6 @@ class UserPrefs {
   int get noteSortMode => prefs.getInt('noteSortMode') ?? 0;
   Future<bool> setNoteSortMode(int value) => prefs.setInt('noteSortMode', value);
 
-  // ========== 笔记编辑器 ==========
-
-  /// 笔记编辑器模式: 'vditor'=富文本(Vditor WebView), 'native'=纯文本(Flutter TextField)
-  String get editorMode => prefs.getString('editorMode') ?? 'vditor';
-  Future<bool> setEditorMode(String value) => prefs.setString('editorMode', value);
-
   /// 书影日历日期模式 (0: 创建日期, 1: 观看/开始阅读日期)
   int get calendarDateMode => prefs.getInt('calendarDateMode') ?? 0;
   Future<bool> setCalendarDateMode(int value) => prefs.setInt('calendarDateMode', value);

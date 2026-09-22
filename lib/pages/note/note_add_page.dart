@@ -11,7 +11,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
-import '../../widgets/vditor_editor.dart';
+import '../../widgets/note_editor.dart';
 import '../../l10n/app_strings.dart';
 
 class NoteAddPage extends StatefulWidget {
@@ -30,7 +30,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
   List<String> _images = [];
   String _editMode = 'edit'; // 'edit' | 'preview'
   late String _tempId;
-  final _vditorKey = GlobalKey<VditorEditorState>();
+  final _editorKey = GlobalKey<NoteEditorState>();
 
   @override
   void initState() {
@@ -153,12 +153,9 @@ class _NoteAddPageState extends State<NoteAddPage> {
       ),
       // 内容编辑
       Expanded(
-        child: VditorEditor(
-          key: _vditorKey,
+        child: NoteEditor(
+          key: _editorKey,
           initialContent: _contentCtrl.text,
-          noteId: _tempId,
-          isDark: Theme.of(context).brightness == Brightness.dark,
-          surfaceColor: colors.surface,
           onContentChanged: (value) {
             _contentCtrl.text = value;
             setState(() {});
@@ -395,8 +392,8 @@ class _NoteAddPageState extends State<NoteAddPage> {
   Future<void> _save() async {
     final title = _titleCtrl.text.trim();
     String content;
-    if (_vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
-      content = (await _vditorKey.currentState!.getValue()).trim();
+    if (_editorKey.currentState != null && _editorKey.currentState!.isReady) {
+      content = (await _editorKey.currentState!.getValue()).trim();
     } else {
       content = _contentCtrl.text.trim();
     }

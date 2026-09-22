@@ -60,9 +60,8 @@ const Map<String, String> enWidgets = {
   '{n}万': '{n} w',
   '{n}月前': '{n} mo ago',
 
-  // ── vditor_editor ──
+  // ── note_editor ──
   '使用 Markdown 格式书写...': 'Write in Markdown...',
-  '编辑器加载中...': 'Loading editor...',
 
   // ── image_saver ──
   '原文件不存在': 'Source file not found',

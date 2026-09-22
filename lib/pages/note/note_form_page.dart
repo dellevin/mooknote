@@ -12,7 +12,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/image_saver.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
-import '../../widgets/vditor_editor.dart';
+import '../../widgets/note_editor.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
 
@@ -39,7 +39,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Timer? _saveStatusTimer;
   String _saveStatus = ''; // '', 'saved'
   Note? _savedNote; // 新建模式首次自动保存后的笔记引用
-  final _vditorKey = GlobalKey<VditorEditorState>();
+  final _editorKey = GlobalKey<NoteEditorState>();
   final _scrollController = ScrollController();
   bool _editorTouched = false;
 
@@ -84,8 +84,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   Future<void> _autoSave() async {
     String content;
-    if (_vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
-      content = (await _vditorKey.currentState!.getValue()).trim();
+    if (_editorKey.currentState != null && _editorKey.currentState!.isReady) {
+      content = (await _editorKey.currentState!.getValue()).trim();
     } else {
       content = _contentController.text.trim();
     }
@@ -292,12 +292,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
             ),
             // 内容编辑
             Expanded(
-              child: VditorEditor(
-                key: _vditorKey,
+              child: NoteEditor(
+                key: _editorKey,
                 initialContent: _contentController.text,
-                noteId: _isEditing && widget.note != null ? widget.note!.id : (_tempNoteId ?? ''),
-                isDark: Theme.of(context).brightness == Brightness.dark,
-                surfaceColor: colors.surface,
                 onContentChanged: (value) {
                   _contentController.text = value;
                   _onTextChanged();
@@ -489,31 +486,27 @@ class _NoteFormPageState extends State<NoteFormPage> {
     );
   }
 
-  /// 在光标处插入 Markdown 语法（通过 VditorEditor）
+  /// 在光标处插入 Markdown 语法
   void _insertMarkdown(String left, String right) {
-    final vditor = _vditorKey.currentState;
-    if (vditor != null && vditor.isReady) {
-      vditor.insertValue(left + right);
+    final editor = _editorKey.currentState;
+    if (editor != null && editor.isReady) {
+      editor.insertValue(left + right);
     }
   }
 
-  /// 插入标题（通过 VditorEditor）
+  /// 插入标题
   void _insertHeading() {
-    final vditor = _vditorKey.currentState;
-    if (vditor != null && vditor.isReady) {
-      vditor.insertValue('# ');
+    final editor = _editorKey.currentState;
+    if (editor != null && editor.isReady) {
+      editor.insertValue('# ');
     }
   }
 
-  /// 编辑器 — 使用 VditorEditor 替代原来的 TextField
+  /// 编辑器
   Widget _buildEditor() {
-    final colors = Theme.of(context).colorScheme;
-    return VditorEditor(
-      key: _vditorKey,
+    return NoteEditor(
+      key: _editorKey,
       initialContent: _contentController.text,
-      noteId: _isEditing && widget.note != null ? widget.note!.id : (_tempNoteId ?? ''),
-      isDark: Theme.of(context).brightness == Brightness.dark,
-      surfaceColor: colors.surface,
       onContentChanged: (value) {
         _contentController.text = value;
         _onTextChanged();
@@ -694,8 +687,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Future<void> _saveNote() async {
     _autoSaveTimer?.cancel();
     String content;
-    if (_vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
-      content = (await _vditorKey.currentState!.getValue()).trim();
+    if (_editorKey.currentState != null && _editorKey.currentState!.isReady) {
+      content = (await _editorKey.currentState!.getValue()).trim();
     } else {
       content = _contentController.text.trim();
     }

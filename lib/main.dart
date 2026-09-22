@@ -9,7 +9,6 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:media_kit/media_kit.dart';
@@ -28,9 +27,6 @@ import './widgets/app_overlay.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
-/// Windows 桌面版 WebView2 环境
-WebViewEnvironment? windowsWebViewEnvironment;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
@@ -45,13 +41,6 @@ void main() async {
       await windowManager.setMinimumSize(const Size(900, 640));
       await windowManager.show();
     });
-    // 初始化 WebView2 环境（Vditor 编辑器等桌面 WebView 使用）
-    try {
-      windowsWebViewEnvironment = await WebViewEnvironment.create();
-      debugPrint('[Startup] WebViewEnvironment created successfully');
-    } catch (e) {
-      debugPrint('[Startup] WebViewEnvironment 初始化失败: $e');
-    }
   }
   await UserPrefs.init();
   final appProvider = AppProvider();

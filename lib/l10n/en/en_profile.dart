@@ -164,7 +164,6 @@ const Map<String, String> enProfile = {
   // ─── 功能设置页 ───────────────────────────────────────
   '至少保留一个标签页': 'At least one tab must remain',
   '启动设置': 'Startup',
-  '笔记编辑器': 'Note Editor',
   '模块开关': 'Module Toggles',
   '桌面端数据概览与分析': 'Desktop data overview and analysis',
   '记录和管理观影记录': 'Record and manage movies',
@@ -190,14 +189,6 @@ const Map<String, String> enProfile = {
   '关闭后对应功能将从界面中隐藏。':
       'When turned off, the feature will be hidden in the interface.',
   '默认启动标签': 'Default Startup Tab',
-  '纯文本（轻量快速）': 'Plain text (lightweight, fast)',
-  '富文本（所见即所得）': 'Rich text (WYSIWYG)',
-  '富文本': 'Rich Text',
-  '纯文本': 'Plain Text',
-  'Vditor 所见即所得，支持图文混排、加载稍慢':
-      'Vditor WYSIWYG, supports inline images; slightly slower to load',
-  '轻量快速，无加载等待，支持 Markdown 语法':
-      'Lightweight and fast with no loading wait; supports Markdown syntax',
 
   // ─── 更新日志页 ───────────────────────────────────────
   '新版本': 'New Version',

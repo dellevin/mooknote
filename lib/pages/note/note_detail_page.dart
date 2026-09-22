@@ -12,7 +12,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/image_saver.dart';
 import '../../utils/responsive.dart';
-import '../../widgets/vditor_editor.dart';
+import '../../widgets/note_editor.dart';
 import '../../widgets/tag_side_panel.dart';
 import 'note_share_page.dart';
 import '../../widgets/app_overlay.dart';
@@ -44,7 +44,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   Timer? _autoSaveTimer;
   String _saveStatus = '';
   final ImagePicker _picker = ImagePicker();
-  final _vditorKey = GlobalKey<VditorEditorState>();
+  final _editorKey = GlobalKey<NoteEditorState>();
 
   @override
   void initState() {
@@ -83,8 +83,8 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   Future<void> _autoSave() async {
     String content;
-    if (_vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
-      content = (await _vditorKey.currentState!.getValue()).trim();
+    if (_editorKey.currentState != null && _editorKey.currentState!.isReady) {
+      content = (await _editorKey.currentState!.getValue()).trim();
     } else {
       content = _contentCtrl.text.trim();
     }
@@ -111,8 +111,8 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     _autoSaveTimer?.cancel();
     final title = _titleCtrl.text.trim();
     String content;
-    if (_vditorKey.currentState != null && _vditorKey.currentState!.isReady) {
-      content = (await _vditorKey.currentState!.getValue()).trim();
+    if (_editorKey.currentState != null && _editorKey.currentState!.isReady) {
+      content = (await _editorKey.currentState!.getValue()).trim();
     } else {
       content = _contentCtrl.text.trim();
     }
@@ -477,12 +477,9 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       ),
       // 内容编辑
       Expanded(
-        child: VditorEditor(
-          key: _vditorKey,
+        child: NoteEditor(
+          key: _editorKey,
           initialContent: _contentCtrl.text,
-          noteId: widget.note.id,
-          isDark: Theme.of(context).brightness == Brightness.dark,
-          surfaceColor: colors.surface,
           onContentChanged: (value) {
             _contentCtrl.text = value;
             _onContentChanged();

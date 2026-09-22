@@ -38,9 +38,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showTags = true;
   bool _showQuickActions = true;
 
-  // 笔记编辑器
-  String _editorMode = 'vditor';
-
   @override
   void initState() {
     super.initState();
@@ -66,7 +63,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showGallery = _userPrefs.showSidebarGallery;
       _showTags = _userPrefs.showSidebarTags;
       _showQuickActions = _userPrefs.showSidebarQuickActions;
-      _editorMode = _userPrefs.editorMode;
     });
   }
 
@@ -172,15 +168,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
           // ── 启动设置 ──
           _buildSectionHeader('启动设置'.tr),
           _buildDefaultTabSelector(),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-
-          // ── 笔记编辑器 ──
-          _buildSectionHeader('笔记编辑器'.tr),
-          _buildEditorModeSelector(),
           Divider(
               height: 0.5,
               indent: 24,
@@ -429,139 +416,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
             const SizedBox(width: 4),
             Icon(Icons.chevron_right,
                 size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditorModeSelector() {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: _showEditorModePicker,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.edit_note_outlined,
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('笔记编辑器'.tr,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: colors.onSurface)),
-                  Text(_editorMode == 'native' ? '纯文本（轻量快速）'.tr : '富文本（所见即所得）'.tr,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: colors.onSurface.withValues(alpha: 0.4))),
-                ],
-              ),
-            ),
-            Text(_editorMode == 'native' ? '纯文本'.tr : '富文本'.tr,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: colors.onSurface.withValues(alpha: 0.5))),
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right,
-                size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEditorModePicker() {
-    final colors = Theme.of(context).colorScheme;
-    final modes = [
-      ('vditor', '富文本'.tr, 'Vditor 所见即所得，支持图文混排、加载稍慢'.tr),
-      ('native', '纯文本'.tr, '轻量快速，无加载等待，支持 Markdown 语法'.tr),
-    ];
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16))),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text('笔记编辑器'.tr,
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: colors.onSurface)))),
-            const SizedBox(height: 16),
-            for (final (mode, name, desc) in modes)
-              InkWell(
-                onTap: () async {
-                  await _userPrefs.setEditorMode(mode);
-                  setState(() => _editorMode = mode);
-                  Navigator.pop(ctx);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  child: Row(children: [
-                    Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                            color: colors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Icon(mode == 'native'
-                            ? Icons.edit_note_outlined
-                            : Icons.notes_outlined,
-                            size: 16,
-                            color: colors.onSurface.withValues(alpha: 0.6))),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(name,
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: colors.onSurface)),
-                          Text(desc,
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: colors.onSurface.withValues(alpha: 0.4))),
-                        ],
-                      ),
-                    ),
-                    if (_editorMode == mode)
-                      Icon(Icons.check_circle, size: 20, color: colors.primary),
-                  ]),
-                ),
-              ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
