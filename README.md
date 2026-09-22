@@ -4,7 +4,7 @@
 
 软件官网：[https://mooknote.iletter.top](https://mooknote.iletter.top/)
 
-开发记录：[http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC](http://docmost.iletter.top/share/ropwljpyvn/p/mook-note-lHmPTswdDC)
+开发记录：[http://docmost.iletter.top/share/ropwljvn/p/mook-note-lHmPTswdDC](http://docmost.iletter.top/share/ropwljvn/p/mook-note-lHmPTswdDC)
 
 ## 应用预览
 
@@ -24,11 +24,11 @@
 - 影评撰写与管理，支持短评与长评，星级评分
 - 影视海报墙浏览（瀑布流布局），支持多张海报管理与全屏浏览
 - 影视分享（生成海报名场面风格分享卡片）
-- 豆瓣链接爬取，自动填充影视信息
+- 豆瓣网页抓取，自动填充影视信息
 - 影视状态筛选（想看 / 在看 / 已看）
 - 多种排序方式（更新时间 / 创建时间 / 评分）
 - 多种列表布局（海报网格 / 列表 / 大图卡片）
-- 在线搜索影视资源（服务端代理，支持分页）
+- 在线搜索影视资源（服务端代理，支持分页，详情页可播放预告片）
 
 ### 书籍管理
 
@@ -39,7 +39,6 @@
 - 书籍状态筛选（想读 / 在读 / 已读）
 - 多种排序方式（更新时间 / 创建时间 / 评分）
 - 多种列表布局（封面网格 / 列表）
-- Epub 阅读功能（详见下方）
 - 在线搜索书籍资源
 
 ### 游戏管理
@@ -60,51 +59,43 @@
 - 多种列表布局：列表 / 瀑布流 / 时间线
 - 多种排序方式（更新时间 / 创建时间 / 标题）
 - 笔记分享卡片
-- Markdown 阅读器支持暗色模式与字体大小调节
 
-### Epub 阅读器
+### 收藏单
 
-- 基于 WebView 的 Epub 渲染引擎
-- 目录导航抽屉（支持嵌套章节结构）
-- 阅读进度追踪与记录
-- 脚注弹窗、图片全屏查看
-- 音量键翻页
-- 多种阅读样式：字体大小、字号、行高、边距自定义
-- 多套阅读主题（浅色 / 深色 / 护眼 / 纸张等）
-- 亮度调节
-- 书架管理（网格展示，文件选择器导入 Epub）
-- 书籍元数据编辑
-
-### Markdown 阅读器
-
-- 本地文件系统浏览与目录过滤
-- Markdown 文件渲染查看
-- 支持筛选目录（空目录 / 纯图片目录）
+- 跨媒体收藏单（影视 / 书籍 / 游戏），条目自由编组
+- 收藏单创建、排序与封面自动聚合
+- 收藏单内条目管理
 
 ### 通用功能
 
 - 全局搜索（影视 / 书籍 / 笔记 / 游戏）+ 在线搜索
+- 快速记录（悬浮入口，一键添加各类媒体）
 - 标签管理与分类（影视类型 / 书籍类型 / 游戏类型 / 笔记标签统一管理，支持重命名 / 删除 / 隐藏）
 - 数据统计与可视化图表（总览、状态分布、类型偏好、导演 / 作者 Top 5、月度活动日历、星期分布、累计增长曲线）
 - 媒体日历（按日期查看影视 / 书籍添加记录，展示封面缩略图）
+- 图片画廊（全应用图片 / 海报 / 截图统一浏览）
 - 人物列表（汇总所有导演、编剧、演员、作者，关联其作品）
 - 角色档案（影视 / 书籍 / 游戏角色统一管理，含人物关系与作品关联）
+- 想看清单（汇总所有标记为「想看 / 想读 / 想玩」的条目）
 - 随机漫步（随机回顾影视 / 书籍 / 笔记内容）
 - 与你相遇（使用天数、总记录数、字数、图片数统计）
 - 回收站（软删除，支持恢复和彻底删除影视、书籍、笔记、游戏、影评、书评、书摘、游戏评测）
 - WebDAV 云同步（支持上传 / 下载 / 双向同步 / 定时自动同步）
-- 本地备份与恢复（zip 归档，支持手动导出 / 导入）
+- 本地备份与恢复（zip 归档，支持手动导出 / 导入，支持 Excel 导出）
 - 定时自动备份（本地备份，可配置开关，保留最近 5 个）
 - 暗色 / 亮色 / 跟随系统主题切换
 - 6 套配色方案 + Android 12+ Monet 动态取色
 - Material 3 极简主义设计风格
-- 自定义应用图标（3 款可选）
+- 中英双语切换（英文资源缺失时自动回退中文）
+- 自定义应用图标
+- 字体与排版自定义
 - 版本更新检查与通知
+- 四个主标签（影视 / 阅读 / 游戏 / 笔记）均可在功能设置中独立显隐
 
 ## 多平台支持
 
 - **Android** — 主要支持平台
-- **Windows** — 桌面端支持，笔记编辑器使用 Vditor 富文本编辑器
+- **Windows** — 桌面端完整支持：隐藏原生标题栏、FFI 本地数据库、宽屏主从布局适配
 
 ## 技术栈
 
@@ -112,21 +103,39 @@
 | :--- | :--- |
 | 框架 | Flutter 3.5+ / Dart 3.5+ |
 | 状态管理 | Provider（单一 `AppProvider` ChangeNotifier） |
-| 本地存储 | sqflite（`mooknote.db`，已迭代至 v13 迁移链） |
+| 本地存储 | sqflite（`mooknote.db`，已迭代至 v42 迁移链；Windows 端走 sqflite_common_ffi） |
 | 远程同步 | 自建 Flask 服务端 + WebDAV |
 | 图表 | fl_chart |
-| Markdown | flutter_markdown_plus（移动端）/ Vditor（桌面端） |
-| Epub 渲染 | flutter_inappwebview + WebView |
-| 媒体播放 | media_kit |
+| Markdown | flutter_markdown_plus |
+| WebView | flutter_inappwebview（豆瓣网页抓取） |
+| 视频播放 | media_kit（预告片播放） |
+| 数据导出 | excel / archive（Excel 与 zip 备份） |
 | 桌面适配 | window_manager |
 | 动态取色 | dynamic_color（Android 12+ Monet） |
+| 国际化 | 轻量自建 i18n（中文为 key，中英双语） |
+
+## 项目结构
+
+```
+lib/
+├── main.dart                # 入口：初始化、主题、桌面端配置
+├── models/                  # 数据模型（data_models.dart，~21 个类）
+├── providers/               # AppProvider（全局状态）
+├── data/                    # DAO 层（按实体分目录）+ SQLite
+├── pages/                   # 页面（影视/书籍/游戏/笔记/人物/角色/
+│                            #   收藏单/探索统计/在线搜索/同步设置等）
+├── services/                # 服务（同步、备份、WebDAV、更新检查等）
+├── widgets/                 # 共享组件（列表项、编辑器、导航、抽屉等）
+├── utils/                   # 工具（路由、主题、偏好、Excel 导出等）
+└── l10n/                    # 英文文案资源
+server/                      # Python Flask 服务端（认证 / 同步 / 管理 API）
+```
 
 ## 数据存储
 
 - **数据库位置**：`<应用目录>/mooknote.db`
 - **图片存储位置**：`<应用目录>/images/<类别>/<条目ID>/<文件名>`
   - 类别：`movies` / `books` / `notes` / `games`
-- **Epub 书籍位置**：`<应用目录>/epub_books/<条目ID>/`
 - **备份文件位置**：`<下载目录>/mooknote/`（可配置）
 
 ## 环境要求
@@ -196,4 +205,3 @@ flutter build appbundle --release
 
 - **[lumina](https://github.com/MilkFeng/lumina)**
 - **[NLCISBNPlugin](https://github.com/DoiiarX/NLCISBNPlugin)**
-- **[viditor](https://github.com/Vanessa219/vditor)**
