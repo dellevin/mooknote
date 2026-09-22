@@ -194,6 +194,14 @@ class ReaderSettings {
 
   static Future<ReaderSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
+    final linkHandlingIndex =
+        (prefs.getInt('${_kPrefix}linkHandling') ?? ReaderLinkHandling.ask.index)
+            .clamp(0, ReaderLinkHandling.values.length - 1)
+            .toInt();
+    final pageAnimationIndex =
+        (prefs.getInt('${_kPrefix}pageAnimation') ?? ReaderPageAnimation.slide.index)
+            .clamp(0, ReaderPageAnimation.values.length - 1)
+            .toInt();
     return ReaderSettings(
       zoom: prefs.getDouble('${_kPrefix}zoom') ?? 1.0,
       followAppTheme: prefs.getBool('${_kPrefix}followAppTheme') ?? true,
@@ -201,17 +209,17 @@ class ReaderSettings {
       marginBottom: prefs.getDouble('${_kPrefix}marginBottom') ?? 16.0,
       marginLeft: prefs.getDouble('${_kPrefix}marginLeft') ?? 16.0,
       marginRight: prefs.getDouble('${_kPrefix}marginRight') ?? 16.0,
-      linkHandling: ReaderLinkHandling.values[
-          prefs.getInt('${_kPrefix}linkHandling') ??
-              ReaderLinkHandling.ask.index],
-      pageAnimation: ReaderPageAnimation.values[
-          prefs.getInt('${_kPrefix}pageAnimation') ??
-              ReaderPageAnimation.slide.index],
+      linkHandling: ReaderLinkHandling.values[linkHandlingIndex],
+      pageAnimation: ReaderPageAnimation.values[pageAnimationIndex],
       fontFileName: prefs.getString('${_kPrefix}fontFileName'),
       overrideFontFamily:
           prefs.getBool('${_kPrefix}overrideFontFamily') ?? false,
       volumeKeyTurnsPage:
           prefs.getBool('${_kPrefix}volumeKeyTurnsPage') ?? false,
+      themeIndex: prefs.getInt('${_kPrefix}themeIndex') ?? 0,
+      customBgColor: prefs.getInt('${_kPrefix}customBgColor') ?? 0xFFFFFFFF,
+      customTextColor:
+          prefs.getInt('${_kPrefix}customTextColor') ?? 0xFF1A1A1A,
     );
   }
 }

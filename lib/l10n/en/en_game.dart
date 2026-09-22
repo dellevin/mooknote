@@ -189,4 +189,7 @@ const Map<String, String> enGame = {
   '来自 MookNote': 'From MookNote',
   '分享游戏：{title}': 'Sharing game: {title}',
   '生成海报失败：{e}': 'Failed to generate poster: {e}',
+
+  // 补齐
+  '请输入游戏名称': 'Please enter a game name',
 };

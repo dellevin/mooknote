@@ -641,7 +641,7 @@ class _DesktopHomePageState extends State<DesktopHomePage> {
 
   Widget _buildYearlyTrend(List<Movie> fm, List<Book> fb, List<Note> fn, List<Game> fg, ColorScheme colors) {
     final now = DateTime.now();
-    final months = List.generate(12, (i) { final d = DateTime(now.year, now.month - (11 - i), 1); return '${d.month}月'; });
+    final months = List.generate(12, (i) { final d = DateTime(now.year, now.month - (11 - i), 1); return '{m}月'.trf({'m': d.month}); });
     List<int> countByMonth(List items) => List.generate(12, (i) {
       final d = DateTime(now.year, now.month - (11 - i), 1);
       return items.where((item) => (item as dynamic).createdAt.year == d.year && (item as dynamic).createdAt.month == d.month).length;

@@ -145,4 +145,15 @@ const Map<String, String> enWidgets = {
   '五': 'Fri',
   '六': 'Sat',
   '日': 'Sun',
+
+  // ── 补齐：状态/通用 ──
+  '放弃': 'Abandoned',
+  '游戏评论': 'Game Review',
+  '暂无{type}': 'No {type} yet',
+  '没有找到"{q}"相关标签': 'No tags found for "{q}"',
+  '移动到「{name}」': 'Move to "{name}"',
+  '收藏纪念\nCOLLECTIBLE': 'COLLECTIBLE',
+  '下载失败: HTTP {code}': 'Download failed: HTTP {code}',
+  '无法获取海报边界': 'Unable to capture image bounds',
+  '无法生成图片数据': 'Unable to generate image data',
 };

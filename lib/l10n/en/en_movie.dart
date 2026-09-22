@@ -214,4 +214,7 @@ const Map<String, String> enMovie = {
   // 分享生成
   '座位': 'Seat',
   '生成海报失败：{e}': 'Failed to generate poster: {e}',
+
+  // 补齐
+  '导演：{x}': 'Director: {x}',
 };

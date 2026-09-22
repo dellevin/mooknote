@@ -398,7 +398,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('下载失败: HTTP ${response.statusCode}');
+        throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
       }
 
       // 检查内容类型
@@ -439,7 +439,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
         ToastUtil.show(context, '添加成功'.tr);
       }
     } catch (e) {
-      throw Exception('下载图片失败: $e');
+      throw Exception('下载图片失败: {e}'.trf({'e': e}));
     }
   }
 

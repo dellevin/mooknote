@@ -554,7 +554,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
           child: Row(children: [
             const Text('MookNote', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5)),
             const Spacer(),
-            Text('收藏纪念\nCOLLECTIBLE', textAlign: TextAlign.right,
+            Text('收藏纪念\nCOLLECTIBLE'.tr, textAlign: TextAlign.right,
               style: TextStyle(fontSize: 8, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 0.5, height: 1.5)),
           ]),
         ),
@@ -688,10 +688,10 @@ class _MovieSharePageState extends State<MovieSharePage> {
     setState(() => _isGenerating = true);
     try {
       final boundary = _posterKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) throw Exception('无法获取海报边界');
+      if (boundary == null) throw Exception('无法获取海报边界'.tr);
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) throw Exception('无法生成图片数据');
+      if (byteData == null) throw Exception('无法生成图片数据'.tr);
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/movie_poster_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());

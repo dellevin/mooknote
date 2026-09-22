@@ -228,7 +228,9 @@ class _ReaderScreenState extends State<ReaderScreen>
     routeAnimation = null;
     themeUpdateDebouncer?.cancel();
     progressDebouncer?.cancel();
-    removeFootnoteOverlay(animate: false);
+    // dispose 期间 mounted 仍为 true 但不能再 setState，直接移除脚注 overlay
+    footnoteOverlayEntry?.remove();
+    footnoteOverlayEntry = null;
     restoreSystemUI();
     bookSession.flushProgress(
       currentChapterIndex: currentSpineItemIndex,
@@ -372,7 +374,7 @@ class _ReaderScreenState extends State<ReaderScreen>
       if (title.isEmpty || title.contains('.htm') || title.contains('.xhtml')) {
         title = await _getPageTextPreview();
         if (title.isEmpty) {
-          title = '第${currentSpineItemIndex + 1}章';
+          title = '第{n}章'.trf({'n': currentSpineItemIndex + 1});
         }
       }
 

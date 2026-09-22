@@ -764,7 +764,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       pointCount = 12;
       xLabels = List.generate(12, (i) {
         final d = DateTime(now.year, now.month - (11 - i), 1);
-        return '${d.month}月';
+        return '{m}月'.trf({'m': d.month});
       });
       movieData = List.generate(12, (i) {
         final d = DateTime(now.year, now.month - (11 - i), 1);
@@ -994,7 +994,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       pointCount = 12;
       xLabels = List.generate(12, (i) {
         final d = DateTime(now.year, now.month - (11 - i), 1);
-        return '${d.month}月';
+        return '{m}月'.trf({'m': d.month});
       });
       int cumulative = 0;
       cumulativeData = List.generate(12, (i) {

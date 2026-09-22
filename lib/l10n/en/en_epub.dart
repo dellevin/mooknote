@@ -146,4 +146,11 @@ const Map<String, String> enEpub = {
   '返回上级目录': 'Go to parent folder',
   '换一个目录': 'Choose another folder',
   '路径: {path}': 'Path: {path}',
+
+  // ── 补齐：搜索/章节 ──
+  '搜索书籍内容...': 'Search book content...',
+  '共找到 {n} 条结果': '{n} results found',
+  '搜索中...': 'Searching...',
+  '输入关键词搜索书籍内容': 'Enter keywords to search book content',
+  '未找到匹配的书籍': 'No matching book found',
 };

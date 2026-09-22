@@ -233,4 +233,7 @@ const Map<String, String> enExploreNote = {
   '均分': 'Avg',
   '年份': 'Year',
   '{y}年{m}月{d}日 {w}': '{y}/{m}/{d} {w}',
+
+  // 补齐：图表月份轴
+  '{m}月': '{m}',
 };

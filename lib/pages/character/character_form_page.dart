@@ -326,7 +326,7 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
         },
       );
 
-      if (response.statusCode != 200) throw Exception('下载失败: HTTP ${response.statusCode}');
+      if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
 
       final contentType = response.headers['content-type'];
       if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片'.tr);

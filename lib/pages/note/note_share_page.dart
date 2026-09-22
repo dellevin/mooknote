@@ -236,13 +236,13 @@ class _NoteSharePageState extends State<NoteSharePage> {
       final boundary = _posterKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
       if (boundary == null) {
-        throw Exception('无法获取海报边界');
+        throw Exception('无法获取海报边界'.tr);
       }
 
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
-        throw Exception('无法生成图片数据');
+        throw Exception('无法生成图片数据'.tr);
       }
 
       final bytes = byteData.buffer.asUint8List();

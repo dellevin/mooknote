@@ -38,20 +38,24 @@ mixin _FootnoteMixin on State<ReaderScreen> {
     overlayState.insert(footnoteOverlayEntry!);
   }
 
-  Future<void> removeFootnoteOverlay({bool animate = true}) async {
+  Future<void> removeFootnoteOverlay() async {
     if (footnoteOverlayEntry == null || isClosingFootnote) return;
 
-    if (animate) {
-      isClosingFootnote = true;
-      if (footnoteKey.currentState != null) {
-        await footnoteKey.currentState!.playReverseAnimation();
-      }
+    isClosingFootnote = true;
+    if (footnoteKey.currentState != null) {
+      await footnoteKey.currentState!.playReverseAnimation();
     }
 
     footnoteOverlayEntry?.remove();
-    setState(() {
+    if (mounted) {
+      setState(() {
+        footnoteOverlayEntry = null;
+        isClosingFootnote = false;
+      });
+    } else {
+      // 动画期间页面已销毁：直接清字段，不能再 setState
       footnoteOverlayEntry = null;
       isClosingFootnote = false;
-    });
+    }
   }
 }

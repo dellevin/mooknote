@@ -214,7 +214,7 @@ mixin _TextSelectionMixin on State<ReaderScreen> {
     final chapterTitle = bookSession.getChapterTitleForSpine(currentSpineItemIndex);
     final displayChapter = chapterTitle.isNotEmpty
         ? chapterTitle
-        : '第 ${(spineIndex ?? 0) + 1} 章';
+        : '第 {n} 章'.trf({'n': (spineIndex ?? 0) + 1});
 
     // 1. 保存到 book_excerpts 表（chapter 用章节标题）
     await DatabaseHelper.instance.database.then((db) async {

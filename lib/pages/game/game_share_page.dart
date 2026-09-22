@@ -505,10 +505,10 @@ class _GameSharePageState extends State<GameSharePage> with SingleTickerProvider
     setState(() => _isGenerating = true);
     try {
       final boundary = _posterKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) throw Exception('无法获取海报边界');
+      if (boundary == null) throw Exception('无法获取海报边界'.tr);
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) throw Exception('无法生成图片数据');
+      if (byteData == null) throw Exception('无法生成图片数据'.tr);
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/game_poster_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());

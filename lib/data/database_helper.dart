@@ -170,7 +170,11 @@ class DatabaseHelper {
     }
     // v16: 已合并到 v15（cover_offset 列的添加逻辑相同，v15 的 PRAGMA 检查已确保幂等）
     if (oldVersion < 17) {
-      await db.execute('ALTER TABLE tags ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0');
+      // v13 建表已包含 is_hidden，需先检查避免重复加列导致升级失败
+      final columns = await db.rawQuery('PRAGMA table_info(tags)');
+      if (!columns.any((col) => col['name'] == 'is_hidden')) {
+        await db.execute('ALTER TABLE tags ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0');
+      }
     }
     if (oldVersion < 18) {
       // note_plus table creation removed (feature dropped in v28)

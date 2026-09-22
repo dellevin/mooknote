@@ -309,7 +309,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       );
-      if (response.statusCode != 200) throw Exception('下载失败: HTTP ${response.statusCode}');
+      if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
       final contentType = response.headers['content-type'];
       if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片');
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
@@ -329,7 +329,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
       _loadScreenshots();
       if (mounted) ToastUtil.show(context, '添加成功'.tr);
     } catch (e) {
-      throw Exception('下载图片失败: $e');
+      throw Exception('下载图片失败: {e}'.trf({'e': e}));
     }
   }
 
