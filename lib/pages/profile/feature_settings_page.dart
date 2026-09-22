@@ -37,7 +37,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showGallery = true;
   bool _showTags = true;
   bool _showMdReader = true;
-  bool _showEpub = true;
   bool _showQuickActions = true;
 
   // 笔记编辑器
@@ -68,7 +67,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showGallery = _userPrefs.showSidebarGallery;
       _showTags = _userPrefs.showSidebarTags;
       _showMdReader = _userPrefs.showSidebarMdReader;
-      _showEpub = _userPrefs.showSidebarEpub;
       _showQuickActions = _userPrefs.showSidebarQuickActions;
       _editorMode = _userPrefs.editorMode;
     });
@@ -254,7 +252,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.bolt_outlined, '快捷操作'.tr, '快速新建笔记/影视/导入EPUB'.tr, _showQuickActions,
+          _buildSwitchItem(Icons.bolt_outlined, '快捷操作'.tr, '快速新建笔记/影视'.tr, _showQuickActions,
               (v) async {
             await _userPrefs.setShowSidebarQuickActions(v);
             setState(() => _showQuickActions = v);
@@ -356,12 +354,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(
-              Icons.auto_stories_outlined, '阅读'.tr, 'EPUB 电子书阅读器'.tr, _showEpub,
-              (v) async {
-            await _userPrefs.setShowSidebarEpub(v);
-            setState(() => _showEpub = v);
-          }),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Text('关闭后对应功能将从界面中隐藏。'.tr,

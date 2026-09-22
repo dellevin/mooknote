@@ -2,7 +2,7 @@ import 'en/en_profile.dart';
 import 'en/en_movie.dart';
 import 'en/en_book.dart';
 import 'en/en_game.dart';
-import 'en/en_epub.dart';
+import 'en/en_markdown.dart';
 import 'en/en_home.dart';
 import 'en/en_explore_note.dart';
 import 'en/en_widgets.dart';
@@ -25,7 +25,7 @@ class AppStrings {
     ...enMovie,
     ...enBook,
     ...enGame,
-    ...enEpub,
+    ...enMarkdown,
     ...enHome,
     ...enExploreNote,
     ...enWidgets,

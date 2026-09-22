@@ -21,6 +21,8 @@ const Map<String, String> enWidgets = {
 
   // ── detail_placeholder ──
   '选择一条记录查看详情': 'Select an entry to view details',
+  '详情': 'Details',
+  '未设置': 'Not set',
 
   // ── genre_selector_page ──
   '搜索或{hint}': 'Search or {hint}',
@@ -94,7 +96,6 @@ const Map<String, String> enWidgets = {
   '需要存储权限才能导出备份文件，请在设置中授予"所有文件访问权限"':
       'Storage permission required to export. Please grant "All files access" in Settings',
   '需要存储权限才能自动备份': 'Storage permission required for auto-backup',
-  '批注': 'Annotations',
   '片单': 'Playlists',
 
   // ── webdav_service ──
@@ -116,8 +117,8 @@ const Map<String, String> enWidgets = {
   '恢复备份失败': 'Failed to restore backup',
 
   // ── cache_cleaner ──
-  '已清理 {images} 个孤立图片，{epubs} 个孤立电子书，{temp} 个临时文件，{emptyDirs} 个空文件夹':
-      'Cleaned {images} orphaned images, {epubs} orphaned books, {temp} temp files, {emptyDirs} empty folders',
+  '已清理 {images} 个孤立图片，{temp} 个临时文件，{emptyDirs} 个空文件夹':
+      'Cleaned {images} orphaned images, {temp} temp files, {emptyDirs} empty folders',
 
   // ── app_router ──
   '未找到页面：{name}': 'Page not found: {name}',

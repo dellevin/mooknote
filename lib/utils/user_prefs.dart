@@ -159,9 +159,6 @@ class UserPrefs {
   bool get showSidebarMdReader => prefs.getBool('showSidebarMdReader') ?? false;
   Future<bool> setShowSidebarMdReader(bool value) => prefs.setBool('showSidebarMdReader', value);
 
-  bool get showSidebarEpub => prefs.getBool('showSidebarEpub') ?? true;
-  Future<bool> setShowSidebarEpub(bool value) => prefs.setBool('showSidebarEpub', value);
-
   bool get showSidebarQuickActions => prefs.getBool('showSidebarQuickActions') ?? true;
   Future<bool> setShowSidebarQuickActions(bool value) => prefs.setBool('showSidebarQuickActions', value);
 
@@ -374,20 +371,6 @@ class UserPrefs {
   /// 更新提醒 snooze 到指定时间戳（ms），24 小时内不弹
   int get dismissedUpdateUntil => prefs.getInt('dismissedUpdateUntil') ?? 0;
   Future<bool> setDismissedUpdateUntil(int value) => prefs.setInt('dismissedUpdateUntil', value);
-
-  // ========== EPUB 阅读器 ==========
-
-  /// EPUB 阅读器字体大小
-  double get epubFontSize => prefs.getDouble('epubFontSize') ?? 18.0;
-  Future<bool> setEpubFontSize(double value) => prefs.setDouble('epubFontSize', value);
-
-  /// EPUB 书架排序模式: 0=更新时间, 1=创建时间, 2=阅读进度, 3=书名
-  int get epubSortMode => prefs.getInt('epubSortMode') ?? 0;
-  Future<bool> setEpubSortMode(int value) => prefs.setInt('epubSortMode', value);
-
-  /// EPUB 句读列表视图模式: 0=瀑布流, 1=列表
-  int get highlightsViewMode => prefs.getInt('highlightsViewMode') ?? 0;
-  Future<bool> setHighlightsViewMode(int value) => prefs.setInt('highlightsViewMode', value);
 
   // ========== 字体选择器 ==========
 

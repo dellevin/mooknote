@@ -1085,15 +1085,14 @@ class _SettingsPageState extends State<SettingsPage> {
     final dbImagePaths = await _getAllDbImagePaths();
 
     final imageInfo = await _scanImageDirectory(dbImagePaths);
-    final epubInfo = await _scanOrphanedEpubBooks();
     final tempInfo = await _scanTempDirectory();
     final emptyDirInfo = await _scanEmptyDirectories();
 
     if (!pageContext.mounted) return;
     Navigator.pop(pageContext); // 关闭 loading
 
-    final totalSize = imageInfo.$2 + epubInfo.$2 + tempInfo.$2 + emptyDirInfo.$2;
-    final totalCount = imageInfo.$1 + epubInfo.$1 + tempInfo.$1 + emptyDirInfo.$1;
+    final totalSize = imageInfo.$2 + tempInfo.$2 + emptyDirInfo.$2;
+    final totalCount = imageInfo.$1 + tempInfo.$1 + emptyDirInfo.$1;
     if (totalCount == 0) {
       _showCacheResult(pageContext, true, '没有需要清理的缓存'.tr, false);
       return;
@@ -1115,7 +1114,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
             const SizedBox(height: 14),
             if (imageInfo.$1 > 0) _buildCacheItem('孤立图片'.tr, imageInfo.$1, imageInfo.$2, Icons.image_outlined, colors),
-            if (epubInfo.$1 > 0) _buildCacheItem('孤立电子书'.tr, epubInfo.$1, epubInfo.$2, Icons.menu_book_outlined, colors),
             if (tempInfo.$1 > 0) _buildCacheItem('临时文件'.tr, tempInfo.$1, tempInfo.$2, Icons.folder_outlined, colors),
             if (emptyDirInfo.$1 > 0) _buildCacheItem('空文件夹'.tr, emptyDirInfo.$1, emptyDirInfo.$2, Icons.folder_off_outlined, colors),
           ],
@@ -1283,19 +1281,6 @@ class _SettingsPageState extends State<SettingsPage> {
     return paths;
   }
 
-  /// 从绝对路径中提取 epub_books/ 下的目录名
-  /// 兼容 Windows(\) 和 Unix(/) 分隔符
-  void _collectEpubDirName(String? pathStr, Set<String> dirs) {
-    if (pathStr == null || pathStr.isEmpty) return;
-    final unified = pathStr.replaceAll('\\', '/');
-    final marker = '/epub_books/';
-    final idx = unified.indexOf(marker);
-    if (idx < 0) return;
-    final rest = unified.substring(idx + marker.length);
-    final slashIdx = rest.indexOf('/');
-    dirs.add(slashIdx >= 0 ? rest.substring(0, slashIdx) : rest);
-  }
-
   // ─── 扫描方法（只统计不删除） ──────────────────────────────────────────────
 
   /// 返回 (文件数, 总字节数)
@@ -1323,44 +1308,6 @@ class _SettingsPageState extends State<SettingsPage> {
   /// 规范化路径用于跨平台比较（统一分隔符）
   String _normalizePath(String p) {
     return path.normalize(p.replaceAll('\\', '/'));
-  }
-
-  Future<(int, int)> _scanOrphanedEpubBooks() async {
-    int count = 0, totalSize = 0;
-    try {
-      final db = await DatabaseHelper.instance.database;
-      final rows = await db.query('reader_books', columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
-      final usedDirs = <String>{};
-      for (final r in rows) {
-        final isDeleted = r['is_deleted'] == 1 || r['is_deleted'] == true;
-        if (isDeleted) continue;
-        final id = r['id'] as String?;
-        if (id != null && id.isNotEmpty) usedDirs.add(id);
-        _collectEpubDirName(r['file_path'] as String?, usedDirs);
-        _collectEpubDirName(r['cover_path'] as String?, usedDirs);
-      }
-      final appDirPath = await ImagePathHelper.getAppDir();
-      final possiblePaths = [
-        path.join(appDirPath, 'epub_books'),
-        '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
-      ];
-      for (final epubPath in possiblePaths) {
-        final epubDir = Directory(epubPath);
-        if (!await epubDir.exists()) continue;
-        await for (final entity in epubDir.list(followLinks: false)) {
-          if (entity is Directory) {
-            final dirName = path.basename(entity.path);
-            if (!usedDirs.contains(dirName)) {
-              try {
-                totalSize += await _dirSize(entity);
-                count++;
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    return (count, totalSize);
   }
 
   Future<(int, int)> _scanTempDirectory() async {
@@ -1419,7 +1366,6 @@ class _SettingsPageState extends State<SettingsPage> {
       final cacheDir = await getApplicationCacheDirectory();
       final dirs = [
         Directory(path.join(appDirPath, 'images')),
-        Directory(path.join(appDirPath, 'epub_books')),
         cacheDir,
       ];
       for (final dir in dirs) {
@@ -1428,18 +1374,6 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } catch (_) {}
     return (count, 0);
-  }
-
-  Future<int> _dirSize(Directory dir) async {
-    int size = 0;
-    try {
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
-        if (entity is File) {
-          try { size += await entity.length(); } catch (_) {}
-        }
-      }
-    } catch (_) {}
-    return size;
   }
 
   Future<int> _countEmptyDirsRecursive(Directory dir) async {

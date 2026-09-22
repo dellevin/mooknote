@@ -151,7 +151,6 @@ const Map<String, String> enProfile = {
   '缓存分析': 'Cache Analysis',
   '没有需要清理的缓存': 'No cache needs cleaning',
   '孤立图片': 'Orphaned Images',
-  '孤立电子书': 'Orphaned E-books',
   '临时文件': 'Temp Files',
   '空文件夹': 'Empty Folders',
   '确认清除': 'Confirm Clear',
@@ -175,8 +174,7 @@ const Map<String, String> enProfile = {
   '侧边栏 · 信息模块': 'Sidebar · Info Modules',
   '显示创作活跃度热力图': 'Show creation activity heatmap',
   '显示最近添加的记录': 'Show recently added records',
-  '快速新建笔记/影视/导入EPUB':
-      'Quickly create notes/movies or import EPUB',
+  '快速新建笔记/影视': 'Quickly create notes/movies',
   '与应用相遇的天数和数据概览':
       'Days with the app and data overview',
   '侧边栏 · 快捷功能': 'Sidebar · Quick Features',
@@ -191,7 +189,6 @@ const Map<String, String> enProfile = {
   '管理所有标签': 'Manage all tags',
   'MD阅读': 'MD Reader',
   'Markdown 文件阅读器': 'Markdown file reader',
-  'EPUB 电子书阅读器': 'EPUB e-book reader',
   '关闭后对应功能将从界面中隐藏。':
       'When turned off, the feature will be hidden in the interface.',
   '默认启动标签': 'Default Startup Tab',

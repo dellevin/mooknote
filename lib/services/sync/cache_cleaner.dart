@@ -17,12 +17,10 @@ class CacheCleaner {
   Future<CacheCleanResult> clean() async {
     final dbImagePaths = await _getAllDbImagePaths();
     final deletedImages = await _cleanImageDirectory(dbImagePaths);
-    final deletedEpubs = await _cleanOrphanedEpubBooks();
     final deletedTemp = await _cleanTempDirectory();
     final deletedEmptyDirs = await _cleanEmptyDirectories();
     return CacheCleanResult(
       images: deletedImages,
-      epubs: deletedEpubs,
       temp: deletedTemp,
       emptyDirs: deletedEmptyDirs,
     );
@@ -138,63 +136,6 @@ class CacheCleaner {
     return deletedCount;
   }
 
-  Future<int> _cleanOrphanedEpubBooks() async {
-    int deletedCount = 0;
-    try {
-      final db = await DatabaseHelper.instance.database;
-      final rows = await db.query('reader_books', columns: ['id', 'file_path', 'cover_path', 'is_deleted']);
-      final usedDirs = <String>{};
-      for (final r in rows) {
-        final isDeleted = r['is_deleted'] == 1 || r['is_deleted'] == true;
-        if (isDeleted) continue;
-        final id = r['id'] as String?;
-        if (id != null && id.isNotEmpty) usedDirs.add(id);
-        _collectEpubDirName(r['file_path'] as String?, usedDirs);
-        _collectEpubDirName(r['cover_path'] as String?, usedDirs);
-      }
-
-      final appDirPath = await ImagePathHelper.getAppDir();
-      final possiblePaths = [
-        path.join(appDirPath, 'epub_books'),
-        // Android 旧版绝对路径（path.join 在 Windows 上不会破坏它）
-        '/data/user/0/top.iletter.mooknote/app_flutter/epub_books',
-      ];
-
-      for (final epubPath in possiblePaths) {
-        final epubDir = Directory(epubPath);
-        if (!await epubDir.exists()) continue;
-        await for (final entity in epubDir.list(followLinks: false)) {
-          if (entity is Directory) {
-            final dirName = path.basename(entity.path);
-            if (!usedDirs.contains(dirName)) {
-              try {
-                await entity.delete(recursive: true);
-                deletedCount++;
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('清理 epub_books 目录失败: $e');
-    }
-    return deletedCount;
-  }
-
-  /// 从路径中提取 epub_books/{bookId} 的 bookId 部分
-  /// 兼容 Windows(\) 和 Unix(/) 分隔符
-  void _collectEpubDirName(String? pathStr, Set<String> dirs) {
-    if (pathStr == null || pathStr.isEmpty) return;
-    // 统一为正斜杠便于查找 marker
-    final unified = pathStr.replaceAll('\\', '/');
-    final marker = '/epub_books/';
-    final idx = unified.indexOf(marker);
-    if (idx < 0) return;
-    final rest = unified.substring(idx + marker.length);
-    final slashIdx = rest.indexOf('/');
-    dirs.add(slashIdx >= 0 ? rest.substring(0, slashIdx) : rest);
-  }
-
   /// mooknote 自己产生的临时文件名前缀
   static const _tempPrefixes = [
     'book_poster_',
@@ -268,7 +209,6 @@ class CacheCleaner {
       final cacheDir = await getApplicationCacheDirectory();
       final dirs = [
         Directory(path.join(appDirPath, 'images')),
-        Directory(path.join(appDirPath, 'epub_books')),
         cacheDir,
       ];
       for (final dir in dirs) {
@@ -304,20 +244,18 @@ class CacheCleaner {
 
 class CacheCleanResult {
   final int images;
-  final int epubs;
   final int temp;
   final int emptyDirs;
 
   const CacheCleanResult({
     required this.images,
-    required this.epubs,
     required this.temp,
     required this.emptyDirs,
   });
 
-  int get total => images + epubs + temp + emptyDirs;
+  int get total => images + temp + emptyDirs;
 
   String get description =>
-      '已清理 {images} 个孤立图片，{epubs} 个孤立电子书，{temp} 个临时文件，{emptyDirs} 个空文件夹'
-          .trf({'images': images, 'epubs': epubs, 'temp': temp, 'emptyDirs': emptyDirs});
+      '已清理 {images} 个孤立图片，{temp} 个临时文件，{emptyDirs} 个空文件夹'
+          .trf({'images': images, 'temp': temp, 'emptyDirs': emptyDirs});
 }

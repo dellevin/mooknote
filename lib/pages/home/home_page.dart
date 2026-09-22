@@ -14,7 +14,6 @@ import '../../widgets/bottom_nav_bar.dart';
 import '../../widgets/add_sheet.dart';
 import '../../widgets/add_type_selector.dart';
 import '../../widgets/fade_in_local_image.dart';
-import '../../pages/epub_reader/epub_library_page.dart';
 import 'desktop_home_page.dart';
 import '../../pages/movies/movie_detail_page.dart';
 import '../../pages/book/book_detail_page.dart';
@@ -382,7 +381,6 @@ class _DesktopIconRail extends StatelessWidget {
                     const Divider(height: 24, indent: 12, endIndent: 12),
                     _IconRailItem(icon: Icons.people_outline, activeIcon: Icons.people, label: '角色', accentColor: colors.primary, selected: false, onTap: () => _showPersonDialog(context)),
                     _IconRailItem(icon: Icons.label_outline, activeIcon: Icons.label, label: '标签', accentColor: colors.primary, selected: false, onTap: () => _showTagDialog(context)),
-                    _IconRailItem(icon: Icons.auto_stories_outlined, activeIcon: Icons.auto_stories, label: 'EPUB', accentColor: colors.primary, selected: false, onTap: () => _push(context, const EpubLibraryPage())),
                     _IconRailItem(icon: Icons.backup_outlined, activeIcon: Icons.backup, label: '备份', accentColor: colors.primary, selected: false, onTap: () => _showBackupDialog(context)),
                     _IconRailItem(icon: Icons.delete_outline, activeIcon: Icons.delete, label: '回收', accentColor: colors.primary, selected: false, onTap: () => _showRecycleBinDialog(context)),
                     _IconRailItem(icon: Icons.feedback_outlined, activeIcon: Icons.feedback, label: '反馈', accentColor: colors.primary, selected: false, onTap: () => _showFeedbackDialog(context)),

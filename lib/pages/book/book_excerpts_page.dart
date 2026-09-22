@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
-import '../../data/epub/reader_dao.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'book_excerpt_form_page.dart';
 import '../../widgets/app_overlay.dart';
@@ -383,13 +382,6 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context, true);
-                final readerBook = await ReaderDao().getReaderBookByBookId(widget.book.id);
-                if (readerBook != null) {
-                  await ReaderDao().deleteExcerptHighlightByContent(
-                    readerBook['id'] as String,
-                    excerpt.content,
-                  );
-                }
                 await this.context.read<AppProvider>().removeBookExcerpt(excerpt.id);
                 _loadExcerpts();
                 if (mounted) ToastUtil.show(this.context, '已删除'.tr);

@@ -100,9 +100,6 @@ const Map<String, String> enBook = {
   '摘抄': 'Excerpts',
   '条摘抄': 'excerpts',
   '暂无摘抄': 'No excerpts yet',
-  '句读': 'Highlights',
-  '条句读': 'highlights',
-  '暂无句读': 'No highlights yet',
   '角色': 'Characters',
   '个角色': 'characters',
   '暂无角色': 'No characters yet',
@@ -167,11 +164,6 @@ const Map<String, String> enBook = {
   '来自 MookNote': 'From MookNote',
   '{label}：': '{label}:',
   '生成海报失败：{e}': 'Failed to generate poster: {e}',
-
-  // EPUB
-  'EPUB 阅读': 'EPUB Reader',
-  'Windows 桌面客户端暂不支持 EPUB 阅读功能': 'EPUB reading is not supported on the Windows desktop app',
-  '该书籍尚未关联EPUB数据，请关联后使用': 'This book has no linked EPUB data yet',
 
   // 提示
   '添加成功': 'Added successfully',

@@ -22,9 +22,6 @@ import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
 import '../character/character_list_page.dart';
-import '../../data/epub/reader_dao.dart';
-import '../epub_reader/epub_highlights_page.dart';
-import '../epub_reader/reader_screen.dart';
 import '../../widgets/app_overlay.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
@@ -229,7 +226,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           Text(book.alternateTitles.join(' / '),
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
                         ],
-                        _buildEpubProgressBar(book),
                         const SizedBox(height: 16),
                         Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                           if (book.rating != null) ...[
@@ -325,15 +321,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         ),
                         const SizedBox(height: 12),
                         _buildExtraSectionItem(
-                          icon: Icons.highlight_outlined,
-                          title: '句读'.tr,
-                          subtitleFuture: _getEpubHighlightCount(book.id),
-                          emptyText: '暂无句读'.tr,
-                          unit: '条句读'.tr,
-                          onTap: () => _navigateToEpubHighlights(book),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
                           icon: Icons.people_outline,
                           title: '角色'.tr,
                           subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
@@ -359,7 +346,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _buildEpubReadButtonBar(book, colors),
                 OutlinedButton.icon(
                   onPressed: () => _showDeleteDialog(context),
                   icon: Icon(Icons.delete_outline, size: 16, color: colors.error),
@@ -767,46 +753,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  /// EPUB 阅读按钮（底部栏样式）
-  Widget _buildEpubReadButtonBar(Book book, ColorScheme colors) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: ReaderDao().getReaderBookByBookId(book.id),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-        final readerBook = snapshot.data!;
-        return Row(children: [
-          FilledButton.tonalIcon(
-            onPressed: () {
-              if (Platform.isWindows) {
-                ToastUtil.show(context, 'Windows 桌面客户端暂不支持 EPUB 阅读功能'.tr);
-                return;
-              }
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => ReaderScreen(
-                  bookId: readerBook['id'] as String,
-                  filePath: readerBook['file_path'] as String,
-                  title: readerBook['title'] as String? ?? '',
-                  coverPath: readerBook['cover_path'] as String?,
-                  bookData: readerBook,
-                ),
-              ));
-            },
-            icon: const Icon(Icons.auto_stories_outlined, size: 16),
-            label: Text('EPUB 阅读'.tr),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF6750A4).withValues(alpha: 0.15),
-              foregroundColor: const Color(0xFF6750A4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ]);
-      },
-    );
-  }
-
   /// 标准样式
   Widget _buildStandardStyle(Book book, ColorScheme colors) {
     final topSafe = MediaQuery.of(context).padding.top;
@@ -1061,7 +1007,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
         ],
-        _buildEpubProgressBar(book),
         const SizedBox(height: 12),
         Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [
           if (book.rating != null) ...[
@@ -1185,7 +1130,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  /// 浅色极简：更多（书评/摘抄/句读/角色）
+  /// 浅色极简：更多（书评/摘抄/角色）
   Widget _buildLayeredExtraSections(Book book) {
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1211,15 +1156,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
         emptyText: '暂无摘抄'.tr,
         unit: '条摘抄'.tr,
         onTap: () => _navigateToExcerpts(book),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.highlight_outlined,
-        title: '句读'.tr,
-        subtitleFuture: _getEpubHighlightCount(book.id),
-        emptyText: '暂无句读'.tr,
-        unit: '条句读'.tr,
-        onTap: () => _navigateToEpubHighlights(book),
       ),
       const SizedBox(height: 10),
       _buildExtraSectionItem(
@@ -1308,8 +1244,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
-        const SizedBox(height: 12),
-        _buildEpubReadButton(book),
         if (!Platform.isWindows) ...[
           const SizedBox(height: 12),
           _buildFloatingButton(
@@ -1321,45 +1255,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
         ],
       ],
-    );
-  }
-
-  /// EPUB 阅读悬浮按钮（仅有关联 EPUB 时显示）
-  Widget _buildEpubReadButton(Book book) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: ReaderDao().getReaderBookByBookId(book.id),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-        final readerBook = snapshot.data!;
-        return _buildFloatingButton(
-          icon: Icons.auto_stories_outlined,
-          onPressed: () {
-            if (Platform.isWindows) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Windows 桌面客户端暂不支持 EPUB 阅读功能'.tr)),
-              );
-              return;
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ReaderScreen(
-                  bookId: readerBook['id'] as String,
-                  filePath: readerBook['file_path'] as String,
-                  title: readerBook['title'] as String? ?? '',
-                  coverPath: readerBook['cover_path'] as String?,
-                  bookData: readerBook,
-                ),
-              ),
-            );
-          },
-          tooltip: 'EPUB 阅读'.tr,
-          backgroundColor: const Color(0xFF6750A4),
-          foregroundColor: Colors.white,
-        );
-      },
     );
   }
 
@@ -1622,32 +1517,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  /// EPUB 阅读进度条（仅有关联 EPUB 时显示）
-  Widget _buildEpubProgressBar(Book book) {
-    final colors = Theme.of(context).colorScheme;
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: ReaderDao().getReaderBookByBookId(book.id),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-        final progress = (snapshot.data!['reading_percentage'] as num?)?.toDouble() ?? 0.0;
-        if (progress <= 0) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 3,
-              backgroundColor: colors.surfaceContainerHighest,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildBasicInfo(Book book) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
@@ -1675,8 +1544,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
             ),
           ],
-          // EPUB 阅读进度条
-          _buildEpubProgressBar(book),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -2164,15 +2031,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           const SizedBox(height: 12),
           _buildExtraSectionItem(
-            icon: Icons.highlight_outlined,
-            title: '句读'.tr,
-            subtitleFuture: _getEpubHighlightCount(book.id),
-            emptyText: '暂无句读'.tr,
-            unit: '条句读'.tr,
-            onTap: () => _navigateToEpubHighlights(book),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
             icon: Icons.people_outline,
             title: '角色'.tr,
             subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
@@ -2185,7 +2043,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  /// EPUB 阅读入口（通过关联的 reader_books）
   /// 叠层模式：书评、摘抄各自独立毛玻璃卡片
   Widget _buildExtraSectionsOverlay(Book book) {
     return Padding(
@@ -2208,15 +2065,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
             emptyText: '暂无摘抄'.tr,
             unit: '条摘抄'.tr,
             onTap: () => _navigateToExcerpts(book),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.highlight_outlined,
-            title: '句读'.tr,
-            subtitleFuture: _getEpubHighlightCount(book.id),
-            emptyText: '暂无句读'.tr,
-            unit: '条句读'.tr,
-            onTap: () => _navigateToEpubHighlights(book),
           ),
           const SizedBox(height: 12),
           _buildFrostedExtraItem(
@@ -2392,33 +2240,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
       character: character,
     );
     if (needRefresh == true) _loadCharacters();
-  }
-
-  /// 获取关联 EPUB 的句读（高亮）数量
-  Future<int> _getEpubHighlightCount(String bookId) async {
-    final readerBook = await ReaderDao().getReaderBookByBookId(bookId);
-    if (readerBook == null) return 0;
-    final highlights = await ReaderDao().getHighlightsByBookId(readerBook['id'] as String);
-    return highlights.where((h) => h['color'] != 'excerpt').length;
-  }
-
-  /// 跳转到 EPUB 句读管理页
-  void _navigateToEpubHighlights(Book book) async {
-    final readerBook = await ReaderDao().getReaderBookByBookId(book.id);
-    if (!mounted) return;
-    if (readerBook == null) {
-      ToastUtil.show(context, '该书籍尚未关联EPUB数据，请关联后使用'.tr);
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpubHighlightsPage(
-          bookId: readerBook['id'] as String,
-          book: readerBook,
-        ),
-      ),
-    );
   }
 
   String _formatDate(DateTime date) {

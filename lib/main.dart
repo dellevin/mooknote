@@ -28,7 +28,7 @@ import './widgets/app_overlay.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
-/// Windows 桌面版 WebView2 环境，注册 epub:// 自定义协议
+/// Windows 桌面版 WebView2 环境
 WebViewEnvironment? windowsWebViewEnvironment;
 
 void main() async {
@@ -45,17 +45,9 @@ void main() async {
       await windowManager.setMinimumSize(const Size(900, 640));
       await windowManager.show();
     });
-    // 注册 epub:// 自定义协议，使 WebView2 能拦截该协议的请求
+    // 初始化 WebView2 环境（Vditor 编辑器等桌面 WebView 使用）
     try {
-      windowsWebViewEnvironment = await WebViewEnvironment.create(settings:
-        WebViewEnvironmentSettings(customSchemeRegistrations: [
-          CustomSchemeRegistration(
-            scheme: 'epub',
-            hasAuthorityComponent: true,
-            treatAsSecure: true,
-          ),
-        ]),
-      );
+      windowsWebViewEnvironment = await WebViewEnvironment.create();
       debugPrint('[Startup] WebViewEnvironment created successfully');
     } catch (e) {
       debugPrint('[Startup] WebViewEnvironment 初始化失败: $e');

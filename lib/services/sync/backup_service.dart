@@ -67,8 +67,6 @@ class BackupService {
     final bookReviews = await db.query('book_reviews');
     final bookExcerpts = await db.query('book_excerpts');
     final tags = await db.query('tags');
-    final readerBooks = await db.query('reader_books');
-    final bookAnnotations = await db.query('book_annotations');
     final games = await db.query('games');
     final gameReviews = await db.query('game_reviews');
     final gameScreenshots = await db.query('game_screenshots');
@@ -108,11 +106,7 @@ class BackupService {
         }
       }
     }
-    // reader_books 的封面在 epub_books/ 目录下，由 epub_books 归档处理
-    // 不加入 imagePaths，避免 basename 碰撞导致所有封面变成同一个路径
-
-    for (final g in games) {
-      final p = g['cover_path'] as String?;
+    for (final g in games) {      final p = g['cover_path'] as String?;
       if (p != null && p.isNotEmpty) imagePaths.add(p);
     }
     for (final s in gameScreenshots) {
@@ -154,8 +148,6 @@ class BackupService {
         'book_reviews': bookReviews,
         'book_excerpts': bookExcerpts,
         'tags': tags,
-        'reader_books': readerBooks,
-        'book_annotations': bookAnnotations,
         'games': games,
         'game_reviews': gameReviews,
         'game_screenshots': gameScreenshots,
@@ -191,7 +183,6 @@ class BackupService {
       backupData: backupData,
       imagePaths: imagePaths.toList(),
       tempDirPath: tempDir.path,
-      appDirPath: appDirPath,
     ));
 
     return _ExportData(
@@ -200,7 +191,6 @@ class BackupService {
       bookCount: books.length,
       noteCount: notes.length,
       imageCount: result.imageCount,
-      epubCount: result.epubCount,
     );
   }
 
@@ -275,7 +265,6 @@ class BackupService {
         bookCount: data.bookCount,
         noteCount: data.noteCount,
         imageCount: data.imageCount,
-        epubCount: data.epubCount,
       );
     } catch (e) {
       return AutoBackupExportResult.error('导出失败: {e}'.trf({'e': e}));
@@ -322,7 +311,6 @@ class BackupService {
         bookCount: data.bookCount,
         noteCount: data.noteCount,
         imageCount: data.imageCount,
-        epubCount: data.epubCount,
       );
     } catch (e) {
       return AutoBackupExportResult.error('自动备份失败: {e}'.trf({'e': e}));
@@ -383,8 +371,6 @@ class BackupService {
       int imageCount = 0;
       // 完整相对路径 → 新绝对路径 的映射（避免同名文件碰撞）
       final imagePathMap = <String, String>{};
-      // epub_books/ 内相对路径 → 新绝对路径 的映射
-      final epubFileMap = <String, String>{};
 
       if (extension == '.zip') {
         final bytes = await file.readAsBytes();
@@ -411,18 +397,6 @@ class BackupService {
             // 用完整相对路径做 key，避免不同目录下同名文件碰撞
             imagePathMap[relativePath] = outputFile.path;
             imageCount++;
-          } else if (archiveFile.name.startsWith('epub_books/')) {
-            var relativePath = archiveFile.name.substring('epub_books/'.length);
-            // 防御前导斜杠导致 path.join 把它当绝对路径
-            while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
-              relativePath = relativePath.substring(1);
-            }
-            final epubDir = Directory(path.join(appDirPath, 'epub_books'));
-            if (!await epubDir.exists()) await epubDir.create(recursive: true);
-            final outputFile = File(path.join(epubDir.path, relativePath));
-            if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
-            await outputFile.writeAsBytes(archiveFile.content as List<int>);
-            epubFileMap[relativePath] = outputFile.path;
           }
         }
       } else {
@@ -449,8 +423,6 @@ class BackupService {
       final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
       final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
       final tagsCols = await _getTableColumns(db, 'tags');
-      final readerBooksCols = await _getTableColumns(db, 'reader_books');
-      final bookAnnotationsCols = await _getTableColumns(db, 'book_annotations');
       final gamesCols = await _getTableColumns(db, 'games');
       final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
       final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
@@ -469,7 +441,6 @@ class BackupService {
         await txn.delete('movie_posters');
         await txn.delete('book_reviews');
         await txn.delete('book_excerpts');
-        await txn.delete('book_annotations');
         await txn.delete('game_reviews');
         await txn.delete('game_screenshots');
         await txn.delete('movie_people');
@@ -484,7 +455,6 @@ class BackupService {
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
-        await txn.delete('reader_books');
         await txn.delete('games');
         await txn.delete('tags');
 
@@ -521,18 +491,6 @@ class BackupService {
         if (data.containsKey('book_excerpts')) {
           for (final e in data['book_excerpts'] as List) {
             await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
-          }
-        }
-        if (data.containsKey('reader_books')) {
-          for (final rb in data['reader_books'] as List) {
-            var row = _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap);
-            row = _updateEpubPaths(row, epubFileMap);
-            await txn.insert('reader_books', row);
-          }
-        }
-        if (data.containsKey('book_annotations')) {
-          for (final a in data['book_annotations'] as List) {
-            await txn.insert('book_annotations', _convertToDbMapSafe(a, bookAnnotationsCols));
           }
         }
         if (data.containsKey('games')) {
@@ -624,7 +582,6 @@ class BackupService {
 
       final backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
       final imagePathMap = <String, String>{};
-      final epubFileMap = <String, String>{};
       int imageCount = 0;
 
       final appDirPath = await _getAppDir();
@@ -642,17 +599,6 @@ class BackupService {
           await outputFile.writeAsBytes(archiveFile.content as List<int>);
           imagePathMap[relativePath] = outputFile.path;
           imageCount++;
-        } else if (archiveFile.name.startsWith('epub_books/')) {
-          var relativePath = archiveFile.name.substring('epub_books/'.length);
-          while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
-            relativePath = relativePath.substring(1);
-          }
-          final epubDir = Directory(path.join(appDirPath, 'epub_books'));
-          if (!await epubDir.exists()) await epubDir.create(recursive: true);
-          final outputFile = File(path.join(epubDir.path, relativePath));
-          if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
-          await outputFile.writeAsBytes(archiveFile.content as List<int>);
-          epubFileMap[relativePath] = outputFile.path;
         }
       }
 
@@ -674,8 +620,6 @@ class BackupService {
       final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
       final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
       final tagsCols = await _getTableColumns(db, 'tags');
-      final readerBooksCols = await _getTableColumns(db, 'reader_books');
-      final bookAnnotationsCols = await _getTableColumns(db, 'book_annotations');
       final gamesCols = await _getTableColumns(db, 'games');
       final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
       final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
@@ -694,7 +638,6 @@ class BackupService {
         await txn.delete('movie_posters');
         await txn.delete('book_reviews');
         await txn.delete('book_excerpts');
-        await txn.delete('book_annotations');
         await txn.delete('game_reviews');
         await txn.delete('game_screenshots');
         await txn.delete('movie_people');
@@ -709,7 +652,6 @@ class BackupService {
         await txn.delete('movies');
         await txn.delete('books');
         await txn.delete('notes');
-        await txn.delete('reader_books');
         await txn.delete('games');
         await txn.delete('tags'); // 修复: 之前漏删 tags 表
 
@@ -746,18 +688,6 @@ class BackupService {
         if (data.containsKey('book_excerpts')) {
           for (final e in data['book_excerpts'] as List) {
             await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
-          }
-        }
-        if (data.containsKey('reader_books')) {
-          for (final rb in data['reader_books'] as List) {
-            var row = _updateImagePath(_convertToDbMapSafe(rb, readerBooksCols), 'cover_path', imagePathMap);
-            row = _updateEpubPaths(row, epubFileMap);
-            await txn.insert('reader_books', row);
-          }
-        }
-        if (data.containsKey('book_annotations')) {
-          for (final a in data['book_annotations'] as List) {
-            await txn.insert('book_annotations', _convertToDbMapSafe(a, bookAnnotationsCols));
           }
         }
         if (data.containsKey('games')) {
@@ -911,8 +841,6 @@ class BackupService {
     if (data.containsKey('book_reviews')) stats['书评'] = (data['book_reviews'] as List).length;
     if (data.containsKey('book_excerpts')) stats['书摘'] = (data['book_excerpts'] as List).length;
     if (data.containsKey('tags')) stats['标签'] = (data['tags'] as List).length;
-    if (data.containsKey('reader_books')) stats['阅读'] = (data['reader_books'] as List).length;
-    if (data.containsKey('book_annotations')) stats['批注'] = (data['book_annotations'] as List).length;
     if (data.containsKey('games')) stats['游戏'] = (data['games'] as List).length;
     if (data.containsKey('game_reviews')) stats['游戏评价'] = (data['game_reviews'] as List).length;
     if (data.containsKey('game_screenshots')) stats['游戏截图'] = (data['game_screenshots'] as List).length;
@@ -956,38 +884,6 @@ class BackupService {
       });
     }
     return {};
-  }
-
-  /// 更新 epub 阅读器的 file_path 和 cover_path
-  Map<String, dynamic> _updateEpubPaths(Map<String, dynamic> item, Map<String, String> epubFileMap) {
-    if (epubFileMap.isEmpty) return item;
-    final newItem = Map<String, dynamic>.from(item);
-
-    final oldFilePath = item['file_path'] as String?;
-    if (oldFilePath != null && oldFilePath.isNotEmpty) {
-      final oldRel = _toEpubRelativePath(oldFilePath);
-      if (oldRel != null && epubFileMap.containsKey(oldRel)) {
-        newItem['file_path'] = epubFileMap[oldRel];
-      }
-    }
-
-    final oldCoverPath = item['cover_path'] as String?;
-    if (oldCoverPath != null && oldCoverPath.isNotEmpty) {
-      final oldRel = _toEpubRelativePath(oldCoverPath);
-      if (oldRel != null && epubFileMap.containsKey(oldRel)) {
-        newItem['cover_path'] = epubFileMap[oldRel];
-      }
-    }
-
-    return newItem;
-  }
-
-  /// 从绝对路径中提取 epub_books/ 下的相对路径
-  String? _toEpubRelativePath(String absolutePath) {
-    final normalized = absolutePath.replaceAll('\\', '/');
-    final idx = normalized.indexOf('/epub_books/');
-    if (idx >= 0) return normalized.substring(idx + 13); // skip '/epub_books/'
-    return null;
   }
 
   /// 更新单值图片路径（poster_path / cover_path）
@@ -1039,7 +935,6 @@ class _ExportData {
   final int bookCount;
   final int noteCount;
   final int imageCount;
-  final int epubCount;
 
   _ExportData({
     this.zipPath,
@@ -1047,7 +942,6 @@ class _ExportData {
     required this.bookCount,
     required this.noteCount,
     required this.imageCount,
-    this.epubCount = 0,
   });
 }
 
@@ -1061,7 +955,6 @@ class AutoBackupExportResult {
   final int bookCount;
   final int noteCount;
   final int imageCount;
-  final int epubCount;
 
   AutoBackupExportResult._({
     required this.success,
@@ -1071,7 +964,6 @@ class AutoBackupExportResult {
     this.bookCount = 0,
     this.noteCount = 0,
     this.imageCount = 0,
-    this.epubCount = 0,
   });
 
   factory AutoBackupExportResult.success({
@@ -1080,13 +972,11 @@ class AutoBackupExportResult {
     required int bookCount,
     required int noteCount,
     required int imageCount,
-    int epubCount = 0,
   }) {
     return AutoBackupExportResult._(
       success: true, zipPath: zipPath,
       movieCount: movieCount, bookCount: bookCount,
       noteCount: noteCount, imageCount: imageCount,
-      epubCount: epubCount,
     );
   }
 
@@ -1176,22 +1066,19 @@ class _ZipComputeParams {
   final Map<String, dynamic> backupData;
   final List<String> imagePaths;
   final String tempDirPath;
-  final String appDirPath;
 
   _ZipComputeParams({
     required this.backupData,
     required this.imagePaths,
     required this.tempDirPath,
-    required this.appDirPath,
   });
 }
 
 class _ZipComputeResult {
   final String? zipPath;
   final int imageCount;
-  final int epubCount;
 
-  _ZipComputeResult({this.zipPath, required this.imageCount, required this.epubCount});
+  _ZipComputeResult({this.zipPath, required this.imageCount});
 }
 
 /// 在后台 isolate 中执行 JSON 编码 + ZIP 压缩，避免阻塞主线程
@@ -1228,23 +1115,9 @@ _ZipComputeResult _buildZipInIsolate(_ZipComputeParams params) {
       }
     }
 
-    // 收集 epub_books 目录下的 epub 文件
-    int epubCount = 0;
-    final epubRoot = path.join(params.appDirPath, 'epub_books');
-    final epubDir = Directory(epubRoot);
-    if (epubDir.existsSync()) {
-      for (final entity in epubDir.listSync(recursive: true)) {
-        if (entity is File) {
-          final relativePath = path.relative(entity.path, from: epubRoot);
-          encoder.addFile(entity, 'epub_books/$relativePath');
-          epubCount++;
-        }
-      }
-    }
-
     encoder.close();
 
-    return _ZipComputeResult(zipPath: tempZipPath, imageCount: imageCount, epubCount: epubCount);
+    return _ZipComputeResult(zipPath: tempZipPath, imageCount: imageCount);
   } catch (e) {
     encoder.close();
     try { File(tempZipPath).deleteSync(); } catch (_) {}
