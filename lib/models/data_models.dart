@@ -23,6 +23,14 @@ double? _safeParseDouble(dynamic value, {double? fallback}) {
   return fallback;
 }
 
+/// 安全将动态值转为 int，失败时返回 0
+int _safeParseInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
 /// 解析字符串列表（通用工具函数，不限于 Movie）
 List<String> parseStringListGeneric(dynamic data) {
   if (data == null) return [];
@@ -109,8 +117,8 @@ class Movie {
       status: json['status'] ?? 'want_to_watch',
       category: json['category'] ?? 'movie',
       watchDate: _safeParseDate(json['watch_date']),
-      watchCount: json['watch_count'] ?? 0,
-      duration: json['duration'] ?? 0,
+      watchCount: _safeParseInt(json['watch_count']),
+      duration: _safeParseInt(json['duration']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
@@ -1055,8 +1063,8 @@ class Playlist {
       description: json['description']?.toString() ?? '',
       type: json['type']?.toString() ?? 'movie',
       coverPath: json['cover_path'],
-      itemCount: json['item_count'] ?? 0,
-      sortOrder: json['sort_order'] ?? 0,
+      itemCount: _safeParseInt(json['item_count']),
+      sortOrder: _safeParseInt(json['sort_order']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,

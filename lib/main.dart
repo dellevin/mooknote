@@ -114,6 +114,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.appProvider.loadThemeMode();
     widget.appProvider.addListener(_onThemeChanged);
+    _startAutoBackupTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applySystemUI();
       _requestStoragePermissionIfNeeded();
@@ -124,6 +125,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _autoBackupTimer?.cancel();
+    widget.appProvider.removeListener(_onThemeChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

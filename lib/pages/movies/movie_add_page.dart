@@ -272,7 +272,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
         child: Row(children: [
           Icon(Icons.calendar_today_outlined, size: 14, color: c.onSurface.withValues(alpha: 0.4)),
           const SizedBox(width: 8),
-          Text(has ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
+          Text(has ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
             style: TextStyle(fontSize: 14, color: has ? c.onSurface : c.onSurface.withValues(alpha: 0.25))),
           const Spacer(),
           if (clearable && has) GestureDetector(onTap: () => onChanged(null),

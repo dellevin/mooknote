@@ -357,7 +357,10 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      nicknameController.dispose();
+      mottoController.dispose();
+    });
   }
 
   static List<String> get _themeModeLabels => ['跟随系统'.tr, '浅色模式'.tr, '深色模式'.tr, '毛玻璃'.tr];

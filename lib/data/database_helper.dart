@@ -944,45 +944,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // EPUB 阅读器书籍表
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS reader_books (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        author TEXT DEFAULT '',
-        authors TEXT DEFAULT '',
-        cover_path TEXT,
-        file_path TEXT NOT NULL,
-        file_name TEXT NOT NULL,
-        file_extension TEXT NOT NULL DEFAULT 'epub',
-        last_read_cfi TEXT DEFAULT '',
-        reading_percentage REAL DEFAULT 0.0,
-        book_id TEXT DEFAULT '',
-        summary TEXT DEFAULT '',
-        publisher TEXT DEFAULT '',
-        isbn TEXT DEFAULT '',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        is_deleted INTEGER DEFAULT 0
-      )
-    ''');
-
-    // 书籍批注表
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS book_annotations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        book_id TEXT NOT NULL,
-        content TEXT NOT NULL DEFAULT '',
-        cfi TEXT NOT NULL DEFAULT '',
-        chapter TEXT DEFAULT '',
-        type TEXT NOT NULL DEFAULT 'highlight',
-        color TEXT NOT NULL DEFAULT 'FFEB3B',
-        reader_note TEXT DEFAULT '',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-    ''');
-
     // 游戏表
     await db.execute('''
       CREATE TABLE games (

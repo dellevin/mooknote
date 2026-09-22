@@ -41,6 +41,7 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
   Future<void> _loadReviews() async {
     setState(() => _isLoading = true);
     final reviews = await context.read<AppProvider>().getBookReviews(widget.book.id);
+    if (!mounted) return;
     setState(() {
       _reviews = reviews;
       _filteredReviews = reviews;

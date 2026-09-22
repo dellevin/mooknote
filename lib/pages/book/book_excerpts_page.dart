@@ -525,13 +525,13 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
 
   void _showWechatReadImport() {
     final colors = Theme.of(context).colorScheme;
+    final controller = TextEditingController();
 
     appModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        final controller = TextEditingController();
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
           child: Container(
@@ -623,7 +623,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
           ),
         );
       },
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _importWechatRead(String text) {

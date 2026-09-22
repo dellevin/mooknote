@@ -39,6 +39,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
   Future<void> _loadPosters() async {
     setState(() => _isLoading = true);
     final posters = await context.read<AppProvider>().getMoviePosters(widget.movie.id);
+    if (!mounted) return;
     setState(() {
       _posters = posters;
       _isLoading = false;
@@ -366,9 +367,13 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       },
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      urlController.dispose();
+      return;
+    }
 
     final url = urlController.text.trim();
+    urlController.dispose();
     if (url.isEmpty) {
       ToastUtil.show(context, '请输入图片链接'.tr);
       return;

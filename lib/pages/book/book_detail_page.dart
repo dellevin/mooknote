@@ -606,7 +606,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           child: Row(children: [
             Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
             const SizedBox(width: 8),
-            Expanded(child: Text(hasDate ? '${date!.year}.${date!.month.toString().padLeft(2, '0')}.${date!.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
+            Expanded(child: Text(hasDate ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
               style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25)), overflow: TextOverflow.ellipsis)),
             if (clearable && hasDate) GestureDetector(onTap: () => onChanged(null),
               child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3))),

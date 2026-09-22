@@ -39,6 +39,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
   Future<void> _loadScreenshots() async {
     setState(() => _isLoading = true);
     final screenshots = await context.read<AppProvider>().getGameScreenshots(widget.game.id);
+    if (!mounted) return;
     setState(() {
       _screenshots = screenshots;
       _isLoading = false;

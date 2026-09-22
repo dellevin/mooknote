@@ -444,7 +444,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                 Icon(Icons.calendar_today_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
                 Text(
-                  hasDate ? '${date!.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
+                  hasDate ? '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}' : '选择日期'.tr,
                   style: TextStyle(fontSize: 14, color: hasDate ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25)),
                 ),
                 const Spacer(),

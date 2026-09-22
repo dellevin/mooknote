@@ -418,7 +418,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
           ],
         );
       },
-    );
+    ).then((_) => ctrl.dispose());
   }
 
   Widget _buildAvailableList(AppProvider provider, ColorScheme colors) {
