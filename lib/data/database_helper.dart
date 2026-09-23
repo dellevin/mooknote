@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 42,
+      version: 43,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -434,6 +434,24 @@ class DatabaseHelper {
       } catch (e) {
         debugPrint('Migration v42 failed: $e');
       }
+    }
+    if (oldVersion < 43) {
+      // 增量同步：KV 元数据表 + 墓碑表
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sync_meta (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sync_tombstones (
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL,
+          deleted_at TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          PRIMARY KEY (entity_id, entity_type)
+        )
+      ''');
     }
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
@@ -1035,6 +1053,23 @@ class DatabaseHelper {
     await _createPeopleTables(db);
     // 角色表
     await _createCharacterTables(db);
+
+    // 增量同步元数据
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_tombstones (
+        entity_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        deleted_at TEXT NOT NULL,
+        client_id TEXT NOT NULL,
+        PRIMARY KEY (entity_id, entity_type)
+      )
+    ''');
   }
 
   /// 创建人物表和关联表

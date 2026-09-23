@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
@@ -20,6 +21,7 @@ import '../../pages/book/book_detail_page.dart';
 import '../../pages/note/note_detail_page.dart';
 import '../../services/sync/backup_service.dart';
 import '../../services/sync/webdav_service.dart';
+import '../../services/sync/incremental/inc_sync_service.dart';
 import '../../pages/profile/settings_page.dart';
 import 'main_content_page.dart';
 import '../online_search/search_page.dart';
@@ -2706,6 +2708,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
   bool _isConfigured = false;
   bool _obscurePassword = true;
   String _syncStep = '';
+  String _backupMode = 'full';
 
   DateTime? _remoteModifiedTime;
   int? _remoteFileSize;
@@ -2714,6 +2717,9 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted) setState(() => _backupMode = prefs.getString('webdav_backup_mode') ?? 'full');
+    });
     _loadConfig();
   }
 
@@ -2784,6 +2790,29 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
   Future<void> _syncData(SyncDirection direction) async {
     setState(() => _isLoading = true);
     try {
+      // ── 增量备份分支：双向同步（拉取远程变更 + 推送本地变更） ──
+      if (_backupMode == 'inc') {
+        setState(() => _syncStep = '正在同步数据...'.tr);
+        await Future.delayed(Duration.zero);
+        final incResult = await IncSyncService.instance.upload();
+        if (!mounted) return;
+        if (incResult.success) {
+          if (incResult.needReload) {
+            final provider = context.read<AppProvider>();
+            await provider.loadMovies();
+            await provider.loadBooks();
+            await provider.loadNotes();
+            await provider.loadGames();
+            await provider.loadPlaylists();
+            await provider.loadPeople();
+          }
+          if (mounted) ToastUtil.show(context,'同步成功'.tr);
+        } else {
+          if (mounted) ToastUtil.show(context,incResult.message);
+        }
+        return;
+      }
+
       SyncResult result;
       if (direction == SyncDirection.upload) {
         setState(() => _syncStep = '正在打包数据...'.tr);
@@ -2835,8 +2864,10 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         return AlertDialog(
           backgroundColor: colors.surface, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text((isUpload ? '确认上传' : '确认下载').tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text((isUpload ? '该操作会覆盖远程数据，请谨慎操作' : '该操作会拉取远程数据覆盖本地数据，请谨慎操作').tr,
+          title: Text((_backupMode == 'inc' ? '确认同步' : (isUpload ? '确认上传' : '确认下载')).tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text(_backupMode == 'inc'
+              ? '将与其他设备双向同步数据（最后修改的内容优先），点击确定继续'.tr
+              : (isUpload ? '该操作会覆盖远程数据，请谨慎操作' : '该操作会拉取远程数据覆盖本地数据，请谨慎操作').tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
@@ -3007,39 +3038,50 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
             Icon(Icons.cloud_outlined, size: 18, color: colors.primary),
             const SizedBox(width: 8),
             Text('云端备份'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(6)),
+              child: Text(_backupMode == 'inc' ? '增量备份'.tr : '全量备份'.tr, style: TextStyle(fontSize: 11, color: colors.primary)),
+            ),
             const Spacer(),
             if (_isLoadingRemoteInfo)
               SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
             else
               GestureDetector(onTap: _loadRemoteInfo, child: Icon(Icons.refresh, size: 18, color: colors.onSurface.withValues(alpha: 0.4))),
           ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('上传时间'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
-              const SizedBox(height: 3),
-              Text(timeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-            ])),
-            if (sizeText.isNotEmpty)
+          if (_backupMode == 'full') ...[
+            const SizedBox(height: 10),
+            Row(children: [
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('文件大小'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                Text('上传时间'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                 const SizedBox(height: 3),
-                Text(sizeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                Text(timeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
               ])),
-          ]),
-          const SizedBox(height: 14),
-          const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
+              if (sizeText.isNotEmpty)
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('文件大小'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                  const SizedBox(height: 3),
+                  Text(sizeText, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                ])),
+            ]),
+            const SizedBox(height: 14),
+            const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
+          ],
           const SizedBox(height: 10),
           if (_isLoading) ...[
             SizedBox(width: double.infinity, child: LinearProgressIndicator(backgroundColor: colors.surfaceContainerHighest, color: colors.primary, minHeight: 3, borderRadius: BorderRadius.circular(1.5))),
             const SizedBox(height: 8),
             Text(_syncStep, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
           ] else ...[
-            Row(children: [
-              Expanded(child: _buildBtn(colors, '上传'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))),
-              const SizedBox(width: 12),
-              Expanded(child: _buildBtn(colors, '下载'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.download))),
-            ]),
+            if (_backupMode == 'inc')
+              _buildBtn(colors, '同步'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))
+            else
+              Row(children: [
+                Expanded(child: _buildBtn(colors, '上传'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))),
+                const SizedBox(width: 12),
+                Expanded(child: _buildBtn(colors, '下载'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.download))),
+              ]),
           ],
         ],
       ),

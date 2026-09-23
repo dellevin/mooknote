@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/toast_util.dart';
 import '../../services/sync/webdav_service.dart';
+import '../../services/sync/incremental/inc_sync_service.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
@@ -26,6 +28,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   SyncDirection _syncDirection = SyncDirection.upload;
   String _syncStep = '';
 
+  /// 备份方式：full 全量 zip / inc 增量
+  String _backupMode = 'full';
+
+  // 增量同步信息
+  int? _incManifestVersion;
+  String? _incLastSync;
+  bool _isLoadingIncInfo = false;
+
   // 远程备份信息
   DateTime? _remoteModifiedTime;
   int? _remoteFileSize;
@@ -48,6 +58,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
 
   Future<void> _loadConfig() async {
     final config = await WebDAVService.instance.getConfig();
+    final prefs = await SharedPreferences.getInstance();
+    _backupMode = prefs.getString('webdav_backup_mode') ?? 'full';
     if (config != null) {
       setState(() {
         _urlController.text = config['url'] ?? '';
@@ -57,7 +69,27 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         _isConfigured = true;
       });
       _loadRemoteInfo();
+      _loadIncInfo();
     }
+  }
+
+  Future<void> _loadIncInfo() async {
+    setState(() => _isLoadingIncInfo = true);
+    final info = await IncSyncService.instance.getInfo();
+    if (mounted) {
+      setState(() {
+        _incManifestVersion = info['manifestVersion'] as int?;
+        _incLastSync = info['lastSync'] as String?;
+        _isLoadingIncInfo = false;
+      });
+    }
+  }
+
+  Future<void> _switchMode(String mode) async {
+    if (_backupMode == mode) return;
+    setState(() => _backupMode = mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('webdav_backup_mode', mode);
   }
 
   Future<void> _loadRemoteInfo() async {
@@ -128,6 +160,41 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     setState(() => _isLoading = true);
 
     try {
+      // ── 增量备份分支：双向同步（拉取远程变更 + 推送本地变更） ──
+      if (_backupMode == 'inc') {
+        setState(() => _syncStep = '正在同步数据...'.tr);
+        await Future.delayed(Duration.zero);
+        final result = await IncSyncService.instance.upload();
+        if (!mounted) return;
+        _loadIncInfo();
+        if (result.success) {
+          final details = '上传: {rec} 记录, {img} 图片（去重 {dedup}）\n下载: {drec} 记录, {dimg} 图片'
+              .trf({
+            'rec': result.uploadedRecords,
+            'img': result.uploadedImages,
+            'dedup': result.dedupImages,
+            'drec': result.downloadedRecords,
+            'dimg': result.downloadedImages,
+          });
+          if (result.needReload) {
+            ToastUtil.show(context, '数据已更新，正在重新加载...'.tr);
+            final provider = context.read<AppProvider>();
+            await provider.loadMovies();
+            await provider.loadBooks();
+            await provider.loadNotes();
+            await provider.loadGames();
+            await provider.loadPlaylists();
+            await provider.loadPeople();
+            if (mounted) _showResultDialog('同步成功'.tr, details);
+          } else {
+            _showResultDialog('同步成功'.tr, details);
+          }
+        } else {
+          ToastUtil.show(context, result.message);
+        }
+        return;
+      }
+
       SyncResult result;
 
       if (_syncDirection == SyncDirection.upload) {
@@ -237,6 +304,43 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     );
   }
 
+  Future<void> _showIncSyncConfirm() async {
+    final confirmed = await appDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('立即同步'.tr,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('将与其他设备双向同步数据（最后修改的内容优先），点击确定继续'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('确定'.tr),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      _syncData();
+    }
+  }
+
   Future<void> _showUploadConfirm() async {
     final confirmed = await appDialog<bool>(
       context: context,
@@ -310,6 +414,140 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     if (confirmed == true) {
       setState(() => _syncDirection = SyncDirection.download);
       _syncData();
+    }
+  }
+
+  Future<void> _reDownloadConfirm() async {
+    final confirmed = await appDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('修复同步异常'.tr,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('如果下载不到其他设备的数据，或同步结果明显不对，可以使用此功能。它会重置本地的同步状态，并从云端完整拉取一次（本地较新的修改不会被覆盖）。'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('确定'.tr),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+        _syncStep = '正在重新拉取基线数据...'.tr;
+      });
+      try {
+        final result = await IncSyncService.instance.reDownload();
+        if (!mounted) return;
+        _loadIncInfo();
+        if (result.success) {
+          if (result.needReload) {
+            final provider = context.read<AppProvider>();
+            await provider.loadMovies();
+            await provider.loadBooks();
+            await provider.loadNotes();
+            await provider.loadGames();
+            await provider.loadPlaylists();
+            await provider.loadPeople();
+          }
+          if (mounted) {
+            _showResultDialog('同步成功'.tr,
+                '下载: {drec} 记录, {dimg} 图片'.trf({
+              'drec': result.downloadedRecords,
+              'dimg': result.downloadedImages,
+            }));
+          }
+        } else {
+          ToastUtil.show(context, result.message);
+        }
+      } finally {
+        if (mounted) setState(() { _isLoading = false; _syncStep = ''; });
+      }
+    }
+  }
+
+  Future<void> _restoreConfirm() async {
+    final confirmed = await appDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('找回误删的数据'.tr,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('以云端数据为准恢复到本机：本地删除过的内容会重新下载回来，本地的旧内容也会被云端的新版本覆盖。本地新增且尚未上传的数据会保留。确定继续？'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('确定'.tr),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+        _syncStep = '正在以云端数据恢复...'.tr;
+      });
+      try {
+        final result = await IncSyncService.instance.restoreDownload();
+        if (!mounted) return;
+        _loadIncInfo();
+        if (result.success) {
+          if (result.needReload) {
+            final provider = context.read<AppProvider>();
+            await provider.loadMovies();
+            await provider.loadBooks();
+            await provider.loadNotes();
+            await provider.loadGames();
+            await provider.loadPlaylists();
+            await provider.loadPeople();
+          }
+          if (mounted) {
+            _showResultDialog('恢复完成'.tr,
+                '恢复: {drec} 记录, {dimg} 图片'.trf({
+              'drec': result.downloadedRecords,
+              'dimg': result.downloadedImages,
+            }));
+          }
+        } else {
+          ToastUtil.show(context, result.message);
+        }
+      } finally {
+        if (mounted) setState(() { _isLoading = false; _syncStep = ''; });
+      }
     }
   }
 
@@ -405,8 +643,14 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
               if (_isConfigured) _buildConnectedBanner(colors),
 
               if (_isConfigured) ...[
+                // 备份方式切换
+                _buildModeSwitch(colors),
+                const SizedBox(height: 16),
                 // 远程备份信息卡片（包含操作按钮）
-                _buildRemoteInfoCard(colors),
+                if (_backupMode == 'full')
+                  _buildRemoteInfoCard(colors)
+                else
+                  _buildIncrementalInfoCard(colors),
                 const SizedBox(height: 24),
               ],
 
@@ -479,6 +723,187 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   }
 
   // ── widgets ─────────────────────────────────────────
+
+  Widget _buildModeSwitch(ColorScheme colors) {
+    Widget segment(String mode, String label, IconData icon) {
+      final selected = _backupMode == mode;
+      return Expanded(
+        child: GestureDetector(
+          onTap: _isLoading ? null : () => _switchMode(mode),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: selected ? colors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon,
+                    size: 16,
+                    color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                    )),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          segment('full', '全量备份'.tr, Icons.inventory_2_outlined),
+          segment('inc', '增量备份'.tr, Icons.timeline),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIncrementalInfoCard(ColorScheme colors) {
+    String versionText = _incManifestVersion == null
+        ? '尚未建立'.tr
+        : 'v$_incManifestVersion';
+    String syncText = '暂无记录'.tr;
+    if (_incLastSync != null) {
+      final dt = DateTime.tryParse(_incLastSync!)?.toLocal();
+      if (dt != null) {
+        syncText = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5), width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.timeline, size: 18, color: colors.primary),
+              const SizedBox(width: 8),
+              Text('增量备份'.tr,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              const Spacer(),
+              if (_isLoadingIncInfo)
+                SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+              else
+                GestureDetector(
+                  onTap: _loadIncInfo,
+                  child: Icon(Icons.refresh, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('基线版本'.tr,
+                        style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                    const SizedBox(height: 4),
+                    Text(versionText,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('上次同步'.tr,
+                        style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                    const SizedBox(height: 4),
+                    Text(syncText,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
+          const SizedBox(height: 12),
+          if (_isLoading) ...[
+            SizedBox(
+              width: double.infinity,
+              child: LinearProgressIndicator(
+                backgroundColor: colors.surfaceContainerHighest,
+                color: colors.primary,
+                minHeight: 3,
+                borderRadius: BorderRadius.circular(1.5),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(_syncStep,
+                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          ] else ...[
+            _buildBtn(colors, '立即同步'.tr,
+                onTap: _isLoading ? null : () => _showIncSyncConfirm()),
+            const SizedBox(height: 10),
+            Text(
+              '与其他设备双向同步数据，最后修改的内容优先'.tr,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: colors.onSurface.withValues(alpha: 0.4),
+                  height: 1.5),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: _isLoading ? null : _restoreConfirm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    child: Text('找回误删的数据'.tr,
+                        style: TextStyle(
+                            fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 12,
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                ),
+                GestureDetector(
+                  onTap: _isLoading ? null : _reDownloadConfirm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    child: Text('修复同步异常'.tr,
+                        style: TextStyle(
+                            fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   Widget _buildConnectedBanner(ColorScheme colors) {
     return Container(

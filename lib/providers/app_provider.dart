@@ -23,6 +23,7 @@ import '../data/person/game_person_dao.dart';
 import '../data/character/movie_character_dao.dart';
 import '../data/character/book_character_dao.dart';
 import '../data/character/game_character_dao.dart';
+import '../services/sync/incremental/sync_tombstones.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
 import '../utils/user_prefs.dart';
@@ -778,6 +779,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> removePlaylist(String id) async {
+    await SyncTombstones.record('playlists', id);
     await _playlistDao.deletePlaylist(id);
     _playlists.removeWhere((p) => p.id == id);
     notifyListeners();
@@ -1039,6 +1041,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除影视
   Future<void> permanentDeleteMovie(String id) async {
+    await SyncTombstones.record('movies', id);
     await ImagePathHelper.instance.deleteMovieImages(id);
     await _movieDao.permanentDeleteMovie(id);
   }
@@ -1056,6 +1059,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除书籍
   Future<void> permanentDeleteBook(String id) async {
+    await SyncTombstones.record('books', id);
     await ImagePathHelper.instance.deleteBookImages(id);
     await _bookDao.permanentDeleteBook(id);
   }
@@ -1073,6 +1077,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除笔记
   Future<void> permanentDeleteNote(String id) async {
+    await SyncTombstones.record('notes', id);
     await ImagePathHelper.instance.deleteNoteImages(id);
     await _noteDao.permanentDeleteNote(id);
   }
@@ -1090,6 +1095,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除游戏
   Future<void> permanentDeleteGame(String id) async {
+    await SyncTombstones.record('games', id);
     await ImagePathHelper.instance.deleteGameImages(id);
     await _gameDao.permanentDeleteGame(id);
   }
@@ -1214,6 +1220,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> permanentDeleteMovieReview(String id) async {
+    await SyncTombstones.record('movie_reviews', id);
     await _reviewDao.permanentDeleteReview(id);
   }
 
@@ -1226,6 +1233,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> permanentDeleteBookReview(String id) async {
+    await SyncTombstones.record('book_reviews', id);
     await _bookReviewDao.permanentDeleteReview(id);
   }
 
@@ -1240,6 +1248,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> permanentDeleteGameReview(String id) async {
+    await SyncTombstones.record('game_reviews', id);
     await _gameReviewDao.permanentDeleteReview(id);
   }
 
@@ -1254,6 +1263,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> permanentDeleteBookExcerpt(String id) async {
+    await SyncTombstones.record('book_excerpts', id);
     await _bookExcerptDao.permanentDeleteExcerpt(id);
   }
 
@@ -1409,6 +1419,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除人物
   Future<void> permanentDeletePerson(String id) async {
+    await SyncTombstones.record('people', id);
     await ImagePathHelper.instance.deletePersonImages(id);
     await _personDao.permanentDeletePerson(id);
   }
@@ -1669,6 +1680,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除影视角色
   Future<void> permanentDeleteMovieCharacter(String id) async {
+    await SyncTombstones.record('movie_characters', id);
     await ImagePathHelper.instance.deleteCharacterImages(id);
     await _movieCharacterDao.permanentDelete(id);
   }
@@ -1710,6 +1722,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除书籍角色
   Future<void> permanentDeleteBookCharacter(String id) async {
+    await SyncTombstones.record('book_characters', id);
     await ImagePathHelper.instance.deleteCharacterImages(id);
     await _bookCharacterDao.permanentDelete(id);
   }
@@ -1751,6 +1764,7 @@ class AppProvider extends ChangeNotifier {
 
   /// 彻底删除游戏角色
   Future<void> permanentDeleteGameCharacter(String id) async {
+    await SyncTombstones.record('game_characters', id);
     await ImagePathHelper.instance.deleteCharacterImages(id);
     await _gameCharacterDao.permanentDelete(id);
   }

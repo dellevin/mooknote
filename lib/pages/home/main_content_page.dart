@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import '../../services/sync/webdav_service.dart';
+import '../../services/sync/incremental/inc_sync_service.dart';
 import '../movies/movie_tab_page.dart';
 import '../book/book_tab_page.dart';
 import '../note/note_tab_page.dart';
@@ -437,10 +439,14 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
   bool _loading = true;
   bool _syncing = false;
   String _syncStep = '';
+  String _backupMode = 'full';
 
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted) setState(() => _backupMode = prefs.getString('webdav_backup_mode') ?? 'full');
+    });
     if (widget.hasConfig) {
       _loadRemoteInfo();
     } else {
@@ -464,6 +470,33 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
   Future<void> _performSync(SyncDirection direction) async {
     // 保存外层 navigator，pop bottom sheet 后还能用它弹 dialog
     final navigator = Navigator.of(context);
+
+    if (_backupMode == 'inc') {
+      // ── 增量备份分支：双向同步（拉取远程变更 + 推送本地变更） ──
+      setState(() => _syncStep = '正在同步数据...'.tr);
+      await Future.delayed(Duration.zero);
+      final result = await IncSyncService.instance.upload();
+      if (result.success && result.needReload && mounted) {
+        final provider = context.read<AppProvider>();
+        await provider.loadMovies();
+        await provider.loadBooks();
+        await provider.loadNotes();
+        await provider.loadGames();
+        await provider.loadPlaylists();
+        await provider.loadPeople();
+      }
+      if (mounted) {
+        setState(() => _syncing = false);
+        Navigator.pop(context); // 关闭 bottom sheet
+      }
+      _showResultDialog(navigator,
+        title: (result.success ? '同步成功' : '同步失败').tr,
+        message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败').tr,
+        isSuccess: result.success,
+        details: {'uploaded': result.uploadedRecords + result.uploadedImages, 'downloaded': result.downloadedRecords + result.downloadedImages},
+      );
+      return;
+    }
 
     if (direction == SyncDirection.upload) {
       // 上传：先打包，再上传
@@ -554,13 +587,21 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
             width: 36, height: 4, margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(color: bc.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
           )),
-          Text('云备份'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text('云备份'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: bc.onSurface)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(color: bc.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(6)),
+              child: Text(_backupMode == 'inc' ? '增量备份'.tr : '全量备份'.tr, style: TextStyle(fontSize: 11, color: bc.primary)),
+            ),
+          ]),
           if (_loading)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: bc.primary)),
             )
-          else if (_modifiedTime != null || _remoteSize != null) ...[
+          else if (_backupMode == 'full' && (_modifiedTime != null || _remoteSize != null)) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -598,9 +639,13 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
               ]),
             ),
           ] else ...[
-            _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据'.tr, desc: widget.hasConfig ? '将本地数据同步到云端'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc),
-            const SizedBox(height: 8),
-            _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据'.tr, desc: widget.hasConfig ? '从云端恢复数据到本地'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.download) : null, colors: bc),
+            if (_backupMode == 'inc')
+              _cloudCard(icon: Icons.sync, title: '同步数据'.tr, desc: widget.hasConfig ? '与其他设备双向同步，最后修改优先'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc)
+            else ...[
+              _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据'.tr, desc: widget.hasConfig ? '将本地数据打包上传到云端'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc),
+              const SizedBox(height: 8),
+              _cloudCard(icon: Icons.cloud_download_outlined, title: '下载数据'.tr, desc: widget.hasConfig ? '从云端恢复数据到本地'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.download) : null, colors: bc),
+            ],
             const SizedBox(height: 8),
             _cloudCard(icon: Icons.settings_outlined, title: 'WebDAV 设置'.tr, desc: '配置服务器地址与认证信息'.tr, enabled: true, onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const WebDAVSyncPage())); }, colors: bc),
           ],

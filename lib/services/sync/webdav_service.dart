@@ -11,9 +11,21 @@ import 'package:path/path.dart' as p;
 import 'backup_service.dart';
 import '../../l10n/app_strings.dart';
 
+/// 带认证请求的完整响应
+class AuthedHttpResponse {
+  final int statusCode;
+  final Map<String, String> headers;
+  final Uint8List body;
+
+  AuthedHttpResponse({
+    required this.statusCode,
+    required this.headers,
+    required this.body,
+  });
+}
+
 /// WebDAV 同步结果
-class SyncResult {
-  final bool success;
+class SyncResult {  final bool success;
   final String message;
   final DateTime? lastSyncTime;
   final int uploadedFiles;
@@ -346,25 +358,59 @@ class WebDAVService {
     return prefs.getString(_lastSyncKey);
   }
 
-  /// 上传文件到 WebDAV（从文件路径读取，避免备份服务端重复占用内存）
-  Future<bool> _uploadFile(
-    http.Client client,
-    String url,
-    String username,
-    String password,
-    String filePath,
-  ) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) {
-        debugPrint('[WebDAV] _uploadFile: 文件不存在 $filePath');
-        return false;
-      }
-      final bytes = await file.readAsBytes();
+  /// 获取配置的同步根目录完整 URL（无尾斜杠）
+  Future<String> getBaseDirUrl() async {
+    final config = await getConfig();
+    if (config == null) throw StateError('未配置 WebDAV'.tr);
+    final url = config['url']!;
+    final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    return '$baseUrl${_normalizePath(config['path']!)}';
+  }
 
+  /// 带认证的通用请求（已读取完整响应体）
+  Future<AuthedHttpResponse> requestBytes({
+    required String method,
+    required String url,
+    Map<String, String>? headers,
+    List<int>? bodyBytes,
+    Duration? timeout,
+  }) async {
+    final config = await getConfig();
+    if (config == null) throw StateError('未配置 WebDAV'.tr);
+
+    final client = http.Client();
+    try {
+      final response = await _sendAuthed(
+        client, method, url, config['username']!, config['password']!,
+        headers: headers, bodyBytes: bodyBytes, timeout: timeout,
+      );
+      final body = await response.stream.toBytes();
+      return AuthedHttpResponse(
+        statusCode: response.statusCode,
+        headers: response.headers,
+        body: body,
+      );
+    } finally {
+      client.close();
+    }
+  }
+
+  /// PUT 上传字节并做 HEAD 存在性 + 大小校验（防止假成功）
+  Future<bool> putVerified(
+    String url,
+    List<int> bytes, {
+    String contentType = 'application/octet-stream',
+  }) async {
+    final config = await getConfig();
+    if (config == null) return false;
+    final username = config['username']!;
+    final password = config['password']!;
+
+    final client = http.Client();
+    try {
       final response = await _sendAuthed(
         client, 'PUT', url, username, password,
-        headers: {'Content-Type': 'application/zip'},
+        headers: {'Content-Type': contentType},
         bodyBytes: bytes,
         timeout: _httpTimeout,
       );
@@ -376,8 +422,6 @@ class WebDAVService {
           response.statusCode == 204;
       if (!putOk) return false;
 
-      // 部分 WebDAV 服务器在写入失败（配额满、超过单文件上限等）时仍返回 200，
-      // 必须 HEAD 校验文件确实存在且大小一致，否则会得到假成功
       final verify = await _sendAuthed(
         client, 'HEAD', url, username, password,
         timeout: _shortTimeout,
@@ -397,9 +441,81 @@ class WebDAVService {
 
       return true;
     } catch (e) {
+      debugPrint('[WebDAV] putVerified error: $e');
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// 上传文件到 WebDAV（从文件路径读取，避免备份服务端重复占用内存）
+  Future<bool> _uploadFile(
+    http.Client client,
+    String url,
+    String username,
+    String password,
+    String filePath,
+  ) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint('[WebDAV] _uploadFile: 文件不存在 $filePath');
+        return false;
+      }
+      final bytes = await file.readAsBytes();
+      return _putBytesAndVerify(
+        client, url, username, password, bytes,
+        contentType: 'application/zip',
+      );
+    } catch (e) {
       debugPrint('[WebDAV] _uploadFile error: $e');
       return false;
     }
+  }
+
+  /// PUT + HEAD 校验（使用调用方提供的 client）
+  Future<bool> _putBytesAndVerify(
+    http.Client client,
+    String url,
+    String username,
+    String password,
+    List<int> bytes, {
+    required String contentType,
+  }) async {
+    final response = await _sendAuthed(
+      client, 'PUT', url, username, password,
+      headers: {'Content-Type': contentType},
+      bodyBytes: bytes,
+      timeout: _httpTimeout,
+    );
+    await response.stream.drain();
+
+    debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
+    final putOk = response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204;
+    if (!putOk) return false;
+
+    // 部分 WebDAV 服务器在写入失败（配额满、超过单文件上限等）时仍返回 200，
+    // 必须 HEAD 校验文件确实存在且大小一致，否则会得到假成功
+    final verify = await _sendAuthed(
+      client, 'HEAD', url, username, password,
+      timeout: _shortTimeout,
+    );
+    await verify.stream.drain();
+
+    if (verify.statusCode != 200) {
+      debugPrint('[WebDAV] PUT 返回成功但 HEAD 校验为 ${verify.statusCode}，文件实际未保存: $url');
+      return false;
+    }
+
+    final remoteLength = int.tryParse(verify.headers['content-length'] ?? '');
+    if (remoteLength != null && remoteLength != bytes.length) {
+      debugPrint('[WebDAV] 文件大小不一致: 本地 ${bytes.length} 远程 $remoteLength');
+      return false;
+    }
+
+    return true;
   }
 
   /// 下载文件到本地
