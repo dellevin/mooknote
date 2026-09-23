@@ -371,7 +371,31 @@ class WebDAVService {
       await response.stream.drain();
 
       debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
-      return response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204;
+      final putOk = response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204;
+      if (!putOk) return false;
+
+      // 部分 WebDAV 服务器在写入失败（配额满、超过单文件上限等）时仍返回 200，
+      // 必须 HEAD 校验文件确实存在且大小一致，否则会得到假成功
+      final verify = await _sendAuthed(
+        client, 'HEAD', url, username, password,
+        timeout: _shortTimeout,
+      );
+      await verify.stream.drain();
+
+      if (verify.statusCode != 200) {
+        debugPrint('[WebDAV] PUT 返回成功但 HEAD 校验为 ${verify.statusCode}，文件实际未保存: $url');
+        return false;
+      }
+
+      final remoteLength = int.tryParse(verify.headers['content-length'] ?? '');
+      if (remoteLength != null && remoteLength != bytes.length) {
+        debugPrint('[WebDAV] 文件大小不一致: 本地 ${bytes.length} 远程 $remoteLength');
+        return false;
+      }
+
+      return true;
     } catch (e) {
       debugPrint('[WebDAV] _uploadFile error: $e');
       return false;
@@ -473,7 +497,7 @@ class WebDAVService {
     try {
       final response = await _sendAuthed(
         client, 'PROPFIND', dirUrl, username, password,
-        headers: {'Depth': '1'},
+        headers: {'Depth': '1', 'Cache-Control': 'no-cache'},
       );
 
       if (response.statusCode != 207) {
