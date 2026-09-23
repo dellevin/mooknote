@@ -426,9 +426,9 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('修复同步异常'.tr,
+          title: Text('重新同步'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('如果下载不到其他设备的数据，或同步结果明显不对，可以使用此功能。它会重置本地的同步状态，并从云端完整拉取一次（本地较新的修改不会被覆盖）。'.tr,
+          content: Text('重新从云端完整拉取一遍数据。本地较新的修改不会被覆盖。当同步结果不正常、拉取不到其他设备的数据时使用。'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
             TextButton(
@@ -452,7 +452,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     if (confirmed == true) {
       setState(() {
         _isLoading = true;
-        _syncStep = '正在重新拉取基线数据...'.tr;
+        _syncStep = '正在重新同步...'.tr;
       });
       try {
         final result = await IncSyncService.instance.reDownload();
@@ -493,9 +493,9 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           backgroundColor: colors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('找回误删的数据'.tr,
+          title: Text('从云端恢复'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('以云端数据为准恢复到本机：本地删除过的内容会重新下载回来，本地的旧内容也会被云端的新版本覆盖。本地新增且尚未上传的数据会保留。确定继续？'.tr,
+          content: Text('以云端数据为准覆盖本机：删除过的内容会重新回来，本地的旧内容被云端版本覆盖。本地新增且未上传的数据会保留。确定继续？'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
             TextButton(
@@ -519,7 +519,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     if (confirmed == true) {
       setState(() {
         _isLoading = true;
-        _syncStep = '正在以云端数据恢复...'.tr;
+        _syncStep = '正在从云端恢复...'.tr;
       });
       try {
         final result = await IncSyncService.instance.restoreDownload();
@@ -878,7 +878,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   onTap: _isLoading ? null : _restoreConfirm,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    child: Text('找回误删的数据'.tr,
+                    child: Text('从云端恢复'.tr,
                         style: TextStyle(
                             fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                   ),
@@ -892,7 +892,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
                   onTap: _isLoading ? null : _reDownloadConfirm,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    child: Text('修复同步异常'.tr,
+                    child: Text('重新同步'.tr,
                         style: TextStyle(
                             fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
                   ),
