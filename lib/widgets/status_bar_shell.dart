@@ -161,49 +161,63 @@ class _UnderlineBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       color: colors.surface,
-      child: Row(
-        children: [
-          for (int i = 0; i < tabs.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(i),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(tabs[i].icon, size: 16,
-                                color: currentIndex == i ? colors.primary : colors.onSurfaceVariant),
-                            const SizedBox(width: 6),
-                            Text(tabs[i].label.tr,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
-                                  color: currentIndex == i ? colors.primary : colors.onSurfaceVariant,
-                                )),
-                          ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tabWidth = constraints.maxWidth / tabs.length;
+          return Stack(
+            children: [
+              // 滑动下划线指示器
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                left: currentIndex * tabWidth,
+                bottom: 0,
+                width: tabWidth,
+                height: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: colors.primary,
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  for (int i = 0; i < tabs.length; i++)
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onChanged(i),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(tabs[i].icon, size: 16,
+                                    color: currentIndex == i ? colors.primary : colors.onSurfaceVariant),
+                                const SizedBox(width: 6),
+                                Text(tabs[i].label.tr,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
+                                      color: currentIndex == i ? colors.primary : colors.onSurfaceVariant,
+                                    )),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    Container(
-                      height: 2,
-                      margin: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: currentIndex == i ? colors.primary : Colors.transparent,
-                        borderRadius: BorderRadius.circular(1),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

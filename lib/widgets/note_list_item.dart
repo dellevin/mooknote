@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import 'fade_in_local_image.dart';
+import 'pressable_scale.dart';
 import '../widgets/app_overlay.dart';
 import '../l10n/app_strings.dart';
 
@@ -39,7 +40,7 @@ class _NoteListItemContent extends StatelessWidget {
     );
     final previewText = _getPreviewText(note);
 
-    return GestureDetector(
+    return PressableScale(
       onTap: onTap ?? () async {
         final provider = context.read<AppProvider>();
         await Navigator.pushNamed(context, '/note-detail', arguments: note);

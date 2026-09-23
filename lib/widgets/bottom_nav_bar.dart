@@ -103,15 +103,22 @@ class CustomBottomNavBar extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(28),
-      child: Container(
+      child: SizedBox(
         width: 56,
         height: 56,
-        color: Colors.transparent,
         child: Center(
-          child: Icon(
-            isActive ? activeIcon : icon,
-            color: isActive ? colors.primary : colors.onSurface.withValues(alpha: 0.4),
-            size: 26,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) => ScaleTransition(
+              scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+            child: Icon(
+              isActive ? activeIcon : icon,
+              key: ValueKey(isActive),
+              color: isActive ? colors.primary : colors.onSurface.withValues(alpha: 0.4),
+              size: 26,
+            ),
           ),
         ),
       ),
@@ -120,20 +127,80 @@ class CustomBottomNavBar extends StatelessWidget {
 
   Widget _buildAddButton(BuildContext context, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return _AddButton(
+      colors: colors,
       onTap: () => showAddSheet(context, provider),
       onLongPress: () => showQuickAddSheet(context, provider),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: colors.primary,
-          borderRadius: BorderRadius.circular(12),
+    );
+  }
+}
+
+/// Add 按钮 — 按压缩放动画
+class _AddButton extends StatefulWidget {
+  final ColorScheme colors;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _AddButton({
+    required this.colors,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  State<_AddButton> createState() => _AddButtonState();
+}
+
+class _AddButtonState extends State<_AddButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scale = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.85), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 0.85, end: 1.0), weight: 60),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _ctrl.forward(from: 0);
+        widget.onTap();
+      },
+      onLongPress: widget.onLongPress,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
         ),
-        child: Icon(
-          Icons.add,
-          color: colors.onPrimary,
-          size: 24,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: widget.colors.primary,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.add,
+            color: widget.colors.onPrimary,
+            size: 24,
+          ),
         ),
       ),
     );

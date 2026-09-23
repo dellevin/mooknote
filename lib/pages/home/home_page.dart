@@ -69,8 +69,11 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _isSwitchingPage = true;
-      _pageController.jumpToPage(currentPage);
-      Future.delayed(const Duration(milliseconds: 300), () {
+      _pageController.animateToPage(
+        currentPage,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      ).then((_) {
         if (mounted) {
           _isSwitchingPage = false;
           provider.setBottomNavVisible(true);

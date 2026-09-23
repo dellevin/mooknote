@@ -209,7 +209,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: hasPoster
-                            ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
+                            ? (widget.embedded
+                                ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
+                                : Hero(
+                                    tag: 'poster-movie-${movie.id}',
+                                    child: FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover),
+                                  ))
                             : Center(child: Icon(Icons.movie_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
                       ),
                     ],
@@ -1222,7 +1227,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasPoster
-          ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
+          ? Hero(
+              tag: 'poster-movie-${movie.id}',
+              child: FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover),
+            )
           : Center(child: Icon(Icons.movie_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
     );
   }
@@ -1414,7 +1422,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           ),
           clipBehavior: Clip.antiAlias,
           child: hasPoster
-              ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover)
+              ? Hero(
+                  tag: 'poster-movie-${movie.id}',
+                  child: FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover),
+                )
               : Container(color: Colors.white24, child: const Icon(Icons.movie_outlined, color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
@@ -1618,11 +1629,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           Positioned(
                             top: offset,
                             left: 0, right: 0,
-                            child: FadeInLocalImage(
-                              key: _posterImageKey,
-                              path: movie.posterPath,
-                              fit: BoxFit.fitWidth,
-                              width: constraints.maxWidth,
+                            child: Hero(
+                              tag: 'poster-movie-${movie.id}',
+                              child: FadeInLocalImage(
+                                key: _posterImageKey,
+                                path: movie.posterPath,
+                                fit: BoxFit.fitWidth,
+                                width: constraints.maxWidth,
+                              ),
                             ),
                           ),
                         ],

@@ -5,6 +5,7 @@ import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../widgets/fade_in_local_image.dart';
 import '../widgets/animated_star_rating.dart';
+import '../widgets/pressable_scale.dart';
 import '../utils/toast_util.dart';
 import '../widgets/app_overlay.dart';
 import '../l10n/app_strings.dart';
@@ -20,7 +21,7 @@ class GameListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return PressableScale(
       onTap: onTap ?? () => Navigator.pushNamed(context, '/game-detail', arguments: game),
       onLongPress: () => _showDeleteDialog(context),
       child: Container(
@@ -88,11 +89,14 @@ class GameListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
-      child: FadeInLocalImage(
-        path: game.coverPath,
-        fit: BoxFit.cover,
-        placeholder: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-        errorWidget: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+      child: Hero(
+        tag: 'poster-game-${game.id}',
+        child: FadeInLocalImage(
+          path: game.coverPath,
+          fit: BoxFit.cover,
+          placeholder: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+          errorWidget: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        ),
       ),
     );
   }
