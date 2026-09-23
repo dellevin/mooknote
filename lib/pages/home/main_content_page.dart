@@ -15,7 +15,7 @@ import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
 
-/// 主内容页 - 观影/阅读/笔记标签页（PageView 滑动切换）
+/// 主内容页 - 影视/阅读/游戏/笔记标签页（Stack 常驻 + AnimatedOpacity 交叉淡化切换）
 class MainContentPage extends StatefulWidget {
   const MainContentPage({super.key});
 
@@ -23,7 +23,7 @@ class MainContentPage extends StatefulWidget {
   State<MainContentPage> createState() => _MainContentPageState();
 }
 
-class _MainContentPageState extends State<MainContentPage> with SingleTickerProviderStateMixin {
+class _MainContentPageState extends State<MainContentPage> {
   final UserPrefs _userPrefs = UserPrefs();
 
   // 直接读取 UserPrefs，不缓存到 State——否则 AppProvider 通知重建时
@@ -34,36 +34,13 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
   bool get _showNoteTab => _userPrefs.showNoteTab;
   bool get _showGameTab => _userPrefs.showGameTab;
 
-  late PageController _pageController;
-  late final AnimationController _fadeCtrl; // 点击切换：淡出淡入，不经过中间页
-  bool _isTabTap = false;
-  bool _syncScheduled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: 0);
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 140), value: 1);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    _fadeCtrl.dispose();
-    super.dispose();
-  }
-
-  /// 点击标签：先淡出当前页 → 直接跳转目标页（不过中间页）→ 淡入
-  Future<void> _switchToTab(int enabledIndex, int originalIndex) async {
-    if (_pageController.hasClients && enabledIndex == (_pageController.page?.round() ?? -1)) return;
-    _isTabTap = true;
-    _fadeCtrl.stop();
-    await _fadeCtrl.animateTo(0);
-    if (!mounted) { _isTabTap = false; return; }
-    if (_pageController.hasClients) _pageController.jumpToPage(enabledIndex);
-    context.read<AppProvider>().setMainTabIndex(originalIndex);
-    _fadeCtrl.animateTo(1);
-    _isTabTap = false;
+  /// 点击标签：内容区由 provider.mainTabIndex 声明式驱动（AnimatedOpacity 交叉淡化），
+  /// 只需更新索引，无任何时序窗口，不会回跳
+  void _switchToTab(int originalIndex) {
+    final provider = context.read<AppProvider>();
+    final target = _mapToEnabledTabIndex(originalIndex);
+    if (target == _mapToEnabledTabIndex(provider.mainTabIndex)) return;
+    provider.setMainTabIndex(originalIndex);
   }
 
   List<_TabItem> get _enabledTabs {
@@ -177,7 +154,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
       trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
       onTap: () {
         Navigator.pop(ctx);
-        _switchToTab(idx, tab.originalIndex);
+        _switchToTab(tab.originalIndex);
       },
     );
   }
@@ -242,7 +219,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        _switchToTab(idx, tab.originalIndex);
+                        _switchToTab(tab.originalIndex);
                       },
                       onLongPress: tab.label == '影视'
                           ? () {
@@ -298,10 +275,11 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
                 }).toList(),
               ),
             ),
-            AnimatedBuilder(
-              animation: _pageController,
-              builder: (context, _) {
-                final page = _pageController.hasClients ? _pageController.page ?? 0.0 : safeIndex.toDouble();
+            TweenAnimationBuilder<double>(
+              tween: Tween(end: safeIndex.toDouble()),
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              builder: (context, page, _) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: LayoutBuilder(
@@ -364,7 +342,7 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
     );
   }
 
-  // ─── PageView 内容区 ───
+  // ─── 内容区（全部页面常驻 Stack，AnimatedOpacity 交叉淡化） ───
 
   Widget _buildTabContent() {
     return Consumer<AppProvider>(
@@ -372,36 +350,34 @@ class _MainContentPageState extends State<MainContentPage> with SingleTickerProv
         final tabs = _enabledTabs;
         final safeIndex = _mapToEnabledTabIndex(provider.mainTabIndex).clamp(0, tabs.length - 1);
 
-        // 从其他页面返回时，修正 PageView 页面与 tab 的一致性
-        if (!_syncScheduled) {
-          _syncScheduled = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _syncScheduled = false;
-            if (!mounted || !_pageController.hasClients) return;
-            final currentPage = _pageController.page?.round() ?? 0;
-            if (currentPage != safeIndex) {
-              _pageController.jumpToPage(safeIndex);
-            }
-          });
-        }
+        final pages = <Widget>[
+          if (_showMovieTab) const MovieTabPage(),
+          if (_showBookTab) const BookTabPage(),
+          if (_showGameTab) const GameTabPage(),
+          if (_showNoteTab) const NoteTabPage(),
+        ];
 
-        return FadeTransition(
-          opacity: _fadeCtrl,
-          child: PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(), // 仅点击标签栏切换，禁止滑动切换
-            onPageChanged: (index) {
-              if (!_isTabTap && index < tabs.length) {
-                provider.setMainTabIndex(tabs[index].originalIndex);
-              }
-            },
-            children: [
-              if (_showMovieTab) const MovieTabPage(),
-              if (_showBookTab) const BookTabPage(),
-              if (_showGameTab) const GameTabPage(),
-              if (_showNoteTab) const NoteTabPage(),
-            ],
-          ),
+        // 所有页面常驻：状态（滚动位置、内部分页）永久保留。
+        // 不透明度由 provider.mainTabIndex 声明式驱动——切换只是改索引，
+        // 无控制器、无时序窗口，结构上不可能回跳或叠影。
+        // 纯淡出淡入：进入页淡入(260ms)、离开页淡出稍慢(340ms)，过渡中背景几乎不透出。
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            for (var i = 0; i < pages.length; i++)
+              IgnorePointer(
+                ignoring: i != safeIndex,
+                child: AnimatedOpacity(
+                  opacity: i == safeIndex ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: i == safeIndex ? 260 : 340),
+                  curve: Curves.easeOut,
+                  child: KeyedSubtree(
+                    key: ValueKey('main-tab-${tabs[i].originalIndex}'),
+                    child: pages[i],
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );

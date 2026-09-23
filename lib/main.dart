@@ -19,6 +19,9 @@ import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
 import 'services/usage_stats_service.dart';
 import 'services/sync/backup_service.dart';
+import 'services/sync/webdav_service.dart';
+import 'services/sync/incremental/inc_sync_service.dart';
+import 'services/sync/incremental/sync_meta_store.dart';
 import 'providers/app_provider.dart';
 import 'l10n/app_strings.dart';
 import 'widgets/app_shell.dart';
@@ -107,6 +110,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _updateCheckDone = false;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   Timer? _autoBackupTimer;
+  Timer? _incAutoSyncTimer;
 
   @override
   void initState() {
@@ -115,6 +119,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     widget.appProvider.loadThemeMode();
     widget.appProvider.addListener(_onThemeChanged);
     _startAutoBackupTimer();
+    _startIncAutoSyncTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applySystemUI();
       _requestStoragePermissionIfNeeded();
@@ -125,6 +130,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _autoBackupTimer?.cancel();
+    _incAutoSyncTimer?.cancel();
     widget.appProvider.removeListener(_onThemeChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -192,6 +198,59 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint('[AutoBackup] 定时自动备份异常: $e');
+    }
+  }
+
+  /// 启动 WebDAV 增量自动同步定时器（每分钟检查一次是否到期）
+  void _startIncAutoSyncTimer() {
+    _incAutoSyncTimer?.cancel();
+    final userPrefs = UserPrefs();
+    if (!userPrefs.webdavIncAutoSyncEnabled) return;
+    _incAutoSyncTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _checkAndRunIncAutoSync();
+    });
+    debugPrint('[IncAutoSync] 定时器已启动，间隔 ${userPrefs.webdavIncAutoSyncIntervalMinutes} 分钟');
+  }
+
+  /// 检查是否需要执行增量自动同步（定时器调用，走间隔判断，静默执行）
+  Future<void> _checkAndRunIncAutoSync() async {
+    final userPrefs = UserPrefs();
+    if (!userPrefs.webdavIncAutoSyncEnabled) {
+      _incAutoSyncTimer?.cancel();
+      return;
+    }
+    // 仅增量备份模式下执行
+    if (userPrefs.webdavBackupMode != 'inc') return;
+    // 未配置 WebDAV 不执行
+    if (await WebDAVService.instance.getConfig() == null) return;
+
+    try {
+      final lastSync = await SyncMetaStore.get(SyncMetaStore.lastSync);
+      if (lastSync != null) {
+        final last = DateTime.tryParse(lastSync)?.toLocal();
+        if (last != null &&
+            DateTime.now().difference(last).inMinutes <
+                userPrefs.webdavIncAutoSyncIntervalMinutes) {
+          return;
+        }
+      }
+
+      final result = await IncSyncService.instance.upload();
+      if (!result.success) {
+        debugPrint('[IncAutoSync] 自动同步失败: ${result.message}');
+        return;
+      }
+      debugPrint('[IncAutoSync] 自动同步完成: 上传 ${result.uploadedRecords} 记录, 下载 ${result.downloadedRecords} 记录');
+      if (result.needReload) {
+        await widget.appProvider.loadMovies();
+        await widget.appProvider.loadBooks();
+        await widget.appProvider.loadNotes();
+        await widget.appProvider.loadGames();
+        await widget.appProvider.loadPlaylists();
+        await widget.appProvider.loadPeople();
+      }
+    } catch (e) {
+      debugPrint('[IncAutoSync] 自动同步异常: $e');
     }
   }
 
@@ -348,6 +407,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _applySystemUI();
       // 从备份页返回后可能改了自动备份设置，重新启动定时器
       _startAutoBackupTimer();
+      _startIncAutoSyncTimer();
     }
   }
 

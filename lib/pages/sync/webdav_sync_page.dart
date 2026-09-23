@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../services/sync/webdav_service.dart';
 import '../../services/sync/incremental/inc_sync_service.dart';
 import '../../providers/app_provider.dart';
@@ -36,6 +37,10 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
   String? _incLastSync;
   bool _isLoadingIncInfo = false;
 
+  // 增量自动同步设置
+  bool _incAutoSyncEnabled = false;
+  int _incAutoSyncInterval = 30;
+
   // 远程备份信息
   DateTime? _remoteModifiedTime;
   int? _remoteFileSize;
@@ -60,6 +65,9 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     final config = await WebDAVService.instance.getConfig();
     final prefs = await SharedPreferences.getInstance();
     _backupMode = prefs.getString('webdav_backup_mode') ?? 'full';
+    final userPrefs = UserPrefs();
+    _incAutoSyncEnabled = userPrefs.webdavIncAutoSyncEnabled;
+    _incAutoSyncInterval = userPrefs.webdavIncAutoSyncIntervalMinutes;
     if (config != null) {
       setState(() {
         _urlController.text = config['url'] ?? '';
@@ -860,6 +868,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             Text(_syncStep,
                 style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
           ] else ...[
+            _buildIncAutoSyncSection(colors),
+            const SizedBox(height: 10),
             _buildBtn(colors, '立即同步'.tr,
                 onTap: _isLoading ? null : () => _showIncSyncConfirm()),
             const SizedBox(height: 10),
@@ -905,8 +915,90 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     );
   }
 
-  Widget _buildConnectedBanner(ColorScheme colors) {
+  /// 自动同步设置：开关 + 间隔（分钟）选择
+  Widget _buildIncAutoSyncSection(ColorScheme colors) {
+    const options = [15, 30, 60, 120];
+    String intervalLabel(int m) =>
+        m < 60 ? '{m}分钟'.trf({'m': m}) : '{h}小时'.trf({'h': m ~/ 60});
+
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule, size: 16, color: colors.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('自动同步'.tr,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+                    const SizedBox(height: 1),
+                    Text(
+                      _incAutoSyncEnabled
+                          ? '每隔 {t} 自动同步一次'.trf({'t': intervalLabel(_incAutoSyncInterval)})
+                          : '开启后按设定间隔自动同步'.tr,
+                      style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4), height: 1.3),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _incAutoSyncEnabled,
+                onChanged: (value) async {
+                  await UserPrefs().setWebdavIncAutoSyncEnabled(value);
+                  setState(() => _incAutoSyncEnabled = value);
+                },
+              ),
+            ],
+          ),
+          if (_incAutoSyncEnabled) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: options.map((m) {
+                final selected = m == _incAutoSyncInterval;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      await UserPrefs().setWebdavIncAutoSyncIntervalMinutes(m);
+                      setState(() => _incAutoSyncInterval = m);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      decoration: BoxDecoration(
+                        color: selected ? colors.primary : colors.surface,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Center(
+                        child: Text(
+                          intervalLabel(m),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                            color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectedBanner(ColorScheme colors) {    return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(

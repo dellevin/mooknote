@@ -366,4 +366,18 @@ class UserPrefs {
   /// 上次本地自动备份时间（ISO8601）
   String? get lastLocalAutoBackupTime => prefs.getString('lastLocalAutoBackupTime');
   Future<bool> setLastLocalAutoBackupTime(String value) => prefs.setString('lastLocalAutoBackupTime', value);
+
+  // ========== WebDAV 增量自动同步 ==========
+
+  /// WebDAV 备份方式：full 全量 / inc 增量
+  String get webdavBackupMode => prefs.getString('webdav_backup_mode') ?? 'full';
+  Future<bool> setWebdavBackupMode(String value) => prefs.setString('webdav_backup_mode', value);
+
+  /// 是否启用增量自动同步
+  bool get webdavIncAutoSyncEnabled => prefs.getBool('webdavIncAutoSyncEnabled') ?? false;
+  Future<bool> setWebdavIncAutoSyncEnabled(bool value) => prefs.setBool('webdavIncAutoSyncEnabled', value);
+
+  /// 增量自动同步间隔（分钟），默认 30
+  int get webdavIncAutoSyncIntervalMinutes => prefs.getInt('webdavIncAutoSyncIntervalMinutes') ?? 30;
+  Future<bool> setWebdavIncAutoSyncIntervalMinutes(int value) => prefs.setInt('webdavIncAutoSyncIntervalMinutes', value);
 }
