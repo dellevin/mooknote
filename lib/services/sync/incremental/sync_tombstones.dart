@@ -24,13 +24,34 @@ class SyncTombstones {
     }
   }
 
-  /// 拉取待推送的墓碑，推送成功后清除
+  /// 拉取待推送的墓碑（仅未推送过的）
   static Future<List<Map<String, dynamic>>> takePending() async {
+    final db = await DatabaseHelper.instance.database;
+    return db.query('sync_tombstones', where: 'pushed = 0');
+  }
+
+  /// 推送成功后标记为已推送。记录保留，待压实嵌入 manifest 后才可清除，
+  /// 否则压实删除 folded delta 时删除信息会丢失
+  static Future<void> markPushed(List<Map<String, dynamic>> rows) async {
+    final db = await DatabaseHelper.instance.database;
+    for (final row in rows) {
+      await db.update(
+        'sync_tombstones',
+        {'pushed': 1},
+        where: 'entity_id = ? AND entity_type = ?',
+        whereArgs: [row['entity_id'], row['entity_type']],
+      );
+    }
+  }
+
+  /// 全部墓碑（含已推送），构建/压实 manifest 时嵌入用
+  static Future<List<Map<String, dynamic>>> all() async {
     final db = await DatabaseHelper.instance.database;
     return db.query('sync_tombstones');
   }
 
-  static Future<void> clearPushed(List<Map<String, dynamic>> rows) async {
+  /// 墓碑已嵌入 manifest 后清除对应记录（只清快照内的，避免误清压实期间新产生的）
+  static Future<void> clearEmbedded(List<Map<String, dynamic>> rows) async {
     final db = await DatabaseHelper.instance.database;
     for (final row in rows) {
       await db.delete(

@@ -168,7 +168,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     setState(() => _isLoading = true);
 
     try {
-      // ── 增量备份分支：双向同步（拉取远程变更 + 推送本地变更） ──
+      // ── 增量备份分支：双向同步（推本地变更 + 拉云端变更，LWW 合并）──
       if (_backupMode == 'inc') {
         setState(() => _syncStep = '正在同步数据...'.tr);
         await Future.delayed(Duration.zero);
@@ -176,8 +176,9 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         if (!mounted) return;
         _loadIncInfo();
         if (result.success) {
-          final details = '上传: {rec} 记录, {img} 图片（去重 {dedup}）\n下载: {drec} 记录, {dimg} 图片'
-              .trf({
+          final details =
+              '上传: {rec} 记录, {img} 图片（去重 {dedup}）\n下载: {drec} 记录, {dimg} 图片'
+                  .trf({
             'rec': result.uploadedRecords,
             'img': result.uploadedImages,
             'dedup': result.dedupImages,
@@ -193,8 +194,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             await provider.loadGames();
             await provider.loadPlaylists();
             await provider.loadPeople();
-            if (mounted) _showResultDialog('同步成功'.tr, details);
-          } else {
+          }
+          if (mounted) {
             _showResultDialog('同步成功'.tr, details);
           }
         } else {
@@ -323,7 +324,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Text('立即同步'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Text('将与其他设备双向同步数据（最后修改的内容优先），点击确定继续'.tr,
+          content: Text(
+              '推送本地变更到云端，并拉取云端变更与本地合并（同一条记录以最后修改为准），点击确定继续'.tr,
               style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
             TextButton(
@@ -422,6 +424,62 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     if (confirmed == true) {
       setState(() => _syncDirection = SyncDirection.download);
       _syncData();
+    }
+  }
+
+  Future<void> _forcePushConfirm() async {
+    final confirmed = await appDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('强制推送'.tr,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          content: Text('以本机数据为准覆盖云端：云端将被重建为本机当前状态，其他设备尚未同步到本机的变更会丢失。确定继续？'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('确定'.tr),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+        _syncStep = '正在强制推送...'.tr;
+      });
+      try {
+        final result = await IncSyncService.instance.forcePush();
+        if (!mounted) return;
+        _loadIncInfo();
+        if (result.success) {
+          _showResultDialog('推送完成'.tr,
+              '上传: {rec} 记录, {img} 图片'.trf({
+            'rec': result.uploadedRecords,
+            'img': result.uploadedImages,
+          }));
+        } else {
+          ToastUtil.show(context, result.message);
+        }
+      } finally {
+        if (mounted) setState(() { _isLoading = false; _syncStep = ''; });
+      }
     }
   }
 
@@ -871,10 +929,10 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             _buildIncAutoSyncSection(colors),
             const SizedBox(height: 10),
             _buildBtn(colors, '立即同步'.tr,
-                onTap: _isLoading ? null : () => _showIncSyncConfirm()),
+                onTap: _isLoading ? null : _showIncSyncConfirm),
             const SizedBox(height: 10),
             Text(
-              '与其他设备双向同步数据，最后修改的内容优先'.tr,
+              '推送本地变更到云端，并拉取云端变更与本地合并（同一条记录以最后修改为准）'.tr,
               style: TextStyle(
                   fontSize: 11,
                   color: colors.onSurface.withValues(alpha: 0.4),
@@ -884,6 +942,20 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                GestureDetector(
+                  onTap: _isLoading ? null : _forcePushConfirm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    child: Text('强制推送'.tr,
+                        style: TextStyle(
+                            fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 12,
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                ),
                 GestureDetector(
                   onTap: _isLoading ? null : _restoreConfirm,
                   child: Padding(

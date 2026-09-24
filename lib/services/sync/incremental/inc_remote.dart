@@ -3,7 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../webdav_service.dart';
 import 'inc_protocol.dart';
 
-/// 增量同步远程文件操作：所有数据位于 <同步目录>/inc/ 下
+/// 增量同步 v2 远程文件操作：所有数据位于 <同步目录>/inc2/ 下
+///
+/// 目录结构：
+///   inc2/manifest.json      全局快照清单
+///   inc2/blobs/<sha256>     内容寻址数据块（记录 chunk / 图片）
+///   inc2/delta/<uuid>.json  平铺的增量包（UUID 文件名，无序号）
 class IncRemote {
   final String base;
   final WebDAVService _dav = WebDAVService.instance;
@@ -12,16 +17,16 @@ class IncRemote {
 
   static Future<IncRemote> create() async {
     final base = await WebDAVService.instance.getBaseDirUrl();
-    final remote = IncRemote('$base/inc');
+    final remote = IncRemote('$base/inc2');
     await remote._ensureDirs();
     return remote;
   }
 
-  /// 确保 inc/、blobs/、delta/ 目录存在（WebDAV 不自动建目录，缺失时 PUT 返回 403/409）
+  /// 确保 inc2/、blobs/、delta/ 目录存在（WebDAV 不自动建目录，缺失时 PUT 返回 403/409）
   Future<void> _ensureDirs() async {
     for (final url in [base, '$base/blobs', '$base/delta']) {
       final resp = await _dav.requestBytes(method: 'MKCOL', url: url);
-      debugPrint('[Inc] MKCOL $url -> ${resp.statusCode}');
+      debugPrint('[Inc2] MKCOL $url -> ${resp.statusCode}');
       // 201 创建成功 / 405 已存在，均视为可用
     }
   }
@@ -33,13 +38,18 @@ class IncRemote {
 
   String get _manifestUrl => '$base/manifest.json';
   String _blobUrl(String hash) => '$base/blobs/$hash';
-  String _deltaUrl(String clientId, int seq) => '$base/delta/$clientId/$seq.json';
+  String _deltaUrl(String name) => '$base/delta/$name';
+
+  /// 防缓存：反代/CDN 可能缓存 GET/HEAD/PROPFIND 响应，导致读到旧的
+  /// manifest 或 delta 列表（同步"成功"但实际没拉到新数据）
+  static String _noCache(String url) =>
+      '$url?_ts=${DateTime.now().millisecondsSinceEpoch}';
 
   /// 获取全局 manifest。
   /// 404 返回 null（允许调用方建立首个基线）；其他失败抛异常，
   /// 防止把网络故障误判为"无基线"从而覆盖云端数据。
   Future<Manifest?> getManifest() async {
-    final resp = await _dav.requestBytes(method: 'GET', url: _manifestUrl);
+    final resp = await _dav.requestBytes(method: 'GET', url: _noCache(_manifestUrl));
     if (resp.statusCode == 404) return null;
     if (resp.statusCode != 200) {
       throw Exception('manifest 获取失败: HTTP ${resp.statusCode}');
@@ -62,56 +72,26 @@ class IncRemote {
     return ok;
   }
 
-  /// 列出各客户端已存在的 delta 序号：clientId → seqs
-  /// 请求失败返回 null，目录为空返回 {}
-  Future<Map<String, List<int>>?> listDeltas() async {
-    // 首选 Depth:2 一次拿全（文件路径 delta/<clientId>/<seq>.json）
-    final hrefs = await _propfindHrefs('$base/delta', depth: '2');
-    if (hrefs == null) {
-      // 不支持 Depth:2 的服务器：降级为先列客户端目录，再逐个列文件
-      final clientDirs = await _propfindHrefs('$base/delta', depth: '1');
-      if (clientDirs == null) return null;
-      final result = <String, List<int>>{};
-      for (final href in clientDirs) {
-        final m = RegExp(r'delta/([^/]+)/?$').firstMatch(href);
-        if (m == null) continue;
-        final cid = m.group(1)!;
-        final files = await _propfindHrefs('$base/delta/$cid', depth: '1');
-        if (files == null) continue;
-        for (final f in files) {
-          final fm = RegExp(r'delta/[^/]+/(\d+)\.json$').firstMatch(f);
-          if (fm != null) {
-            result.putIfAbsent(cid, () => []).add(int.parse(fm.group(1)!));
-          }
-        }
-      }
-      for (final list in result.values) {
-        list.sort();
-      }
-      return result;
-    }
-
-    final result = <String, List<int>>{};
+  /// 列出 delta 目录下所有增量包文件名（如 "abc-uuid.json"）。
+  /// 请求失败返回 null，目录为空/不存在返回 []。
+  Future<List<String>?> listDeltaNames() async {
+    final hrefs = await _propfindHrefs('$base/delta');
+    if (hrefs == null) return null;
+    final result = <String>[];
     for (final href in hrefs) {
-      final match = RegExp(r'delta/([^/]+)/(\d+)\.json$').firstMatch(href);
-      if (match != null) {
-        final cid = match.group(1)!;
-        final seq = int.parse(match.group(2)!);
-        result.putIfAbsent(cid, () => []).add(seq);
-      }
+      final m = RegExp(r'delta/([^/]+\.json)$').firstMatch(href);
+      if (m != null) result.add(m.group(1)!);
     }
-    for (final list in result.values) {
-      list.sort();
-    }
+    result.sort();
     return result;
   }
 
   /// PROPFIND 并提取 href 列表；404 补建目录后视为空；其他失败返回 null
-  Future<List<String>?> _propfindHrefs(String url, {required String depth}) async {
+  Future<List<String>?> _propfindHrefs(String url) async {
     var resp = await _dav.requestBytes(
       method: 'PROPFIND',
-      url: url,
-      headers: {'Depth': depth},
+      url: _noCache(url),
+      headers: {'Depth': '1'},
     );
     if (resp.statusCode == 404 && url.endsWith('/delta')) {
       // delta 目录不存在：补建后视为空
@@ -119,7 +99,7 @@ class IncRemote {
       return [];
     }
     if (resp.statusCode != 207) {
-      debugPrint('[Inc] PROPFIND Depth=$depth $url -> ${resp.statusCode}');
+      debugPrint('[Inc2] PROPFIND $url -> ${resp.statusCode}');
       return null;
     }
     final body = utf8.decode(resp.body);
@@ -130,37 +110,29 @@ class IncRemote {
         .toList();
   }
 
-  Future<DeltaFile?> getDelta(String clientId, int seq) async {
-    final resp = await _dav.requestBytes(method: 'GET', url: _deltaUrl(clientId, seq));
+  Future<DeltaFile?> getDelta(String name) async {
+    final resp = await _dav.requestBytes(method: 'GET', url: _noCache(_deltaUrl(name)));
     if (resp.statusCode != 200) return null;
     try {
       return DeltaFile.fromJson(jsonDecode(utf8.decode(resp.body)) as Map<String, dynamic>);
     } catch (e) {
-      debugPrint('[Inc] delta 解析失败: $e');
+      debugPrint('[Inc2] delta 解析失败: $e');
       return null;
     }
   }
 
-  final Set<String> _ensuredDeltaDirs = {};
-
-  Future<bool> putDelta(DeltaFile delta) async {
-    if (!_ensuredDeltaDirs.contains(delta.clientId)) {
-      await _dav.requestBytes(method: 'MKCOL', url: '$base/delta/${delta.clientId}');
-      _ensuredDeltaDirs.add(delta.clientId);
-    }
+  Future<bool> putDelta(String name, DeltaFile delta) async {
     final bytes = utf8.encode(jsonEncode(delta.toJson()));
     var ok = await _dav.putVerified(
-      _deltaUrl(delta.clientId, delta.seq),
+      _deltaUrl(name),
       bytes,
       contentType: 'application/json',
     );
     if (!ok) {
-      // 目录可能被压实/手动删除，补建后重试
-      _ensuredDeltaDirs.remove(delta.clientId);
-      await _dav.requestBytes(method: 'MKCOL', url: '$base/delta/${delta.clientId}');
-      _ensuredDeltaDirs.add(delta.clientId);
+      // delta 目录可能被删，补建后重试
+      await _dav.requestBytes(method: 'MKCOL', url: '$base/delta');
       ok = await _dav.putVerified(
-        _deltaUrl(delta.clientId, delta.seq),
+        _deltaUrl(name),
         bytes,
         contentType: 'application/json',
       );
@@ -169,12 +141,12 @@ class IncRemote {
   }
 
   Future<bool> blobExists(String hash) async {
-    final resp = await _dav.requestBytes(method: 'HEAD', url: _blobUrl(hash));
+    final resp = await _dav.requestBytes(method: 'HEAD', url: _noCache(_blobUrl(hash)));
     return resp.statusCode == 200;
   }
 
   Future<Uint8List?> getBlob(String hash) async {
-    final resp = await _dav.requestBytes(method: 'GET', url: _blobUrl(hash));
+    final resp = await _dav.requestBytes(method: 'GET', url: _noCache(_blobUrl(hash)));
     if (resp.statusCode != 200) return null;
     return resp.body;
   }
@@ -196,7 +168,7 @@ class IncRemote {
     return ok;
   }
 
-  Future<void> deleteDelta(String clientId, int seq) async {
-    await _dav.requestBytes(method: 'DELETE', url: _deltaUrl(clientId, seq));
+  Future<void> deleteDelta(String name) async {
+    await _dav.requestBytes(method: 'DELETE', url: _deltaUrl(name));
   }
 }

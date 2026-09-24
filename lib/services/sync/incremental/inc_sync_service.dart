@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import '../../../data/database_helper.dart';
 import '../../../utils/image_path_helper.dart';
 import '../../../l10n/app_strings.dart';
@@ -50,7 +51,11 @@ class _Counters {
   int dedupImages = 0;
 }
 
-/// 增量同步服务：内容寻址 blob + manifest + 追加式 delta，多客户端 LWW
+/// 增量同步服务 v2：内容寻址 blob + manifest + 平铺 UUID delta，多客户端 LWW
+///
+/// 核心原理：LWW 合并幂等且可交换——同一批变更无论按什么顺序应用、
+/// 应用几遍，结果都一样。因此不需要序号与水位，本地只需记住
+/// "哪些 delta 文件名已应用过"（appliedDeltas）。
 class IncSyncService {
   static final IncSyncService instance = IncSyncService._internal();
   IncSyncService._internal();
@@ -64,6 +69,7 @@ class IncSyncService {
   /// 重置本地基线状态并重新拉取（用于修复历史卡死的同步状态）
   Future<IncSyncResult> reDownload() async {
     await SyncMetaStore.set(SyncMetaStore.manifestVersion, '0');
+    await SyncMetaStore.setAppliedDeltas({});
     return _run(push: false);
   }
 
@@ -98,24 +104,12 @@ class IncSyncService {
         for (final chunk in manifest.chunks[spec.table] ?? []) {
           final bytes = await remote.getBlob(chunk.hash);
           if (bytes == null) {
-            debugPrint('[Inc] 恢复: 分块拉取失败 ${chunk.hash}');
+            debugPrint('[Inc2] 恢复: 分块拉取失败 ${chunk.hash}');
             continue;
           }
           try {
             final obj = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-            final groupsBucket = <String, Map<String, List<Map<String, dynamic>>>>{};
-            final groupsObj = (obj['g'] as Map<String, dynamic>?) ?? {};
-            groupsObj.forEach((gt, rows) {
-              final gspec = IncEntities.groupSpecOf(gt);
-              if (gspec == null) return;
-              for (final r in rows as List) {
-                final row = Map<String, dynamic>.from(r as Map);
-                groupsBucket
-                    .putIfAbsent(row[gspec.parentColumn] as String, () => {})
-                    .putIfAbsent(gt, () => [])
-                    .add(row);
-              }
-            });
+            final groupsBucket = _bucketGroups(obj);
             for (final r in obj['rows'] as List) {
               final row = Map<String, dynamic>.from(r as Map);
               await _mergeUpsert(
@@ -134,31 +128,44 @@ class IncSyncService {
             }
             seen.add(chunk.hash);
           } catch (e) {
-            debugPrint('[Inc] 恢复: 分块应用失败: $e');
+            debugPrint('[Inc2] 恢复: 分块应用失败: $e');
           }
         }
       }
 
-      // 2) 强制应用全部 delta（基线之后的全部历史）
-      final listing = await remote.listDeltas();
-      if (listing == null) {
+      // 1.5) 应用 manifest 携带的墓碑（LWW：时间戳比删除更新的行保留）
+      for (final t in manifest.tombstones) {
+        if (IncEntities.specOf(t.table) == null) continue;
+        await _mergeDelete(
+          table: t.table,
+          id: t.id,
+          incomingTs: t.ts,
+          origin: t.clientId,
+          counters: counters,
+          localWins: localWins,
+        );
+      }
+
+      // 2) 对账：本地有而 manifest 没有的记录（且非待推送）视为远程已删
+      await _reconcile(
+        manifest: manifest,
+        counters: counters,
+      );
+
+      // 3) 强制应用全部未折叠 delta（已折叠的内容在 manifest 分块里）
+      final names = await remote.listDeltaNames();
+      if (names == null) {
         return IncSyncResult(success: false, message: '无法读取远程增量列表，同步中止'.tr);
       }
-      final pending = <(String, int)>[];
-      listing.forEach((cid, seqs) {
-        for (final seq in seqs) {
-          pending.add((cid, seq));
+      final folded = manifest.foldedDeltas.toSet();
+      final applied = <String>{};
+      for (final name in names) {
+        if (folded.contains(name)) continue;
+        final delta = await remote.getDelta(name);
+        if (delta == null) {
+          debugPrint('[Inc2] 恢复: delta 拉取失败 $name');
+          continue;
         }
-      });
-      pending.sort((a, b) {
-        final c = a.$1.compareTo(b.$1);
-        return c != 0 ? c : a.$2.compareTo(b.$2);
-      });
-
-      final marks = <String, int>{};
-      for (final (cid, seq) in pending) {
-        final delta = await remote.getDelta(cid, seq);
-        if (delta == null) continue;
         imageMap.addAll(delta.images);
         for (final op in delta.ops) {
           final spec = IncEntities.specOf(op.table);
@@ -168,7 +175,7 @@ class IncSyncService {
               table: op.table,
               id: op.id,
               incomingTs: op.ts,
-              origin: cid,
+              origin: delta.clientId,
               counters: counters,
               localWins: localWins,
               force: true,
@@ -177,7 +184,7 @@ class IncSyncService {
             await _mergeUpsert(
               spec: spec,
               incomingRow: op.row!,
-              origin: cid,
+              origin: delta.clientId,
               incomingTs: op.ts,
               groups: op.groups,
               counters: counters,
@@ -193,7 +200,7 @@ class IncSyncService {
               parentId: op.id,
               incomingTs: op.ts,
               groups: op.groups!,
-              origin: cid,
+              origin: delta.clientId,
               counters: counters,
               localWins: localWins,
               codec: codec,
@@ -203,13 +210,13 @@ class IncSyncService {
             );
           }
         }
-        marks[cid] = seq;
+        applied.add(name);
       }
 
-      // 3) 收尾：本地状态对齐到刚恢复的云端状态
+      // 4) 收尾：本地状态对齐到刚恢复的云端状态
       await SyncMetaStore.set(SyncMetaStore.manifestVersion, '${manifest.version}');
       await SyncMetaStore.setSeenChunks(seen);
-      await SyncMetaStore.setWatermarks(marks);
+      await SyncMetaStore.setAppliedDeltas(applied);
       await SyncMetaStore.setImageMap(imageMap);
       await SyncMetaStore.set(SyncMetaStore.lastSync, syncStart);
       if (await SyncMetaStore.get(SyncMetaStore.pushAfter) == null) {
@@ -225,8 +232,95 @@ class IncSyncService {
         manifestVersion: manifest.version,
       );
     } catch (e) {
-      debugPrint('[Inc] 恢复异常: $e');
+      debugPrint('[Inc2] 恢复异常: $e');
       return IncSyncResult(success: false, message: '恢复失败: {e}'.trf({'e': e}));
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
+  /// 强制推送：以本地为准重建云端基线并覆盖，删除远程全部 delta。
+  /// 其他设备下次同步时按新基线合并（其他设备较新的修改仍按 LWW 保留）。
+  /// 用于云端数据异常时以本机为准修复云端。
+  Future<IncSyncResult> forcePush() async {
+    if (_isSyncing) {
+      return IncSyncResult(success: false, message: '同步正在进行中，请稍后再试'.tr);
+    }
+    _isSyncing = true;
+
+    final syncStart = DateTime.now().toUtc().toIso8601String();
+
+    try {
+      final clientId = await SyncIdentity.clientId();
+      final remote = await IncRemote.create();
+      final appDir = await ImagePathHelper.getAppDir();
+      final codec = IncRowCodec(path.join(appDir, 'images'));
+
+      final prev = await remote.getManifest();
+      final newVersion = (prev?.version ?? 0) + 1;
+
+      // 墓碑随 manifest 携带：合并上一版 manifest 与本地墓碑
+      final tombRows = await SyncTombstones.all();
+      final merged = <String, TombstoneEntry>{
+        for (final t in prev?.tombstones ?? const <TombstoneEntry>[])
+          '${t.table}|${t.id}': t,
+      };
+      for (final r in tombRows) {
+        final e = _tombEntryFromRow(r);
+        merged['${e.table}|${e.id}'] = e;
+      }
+
+      final built = await IncManifestBuilder.buildFromLocal(
+        remote: remote,
+        codec: codec,
+        version: newVersion,
+        clientId: clientId,
+        foldedDeltas: const [],
+        imageMap: {},
+        tombstones: merged.values.toList(),
+      );
+      if (!await remote.putManifest(built)) {
+        return IncSyncResult(success: false, message: '上传基线失败'.tr);
+      }
+
+      // 远程旧 delta 的内容已被新基线取代，全部删除
+      final names = await remote.listDeltaNames();
+      if (names == null) {
+        return IncSyncResult(success: false, message: '基线已上传，但清理远程增量失败，请重试'.tr);
+      }
+      for (final name in names) {
+        await remote.deleteDelta(name);
+      }
+
+      // 本地状态对齐到新基线
+      await SyncTombstones.clearEmbedded(tombRows);
+      final imageCount = built.images.length;
+      final recordCount = built.chunks.values
+          .expand((list) => list)
+          .fold<int>(0, (a, c) => a + c.ids.length);
+      await SyncMetaStore.set(SyncMetaStore.manifestVersion, '$newVersion');
+      final seen = await SyncMetaStore.getSeenChunks();
+      for (final list in built.chunks.values) {
+        for (final c in list) {
+          seen.add(c.hash);
+        }
+      }
+      await SyncMetaStore.setSeenChunks(seen);
+      await SyncMetaStore.setAppliedDeltas({});
+      await SyncMetaStore.setImageMap(built.images);
+      await SyncMetaStore.set(SyncMetaStore.pushAfter, syncStart);
+      await SyncMetaStore.set(SyncMetaStore.lastSync, syncStart);
+
+      return IncSyncResult(
+        success: true,
+        message: '推送完成'.tr,
+        uploadedRecords: recordCount,
+        uploadedImages: imageCount,
+        manifestVersion: newVersion,
+      );
+    } catch (e) {
+      debugPrint('[Inc2] 强制推送异常: $e');
+      return IncSyncResult(success: false, message: '推送失败: {e}'.trf({'e': e}));
     } finally {
       _isSyncing = false;
     }
@@ -247,7 +341,7 @@ class IncSyncService {
     }
   }
 
-  Future<IncSyncResult> _run({required bool push}) async {
+  Future<IncSyncResult> _run({required bool push, bool pull = true}) async {
     if (_isSyncing) {
       return IncSyncResult(success: false, message: '同步正在进行中，请稍后再试'.tr);
     }
@@ -266,24 +360,28 @@ class IncSyncService {
 
       // ── 情况1：远程尚无基线，本客户端成为首个客户端 ──
       if (manifest == null) {
+        final tombRows = await SyncTombstones.all();
         final built = await IncManifestBuilder.buildFromLocal(
           remote: remote,
           codec: codec,
           version: 1,
           clientId: clientId,
-          folded: {clientId: 0},
+          foldedDeltas: const [],
           imageMap: {},
+          tombstones: tombRows.map(_tombEntryFromRow).toList(),
         );
         final ok = await remote.putManifest(built);
         if (!ok) {
           return IncSyncResult(success: false, message: '上传基线失败'.tr);
         }
+        // 墓碑已嵌入基线，本地记录可清除
+        await SyncTombstones.clearEmbedded(tombRows);
         final imageCount = built.images.length;
         final recordCount = built.chunks.values
             .expand((list) => list)
             .fold<int>(0, (a, c) => a + c.ids.length);
         await SyncMetaStore.set(SyncMetaStore.manifestVersion, '1');
-        await SyncMetaStore.setWatermarks({clientId: 0});
+        await SyncMetaStore.setAppliedDeltas({});
         await SyncMetaStore.setImageMap(built.images);
         await SyncMetaStore.set(SyncMetaStore.pushAfter, syncStart);
         await SyncMetaStore.set(SyncMetaStore.lastSync, syncStart);
@@ -298,17 +396,31 @@ class IncSyncService {
 
       // ── 情况2：基线存在，拉取合并 ──
       final localV = await SyncMetaStore.getInt(SyncMetaStore.manifestVersion) ?? 0;
-      final isNewManifest = localV < manifest.version;
+      final isNewManifest = pull && localV < manifest.version;
       final localWins = <String>{};
       var imageMap = await SyncMetaStore.getImageMap();
+      var appliedDeltas = await SyncMetaStore.getAppliedDeltas();
       var manifestApplied = true;
 
       if (isNewManifest) {
         // 先合并 manifest 自带的图片映射（分块内记录可能引用同包新图片）
         imageMap.addAll(manifest.images);
 
+        // 0) 应用 manifest 携带的墓碑：被压实折叠的删除只能通过这里传播
+        for (final t in manifest.tombstones) {
+          if (IncEntities.specOf(t.table) == null) continue;
+          await _mergeDelete(
+            table: t.table,
+            id: t.id,
+            incomingTs: t.ts,
+            origin: t.clientId,
+            counters: counters,
+            localWins: localWins,
+          );
+        }
+
         // 1) 应用新 manifest 的分块
-        debugPrint('[Inc] manifest v${manifest.version} 本地 v$localV，开始应用分块');
+        debugPrint('[Inc2] manifest v${manifest.version} 本地 v$localV，开始应用分块');
         final seen = await SyncMetaStore.getSeenChunks();
         var chunkTotal = 0;
         for (final spec in IncEntities.entities) {
@@ -317,26 +429,13 @@ class IncSyncService {
             if (seen.contains(chunk.hash)) continue;
             final bytes = await remote.getBlob(chunk.hash);
             if (bytes == null) {
-              debugPrint('[Inc] 分块拉取失败: ${chunk.hash}');
+              debugPrint('[Inc2] 分块拉取失败: ${chunk.hash}');
               manifestApplied = false;
               continue;
             }
             try {
               final obj = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-              // 子组按父 id 分桶
-              final groupsBucket = <String, Map<String, List<Map<String, dynamic>>>>{};
-              final groupsObj = (obj['g'] as Map<String, dynamic>?) ?? {};
-              groupsObj.forEach((gt, rows) {
-                final gspec = IncEntities.groupSpecOf(gt);
-                if (gspec == null) return;
-                for (final r in rows as List) {
-                  final row = Map<String, dynamic>.from(r as Map);
-                  groupsBucket
-                      .putIfAbsent(row[gspec.parentColumn] as String, () => {})
-                      .putIfAbsent(gt, () => [])
-                      .add(row);
-                }
-              });
+              final groupsBucket = _bucketGroups(obj);
               for (final r in obj['rows'] as List) {
                 final row = Map<String, dynamic>.from(r as Map);
                 await _mergeUpsert(
@@ -354,100 +453,104 @@ class IncSyncService {
               }
               seen.add(chunk.hash);
             } catch (e) {
-              debugPrint('[Inc] chunk 应用失败: $e');
+              debugPrint('[Inc2] chunk 应用失败: $e');
               manifestApplied = false;
             }
           }
         }
         await SyncMetaStore.setSeenChunks(seen);
-        debugPrint('[Inc] 分块应用结束: 共 $chunkTotal 块, 完整=$manifestApplied, 下载 ${counters.downRecords} 条');
+        debugPrint('[Inc2] 分块应用结束: 共 $chunkTotal 块, 完整=$manifestApplied, 下载 ${counters.downRecords} 条');
 
-        // 2) 折叠水位 + 图片映射
-        final marks = await SyncMetaStore.getWatermarks();
-        for (final entry in manifest.folded.entries) {
-          marks[entry.key] = max(marks[entry.key] ?? 0, entry.value);
+        // 2) 对账：硬删除不会出现在任何 delta/墓碑里，只能靠
+        //    "manifest 有全量 ID 列表" 这一事实反向推断
+        if (manifestApplied) {
+          await _reconcile(manifest: manifest, counters: counters);
         }
-        await SyncMetaStore.setWatermarks(marks);
+
+        // 3) 已折叠的 delta 内容在分块里，从待应用集合中剔除
+        appliedDeltas.removeAll(manifest.foldedDeltas);
         imageMap.addAll(manifest.images);
       }
 
-      // 3) 应用新 delta（按客户端、序号全局排序，保证确定性）
-      var marks = await SyncMetaStore.getWatermarks();
-      final listing = await remote.listDeltas();
-      if (listing == null) {
+      // 拉取远程增量列表（拉取合并与压实检查共用）
+      final names = await remote.listDeltaNames();
+      if (names == null) {
         return IncSyncResult(success: false, message: '无法读取远程增量列表，同步中止'.tr);
       }
-      final pending = <(String, int)>[];
-      listing.forEach((cid, seqs) {
-        for (final seq in seqs) {
-          if (seq > (marks[cid] ?? 0)) pending.add((cid, seq));
-        }
-      });
-      pending.sort((a, b) {
-        final c = a.$1.compareTo(b.$1);
-        return c != 0 ? c : a.$2.compareTo(b.$2);
-      });
-      debugPrint('[Inc] 待应用 delta: ${pending.length} 个');
 
-      for (final (cid, seq) in pending) {
-        final delta = await remote.getDelta(cid, seq);
-        if (delta == null) continue;
-        // 先合并本包图片映射，保证同包内新图片可下载
-        imageMap.addAll(delta.images);
-        for (final op in delta.ops) {
-          final spec = IncEntities.specOf(op.table);
-          if (spec == null) continue;
-          if (op.deleted) {
-            await _mergeDelete(
-              table: op.table,
-              id: op.id,
-              incomingTs: op.ts,
-              origin: cid,
-              counters: counters,
-              localWins: localWins,
-            );
-          } else if (op.row != null) {
-            await _mergeUpsert(
-              spec: spec,
-              incomingRow: op.row!,
-              origin: cid,
-              incomingTs: op.ts,
-              groups: op.groups,
-              counters: counters,
-              localWins: localWins,
-              codec: codec,
-              remote: remote,
-              imageMap: imageMap,
-            );
-          } else if (op.groups != null) {
-            // 仅子组变更：父行保持本地不变，只替换子组
-            await _mergeGroupsOnly(
-              spec: spec,
-              parentId: op.id,
-              incomingTs: op.ts,
-              groups: op.groups!,
-              origin: cid,
-              counters: counters,
-              localWins: localWins,
-              codec: codec,
-              remote: remote,
-              imageMap: imageMap,
-            );
+      var allDeltasClean = true;
+      if (pull) {
+        // 4) 应用未见过的 delta（LWW 幂等可交换，无需排序）
+        final folded = manifest.foldedDeltas.toSet();
+        final pending = names
+            .where((n) => !appliedDeltas.contains(n) && !folded.contains(n))
+            .toList();
+        debugPrint('[Inc2] 待应用 delta: ${pending.length} 个');
+
+        for (final name in pending) {
+          final delta = await remote.getDelta(name);
+          if (delta == null) {
+            // 拉取失败：不记入已应用，下次同步重试
+            allDeltasClean = false;
+            continue;
           }
+          // 先合并本包图片映射，保证同包内新图片可下载
+          imageMap.addAll(delta.images);
+          for (final op in delta.ops) {
+            final spec = IncEntities.specOf(op.table);
+            if (spec == null) continue;
+            if (op.deleted) {
+              await _mergeDelete(
+                table: op.table,
+                id: op.id,
+                incomingTs: op.ts,
+                origin: delta.clientId,
+                counters: counters,
+                localWins: localWins,
+              );
+            } else if (op.row != null) {
+              await _mergeUpsert(
+                spec: spec,
+                incomingRow: op.row!,
+                origin: delta.clientId,
+                incomingTs: op.ts,
+                groups: op.groups,
+                counters: counters,
+                localWins: localWins,
+                codec: codec,
+                remote: remote,
+                imageMap: imageMap,
+              );
+            } else if (op.groups != null) {
+              // 仅子组变更：父行保持本地不变，只替换子组
+              await _mergeGroupsOnly(
+                spec: spec,
+                parentId: op.id,
+                incomingTs: op.ts,
+                groups: op.groups!,
+                origin: delta.clientId,
+                counters: counters,
+                localWins: localWins,
+                codec: codec,
+                remote: remote,
+                imageMap: imageMap,
+              );
+            }
+          }
+          appliedDeltas.add(name);
         }
-        marks[cid] = seq;
-      }
-      await SyncMetaStore.setWatermarks(marks);
-      await SyncMetaStore.setImageMap(imageMap);
-      // 分块未完整应用时不推进版本，下次同步会重试缺失分块
-      await SyncMetaStore.set(
-        SyncMetaStore.manifestVersion,
-        manifestApplied ? '${manifest.version}' : '$localV',
-      );
+        await SyncMetaStore.setAppliedDeltas(appliedDeltas);
+        await SyncMetaStore.setImageMap(imageMap);
+        // 分块未完整应用时不推进版本，下次同步会重试缺失分块
+        await SyncMetaStore.set(
+          SyncMetaStore.manifestVersion,
+          manifestApplied ? '${manifest.version}' : '$localV',
+        );
 
-      // 首次在本设备完成拉取：初始化推送水位，避免把远程刚应用的行回推
-      if (await SyncMetaStore.get(SyncMetaStore.pushAfter) == null) {
-        await SyncMetaStore.set(SyncMetaStore.pushAfter, syncStart);
+        // 首次在本设备完成拉取：初始化推送水位，避免把远程刚应用的行回推
+        if (await SyncMetaStore.get(SyncMetaStore.pushAfter) == null) {
+          await SyncMetaStore.set(SyncMetaStore.pushAfter, syncStart);
+        }
       }
 
       // ── 推送本地变更 ──
@@ -456,20 +559,27 @@ class IncSyncService {
           remote: remote,
           codec: codec,
           clientId: clientId,
-          baseVersion: manifest.version,
           localWins: localWins,
           counters: counters,
+          appliedDeltas: appliedDeltas,
         );
       }
 
       await SyncMetaStore.set(SyncMetaStore.lastSync, syncStart);
 
-      // ── 压实检查 ──
-      if (push) {
-        final totalDeltas = listing.values.fold<int>(0, (a, l) => a + l.length);
-        if (totalDeltas > 50) {
-          await _compact(remote: remote, codec: codec, clientId: clientId);
-        }
+      // ── 压实检查：本地已完全对齐 manifest（分块与 delta 全部应用成功）
+      //    时才允许压实，否则会把未应用的变更从远程抹掉 ──
+      if (pull &&
+          manifestApplied &&
+          allDeltasClean &&
+          localV == manifest.version &&
+          names.length > 50) {
+        await _compact(
+          remote: remote,
+          codec: codec,
+          clientId: clientId,
+          deltaNames: names,
+        );
       }
 
       final anyChange = counters.upRecords > 0 || counters.downRecords > 0;
@@ -485,14 +595,81 @@ class IncSyncService {
         manifestVersion: manifest.version,
       );
     } catch (e) {
-      debugPrint('[Inc] 同步异常: $e');
+      debugPrint('[Inc2] 同步异常: $e');
       return IncSyncResult(success: false, message: '同步失败: {e}'.trf({'e': e}));
     } finally {
       _isSyncing = false;
     }
   }
 
+  // ── 对账 ────────────────────────────────────────────
+
+  /// 应用新 manifest 后：本地存在但 manifest 中不存在的记录，
+  /// 说明已在其他设备被硬删除（硬删除不进 delta/墓碑，只有这里能发现）。
+  ///
+  /// 保守保留策略（宁可不删，不可误删）：
+  /// - 从未推送过（pushAfter == null）：无法区分"本地新增"与"远程已删"，整体跳过
+  /// - 行时间戳 > pushAfter：本地待推送的变更，保留
+  /// - 行时间戳 >= manifest.createdAt：manifest 快照之后才动的，保留
+  /// - 时间戳无法解析：保留
+  /// 对账删除不记墓碑（删除事实已在 manifest 中体现）。
+  Future<void> _reconcile({
+    required Manifest manifest,
+    required _Counters counters,
+  }) async {
+    final pushAfter = await SyncMetaStore.get(SyncMetaStore.pushAfter);
+    if (pushAfter == null) {
+      debugPrint('[Inc2] 对账跳过：本设备尚未推送过');
+      return;
+    }
+    final pa = DateTime.tryParse(pushAfter);
+    final mc = DateTime.tryParse(manifest.createdAt);
+    final db = await DatabaseHelper.instance.database;
+
+    var removed = 0;
+    for (final spec in IncEntities.entities) {
+      final manifestIds = <String>{};
+      for (final chunk in manifest.chunks[spec.table] ?? []) {
+        manifestIds.addAll(chunk.ids);
+      }
+      final localRows = await db.query(spec.table);
+      for (final row in localRows) {
+        final id = row['id'] as String;
+        if (manifestIds.contains(id)) continue;
+        final tsStr = row[spec.tsColumn] as String?;
+        final ts = tsStr == null ? null : DateTime.tryParse(tsStr);
+        if (ts == null) continue; // 无法解析 → 保留
+        if (pa == null || ts.isAfter(pa)) continue; // 待推送 → 保留
+        if (mc == null || !ts.isBefore(mc)) continue; // 快照后才动 → 保留
+        await db.delete(spec.table, where: 'id = ?', whereArgs: [id]);
+        removed++;
+        counters.downRecords++;
+      }
+    }
+    if (removed > 0) debugPrint('[Inc2] 对账删除 $removed 条本地多余记录');
+  }
+
   // ── 合并：upsert ────────────────────────────────────
+
+  /// 分块 JSON 中的子组按父 id 分桶
+  static Map<String, Map<String, List<Map<String, dynamic>>>> _bucketGroups(
+    Map<String, dynamic> obj,
+  ) {
+    final groupsBucket = <String, Map<String, List<Map<String, dynamic>>>>{};
+    final groupsObj = (obj['g'] as Map<String, dynamic>?) ?? {};
+    groupsObj.forEach((gt, rows) {
+      final gspec = IncEntities.groupSpecOf(gt);
+      if (gspec == null) return;
+      for (final r in rows as List) {
+        final row = Map<String, dynamic>.from(r as Map);
+        groupsBucket
+            .putIfAbsent(row[gspec.parentColumn] as String, () => {})
+            .putIfAbsent(gt, () => [])
+            .add(row);
+      }
+    });
+    return groupsBucket;
+  }
 
   Future<void> _mergeUpsert({
     required IncEntitySpec spec,
@@ -670,9 +847,9 @@ class IncSyncService {
 
     if (local != null) {
       await db.delete(table, where: 'id = ?', whereArgs: [id]);
+      counters.downRecords++;
     }
     await SyncTombstones.putIfAbsent(table, id, incomingTs, origin);
-    counters.downRecords++;
   }
 
   /// 比较前将图片路径统一为逻辑路径（两设备绝对路径必然不同）
@@ -775,28 +952,36 @@ class IncSyncService {
     required IncRemote remote,
     required IncRowCodec codec,
     required String clientId,
-    required int baseVersion,
     required Set<String> localWins,
     required _Counters counters,
+    required Set<String> appliedDeltas,
   }) async {
     final syncStart = DateTime.now().toUtc().toIso8601String();
     final after = await SyncMetaStore.get(SyncMetaStore.pushAfter);
+    final afterTs = after == null ? null : DateTime.tryParse(after);
+
+    // Dart 侧时间戳过滤：历史数据里本地时间与 UTC 两种格式混存，
+    // SQL 字符串比较在非零时区下会误判，统一解析成 DateTime 再比
+    bool changedAfter(String? tsStr) {
+      if (afterTs == null) return true;
+      final ts = tsStr == null ? null : DateTime.tryParse(tsStr);
+      if (ts == null) return true; // 无法解析：宁可多推，不可漏推
+      return ts.isAfter(afterTs);
+    }
 
     // 1) 水位之后变更的行
     final selected = <String, Map<String, dynamic>>{};
     final db = await DatabaseHelper.instance.database;
     for (final spec in IncEntities.entities) {
-      final rows = await db.query(
-        spec.table,
-        where: after == null ? null : '${spec.tsColumn} > ?',
-        whereArgs: after == null ? null : [after],
-      );
+      final rows = await db.query(spec.table);
       for (final r in rows) {
-        selected['${spec.table}|${r['id']}'] = r;
+        if (changedAfter(r[spec.tsColumn] as String?)) {
+          selected['${spec.table}|${r['id']}'] = r;
+        }
       }
     }
 
-    // 2) bootstrap 合并中本地胜出的行
+    // 2) 拉取合并中本地胜出的行
     for (final key in localWins) {
       if (selected.containsKey(key)) continue;
       final parts = key.split('|');
@@ -809,16 +994,12 @@ class IncSyncService {
 
     // 4) 子组新增（父行本身未变）
     final groupOnly = <String, Set<String>>{}; // groupTable → parentIds
-    if (after != null) {
-      for (final gspec in IncEntities.groups) {
-        final tsCol = gspec.tsColumn;
-        if (tsCol == null) continue;
-        final rows = await db.query(
-          gspec.table,
-          where: '$tsCol > ?',
-          whereArgs: [after],
-        );
-        for (final r in rows) {
+    for (final gspec in IncEntities.groups) {
+      final tsCol = gspec.tsColumn;
+      if (tsCol == null) continue;
+      final rows = await db.query(gspec.table);
+      for (final r in rows) {
+        if (changedAfter(r[tsCol] as String?)) {
           groupOnly.putIfAbsent(gspec.table, () => {}).add(r[gspec.parentColumn] as String);
         }
       }
@@ -923,36 +1104,33 @@ class IncSyncService {
 
     if (ops.isEmpty) return;
 
-    // 6) 分批写 delta
-    final listing = await remote.listDeltas();
-    if (listing == null) throw Exception('无法读取远程增量列表'.tr);
-    var seq = (listing[clientId]?.isNotEmpty == true ? listing[clientId]!.last : 0) + 1;
+    // 6) 分批写 delta（UUID 文件名，无序号）
     const batchSize = 200;
+    final uploadedNames = <String>[];
     for (var i = 0; i < ops.length; i += batchSize) {
       final slice = ops.sublist(i, min(i + batchSize, ops.length));
+      final name = '${const Uuid().v4()}.json';
       final delta = DeltaFile(
         clientId: clientId,
-        seq: seq++,
-        baseVersion: baseVersion,
         createdAt: DateTime.now().toUtc().toIso8601String(),
         ops: slice,
         // 图片映射只随第一个 delta 携带
         images: i == 0 ? newImageMap : {},
       );
-      final ok = await remote.putDelta(delta);
+      final ok = await remote.putDelta(name, delta);
       if (!ok) throw Exception('delta 上传失败'.tr);
+      uploadedNames.add(name);
     }
 
     // 7) 收尾
-    await SyncTombstones.clearPushed(tombRows);
+    await SyncTombstones.markPushed(tombRows);
     await SyncMetaStore.set(SyncMetaStore.pushAfter, syncStart);
     final imageMap = await SyncMetaStore.getImageMap();
     imageMap.addAll(newImageMap);
     await SyncMetaStore.setImageMap(imageMap);
-    // 把自己的新 delta 记入水位，避免下次拉取时被当新变更重新应用
-    final marks = await SyncMetaStore.getWatermarks();
-    marks[clientId] = seq - 1;
-    await SyncMetaStore.setWatermarks(marks);
+    // 自己的新 delta 直接记入已应用，避免下次拉取时重复下载
+    appliedDeltas.addAll(uploadedNames);
+    await SyncMetaStore.setAppliedDeltas(appliedDeltas);
   }
 
   /// 推送单张图片（blob 已存在计入去重）
@@ -980,23 +1158,46 @@ class IncSyncService {
 
   // ── 压实 ────────────────────────────────────────────
 
+  /// sync_tombstones 行 → manifest 墓碑条目
+  static TombstoneEntry _tombEntryFromRow(Map<String, dynamic> r) =>
+      TombstoneEntry(
+        table: r['entity_type'] as String,
+        id: r['entity_id'] as String,
+        ts: r['deleted_at'] as String,
+        clientId: r['client_id'] as String,
+      );
+
   Future<void> _compact({
     required IncRemote remote,
     required IncRowCodec codec,
     required String clientId,
+    required List<String> deltaNames,
   }) async {
-    final marks = await SyncMetaStore.getWatermarks();
     final imageMap = await SyncMetaStore.getImageMap();
     final currentVersion = await SyncMetaStore.getInt(SyncMetaStore.manifestVersion) ?? 1;
     final newVersion = currentVersion + 1;
+
+    // 墓碑随 manifest 携带：合并上一版 manifest 与本地墓碑。
+    // 被折叠的删除 delta 即将被删除，墓碑是删除信息唯一的载体
+    final prev = await remote.getManifest();
+    final tombRows = await SyncTombstones.all();
+    final merged = <String, TombstoneEntry>{
+      for (final t in prev?.tombstones ?? const <TombstoneEntry>[])
+        '${t.table}|${t.id}': t,
+    };
+    for (final r in tombRows) {
+      final e = _tombEntryFromRow(r);
+      merged['${e.table}|${e.id}'] = e;
+    }
 
     final manifest = await IncManifestBuilder.buildFromLocal(
       remote: remote,
       codec: codec,
       version: newVersion,
       clientId: clientId,
-      folded: Map<String, int>.from(marks),
+      foldedDeltas: deltaNames,
       imageMap: imageMap,
+      tombstones: merged.values.toList(),
     );
 
     if (!await remote.putManifest(manifest)) return;
@@ -1004,17 +1205,15 @@ class IncSyncService {
     // 校验：若版本已不是我们的版本，说明有其他客户端同时压实，放弃删除
     final back = await remote.getManifest();
     if (back == null || back.version != newVersion) {
-      debugPrint('[Inc] compaction 冲突，跳过 delta 删除');
+      debugPrint('[Inc2] compaction 冲突，跳过 delta 删除');
       return;
     }
 
-    final listing = await remote.listDeltas();
-    if (listing == null) return;
-    for (final entry in marks.entries) {
-      final limit = entry.value;
-      for (final seq in listing[entry.key] ?? []) {
-        if (seq <= limit) await remote.deleteDelta(entry.key, seq);
-      }
+    // 墓碑已嵌入新 manifest，本地记录可清除
+    await SyncTombstones.clearEmbedded(tombRows);
+
+    for (final name in deltaNames) {
+      await remote.deleteDelta(name);
     }
 
     await SyncMetaStore.set(SyncMetaStore.manifestVersion, '$newVersion');
@@ -1025,6 +1224,10 @@ class IncSyncService {
       }
     }
     await SyncMetaStore.setSeenChunks(seen);
-    debugPrint('[Inc] compaction 完成 -> v$newVersion');
+    // 被折叠的 delta 已从远程删除，本地已应用集合同步清理
+    final applied = await SyncMetaStore.getAppliedDeltas();
+    applied.removeAll(deltaNames);
+    await SyncMetaStore.setAppliedDeltas(applied);
+    debugPrint('[Inc2] compaction 完成 -> v$newVersion, 折叠 ${deltaNames.length} 个 delta');
   }
 }

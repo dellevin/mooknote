@@ -48,13 +48,11 @@ class DeltaOp {
       );
 }
 
-/// 增量包：一个客户端对某个基线版本的一次追加
+/// 增量包：一次本地变更的快照。
+/// v2：不再需要 seq/baseVersion——LWW 合并幂等且可交换，
+/// 应用顺序与重复应用均不影响结果，文件用 UUID 命名即可。
 class DeltaFile {
   final String clientId;
-  final int seq;
-
-  /// 基于的 manifest 版本
-  final int baseVersion;
   final String createdAt;
 
   /// 本包新增/变更记录
@@ -65,8 +63,6 @@ class DeltaFile {
 
   DeltaFile({
     required this.clientId,
-    required this.seq,
-    required this.baseVersion,
     required this.createdAt,
     required this.ops,
     required this.images,
@@ -74,8 +70,6 @@ class DeltaFile {
 
   Map<String, dynamic> toJson() => {
         'c': clientId,
-        's': seq,
-        'b': baseVersion,
         'at': createdAt,
         'ops': ops.map((e) => e.toJson()).toList(),
         if (images.isNotEmpty) 'img': images,
@@ -83,8 +77,6 @@ class DeltaFile {
 
   factory DeltaFile.fromJson(Map<String, dynamic> j) => DeltaFile(
         clientId: j['c'] as String,
-        seq: j['s'] as int,
-        baseVersion: j['b'] as int? ?? 0,
         createdAt: j['at'] as String,
         ops: (j['ops'] as List)
             .map((e) => DeltaOp.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -109,14 +101,40 @@ class ChunkIndex {
       );
 }
 
+/// 随 manifest 携带的墓碑：压实折叠 delta 后，删除信息仍能传播到其他客户端
+class TombstoneEntry {
+  final String table;
+  final String id;
+  final String ts;
+  final String clientId;
+
+  const TombstoneEntry({
+    required this.table,
+    required this.id,
+    required this.ts,
+    required this.clientId,
+  });
+
+  Map<String, dynamic> toJson() => {'t': table, 'id': id, 'ts': ts, 'c': clientId};
+
+  factory TombstoneEntry.fromJson(Map<String, dynamic> j) => TombstoneEntry(
+        table: j['t'] as String,
+        id: j['id'] as String,
+        ts: j['ts'] as String,
+        clientId: j['c'] as String? ?? '',
+      );
+}
+
 /// 全局快照清单：压实后包含全量记录的分块索引
 class Manifest {
   final int version;
   final String createdAt;
   final String clientId;
 
-  /// 已折叠 delta 的各客户端最高 seq：客户端 ID → seq
-  final Map<String, int> folded;
+  /// 已折叠进本 manifest 的 delta 文件名列表（相对 delta/ 目录）。
+  /// 其他客户端见到后可从本地 appliedDeltas 中清理这些条目，
+  /// 也可以放心跳过这些远程 delta（内容已在 chunks 中）。
+  final List<String> foldedDeltas;
 
   /// 记录分块索引：表 → 块列表
   final Map<String, List<ChunkIndex>> chunks;
@@ -124,32 +142,39 @@ class Manifest {
   /// 图片映射：逻辑路径 → blob hash
   final Map<String, String> images;
 
+  /// 已折叠 delta 中的删除墓碑（跨压实传递，直到所有客户端都越过）
+  final List<TombstoneEntry> tombstones;
+
   Manifest({
     required this.version,
     required this.createdAt,
     required this.clientId,
-    required this.folded,
+    required this.foldedDeltas,
     required this.chunks,
     required this.images,
+    this.tombstones = const [],
   });
 
   Map<String, dynamic> toJson() => {
         'v': version,
         'at': createdAt,
         'c': clientId,
-        'folded': folded,
+        'folded': foldedDeltas,
         'chunks': chunks.map(
           (k, v) => MapEntry(k, v.map((e) => e.toJson()).toList()),
         ),
         'img': images,
+        if (tombstones.isNotEmpty)
+          'tombs': tombstones.map((e) => e.toJson()).toList(),
       };
 
   factory Manifest.fromJson(Map<String, dynamic> j) => Manifest(
         version: j['v'] as int,
         createdAt: j['at'] as String,
         clientId: j['c'] as String,
-        folded: ((j['folded'] as Map<String, dynamic>?) ?? {})
-            .map((k, v) => MapEntry(k, v as int)),
+        foldedDeltas: ((j['folded'] as List?) ?? [])
+            .map((e) => e as String)
+            .toList(),
         chunks: ((j['chunks'] as Map<String, dynamic>?) ?? {}).map(
           (k, v) => MapEntry(
             k,
@@ -160,5 +185,8 @@ class Manifest {
         ),
         images: ((j['img'] as Map<String, dynamic>?) ?? {})
             .map((k, v) => MapEntry(k, v as String)),
+        tombstones: ((j['tombs'] as List?) ?? [])
+            .map((e) => TombstoneEntry.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
       );
 }

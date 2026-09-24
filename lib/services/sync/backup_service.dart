@@ -13,6 +13,7 @@ import '../../data/database_helper.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/image_path_helper.dart';
+import 'incremental/sync_meta_store.dart';
 
 /// 数据备份服务 - 支持导出和导入数据（包含图片）
 class BackupService {
@@ -760,6 +761,11 @@ class BackupService {
           }
         }
       });
+
+      // 恢复的行保留原时间戳（远早于 pushAfter），增量同步对账会把它们
+      // 误判为"远程已删"而清掉。清空 pushAfter：既保护恢复数据，
+      // 也让下次上传把它们全量推送到云端。
+      await SyncMetaStore.delete(SyncMetaStore.pushAfter);
 
       await _restoreUserInfo(backupData, imagePathMap);
       return ImportResult.success(_buildStats(data, imageCount));

@@ -14,13 +14,15 @@ class IncManifestBuilder {
 
   /// 从本地全量数据构建 manifest。
   /// [imageMap] 为已知图片映射：首建为空（现场扫描+上传），压实时传入合并后的映射。
+  /// [tombstones] 为已知删除墓碑：随 manifest 携带，保证压实后删除仍能传播。
   static Future<Manifest> buildFromLocal({
     required IncRemote remote,
     required IncRowCodec codec,
     required int version,
     required String clientId,
-    required Map<String, int> folded,
+    required List<String> foldedDeltas,
     required Map<String, String> imageMap,
+    List<TombstoneEntry> tombstones = const [],
   }) async {
     final chunks = <String, List<ChunkIndex>>{};
     final images = Map<String, String>.from(imageMap);
@@ -88,9 +90,10 @@ class IncManifestBuilder {
       version: version,
       createdAt: DateTime.now().toUtc().toIso8601String(),
       clientId: clientId,
-      folded: folded,
+      foldedDeltas: foldedDeltas,
       chunks: chunks,
       images: images,
+      tombstones: tombstones,
     );
   }
 }

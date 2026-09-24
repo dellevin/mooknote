@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 43,
+      version: 44,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -452,6 +452,12 @@ class DatabaseHelper {
           PRIMARY KEY (entity_id, entity_type)
         )
       ''');
+    }
+    if (oldVersion < 44) {
+      // 墓碑增加推送标记：推送后保留记录，待压实嵌入 manifest 后才清除
+      await db.execute(
+        'ALTER TABLE sync_tombstones ADD COLUMN pushed INTEGER NOT NULL DEFAULT 0',
+      );
     }
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
@@ -1067,6 +1073,7 @@ class DatabaseHelper {
         entity_type TEXT NOT NULL,
         deleted_at TEXT NOT NULL,
         client_id TEXT NOT NULL,
+        pushed INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (entity_id, entity_type)
       )
     ''');

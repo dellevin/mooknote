@@ -2793,7 +2793,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
   Future<void> _syncData(SyncDirection direction) async {
     setState(() => _isLoading = true);
     try {
-      // ── 增量备份分支：双向同步（拉取远程变更 + 推送本地变更） ──
+      // ── 增量备份分支：双向同步（推本地变更 + 拉云端变更，LWW 合并）──
       if (_backupMode == 'inc') {
         setState(() => _syncStep = '正在同步数据...'.tr);
         await Future.delayed(Duration.zero);
@@ -2809,7 +2809,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
             await provider.loadPlaylists();
             await provider.loadPeople();
           }
-          if (mounted) ToastUtil.show(context,'同步成功'.tr);
+          if (mounted) ToastUtil.show(context, '同步成功'.tr);
         } else {
           if (mounted) ToastUtil.show(context,incResult.message);
         }
@@ -2867,9 +2867,11 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         return AlertDialog(
           backgroundColor: colors.surface, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text((_backupMode == 'inc' ? '确认同步' : (isUpload ? '确认上传' : '确认下载')).tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          title: Text(_backupMode == 'inc'
+              ? '确认同步'.tr
+              : (isUpload ? '确认上传' : '确认下载').tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
           content: Text(_backupMode == 'inc'
-              ? '将与其他设备双向同步数据（最后修改的内容优先），点击确定继续'.tr
+              ? '推送本地变更到云端，并拉取云端变更与本地合并（同一条记录以最后修改为准），点击确定继续'.tr
               : (isUpload ? '该操作会覆盖远程数据，请谨慎操作' : '该操作会拉取远程数据覆盖本地数据，请谨慎操作').tr,
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6)),
           actions: [
@@ -3078,7 +3080,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
             Text(_syncStep, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
           ] else ...[
             if (_backupMode == 'inc')
-              _buildBtn(colors, '同步'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))
+              _buildBtn(colors, '立即同步'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))
             else
               Row(children: [
                 Expanded(child: _buildBtn(colors, '上传'.tr, onTap: _isLoading ? null : () => _confirmSync(SyncDirection.upload))),

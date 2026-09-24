@@ -448,7 +448,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
     final navigator = Navigator.of(context);
 
     if (_backupMode == 'inc') {
-      // ── 增量备份分支：双向同步（拉取远程变更 + 推送本地变更） ──
+      // ── 增量备份分支：双向同步（推本地变更 + 拉云端变更，LWW 合并）──
       setState(() => _syncStep = '正在同步数据...'.tr);
       await Future.delayed(Duration.zero);
       final result = await IncSyncService.instance.upload();
@@ -469,7 +469,10 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         title: (result.success ? '同步成功' : '同步失败').tr,
         message: result.message.isNotEmpty ? result.message : (result.success ? '同步成功' : '同步失败').tr,
         isSuccess: result.success,
-        details: {'uploaded': result.uploadedRecords + result.uploadedImages, 'downloaded': result.downloadedRecords + result.downloadedImages},
+        details: {
+          'uploaded': result.uploadedRecords + result.uploadedImages,
+          'downloaded': result.downloadedRecords + result.downloadedImages,
+        },
       );
       return;
     }
@@ -616,7 +619,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
             ),
           ] else ...[
             if (_backupMode == 'inc')
-              _cloudCard(icon: Icons.sync, title: '同步数据'.tr, desc: widget.hasConfig ? '与其他设备双向同步，最后修改优先'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc)
+              _cloudCard(icon: Icons.sync, title: '同步数据'.tr, desc: widget.hasConfig ? '推送本地变更到云端，并拉取云端变更与本地合并（同一条记录以最后修改为准）'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc)
             else ...[
               _cloudCard(icon: Icons.cloud_upload_outlined, title: '上传数据'.tr, desc: widget.hasConfig ? '将本地数据打包上传到云端'.tr : '请先配置 WebDAV 服务器'.tr, enabled: widget.hasConfig, onTap: widget.hasConfig ? () => _startSync(SyncDirection.upload) : null, colors: bc),
               const SizedBox(height: 8),
