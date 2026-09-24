@@ -19,7 +19,7 @@ class StrollPage extends StatefulWidget {
   State<StrollPage> createState() => _StrollPageState();
 }
 
-class _StrollPageState extends State<StrollPage> {
+class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateMixin {
   final _random = Random();
   final List<_StrollItem> _items = [];
   final Set<String> _seenIds = {};
@@ -30,7 +30,17 @@ class _StrollPageState extends State<StrollPage> {
   double _dragX = 0; // 当前水平偏移（正=右滑，负=左滑）
   double _dragY = 0; // 当前垂直偏移
   bool _isDragging = false;
-  bool _horizontalLocked = false; // 是否锁定为水平方向
+
+  // 飞出/弹回/回退动画（顶卡位偏由动画驱动时使用）
+  late final AnimationController _swipeCtrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
+  Animation<Offset>? _flyAnim;
+
+  @override
+  void dispose() {
+    _swipeCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -149,36 +159,31 @@ class _StrollPageState extends State<StrollPage> {
     return pool.last;
   }
 
-  /// 切换到下一张（点击"随机"按钮 / 左滑）
-  void _next() {
-    setState(() {
-      _current++;
-      if (_current >= _items.length - 2) {
-        _loadBatch(3);
-      }
-      if (_current >= _items.length) {
-        // 池子耗尽，回到最后一张
-        _current = _items.length - 1;
-      }
-    });
+  /// 推进到下一张（飞出动画结束后调用）
+  void _advance() {
+    _current++;
+    if (_current >= _items.length - 2) {
+      _loadBatch(3);
+    }
+    if (_current >= _items.length) {
+      // 池子耗尽，回到最后一张
+      _current = _items.length - 1;
+    }
   }
 
-  /// 切换到上一张（右滑）
-  void _prev() {
-    setState(() {
-      if (_current > 0) {
-        _current--;
-      }
-    });
+  /// 点击"随机"按钮：当前卡向左飞出 → 下一张
+  void _next() {
+    if (_swipeCtrl.isAnimating || _isDragging) return;
+    _flyOffNext();
   }
 
   // ─── 拖动手势 ───
 
   void _onDragStart(DragStartDetails _) {
+    if (_swipeCtrl.isAnimating) return;
     _dragX = 0;
     _dragY = 0;
     _isDragging = true;
-    _horizontalLocked = false;
   }
 
   void _onDragUpdate(DragUpdateDetails d) {
@@ -186,34 +191,61 @@ class _StrollPageState extends State<StrollPage> {
     setState(() {
       _dragX += d.delta.dx;
       _dragY += d.delta.dy;
-      // 首次明显移动时判定主方向：水平位移绝对值 > 垂直则锁定水平
-      if (!_horizontalLocked &&
-          (_dragX.abs() > 8 || _dragY.abs() > 8)) {
-        _horizontalLocked = _dragX.abs() > _dragY.abs();
-      }
     });
   }
 
-  void _onDragEnd(DragEndDetails _) {
+  void _onDragEnd(DragEndDetails d) {
     if (!_isDragging) return;
     final dx = _dragX;
-    final dy = _dragY;
-    setState(() {
-      _isDragging = false;
-      _dragX = 0;
-      _dragY = 0;
-      _horizontalLocked = false;
-    });
-    // 非水平主导或距离过小：不切换
-    if (dx.abs() <= dy.abs()) return;
-    const threshold = 60.0;
-    if (dx < -threshold) {
-      // 左滑 → 下一张
-      _next();
-    } else if (dx > threshold) {
-      // 右滑 → 上一张
-      _prev();
+    final vx = d.velocity.pixelsPerSecond.dx;
+    setState(() => _isDragging = false);
+    const distT = 90.0;
+    const velT = 600.0;
+    if (dx < -distT || vx < -velT) {
+      _flyOffNext(-1); // 左飞出 → 下一张
+    } else if (dx > distT || vx > velT) {
+      _flyOffNext(1); // 右飞出 → 下一张
+    } else {
+      _springBack();
     }
+  }
+
+  /// 沿 [dir] 方向飞出屏幕（-1 左 / 1 右）→ 下一张
+  void _flyOffNext([int dir = -1]) {
+    final w = MediaQuery.of(context).size.width;
+    _swipeCtrl.duration = const Duration(milliseconds: 240);
+    final anim = Tween<Offset>(
+      begin: Offset(_dragX, _dragY),
+      end: Offset(dir * w * 1.5, _dragY * 2),
+    ).animate(CurvedAnimation(parent: _swipeCtrl, curve: Curves.easeOutCubic));
+    _flyAnim = anim;
+    _swipeCtrl.forward(from: 0).then((_) {
+      if (!mounted || _flyAnim != anim) return;
+      setState(() {
+        _flyAnim = null;
+        _dragX = 0;
+        _dragY = 0;
+        _advance();
+      });
+    });
+  }
+
+  /// 未达到阈值：弹回中心
+  void _springBack() {
+    _swipeCtrl.duration = const Duration(milliseconds: 320);
+    final anim = Tween<Offset>(
+      begin: Offset(_dragX, _dragY),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _swipeCtrl, curve: Curves.easeOutBack));
+    _flyAnim = anim;
+    _swipeCtrl.forward(from: 0).then((_) {
+      if (!mounted || _flyAnim != anim) return;
+      setState(() {
+        _flyAnim = null;
+        _dragX = 0;
+        _dragY = 0;
+      });
+    });
   }
 
   // ─── 辅助方法 ───
@@ -297,31 +329,7 @@ class _StrollPageState extends State<StrollPage> {
                 ? _buildEmptyState(colors)
                 : Column(
                     children: [
-                      Expanded(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 310),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 280),
-                              switchInCurve: Curves.easeOut,
-                              switchOutCurve: Curves.easeIn,
-                              transitionBuilder: (child, anim) {
-                                return FadeTransition(
-                                  opacity: anim,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.04),
-                                      end: Offset.zero,
-                                    ).animate(anim),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: _buildCard(_items[_current], colors, key: ValueKey(_current)),
-                            ),
-                          ),
-                        ),
-                      ),
+                      Expanded(child: _buildCardStack(colors)),
                       _buildNextButton(colors),
                     ],
                   ),
@@ -395,11 +403,16 @@ class _StrollPageState extends State<StrollPage> {
                 child: GestureDetector(
                   onTap: () {
                     if (_filter != f.$1) {
+                      _swipeCtrl.stop();
                       setState(() {
                         _filter = f.$1;
                         _items.clear();
                         _seenIds.clear();
                         _current = 0;
+                        _flyAnim = null;
+                        _dragX = 0;
+                        _dragY = 0;
+                        _isDragging = false;
                         _loadBatch(5);
                       });
                     }
@@ -457,29 +470,81 @@ class _StrollPageState extends State<StrollPage> {
     );
   }
 
-  Widget _buildCard(_StrollItem item, ColorScheme colors, {Key? key}) {
-    final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty;
-    // 拖动时透明度：位移越大越淡（最淡 0.3）
-    final opacity = _isDragging && _horizontalLocked
-        ? (1.0 - (_dragX.abs() / 300).clamp(0.0, 0.7))
-        : 1.0;
+  /// 卡片堆栈：顶卡可拖动+旋转，下方两张递进缩小；
+  /// 顶卡拖得越远，下方卡片越放大（顶上来）
+  Widget _buildCardStack(ColorScheme colors) {
+    final w = MediaQuery.of(context).size.width;
 
-    return GestureDetector(
-      key: key,
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openDetail(item),
-      onDoubleTap: () => ToastUtil.show(context, '已收藏'.tr),
-      onHorizontalDragStart: _onDragStart,
-      onHorizontalDragUpdate: _onDragUpdate,
-      onHorizontalDragEnd: _onDragEnd,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 120),
-        opacity: opacity,
-        child: Transform.translate(
-          offset: Offset(_horizontalLocked ? _dragX : 0, 0),
-          child: hasImage ? _buildImmersiveCard(item, colors) : _buildContentCard(item, colors),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 310),
+        // 飞出/弹回/回退动画每帧重建，驱动顶卡位偏和下方卡片缩放
+        child: AnimatedBuilder(
+          animation: _swipeCtrl,
+          builder: (context, _) {
+            final topOffset = _isDragging
+                ? Offset(_dragX, _dragY)
+                : (_flyAnim?.value ?? Offset.zero);
+            // 顶卡远离程度 0~1，驱动下方卡片放大
+            final progress = (topOffset.dx.abs() / (w * 0.6)).clamp(0.0, 1.0);
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                // 第三张（最底）
+                if (_current + 2 < _items.length)
+                  Transform.scale(
+                    scale: 0.94 + 0.03 * progress,
+                    child: _buildStaticCard(_items[_current + 2], colors),
+                  ),
+                // 第二张
+                if (_current + 1 < _items.length)
+                  Transform.scale(
+                    scale: 0.97 + 0.03 * progress,
+                    child: _buildStaticCard(_items[_current + 1], colors),
+                  ),
+                // 顶卡（可拖动）
+                _buildTopCard(_items[_current], topOffset, w, colors),
+              ],
+            );
+          },
         ),
       ),
+    );
+  }
+
+  /// 顶卡：跟随手指位移 + 按水平位移旋转
+  Widget _buildTopCard(_StrollItem item, Offset offset, double w, ColorScheme colors) {
+    return Transform.translate(
+      offset: offset,
+      child: Transform.rotate(
+        angle: offset.dx / w * 0.26, // 拖满一屏宽约 15°
+        child: GestureDetector(
+          key: ValueKey(item.id),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _openDetail(item),
+          onDoubleTap: () => ToastUtil.show(context, '已收藏'.tr),
+          onHorizontalDragStart: _onDragStart,
+          onHorizontalDragUpdate: _onDragUpdate,
+          onHorizontalDragEnd: _onDragEnd,
+          child: _buildCardBody(item, colors),
+        ),
+      ),
+    );
+  }
+
+  /// 堆栈下方的静态卡片（无手势）
+  Widget _buildStaticCard(_StrollItem item, ColorScheme colors) {
+    return IgnorePointer(
+      child: _buildCardBody(item, colors, key: ValueKey(item.id)),
+    );
+  }
+
+  Widget _buildCardBody(_StrollItem item, ColorScheme colors, {Key? key}) {
+    final hasImage = item.imagePath != null && item.imagePath!.isNotEmpty;
+    return KeyedSubtree(
+      key: key,
+      child: hasImage ? _buildImmersiveCard(item, colors) : _buildContentCard(item, colors),
     );
   }
 

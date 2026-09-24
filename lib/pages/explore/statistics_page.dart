@@ -299,7 +299,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
+                      _CountUpText(value, TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
                       if (subtitle != null) ...[
                         const SizedBox(width: 3),
                         Text(subtitle, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
@@ -1175,7 +1175,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           Icon(icon, size: 22, color: color),
           const SizedBox(height: 10),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+          _CountUpText(value, TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
           const SizedBox(height: 4),
           Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
           if (sub.isNotEmpty) ...[
@@ -1236,6 +1236,33 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+/// 数字滚动动画文本：解析开头的数字部分，从 0 滚动到目标值（900ms 缓出）
+/// 非数字开头（如 '-'、标签名）直接静态显示
+class _CountUpText extends StatelessWidget {
+  final String value;
+  final TextStyle style;
+
+  const _CountUpText(this.value, this.style);
+
+  @override
+  Widget build(BuildContext context) {
+    final match = RegExp(r'^(\d+(\.\d+)?)(.*)$').firstMatch(value);
+    if (match == null) return Text(value, style: style);
+    final target = double.parse(match.group(1)!);
+    final decimals = match.group(2) != null ? match.group(2)!.length - 1 : 0;
+    final suffix = match.group(3)!;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: target),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, _) => Text(
+        '${v.toStringAsFixed(decimals)}$suffix',
+        style: style,
+      ),
     );
   }
 }
