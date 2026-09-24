@@ -195,7 +195,19 @@ class UserPrefs {
   int get movieStatusBarStyle => prefs.getInt('movieStatusBarStyle') ?? 0;
   Future<bool> setMovieStatusBarStyle(int value) => prefs.setInt('movieStatusBarStyle', value);
 
-  /// 阅读布局样式 (0: 封面网格, 1: 列表)
+  /// 海报网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
+  int get movieGridCount => prefs.getInt('movieGridCount') ?? 0;
+  Future<bool> setMovieGridCount(int value) => prefs.setInt('movieGridCount', value);
+
+  /// 阅读网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
+  int get bookGridCount => prefs.getInt('bookGridCount') ?? 0;
+  Future<bool> setBookGridCount(int value) => prefs.setInt('bookGridCount', value);
+
+  /// 游戏网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
+  int get gameGridCount => prefs.getInt('gameGridCount') ?? 0;
+  Future<bool> setGameGridCount(int value) => prefs.setInt('gameGridCount', value);
+
+  /// 阅读布局样式 (0: 封面网格, 1: 列表, 2: 年份网格, 3: 大图卡片)
   int get bookLayoutStyle => prefs.getInt('bookLayoutStyle') ?? 0;
   Future<bool> setBookLayoutStyle(int value) => prefs.setInt('bookLayoutStyle', value);
 

@@ -61,7 +61,12 @@ class _AnimatedStarRatingState extends State<AnimatedStarRating>
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final starValue = widget.rating / 2;
-    return Row(
+    // scaleDown：卡片过窄（如网格每行 5 列）时整体等比缩小，避免 Row 溢出；
+    // 宽度足够时保持原始尺寸不变
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         ...List.generate(5, (index) {
@@ -106,6 +111,7 @@ class _AnimatedStarRatingState extends State<AnimatedStarRating>
           ),
         ],
       ],
+      ),
     );
   }
 }

@@ -231,12 +231,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: hasCover
-                            ? (widget.embedded
-                                ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
-                                : Hero(
-                                    tag: 'poster-game-${game.id}',
-                                    child: FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover),
-                                  ))
+                            ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
                             : Center(child: Icon(Icons.sports_esports_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
                       ),
                     ],
@@ -1320,10 +1315,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasCover
-          ? Hero(
-              tag: 'poster-game-${game.id}',
-              child: FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover),
-            )
+          ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
           : Center(child: Icon(Icons.sports_esports_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
     );
   }
@@ -1483,10 +1475,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
           ),
           clipBehavior: Clip.antiAlias,
           child: hasCover
-              ? Hero(
-                  tag: 'poster-game-${game.id}',
-                  child: FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover),
-                )
+              ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
               : Container(color: Colors.white24, child: const Icon(Icons.sports_esports_outlined, color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
@@ -1738,10 +1727,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
       return Stack(
         fit: StackFit.expand,
         children: [
-          Hero(
-            tag: 'poster-game-${game.id}',
-            child: FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover),
-          ),
+          FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover),
           Positioned(
             left: 0, right: 0, bottom: 0,
             child: IgnorePointer(
@@ -1801,14 +1787,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           Positioned(
                             top: offset,
                             left: 0, right: 0,
-                            child: Hero(
-                              tag: 'poster-game-${game.id}',
-                              child: FadeInLocalImage(
-                                key: _coverImageKey,
-                                path: game.coverPath,
-                                fit: BoxFit.fitWidth,
-                                width: constraints.maxWidth,
-                              ),
+                            child: FadeInLocalImage(
+                              key: _coverImageKey,
+                              path: game.coverPath,
+                              fit: BoxFit.fitWidth,
+                              width: constraints.maxWidth,
                             ),
                           ),
                         ],

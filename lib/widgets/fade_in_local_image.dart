@@ -28,6 +28,10 @@ class FadeInLocalImage extends StatefulWidget {
 
 class _FadeInLocalImageState extends State<FadeInLocalImage>
     with SingleTickerProviderStateMixin {
+  /// 本次会话已成功显示过的路径：再次显示时直接出图，
+  /// 不再重复走 异步检查+淡入（否则 Hero 转场时详情页海报会"迟到"）
+  static final Set<String> _shownPaths = {};
+
   late AnimationController _controller;
   late Animation<double> _opacity;
   bool _loaded = false;
@@ -40,6 +44,16 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    final p = widget.path;
+    if (p != null && _shownPaths.contains(p)) {
+      _loaded = true;
+      if (p.startsWith('http')) {
+        _useNetwork = true;
+        _imageUrl = p;
+      }
+      _controller.value = 1.0;
+      return;
+    }
     _loadImage();
   }
 
@@ -52,6 +66,7 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     if (widget.path!.startsWith('http')) {
       _useNetwork = true;
       _imageUrl = widget.path;
+      _shownPaths.add(widget.path!);
       setState(() => _loaded = true);
       _controller.forward();
       return;
@@ -61,6 +76,7 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     final exists = await file.exists();
     if (!mounted) return;
     if (exists) {
+      _shownPaths.add(widget.path!);
       setState(() => _loaded = true);
       _controller.forward();
       return;

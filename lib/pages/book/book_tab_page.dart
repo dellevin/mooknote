@@ -6,6 +6,7 @@ import '../../utils/responsive.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/book_status_bar.dart';
 import '../../widgets/book_list_item.dart';
+import '../../widgets/year_grid_view.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/top_fade_scrim.dart';
@@ -180,7 +181,6 @@ class _BookTabViewState extends State<_BookTabView>
   bool _isLoading = false;
   int _offset = 0;
   bool _initialized = false;
-  int _layoutStyle = 0;
   late ScrollController _scrollController;
   AppProvider? _provider;
   int _lastScrollSignal = 0;
@@ -196,7 +196,6 @@ class _BookTabViewState extends State<_BookTabView>
   @override
   void initState() {
     super.initState();
-    _layoutStyle = UserPrefs().bookLayoutStyle;
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -308,9 +307,10 @@ class _BookTabViewState extends State<_BookTabView>
   Widget build(BuildContext context) {
     super.build(context);
     final colors = Theme.of(context).colorScheme;
+    final layoutStyle = context.select<AppProvider, int>((p) => p.bookLayoutStyle);
 
     final content = () {
-      if (_items.isEmpty && _isLoading) return _buildSkeleton(_layoutStyle);
+      if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
       if (_items.isEmpty) {
         return RefreshIndicator(
           onRefresh: _refresh,
@@ -326,7 +326,13 @@ class _BookTabViewState extends State<_BookTabView>
         onRefresh: _refresh,
         color: colors.primary,
         backgroundColor: colors.surface,
-        child: _layoutStyle == 1 ? _buildListView() : _buildGridView(),
+        child: layoutStyle == 1
+            ? _buildListView()
+            : layoutStyle == 2
+                ? _buildYearGridView()
+                : layoutStyle == 3
+                    ? _buildCoverCardView()
+                    : _buildGridView(),
       );
     }();
     return content;
@@ -335,7 +341,10 @@ class _BookTabViewState extends State<_BookTabView>
   Widget _buildGridView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        final fixedCount = context.select<AppProvider, int>((p) => p.bookGridCount);
+        final crossAxisCount = fixedCount > 0
+            ? fixedCount
+            : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
         return GridView.builder(
           controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -367,6 +376,25 @@ class _BookTabViewState extends State<_BookTabView>
         if (index >= _items.length) return _buildLoadMore();
         return _buildListCard(_items[index]);
       },
+    );
+  }
+
+  /// 年份网格：按出版年份倒序分段，无年份归入"其他"
+  Widget _buildYearGridView() {
+    final fixedCount = context.select<AppProvider, int>((p) => p.bookGridCount);
+    return YearGridView<Book>(
+      items: _items,
+      yearOf: (b) => b.publishDate?.year,
+      controller: _scrollController,
+      fixedCrossAxisCount: fixedCount > 0 ? fixedCount : null,
+      hasMore: _hasMore,
+      loadMoreIndicator: _buildLoadMore(),
+      itemBuilder: (b) => BookListItem(
+        book: b,
+        selected: Breakpoint.isWideContent(context) &&
+            context.read<AppProvider>().selectedBook?.id == b.id,
+        onTap: () => _onBookTap(b),
+      ),
     );
   }
 
@@ -420,6 +448,97 @@ class _BookTabViewState extends State<_BookTabView>
     );
   }
 
+  // ─── 大图卡片样式 ───────────────────────────────────────
+
+  Widget _buildCoverCardView() {
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      itemCount: _items.length + (_hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _items.length) return _buildLoadMore();
+        return _buildCoverCard(_items[index]);
+      },
+    );
+  }
+
+  Widget _buildCoverCard(Book book) {
+    final colors = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => _onBookTap(book),
+      onLongPress: () => _showDeleteDialog(context, book),
+      child: Container(
+        height: 200,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: colors.surfaceContainerHigh,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(fit: StackFit.expand, children: [
+          // 封面背景
+          if (book.coverPath != null && book.coverPath!.isNotEmpty)
+            FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover,
+                errorWidget: Container(color: colors.surfaceContainerHighest))
+          else
+            Container(color: colors.surfaceContainerHighest,
+                child: Icon(Icons.menu_book_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
+          // 底部渐变遮罩
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                  stops: const [0.4, 1.0],
+                ),
+              ),
+            ),
+          ),
+          // 底部信息
+          Positioned(
+            left: 14, right: 14, bottom: 14,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
+              const SizedBox(height: 4),
+              Row(children: [
+                Expanded(
+                  child: Text(book.authors.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
+                ),
+                if (book.rating != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade400),
+                  const SizedBox(width: 2),
+                  Text(book.rating!.toStringAsFixed(1),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                ],
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildCoverCardSkeleton() {
+    final colors = Theme.of(context).colorScheme;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      itemCount: 4,
+      itemBuilder: (_, __) => Container(
+        height: 200,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+  }
+
   void _showDeleteDialog(BuildContext context, Book book) {
     final colors = Theme.of(context).colorScheme;
     appDialog(
@@ -451,7 +570,11 @@ class _BookTabViewState extends State<_BookTabView>
     );
   }
 
-  Widget _buildSkeleton(int layoutStyle) => layoutStyle == 1 ? const MovieSkeletonGrid() : const BookSkeletonGrid();
+  Widget _buildSkeleton(int layoutStyle) {
+    if (layoutStyle == 1) return const MovieSkeletonGrid();
+    if (layoutStyle == 3) return _buildCoverCardSkeleton();
+    return const BookSkeletonGrid();
+  }
 
   Widget _buildEmptyState() {
     final colors = Theme.of(context).colorScheme;

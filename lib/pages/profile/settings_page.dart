@@ -14,6 +14,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../data/database_helper.dart';
 import '../../services/sync/cache_cleaner.dart';
+import '../../services/media_scan_channel.dart';
 import '../online_search/enhanced_search_settings_page.dart';
 import '../settings/legal_page.dart';
 import 'app_icon_picker_page.dart';
@@ -172,6 +173,19 @@ class _SettingsPageState extends State<SettingsPage> {
               title: '获取系统权限'.tr,
               subtitle: '前往系统设置开启存储权限'.tr,
               onTap: _showStoragePermissionDialog,
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+          ],
+          if (Platform.isAndroid) ...[
+            _buildActionItem(
+              icon: Icons.image_search_outlined,
+              title: '扫描系统媒体库'.tr,
+              subtitle: '图片存在但相册/图片选择器里看不到时，触发系统重新索引'.tr,
+              onTap: _scanSystemMedia,
             ),
             Divider(
                 height: 0.5,
@@ -1034,6 +1048,110 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  /// 触发系统媒体扫描（解决图片已在存储中但系统相册/图片选择器看不到的问题）
+  Future<void> _scanSystemMedia() async {
+    // 先确保有图片读取权限（Android 13+ 为 READ_MEDIA_IMAGES）
+    await Permission.photos.request();
+    if (!mounted) return;
+
+    int done = 0;
+    int total = 0;
+    StateSetter? dialogSetState;
+    BuildContext? dialogCtx;
+    bool scanFinished = false;
+
+    final scanFuture = MediaScanChannel.scanMedia(
+      onProgress: (d, t) {
+        done = d;
+        total = t;
+        dialogSetState?.call(() {});
+      },
+    );
+    // 扫描结束时自动关闭进度弹窗
+    scanFuture.then((_) {
+      scanFinished = true;
+      final ctx = dialogCtx;
+      if (ctx != null && ctx.mounted) {
+        Navigator.pop(ctx, true);
+      }
+    });
+
+    final completed = await appDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        dialogCtx = ctx;
+        // 扫描在弹窗打开前就已结束（目录为空等情况），直接关掉
+        if (scanFinished) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ctx.mounted) Navigator.pop(ctx, true);
+          });
+        }
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            dialogSetState = setState;
+            final colors = Theme.of(ctx).colorScheme;
+            return AlertDialog(
+              backgroundColor: colors.surface,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              title: Text('扫描系统媒体库'.tr,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: total > 0 ? done / total : null,
+                    minHeight: 4,
+                    backgroundColor: colors.surfaceContainerHighest,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    total > 0
+                        ? '已扫描 {done}/{total}'
+                            .trf({'done': done, 'total': total})
+                        : '正在查找图片...'.tr,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: colors.onSurface.withValues(alpha: 0.6)),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('后台运行'.tr,
+                      style: TextStyle(
+                          color: colors.onSurface.withValues(alpha: 0.6))),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted) return;
+    final count = await scanFuture;
+    if (!mounted) return;
+    // 用户点了"后台运行"则静默，扫描仍在系统侧继续
+    if (completed == true) {
+      if (count > 0) {
+        ToastUtil.show(
+            context, '扫描完成，共 {n} 个文件，稍后可在系统相册查看'.trf({'n': count}));
+      } else if (count == 0) {
+        ToastUtil.show(context, '未在公共图片目录发现图片，请检查存储权限'.tr);
+      } else {
+        ToastUtil.show(context, '扫描失败'.tr);
+      }
+    }
   }
 
   void _showStoragePermissionDialog() {

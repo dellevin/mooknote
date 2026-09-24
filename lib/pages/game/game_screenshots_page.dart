@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -26,7 +26,6 @@ class GameScreenshotsPage extends StatefulWidget {
 }
 
 class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
-  final ImagePicker _picker = ImagePicker();
   List<GameScreenshot> _screenshots = [];
   bool _isLoading = true;
 
@@ -221,17 +220,29 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
     );
   }
 
+  /// 从相册选择（多选，仅图片）
   Future<void> _pickFromGallery() async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1200, maxHeight: 1800, imageQuality: 85,
+      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          requestType: RequestType.image, // 只允许选择图片，不能选择视频
+        ),
       );
-      if (pickedFile != null) {
-        final fileName = 'screenshot_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      if (!mounted || assets == null || assets.isEmpty) return;
+
+      int added = 0;
+      for (final asset in assets) {
+        final file = await asset.file;
+        if (file == null) continue;
+
+        // 生成文件名（保留原扩展名，加序号防止同毫秒重名）
+        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+        final fileName = 'screenshot_${DateTime.now().millisecondsSinceEpoch}_$added$ext';
+
         final targetPath = await ImagePathHelper.instance.getGameScreenshotImgPath(widget.game.id, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-        await File(pickedFile.path).copy(targetPath);
+        await file.copy(targetPath);
 
         final newScreenshot = GameScreenshot(
           id: const Uuid().v4(),
@@ -239,7 +250,13 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
           screenshotPath: targetPath,
           createdAt: DateTime.now(),
         );
+
+        if (!mounted) return;
         await context.read<AppProvider>().addGameScreenshot(newScreenshot);
+        added++;
+      }
+
+      if (added > 0) {
         _loadScreenshots();
         if (mounted) ToastUtil.show(context, '添加成功'.tr);
       }

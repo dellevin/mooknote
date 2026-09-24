@@ -6,6 +6,7 @@ import '../../utils/user_prefs.dart';
 import '../../widgets/movie_status_bar.dart';
 import '../../widgets/movie_category_bar.dart';
 import '../../widgets/movie_list_item.dart';
+import '../../widgets/year_grid_view.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/top_fade_scrim.dart';
@@ -344,7 +345,9 @@ class _MovieTabViewState extends State<_MovieTabView>
             ? _buildListView()
             : layoutStyle == 2
                 ? _buildCoverCardView()
-                : _buildGridView(),
+                : layoutStyle == 3
+                    ? _buildYearGridView()
+                    : _buildGridView(),
       );
     }();
     return content;
@@ -353,7 +356,10 @@ class _MovieTabViewState extends State<_MovieTabView>
   Widget _buildGridView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        final fixedCount = context.select<AppProvider, int>((p) => p.movieGridCount);
+        final crossAxisCount = fixedCount > 0
+            ? fixedCount
+            : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
         final isWideContent = Breakpoint.isWideContent(context);
         final provider = context.read<AppProvider>();
         return GridView.builder(
@@ -386,6 +392,26 @@ class _MovieTabViewState extends State<_MovieTabView>
         if (index >= _items.length) return _buildLoadMoreIndicator();
         return _buildListCard(_items[index]);
       },
+    );
+  }
+
+  /// 年份网格：按上映年份倒序分段，无年份归入"其他"
+  Widget _buildYearGridView() {
+    final fixedCount = context.select<AppProvider, int>((p) => p.movieGridCount);
+    final isWideContent = Breakpoint.isWideContent(context);
+    final provider = context.read<AppProvider>();
+    return YearGridView<Movie>(
+      items: _items,
+      yearOf: (m) => m.releaseDate?.year,
+      controller: _scrollController,
+      fixedCrossAxisCount: fixedCount > 0 ? fixedCount : null,
+      hasMore: _hasMore,
+      loadMoreIndicator: _buildLoadMoreIndicator(),
+      itemBuilder: (m) => MovieListItem(
+        movie: m,
+        selected: isWideContent && provider.selectedMovie?.id == m.id,
+        onTap: () => _onMovieTap(m),
+      ),
     );
   }
 

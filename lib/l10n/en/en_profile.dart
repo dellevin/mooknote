@@ -120,6 +120,17 @@ const Map<String, String> enProfile = {
   '获取系统权限': 'System Permissions',
   '前往系统设置开启存储权限':
       'Go to system settings to enable storage permission',
+  '扫描系统媒体库': 'Scan Media Library',
+  '图片存在但相册/图片选择器里看不到时，触发系统重新索引':
+      'Re-index when images exist but are missing from the gallery or image picker',
+  '正在查找图片...': 'Looking for images...',
+  '已扫描 {done}/{total}': 'Scanned {done}/{total}',
+  '后台运行': 'Run in background',
+  '扫描完成，共 {n} 个文件，稍后可在系统相册查看':
+      'Scan complete: {n} files; check the gallery shortly',
+  '未在公共图片目录发现图片，请检查存储权限':
+      'No images found in public picture directories; check storage permission',
+  '扫描失败': 'Scan failed',
   '查看官网': 'Official Website',
   '在浏览器中打开官方网站':
       'Open the official website in the browser',
@@ -236,6 +247,7 @@ const Map<String, String> enProfile = {
   '芯片': 'Chip',
   '下拉': 'Dropdown',
   '海报网格': 'Poster Grid',
+  '年份网格': 'Year Grid',
   '列表': 'List',
   '大图卡片': 'Large Card',
   '更新时间': 'Updated',
@@ -268,6 +280,9 @@ const Map<String, String> enProfile = {
   '显示模式': 'Display mode',
   '状态栏样式': 'Status bar style',
   '布局样式': 'Layout style',
+  '每行数量': 'Items per row',
+  '自动': 'Auto',
+  '每行{n}个': '{n} per row',
   '排序方式': 'Sort by',
   '按更新时间排序': 'Sort by update time',
   '按创建时间排序': 'Sort by date added',

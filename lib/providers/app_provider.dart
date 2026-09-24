@@ -101,6 +101,9 @@ class AppProvider extends ChangeNotifier {
   // 影视列表布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
   int _movieLayoutStyle = 0;
 
+  // 阅读列表布局样式 (0: 网格, 1: 列表, 2: 年份网格, 3: 大图卡片)
+  int _bookLayoutStyle = 0;
+
   // 影视墙模式（不显示分类，按创建时间排序）
   bool _movieWallMode = false;
 
@@ -114,6 +117,11 @@ class AppProvider extends ChangeNotifier {
 
   // 影视状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
   int _movieStatusBarStyle = 0;
+
+  // 海报网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
+  int _movieGridCount = 0;
+  int _bookGridCount = 0;
+  int _gameGridCount = 0;
 
   // 影视分类索引
   int _movieCategoryIndex = 0;
@@ -219,9 +227,13 @@ class AppProvider extends ChangeNotifier {
   void initMainTabIndex() {
     final userPrefs = UserPrefs();
     _movieLayoutStyle = userPrefs.movieLayoutStyle;
+    _bookLayoutStyle = userPrefs.bookLayoutStyle;
     _movieWallMode = userPrefs.movieWallMode;
     _movieDisplayMode = userPrefs.movieDisplayMode;
     _movieStatusBarStyle = userPrefs.movieStatusBarStyle;
+    _movieGridCount = userPrefs.movieGridCount;
+    _bookGridCount = userPrefs.bookGridCount;
+    _gameGridCount = userPrefs.gameGridCount;
     _bookStatusBarStyle = userPrefs.bookStatusBarStyle;
     _bookshelfMode = userPrefs.bookshelfMode;
     _gameLayoutStyle = userPrefs.gameLayoutStyle;
@@ -340,12 +352,16 @@ class AppProvider extends ChangeNotifier {
   Game? get selectedGame => _selectedGame;
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
+  int get bookLayoutStyle => _bookLayoutStyle;
   bool get movieWallMode => _movieWallMode;
   bool get showMovieCardDate => _showMovieCardDate;
   bool get showBookCardDate => _showBookCardDate;
   bool get showGameCardDate => _showGameCardDate;
   int get movieDisplayMode => _movieDisplayMode;
   int get movieStatusBarStyle => _movieStatusBarStyle;
+  int get movieGridCount => _movieGridCount;
+  int get bookGridCount => _bookGridCount;
+  int get gameGridCount => _gameGridCount;
   int get movieCategoryIndex => _movieCategoryIndex;
   int get bookStatusIndex => _bookStatusIndex;
   int get bookStatusBarStyle => _bookStatusBarStyle;
@@ -580,6 +596,12 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setBookLayoutStyle(int style) {
+    _bookLayoutStyle = style;
+    UserPrefs().setBookLayoutStyle(style);
+    notifyListeners();
+  }
+
   void setMovieWallMode(bool enabled) {
     _movieWallMode = enabled;
     UserPrefs().setMovieWallMode(enabled);
@@ -613,6 +635,24 @@ class AppProvider extends ChangeNotifier {
   void setMovieStatusBarStyle(int style) {
     _movieStatusBarStyle = style;
     UserPrefs().setMovieStatusBarStyle(style);
+    notifyListeners();
+  }
+
+  void setMovieGridCount(int count) {
+    _movieGridCount = count;
+    UserPrefs().setMovieGridCount(count);
+    notifyListeners();
+  }
+
+  void setBookGridCount(int count) {
+    _bookGridCount = count;
+    UserPrefs().setBookGridCount(count);
+    notifyListeners();
+  }
+
+  void setGameGridCount(int count) {
+    _gameGridCount = count;
+    UserPrefs().setGameGridCount(count);
     notifyListeners();
   }
 
@@ -887,6 +927,18 @@ class AppProvider extends ChangeNotifier {
     return await _posterDao.getPostersByMovieId(movieId);
   }
 
+  /// 子组表（海报/截图等）无墓碑机制：删除子行后触碰父行 updated_at，
+  /// 让增量同步把父行+整组（含删除结果）推送出去，对端整组替换后保持一致
+  Future<void> _touchParentUpdatedAt(String table, String id) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.update(
+      table,
+      {'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   /// 添加海报
   Future<void> addMoviePoster(MoviePoster poster) async {
     await _posterDao.insertPoster(poster);
@@ -898,8 +950,10 @@ class AppProvider extends ChangeNotifier {
     final poster = await _posterDao.getPosterById(id);
     if (poster != null) {
       await ImagePathHelper.instance.deleteFile(poster.posterPath);
+      await _posterDao.deletePoster(id);
+      // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
+      await _touchParentUpdatedAt('movies', poster.movieId);
     }
-    await _posterDao.deletePoster(id);
     notifyListeners();
   }
 
@@ -956,8 +1010,10 @@ class AppProvider extends ChangeNotifier {
     final screenshot = await _gameScreenshotDao.getScreenshotById(id);
     if (screenshot != null) {
       await ImagePathHelper.instance.deleteFile(screenshot.screenshotPath);
+      await _gameScreenshotDao.deleteScreenshot(id);
+      // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
+      await _touchParentUpdatedAt('games', screenshot.gameId);
     }
-    await _gameScreenshotDao.deleteScreenshot(id);
     notifyListeners();
   }
 

@@ -206,12 +206,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: hasCover
-                            ? (widget.embedded
-                                ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
-                                : Hero(
-                                    tag: 'poster-book-${book.id}',
-                                    child: FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover),
-                                  ))
+                            ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
                             : Center(child: Icon(Icons.menu_book, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
                       ),
                     ],
@@ -992,10 +987,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasCover
-          ? Hero(
-              tag: 'poster-book-${book.id}',
-              child: FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover),
-            )
+          ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
           : Center(child: Icon(Icons.menu_book, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
     );
   }
@@ -1192,10 +1184,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           clipBehavior: Clip.antiAlias,
           child: hasCover
-              ? Hero(
-                  tag: 'poster-book-${book.id}',
-                  child: FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover),
-                )
+              ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
               : Container(color: Colors.white24, child: const Icon(Icons.menu_book, color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
@@ -1373,14 +1362,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           Positioned(
                             top: offset,
                             left: 0, right: 0,
-                            child: Hero(
-                              tag: 'poster-book-${book.id}',
-                              child: FadeInLocalImage(
-                                key: _coverImageKey,
-                                path: book.coverPath,
-                                fit: BoxFit.fitWidth,
-                                width: constraints.maxWidth,
-                              ),
+                            child: FadeInLocalImage(
+                              key: _coverImageKey,
+                              path: book.coverPath,
+                              fit: BoxFit.fitWidth,
+                              width: constraints.maxWidth,
                             ),
                           ),
                         ],

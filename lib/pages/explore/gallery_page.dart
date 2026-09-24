@@ -279,20 +279,25 @@ class _GalleryImageCard extends StatefulWidget {
 }
 
 class _GalleryImageCardState extends State<_GalleryImageCard> {
+  /// 会话级真实宽高比缓存：滚动重建时直接命中，避免先用占位比例布局、
+  /// 解码完成后高度突变导致瀑布流整体重排（图片位置跳动）
+  static final Map<String, double> _ratioCache = {};
+
   double? _aspectRatio;
 
   @override
   void initState() {
     super.initState();
-    _resolveAspectRatio();
+    _aspectRatio = _ratioCache[widget.path];
+    if (_aspectRatio == null) _resolveAspectRatio();
   }
 
   @override
   void didUpdateWidget(_GalleryImageCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.path != widget.path) {
-      _aspectRatio = null;
-      _resolveAspectRatio();
+      _aspectRatio = _ratioCache[widget.path];
+      if (_aspectRatio == null) _resolveAspectRatio();
     }
   }
 
@@ -311,7 +316,9 @@ class _GalleryImageCardState extends State<_GalleryImageCard> {
       final decoded = await decodeImageFromList(data);
       if (!mounted) return;
       if (decoded.width > 0 && decoded.height > 0) {
-        setState(() => _aspectRatio = decoded.width / decoded.height);
+        final ratio = decoded.width / decoded.height;
+        _ratioCache[path] = ratio;
+        setState(() => _aspectRatio = ratio);
       }
     } catch (_) {
       // 解析失败则保留占位比例

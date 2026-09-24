@@ -29,6 +29,9 @@ class AppRouter {
             args is Map<String, dynamic> ? (args['prefill'] as Map<String, dynamic>?) : null;
         return SlideUpPageRoute(
           page: MovieFormPage(movie: movie, initialStatus: initialStatus, prefill: prefill),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
         );
 
       case '/book-form':
@@ -40,26 +43,45 @@ class AppRouter {
             args is Map<String, dynamic> ? (args['prefill'] as Map<String, dynamic>?) : null;
         return SlideUpPageRoute(
           page: BookFormPage(book: book, initialStatus: initialStatus, prefill: prefill),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
         );
 
       case '/note-form':
         final args = settings.arguments;
         final Note? note = args is Note ? args : null;
-        return SlideUpPageRoute(page: NoteFormPage(note: note));
+        return SlideUpPageRoute(
+          page: NoteFormPage(note: note),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
+        );
 
       case '/movie-detail':
         final movie = settings.arguments is Movie ? settings.arguments as Movie : null;
         if (movie == null) {
           return _buildUnknownRoute(settings.name);
         }
-        return SlideUpPageRoute(page: MovieDetailPage(movie: movie));
+        // 整页 Hero：详情页像翻书一样从列表海报位置展开（海报与页面一体动画）
+        return FadePageRoute(
+          page: BookOpenHero(
+            tag: 'poster-movie-${movie.id}',
+            child: MovieDetailPage(movie: movie),
+          ),
+        );
 
       case '/book-detail':
         final book = settings.arguments is Book ? settings.arguments as Book : null;
         if (book == null) {
           return _buildUnknownRoute(settings.name);
         }
-        return SlideUpPageRoute(page: BookDetailPage(book: book));
+        return FadePageRoute(
+          page: BookOpenHero(
+            tag: 'poster-book-${book.id}',
+            child: BookDetailPage(book: book),
+          ),
+        );
 
       case '/note-detail':
         final note = settings.arguments is Note ? settings.arguments as Note : null;
@@ -77,6 +99,9 @@ class AppRouter {
             args is Map<String, dynamic> ? (args['prefill'] as Map<String, dynamic>?) : null;
         return SlideUpPageRoute(
           page: GameFormPage(game: game, initialStatus: initialStatus, prefill: prefill),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
         );
 
       case '/game-detail':
@@ -84,7 +109,12 @@ class AppRouter {
         if (game == null) {
           return _buildUnknownRoute(settings.name);
         }
-        return SlideUpPageRoute(page: GameDetailPage(game: game));
+        return FadePageRoute(
+          page: BookOpenHero(
+            tag: 'poster-game-${game.id}',
+            child: GameDetailPage(game: game),
+          ),
+        );
 
       case '/douban-webview':
         final args = settings.arguments;

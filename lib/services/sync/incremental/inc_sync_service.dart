@@ -239,7 +239,7 @@ class IncSyncService {
     }
   }
 
-  /// 强制推送：以本地为准重建云端基线并覆盖，删除远程全部 delta。
+  /// 强制推送：先删除云端全部增量数据（delta + manifest），再以本地为准重建云端基线。
   /// 其他设备下次同步时按新基线合并（其他设备较新的修改仍按 LWW 保留）。
   /// 用于云端数据异常时以本机为准修复云端。
   Future<IncSyncResult> forcePush() async {
@@ -256,19 +256,23 @@ class IncSyncService {
       final appDir = await ImagePathHelper.getAppDir();
       final codec = IncRowCodec(path.join(appDir, 'images'));
 
+      // 版本号取自旧 manifest（保持单调递增，其他设备才能识别为新基线）
       final prev = await remote.getManifest();
       final newVersion = (prev?.version ?? 0) + 1;
 
-      // 墓碑随 manifest 携带：合并上一版 manifest 与本地墓碑
-      final tombRows = await SyncTombstones.all();
-      final merged = <String, TombstoneEntry>{
-        for (final t in prev?.tombstones ?? const <TombstoneEntry>[])
-          '${t.table}|${t.id}': t,
-      };
-      for (final r in tombRows) {
-        final e = _tombEntryFromRow(r);
-        merged['${e.table}|${e.id}'] = e;
+      // 先删除云端全部增量数据（delta + manifest），再推送本地数据，
+      // 避免云端残留的旧 delta 在新基线之上被其他设备重复应用
+      final names = await remote.listDeltaNames();
+      if (names == null) {
+        return IncSyncResult(success: false, message: '清理远程增量失败，请重试'.tr);
       }
+      for (final name in names) {
+        await remote.deleteDelta(name);
+      }
+      await remote.deleteManifest();
+
+      // 全新基线只携带本地墓碑（云端旧墓碑已随 manifest 一并删除）
+      final tombRows = await SyncTombstones.all();
 
       final built = await IncManifestBuilder.buildFromLocal(
         remote: remote,
@@ -277,19 +281,10 @@ class IncSyncService {
         clientId: clientId,
         foldedDeltas: const [],
         imageMap: {},
-        tombstones: merged.values.toList(),
+        tombstones: tombRows.map((r) => _tombEntryFromRow(r)).toList(),
       );
       if (!await remote.putManifest(built)) {
         return IncSyncResult(success: false, message: '上传基线失败'.tr);
-      }
-
-      // 远程旧 delta 的内容已被新基线取代，全部删除
-      final names = await remote.listDeltaNames();
-      if (names == null) {
-        return IncSyncResult(success: false, message: '基线已上传，但清理远程增量失败，请重试'.tr);
-      }
-      for (final name in names) {
-        await remote.deleteDelta(name);
       }
 
       // 本地状态对齐到新基线
@@ -785,7 +780,7 @@ class IncSyncService {
       origin,
       ownId,
     )) {
-      localWins.add('$spec.table|$parentId');
+      localWins.add('${spec.table}|$parentId');
       return;
     }
 

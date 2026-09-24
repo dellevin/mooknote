@@ -6,6 +6,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/game_status_bar.dart';
 import '../../widgets/game_list_item.dart';
+import '../../widgets/year_grid_view.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/top_fade_scrim.dart';
@@ -338,7 +339,9 @@ class _GameTabViewState extends State<_GameTabView>
             ? _buildListView()
             : layoutStyle == 2
                 ? _buildCoverCardView()
-                : _buildGridView(),
+                : layoutStyle == 3
+                    ? _buildYearGridView()
+                    : _buildGridView(),
       );
     }();
     return content;
@@ -347,7 +350,10 @@ class _GameTabViewState extends State<_GameTabView>
   Widget _buildGridView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        final fixedCount = context.select<AppProvider, int>((p) => p.gameGridCount);
+        final crossAxisCount = fixedCount > 0
+            ? fixedCount
+            : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
         final isWideContent = Breakpoint.isWideContent(context);
         final provider = context.read<AppProvider>();
         return GridView.builder(
@@ -380,6 +386,26 @@ class _GameTabViewState extends State<_GameTabView>
         if (index >= _items.length) return _buildLoadMoreIndicator();
         return _buildListCard(_items[index]);
       },
+    );
+  }
+
+  /// 年份网格：按发售年份倒序分段，无年份归入"其他"
+  Widget _buildYearGridView() {
+    final fixedCount = context.select<AppProvider, int>((p) => p.gameGridCount);
+    final isWideContent = Breakpoint.isWideContent(context);
+    final provider = context.read<AppProvider>();
+    return YearGridView<Game>(
+      items: _items,
+      yearOf: (g) => g.releaseDate?.year,
+      controller: _scrollController,
+      fixedCrossAxisCount: fixedCount > 0 ? fixedCount : null,
+      hasMore: _hasMore,
+      loadMoreIndicator: _buildLoadMoreIndicator(),
+      itemBuilder: (g) => GameListItem(
+        game: g,
+        selected: isWideContent && provider.selectedGame?.id == g.id,
+        onTap: () => _onGameTap(g),
+      ),
     );
   }
 

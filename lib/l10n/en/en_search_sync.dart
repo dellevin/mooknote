@@ -205,6 +205,53 @@ const Map<String, String> enSearchSync = {
   '服务器地址需包含 https://': 'The server URL must include https://',
   '首次同步可能需要较长时间': 'The first sync may take a while',
 
+  // ── WebDAV 增量备份 ──
+  '全量备份': 'Full backup',
+  '增量备份': 'Incremental',
+  '尚未建立': 'Not created',
+  '暂无记录': 'No record',
+  '基线版本': 'Baseline version',
+  '上次同步': 'Last sync',
+  '立即同步': 'Sync now',
+  '正在同步数据...': 'Syncing data...',
+  '强制推送': 'Force push',
+  '正在强制推送...': 'Force pushing...',
+  '推送完成': 'Push complete',
+  '从云端恢复': 'Restore from cloud',
+  '正在从云端恢复...': 'Restoring from cloud...',
+  '恢复完成': 'Restore complete',
+  '重新同步': 'Re-sync',
+  '正在重新同步...': 'Re-syncing...',
+  '同步完成': 'Sync complete',
+  '没有新的变更': 'No new changes',
+  '自动同步': 'Auto sync',
+  '每隔 {t} 自动同步一次': 'Auto sync every {t}',
+  '开启后按设定间隔自动同步': 'When enabled, syncs automatically at the set interval',
+  '{m}分钟': '{m} min',
+  '推送本地变更到云端，并拉取云端变更与本地合并（同一条记录以最后修改为准）':
+      'Pushes local changes to the cloud and pulls cloud changes to merge locally (last write wins per record)',
+  '推送本地变更到云端，并拉取云端变更与本地合并（同一条记录以最后修改为准），点击确定继续':
+      'Pushes local changes to the cloud and pulls cloud changes to merge locally (last write wins per record). Tap OK to continue',
+  '以本机数据为准覆盖云端：云端将被重建为本机当前状态，其他设备尚未同步到本机的变更会丢失。确定继续？':
+      'Overwrite the cloud with this device\'s data: the cloud will be rebuilt to match this device, and changes from other devices not yet synced here will be lost. Continue?',
+  '重新从云端完整拉取一遍数据。本地较新的修改不会被覆盖。当同步结果不正常、拉取不到其他设备的数据时使用。':
+      'Pulls a full copy from the cloud again. Newer local changes will not be overwritten. Use when sync misbehaves or data from other devices is missing.',
+  '以云端数据为准覆盖本机：删除过的内容会重新回来，本地的旧内容被云端版本覆盖。本地新增且未上传的数据会保留。确定继续？':
+      'Overwrite this device with cloud data: deleted items will come back and older local items will be replaced by cloud versions. New local items not yet uploaded are kept. Continue?',
+  '上传: {rec} 记录, {img} 图片（去重 {dedup}）\n下载: {drec} 记录, {dimg} 图片':
+      'Uploaded: {rec} records, {img} images ({dedup} deduped)\nDownloaded: {drec} records, {dimg} images',
+  '上传: {rec} 记录, {img} 图片': 'Uploaded: {rec} records, {img} images',
+  '下载: {drec} 记录, {dimg} 图片': 'Downloaded: {drec} records, {dimg} images',
+  '恢复: {drec} 记录, {dimg} 图片': 'Restored: {drec} records, {dimg} images',
+  '同步正在进行中，请稍后再试': 'A sync is in progress, please try again later',
+  '云端没有增量基线数据': 'No incremental baseline data in the cloud',
+  '无法读取远程增量列表，同步中止': 'Could not read the remote delta list; sync aborted',
+  '恢复失败: {e}': 'Restore failed: {e}',
+  '清理远程增量失败，请重试': 'Failed to clean up remote deltas, please try again',
+  '上传基线失败': 'Failed to upload baseline',
+  '推送失败: {e}': 'Push failed: {e}',
+  'delta 上传失败': 'Failed to upload delta',
+
   // ── 云备份入口 ──
   '云备份': 'Cloud Backup',
   '选择备份方式': 'Choose a backup method',

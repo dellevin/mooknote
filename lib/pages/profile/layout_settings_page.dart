@@ -19,6 +19,9 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   int _movieLayout = 0;
   int _bookLayout = 0;
   int _gameLayout = 0;
+  int _movieGridCount = 0;
+  int _bookGridCount = 0;
+  int _gameGridCount = 0;
   bool _movieWallMode = false;
   int _movieDisplayMode = 0;
   int _movieStatusBarStyle = 0;
@@ -42,6 +45,9 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     _movieLayout = _userPrefs.movieLayoutStyle;
     _bookLayout = _userPrefs.bookLayoutStyle;
     _gameLayout = _userPrefs.gameLayoutStyle;
+    _movieGridCount = _userPrefs.movieGridCount;
+    _bookGridCount = _userPrefs.bookGridCount;
+    _gameGridCount = _userPrefs.gameGridCount;
     _movieWallMode = _userPrefs.movieWallMode;
     _movieDisplayMode = _userPrefs.movieDisplayMode;
     _movieStatusBarStyle = _userPrefs.movieStatusBarStyle;
@@ -121,7 +127,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_movieStatusBarStyle]);
       }
     }
-    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr][_movieLayout]);
+    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][_movieLayout]);
+    if ((_movieLayout == 0 || _movieLayout == 3) && _movieGridCount > 0) {
+      parts.add('每行{n}个'.trf({'n': '$_movieGridCount'}));
+    }
     parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][_movieSortMode]);
     return parts.join(' · ');
   }
@@ -134,7 +143,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       parts.add('阅读状态'.tr);
       parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_bookStatusBarStyle]);
     }
-    parts.add(['海报网格'.tr, '列表'.tr][_bookLayout]);
+    parts.add(['海报网格'.tr, '列表'.tr, '年份网格'.tr, '大图卡片'.tr][_bookLayout]);
+    if ((_bookLayout == 0 || _bookLayout == 2) && _bookGridCount > 0) {
+      parts.add('每行{n}个'.trf({'n': '$_bookGridCount'}));
+    }
     parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][_bookSortMode]);
     return parts.join(' · ');
   }
@@ -154,7 +166,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       parts.add('游玩状态'.tr);
       parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_gameStatusBarStyle]);
     }
-    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr][_gameLayout]);
+    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][_gameLayout]);
+    if ((_gameLayout == 0 || _gameLayout == 3) && _gameGridCount > 0) {
+      parts.add('每行{n}个'.trf({'n': '$_gameGridCount'}));
+    }
     parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr][_gameSortMode]);
     return parts.join(' · ');
   }
@@ -254,38 +269,37 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
           const SizedBox(width: 12),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 6,
+              runSpacing: 6,
               children: options.map((opt) {
                 final isSelected = selected == opt.$1;
-                return Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: GestureDetector(
-                    onTap: () => onChanged(opt.$1),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: isSelected ? colors.primary : colors.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isSelected ? colors.primary : colors.outlineVariant.withValues(alpha: 0.7),
-                          width: isSelected ? 0 : 0.5,
-                        ),
+                return GestureDetector(
+                  onTap: () => onChanged(opt.$1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: isSelected ? colors.primary : colors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? colors.primary : colors.outlineVariant.withValues(alpha: 0.7),
+                        width: isSelected ? 0 : 0.5,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(opt.$2, size: 14, color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
-                          const SizedBox(width: 4),
-                          Text(opt.$3,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
-                              )),
-                        ],
-                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(opt.$2, size: 14, color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
+                        const SizedBox(width: 4),
+                        Text(opt.$3,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                            )),
+                      ],
                     ),
                   ),
                 );
@@ -439,9 +453,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             _sheetDivider(colors),
             _sheetOptionRow(
               label: '布局样式'.tr, selected: _movieLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr)],
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr), (3, Icons.date_range_outlined, '年份网格'.tr)],
               onChanged: (v) { _setLayout('movie', v); setSheetState(() {}); }, colors: colors,
             ),
+            if (_movieLayout == 0 || _movieLayout == 3) ...[
+              _sheetDivider(colors),
+              _sheetOptionRow(
+                label: '每行数量'.tr, selected: _movieGridCount,
+                options: [
+                  (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
+                  (3, Icons.looks_3_outlined, '3'),
+                  (4, Icons.looks_4_outlined, '4'),
+                  (5, Icons.looks_5_outlined, '5'),
+                ],
+                onChanged: (v) { _setGridCount('movie', v); setSheetState(() {}); }, colors: colors,
+              ),
+            ],
             _sheetDivider(colors),
             _sheetSortSection(
               title: '排序方式'.tr,
@@ -506,9 +533,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             _sheetDivider(colors),
             _sheetOptionRow(
               label: '布局样式'.tr, selected: _bookLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr)],
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.date_range_outlined, '年份网格'.tr), (3, Icons.crop_landscape_outlined, '大图卡片'.tr)],
               onChanged: (v) { _setLayout('book', v); setSheetState(() {}); }, colors: colors,
             ),
+            if (_bookLayout == 0 || _bookLayout == 2) ...[
+              _sheetDivider(colors),
+              _sheetOptionRow(
+                label: '每行数量'.tr, selected: _bookGridCount,
+                options: [
+                  (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
+                  (3, Icons.looks_3_outlined, '3'),
+                  (4, Icons.looks_4_outlined, '4'),
+                  (5, Icons.looks_5_outlined, '5'),
+                ],
+                onChanged: (v) { _setGridCount('book', v); setSheetState(() {}); }, colors: colors,
+              ),
+            ],
             _sheetDivider(colors),
             _sheetSortSection(
               title: '排序方式'.tr,
@@ -609,9 +649,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             _sheetDivider(colors),
             _sheetOptionRow(
               label: '布局样式'.tr, selected: _gameLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr)],
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr), (3, Icons.date_range_outlined, '年份网格'.tr)],
               onChanged: (v) { _setLayout('game', v); setSheetState(() {}); }, colors: colors,
             ),
+            if (_gameLayout == 0 || _gameLayout == 3) ...[
+              _sheetDivider(colors),
+              _sheetOptionRow(
+                label: '每行数量'.tr, selected: _gameGridCount,
+                options: [
+                  (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
+                  (3, Icons.looks_3_outlined, '3'),
+                  (4, Icons.looks_4_outlined, '4'),
+                  (5, Icons.looks_5_outlined, '5'),
+                ],
+                onChanged: (v) { _setGridCount('game', v); setSheetState(() {}); }, colors: colors,
+              ),
+            ],
             _sheetDivider(colors),
             _sheetSortSection(
               title: '排序方式'.tr,
@@ -709,6 +762,21 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     }
   }
 
+  void _setGridCount(String type, int value) async {
+    final provider = context.read<AppProvider>();
+    switch (type) {
+      case 'movie':
+        setState(() => _movieGridCount = value);
+        provider.setMovieGridCount(value);
+      case 'book':
+        setState(() => _bookGridCount = value);
+        provider.setBookGridCount(value);
+      case 'game':
+        setState(() => _gameGridCount = value);
+        provider.setGameGridCount(value);
+    }
+  }
+
   void _setLayout(String type, int value) async {
     switch (type) {
       case 'note':
@@ -721,6 +789,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       case 'book':
         await _userPrefs.setBookLayoutStyle(value);
         setState(() => _bookLayout = value);
+        if (mounted) context.read<AppProvider>().setBookLayoutStyle(value);
       case 'game':
         await _userPrefs.setGameLayoutStyle(value);
         setState(() => _gameLayout = value);

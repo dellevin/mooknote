@@ -410,12 +410,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 SizedBox(
                   width: (MediaQuery.of(context).size.width - 52) / 2,
                   height: 90,
-                  child: _buildInfoCard(
-                    label: '观看次数',
-                    value: _watchCount > 0 ? '{n} 次'.trf({'n': _watchCount}) : '',
-                    icon: Icons.repeat_outlined,
-                    onTap: () => _editWatchCount(),
-                  ),
+                  child: _buildWatchCountCard(),
                 ),
 
                 // 影视总时长
@@ -622,29 +617,74 @@ class _MovieFormPageState extends State<MovieFormPage> {
     if (result != null) setState(() => _alternateTitles = result);
   }
 
-  /// 编辑观看次数
-  Future<void> _editWatchCount() async {
-    final controller = TextEditingController(text: _watchCount > 0 ? '$_watchCount' : '');
-    final result = await appDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('观看次数'.tr),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: InputDecoration(hintText: '输入次数'.tr),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr)),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: Text('确定'.tr)),
+  /// 观看次数卡片（加减号步进器）
+  Widget _buildWatchCountCard() {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outline),
+        boxShadow: [
+          BoxShadow(
+            color: colors.onSurface.withValues(alpha: 0.018),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.repeat_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              const SizedBox(width: 6),
+              Text(
+                '观看次数'.tr,
+                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStepButton(
+                icon: Icons.remove,
+                onTap: _watchCount > 0 ? () => setState(() => _watchCount--) : null,
+              ),
+              Text(
+                '{n} 次'.trf({'n': _watchCount}),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+              ),
+              _buildStepButton(
+                icon: Icons.add,
+                onTap: () => setState(() => _watchCount++),
+              ),
+            ],
+          ),
         ],
       ),
     );
-    if (result != null) {
-      final val = int.tryParse(result) ?? 0;
-      setState(() => _watchCount = val < 0 ? 0 : val);
-    }
+  }
+
+  Widget _buildStepButton({required IconData icon, VoidCallback? onTap}) {
+    final colors = Theme.of(context).colorScheme;
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.25)),
+      ),
+    );
   }
 
   /// 编辑影视总时长

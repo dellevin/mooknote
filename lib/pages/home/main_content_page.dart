@@ -207,98 +207,111 @@ class _MainContentPageState extends State<MainContentPage> {
         return Container(
           color: colors.surface,
           padding: const EdgeInsets.only(top: 4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: tabs.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final tab = entry.value;
-                  final selected = idx == safeIndex;
-                  return Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        _switchToTab(tab.originalIndex);
-                      },
-                      onLongPress: tab.label == '影视'
-                          ? () {
-                              final isWallMode = UserPrefs().movieWallMode;
-                              _showSortMenu(context, isWallMode ? '影视墙排序' : '影视排序', UserPrefs().movieSortMode, [
-                                (0, '按更新时间排序', Icons.update),
-                                (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                (2, '按影视评分排序', Icons.star_outline),
-                                (3, '按观看日期排序', Icons.visibility_outlined),
-                                (4, '按上映时间排序', Icons.movie_creation_outlined),
-                              ], (v) { UserPrefs().setMovieSortMode(v); context.read<AppProvider>().loadMovies(); });
-                            }
-                          : tab.label == '阅读'
-                              ? () {
-                                  final isWallMode = UserPrefs().bookshelfMode;
-                                  _showSortMenu(context, isWallMode ? '书架排序' : '书籍排序', UserPrefs().bookSortMode, [
-                                    (0, '按更新时间排序', Icons.update),
-                                    (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                    (2, '按书籍评分排序', Icons.star_outline),
-                                    (3, '按开始阅读时间排序', Icons.auto_stories_outlined),
-                                    (4, '按出版时间排序', Icons.auto_stories_outlined),
-                                  ], (v) { UserPrefs().setBookSortMode(v); context.read<AppProvider>().loadBooks(); });
-                                }
-                              : tab.label == '笔记'
-                                  ? () => _showSortMenu(context, '笔记排序', UserPrefs().noteSortMode, [
-                                      (0, '按更新时间排序', Icons.update),
-                                      (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                    ], (v) { UserPrefs().setNoteSortMode(v); context.read<AppProvider>().loadNotes(); })
-                                  : tab.label == '游戏'
+          // 每个分类固定为可用宽度的 1/4：≤4 个时排满不滚动，与原来一致；
+          // 以后新增分类超过 4 个时横向滚动，指示器在滚动内容内随标签移动
+          child: LayoutBuilder(
+            builder: (context, outer) {
+              const maxVisibleTabs = 4;
+              // 宽度不足 48（热身帧/极窄窗口）时兜底为 0，避免负宽度约束崩溃
+              final tabWidth = outer.maxWidth > 48 ? (outer.maxWidth - 48) / maxVisibleTabs : 0.0;
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        children: tabs.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final tab = entry.value;
+                          final selected = idx == safeIndex;
+                          return SizedBox(
+                            width: tabWidth,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                _switchToTab(tab.originalIndex);
+                              },
+                              onLongPress: tab.label == '影视'
+                                  ? () {
+                                      final isWallMode = UserPrefs().movieWallMode;
+                                      _showSortMenu(context, isWallMode ? '影视墙排序' : '影视排序', UserPrefs().movieSortMode, [
+                                        (0, '按更新时间排序', Icons.update),
+                                        (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                        (2, '按影视评分排序', Icons.star_outline),
+                                        (3, '按观看日期排序', Icons.visibility_outlined),
+                                        (4, '按上映时间排序', Icons.movie_creation_outlined),
+                                      ], (v) { UserPrefs().setMovieSortMode(v); context.read<AppProvider>().loadMovies(); });
+                                    }
+                                  : tab.label == '阅读'
                                       ? () {
-                                          final isWallMode = UserPrefs().gameWallMode;
-                                          _showSortMenu(context, isWallMode ? '游戏墙排序' : '游戏排序', UserPrefs().gameSortMode, [
+                                          final isWallMode = UserPrefs().bookshelfMode;
+                                          _showSortMenu(context, isWallMode ? '书架排序' : '书籍排序', UserPrefs().bookSortMode, [
                                             (0, '按更新时间排序', Icons.update),
                                             (1, '按创建时间排序', Icons.calendar_today_outlined),
-                                            (2, '按游戏评分排序', Icons.star_outline),
-                                            (3, '按发售时间排序', Icons.event_outlined),
-                                          ], (v) { UserPrefs().setGameSortMode(v); context.read<AppProvider>().loadGames(); });
+                                            (2, '按书籍评分排序', Icons.star_outline),
+                                            (3, '按开始阅读时间排序', Icons.auto_stories_outlined),
+                                            (4, '按出版时间排序', Icons.auto_stories_outlined),
+                                          ], (v) { UserPrefs().setBookSortMode(v); context.read<AppProvider>().loadBooks(); });
                                         }
-                                      : null,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-                            Icon(_tabIcon(tab.label), size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
-                            const SizedBox(width: 5),
-                            Text(tab.label.tr, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3))),
-                          ]),
-                        ),
+                                      : tab.label == '笔记'
+                                          ? () => _showSortMenu(context, '笔记排序', UserPrefs().noteSortMode, [
+                                              (0, '按更新时间排序', Icons.update),
+                                              (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                            ], (v) { UserPrefs().setNoteSortMode(v); context.read<AppProvider>().loadNotes(); })
+                                          : tab.label == '游戏'
+                                              ? () {
+                                                  final isWallMode = UserPrefs().gameWallMode;
+                                                  _showSortMenu(context, isWallMode ? '游戏墙排序' : '游戏排序', UserPrefs().gameSortMode, [
+                                                    (0, '按更新时间排序', Icons.update),
+                                                    (1, '按创建时间排序', Icons.calendar_today_outlined),
+                                                    (2, '按游戏评分排序', Icons.star_outline),
+                                                    (3, '按发售时间排序', Icons.event_outlined),
+                                                  ], (v) { UserPrefs().setGameSortMode(v); context.read<AppProvider>().loadGames(); });
+                                                }
+                                              : null,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+                                    Icon(_tabIcon(tab.label), size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
+                                    const SizedBox(width: 5),
+                                    Text(tab.label.tr, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3))),
+                                  ]),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-            TweenAnimationBuilder<double>(
-              tween: Tween(end: safeIndex.toDouble()),
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              builder: (context, page, _) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final tabWidth = tabs.isNotEmpty ? constraints.maxWidth / tabs.length : 0.0;
-                      return SizedBox(height: 2.5, child: Stack(children: [
-                        Positioned(
-                          left: page * tabWidth,
-                          top: 0,
-                          width: tabWidth,
-                          child: Container(height: 2.5, decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(2))),
-                        ),
-                      ]));
-                    },
-                  ),
-                );
-              },
-            ),
-          ]),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(end: safeIndex.toDouble()),
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, page, _) {
+                        return SizedBox(
+                          width: 48 + tabWidth * tabs.length,
+                          height: 2.5,
+                          child: Stack(children: [
+                            Positioned(
+                              left: 24 + page * tabWidth,
+                              top: 0,
+                              width: tabWidth,
+                              child: Container(height: 2.5, decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(2))),
+                            ),
+                          ]),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
