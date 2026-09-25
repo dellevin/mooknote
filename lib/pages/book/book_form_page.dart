@@ -221,9 +221,7 @@ class _BookFormPageState extends State<BookFormPage> {
                       if (r != null) setState(() => _genres = r);
                     },
                   ),
-                  _halfCard('阅读次数'.tr, _readCount > 0 ? '{n} 次'.trf({'n': _readCount}) : '', Icons.repeat_outlined,
-                    onTap: () => _editReadCount(),
-                  ),
+                  _buildReadCountCard(),
 
                   // 第四行：出版社 + 出版时间
                   _halfCard('出版社'.tr, _publisherController.text, Icons.business_outlined,
@@ -281,6 +279,60 @@ class _BookFormPageState extends State<BookFormPage> {
       width: (MediaQuery.of(context).size.width - 52) / 2,
       height: 90,
       child: _buildInfoCard(label: label, value: value, icon: icon, required: required, onTap: onTap ?? () {}),
+    );
+  }
+
+  /// 阅读次数卡片（加减号步进器）
+  Widget _buildReadCountCard() {
+    final colors = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: (MediaQuery.of(context).size.width - 52) / 2,
+      height: 90,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colors.outline),
+          boxShadow: [BoxShadow(color: colors.onSurface.withValues(alpha: 0.018), blurRadius: 8, offset: const Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(Icons.repeat_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              const SizedBox(width: 6),
+              Text('阅读次数'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            ]),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildStepButton(icon: Icons.remove, onTap: _readCount > 0 ? () => setState(() => _readCount--) : null),
+                Text('{n} 次'.trf({'n': _readCount}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                _buildStepButton(icon: Icons.add, onTap: () => setState(() => _readCount++)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepButton({required IconData icon, VoidCallback? onTap}) {
+    final colors = Theme.of(context).colorScheme;
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.25)),
+      ),
     );
   }
 
@@ -664,30 +716,6 @@ class _BookFormPageState extends State<BookFormPage> {
     final picked = await showDatePicker(context: context, initialDate: _finishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
     if (!mounted) return;
     if (picked != null) setState(() => _finishDate = picked);
-  }
-
-  Future<void> _editReadCount() async {
-    final controller = TextEditingController(text: _readCount > 0 ? '$_readCount' : '');
-    final result = await appDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('阅读次数'.tr),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: InputDecoration(hintText: '输入次数'.tr),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr)),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: Text('确定'.tr)),
-        ],
-      ),
-    );
-    if (result != null) {
-      final val = int.tryParse(result) ?? 0;
-      setState(() => _readCount = val < 0 ? 0 : val);
-    }
   }
 
   Future<void> _editSummary() async {

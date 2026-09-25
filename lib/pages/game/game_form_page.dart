@@ -358,12 +358,7 @@ class _GameFormPageState extends State<GameFormPage> {
                   SizedBox(
                     width: (MediaQuery.of(context).size.width - 52) / 2,
                     height: 90,
-                    child: _buildInfoCard(
-                      label: '游玩次数',
-                      value: _playCount > 0 ? '{n} 次'.trf({'n': _playCount}) : '',
-                      icon: Icons.repeat_outlined,
-                      onTap: () => _editPlayCount(),
-                    ),
+                    child: _buildPlayCountCard(),
                   ),
 
                   // 购买平台
@@ -465,6 +460,76 @@ class _GameFormPageState extends State<GameFormPage> {
     if (h > 0) parts.add('{h}小时'.trf({'h': h}));
     if (m > 0) parts.add('{m}分钟'.trf({'m': m}));
     return parts.join('');
+  }
+
+  /// 游玩次数卡片（加减号步进器）
+  Widget _buildPlayCountCard() {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outline),
+        boxShadow: [
+          BoxShadow(
+            color: colors.onSurface.withValues(alpha: 0.018),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.repeat_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              const SizedBox(width: 6),
+              Text(
+                '游玩次数'.tr,
+                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStepButton(
+                icon: Icons.remove,
+                onTap: _playCount > 0 ? () => setState(() => _playCount--) : null,
+              ),
+              Text(
+                '{n} 次'.trf({'n': _playCount}),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+              ),
+              _buildStepButton(
+                icon: Icons.add,
+                onTap: () => setState(() => _playCount++),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepButton({required IconData icon, VoidCallback? onTap}) {
+    final colors = Theme.of(context).colorScheme;
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.25)),
+      ),
+    );
   }
 
   Widget _buildInfoCard({
@@ -1066,30 +1131,6 @@ class _GameFormPageState extends State<GameFormPage> {
     });
     if (!mounted) return;
     if (result != null) setState(() => _titleController.text = result.trim());
-  }
-
-  Future<void> _editPlayCount() async {
-    final controller = TextEditingController(text: _playCount > 0 ? '$_playCount' : '');
-    final result = await appDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('游玩次数'.tr),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: InputDecoration(hintText: '输入次数'.tr),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr)),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: Text('确定'.tr)),
-        ],
-      ),
-    );
-    if (result != null) {
-      final val = int.tryParse(result) ?? 0;
-      setState(() => _playCount = val < 0 ? 0 : val);
-    }
   }
 
   void _showPlayTimePicker() {

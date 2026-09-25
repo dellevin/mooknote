@@ -166,7 +166,6 @@ const Map<String, String> enGame = {
   '匿名': 'Anonymous',
   '来源': 'Source',
   '时间': 'Date',
-  '输入次数': 'Enter count',
 
   // ─── 离开确认 ───
   '未保存': 'Unsaved',

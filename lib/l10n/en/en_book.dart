@@ -78,7 +78,6 @@ const Map<String, String> enBook = {
   '开始': 'Start',
   '读完': 'Finish',
   '阅读次数': 'Read Count',
-  '输入次数': 'Enter count',
   '{n} 次': '{n} times',
   '共 {n} 次': '{n} times total',
   '{y}年{m}月': '{y}-{m}',
