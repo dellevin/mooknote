@@ -253,8 +253,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   children: [
                     if (_userPrefs.showMovieTab) _buildHeroStat(_formatCount(movies.length), '观影'.tr, hasData),
                     if (_userPrefs.showBookTab) _buildHeroStat(_formatCount(books.length), '阅读'.tr, hasData),
-                    if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记'.tr, hasData),
                     if (_userPrefs.showGameTab) _buildHeroStat(_formatCount(games.length), '游戏'.tr, hasData),
+                    if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记'.tr, hasData),
                   ],
                 ),
               ],

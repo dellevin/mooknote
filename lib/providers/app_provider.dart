@@ -184,12 +184,12 @@ class AppProvider extends ChangeNotifier {
     debugPrint('[AppProvider] initDatabase');
     // 独立加载每个 DAO，避免一个失败导致全部中断
     try {
-      _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().movieSortMode);
+      _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().effectiveMovieSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载影视数据失败: $e');
     }
     try {
-      _books = await _bookDao.getAllBooks(sortMode: UserPrefs().bookSortMode);
+      _books = await _bookDao.getAllBooks(sortMode: UserPrefs().effectiveBookSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载书籍数据失败: $e');
     }
@@ -199,7 +199,7 @@ class AppProvider extends ChangeNotifier {
       debugPrint('[AppProvider] 加载笔记数据失败: $e');
     }
     try {
-      _games = await _gameDao.getAllGames(sortMode: UserPrefs().gameSortMode);
+      _games = await _gameDao.getAllGames(sortMode: UserPrefs().effectiveGameSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载游戏数据失败: $e');
     }
@@ -277,14 +277,14 @@ class AppProvider extends ChangeNotifier {
   
   // 加载影视数据
   Future<void> loadMovies() async {
-    _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().movieSortMode);
+    _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().effectiveMovieSortMode);
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
   // 加载书籍数据
   Future<void> loadBooks() async {
-    _books = await _bookDao.getAllBooks(sortMode: UserPrefs().bookSortMode);
+    _books = await _bookDao.getAllBooks(sortMode: UserPrefs().effectiveBookSortMode);
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
@@ -297,7 +297,7 @@ class AppProvider extends ChangeNotifier {
 
   // 加载游戏数据
   Future<void> loadGames() async {
-    _games = await _gameDao.getAllGames(sortMode: UserPrefs().gameSortMode);
+    _games = await _gameDao.getAllGames(sortMode: UserPrefs().effectiveGameSortMode);
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }

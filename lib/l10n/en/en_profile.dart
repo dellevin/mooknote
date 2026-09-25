@@ -302,6 +302,12 @@ const Map<String, String> enProfile = {
       'Show launch date at the bottom-right of covers',
   '按游戏评分排序': 'Sort by game rating',
   '按发售时间排序': 'Sort by launch date',
+  '年份网格布局固定按上映时间排序':
+      'Year grid layout is locked to release-date sort',
+  '年份网格布局固定按出版时间排序':
+      'Year grid layout is locked to publication-date sort',
+  '年份网格布局固定按发售时间排序':
+      'Year grid layout is locked to launch-date sort',
 
   // ─── 回收站 ───────────────────────────────────────────
   '删除于 {date}': 'Deleted on {date}',

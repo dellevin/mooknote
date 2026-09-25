@@ -13,6 +13,7 @@ import '../game/game_tab_page.dart';
 import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
 
 /// 主内容页 - 影视/阅读/游戏/笔记标签页（Stack 常驻 + AnimatedOpacity 交叉淡化切换）
@@ -236,8 +237,13 @@ class _MainContentPageState extends State<MainContentPage> {
                               },
                               onLongPress: tab.label == '影视'
                                   ? () {
+                                      // 年份网格布局锁定按上映时间排序
+                                      if (UserPrefs().movieLayoutStyle == 3) {
+                                        ToastUtil.show(context, '年份网格布局固定按上映时间排序'.tr);
+                                        return;
+                                      }
                                       final isWallMode = UserPrefs().movieWallMode;
-                                      _showSortMenu(context, isWallMode ? '影视墙排序' : '影视排序', UserPrefs().movieSortMode, [
+                                      _showSortMenu(context, isWallMode ? '影视墙排序' : '影视排序', UserPrefs().effectiveMovieSortMode, [
                                         (0, '按更新时间排序', Icons.update),
                                         (1, '按创建时间排序', Icons.calendar_today_outlined),
                                         (2, '按影视评分排序', Icons.star_outline),
@@ -247,8 +253,12 @@ class _MainContentPageState extends State<MainContentPage> {
                                     }
                                   : tab.label == '阅读'
                                       ? () {
+                                          if (UserPrefs().bookLayoutStyle == 2) {
+                                            ToastUtil.show(context, '年份网格布局固定按出版时间排序'.tr);
+                                            return;
+                                          }
                                           final isWallMode = UserPrefs().bookshelfMode;
-                                          _showSortMenu(context, isWallMode ? '书架排序' : '书籍排序', UserPrefs().bookSortMode, [
+                                          _showSortMenu(context, isWallMode ? '书架排序' : '书籍排序', UserPrefs().effectiveBookSortMode, [
                                             (0, '按更新时间排序', Icons.update),
                                             (1, '按创建时间排序', Icons.calendar_today_outlined),
                                             (2, '按书籍评分排序', Icons.star_outline),
@@ -263,8 +273,12 @@ class _MainContentPageState extends State<MainContentPage> {
                                             ], (v) { UserPrefs().setNoteSortMode(v); context.read<AppProvider>().loadNotes(); })
                                           : tab.label == '游戏'
                                               ? () {
+                                                  if (UserPrefs().gameLayoutStyle == 3) {
+                                                    ToastUtil.show(context, '年份网格布局固定按发售时间排序'.tr);
+                                                    return;
+                                                  }
                                                   final isWallMode = UserPrefs().gameWallMode;
-                                                  _showSortMenu(context, isWallMode ? '游戏墙排序' : '游戏排序', UserPrefs().gameSortMode, [
+                                                  _showSortMenu(context, isWallMode ? '游戏墙排序' : '游戏排序', UserPrefs().effectiveGameSortMode, [
                                                     (0, '按更新时间排序', Icons.update),
                                                     (1, '按创建时间排序', Icons.calendar_today_outlined),
                                                     (2, '按游戏评分排序', Icons.star_outline),

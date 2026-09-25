@@ -3785,6 +3785,13 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     final colors = Theme.of(context).colorScheme;
     final (currentSort, sortOptions, _, onSortSelected) = _sortConfig(context);
     final statusOptions = _statusFilterOptions();
+    // 年份网格布局锁定按日期排序，排序项禁用并给出提示
+    final (sortLocked, sortLockedHint) = switch (widget.mainTabIndex) {
+      0 => (UserPrefs().movieLayoutStyle == 3, '年份网格布局固定按上映时间排序'),
+      1 => (UserPrefs().bookLayoutStyle == 2, '年份网格布局固定按出版时间排序'),
+      3 => (UserPrefs().gameLayoutStyle == 3, '年份网格布局固定按发售时间排序'),
+      _ => (false, ''),
+    };
     return PopupMenuButton<String>(
       tooltip: '排序与筛选'.tr,
       position: PopupMenuPosition.under,
@@ -3802,6 +3809,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
         for (final (value, text, icon) in sortOptions)
           PopupMenuItem<String>(
             value: 'sort:$value',
+            enabled: !sortLocked,
             child: Row(children: [
               Icon(icon, size: 16, color: currentSort == value ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
               const SizedBox(width: 10),
@@ -3809,6 +3817,17 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
               const Spacer(),
               if (currentSort == value)
                 Icon(Icons.check, size: 14, color: colors.primary),
+            ]),
+          ),
+        if (sortLocked)
+          PopupMenuItem<String>(
+            value: '__sort_locked__',
+            enabled: false,
+            height: 28,
+            child: Row(children: [
+              Icon(Icons.lock_outline, size: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+              const SizedBox(width: 6),
+              Expanded(child: Text(sortLockedHint.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4)))),
             ]),
           ),
         // 状态筛选区（仅影视/阅读/游戏）
@@ -3891,14 +3910,14 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     switch (widget.mainTabIndex) {
       case 0:
         return (
-          UserPrefs().movieSortMode,
+          UserPrefs().effectiveMovieSortMode,
           [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline), (3, '按观看日期', Icons.visibility_outlined), (4, '按上映时间', Icons.movie_creation_outlined)],
           '影视排序',
           (v) { UserPrefs().setMovieSortMode(v); provider.loadMovies(); },
         );
       case 1:
         return (
-          UserPrefs().bookSortMode,
+          UserPrefs().effectiveBookSortMode,
           [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline), (3, '按开始阅读时间', Icons.auto_stories_outlined), (4, '按出版时间', Icons.auto_stories_outlined)],
           '书籍排序',
           (v) { UserPrefs().setBookSortMode(v); provider.loadBooks(); },
@@ -3912,7 +3931,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
         );
       case 3:
         return (
-          UserPrefs().gameSortMode,
+          UserPrefs().effectiveGameSortMode,
           [(0, '按更新时间', Icons.update), (1, '按创建时间', Icons.calendar_today_outlined), (2, '按评分', Icons.star_outline), (3, '按发售时间', Icons.event_outlined)],
           '游戏排序',
           (v) { UserPrefs().setGameSortMode(v); provider.loadGames(); },

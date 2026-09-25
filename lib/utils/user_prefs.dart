@@ -183,6 +183,12 @@ class UserPrefs {
   int get bookSortMode => prefs.getInt('bookSortMode') ?? 0;
   Future<bool> setBookSortMode(int value) => prefs.setInt('bookSortMode', value);
 
+  /// 实际生效的排序方式：年份网格布局强制按日期排序
+  /// （其他排序会让分页随机回填各年份分组，触底加载停摆、分组计数错乱）
+  int get effectiveMovieSortMode => movieLayoutStyle == 3 ? 4 : movieSortMode;
+  int get effectiveBookSortMode => bookLayoutStyle == 2 ? 4 : bookSortMode;
+  int get effectiveGameSortMode => gameLayoutStyle == 3 ? 3 : gameSortMode;
+
   /// 影视布局样式 (0: 海报网格, 1: 列表)
   int get movieLayoutStyle => prefs.getInt('movieLayoutStyle') ?? 0;
   Future<bool> setMovieLayoutStyle(int value) => prefs.setInt('movieLayoutStyle', value);

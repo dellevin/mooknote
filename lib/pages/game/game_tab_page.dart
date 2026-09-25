@@ -204,7 +204,7 @@ class _GameTabViewState extends State<_GameTabView>
       _lastEditRefreshCounter = p.editRefreshCounter;
       _lastScrollSignal = p.scrollToTopSignal;
       _prevGameCount = p.games.length;
-      _prevSortMode = UserPrefs().gameSortMode;
+      _prevSortMode = UserPrefs().effectiveGameSortMode;
       p.addListener(_onDataChanged);
       _loadFirst();
     });
@@ -252,10 +252,10 @@ class _GameTabViewState extends State<_GameTabView>
     }
 
     // 排序/数量变化才重新拉取（布局变化由 context.select 原地重渲染）
-    final sortChanged = UserPrefs().gameSortMode != _prevSortMode;
+    final sortChanged = UserPrefs().effectiveGameSortMode != _prevSortMode;
     final countChanged = p.games.length != _prevGameCount;
     if (sortChanged || countChanged) {
-      _prevSortMode = UserPrefs().gameSortMode;
+      _prevSortMode = UserPrefs().effectiveGameSortMode;
       _prevGameCount = p.games.length;
       _loadFirst();
     }
@@ -267,9 +267,21 @@ class _GameTabViewState extends State<_GameTabView>
     }
   }
 
+  /// 年份网格会把新分页回填进上方分组，底部涨幅可能很小：
+  /// 加载后触底条件仍满足，但位置没变不会再有滚动通知，分页就此停摆。
+  /// 故每页加载完隔一帧复查，仍在触发区内就继续链式加载。
+  void _scheduleChainLoad() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isLoading || !_hasMore) return;
+      if (!_scrollController.hasClients) return;
+      final pos = _scrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent - 200) _loadMore();
+    });
+  }
+
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
-    final sortMode = UserPrefs().gameSortMode;
+    final sortMode = UserPrefs().effectiveGameSortMode;
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode);
@@ -281,13 +293,14 @@ class _GameTabViewState extends State<_GameTabView>
       _hasMore = list.length >= 20;
       _isLoading = false;
     });
+    _scheduleChainLoad();
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
-    final sortMode = UserPrefs().gameSortMode;
+    final sortMode = UserPrefs().effectiveGameSortMode;
     final list = await provider.loadGamesPaged(status: _status, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
@@ -296,6 +309,7 @@ class _GameTabViewState extends State<_GameTabView>
       _hasMore = list.length >= 20;
       _isLoading = false;
     });
+    _scheduleChainLoad();
   }
 
   Future<void> _refresh() async {

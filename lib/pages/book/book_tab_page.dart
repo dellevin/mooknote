@@ -204,7 +204,7 @@ class _BookTabViewState extends State<_BookTabView>
       _lastEditRefreshCounter = p.editRefreshCounter;
       _lastScrollSignal = p.scrollToTopSignal;
       _prevBookCount = p.books.length;
-      _prevSortMode = UserPrefs().bookSortMode;
+      _prevSortMode = UserPrefs().effectiveBookSortMode;
       p.addListener(_onDataChanged);
       _loadFirst();
     });
@@ -244,10 +244,10 @@ class _BookTabViewState extends State<_BookTabView>
     }
 
     // 排序/数量变化才重新拉取（布局变化由 context.select 原地重渲染）
-    final sortChanged = UserPrefs().bookSortMode != _prevSortMode;
+    final sortChanged = UserPrefs().effectiveBookSortMode != _prevSortMode;
     final countChanged = p.books.length != _prevBookCount;
     if (sortChanged || countChanged) {
-      _prevSortMode = UserPrefs().bookSortMode;
+      _prevSortMode = UserPrefs().effectiveBookSortMode;
       _prevBookCount = p.books.length;
       _loadFirst();
     }
@@ -259,9 +259,21 @@ class _BookTabViewState extends State<_BookTabView>
     }
   }
 
+  /// 年份网格会把新分页回填进上方分组，底部涨幅可能很小：
+  /// 加载后触底条件仍满足，但位置没变不会再有滚动通知，分页就此停摆。
+  /// 故每页加载完隔一帧复查，仍在触发区内就继续链式加载。
+  void _scheduleChainLoad() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isLoading || !_hasMore) return;
+      if (!_scrollController.hasClients) return;
+      final pos = _scrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent - 200) _loadMore();
+    });
+  }
+
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
-    final sortMode = UserPrefs().bookSortMode;
+    final sortMode = UserPrefs().effectiveBookSortMode;
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final list = await provider.loadBooksPaged(status: _status, offset: 0, sortMode: sortMode);
@@ -273,13 +285,14 @@ class _BookTabViewState extends State<_BookTabView>
       _hasMore = list.length >= 20;
       _isLoading = false;
     });
+    _scheduleChainLoad();
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
-    final sortMode = UserPrefs().bookSortMode;
+    final sortMode = UserPrefs().effectiveBookSortMode;
     final list = await provider.loadBooksPaged(status: _status, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
     setState(() {
@@ -288,6 +301,7 @@ class _BookTabViewState extends State<_BookTabView>
       _hasMore = list.length >= 20;
       _isLoading = false;
     });
+    _scheduleChainLoad();
   }
 
   Future<void> _refresh() async {

@@ -131,7 +131,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((_movieLayout == 0 || _movieLayout == 3) && _movieGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '$_movieGridCount'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][_movieSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][_movieLayout == 3 ? 4 : _movieSortMode]);
     return parts.join(' · ');
   }
 
@@ -147,7 +147,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((_bookLayout == 0 || _bookLayout == 2) && _bookGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '$_bookGridCount'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][_bookSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][_bookLayout == 2 ? 4 : _bookSortMode]);
     return parts.join(' · ');
   }
 
@@ -170,7 +170,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((_gameLayout == 0 || _gameLayout == 3) && _gameGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '$_gameGridCount'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr][_gameSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr][_gameLayout == 3 ? 3 : _gameSortMode]);
     return parts.join(' · ');
   }
 
@@ -357,6 +357,18 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     );
   }
 
+  /// 年份网格布局下排序被锁定时的提示行
+  Widget _sheetSortLocked(String text, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(children: [
+        Icon(Icons.lock_outline, size: 15, color: colors.onSurface.withValues(alpha: 0.45)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)))),
+      ]),
+    );
+  }
+
   // ─── 弹窗 ────────────────────────────────────────────────────────
 
   void _showHomeModuleSheet() {
@@ -470,19 +482,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               ),
             ],
             _sheetDivider(colors),
-            _sheetSortSection(
-              title: '排序方式'.tr,
-              current: _movieSortMode,
-              options: [
-                (0, '按更新时间排序'.tr, Icons.update),
-                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-                (2, '按影视评分排序'.tr, Icons.star_outline),
-                (3, '按观看日期排序'.tr, Icons.visibility_outlined),
-                (4, '按上映时间排序'.tr, Icons.movie_creation_outlined),
-              ],
-              colors: colors,
-              onChanged: (v) { _setSortMode('movie', v); setSheetState(() {}); },
-            ),
+            if (_movieLayout == 3)
+              _sheetSortLocked('年份网格布局固定按上映时间排序'.tr, colors)
+            else
+              _sheetSortSection(
+                title: '排序方式'.tr,
+                current: _movieSortMode,
+                options: [
+                  (0, '按更新时间排序'.tr, Icons.update),
+                  (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+                  (2, '按影视评分排序'.tr, Icons.star_outline),
+                  (3, '按观看日期排序'.tr, Icons.visibility_outlined),
+                  (4, '按上映时间排序'.tr, Icons.movie_creation_outlined),
+                ],
+                colors: colors,
+                onChanged: (v) { _setSortMode('movie', v); setSheetState(() {}); },
+              ),
             const SizedBox(height: 16),
           ]),
           ),
@@ -533,7 +548,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             _sheetDivider(colors),
             _sheetOptionRow(
               label: '布局样式'.tr, selected: _bookLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.date_range_outlined, '年份网格'.tr), (3, Icons.crop_landscape_outlined, '大图卡片'.tr)],
+              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (3, Icons.crop_landscape_outlined, '大图卡片'.tr), (2, Icons.date_range_outlined, '年份网格'.tr)],
               onChanged: (v) { _setLayout('book', v); setSheetState(() {}); }, colors: colors,
             ),
             if (_bookLayout == 0 || _bookLayout == 2) ...[
@@ -550,19 +565,22 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               ),
             ],
             _sheetDivider(colors),
-            _sheetSortSection(
-              title: '排序方式'.tr,
-              current: _bookSortMode,
-              options: [
-                (0, '按更新时间排序'.tr, Icons.update),
-                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-                (2, '按书籍评分排序'.tr, Icons.star_outline),
-                (3, '按开始阅读时间排序'.tr, Icons.auto_stories_outlined),
-                (4, '按出版时间排序'.tr, Icons.auto_stories_outlined),
-              ],
-              colors: colors,
-              onChanged: (v) { _setSortMode('book', v); setSheetState(() {}); },
-            ),
+            if (_bookLayout == 2)
+              _sheetSortLocked('年份网格布局固定按出版时间排序'.tr, colors)
+            else
+              _sheetSortSection(
+                title: '排序方式'.tr,
+                current: _bookSortMode,
+                options: [
+                  (0, '按更新时间排序'.tr, Icons.update),
+                  (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+                  (2, '按书籍评分排序'.tr, Icons.star_outline),
+                  (3, '按开始阅读时间排序'.tr, Icons.auto_stories_outlined),
+                  (4, '按出版时间排序'.tr, Icons.auto_stories_outlined),
+                ],
+                colors: colors,
+                onChanged: (v) { _setSortMode('book', v); setSheetState(() {}); },
+              ),
             const SizedBox(height: 16),
           ]),
           ),
@@ -666,18 +684,21 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               ),
             ],
             _sheetDivider(colors),
-            _sheetSortSection(
-              title: '排序方式'.tr,
-              current: _gameSortMode,
-              options: [
-                (0, '按更新时间排序'.tr, Icons.update),
-                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-                (2, '按游戏评分排序'.tr, Icons.star_outline),
-                (3, '按发售时间排序'.tr, Icons.event_outlined),
-              ],
-              colors: colors,
-              onChanged: (v) { _setSortMode('game', v); setSheetState(() {}); },
-            ),
+            if (_gameLayout == 3)
+              _sheetSortLocked('年份网格布局固定按发售时间排序'.tr, colors)
+            else
+              _sheetSortSection(
+                title: '排序方式'.tr,
+                current: _gameSortMode,
+                options: [
+                  (0, '按更新时间排序'.tr, Icons.update),
+                  (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
+                  (2, '按游戏评分排序'.tr, Icons.star_outline),
+                  (3, '按发售时间排序'.tr, Icons.event_outlined),
+                ],
+                colors: colors,
+                onChanged: (v) { _setSortMode('game', v); setSheetState(() {}); },
+              ),
             const SizedBox(height: 16),
           ]),
           ),

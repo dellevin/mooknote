@@ -71,18 +71,6 @@ void showAddSheet(BuildContext context, AppProvider provider) {
       },
     ));
   }
-  if (userPrefs.showNoteTab) {
-    options.add(_buildOption(
-      colors: colors,
-      icon: Icons.sticky_note_2_outlined,
-      title: '添加笔记'.tr,
-      subtitle: '记录你的想法和笔记'.tr,
-      onTap: () {
-        Navigator.pop(outerContext);
-        Navigator.pushNamed(outerContext, '/note-form');
-      },
-    ));
-  }
   if (userPrefs.showGameTab) {
     options.add(_buildOption(
       colors: colors,
@@ -95,6 +83,18 @@ void showAddSheet(BuildContext context, AppProvider provider) {
         final s = statusMap[provider.gameStatusIndex] ?? 'want_to_play';
         Navigator.pushNamed(outerContext, '/game-form',
             arguments: {'initialStatus': s});
+      },
+    ));
+  }
+  if (userPrefs.showNoteTab) {
+    options.add(_buildOption(
+      colors: colors,
+      icon: Icons.sticky_note_2_outlined,
+      title: '添加笔记'.tr,
+      subtitle: '记录你的想法和笔记'.tr,
+      onTap: () {
+        Navigator.pop(outerContext);
+        Navigator.pushNamed(outerContext, '/note-form');
       },
     ));
   }

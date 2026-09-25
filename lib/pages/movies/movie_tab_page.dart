@@ -216,7 +216,7 @@ class _MovieTabViewState extends State<_MovieTabView>
       _lastEditRefreshCounter = p.editRefreshCounter;
       _lastScrollSignal = p.scrollToTopSignal;
       _prevMovieCount = p.movies.length;
-      _prevSortMode = UserPrefs().movieSortMode;
+      _prevSortMode = UserPrefs().effectiveMovieSortMode;
       p.addListener(_onDataChanged);
       _loadFirst();
     });
@@ -256,10 +256,10 @@ class _MovieTabViewState extends State<_MovieTabView>
     }
 
     // 排序/数量变化才重新拉取（布局变化由 context.select 原地重渲染）
-    final sortChanged = UserPrefs().movieSortMode != _prevSortMode;
+    final sortChanged = UserPrefs().effectiveMovieSortMode != _prevSortMode;
     final countChanged = p.movies.length != _prevMovieCount;
     if (sortChanged || countChanged) {
-      _prevSortMode = UserPrefs().movieSortMode;
+      _prevSortMode = UserPrefs().effectiveMovieSortMode;
       _prevMovieCount = p.movies.length;
       _loadFirst();
     }
@@ -271,9 +271,21 @@ class _MovieTabViewState extends State<_MovieTabView>
     }
   }
 
+  /// 年份网格会把新分页回填进上方分组，底部涨幅可能很小：
+  /// 加载后触底条件仍满足，但位置没变不会再有滚动通知，分页就此停摆。
+  /// 故每页加载完隔一帧复查，仍在触发区内就继续链式加载。
+  void _scheduleChainLoad() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isLoading || !_hasMore) return;
+      if (!_scrollController.hasClients) return;
+      final pos = _scrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent - 200) _loadMore();
+    });
+  }
+
   Future<void> _loadFirst() async {
     final provider = context.read<AppProvider>();
-    final sortMode = UserPrefs().movieSortMode;
+    final sortMode = UserPrefs().effectiveMovieSortMode;
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final list = await provider.loadMoviesPaged(
@@ -286,13 +298,14 @@ class _MovieTabViewState extends State<_MovieTabView>
       _hasMore = list.length >= 20;
       _isLoading = false;
     });
+    _scheduleChainLoad();
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
-    final sortMode = UserPrefs().movieSortMode;
+    final sortMode = UserPrefs().effectiveMovieSortMode;
     final list = await provider.loadMoviesPaged(
         status: _status, category: _category, offset: _offset, sortMode: sortMode);
     if (!mounted) return;
@@ -302,6 +315,7 @@ class _MovieTabViewState extends State<_MovieTabView>
       _hasMore = list.length >= 20;
       _isLoading = false;
     });
+    _scheduleChainLoad();
   }
 
   Future<void> _refresh() async {
