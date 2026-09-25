@@ -260,87 +260,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           _buildCategoryTag(game),
                         ]),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
-                        // 详细信息
-                        if (game.platforms.isNotEmpty)
-                          _buildDesktopInfoRow('平台', game.platforms.join('、'), colors),
-                        if (game.versions.isNotEmpty)
-                          _buildDesktopInfoRow('版本', game.versions.join('、'), colors),
-                        if (game.genres.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-                            Expanded(child: Wrap(spacing: 8, runSpacing: 8,
-                              children: game.genres.map((g) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
-                                child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-                              )).toList(),
-                            )),
-                          ]),
-                        ],
-                        if (game.developer.isNotEmpty)
-                          _buildDesktopInfoRow('开发者', game.developer.join('、'), colors),
-                        if (game.releaseDate != null)
-                          _buildDesktopInfoRow('发售时间', _formatDate(game.releaseDate!), colors),
-                        if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                          _buildDesktopInfoRow('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}), colors),
-                        if (game.playCount > 0)
-                          _buildDesktopInfoRow('游玩次数', '{n} 次'.trf({'n': game.playCount}), colors),
-                        if (game.purchasePlatforms.isNotEmpty)
-                          _buildDesktopInfoRow('购买平台', game.purchasePlatforms.join('、'), colors),
-                        if (game.purchaseDate != null)
-                          _buildDesktopInfoRow('购买时间', _formatDate(game.purchaseDate!), colors),
-                        if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
-                          _buildDesktopInfoRow('购买价格', game.purchasePrice!, colors),
-                        CharacterPreviewSection(
-                          characters: _characters,
-                          onTap: _openCharacterSheet,
-                        ),
-                        WorkPeopleSection(workId: game.id, workType: 'game'),
-                        if (game.summary != null && game.summary!.isNotEmpty) ...[
-                          Divider(height: 32, thickness: 0.5, color: colors.outline),
-                          Row(children: [
-                            Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
-                            const SizedBox(width: 8),
-                            Text('游戏简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                          ]),
-                          const SizedBox(height: 12),
-                          Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
-                        ],
-                        ReviewPreviewSection(workId: game.id, workType: 'game'),
-                        Divider(height: 32, thickness: 0.5, color: colors.outline),
-                        Row(children: [
-                          Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(width: 8),
-                          Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                        ]),
-                        const SizedBox(height: 16),
-                        _buildExtraSectionItem(
-                          icon: Icons.rate_review_outlined,
-                          title: '游戏评价',
-                          subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
-                          emptyText: '暂无评价',
-                          unit: '条评价',
-                          onTap: () => _navigateToReviews(game),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
-                          icon: Icons.photo_library_outlined,
-                          title: '游戏截图',
-                          subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
-                          emptyText: '暂无截图',
-                          unit: '张截图',
-                          onTap: () => _navigateToScreenshots(game),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
-                          icon: Icons.people_outline,
-                          title: '角色',
-                          subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
-                          emptyText: '暂无角色',
-                          unit: '个角色',
-                          onTap: () => _navigateToCharacters(game),
-                        ),
+                        // 内容模块（顺序/显隐可在设置中调整）
+                        ..._orderedModules(game, colors, 3),
                       ],
                     ),
                   ),
@@ -994,6 +915,165 @@ class _GameDetailPageState extends State<GameDetailPage> {
     );
   }
 
+  /// 按用户配置（设置-详情页模块）生成内容模块列表。
+  /// layout: 0=标准, 1=叠层毛玻璃, 2=浅色极简, 3=桌面
+  List<Widget> _orderedModules(Game game, ColorScheme colors, int layout) {
+    final result = <Widget>[];
+    for (final m in UserPrefs().getDetailModules('game')) {
+      if (!m.visible) continue;
+      final isFirst = result.isEmpty;
+      switch (m.id) {
+        case 'credits':
+          result.addAll(_creditsRows(game, colors, layout));
+        case 'genres':
+          if (game.genres.isNotEmpty) {
+            if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+            result.add(switch (layout) {
+              1 => _buildOverlayGenres(game),
+              2 => _buildLayeredGenres(game),
+              3 => _buildDesktopGenres(game, colors),
+              _ => _buildGenresSection(game),
+            });
+          }
+        case 'characters':
+          result.add(CharacterPreviewSection(
+            characters: _characters,
+            onTap: _openCharacterSheet,
+            isOverlay: layout == 1,
+          ));
+        case 'people':
+          result.add(WorkPeopleSection(workId: game.id, workType: 'game', isOverlay: layout == 1));
+        case 'summary':
+          if (game.summary != null && game.summary!.isNotEmpty) {
+            if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+            if (layout == 3 && !isFirst) result.add(Divider(height: 32, thickness: 0.5, color: colors.outline));
+            result.add(switch (layout) {
+              1 => _buildOverlaySummary(game),
+              2 => _buildLayeredSummary(game),
+              3 => _buildDesktopSummary(game, colors),
+              _ => _buildInfoSection('游戏简介', game.summary!),
+            });
+          }
+        case 'reviews':
+          if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+          result.add(ReviewPreviewSection(
+            workId: game.id,
+            workType: 'game',
+            isOverlay: layout == 1,
+            padding: switch (layout) {
+              0 => const EdgeInsets.fromLTRB(24, 0, 24, 8),
+              1 => const EdgeInsets.symmetric(horizontal: 24),
+              _ => EdgeInsets.zero,
+            },
+          ));
+        case 'extra':
+          if (!isFirst) {
+            if (layout == 1) result.add(const SizedBox(height: 12));
+            if (layout == 2) result.add(const SizedBox(height: 20));
+            if (layout == 0) result.add(Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            if (layout == 3) result.add(Divider(height: 32, thickness: 0.5, color: colors.outline));
+          }
+          result.add(switch (layout) {
+            1 => _buildExtraSectionsOverlay(game),
+            2 => _buildLayeredExtraSections(game),
+            3 => _buildDesktopExtra(game, colors),
+            _ => _buildExtraSections(game),
+          });
+      }
+    }
+    return result;
+  }
+
+  /// 游戏信息行（平台/版本/开发者/发售/时长/购买信息），按布局选用不同构造器
+  List<Widget> _creditsRows(Game game, ColorScheme colors, int layout) {
+    Widget row(String label, String value) => switch (layout) {
+          1 => _buildOverlayInfoRow(label, value),
+          2 => _buildLayeredInfoRow(label, value, colors),
+          3 => _buildDesktopInfoRow(label, value, colors),
+          _ => _buildInfoSection(label, value),
+        };
+    return [
+      if (game.platforms.isNotEmpty) row('平台', game.platforms.join('、')),
+      if (game.versions.isNotEmpty) row('版本', game.versions.join('、')),
+      if (game.developer.isNotEmpty) row('开发者', game.developer.join('、')),
+      if (game.releaseDate != null) row('发售时间', _formatDate(game.releaseDate!)),
+      if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
+        row('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
+      if (game.playCount > 0) row('游玩次数', '{n} 次'.trf({'n': game.playCount})),
+      if (game.purchasePlatforms.isNotEmpty) row('购买平台', game.purchasePlatforms.join('、')),
+      if (game.purchaseDate != null) row('购买时间', _formatDate(game.purchaseDate!)),
+      if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty) row('购买价格', game.purchasePrice!),
+    ];
+  }
+
+  /// 桌面端：类型标签块
+  Widget _buildDesktopGenres(Game game, ColorScheme colors) {
+    return Column(children: [
+      const SizedBox(height: 8),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+        Expanded(child: Wrap(spacing: 8, runSpacing: 8,
+          children: game.genres.map((g) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+            child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          )).toList(),
+        )),
+      ]),
+    ]);
+  }
+
+  /// 桌面端：简介块（不含前置分割线）
+  Widget _buildDesktopSummary(Game game, ColorScheme colors) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('游戏简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 12),
+      Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+    ]);
+  }
+
+  /// 桌面端：更多入口块（不含前置分割线）
+  Widget _buildDesktopExtra(Game game, ColorScheme colors) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 16),
+      _buildExtraSectionItem(
+        icon: Icons.rate_review_outlined,
+        title: '游戏评价',
+        subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
+        emptyText: '暂无评价',
+        unit: '条评价',
+        onTap: () => _navigateToReviews(game),
+      ),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.photo_library_outlined,
+        title: '游戏截图',
+        subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
+        emptyText: '暂无截图',
+        unit: '张截图',
+        onTap: () => _navigateToScreenshots(game),
+      ),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.people_outline,
+        title: '角色',
+        subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
+        emptyText: '暂无角色',
+        unit: '个角色',
+        onTap: () => _navigateToCharacters(game),
+      ),
+    ]);
+  }
+
   Widget _buildStandardStyle(Game game, ColorScheme colors) {
     final topSafe = MediaQuery.of(context).padding.top;
     return Scaffold(
@@ -1013,40 +1093,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   ),
                   _buildBasicInfo(game),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  if (game.platforms.isNotEmpty)
-                    _buildInfoSection('平台', game.platforms.join('、')),
-                  if (game.versions.isNotEmpty)
-                    _buildInfoSection('版本', game.versions.join('、')),
-                  if (game.genres.isNotEmpty)
-                    _buildGenresSection(game),
-                  if (game.developer.isNotEmpty)
-                    _buildInfoSection('开发者', game.developer.join('、')),
-                  if (game.releaseDate != null)
-                    _buildInfoSection('发售时间', _formatDate(game.releaseDate!)),
-                  if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                    _buildInfoSection('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
-                  if (game.playCount > 0)
-                    _buildInfoSection('游玩次数', '{n} 次'.trf({'n': game.playCount})),
-                  if (game.purchasePlatforms.isNotEmpty)
-                    _buildInfoSection('购买平台', game.purchasePlatforms.join('、')),
-                  if (game.purchaseDate != null)
-                    _buildInfoSection('购买时间', _formatDate(game.purchaseDate!)),
-                  if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
-                    _buildInfoSection('购买价格', game.purchasePrice!),
-                  CharacterPreviewSection(
-                    characters: _characters,
-                    onTap: _openCharacterSheet,
-                  ),
-                  WorkPeopleSection(workId: game.id, workType: 'game'),
-                  if (game.summary != null && game.summary!.isNotEmpty)
-                    _buildInfoSection('游戏简介', game.summary!),
-                  ReviewPreviewSection(
-                    workId: game.id,
-                    workType: 'game',
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                  ),
-                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  _buildExtraSections(game),
+                  // 内容模块（顺序/显隐可在设置中调整）
+                  ..._orderedModules(game, colors, 0),
                   const SizedBox(height: 120),
                 ],
               ),
@@ -1170,50 +1218,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _buildOverlayHeader(game),
                     const SizedBox(height: 20),
-                    if (game.platforms.isNotEmpty)
-                      _buildOverlayInfoRow('平台', game.platforms.join('、')),
-                    if (game.versions.isNotEmpty)
-                      _buildOverlayInfoRow('版本', game.versions.join('、')),
-                    if (game.genres.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _buildOverlayGenres(game),
-                    ],
-                    if (game.developer.isNotEmpty)
-                      _buildOverlayInfoRow('开发者', game.developer.join('、')),
-                    if (game.releaseDate != null)
-                      _buildOverlayInfoRow('发售时间', _formatDate(game.releaseDate!)),
-                    if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                      _buildOverlayInfoRow('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
-                    if (game.playCount > 0)
-                      _buildOverlayInfoRow('游玩次数', '{n} 次'.trf({'n': game.playCount})),
-                    if (game.purchasePlatforms.isNotEmpty)
-                      _buildOverlayInfoRow('购买平台', game.purchasePlatforms.join('、')),
-                    if (game.purchaseDate != null)
-                      _buildOverlayInfoRow('购买时间', _formatDate(game.purchaseDate!)),
-                    if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
-                      _buildOverlayInfoRow('购买价格', game.purchasePrice!),
-                    CharacterPreviewSection(
-                      characters: _characters,
-                      onTap: _openCharacterSheet,
-                      isOverlay: true,
-                    ),
-                    // 关联人物
-                    WorkPeopleSection(workId: game.id, workType: 'game', isOverlay: true),
-                    if (game.summary != null && game.summary!.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _buildOverlaySummary(game),
-                    ],
-                    const SizedBox(height: 12),
-                    const SizedBox(height: 12),
-                    // 评价预览
-                    ReviewPreviewSection(
-                      workId: game.id,
-                      workType: 'game',
-                      isOverlay: true,
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildExtraSectionsOverlay(game),
+                    // 内容模块（顺序/显隐可在设置中调整）
+                    ..._orderedModules(game, colors, 1),
                   ]),
                 ),
               ),
@@ -1245,36 +1251,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   const SizedBox(height: 20),
                   SizedBox(width: double.infinity, child: _buildLayeredHeader(game)),
                   const SizedBox(height: 20),
-                  if (game.platforms.isNotEmpty)
-                    _buildLayeredInfoRow('平台', game.platforms.join('、'), colors),
-                  if (game.versions.isNotEmpty)
-                    _buildLayeredInfoRow('版本', game.versions.join('、'), colors),
-                  if (game.genres.isNotEmpty)
-                    _buildLayeredGenres(game),
-                  if (game.developer.isNotEmpty)
-                    _buildLayeredInfoRow('开发者', game.developer.join('、'), colors),
-                  if (game.releaseDate != null)
-                    _buildLayeredInfoRow('发售时间', _formatDate(game.releaseDate!), colors),
-                  if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                    _buildLayeredInfoRow('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}), colors),
-                  if (game.playCount > 0)
-                    _buildLayeredInfoRow('游玩次数', '{n} 次'.trf({'n': game.playCount}), colors),
-                  if (game.purchasePlatforms.isNotEmpty)
-                    _buildLayeredInfoRow('购买平台', game.purchasePlatforms.join('、'), colors),
-                  if (game.purchaseDate != null)
-                    _buildLayeredInfoRow('购买时间', _formatDate(game.purchaseDate!), colors),
-                  if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
-                    _buildLayeredInfoRow('购买价格', game.purchasePrice!, colors),
-                  CharacterPreviewSection(
-                    characters: _characters,
-                    onTap: _openCharacterSheet,
-                  ),
-                  WorkPeopleSection(workId: game.id, workType: 'game'),
-                  if (game.summary != null && game.summary!.isNotEmpty)
-                    _buildLayeredSummary(game),
-                  ReviewPreviewSection(workId: game.id, workType: 'game'),
-                  const SizedBox(height: 20),
-                  _buildLayeredExtraSections(game),
+                  // 内容模块（顺序/显隐可在设置中调整）
+                  ..._orderedModules(game, colors, 2),
                 ],
               ),
             ),

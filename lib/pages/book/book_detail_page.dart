@@ -241,95 +241,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         Text('添加于 {date}'.trf({'date': _formatDate(book.createdAt)}),
                           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
-                        // 详细信息
-                        _buildDesktopInfoRow('作者'.tr, book.authors.join('，'), colors),
-                        if (book.translators.isNotEmpty)
-                          _buildDesktopInfoRow('译者'.tr, book.translators.join('，'), colors),
-                        if (book.genres.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-                            Expanded(child: Wrap(spacing: 8, runSpacing: 8,
-                              children: book.genres.map((g) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
-                                child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-                              )).toList(),
-                            )),
-                          ]),
-                        ],
-                        if (book.isbn != null && book.isbn!.isNotEmpty)
-                          _buildDesktopInfoRow('ISBN', book.isbn!, colors),
-                        if (book.publisher != null && book.publisher!.isNotEmpty)
-                          _buildDesktopInfoRow('出版社'.tr, book.publisher!, colors),
-                        if (book.publishDate != null)
-                          _buildDesktopInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors),
-                        if (book.startDate != null || book.finishDate != null) ...[
-                          const SizedBox(height: 8),
-                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('阅读日期'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-                            Expanded(child: Wrap(spacing: 12, runSpacing: 8, children: [
-                              if (book.startDate != null) _buildDateChip('开始'.tr, book.startDate!, false),
-                              if (book.finishDate != null) _buildDateChip('读完'.tr, book.finishDate!, false),
-                            ])),
-                          ]),
-                        ],
-                        if (book.readCount > 0) ...[
-                          const SizedBox(height: 8),
-                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('阅读次数'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-                            Expanded(child: Text('{n} 次'.trf({'n': book.readCount}), style: TextStyle(fontSize: 13, color: colors.onSurface))),
-                          ]),
-                        ],
-                        CharacterPreviewSection(
-                          characters: _characters,
-                          onTap: _openCharacterSheet,
-                        ),
-                        WorkPeopleSection(workId: book.id, workType: 'book'),
-                        if (book.summary != null && book.summary!.isNotEmpty) ...[
-                          Divider(height: 32, thickness: 0.5, color: colors.outline),
-                          Row(children: [
-                            Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
-                            const SizedBox(width: 8),
-                            Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                          ]),
-                          const SizedBox(height: 12),
-                          Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
-                        ],
-                        ReviewPreviewSection(workId: book.id, workType: 'book'),
-                        Divider(height: 32, thickness: 0.5, color: colors.outline),
-                        Row(children: [
-                          Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(width: 8),
-                          Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                        ]),
-                        const SizedBox(height: 16),
-                        _buildExtraSectionItem(
-                          icon: Icons.rate_review_outlined,
-                          title: '书评'.tr,
-                          subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-                          emptyText: '暂无书评'.tr,
-                          unit: '条书评'.tr,
-                          onTap: () => _navigateToReviews(book),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
-                          icon: Icons.format_quote_outlined,
-                          title: '摘抄'.tr,
-                          subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-                          emptyText: '暂无摘抄'.tr,
-                          unit: '条摘抄'.tr,
-                          onTap: () => _navigateToExcerpts(book),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
-                          icon: Icons.people_outline,
-                          title: '角色'.tr,
-                          subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-                          emptyText: '暂无角色'.tr,
-                          unit: '个角色'.tr,
-                          onTap: () => _navigateToCharacters(book),
-                        ),
+                        // 内容模块（顺序/显隐可在设置中调整）
+                        ..._orderedModules(book, colors, 3),
                       ],
                     ),
                   ),
@@ -755,6 +668,194 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
+  /// 按用户配置（设置-详情页模块）生成内容模块列表。
+  /// layout: 0=标准, 1=叠层毛玻璃, 2=浅色极简, 3=桌面
+  List<Widget> _orderedModules(Book book, ColorScheme colors, int layout) {
+    final result = <Widget>[];
+    for (final m in UserPrefs().getDetailModules('book')) {
+      if (!m.visible) continue;
+      final isFirst = result.isEmpty;
+      switch (m.id) {
+        case 'credits':
+          if (layout == 2) {
+            result.add(_buildLayeredInfoRow('作者'.tr, book.authors.join('，'), colors));
+            if (book.translators.isNotEmpty) result.add(_buildLayeredInfoRow('译者'.tr, book.translators.join('，'), colors));
+            if (book.isbn != null && book.isbn!.isNotEmpty) result.add(_buildLayeredInfoRow('ISBN', book.isbn!, colors));
+            if (book.publisher != null && book.publisher!.isNotEmpty) result.add(_buildLayeredInfoRow('出版社'.tr, book.publisher!, colors));
+            if (book.publishDate != null) {
+              result.add(_buildLayeredInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors));
+            }
+            if (book.startDate != null || book.finishDate != null || book.readCount > 0) {
+              result.add(_buildLayeredReadingDates(book));
+            }
+          } else if (layout == 3) {
+            result.addAll(_desktopCreditsRows(book, colors));
+          } else {
+            result.add(_buildAuthorsSection(book));
+            if (book.translators.isNotEmpty) result.add(_buildTranslatorsSection(book));
+            if (book.isbn != null && book.isbn!.isNotEmpty) result.add(_buildIsbnSection(book));
+            if (book.publisher != null && book.publisher!.isNotEmpty) result.add(_buildPublisherSection(book));
+            if (book.publishDate != null) result.add(_buildPublishDateSection(book));
+            if (book.startDate != null || book.finishDate != null || book.readCount > 0) {
+              result.add(_buildReadingDatesSection(book));
+            }
+          }
+        case 'genres':
+          if (book.genres.isNotEmpty) {
+            result.add(switch (layout) {
+              2 => _buildLayeredGenres(book),
+              3 => _buildDesktopGenres(book, colors),
+              _ => _buildGenresSection(book),
+            });
+          }
+        case 'characters':
+          result.add(CharacterPreviewSection(
+            characters: _characters,
+            onTap: _openCharacterSheet,
+            isOverlay: layout == 1,
+          ));
+        case 'people':
+          result.add(WorkPeopleSection(workId: book.id, workType: 'book', isOverlay: layout == 1));
+        case 'summary':
+          if (book.summary != null && book.summary!.isNotEmpty) {
+            if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+            if (layout == 3 && !isFirst) result.add(Divider(height: 32, thickness: 0.5, color: colors.outline));
+            result.add(switch (layout) {
+              2 => _buildLayeredSummary(book),
+              3 => _buildDesktopSummary(book, colors),
+              _ => _buildSummarySection(book),
+            });
+          }
+        case 'reviews':
+          if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+          result.add(ReviewPreviewSection(
+            workId: book.id,
+            workType: 'book',
+            isOverlay: layout == 1,
+            padding: switch (layout) {
+              0 => const EdgeInsets.fromLTRB(24, 0, 24, 8),
+              1 => const EdgeInsets.symmetric(horizontal: 24),
+              _ => EdgeInsets.zero,
+            },
+          ));
+        case 'extra':
+          if (!isFirst) {
+            if (layout == 1) result.add(const SizedBox(height: 12));
+            if (layout == 2) result.add(const SizedBox(height: 20));
+            if (layout == 0) result.add(Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            if (layout == 3) result.add(Divider(height: 32, thickness: 0.5, color: colors.outline));
+          }
+          result.add(switch (layout) {
+            1 => _buildExtraSectionsOverlay(book),
+            2 => _buildLayeredExtraSections(book),
+            3 => _buildDesktopExtra(book, colors),
+            _ => _buildExtraSections(book),
+          });
+      }
+    }
+    return result;
+  }
+
+  /// 桌面端：书籍信息行列表
+  List<Widget> _desktopCreditsRows(Book book, ColorScheme colors) {
+    return [
+      _buildDesktopInfoRow('作者'.tr, book.authors.join('，'), colors),
+      if (book.translators.isNotEmpty)
+        _buildDesktopInfoRow('译者'.tr, book.translators.join('，'), colors),
+      if (book.isbn != null && book.isbn!.isNotEmpty)
+        _buildDesktopInfoRow('ISBN', book.isbn!, colors),
+      if (book.publisher != null && book.publisher!.isNotEmpty)
+        _buildDesktopInfoRow('出版社'.tr, book.publisher!, colors),
+      if (book.publishDate != null)
+        _buildDesktopInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors),
+      if (book.startDate != null || book.finishDate != null) ...[
+        const SizedBox(height: 8),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 56, child: Text('阅读日期'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(child: Wrap(spacing: 12, runSpacing: 8, children: [
+            if (book.startDate != null) _buildDateChip('开始'.tr, book.startDate!, false),
+            if (book.finishDate != null) _buildDateChip('读完'.tr, book.finishDate!, false),
+          ])),
+        ]),
+      ],
+      if (book.readCount > 0) ...[
+        const SizedBox(height: 8),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 56, child: Text('阅读次数'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(child: Text('{n} 次'.trf({'n': book.readCount}), style: TextStyle(fontSize: 13, color: colors.onSurface))),
+        ]),
+      ],
+    ];
+  }
+
+  /// 桌面端：类型标签块
+  Widget _buildDesktopGenres(Book book, ColorScheme colors) {
+    return Column(children: [
+      const SizedBox(height: 8),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+        Expanded(child: Wrap(spacing: 8, runSpacing: 8,
+          children: book.genres.map((g) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+            child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          )).toList(),
+        )),
+      ]),
+    ]);
+  }
+
+  /// 桌面端：简介块（不含前置分割线）
+  Widget _buildDesktopSummary(Book book, ColorScheme colors) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 12),
+      Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+    ]);
+  }
+
+  /// 桌面端：更多入口块（不含前置分割线）
+  Widget _buildDesktopExtra(Book book, ColorScheme colors) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 16),
+      _buildExtraSectionItem(
+        icon: Icons.rate_review_outlined,
+        title: '书评'.tr,
+        subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
+        emptyText: '暂无书评'.tr,
+        unit: '条书评'.tr,
+        onTap: () => _navigateToReviews(book),
+      ),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.format_quote_outlined,
+        title: '摘抄'.tr,
+        subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
+        emptyText: '暂无摘抄'.tr,
+        unit: '条摘抄'.tr,
+        onTap: () => _navigateToExcerpts(book),
+      ),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.people_outline,
+        title: '角色'.tr,
+        subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
+        emptyText: '暂无角色'.tr,
+        unit: '个角色'.tr,
+        onTap: () => _navigateToCharacters(book),
+      ),
+    ]);
+  }
+
   /// 标准样式
   Widget _buildStandardStyle(Book book, ColorScheme colors) {
     final topSafe = MediaQuery.of(context).padding.top;
@@ -778,26 +879,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   // 详细信息
                   _buildBasicInfo(book),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  _buildAuthorsSection(book),
-                  if (book.translators.isNotEmpty) _buildTranslatorsSection(book),
-                  if (book.genres.isNotEmpty) _buildGenresSection(book),
-                  if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
-                  if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
-                  if (book.publishDate != null) _buildPublishDateSection(book),
-                  if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
-                  CharacterPreviewSection(
-                    characters: _characters,
-                    onTap: _openCharacterSheet,
-                  ),
-                  WorkPeopleSection(workId: book.id, workType: 'book'),
-                  if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
-                  ReviewPreviewSection(
-                    workId: book.id,
-                    workType: 'book',
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                  ),
-                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  _buildExtraSections(book),
+                  // 内容模块（顺序/显隐可在设置中调整）
+                  ..._orderedModules(book, colors, 0),
                   const SizedBox(height: 120),
                 ],
               ),
@@ -888,39 +971,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         // 封面缩略图 + 标题
                         _buildOverlayHeader(book),
                         const SizedBox(height: 20),
-                        // 信息区块：无毛玻璃
-                        _buildAuthorsSection(book),
-                  if (book.translators.isNotEmpty) _buildTranslatorsSection(book),
-                        if (book.isbn != null && book.isbn!.isNotEmpty) _buildIsbnSection(book),
-                        if (book.publisher != null && book.publisher!.isNotEmpty) _buildPublisherSection(book),
-                        if (book.publishDate != null) _buildPublishDateSection(book),
-                        if (book.startDate != null || book.finishDate != null || book.readCount > 0) _buildReadingDatesSection(book),
-                        // 类型标签毛玻璃
-                        if (book.genres.isNotEmpty) _buildGenresSection(book),
-                        CharacterPreviewSection(
-                          characters: _characters,
-                          onTap: _openCharacterSheet,
-                          isOverlay: true,
-                        ),
-                        // 关联人物
-                        WorkPeopleSection(workId: book.id, workType: 'book', isOverlay: true),
-                        // 简介：内部已有毛玻璃卡片
-                        if (book.summary != null && book.summary!.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _buildSummarySection(book),
-                        ],
-                        const SizedBox(height: 12),
-                        const SizedBox(height: 12),
-                        // 书评预览
-                        ReviewPreviewSection(
-                          workId: book.id,
-                          workType: 'book',
-                          isOverlay: true,
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                        ),
-                        const SizedBox(height: 12),
-                        // 书评、书摘毛玻璃
-                        _buildExtraSectionsOverlay(book),
+                        // 内容模块（顺序/显隐可在设置中调整）
+                        ..._orderedModules(book, colors, 1),
                       ],
                     ),
                   ),
@@ -954,29 +1006,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   const SizedBox(height: 20),
                   SizedBox(width: double.infinity, child: _buildLayeredHeader(book)),
                   const SizedBox(height: 20),
-                  _buildLayeredInfoRow('作者'.tr, book.authors.join('，'), colors),
-                  if (book.translators.isNotEmpty)
-                    _buildLayeredInfoRow('译者'.tr, book.translators.join('，'), colors),
-                  if (book.isbn != null && book.isbn!.isNotEmpty)
-                    _buildLayeredInfoRow('ISBN', book.isbn!, colors),
-                  if (book.publisher != null && book.publisher!.isNotEmpty)
-                    _buildLayeredInfoRow('出版社'.tr, book.publisher!, colors),
-                  if (book.publishDate != null)
-                    _buildLayeredInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors),
-                  if (book.startDate != null || book.finishDate != null || book.readCount > 0)
-                    _buildLayeredReadingDates(book),
-                  if (book.genres.isNotEmpty)
-                    _buildLayeredGenres(book),
-                  CharacterPreviewSection(
-                    characters: _characters,
-                    onTap: _openCharacterSheet,
-                  ),
-                  WorkPeopleSection(workId: book.id, workType: 'book'),
-                  if (book.summary != null && book.summary!.isNotEmpty)
-                    _buildLayeredSummary(book),
-                  ReviewPreviewSection(workId: book.id, workType: 'book'),
-                  const SizedBox(height: 20),
-                  _buildLayeredExtraSections(book),
+                  // 内容模块（顺序/显隐可在设置中调整）
+                  ..._orderedModules(book, colors, 2),
                 ],
               ),
             ),

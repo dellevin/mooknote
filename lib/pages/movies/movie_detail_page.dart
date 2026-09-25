@@ -274,73 +274,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
                         ],
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
-                        // 详细信息
-                        if (movie.directors.isNotEmpty) _buildDesktopInfoRow('导演', movie.directors.join('，'), colors),
-                        if (movie.writers.isNotEmpty) _buildDesktopInfoRow('编剧', movie.writers.join('，'), colors),
-                        if (movie.actors.isNotEmpty) _buildDesktopInfoRow('主演', movie.actors.join('，'), colors),
-                        if (movie.genres.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-                            Expanded(child: Wrap(spacing: 8, runSpacing: 8,
-                              children: movie.genres.map((g) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
-                                child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-                              )).toList(),
-                            )),
-                          ]),
-                        ],
-                        CharacterPreviewSection(
-                          characters: _characters,
-                          onTap: _openCharacterSheet,
-                        ),
-                        WorkPeopleSection(workId: movie.id, workType: 'movie'),
-                        if (movie.summary != null && movie.summary!.isNotEmpty) ...[
-                          Divider(height: 32, thickness: 0.5, color: colors.outline),
-                          Row(children: [
-                            Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
-                            const SizedBox(width: 8),
-                            Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                          ]),
-                          const SizedBox(height: 12),
-                          Text(movie.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
-                        ],
-                        ReviewPreviewSection(workId: movie.id, workType: 'movie'),
-                        Divider(height: 32, thickness: 0.5, color: colors.outline),
-                        // 更多
-                        Row(children: [
-                          Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(width: 8),
-                          Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                        ]),
-                        const SizedBox(height: 16),
-                        _buildExtraSectionItem(
-                          icon: Icons.rate_review_outlined,
-                          title: '影评',
-                          subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
-                          emptyText: '暂无影评',
-                          unit: '条影评',
-                          onTap: () => _navigateToReviews(movie),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
-                          icon: Icons.photo_library_outlined,
-                          title: '海报墙',
-                          subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
-                          emptyText: '暂无海报',
-                          unit: '张海报',
-                          onTap: () => _navigateToPosters(movie),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildExtraSectionItem(
-                          icon: Icons.people_outline,
-                          title: '角色',
-                          subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
-                          emptyText: '暂无角色',
-                          unit: '个角色',
-                          onTap: () => _navigateToCharacters(movie),
-                        ),
+                        // 内容模块（顺序/显隐可在设置中调整）
+                        ..._orderedModules(movie, colors, 3),
                       ],
                     ),
                   ),
@@ -940,6 +875,153 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     );
   }
 
+  /// 按用户配置（设置-详情页模块）生成内容模块列表。
+  /// layout: 0=标准, 1=叠层毛玻璃, 2=浅色极简, 3=桌面
+  List<Widget> _orderedModules(Movie movie, ColorScheme colors, int layout) {
+    final result = <Widget>[];
+    for (final m in UserPrefs().getDetailModules('movie')) {
+      if (!m.visible) continue;
+      final isFirst = result.isEmpty;
+      switch (m.id) {
+        case 'credits':
+          if (layout == 2) {
+            if (movie.directors.isNotEmpty) result.add(_buildLayeredInfoRow('导演', movie.directors.join('，'), colors));
+            if (movie.writers.isNotEmpty) result.add(_buildLayeredInfoRow('编剧', movie.writers.join('，'), colors));
+            if (movie.actors.isNotEmpty) result.add(_buildLayeredInfoRow('主演', movie.actors.join('，'), colors));
+          } else if (layout == 3) {
+            if (movie.directors.isNotEmpty) result.add(_buildDesktopInfoRow('导演', movie.directors.join('，'), colors));
+            if (movie.writers.isNotEmpty) result.add(_buildDesktopInfoRow('编剧', movie.writers.join('，'), colors));
+            if (movie.actors.isNotEmpty) result.add(_buildDesktopInfoRow('主演', movie.actors.join('，'), colors));
+          } else {
+            if (movie.directors.isNotEmpty) result.add(_buildDirectorsSection(movie));
+            if (movie.writers.isNotEmpty) result.add(_buildWritersSection(movie));
+            if (movie.actors.isNotEmpty) result.add(_buildActorsSection(movie));
+          }
+        case 'genres':
+          if (movie.genres.isNotEmpty) {
+            if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+            result.add(switch (layout) {
+              2 => _buildLayeredGenres(movie),
+              3 => _buildDesktopGenres(movie, colors),
+              _ => _buildGenresSection(movie),
+            });
+          }
+        case 'characters':
+          result.add(CharacterPreviewSection(
+            characters: _characters,
+            onTap: _openCharacterSheet,
+            isOverlay: layout == 1,
+          ));
+        case 'people':
+          result.add(WorkPeopleSection(workId: movie.id, workType: 'movie', isOverlay: layout == 1));
+        case 'summary':
+          if (movie.summary != null && movie.summary!.isNotEmpty) {
+            if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+            if (layout == 3 && !isFirst) result.add(Divider(height: 32, thickness: 0.5, color: colors.outline));
+            result.add(switch (layout) {
+              2 => _buildLayeredSummary(movie),
+              3 => _buildDesktopSummary(movie, colors),
+              _ => _buildSummarySection(movie),
+            });
+          }
+        case 'reviews':
+          if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
+          result.add(ReviewPreviewSection(
+            workId: movie.id,
+            workType: 'movie',
+            isOverlay: layout == 1,
+            padding: switch (layout) {
+              0 => const EdgeInsets.fromLTRB(24, 0, 24, 8),
+              1 => const EdgeInsets.symmetric(horizontal: 24),
+              _ => EdgeInsets.zero,
+            },
+          ));
+        case 'extra':
+          if (!isFirst) {
+            if (layout == 1) result.add(const SizedBox(height: 12));
+            if (layout == 2) result.add(const SizedBox(height: 20));
+            if (layout == 0) result.add(Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            if (layout == 3) result.add(Divider(height: 32, thickness: 0.5, color: colors.outline));
+          }
+          result.add(switch (layout) {
+            1 => _buildExtraSectionsOverlay(movie),
+            2 => _buildLayeredExtraSections(movie),
+            3 => _buildDesktopExtra(movie, colors),
+            _ => _buildExtraSections(movie),
+          });
+      }
+    }
+    return result;
+  }
+
+  /// 桌面端：类型标签块
+  Widget _buildDesktopGenres(Movie movie, ColorScheme colors) {
+    return Column(children: [
+      const SizedBox(height: 8),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 56, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+        Expanded(child: Wrap(spacing: 8, runSpacing: 8,
+          children: movie.genres.map((g) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+            child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+          )).toList(),
+        )),
+      ]),
+    ]);
+  }
+
+  /// 桌面端：简介块（不含前置分割线）
+  Widget _buildDesktopSummary(Movie movie, ColorScheme colors) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 12),
+      Text(movie.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+    ]);
+  }
+
+  /// 桌面端：更多入口块（不含前置分割线）
+  Widget _buildDesktopExtra(Movie movie, ColorScheme colors) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      ]),
+      const SizedBox(height: 16),
+      _buildExtraSectionItem(
+        icon: Icons.rate_review_outlined,
+        title: '影评',
+        subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
+        emptyText: '暂无影评',
+        unit: '条影评',
+        onTap: () => _navigateToReviews(movie),
+      ),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.photo_library_outlined,
+        title: '海报墙',
+        subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
+        emptyText: '暂无海报',
+        unit: '张海报',
+        onTap: () => _navigateToPosters(movie),
+      ),
+      const SizedBox(height: 12),
+      _buildExtraSectionItem(
+        icon: Icons.people_outline,
+        title: '角色',
+        subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
+        emptyText: '暂无角色',
+        unit: '个角色',
+        onTap: () => _navigateToCharacters(movie),
+      ),
+    ]);
+  }
+
   /// 标准样式
   Widget _buildStandardStyle(Movie movie, ColorScheme colors) {
     final topSafe = MediaQuery.of(context).padding.top;
@@ -963,28 +1045,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   // 详细信息
                   _buildBasicInfo(movie),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  if (movie.directors.isNotEmpty)
-                    _buildDirectorsSection(movie),
-                  if (movie.writers.isNotEmpty)
-                    _buildWritersSection(movie),
-                  if (movie.actors.isNotEmpty)
-                    _buildActorsSection(movie),
-                  if (movie.genres.isNotEmpty)
-                    _buildGenresSection(movie),
-                  CharacterPreviewSection(
-                    characters: _characters,
-                    onTap: _openCharacterSheet,
-                  ),
-                  WorkPeopleSection(workId: movie.id, workType: 'movie'),
-                  if (movie.summary != null && movie.summary!.isNotEmpty)
-                    _buildSummarySection(movie),
-                  ReviewPreviewSection(
-                    workId: movie.id,
-                    workType: 'movie',
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                  ),
-                  Divider(height: 0.5, thickness: 0.5, color: colors.outline),
-                  _buildExtraSections(movie),
+                  // 内容模块（顺序/显隐可在设置中调整）
+                  ..._orderedModules(movie, colors, 0),
                   const SizedBox(height: 120),
                 ],
               ),
@@ -1103,37 +1165,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _buildOverlayHeader(movie),
                     const SizedBox(height: 20),
-                    // 信息区块：无毛玻璃
-                    if (movie.directors.isNotEmpty) _buildDirectorsSection(movie),
-                    if (movie.writers.isNotEmpty) _buildWritersSection(movie),
-                    if (movie.actors.isNotEmpty) _buildActorsSection(movie),
-                    // 类型标签毛玻璃
-                    if (movie.genres.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _buildGenresSection(movie),
-                    ],
-                    CharacterPreviewSection(
-                      characters: _characters,
-                      onTap: _openCharacterSheet,
-                      isOverlay: true,
-                    ),
-                    // 关联人物
-                    WorkPeopleSection(workId: movie.id, workType: 'movie', isOverlay: true),
-                    const SizedBox(height: 12),
-                    // 简介：内部已有毛玻璃卡片
-                    if (movie.summary != null && movie.summary!.isNotEmpty)
-                      _buildSummarySection(movie),
-                    const SizedBox(height: 12),
-                    // 影评预览
-                    ReviewPreviewSection(
-                      workId: movie.id,
-                      workType: 'movie',
-                      isOverlay: true,
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                    ),
-                    const SizedBox(height: 12),
-                    // 影评、海报墙毛玻璃
-                    _buildExtraSectionsOverlay(movie),
+                    // 内容模块（顺序/显隐可在设置中调整）
+                    ..._orderedModules(movie, colors, 1),
                   ]),
                 ),
               ),
@@ -1166,24 +1199,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   const SizedBox(height: 20),
                   SizedBox(width: double.infinity, child: _buildLayeredHeader(movie)),
                   const SizedBox(height: 20),
-                  if (movie.directors.isNotEmpty)
-                    _buildLayeredInfoRow('导演', movie.directors.join('，'), colors),
-                  if (movie.writers.isNotEmpty)
-                    _buildLayeredInfoRow('编剧', movie.writers.join('，'), colors),
-                  if (movie.actors.isNotEmpty)
-                    _buildLayeredInfoRow('主演', movie.actors.join('，'), colors),
-                  if (movie.genres.isNotEmpty)
-                    _buildLayeredGenres(movie),
-                  CharacterPreviewSection(
-                    characters: _characters,
-                    onTap: _openCharacterSheet,
-                  ),
-                  WorkPeopleSection(workId: movie.id, workType: 'movie'),
-                  if (movie.summary != null && movie.summary!.isNotEmpty)
-                    _buildLayeredSummary(movie),
-                  ReviewPreviewSection(workId: movie.id, workType: 'movie'),
-                  const SizedBox(height: 20),
-                  _buildLayeredExtraSections(movie),
+                  // 内容模块（顺序/显隐可在设置中调整）
+                  ..._orderedModules(movie, colors, 2),
                 ],
               ),
             ),

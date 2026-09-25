@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 用户偏好设置管理
@@ -83,6 +85,50 @@ class UserPrefs {
   /// 详情页展示样式: 0=标准(封面顶部), 1=叠层(封面+毛玻璃卡片)
   int get detailPageStyle => prefs.getInt('detailPageStyle') ?? 0;
   Future<bool> setDetailPageStyle(int value) => prefs.setInt('detailPageStyle', value);
+
+  // ========== 详情页模块配置 ==========
+
+  /// 详情页可配置模块（顺序即默认显示顺序）
+  static const List<String> detailModuleIds = [
+    'credits', // 演职员 / 书籍信息 / 游戏信息
+    'genres', // 类型标签
+    'characters', // 角色
+    'people', // 关联人物
+    'summary', // 简介
+    'reviews', // 影评 / 书评 / 评价预览
+    'extra', // 更多入口
+  ];
+
+  /// 获取详情页模块配置（按显示顺序），type: movie / book / game。
+  /// 返回全部模块；未保存过的新模块自动以"显示"状态追加到末尾。
+  List<({String id, bool visible})> getDetailModules(String type) {
+    final saved = <({String id, bool visible})>[];
+    final raw = prefs.getString('detailModules_$type');
+    if (raw != null) {
+      try {
+        for (final e in jsonDecode(raw) as List) {
+          final id = (e as Map)['id']?.toString() ?? '';
+          if (detailModuleIds.contains(id) && !saved.any((m) => m.id == id)) {
+            saved.add((id: id, visible: e['visible'] != false));
+          }
+        }
+      } catch (_) {}
+    }
+    final savedIds = saved.map((m) => m.id).toSet();
+    return [
+      ...saved,
+      for (final id in detailModuleIds)
+        if (!savedIds.contains(id)) (id: id, visible: true),
+    ];
+  }
+
+  /// 保存详情页模块配置，type: movie / book / game
+  Future<bool> setDetailModules(String type, List<({String id, bool visible})> modules) {
+    return prefs.setString(
+      'detailModules_$type',
+      jsonEncode([for (final m in modules) {'id': m.id, 'visible': m.visible}]),
+    );
+  }
 
   // ========== 封面位置 ==========
 

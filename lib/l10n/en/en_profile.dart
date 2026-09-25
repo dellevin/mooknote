@@ -400,4 +400,22 @@ const Map<String, String> enProfile = {
   '默认图标': 'Default Icon',
   '风格二': 'Style 2',
   '风格三': 'Style 3',
+
+  // ─── 详情页设置 ───────────────────────────────────────
+  '详情页设置': 'Detail Page Settings',
+  '显示 {a}/{b} 个模块': 'Showing {a}/{b} modules',
+  '详情页各模块的显示与排序': 'Show and reorder detail page modules',
+  '拖动调整{type}详情页模块顺序，开关控制显示':
+      'Drag to reorder {type} detail modules, toggle to show or hide',
+  '重置': 'Reset',
+  '已恢复默认': 'Restored to default',
+  '演职员信息': 'Cast & Crew',
+  '书籍信息': 'Book Info',
+  '游戏信息': 'Game Info',
+  '类型标签': 'Genres',
+  '关联人物': 'Related People',
+  '影评预览': 'Review Preview',
+  '书评预览': 'Review Preview',
+  '评价预览': 'Review Preview',
+  '更多入口': 'More Entries',
 };
