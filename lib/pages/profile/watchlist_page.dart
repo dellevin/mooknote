@@ -29,11 +29,6 @@ class _WatchlistPageState extends State<WatchlistPage> {
     'book': '阅读',
     'game': '游戏',
   };
-  static const _typeIcon = <String, IconData>{
-    'movie': Icons.movie_outlined,
-    'book': Icons.menu_book_outlined,
-    'game': Icons.sports_esports_outlined,
-  };
   static const _typeColor = <String, Color>{
     'movie': Color(0xFF2563EB),
     'book': Color(0xFF16A34A),
@@ -93,192 +88,132 @@ class _WatchlistPageState extends State<WatchlistPage> {
     if (userPrefs.showBookTab) visibleFilters.add(_filterDefs[2]);
     if (userPrefs.showGameTab) visibleFilters.add(_filterDefs[3]);
 
-    final (_, filterType) = visibleFilters[_filterIndex.clamp(0, visibleFilters.length - 1)];
+    final filterIdx = _filterIndex.clamp(0, visibleFilters.length - 1);
+    final (_, filterType) = visibleFilters[filterIdx];
     final filtered = filterType.isEmpty
         ? items
         : items.where((i) => i.type == filterType).toList();
 
-    // 按类型分组（仅"全部"视图分组，单类型筛选不分组）
-    final useGroups = filterType.isEmpty;
-    final groups = <_WatchlistGroup>[];
-    if (useGroups) {
-      for (final type in const ['movie', 'book', 'game']) {
-        final groupItems = filtered.where((i) => i.type == type).toList();
-        if (groupItems.isNotEmpty) {
-          groups.add(_WatchlistGroup(type: type, items: groupItems));
-        }
-      }
-    }
-
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('想看清单'.tr)),
-      body: CustomScrollView(
-        slivers: _buildSlivers(
-          colors: colors,
-          visibleFilters: visibleFilters,
-          filtered: filtered,
-          useGroups: useGroups,
-          groups: groups,
-        ),
+      appBar: AppBar(
+        title: Text('想看清单'.tr),
+        actions: [
+          if (visibleFilters.length > 1)
+            PopupMenuButton<int>(
+              tooltip: '筛选'.tr,
+              initialValue: filterIdx,
+              onSelected: (i) => setState(() => _filterIndex = i),
+              itemBuilder: (ctx) => [
+                for (int i = 0; i < visibleFilters.length; i++)
+                  PopupMenuItem<int>(
+                    value: i,
+                    child: Row(
+                      children: [
+                        Icon(
+                          i == filterIdx ? Icons.check : null,
+                          size: 16,
+                          color: colors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(visibleFilters[i].$1.tr),
+                      ],
+                    ),
+                  ),
+              ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${visibleFilters[filterIdx].$1.tr} · ${filtered.length}',
+                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7)),
+                    ),
+                    Icon(Icons.arrow_drop_down, size: 18, color: colors.onSurface.withValues(alpha: 0.7)),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
+      body: filtered.isEmpty
+          ? _buildEmpty(colors)
+          : GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.55,
+              ),
+              itemCount: filtered.length,
+              itemBuilder: (ctx, i) => _buildGridItem(colors, filtered[i]),
+            ),
     );
   }
 
-  List<Widget> _buildSlivers({
-    required ColorScheme colors,
-    required List<(String, String)> visibleFilters,
-    required List<_WatchlistEntry> filtered,
-    required bool useGroups,
-    required List<_WatchlistGroup> groups,
-  }) {
-    final slivers = <Widget>[];
-    if (visibleFilters.length > 1) {
-      slivers.add(SliverPersistentHeader(
-        pinned: true,
-        delegate: _StickyFilterDelegate(
-          visibleFilters: visibleFilters,
-          filterIndex: _filterIndex,
-          count: filtered.length,
-          onTap: (i) => setState(() => _filterIndex = i),
-        ),
-      ));
-    }
-    if (filtered.isEmpty) {
-      slivers.add(SliverFillRemaining(
-        hasScrollBody: false,
-        child: _buildEmpty(colors),
-      ));
-    } else if (useGroups) {
-      for (final g in groups) {
-        slivers.addAll(_buildGroupSlivers(g, colors));
-      }
-    } else {
-      slivers.add(SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (ctx, i) => _buildItemCard(colors, filtered[i]),
-            childCount: filtered.length,
-          ),
-        ),
-      ));
-    }
-    return slivers;
-  }
-
-  // 分组 slivers：小标题 + 卡片列表
-  List<Widget> _buildGroupSlivers(_WatchlistGroup group, ColorScheme colors) {
-    return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: _typeColor[group.type],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(_typeLabel[group.type]!.tr,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface.withValues(alpha: 0.7))),
-              const SizedBox(width: 6),
-              Text('${group.items.length}',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: colors.onSurface.withValues(alpha: 0.4))),
-            ],
-          ),
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (ctx, i) => _buildItemCard(colors, group.items[i]),
-            childCount: group.items.length,
-          ),
-        ),
-      ),
-    ];
-  }
-
-  // 单条卡片
-  Widget _buildItemCard(ColorScheme colors, _WatchlistEntry item) {
+  // 海报方格单条：海报 + 左上角类型角标 + 标题
+  Widget _buildGridItem(ColorScheme colors, _WatchlistEntry item) {
     return GestureDetector(
       onTap: item.onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 封面
-            Container(
-              width: 56,
-              height: 80,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: item.imagePath != null && item.imagePath!.isNotEmpty
-                  ? FadeInLocalImage(
-                      path: item.imagePath,
-                      fit: BoxFit.cover,
-                      errorWidget: Icon(Icons.image_outlined,
-                          size: 18, color: colors.onSurface.withValues(alpha: 0.2)))
-                  : Icon(Icons.image_outlined,
-                      size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
-            ),
-            const SizedBox(width: 12),
-            // 标题 + 底部信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: colors.onSurface,
-                          height: 1.3)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(_typeIcon[item.type],
-                          size: 11, color: _typeColor[item.type]),
-                      const SizedBox(width: 3),
-                      Text(_typeLabel[item.type]!.tr,
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: _typeColor[item.type])),
-                      const Spacer(),
-                      Text(_formatRelative(item.createdAt),
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: colors.onSurface.withValues(alpha: 0.4))),
-                    ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                ],
-              ),
+                  clipBehavior: Clip.antiAlias,
+                  child: item.imagePath != null && item.imagePath!.isNotEmpty
+                      ? FadeInLocalImage(
+                          path: item.imagePath,
+                          fit: BoxFit.cover,
+                          errorWidget: Icon(Icons.image_outlined,
+                              size: 22, color: colors.onSurface.withValues(alpha: 0.2)))
+                      : Icon(Icons.image_outlined,
+                          size: 22, color: colors.onSurface.withValues(alpha: 0.2)),
+                ),
+                // 类型角标
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: _typeColor[item.type],
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Text(
+                      _typeLabel[item.type]!.tr,
+                      style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          height: 1.3),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            item.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: colors.onSurface,
+                height: 1.3),
+          ),
+        ],
       ),
     );
   }
@@ -298,85 +233,6 @@ class _WatchlistPageState extends State<WatchlistPage> {
       ),
     );
   }
-
-  String _formatRelative(DateTime d) {
-    final now = DateTime.now();
-    final diff = now.difference(d);
-    if (diff.inMinutes < 1) return '刚刚'.tr;
-    if (diff.inHours < 1) return '{n}分钟前'.trf({'n': diff.inMinutes});
-    if (diff.inDays < 1) return '{n}小时前'.trf({'n': diff.inHours});
-    if (diff.inDays < 30) return '{n}天前'.trf({'n': diff.inDays});
-    if (diff.inDays < 365) return '{n}个月前'.trf({'n': (diff.inDays / 30).floor()});
-    return '{n}年前'.trf({'n': (diff.inDays / 365).floor()});
-  }
-}
-
-// 吸顶筛选栏
-class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
-  final List<(String, String)> visibleFilters;
-  final int filterIndex;
-  final int count;
-  final ValueChanged<int> onTap;
-
-  _StickyFilterDelegate({
-    required this.visibleFilters,
-    required this.filterIndex,
-    required this.count,
-    required this.onTap,
-  });
-
-  @override
-  double get minExtent => 52;
-  @override
-  double get maxExtent => 52;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      color: colors.surface,
-      height: 52,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        children: [
-          for (int i = 0; i < visibleFilters.length; i++) ...[
-            if (i != 0) const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => onTap(i),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                decoration: BoxDecoration(
-                  color: i == filterIndex
-                      ? colors.primary
-                      : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(visibleFilters[i].$1.tr,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight:
-                            i == filterIndex ? FontWeight.w600 : FontWeight.w400,
-                        color: i == filterIndex
-                            ? colors.onPrimary
-                            : colors.onSurface.withValues(alpha: 0.6))),
-              ),
-            ),
-          ],
-          const Spacer(),
-          Text('{n}项'.trf({'n': count}),
-              style: TextStyle(
-                  fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _StickyFilterDelegate oldDelegate) =>
-      filterIndex != oldDelegate.filterIndex || count != oldDelegate.count;
 }
 
 class _WatchlistEntry {
@@ -393,10 +249,4 @@ class _WatchlistEntry {
     required this.createdAt,
     required this.onTap,
   });
-}
-
-class _WatchlistGroup {
-  final String type;
-  final List<_WatchlistEntry> items;
-  const _WatchlistGroup({required this.type, required this.items});
 }
