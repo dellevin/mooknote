@@ -57,16 +57,6 @@ class MoviePersonDao {
     return await db.insert('movie_people', moviePerson.toJson());
   });
 
-  // 批量添加关联
-  Future<void> insertAll(List<MoviePerson> items) => _wrap('insertAll', () async {
-    final db = await _dbHelper.database;
-    final batch = db.batch();
-    for (final item in items) {
-      batch.insert('movie_people', item.toJson());
-    }
-    await batch.commit(noResult: true);
-  });
-
   // 更新关联（如修改角色名）
   Future<int> update(MoviePerson moviePerson) => _wrap('update', () async {
     final db = await _dbHelper.database;
@@ -78,16 +68,30 @@ class MoviePersonDao {
     );
   });
 
-  // 删除某部影视的所有关联
-  Future<int> deleteByMovieId(String movieId) => _wrap('deleteByMovieId', () async {
+  // 替换某部影视的全部人物关联（事务内先删后插，避免中途失败丢光关联）
+  Future<void> replaceForMovie(String movieId, List<MoviePerson> items) => _wrap('replaceForMovie', () async {
     final db = await _dbHelper.database;
-    return await db.delete('movie_people', where: 'movie_id = ?', whereArgs: [movieId]);
+    await db.transaction((txn) async {
+      await txn.delete('movie_people', where: 'movie_id = ?', whereArgs: [movieId]);
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert('movie_people', item.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
   });
 
-  // 删除某个人物的所有影视关联
-  Future<int> deleteByPersonId(String personId) => _wrap('deleteByPersonId', () async {
+  // 替换某个人物的全部影视关联（事务内先删后插）
+  Future<void> replaceForPerson(String personId, List<MoviePerson> items) => _wrap('replaceForPerson', () async {
     final db = await _dbHelper.database;
-    return await db.delete('movie_people', where: 'person_id = ?', whereArgs: [personId]);
+    await db.transaction((txn) async {
+      await txn.delete('movie_people', where: 'person_id = ?', whereArgs: [personId]);
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert('movie_people', item.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
   });
 
   // 删除单条关联

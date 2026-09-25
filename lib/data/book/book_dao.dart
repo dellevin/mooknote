@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../playlist/playlist_dao.dart';
 
 /// 书籍数据访问对象
 class BookDao {
@@ -176,13 +177,18 @@ class BookDao {
   // 彻底删除书籍
   Future<int> permanentDeleteBook(String id) => _wrap('permanentDeleteBook', () async {
     final db = await _dbHelper.database;
-    // 清理子记录，防止孤儿数据
-    await db.delete('book_reviews', where: 'book_id = ?', whereArgs: [id]);
-    await db.delete('book_excerpts', where: 'book_id = ?', whereArgs: [id]);
-    return await db.delete(
-      'books',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    // 事务内清理全部子记录与片单引用，防止孤儿数据
+    return await db.transaction((txn) async {
+      await txn.delete('book_reviews', where: 'book_id = ?', whereArgs: [id]);
+      await txn.delete('book_excerpts', where: 'book_id = ?', whereArgs: [id]);
+      await txn.delete('book_people', where: 'book_id = ?', whereArgs: [id]);
+      await txn.delete('book_characters', where: 'book_id = ?', whereArgs: [id]);
+      await PlaylistDao.removeMediaFromPlaylists(txn, id, 'book');
+      return await txn.delete(
+        'books',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   });
 }

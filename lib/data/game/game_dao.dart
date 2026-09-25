@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../playlist/playlist_dao.dart';
 
 /// 游戏数据访问对象
 class GameDao {
@@ -157,13 +158,18 @@ class GameDao {
   // 彻底删除游戏
   Future<int> permanentDeleteGame(String id) => _wrap('permanentDeleteGame', () async {
     final db = await _dbHelper.database;
-    // 清理子记录，防止孤儿数据
-    await db.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
-    await db.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
-    return await db.delete(
-      'games',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    // 事务内清理全部子记录与片单引用，防止孤儿数据
+    return await db.transaction((txn) async {
+      await txn.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
+      await txn.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
+      await txn.delete('game_people', where: 'game_id = ?', whereArgs: [id]);
+      await txn.delete('game_characters', where: 'game_id = ?', whereArgs: [id]);
+      await PlaylistDao.removeMediaFromPlaylists(txn, id, 'game');
+      return await txn.delete(
+        'games',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   });
 }

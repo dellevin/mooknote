@@ -306,9 +306,9 @@ class WebDAVService {
           final success = await _downloadFile(client, zipUrl, username, password, tempZip);
 
           if (success && await tempZip.exists()) {
-            final bytes = await tempZip.readAsBytes();
+            // 流式解压恢复（restoreFromZipFile 内部已捕获异常，不会抛出）
+            final importResult = await BackupService.instance.restoreFromZipFile(tempZip.path);
             try { await tempZip.delete(); } catch (_) {}
-            final importResult = await BackupService.instance.restoreFromZipBytes(bytes);
 
             if (importResult.success) {
               downloadedFiles = 1;
@@ -448,7 +448,7 @@ class WebDAVService {
     }
   }
 
-  /// 上传文件到 WebDAV（从文件路径读取，避免备份服务端重复占用内存）
+  /// 上传文件到 WebDAV（流式读取，避免大备份全量读入内存）
   Future<bool> _uploadFile(
     http.Client client,
     String url,
@@ -462,60 +462,46 @@ class WebDAVService {
         debugPrint('[WebDAV] _uploadFile: 文件不存在 $filePath');
         return false;
       }
-      final bytes = await file.readAsBytes();
-      return _putBytesAndVerify(
-        client, url, username, password, bytes,
-        contentType: 'application/zip',
+      final length = await file.length();
+      final response = await _sendAuthedStream(
+        client, 'PUT', url, username, password,
+        headers: {'Content-Type': 'application/zip'},
+        contentLength: length,
+        bodyStreamFactory: () => file.openRead(),
+        timeout: _httpTimeout,
       );
+      await response.stream.drain();
+
+      debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
+      final putOk = response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204;
+      if (!putOk) return false;
+
+      // 部分 WebDAV 服务器在写入失败（配额满、超过单文件上限等）时仍返回 200，
+      // 必须 HEAD 校验文件确实存在且大小一致，否则会得到假成功
+      final verify = await _sendAuthed(
+        client, 'HEAD', url, username, password,
+        timeout: _shortTimeout,
+      );
+      await verify.stream.drain();
+
+      if (verify.statusCode != 200) {
+        debugPrint('[WebDAV] PUT 返回成功但 HEAD 校验为 ${verify.statusCode}，文件实际未保存: $url');
+        return false;
+      }
+
+      final remoteLength = int.tryParse(verify.headers['content-length'] ?? '');
+      if (remoteLength != null && remoteLength != length) {
+        debugPrint('[WebDAV] 文件大小不一致: 本地 $length 远程 $remoteLength');
+        return false;
+      }
+
+      return true;
     } catch (e) {
       debugPrint('[WebDAV] _uploadFile error: $e');
       return false;
     }
-  }
-
-  /// PUT + HEAD 校验（使用调用方提供的 client）
-  Future<bool> _putBytesAndVerify(
-    http.Client client,
-    String url,
-    String username,
-    String password,
-    List<int> bytes, {
-    required String contentType,
-  }) async {
-    final response = await _sendAuthed(
-      client, 'PUT', url, username, password,
-      headers: {'Content-Type': contentType},
-      bodyBytes: bytes,
-      timeout: _httpTimeout,
-    );
-    await response.stream.drain();
-
-    debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
-    final putOk = response.statusCode == 200 ||
-        response.statusCode == 201 ||
-        response.statusCode == 204;
-    if (!putOk) return false;
-
-    // 部分 WebDAV 服务器在写入失败（配额满、超过单文件上限等）时仍返回 200，
-    // 必须 HEAD 校验文件确实存在且大小一致，否则会得到假成功
-    final verify = await _sendAuthed(
-      client, 'HEAD', url, username, password,
-      timeout: _shortTimeout,
-    );
-    await verify.stream.drain();
-
-    if (verify.statusCode != 200) {
-      debugPrint('[WebDAV] PUT 返回成功但 HEAD 校验为 ${verify.statusCode}，文件实际未保存: $url');
-      return false;
-    }
-
-    final remoteLength = int.tryParse(verify.headers['content-length'] ?? '');
-    if (remoteLength != null && remoteLength != bytes.length) {
-      debugPrint('[WebDAV] 文件大小不一致: 本地 ${bytes.length} 远程 $remoteLength');
-      return false;
-    }
-
-    return true;
   }
 
   /// 下载文件到本地
@@ -536,9 +522,18 @@ class WebDAVService {
 
       if (response.statusCode == 200) {
         await localFile.parent.create(recursive: true);
-        final bytes = await response.stream.toBytes();
-        await localFile.writeAsBytes(bytes);
-        debugPrint('[WebDAV] Downloaded ${bytes.length} bytes');
+        // 流式写盘，避免大备份全量读入内存
+        final sink = localFile.openWrite();
+        var total = 0;
+        try {
+          await for (final chunk in response.stream) {
+            sink.add(chunk);
+            total += chunk.length;
+          }
+        } finally {
+          await sink.close();
+        }
+        debugPrint('[WebDAV] Downloaded $total bytes');
         return true;
       }
       return false;
@@ -761,6 +756,81 @@ class WebDAVService {
         return _sendAuthed(
           client, method, newUrl, username, password,
           headers: headers, body: body, bodyBytes: bodyBytes,
+          timeout: timeout, onRedirect: onRedirect,
+        );
+      }
+    }
+
+    return response;
+  }
+
+  /// [_sendAuthed] 的流式上传变体：请求体由 [bodyStreamFactory] 按需打开
+  /// （Digest 重试与重定向时会重新调用以获取新流），用于大文件上传。
+  Future<http.StreamedResponse> _sendAuthedStream(
+    http.Client client,
+    String method,
+    String url,
+    String username,
+    String password, {
+    Map<String, String>? headers,
+    required int contentLength,
+    required Stream<List<int>> Function() bodyStreamFactory,
+    Duration? timeout,
+    void Function(String newUrl)? onRedirect,
+  }) async {
+    final uri = Uri.parse(url);
+
+    http.StreamedRequest buildRequest(String? authorization) {
+      final req = http.StreamedRequest(method, uri);
+      if (headers != null) req.headers.addAll(headers);
+      req.headers['Authorization'] = authorization ?? _basicAuth(username, password);
+      req.contentLength = contentLength;
+      // 服务器提前关闭连接（如 Digest 挑战）时 sink 会拒绝写入，捕获后取消泵送
+      StreamSubscription<List<int>>? sub;
+      sub = bodyStreamFactory().listen(
+        (chunk) {
+          try {
+            req.sink.add(chunk);
+          } catch (_) {
+            sub?.cancel();
+          }
+        },
+        onError: (_) {
+          try { req.sink.close(); } catch (_) {}
+        },
+        onDone: () {
+          try { req.sink.close(); } catch (_) {}
+        },
+      );
+      return req;
+    }
+
+    var response = await client.send(buildRequest(null)).timeout(timeout ?? _shortTimeout);
+
+    // Digest 认证重试
+    if (response.statusCode == 401) {
+      final challenge = response.headers['www-authenticate'];
+      await response.stream.drain();
+      if (challenge != null && challenge.toLowerCase().startsWith('digest')) {
+        final digest = _buildDigestHeader(challenge, method, uri, username, password);
+        if (digest != null) {
+          response = await client.send(buildRequest(digest)).timeout(timeout ?? _shortTimeout);
+        }
+      }
+    }
+
+    // 重定向处理
+    if (response.statusCode == 301 || response.statusCode == 302 ||
+        response.statusCode == 307 || response.statusCode == 308) {
+      final location = response.headers['location'];
+      await response.stream.drain();
+      if (location != null) {
+        final newUrl = uri.resolve(location).toString();
+        onRedirect?.call(newUrl);
+        return _sendAuthedStream(
+          client, method, newUrl, username, password,
+          headers: headers, contentLength: contentLength,
+          bodyStreamFactory: bodyStreamFactory,
           timeout: timeout, onRedirect: onRedirect,
         );
       }

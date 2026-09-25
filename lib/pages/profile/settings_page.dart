@@ -1293,14 +1293,14 @@ class _SettingsPageState extends State<SettingsPage> {
           barrierDismissible: false,
           builder: (_) => const Center(child: CircularProgressIndicator()));
       final result = await CacheCleaner.instance.clean();
-      Navigator.pop(context);
       if (!context.mounted) return;
+      Navigator.pop(context);
       final success = result.total > 0;
       _showCacheResult(
           context, true, success ? result.description : '没有需要清理的缓存'.tr, success);
     } catch (e) {
-      Navigator.pop(context);
       if (!context.mounted) return;
+      Navigator.pop(context);
       _showCacheResult(context, false, '清理失败: {e}'.trf({'e': e}), false);
     }
   }

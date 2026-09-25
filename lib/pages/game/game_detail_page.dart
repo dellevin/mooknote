@@ -158,6 +158,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
     _purchasePriceCtrl.dispose();
     _playTimeHoursCtrl.dispose();
     _playTimeMinutesCtrl.dispose();
+    _overlayScrollController?.dispose();
     super.dispose();
   }
 

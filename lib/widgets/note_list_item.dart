@@ -48,8 +48,8 @@ class _NoteListItemContent extends StatelessWidget {
       },
       onLongPress: () => _showActions(context),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(8),
@@ -66,26 +66,26 @@ class _NoteListItemContent extends StatelessWidget {
                 if (note.isPinned)
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: Icon(Icons.push_pin, size: 14, color: colors.primary),
+                    child: Icon(Icons.push_pin, size: 12, color: colors.primary),
                   ),
                 Expanded(
                   child: Text(
                     note.title.isNotEmpty ? note.title : previewText.isNotEmpty ? previewText : '(无内容)'.tr,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: colors.onSurface,
-                      height: 1.3,
+                      height: 1.25,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Text(
                   _formatDate(note.createdAt),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     color: colors.onSurface.withValues(alpha: 0.35),
                   ),
                 ),
@@ -94,13 +94,13 @@ class _NoteListItemContent extends StatelessWidget {
 
             // 内容预览
             if (previewText.isNotEmpty) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 previewText,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   color: colors.onSurface.withValues(alpha: 0.5),
-                  height: 1.5,
+                  height: 1.4,
                 ),
                 maxLines: note.title.isNotEmpty ? 2 : 3,
                 overflow: TextOverflow.ellipsis,
@@ -109,35 +109,35 @@ class _NoteListItemContent extends StatelessWidget {
 
             // 图片预览
             if (note.images.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               SizedBox(
-                height: 48,
+                height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: note.images.length > 4 ? 4 : note.images.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  separatorBuilder: (_, __) => const SizedBox(width: 4),
                   itemBuilder: (context, index) {
                     if (index == 3 && note.images.length > 4) {
                       return Container(
-                        width: 48,
-                        height: 48,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(4),
                           color: colors.surfaceContainerHighest,
                         ),
                         child: Center(
                           child: Text(
                             '+${note.images.length - 3}',
-                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
+                            style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5)),
                           ),
                         ),
                       );
                     }
                     return Container(
-                      width: 48,
-                      height: 48,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: colors.outlineVariant, width: 0.5),
                       ),
                       clipBehavior: Clip.antiAlias,
@@ -157,22 +157,22 @@ class _NoteListItemContent extends StatelessWidget {
 
             // 标签
             if (note.tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Wrap(
-                spacing: 6,
-                runSpacing: 4,
+                spacing: 4,
+                runSpacing: 3,
                 children: note.tags.map((tag) {
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2),
+                        horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: colors.surface,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                     child: Text(
                       tag,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         color: colors.onSurface.withValues(alpha: 0.6),
                       ),
                     ),

@@ -2737,7 +2737,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
 
   Future<void> _loadConfig() async {
     final config = await WebDAVService.instance.getConfig();
-    if (config != null) {
+    if (config != null && mounted) {
       setState(() {
         _urlController.text = config['url'] ?? '';
         _usernameController.text = config['username'] ?? '';

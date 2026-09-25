@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
 
@@ -164,4 +165,30 @@ class PlaylistDao {
       );
     }
   });
+
+  /// 从所有指定类型的片单中移除某个条目并同步 item_count。
+  /// 供各媒体 DAO 在彻底删除的事务内调用（db 可传 Transaction）。
+  static Future<void> removeMediaFromPlaylists(DatabaseExecutor db, String itemId, String type) async {
+    final affected = await db.rawQuery(
+      'SELECT DISTINCT playlist_id FROM playlist_items WHERE item_id = ? '
+      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ?)',
+      [itemId, type],
+    );
+    if (affected.isEmpty) return;
+    await db.rawDelete(
+      'DELETE FROM playlist_items WHERE item_id = ? '
+      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ?)',
+      [itemId, type],
+    );
+    final now = DateTime.now().toIso8601String();
+    for (final row in affected) {
+      final pid = row['playlist_id'] as String;
+      await db.rawUpdate(
+        'UPDATE playlists SET item_count = '
+        '(SELECT COUNT(*) FROM playlist_items WHERE playlist_id = ?), '
+        'updated_at = ? WHERE id = ?',
+        [pid, now, pid],
+      );
+    }
+  }
 }

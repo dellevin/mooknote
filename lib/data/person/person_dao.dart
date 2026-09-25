@@ -142,11 +142,13 @@ class PersonDao {
   // 彻底删除人物
   Future<int> permanentDeletePerson(String id) => _wrap('permanentDeletePerson', () async {
     final db = await _dbHelper.database;
-    // 清理关联记录
-    await db.delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
-    await db.delete('book_people', where: 'person_id = ?', whereArgs: [id]);
-    await db.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
-    return await db.delete('people', where: 'id = ?', whereArgs: [id]);
+    // 事务内清理关联记录
+    return await db.transaction((txn) async {
+      await txn.delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
+      await txn.delete('book_people', where: 'person_id = ?', whereArgs: [id]);
+      await txn.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
+      return await txn.delete('people', where: 'id = ?', whereArgs: [id]);
+    });
   });
 
   /// 合并同名人物：每个名字组保留信息最全的一条，迁移关联并去重，删除冗余。
@@ -165,43 +167,46 @@ class PersonDao {
     int removed = 0;
     final now = DateTime.now().toUtc().toIso8601String();
 
-    for (final entry in byName.entries) {
-      final group = entry.value;
-      if (group.length < 2) continue;
+    // 全部写操作包在一个事务里：异常中断时回滚，避免留下半合并状态
+    await db.transaction((txn) async {
+      for (final entry in byName.entries) {
+        final group = entry.value;
+        if (group.length < 2) continue;
 
-      // 选保留者：优先未删除的、updated_at 最新的；信息更全的优先
-      group.sort((a, b) {
-        final aDel = (a['is_deleted'] as int?) == 1;
-        final bDel = (b['is_deleted'] as int?) == 1;
-        if (aDel != bDel) return aDel ? 1 : -1; // 未删除的排前
-        final aScore = _infoScore(a);
-        final bScore = _infoScore(b);
-        if (aScore != bScore) return bScore - aScore; // 信息多的排前
-        return 0;
-      });
-      final keeperRow = group.first;
-      final keeperId = keeperRow['id'] as String;
-      final dupes = group.skip(1).toList();
+        // 选保留者：优先未删除的、updated_at 最新的；信息更全的优先
+        group.sort((a, b) {
+          final aDel = (a['is_deleted'] as int?) == 1;
+          final bDel = (b['is_deleted'] as int?) == 1;
+          if (aDel != bDel) return aDel ? 1 : -1; // 未删除的排前
+          final aScore = _infoScore(a);
+          final bScore = _infoScore(b);
+          if (aScore != bScore) return bScore - aScore; // 信息多的排前
+          return 0;
+        });
+        final keeperRow = group.first;
+        final keeperId = keeperRow['id'] as String;
+        final dupes = group.skip(1).toList();
 
-      // 合并字段到 keeper
-      final merged = Map<String, Object?>.from(keeperRow);
-      for (final dupe in dupes) {
-        _mergeFieldsInto(merged, dupe);
+        // 合并字段到 keeper
+        final merged = Map<String, Object?>.from(keeperRow);
+        for (final dupe in dupes) {
+          _mergeFieldsInto(merged, dupe);
+        }
+        merged['updated_at'] = now;
+        await txn.update('people', merged, where: 'id = ?', whereArgs: [keeperId]);
+
+        // 迁移关联并去重
+        for (final dupe in dupes) {
+          final dupeId = dupe['id'] as String;
+          await _migrateRelations(txn, dupeId, keeperId, 'movie_people', 'movie_id');
+          await _migrateRelations(txn, dupeId, keeperId, 'book_people', 'book_id');
+          await _migrateRelations(txn, dupeId, keeperId, 'game_people', 'game_id');
+          // 删除冗余人物
+          await txn.delete('people', where: 'id = ?', whereArgs: [dupeId]);
+          removed++;
+        }
       }
-      merged['updated_at'] = now;
-      await db.update('people', merged, where: 'id = ?', whereArgs: [keeperId]);
-
-      // 迁移关联并去重
-      for (final dupe in dupes) {
-        final dupeId = dupe['id'] as String;
-        await _migrateRelations(db, dupeId, keeperId, 'movie_people', 'movie_id');
-        await _migrateRelations(db, dupeId, keeperId, 'book_people', 'book_id');
-        await _migrateRelations(db, dupeId, keeperId, 'game_people', 'game_id');
-        // 删除冗余人物
-        await db.delete('people', where: 'id = ?', whereArgs: [dupeId]);
-        removed++;
-      }
-    }
+    });
     return removed;
   });
 
@@ -260,7 +265,7 @@ class PersonDao {
 
   // 把 fromPersonId 的关联迁移到 toPersonId，按 (work_id, role_type) 去重
   Future<void> _migrateRelations(
-    Database db,
+    DatabaseExecutor db,
     String fromPersonId,
     String toPersonId,
     String table,

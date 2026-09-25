@@ -45,26 +45,30 @@ class GamePersonDao {
     return await db.insert('game_people', gamePerson.toJson());
   });
 
-  // 批量添加关联
-  Future<void> insertAll(List<GamePerson> items) => _wrap('insertAll', () async {
+  // 替换某游戏的全部人物关联（事务内先删后插，避免中途失败丢光关联）
+  Future<void> replaceForGame(String gameId, List<GamePerson> items) => _wrap('replaceForGame', () async {
     final db = await _dbHelper.database;
-    final batch = db.batch();
-    for (final item in items) {
-      batch.insert('game_people', item.toJson());
-    }
-    await batch.commit(noResult: true);
+    await db.transaction((txn) async {
+      await txn.delete('game_people', where: 'game_id = ?', whereArgs: [gameId]);
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert('game_people', item.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
   });
 
-  // 删除某游戏的所有关联
-  Future<int> deleteByGameId(String gameId) => _wrap('deleteByGameId', () async {
+  // 替换某个人物的全部游戏关联（事务内先删后插）
+  Future<void> replaceForPerson(String personId, List<GamePerson> items) => _wrap('replaceForPerson', () async {
     final db = await _dbHelper.database;
-    return await db.delete('game_people', where: 'game_id = ?', whereArgs: [gameId]);
-  });
-
-  // 删除某个人物的所有游戏关联
-  Future<int> deleteByPersonId(String personId) => _wrap('deleteByPersonId', () async {
-    final db = await _dbHelper.database;
-    return await db.delete('game_people', where: 'person_id = ?', whereArgs: [personId]);
+    await db.transaction((txn) async {
+      await txn.delete('game_people', where: 'person_id = ?', whereArgs: [personId]);
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert('game_people', item.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
   });
 
   // 删除单条关联

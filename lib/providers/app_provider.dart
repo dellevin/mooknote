@@ -591,15 +591,22 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setMovieLayoutStyle(int style) {
+    final prefs = UserPrefs();
+    final prevSort = prefs.effectiveMovieSortMode;
     _movieLayoutStyle = style;
-    UserPrefs().setMovieLayoutStyle(style);
+    prefs.setMovieLayoutStyle(style);
     notifyListeners();
+    // 布局会影响实际排序（年份网格强制按年份排），排序变化时重载列表
+    if (prefs.effectiveMovieSortMode != prevSort) loadMovies();
   }
 
   void setBookLayoutStyle(int style) {
+    final prefs = UserPrefs();
+    final prevSort = prefs.effectiveBookSortMode;
     _bookLayoutStyle = style;
-    UserPrefs().setBookLayoutStyle(style);
+    prefs.setBookLayoutStyle(style);
     notifyListeners();
+    if (prefs.effectiveBookSortMode != prevSort) loadBooks();
   }
 
   void setMovieWallMode(bool enabled) {
@@ -684,9 +691,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setGameLayoutStyle(int style) {
+    final prefs = UserPrefs();
+    final prevSort = prefs.effectiveGameSortMode;
     _gameLayoutStyle = style;
-    UserPrefs().setGameLayoutStyle(style);
+    prefs.setGameLayoutStyle(style);
     notifyListeners();
+    if (prefs.effectiveGameSortMode != prevSort) loadGames();
   }
 
   void setGameWallMode(bool enabled) {
@@ -1527,52 +1537,34 @@ class AppProvider extends ChangeNotifier {
     return await _gamePersonDao.getByPersonId(personId);
   }
 
-  /// 保存影视的人物关联（先删后插）
+  /// 保存影视的人物关联（事务内先删后插）
   Future<void> saveMoviePeople(String movieId, List<MoviePerson> people) async {
-    await _moviePersonDao.deleteByMovieId(movieId);
-    if (people.isNotEmpty) {
-      await _moviePersonDao.insertAll(people);
-    }
+    await _moviePersonDao.replaceForMovie(movieId, people);
   }
 
   /// 保存书籍的人物关联
   Future<void> saveBookPeople(String bookId, List<BookPerson> people) async {
-    await _bookPersonDao.deleteByBookId(bookId);
-    if (people.isNotEmpty) {
-      await _bookPersonDao.insertAll(people);
-    }
+    await _bookPersonDao.replaceForBook(bookId, people);
   }
 
   /// 保存游戏的人物关联
   Future<void> saveGamePeople(String gameId, List<GamePerson> people) async {
-    await _gamePersonDao.deleteByGameId(gameId);
-    if (people.isNotEmpty) {
-      await _gamePersonDao.insertAll(people);
-    }
+    await _gamePersonDao.replaceForGame(gameId, people);
   }
 
-  /// 保存某个人物的所有影视关联（先删后插，按 personId 维度）
+  /// 保存某个人物的所有影视关联（事务内先删后插，按 personId 维度）
   Future<void> savePersonMovieRelations(String personId, List<MoviePerson> relations) async {
-    await _moviePersonDao.deleteByPersonId(personId);
-    if (relations.isNotEmpty) {
-      await _moviePersonDao.insertAll(relations);
-    }
+    await _moviePersonDao.replaceForPerson(personId, relations);
   }
 
   /// 保存某个人物的所有书籍关联
   Future<void> savePersonBookRelations(String personId, List<BookPerson> relations) async {
-    await _bookPersonDao.deleteByPersonId(personId);
-    if (relations.isNotEmpty) {
-      await _bookPersonDao.insertAll(relations);
-    }
+    await _bookPersonDao.replaceForPerson(personId, relations);
   }
 
   /// 保存某个人物的所有游戏关联
   Future<void> savePersonGameRelations(String personId, List<GamePerson> relations) async {
-    await _gamePersonDao.deleteByPersonId(personId);
-    if (relations.isNotEmpty) {
-      await _gamePersonDao.insertAll(relations);
-    }
+    await _gamePersonDao.replaceForPerson(personId, relations);
   }
 
   /// 扫描所有作品的人物字段，自动创建人物并建立关联

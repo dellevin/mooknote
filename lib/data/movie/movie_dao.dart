@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../playlist/playlist_dao.dart';
 
 /// 影视数据访问对象
 class MovieDao {
@@ -271,13 +272,18 @@ class MovieDao {
   // 彻底删除影视
   Future<int> permanentDeleteMovie(String id) => _wrap('permanentDeleteMovie', () async {
     final db = await _dbHelper.database;
-    // 清理子记录，防止孤儿数据
-    await db.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
-    await db.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
-    return await db.delete(
-      'movies',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    // 事务内清理全部子记录与片单引用，防止孤儿数据
+    return await db.transaction((txn) async {
+      await txn.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
+      await txn.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
+      await txn.delete('movie_people', where: 'movie_id = ?', whereArgs: [id]);
+      await txn.delete('movie_characters', where: 'movie_id = ?', whereArgs: [id]);
+      await PlaylistDao.removeMediaFromPlaylists(txn, id, 'movie');
+      return await txn.delete(
+        'movies',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   });
 }

@@ -171,8 +171,4 @@ class IncRemote {
   Future<void> deleteDelta(String name) async {
     await _dav.requestBytes(method: 'DELETE', url: _deltaUrl(name));
   }
-
-  Future<void> deleteManifest() async {
-    await _dav.requestBytes(method: 'DELETE', url: _manifestUrl);
-  }
 }

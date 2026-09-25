@@ -45,26 +45,30 @@ class BookPersonDao {
     return await db.insert('book_people', bookPerson.toJson());
   });
 
-  // 批量添加关联
-  Future<void> insertAll(List<BookPerson> items) => _wrap('insertAll', () async {
+  // 替换某本书的全部人物关联（事务内先删后插，避免中途失败丢光关联）
+  Future<void> replaceForBook(String bookId, List<BookPerson> items) => _wrap('replaceForBook', () async {
     final db = await _dbHelper.database;
-    final batch = db.batch();
-    for (final item in items) {
-      batch.insert('book_people', item.toJson());
-    }
-    await batch.commit(noResult: true);
+    await db.transaction((txn) async {
+      await txn.delete('book_people', where: 'book_id = ?', whereArgs: [bookId]);
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert('book_people', item.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
   });
 
-  // 删除某本书的所有关联
-  Future<int> deleteByBookId(String bookId) => _wrap('deleteByBookId', () async {
+  // 替换某个人物的全部书籍关联（事务内先删后插）
+  Future<void> replaceForPerson(String personId, List<BookPerson> items) => _wrap('replaceForPerson', () async {
     final db = await _dbHelper.database;
-    return await db.delete('book_people', where: 'book_id = ?', whereArgs: [bookId]);
-  });
-
-  // 删除某个人物的所有书籍关联
-  Future<int> deleteByPersonId(String personId) => _wrap('deleteByPersonId', () async {
-    final db = await _dbHelper.database;
-    return await db.delete('book_people', where: 'person_id = ?', whereArgs: [personId]);
+    await db.transaction((txn) async {
+      await txn.delete('book_people', where: 'person_id = ?', whereArgs: [personId]);
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert('book_people', item.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
   });
 
   // 删除单条关联

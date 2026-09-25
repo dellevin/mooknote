@@ -67,11 +67,7 @@ class IncSyncService {
   Future<IncSyncResult> download() => _run(push: false);
 
   /// 重置本地基线状态并重新拉取（用于修复历史卡死的同步状态）
-  Future<IncSyncResult> reDownload() async {
-    await SyncMetaStore.set(SyncMetaStore.manifestVersion, '0');
-    await SyncMetaStore.setAppliedDeltas({});
-    return _run(push: false);
-  }
+  Future<IncSyncResult> reDownload() => _run(push: false, resetBaseline: true);
 
   /// 恢复模式下载：以云端为准强制覆盖本地（本地新增未上传的数据保留）。
   /// 用于误删后拉回云端状态。
@@ -260,18 +256,10 @@ class IncSyncService {
       final prev = await remote.getManifest();
       final newVersion = (prev?.version ?? 0) + 1;
 
-      // 先删除云端全部增量数据（delta + manifest），再推送本地数据，
-      // 避免云端残留的旧 delta 在新基线之上被其他设备重复应用
-      final names = await remote.listDeltaNames();
-      if (names == null) {
-        return IncSyncResult(success: false, message: '清理远程增量失败，请重试'.tr);
-      }
-      for (final name in names) {
-        await remote.deleteDelta(name);
-      }
-      await remote.deleteManifest();
-
-      // 全新基线只携带本地墓碑（云端旧墓碑已随 manifest 一并删除）
+      // 先构建并上传新基线，成功后再清理云端旧 delta。
+      // 若构建/上传中途失败，云端旧基线仍然完整可用；
+      // 旧 delta 残留无害——LWW 合并幂等，其他设备重复应用结果相同。
+      // 全新基线只携带本地墓碑（云端旧墓碑随 manifest 覆盖而替换）
       final tombRows = await SyncTombstones.all();
 
       final built = await IncManifestBuilder.buildFromLocal(
@@ -285,6 +273,15 @@ class IncSyncService {
       );
       if (!await remote.putManifest(built)) {
         return IncSyncResult(success: false, message: '上传基线失败'.tr);
+      }
+
+      // 新基线已就位（putManifest 覆盖旧 manifest），清理云端全部旧 delta，
+      // 避免旧 delta 长期残留；清理失败不影响基线正确性
+      final names = await remote.listDeltaNames();
+      if (names != null) {
+        for (final name in names) {
+          await remote.deleteDelta(name);
+        }
       }
 
       // 本地状态对齐到新基线
@@ -336,7 +333,7 @@ class IncSyncService {
     }
   }
 
-  Future<IncSyncResult> _run({required bool push, bool pull = true}) async {
+  Future<IncSyncResult> _run({required bool push, bool pull = true, bool resetBaseline = false}) async {
     if (_isSyncing) {
       return IncSyncResult(success: false, message: '同步正在进行中，请稍后再试'.tr);
     }
@@ -346,6 +343,11 @@ class IncSyncService {
     final syncStart = DateTime.now().toUtc().toIso8601String();
 
     try {
+      // 基线重置必须在同步锁内执行，否则与在途同步竞态会把基线中途清零
+      if (resetBaseline) {
+        await SyncMetaStore.set(SyncMetaStore.manifestVersion, '0');
+        await SyncMetaStore.setAppliedDeltas({});
+      }
       final clientId = await SyncIdentity.clientId();
       final remote = await IncRemote.create();
       final appDir = await ImagePathHelper.getAppDir();

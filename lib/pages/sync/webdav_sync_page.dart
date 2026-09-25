@@ -68,7 +68,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
     final userPrefs = UserPrefs();
     _incAutoSyncEnabled = userPrefs.webdavIncAutoSyncEnabled;
     _incAutoSyncInterval = userPrefs.webdavIncAutoSyncIntervalMinutes;
-    if (config != null) {
+    if (config != null && mounted) {
       setState(() {
         _urlController.text = config['url'] ?? '';
         _usernameController.text = config['username'] ?? '';

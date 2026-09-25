@@ -374,404 +374,256 @@ class BackupService {
       final imagePathMap = <String, String>{};
 
       if (extension == '.zip') {
-        final bytes = await file.readAsBytes();
-        final archive = ZipDecoder().decodeBytes(bytes);
-
-        final dataFile = archive.findFile('data.json');
-        if (dataFile == null) return ImportResult.error('备份文件中没有找到数据文件'.tr);
-
-        backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
-
-        final appDirPath = await _getAppDir();
-        final imagesDir = Directory(path.join(appDirPath, 'images'));
-        if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
-
-        for (final archiveFile in archive) {
-          if (archiveFile.name.startsWith('images/')) {
-            var relativePath = archiveFile.name.substring('images/'.length);
-            while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
-              relativePath = relativePath.substring(1);
-            }
-            final outputFile = File(path.join(imagesDir.path, relativePath));
-            if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
-            await outputFile.writeAsBytes(archiveFile.content as List<int>);
-            // 用完整相对路径做 key，避免不同目录下同名文件碰撞
-            imagePathMap[relativePath] = outputFile.path;
-            imageCount++;
-          }
-        }
+        final unzipped = await _unzipBackup(filePath);
+        if (unzipped == null) return ImportResult.error('备份文件中没有找到数据文件'.tr);
+        backupData = unzipped.backupData;
+        imageCount = unzipped.imageCount;
+        imagePathMap.addAll(unzipped.imagePathMap);
       } else {
         // 旧版 JSON
         backupData = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       }
 
-      if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式'.tr);
-
-      // 验证版本
-      final version = backupData['version'] as int? ?? 1;
-      if (version > 2) {
-        debugPrint('[BackupService] 警告: 备份版本 $version 高于当前支持的版本 2，部分数据可能丢失');
-      }
-
-      final data = backupData['data'] as Map<String, dynamic>;
-      final db = await DatabaseHelper.instance.database;
-
-      final moviesCols = await _getTableColumns(db, 'movies');
-      final booksCols = await _getTableColumns(db, 'books');
-      final notesCols = await _getTableColumns(db, 'notes');
-      final movieReviewsCols = await _getTableColumns(db, 'movie_reviews');
-      final moviePostersCols = await _getTableColumns(db, 'movie_posters');
-      final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
-      final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
-      final tagsCols = await _getTableColumns(db, 'tags');
-      final gamesCols = await _getTableColumns(db, 'games');
-      final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
-      final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
-      final peopleCols = await _getTableColumns(db, 'people');
-      final moviePeopleCols = await _getTableColumns(db, 'movie_people');
-      final bookPeopleCols = await _getTableColumns(db, 'book_people');
-      final gamePeopleCols = await _getTableColumns(db, 'game_people');
-      final playlistsCols = await _getTableColumns(db, 'playlists');
-      final playlistItemsCols = await _getTableColumns(db, 'playlist_items');
-      final movieCharactersCols = await _getTableColumns(db, 'movie_characters');
-      final bookCharactersCols = await _getTableColumns(db, 'book_characters');
-      final gameCharactersCols = await _getTableColumns(db, 'game_characters');
-
-      await db.transaction((txn) async {
-        await txn.delete('movie_reviews');
-        await txn.delete('movie_posters');
-        await txn.delete('book_reviews');
-        await txn.delete('book_excerpts');
-        await txn.delete('game_reviews');
-        await txn.delete('game_screenshots');
-        await txn.delete('movie_people');
-        await txn.delete('book_people');
-        await txn.delete('game_people');
-        await txn.delete('people');
-        await txn.delete('playlist_items');
-        await txn.delete('playlists');
-        await txn.delete('movie_characters');
-        await txn.delete('book_characters');
-        await txn.delete('game_characters');
-        await txn.delete('movies');
-        await txn.delete('books');
-        await txn.delete('notes');
-        await txn.delete('games');
-        await txn.delete('tags');
-
-        if (data.containsKey('movies')) {
-          for (final m in data['movies'] as List) {
-            await txn.insert('movies', _updateImagePath(_convertToDbMapSafe(m, moviesCols), 'poster_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('books')) {
-          for (final b in data['books'] as List) {
-            await txn.insert('books', _updateImagePath(_convertToDbMapSafe(b, booksCols), 'cover_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('notes')) {
-          for (final n in data['notes'] as List) {
-            await txn.insert('notes', _updateNoteImagesPath(_convertToDbMapSafe(n, notesCols), imagePathMap));
-          }
-        }
-        if (data.containsKey('movie_reviews')) {
-          for (final r in data['movie_reviews'] as List) {
-            await txn.insert('movie_reviews', _convertToDbMapSafe(r, movieReviewsCols));
-          }
-        }
-        if (data.containsKey('movie_posters')) {
-          for (final p in data['movie_posters'] as List) {
-            await txn.insert('movie_posters', _updateImagePath(_convertToDbMapSafe(p, moviePostersCols), 'poster_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('book_reviews')) {
-          for (final r in data['book_reviews'] as List) {
-            await txn.insert('book_reviews', _convertToDbMapSafe(r, bookReviewsCols));
-          }
-        }
-        if (data.containsKey('book_excerpts')) {
-          for (final e in data['book_excerpts'] as List) {
-            await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
-          }
-        }
-        if (data.containsKey('games')) {
-          for (final g in data['games'] as List) {
-            await txn.insert('games', _updateImagePath(_convertToDbMapSafe(g, gamesCols), 'cover_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('game_reviews')) {
-          for (final r in data['game_reviews'] as List) {
-            await txn.insert('game_reviews', _convertToDbMapSafe(r, gameReviewsCols));
-          }
-        }
-        if (data.containsKey('game_screenshots')) {
-          for (final s in data['game_screenshots'] as List) {
-            await txn.insert('game_screenshots', _updateImagePath(_convertToDbMapSafe(s, gameScreenshotsCols), 'screenshot_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('tags')) {
-          for (final t in data['tags'] as List) {
-            final map = _convertToDbMapSafe(t, tagsCols);
-            await txn.rawInsert(
-              'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
-              [map['id'], map['name'], map['type'], map['created_at']],
-            );
-          }
-        }
-        if (data.containsKey('people')) {
-          for (final p in data['people'] as List) {
-            await txn.insert('people', _updateImagePath(_convertToDbMapSafe(p, peopleCols), 'photo_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('movie_people')) {
-          for (final mp in data['movie_people'] as List) {
-            await txn.insert('movie_people', _convertToDbMapSafe(mp, moviePeopleCols));
-          }
-        }
-        if (data.containsKey('book_people')) {
-          for (final bp in data['book_people'] as List) {
-            await txn.insert('book_people', _convertToDbMapSafe(bp, bookPeopleCols));
-          }
-        }
-        if (data.containsKey('game_people')) {
-          for (final gp in data['game_people'] as List) {
-            await txn.insert('game_people', _convertToDbMapSafe(gp, gamePeopleCols));
-          }
-        }
-        if (data.containsKey('playlists')) {
-          for (final pl in data['playlists'] as List) {
-            await txn.insert('playlists', _updateImagePath(_convertToDbMapSafe(pl, playlistsCols), 'cover_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('playlist_items')) {
-          for (final pi in data['playlist_items'] as List) {
-            await txn.insert('playlist_items', _convertToDbMapSafe(pi, playlistItemsCols));
-          }
-        }
-        if (data.containsKey('movie_characters')) {
-          for (final c in data['movie_characters'] as List) {
-            await txn.insert('movie_characters', _updateImagePath(_convertToDbMapSafe(c, movieCharactersCols), 'image_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('book_characters')) {
-          for (final c in data['book_characters'] as List) {
-            await txn.insert('book_characters', _updateImagePath(_convertToDbMapSafe(c, bookCharactersCols), 'image_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('game_characters')) {
-          for (final c in data['game_characters'] as List) {
-            await txn.insert('game_characters', _updateImagePath(_convertToDbMapSafe(c, gameCharactersCols), 'image_path', imagePathMap));
-          }
-        }
-      });
-
-      // 恢复用户信息
-      await _restoreUserInfo(backupData, imagePathMap);
-
-      return ImportResult.success(_buildStats(data, imageCount));
+      return await _restoreBackupData(backupData, imagePathMap, imageCount);
     } catch (e) {
       return ImportResult.error('导入失败: {e}'.trf({'e': e}));
     }
   }
 
-  /// 从 ZIP 字节数据恢复（供 WebDAV 同步等场景使用）
-  Future<ImportResult> restoreFromZipBytes(Uint8List zipBytes) async {
+  /// 从 ZIP 文件恢复（流式解压，供 WebDAV 同步等场景使用）
+  Future<ImportResult> restoreFromZipFile(String zipPath) async {
     try {
-      final archive = ZipDecoder().decodeBytes(zipBytes);
+      final unzipped = await _unzipBackup(zipPath);
+      if (unzipped == null) return ImportResult.error('备份文件中没有找到数据文件'.tr);
+      // 恢复的行保留原时间戳（远早于 pushAfter），增量同步对账会把它们
+      // 误判为"远程已删"而清掉。清空 pushAfter：既保护恢复数据，
+      // 也让下次上传把它们全量推送到云端。
+      return await _restoreBackupData(
+        unzipped.backupData, unzipped.imagePathMap, unzipped.imageCount,
+        clearPushAfter: true,
+      );
+    } catch (e) {
+      return ImportResult.error('恢复失败: {e}'.trf({'e': e}));
+    }
+  }
+
+  /// 流式解压备份 zip：解析 data.json 并把图片逐个写盘，
+  /// 任何时刻只持有单个条目的字节，避免大备份全量驻留内存。
+  /// 返回 null 表示包内缺少 data.json。
+  Future<_UnzipResult?> _unzipBackup(String zipPath) async {
+    final input = InputFileStream(zipPath);
+    try {
+      final archive = ZipDecoder().decodeBuffer(input);
       final dataFile = archive.findFile('data.json');
-      if (dataFile == null) return ImportResult.error('备份文件中没有找到数据文件'.tr);
+      if (dataFile == null) return null;
 
       final backupData = jsonDecode(utf8.decode(dataFile.content as List<int>)) as Map<String, dynamic>;
+      dataFile.clear(); // 释放 data.json 字节
+
       final imagePathMap = <String, String>{};
-      int imageCount = 0;
+      var imageCount = 0;
 
       final appDirPath = await _getAppDir();
       final imagesDir = Directory(path.join(appDirPath, 'images'));
       if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
 
-      for (final archiveFile in archive) {
-        if (archiveFile.name.startsWith('images/')) {
-          var relativePath = archiveFile.name.substring('images/'.length);
-          while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
-            relativePath = relativePath.substring(1);
-          }
-          final outputFile = File(path.join(imagesDir.path, relativePath));
-          if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
-          await outputFile.writeAsBytes(archiveFile.content as List<int>);
-          imagePathMap[relativePath] = outputFile.path;
-          imageCount++;
+      for (final archiveFile in archive.files) {
+        if (!archiveFile.isFile) continue;
+        if (!archiveFile.name.startsWith('images/')) continue;
+        var relativePath = archiveFile.name.substring('images/'.length);
+        while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+          relativePath = relativePath.substring(1);
         }
+        if (relativePath.isEmpty) continue;
+        final outputFile = File(path.join(imagesDir.path, relativePath));
+        if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
+        final out = OutputFileStream(outputFile.path);
+        archiveFile.writeContent(out); // 仅解压当前条目，写完即释放
+        await out.close();
+        // 用完整相对路径做 key，避免不同目录下同名文件碰撞
+        imagePathMap[relativePath] = outputFile.path;
+        imageCount++;
       }
-
-      if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式'.tr);
-
-      final version = backupData['version'] as int? ?? 1;
-      if (version > 2) {
-        debugPrint('[BackupService] 警告: 备份版本 $version 高于当前支持的版本 2，部分数据可能丢失');
-      }
-
-      final data = backupData['data'] as Map<String, dynamic>;
-      final db = await DatabaseHelper.instance.database;
-
-      final moviesCols = await _getTableColumns(db, 'movies');
-      final booksCols = await _getTableColumns(db, 'books');
-      final notesCols = await _getTableColumns(db, 'notes');
-      final movieReviewsCols = await _getTableColumns(db, 'movie_reviews');
-      final moviePostersCols = await _getTableColumns(db, 'movie_posters');
-      final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
-      final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
-      final tagsCols = await _getTableColumns(db, 'tags');
-      final gamesCols = await _getTableColumns(db, 'games');
-      final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
-      final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
-      final peopleCols = await _getTableColumns(db, 'people');
-      final moviePeopleCols = await _getTableColumns(db, 'movie_people');
-      final bookPeopleCols = await _getTableColumns(db, 'book_people');
-      final gamePeopleCols = await _getTableColumns(db, 'game_people');
-      final playlistsCols = await _getTableColumns(db, 'playlists');
-      final playlistItemsCols = await _getTableColumns(db, 'playlist_items');
-      final movieCharactersCols = await _getTableColumns(db, 'movie_characters');
-      final bookCharactersCols = await _getTableColumns(db, 'book_characters');
-      final gameCharactersCols = await _getTableColumns(db, 'game_characters');
-
-      await db.transaction((txn) async {
-        await txn.delete('movie_reviews');
-        await txn.delete('movie_posters');
-        await txn.delete('book_reviews');
-        await txn.delete('book_excerpts');
-        await txn.delete('game_reviews');
-        await txn.delete('game_screenshots');
-        await txn.delete('movie_people');
-        await txn.delete('book_people');
-        await txn.delete('game_people');
-        await txn.delete('people');
-        await txn.delete('playlist_items');
-        await txn.delete('playlists');
-        await txn.delete('movie_characters');
-        await txn.delete('book_characters');
-        await txn.delete('game_characters');
-        await txn.delete('movies');
-        await txn.delete('books');
-        await txn.delete('notes');
-        await txn.delete('games');
-        await txn.delete('tags'); // 修复: 之前漏删 tags 表
-
-        if (data.containsKey('movies')) {
-          for (final m in data['movies'] as List) {
-            await txn.insert('movies', _updateImagePath(_convertToDbMapSafe(m, moviesCols), 'poster_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('books')) {
-          for (final b in data['books'] as List) {
-            await txn.insert('books', _updateImagePath(_convertToDbMapSafe(b, booksCols), 'cover_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('notes')) {
-          for (final n in data['notes'] as List) {
-            await txn.insert('notes', _updateNoteImagesPath(_convertToDbMapSafe(n, notesCols), imagePathMap));
-          }
-        }
-        if (data.containsKey('movie_reviews')) {
-          for (final r in data['movie_reviews'] as List) {
-            await txn.insert('movie_reviews', _convertToDbMapSafe(r, movieReviewsCols));
-          }
-        }
-        if (data.containsKey('movie_posters')) {
-          for (final p in data['movie_posters'] as List) {
-            await txn.insert('movie_posters', _updateImagePath(_convertToDbMapSafe(p, moviePostersCols), 'poster_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('book_reviews')) {
-          for (final r in data['book_reviews'] as List) {
-            await txn.insert('book_reviews', _convertToDbMapSafe(r, bookReviewsCols));
-          }
-        }
-        if (data.containsKey('book_excerpts')) {
-          for (final e in data['book_excerpts'] as List) {
-            await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
-          }
-        }
-        if (data.containsKey('games')) {
-          for (final g in data['games'] as List) {
-            await txn.insert('games', _updateImagePath(_convertToDbMapSafe(g, gamesCols), 'cover_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('game_reviews')) {
-          for (final r in data['game_reviews'] as List) {
-            await txn.insert('game_reviews', _convertToDbMapSafe(r, gameReviewsCols));
-          }
-        }
-        if (data.containsKey('game_screenshots')) {
-          for (final s in data['game_screenshots'] as List) {
-            await txn.insert('game_screenshots', _updateImagePath(_convertToDbMapSafe(s, gameScreenshotsCols), 'screenshot_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('tags')) {
-          for (final t in data['tags'] as List) {
-            final map = _convertToDbMapSafe(t, tagsCols);
-            await txn.rawInsert(
-              'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
-              [map['id'], map['name'], map['type'], map['created_at']],
-            );
-          }
-        }
-        if (data.containsKey('people')) {
-          for (final p in data['people'] as List) {
-            await txn.insert('people', _updateImagePath(_convertToDbMapSafe(p, peopleCols), 'photo_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('movie_people')) {
-          for (final mp in data['movie_people'] as List) {
-            await txn.insert('movie_people', _convertToDbMapSafe(mp, moviePeopleCols));
-          }
-        }
-        if (data.containsKey('book_people')) {
-          for (final bp in data['book_people'] as List) {
-            await txn.insert('book_people', _convertToDbMapSafe(bp, bookPeopleCols));
-          }
-        }
-        if (data.containsKey('game_people')) {
-          for (final gp in data['game_people'] as List) {
-            await txn.insert('game_people', _convertToDbMapSafe(gp, gamePeopleCols));
-          }
-        }
-        if (data.containsKey('playlists')) {
-          for (final pl in data['playlists'] as List) {
-            await txn.insert('playlists', _updateImagePath(_convertToDbMapSafe(pl, playlistsCols), 'cover_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('playlist_items')) {
-          for (final pi in data['playlist_items'] as List) {
-            await txn.insert('playlist_items', _convertToDbMapSafe(pi, playlistItemsCols));
-          }
-        }
-        if (data.containsKey('movie_characters')) {
-          for (final c in data['movie_characters'] as List) {
-            await txn.insert('movie_characters', _updateImagePath(_convertToDbMapSafe(c, movieCharactersCols), 'image_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('book_characters')) {
-          for (final c in data['book_characters'] as List) {
-            await txn.insert('book_characters', _updateImagePath(_convertToDbMapSafe(c, bookCharactersCols), 'image_path', imagePathMap));
-          }
-        }
-        if (data.containsKey('game_characters')) {
-          for (final c in data['game_characters'] as List) {
-            await txn.insert('game_characters', _updateImagePath(_convertToDbMapSafe(c, gameCharactersCols), 'image_path', imagePathMap));
-          }
-        }
-      });
-
-      // 恢复的行保留原时间戳（远早于 pushAfter），增量同步对账会把它们
-      // 误判为"远程已删"而清掉。清空 pushAfter：既保护恢复数据，
-      // 也让下次上传把它们全量推送到云端。
-      await SyncMetaStore.delete(SyncMetaStore.pushAfter);
-
-      await _restoreUserInfo(backupData, imagePathMap);
-      return ImportResult.success(_buildStats(data, imageCount));
-    } catch (e) {
-      return ImportResult.error('恢复失败: {e}'.trf({'e': e}));
+      return _UnzipResult(backupData, imagePathMap, imageCount);
+    } finally {
+      await input.close();
     }
+  }
+
+  /// 共享的库表恢复逻辑：清表 → 单事务插回 → 恢复用户信息
+  Future<ImportResult> _restoreBackupData(
+    Map<String, dynamic> backupData,
+    Map<String, String> imagePathMap,
+    int imageCount, {
+    bool clearPushAfter = false,
+  }) async {
+    if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式'.tr);
+
+    // 验证版本
+    final version = backupData['version'] as int? ?? 1;
+    if (version > 2) {
+      debugPrint('[BackupService] 警告: 备份版本 $version 高于当前支持的版本 2，部分数据可能丢失');
+    }
+
+    final data = backupData['data'] as Map<String, dynamic>;
+    final db = await DatabaseHelper.instance.database;
+
+    final moviesCols = await _getTableColumns(db, 'movies');
+    final booksCols = await _getTableColumns(db, 'books');
+    final notesCols = await _getTableColumns(db, 'notes');
+    final movieReviewsCols = await _getTableColumns(db, 'movie_reviews');
+    final moviePostersCols = await _getTableColumns(db, 'movie_posters');
+    final bookReviewsCols = await _getTableColumns(db, 'book_reviews');
+    final bookExcerptsCols = await _getTableColumns(db, 'book_excerpts');
+    final tagsCols = await _getTableColumns(db, 'tags');
+    final gamesCols = await _getTableColumns(db, 'games');
+    final gameReviewsCols = await _getTableColumns(db, 'game_reviews');
+    final gameScreenshotsCols = await _getTableColumns(db, 'game_screenshots');
+    final peopleCols = await _getTableColumns(db, 'people');
+    final moviePeopleCols = await _getTableColumns(db, 'movie_people');
+    final bookPeopleCols = await _getTableColumns(db, 'book_people');
+    final gamePeopleCols = await _getTableColumns(db, 'game_people');
+    final playlistsCols = await _getTableColumns(db, 'playlists');
+    final playlistItemsCols = await _getTableColumns(db, 'playlist_items');
+    final movieCharactersCols = await _getTableColumns(db, 'movie_characters');
+    final bookCharactersCols = await _getTableColumns(db, 'book_characters');
+    final gameCharactersCols = await _getTableColumns(db, 'game_characters');
+
+    await db.transaction((txn) async {
+      await txn.delete('movie_reviews');
+      await txn.delete('movie_posters');
+      await txn.delete('book_reviews');
+      await txn.delete('book_excerpts');
+      await txn.delete('game_reviews');
+      await txn.delete('game_screenshots');
+      await txn.delete('movie_people');
+      await txn.delete('book_people');
+      await txn.delete('game_people');
+      await txn.delete('people');
+      await txn.delete('playlist_items');
+      await txn.delete('playlists');
+      await txn.delete('movie_characters');
+      await txn.delete('book_characters');
+      await txn.delete('game_characters');
+      await txn.delete('movies');
+      await txn.delete('books');
+      await txn.delete('notes');
+      await txn.delete('games');
+      await txn.delete('tags');
+
+      if (data.containsKey('movies')) {
+        for (final m in data['movies'] as List) {
+          await txn.insert('movies', _updateImagePath(_convertToDbMapSafe(m, moviesCols), 'poster_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('books')) {
+        for (final b in data['books'] as List) {
+          await txn.insert('books', _updateImagePath(_convertToDbMapSafe(b, booksCols), 'cover_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('notes')) {
+        for (final n in data['notes'] as List) {
+          await txn.insert('notes', _updateNoteImagesPath(_convertToDbMapSafe(n, notesCols), imagePathMap));
+        }
+      }
+      if (data.containsKey('movie_reviews')) {
+        for (final r in data['movie_reviews'] as List) {
+          await txn.insert('movie_reviews', _convertToDbMapSafe(r, movieReviewsCols));
+        }
+      }
+      if (data.containsKey('movie_posters')) {
+        for (final p in data['movie_posters'] as List) {
+          await txn.insert('movie_posters', _updateImagePath(_convertToDbMapSafe(p, moviePostersCols), 'poster_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('book_reviews')) {
+        for (final r in data['book_reviews'] as List) {
+          await txn.insert('book_reviews', _convertToDbMapSafe(r, bookReviewsCols));
+        }
+      }
+      if (data.containsKey('book_excerpts')) {
+        for (final e in data['book_excerpts'] as List) {
+          await txn.insert('book_excerpts', _convertToDbMapSafe(e, bookExcerptsCols));
+        }
+      }
+      if (data.containsKey('games')) {
+        for (final g in data['games'] as List) {
+          await txn.insert('games', _updateImagePath(_convertToDbMapSafe(g, gamesCols), 'cover_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('game_reviews')) {
+        for (final r in data['game_reviews'] as List) {
+          await txn.insert('game_reviews', _convertToDbMapSafe(r, gameReviewsCols));
+        }
+      }
+      if (data.containsKey('game_screenshots')) {
+        for (final s in data['game_screenshots'] as List) {
+          await txn.insert('game_screenshots', _updateImagePath(_convertToDbMapSafe(s, gameScreenshotsCols), 'screenshot_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('tags')) {
+        for (final t in data['tags'] as List) {
+          final map = _convertToDbMapSafe(t, tagsCols);
+          await txn.rawInsert(
+            'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
+            [map['id'], map['name'], map['type'], map['created_at']],
+          );
+        }
+      }
+      if (data.containsKey('people')) {
+        for (final p in data['people'] as List) {
+          await txn.insert('people', _updateImagePath(_convertToDbMapSafe(p, peopleCols), 'photo_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('movie_people')) {
+        for (final mp in data['movie_people'] as List) {
+          await txn.insert('movie_people', _convertToDbMapSafe(mp, moviePeopleCols));
+        }
+      }
+      if (data.containsKey('book_people')) {
+        for (final bp in data['book_people'] as List) {
+          await txn.insert('book_people', _convertToDbMapSafe(bp, bookPeopleCols));
+        }
+      }
+      if (data.containsKey('game_people')) {
+        for (final gp in data['game_people'] as List) {
+          await txn.insert('game_people', _convertToDbMapSafe(gp, gamePeopleCols));
+        }
+      }
+      if (data.containsKey('playlists')) {
+        for (final pl in data['playlists'] as List) {
+          await txn.insert('playlists', _updateImagePath(_convertToDbMapSafe(pl, playlistsCols), 'cover_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('playlist_items')) {
+        for (final pi in data['playlist_items'] as List) {
+          await txn.insert('playlist_items', _convertToDbMapSafe(pi, playlistItemsCols));
+        }
+      }
+      if (data.containsKey('movie_characters')) {
+        for (final c in data['movie_characters'] as List) {
+          await txn.insert('movie_characters', _updateImagePath(_convertToDbMapSafe(c, movieCharactersCols), 'image_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('book_characters')) {
+        for (final c in data['book_characters'] as List) {
+          await txn.insert('book_characters', _updateImagePath(_convertToDbMapSafe(c, bookCharactersCols), 'image_path', imagePathMap));
+        }
+      }
+      if (data.containsKey('game_characters')) {
+        for (final c in data['game_characters'] as List) {
+          await txn.insert('game_characters', _updateImagePath(_convertToDbMapSafe(c, gameCharactersCols), 'image_path', imagePathMap));
+        }
+      }
+    });
+
+    if (clearPushAfter) {
+      await SyncMetaStore.delete(SyncMetaStore.pushAfter);
+    }
+
+    // 恢复用户信息
+    await _restoreUserInfo(backupData, imagePathMap);
+    return ImportResult.success(_buildStats(data, imageCount));
   }
 
   // ─── 内部辅助方法 ─────────────────────────────────────
@@ -949,6 +801,15 @@ class _ExportData {
     required this.noteCount,
     required this.imageCount,
   });
+}
+
+/// 流式解压备份 zip 的中间结果
+class _UnzipResult {
+  final Map<String, dynamic> backupData;
+  final Map<String, String> imagePathMap;
+  final int imageCount;
+
+  _UnzipResult(this.backupData, this.imagePathMap, this.imageCount);
 }
 
 // ─── 结果类型 ──────────────────────────────────────────
