@@ -18,6 +18,7 @@ import '../../widgets/genre_selector_page.dart';
 import '../../widgets/work_people_section.dart';
 import '../../widgets/character_preview_section.dart';
 import '../../widgets/character_info_sheet.dart';
+import '../../widgets/review_preview_section.dart';
 import 'movie_reviews_page.dart';
 import 'movie_posters_page.dart';
 import 'movie_share_page.dart';
@@ -305,6 +306,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                           const SizedBox(height: 12),
                           Text(movie.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
                         ],
+                        ReviewPreviewSection(workId: movie.id, workType: 'movie'),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
                         // 更多
                         Row(children: [
@@ -976,6 +978,11 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   WorkPeopleSection(workId: movie.id, workType: 'movie'),
                   if (movie.summary != null && movie.summary!.isNotEmpty)
                     _buildSummarySection(movie),
+                  ReviewPreviewSection(
+                    workId: movie.id,
+                    workType: 'movie',
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  ),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   _buildExtraSections(movie),
                   const SizedBox(height: 120),
@@ -1117,6 +1124,14 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     if (movie.summary != null && movie.summary!.isNotEmpty)
                       _buildSummarySection(movie),
                     const SizedBox(height: 12),
+                    // 影评预览
+                    ReviewPreviewSection(
+                      workId: movie.id,
+                      workType: 'movie',
+                      isOverlay: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                    ),
+                    const SizedBox(height: 12),
                     // 影评、海报墙毛玻璃
                     _buildExtraSectionsOverlay(movie),
                   ]),
@@ -1166,6 +1181,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   WorkPeopleSection(workId: movie.id, workType: 'movie'),
                   if (movie.summary != null && movie.summary!.isNotEmpty)
                     _buildLayeredSummary(movie),
+                  ReviewPreviewSection(workId: movie.id, workType: 'movie'),
                   const SizedBox(height: 20),
                   _buildLayeredExtraSections(movie),
                 ],

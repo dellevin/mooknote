@@ -19,6 +19,7 @@ import '../../widgets/genre_selector_page.dart';
 import '../../widgets/work_people_section.dart';
 import '../../widgets/character_preview_section.dart';
 import '../../widgets/character_info_sheet.dart';
+import '../../widgets/review_preview_section.dart';
 import 'game_reviews_page.dart';
 import 'game_screenshots_page.dart';
 import 'game_share_page.dart';
@@ -306,6 +307,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           const SizedBox(height: 12),
                           Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
                         ],
+                        ReviewPreviewSection(workId: game.id, workType: 'game'),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
                         Row(children: [
                           Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
@@ -1038,6 +1040,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   WorkPeopleSection(workId: game.id, workType: 'game'),
                   if (game.summary != null && game.summary!.isNotEmpty)
                     _buildInfoSection('游戏简介', game.summary!),
+                  ReviewPreviewSection(
+                    workId: game.id,
+                    workType: 'game',
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  ),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   _buildExtraSections(game),
                   const SizedBox(height: 120),
@@ -1198,6 +1205,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
                     ],
                     const SizedBox(height: 12),
                     const SizedBox(height: 12),
+                    // 评价预览
+                    ReviewPreviewSection(
+                      workId: game.id,
+                      workType: 'game',
+                      isOverlay: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                    ),
+                    const SizedBox(height: 12),
                     _buildExtraSectionsOverlay(game),
                   ]),
                 ),
@@ -1257,6 +1272,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   WorkPeopleSection(workId: game.id, workType: 'game'),
                   if (game.summary != null && game.summary!.isNotEmpty)
                     _buildLayeredSummary(game),
+                  ReviewPreviewSection(workId: game.id, workType: 'game'),
                   const SizedBox(height: 20),
                   _buildLayeredExtraSections(game),
                 ],

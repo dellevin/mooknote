@@ -156,4 +156,6 @@ const Map<String, String> enWidgets = {
   '下载失败: HTTP {code}': 'Download failed: HTTP {code}',
   '无法获取海报边界': 'Unable to capture image bounds',
   '无法生成图片数据': 'Unable to generate image data',
+  '查看更多': 'View More',
+  '共 {n} 条': '{n} total',
 };

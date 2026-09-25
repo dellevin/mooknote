@@ -18,6 +18,7 @@ import '../../widgets/genre_selector_page.dart';
 import '../../widgets/work_people_section.dart';
 import '../../widgets/character_preview_section.dart';
 import '../../widgets/character_info_sheet.dart';
+import '../../widgets/review_preview_section.dart';
 import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
@@ -295,6 +296,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           const SizedBox(height: 12),
                           Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
                         ],
+                        ReviewPreviewSection(workId: book.id, workType: 'book'),
                         Divider(height: 32, thickness: 0.5, color: colors.outline),
                         Row(children: [
                           Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
@@ -789,6 +791,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   ),
                   WorkPeopleSection(workId: book.id, workType: 'book'),
                   if (book.summary != null && book.summary!.isNotEmpty) _buildSummarySection(book),
+                  ReviewPreviewSection(
+                    workId: book.id,
+                    workType: 'book',
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  ),
                   Divider(height: 0.5, thickness: 0.5, color: colors.outline),
                   _buildExtraSections(book),
                   const SizedBox(height: 120),
@@ -904,6 +911,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         ],
                         const SizedBox(height: 12),
                         const SizedBox(height: 12),
+                        // 书评预览
+                        ReviewPreviewSection(
+                          workId: book.id,
+                          workType: 'book',
+                          isOverlay: true,
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                        ),
+                        const SizedBox(height: 12),
                         // 书评、书摘毛玻璃
                         _buildExtraSectionsOverlay(book),
                       ],
@@ -959,6 +974,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   WorkPeopleSection(workId: book.id, workType: 'book'),
                   if (book.summary != null && book.summary!.isNotEmpty)
                     _buildLayeredSummary(book),
+                  ReviewPreviewSection(workId: book.id, workType: 'book'),
                   const SizedBox(height: 20),
                   _buildLayeredExtraSections(book),
                 ],
