@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:path/path.dart' as p;
 import '../../providers/app_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -33,7 +33,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
   List<String> _tags = [];
   List<String> _images = []; // 图片路径列表
   bool _isEditing = false;
-  final ImagePicker _picker = ImagePicker();
   String? _tempNoteId; // 新建模式时使用的临时笔记ID
   Timer? _autoSaveTimer;
   Timer? _saveStatusTimer;
@@ -803,36 +802,41 @@ class _NoteFormPageState extends State<NoteFormPage> {
   /// 选择图片
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          requestType: RequestType.image, // 只允许选择图片，不能选择视频
+        ),
       );
+      if (!mounted || assets == null || assets.isEmpty) return;
 
-      if (image != null) {
-        // 生成唯一的文件名
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      // 如果是编辑模式，使用现有笔记ID；如果是新建模式，使用临时ID（保存时会替换）
+      String noteId;
+      if (_isEditing) {
+        noteId = widget.note!.id;
+      } else {
+        // 新建模式：使用已存在的临时ID或生成新的
+        noteId = _tempNoteId ?? const Uuid().v4();
+        _tempNoteId = noteId;
+      }
 
-        // 如果是编辑模式，使用现有笔记ID；如果是新建模式，使用临时ID（保存时会替换）
-        String noteId;
-        if (_isEditing) {
-          noteId = widget.note!.id;
-        } else {
-          // 新建模式：使用已存在的临时ID或生成新的
-          noteId = _tempNoteId ?? const Uuid().v4();
-          _tempNoteId = noteId;
-        }
+      // 复制图片到应用目录: images/notes/{noteId}/{fileName}
+      final targetDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
+      await ImagePathHelper.instance.ensureDirExists(targetDir);
 
-        // 复制图片到应用目录: images/notes/{noteId}/{fileName}
-        final targetDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
-        await ImagePathHelper.instance.ensureDirExists(targetDir);
+      final newPaths = <String>[];
+      for (final asset in assets) {
+        final file = await asset.file;
+        if (file == null) continue;
+        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
         final targetPath = p.join(targetDir, fileName);
+        await file.copy(targetPath);
+        newPaths.add(targetPath);
+      }
 
-        await File(image.path).copy(targetPath);
-
-        if (!mounted) return;
-        setState(() => _images.add(targetPath));
+      if (newPaths.isNotEmpty && mounted) {
+        setState(() => _images.addAll(newPaths));
       }
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));

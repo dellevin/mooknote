@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:path/path.dart' as p;
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -43,7 +43,6 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   List<String> _editImages = [];
   Timer? _autoSaveTimer;
   String _saveStatus = '';
-  final ImagePicker _picker = ImagePicker();
   final _editorKey = GlobalKey<NoteEditorState>();
 
   @override
@@ -605,15 +604,31 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
 
   Future<void> _pickEditImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1920, imageQuality: 85);
-      if (image == null) return;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          requestType: RequestType.image, // 只允许选择图片，不能选择视频
+        ),
+      );
+      if (!mounted || assets == null || assets.isEmpty) return;
+
       final targetDir = await ImagePathHelper.instance.getNoteImagesDir(widget.note.id);
       await ImagePathHelper.instance.ensureDirExists(targetDir);
-      final targetPath = p.join(targetDir, fileName);
-      await File(image.path).copy(targetPath);
-      if (mounted) setState(() => _editImages.add(targetPath));
-      _onContentChanged();
+
+      final newPaths = <String>[];
+      for (final asset in assets) {
+        final file = await asset.file;
+        if (file == null) continue;
+        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+        final targetPath = p.join(targetDir, fileName);
+        await file.copy(targetPath);
+        newPaths.add(targetPath);
+      }
+      if (newPaths.isNotEmpty && mounted) {
+        setState(() => _editImages.addAll(newPaths));
+        _onContentChanged();
+      }
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }

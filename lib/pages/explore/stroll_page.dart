@@ -31,6 +31,9 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   double _dragY = 0; // 当前垂直偏移
   bool _isDragging = false;
 
+  // "随机一张"按钮的飞出方向（-1 左 / 1 右），每次点击交替
+  int _tapDir = -1;
+
   // 飞出/弹回/回退动画（顶卡位偏由动画驱动时使用）
   late final AnimationController _swipeCtrl =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
@@ -171,10 +174,11 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     }
   }
 
-  /// 点击"随机"按钮：当前卡向左飞出 → 下一张
+  /// 点击"随机"按钮：当前卡向左/右交替飞出 → 下一张
   void _next() {
     if (_swipeCtrl.isAnimating || _isDragging) return;
-    _flyOffNext();
+    _flyOffNext(_tapDir);
+    _tapDir = -_tapDir;
   }
 
   // ─── 拖动手势 ───
@@ -477,7 +481,8 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 310),
+        // 固定卡片尺寸上限：宽屏设备上保持卡片比例，不被拉宽拉高
+        constraints: const BoxConstraints(maxWidth: 280, maxHeight: 540),
         // 飞出/弹回/回退动画每帧重建，驱动顶卡位偏和下方卡片缩放
         child: AnimatedBuilder(
           animation: _swipeCtrl,

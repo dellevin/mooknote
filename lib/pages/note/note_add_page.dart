@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -23,7 +23,6 @@ class NoteAddPage extends StatefulWidget {
 }
 
 class _NoteAddPageState extends State<NoteAddPage> {
-  final ImagePicker _picker = ImagePicker();
   late TextEditingController _titleCtrl;
   late TextEditingController _contentCtrl;
   List<String> _tags = [];
@@ -342,14 +341,30 @@ class _NoteAddPageState extends State<NoteAddPage> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1920, imageQuality: 85);
-      if (image == null) return;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          requestType: RequestType.image, // 只允许选择图片，不能选择视频
+        ),
+      );
+      if (!mounted || assets == null || assets.isEmpty) return;
+
       final targetDir = await ImagePathHelper.instance.getNoteImagesDir(_tempId);
       await ImagePathHelper.instance.ensureDirExists(targetDir);
-      final targetPath = p.join(targetDir, fileName);
-      await File(image.path).copy(targetPath);
-      if (mounted) setState(() => _images.add(targetPath));
+
+      final newPaths = <String>[];
+      for (final asset in assets) {
+        final file = await asset.file;
+        if (file == null) continue;
+        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+        final targetPath = p.join(targetDir, fileName);
+        await file.copy(targetPath);
+        newPaths.add(targetPath);
+      }
+      if (newPaths.isNotEmpty && mounted) {
+        setState(() => _images.addAll(newPaths));
+      }
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }
