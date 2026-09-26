@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
@@ -29,10 +32,12 @@ class BookTabPage extends StatefulWidget {
   State<BookTabPage> createState() => _BookTabPageState();
 }
 
-class _BookTabPageState extends State<BookTabPage> with SingleTickerProviderStateMixin {
+class _BookTabPageState extends State<BookTabPage> {
   late PageController _pageController;
   int _currentPage = 0; // PageView 当前页的唯一真源
-  late final AnimationController _fadeCtrl; // 点击切换：淡出淡入，不经过中间页
+  final GlobalKey _repaintKey = GlobalKey(); // 点击切换前截取旧页快照
+  ui.Image? _switchSnapshot; // 旧页快照：叠在新页上淡出 → 交叉淡化
+  int _pendingSwitchTarget = -1; // 切换途中防止重复调度
   int _lastModeSignature = -1; // 编码 wall 模式，检测书架/状态切换
   bool _modeInitialized = false; // 吞掉首次构建的伪"变化"
 
@@ -40,7 +45,6 @@ class _BookTabPageState extends State<BookTabPage> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _pageController = PageController();
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 140), value: 1);
     // 应用启动时保存的初始索引（可能 > 0）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -53,8 +57,8 @@ class _BookTabPageState extends State<BookTabPage> with SingleTickerProviderStat
 
   @override
   void dispose() {
+    _switchSnapshot?.dispose();
     _pageController.dispose();
-    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -118,39 +122,85 @@ class _BookTabPageState extends State<BookTabPage> with SingleTickerProviderStat
         _pageController.jumpToPage(0);
       });
     }
-    // (c) 外部索引变化（bar 点击等）：淡出淡入切换，不经过中间页
+    // (c) 外部索引变化（bar 点击等）：快照交叉淡化切换，不经过中间页
     final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
-    if (pageCount > 1 && _pageController.hasClients && target != _currentPage) {
+    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && target != _pendingSwitchTarget) {
+      _pendingSwitchTarget = target;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_pageController.hasClients) return;
-        _fadeSwitchTo(target);
+        if (!mounted || !_pageController.hasClients) {
+          _pendingSwitchTarget = -1;
+          return;
+        }
+        _crossFadeSwitchTo(target);
       });
     }
 
-    return FadeTransition(
-      opacity: _fadeCtrl,
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: pageCount,
-        allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
-        onPageChanged: (index) => _onPageChanged(index, provider),
-        itemBuilder: (context, index) => _BookTabView(
-          key: ValueKey('$mode-$index'), // 模式切换时全部重建
-          index: index,
-          mode: mode,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RepaintBoundary(
+          key: _repaintKey,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: pageCount,
+            allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
+            onPageChanged: (index) => _onPageChanged(index, provider),
+            itemBuilder: (context, index) => _BookTabView(
+              key: ValueKey('$mode-$index'), // 模式切换时全部重建
+              index: index,
+              mode: mode,
+            ),
+          ),
         ),
-      ),
+        // 点击切换的交叉淡化层：旧页快照在新页上淡出，新页自然透出
+        if (_switchSnapshot != null)
+          IgnorePointer(
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(_switchSnapshot),
+              tween: Tween(begin: 1, end: 0),
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOut,
+              onEnd: _clearSnapshot,
+              builder: (context, opacity, child) => Opacity(opacity: opacity, child: child),
+              child: RawImage(image: _switchSnapshot, fit: BoxFit.fill),
+            ),
+          ),
+      ],
     );
   }
 
-  /// 点击切换：先淡出当前页 → 直接跳转到目标页（不过中间页）→ 淡入
-  Future<void> _fadeSwitchTo(int target) async {
-    _fadeCtrl.stop();
-    await _fadeCtrl.animateTo(0);
-    if (!mounted || !_pageController.hasClients) return;
+  /// 点击切换：先给当前页截快照 → 瞬间跳到目标页（不过中间页）→ 快照淡出，新页透出
+  Future<void> _crossFadeSwitchTo(int target) async {
+    ui.Image? image;
+    final renderObject = _repaintKey.currentContext?.findRenderObject();
+    if (renderObject is RenderRepaintBoundary) {
+      try {
+        image = await renderObject.toImage(pixelRatio: MediaQuery.devicePixelRatioOf(context));
+      } catch (_) {
+        image = null;
+      }
+    }
+    if (!mounted || !_pageController.hasClients) {
+      _pendingSwitchTarget = -1;
+      image?.dispose();
+      return;
+    }
     _currentPage = target;
     _pageController.jumpToPage(target);
-    _fadeCtrl.animateTo(1);
+    _pendingSwitchTarget = -1;
+    if (image != null) {
+      final old = _switchSnapshot;
+      setState(() => _switchSnapshot = image);
+      old?.dispose();
+    }
+  }
+
+  void _clearSnapshot() {
+    if (!mounted || _switchSnapshot == null) return;
+    setState(() {
+      _switchSnapshot?.dispose();
+      _switchSnapshot = null;
+    });
   }
 
   void _onPageChanged(int index, AppProvider provider) {
