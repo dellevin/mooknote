@@ -166,6 +166,8 @@ const Map<String, String> enGame = {
   '匿名': 'Anonymous',
   '来源': 'Source',
   '时间': 'Date',
+  '评价日期': 'Review Date',
+  '创建时间': 'Date added',
 
   // ─── 离开确认 ───
   '未保存': 'Unsaved',

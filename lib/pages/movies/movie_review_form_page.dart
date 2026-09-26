@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/edit_sheets.dart';
 
 /// 添加/编辑影评页面
 class MovieReviewFormPage extends StatefulWidget {
@@ -24,6 +25,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   late TextEditingController _reviewerController;
   late TextEditingController _sourceController;
   late int _reviewType;
+  late DateTime _reviewDate;
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
     _reviewerController = TextEditingController(text: widget.review?.reviewer ?? '');
     _sourceController = TextEditingController(text: widget.review?.source ?? '');
     _reviewType = widget.review?.reviewType ?? 1;
+    _reviewDate = widget.review?.reviewDate ?? DateTime.now();
   }
 
   @override
@@ -93,6 +96,8 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                       controller: _sourceController,
                       colors: colors,
                     ),
+                    const SizedBox(height: 12),
+                    _buildDateField(colors),
                     const SizedBox(height: 20),
 
                     // ── 评论内容 ──────────────────────
@@ -252,6 +257,45 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // 影评日期选择
+  // ═══════════════════════════════════════════════════════════════════
+
+  Widget _buildDateField(ColorScheme colors) {
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePickerSheet(
+          context: context,
+          title: '影评日期'.tr,
+          initial: _reviewDate,
+        );
+        if (!mounted) return;
+        if (picked != null) setState(() => _reviewDate = picked);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.event_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+            const SizedBox(width: 10),
+            Text('影评日期'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+            const Spacer(),
+            Text(
+              '${_reviewDate.year}.${_reviewDate.month.toString().padLeft(2, '0')}.${_reviewDate.day.toString().padLeft(2, '0')}',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // 内容输入区 + 字数统计
   // ═══════════════════════════════════════════════════════════════════
 
@@ -315,6 +359,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
         reviewer: _reviewerController.text.trim(),
         source: _sourceController.text.trim(),
         reviewType: _reviewType,
+        reviewDate: _reviewDate,
         createdAt: now,
         updatedAt: now,
       );
@@ -325,6 +370,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
         reviewer: _reviewerController.text.trim(),
         source: _sourceController.text.trim(),
         reviewType: _reviewType,
+        reviewDate: _reviewDate,
         updatedAt: now,
       );
       await context.read<AppProvider>().updateMovieReview(updatedReview);

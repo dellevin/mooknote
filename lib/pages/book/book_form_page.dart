@@ -13,9 +13,9 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
-import '../../widgets/text_input_panel.dart';
 import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/edit_sheets.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
@@ -195,7 +195,7 @@ class _BookFormPageState extends State<BookFormPage> {
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.authors).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择作者'.tr, existingTagsFuture: compute(_collectUnique, data), initialSelected: _authors, hint: '如：余华、莫言'.tr);
+                      final r = await GenreSelectorPage.show(context: context, title: '选择作者'.tr, existingTagsFuture: compute(_collectUnique, data), initialSelected: _authors, hint: '如：余华、莫言'.tr, asBottomSheet: true);
                       if (!mounted) return;
                       if (r != null) setState(() => _authors = r);
                     },
@@ -204,7 +204,7 @@ class _BookFormPageState extends State<BookFormPage> {
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final data = provider.books.map((b) => b.translators).toList();
-                      final r = await GenreSelectorPage.show(context: context, title: '选择译者'.tr, existingTagsFuture: compute(_collectUnique, data), initialSelected: _translators, hint: '如：李继宏、许钧'.tr);
+                      final r = await GenreSelectorPage.show(context: context, title: '选择译者'.tr, existingTagsFuture: compute(_collectUnique, data), initialSelected: _translators, hint: '如：李继宏、许钧'.tr, asBottomSheet: true);
                       if (!mounted) return;
                       if (r != null) setState(() => _translators = r);
                     },
@@ -216,7 +216,7 @@ class _BookFormPageState extends State<BookFormPage> {
                       final provider = context.read<AppProvider>();
                       final tags = await provider.getTags('book_genre', excludeHidden: true);
                       if (!mounted) return;
-                      final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: tags.map((t) => t['name'] as String).toList(), initialSelected: _genres, hint: '如：小说、历史、传记'.tr);
+                      final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: tags.map((t) => t['name'] as String).toList(), initialSelected: _genres, hint: '如：小说、历史、传记'.tr, asBottomSheet: true);
                       if (!mounted) return;
                       if (r != null) setState(() => _genres = r);
                     },
@@ -226,20 +226,38 @@ class _BookFormPageState extends State<BookFormPage> {
                   // 第四行：出版社 + 出版时间
                   _halfCard('出版社'.tr, _publisherController.text, Icons.business_outlined,
                     onTap: () async {
-                      final r = await TextInputPanel.show(context: context, title: '出版社'.tr, initialValue: _publisherController.text, hint: '请输入出版社'.tr);
+                      final r = await TextEditSheet.show(context: context, title: '出版社'.tr, initialText: _publisherController.text, hintText: '请输入出版社'.tr);
                       if (!mounted) return;
                       if (r != null) setState(() => _publisherController.text = r);
                     },
                   ),
                   _halfCard('出版时间'.tr, _publishDate != null ? '${_publishDate!.year}.${_publishDate!.month.toString().padLeft(2, '0')}.${_publishDate!.day.toString().padLeft(2, '0')}' : '', Icons.date_range_outlined,
+                    trailing: _publishDate != null
+                        ? GestureDetector(
+                            onTap: () => setState(() => _publishDate = null),
+                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                          )
+                        : null,
                     onTap: () => _selectPublishDate(),
                   ),
 
                   // 第五行：开始阅读 + 读完日期
                   _halfCard('开始阅读'.tr, _startDate != null ? '${_startDate!.year}.${_startDate!.month.toString().padLeft(2, '0')}.${_startDate!.day.toString().padLeft(2, '0')}' : '', Icons.play_circle_outlined,
+                    trailing: _startDate != null
+                        ? GestureDetector(
+                            onTap: () => setState(() => _startDate = null),
+                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                          )
+                        : null,
                     onTap: () => _selectStartDate(),
                   ),
                   _halfCard('读完日期'.tr, _finishDate != null ? '${_finishDate!.year}.${_finishDate!.month.toString().padLeft(2, '0')}.${_finishDate!.day.toString().padLeft(2, '0')}' : '', Icons.check_circle_outlined,
+                    trailing: _finishDate != null
+                        ? GestureDetector(
+                            onTap: () => setState(() => _finishDate = null),
+                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                          )
+                        : null,
                     onTap: () => _selectFinishDate(),
                   ),
 
@@ -251,7 +269,7 @@ class _BookFormPageState extends State<BookFormPage> {
                       value: _isbnController.text,
                       icon: Icons.qr_code_outlined,
                       onTap: () async {
-                        final r = await TextInputPanel.show(context: context, title: 'ISBN', initialValue: _isbnController.text, hint: '请输入ISBN编号'.tr);
+                        final r = await TextEditSheet.show(context: context, title: 'ISBN', initialText: _isbnController.text, hintText: '请输入ISBN编号'.tr);
                         if (!mounted) return;
                         if (r != null) setState(() => _isbnController.text = r);
                       },
@@ -274,11 +292,11 @@ class _BookFormPageState extends State<BookFormPage> {
   }
 
   /// 半宽卡片快捷方法
-  Widget _halfCard(String label, String value, IconData icon, {bool required = false, VoidCallback? onTap}) {
+  Widget _halfCard(String label, String value, IconData icon, {bool required = false, VoidCallback? onTap, Widget? trailing}) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width - 52) / 2,
       height: 90,
-      child: _buildInfoCard(label: label, value: value, icon: icon, required: required, onTap: onTap ?? () {}),
+      child: _buildInfoCard(label: label, value: value, icon: icon, required: required, onTap: onTap ?? () {}, trailing: trailing),
     );
   }
 
@@ -523,54 +541,23 @@ class _BookFormPageState extends State<BookFormPage> {
   }
 
   Future<void> _pickCoverFromUrl() async {
-    final urlController = TextEditingController();
-    final confirmed = await appDialog<bool>(
+    final url = await TextEditSheet.show(
       context: context,
-      builder: (ctx) {
-        final c = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: c.surface, elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: c.onSurface)),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: c.onSurface.withValues(alpha: 0.6))),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController, keyboardType: TextInputType.url,
-              style: TextStyle(fontSize: 14, color: c.onSurface),
-              decoration: InputDecoration(
-                hintText: 'https://example.com/image.jpg',
-                hintStyle: TextStyle(color: c.onSurface.withValues(alpha: 0.25)),
-                filled: true, fillColor: c.surfaceContainerHigh,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: c.primary, width: 1)),
-              ),
-            ),
-          ]),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消'.tr, style: TextStyle(color: c.onSurface.withValues(alpha: 0.6)))),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-              child: Text('确定'.tr),
-            ),
-          ],
-        );
-      },
+      title: '添加网络图片'.tr,
+      actionLabel: '确定'.tr,
+      hintText: 'https://example.com/image.jpg',
+      description: '请输入图片链接地址'.tr,
+      keyboardType: TextInputType.url,
     );
-
-    final url = urlController.text.trim();
-    urlController.dispose();
-    if (confirmed != true || url.isEmpty) return;
+    if (url == null || url.trim().isEmpty) return;
 
     setState(() => _isDownloading = true);
     try {
-      final response = await http.get(Uri.parse(url), headers: {
+      final imageUrl = url.trim();
+      final response = await http.get(Uri.parse(imageUrl), headers: {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Referer': Uri.parse(url).replace(path: '/').toString(),
+        'Referer': Uri.parse(imageUrl).replace(path: '/').toString(),
       });
       if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
       final ct = response.headers['content-type'];
@@ -641,85 +628,70 @@ class _BookFormPageState extends State<BookFormPage> {
 
   // ─── 数据操作 ───
 
-  /// 编辑书名（弹窗）
+  /// 编辑书名（底部弹层）
   Future<void> _editTitle() async {
-    final controller = TextEditingController(text: _titleController.text);
-    final result = await appDialog<String>(
+    final result = await TextEditSheet.show(
       context: context,
-      builder: (ctx) {
-        final colors = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: colors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('书名'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: TextStyle(fontSize: 15, color: colors.onSurface),
-            decoration: InputDecoration(
-              hintText: '请输入书名'.tr,
-              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-              filled: true,
-              fillColor: colors.surfaceContainerHigh,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
-            ),
-            onSubmitted: (v) => Navigator.pop(ctx, v),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, controller.text),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: Text('确定'.tr),
-            ),
-          ],
-        );
-      },
+      title: '书名'.tr,
+      initialText: _titleController.text,
+      hintText: '请输入书名'.tr,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.dispose();
-    });
     if (!mounted) return;
     if (result != null) setState(() => _titleController.text = result.trim());
   }
 
-  /// 编辑别名（弹窗 + 标签式输入）
+  /// 编辑别名（底部弹层 + 标签式输入）
   Future<void> _editAlternateTitles() async {
-    final result = await appDialog<List<String>>(
+    final result = await AlternateTitlesDialog.showSheet(
       context: context,
-      builder: (ctx) => AlternateTitlesDialog(initial: _alternateTitles),
+      initial: _alternateTitles,
     );
     if (!mounted) return;
     if (result != null) setState(() => _alternateTitles = result);
   }
 
   Future<void> _selectPublishDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _publishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    final picked = await showDatePickerSheet(
+      context: context,
+      title: '出版时间'.tr,
+      initial: _publishDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
     if (!mounted) return;
     if (picked != null) setState(() => _publishDate = picked);
   }
 
   Future<void> _selectStartDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _startDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    final picked = await showDatePickerSheet(
+      context: context,
+      title: '开始阅读'.tr,
+      initial: _startDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
     if (!mounted) return;
     if (picked != null) setState(() => _startDate = picked);
   }
 
   Future<void> _selectFinishDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _finishDate ?? DateTime.now(), firstDate: DateTime(1900), lastDate: DateTime.now().add(const Duration(days: 365 * 5)));
+    final picked = await showDatePickerSheet(
+      context: context,
+      title: '读完日期'.tr,
+      initial: _finishDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
     if (!mounted) return;
     if (picked != null) setState(() => _finishDate = picked);
   }
 
+  /// 编辑书籍简介（底部弹层）
   Future<void> _editSummary() async {
-    final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => _SummaryEditorPage(initialText: _summaryController.text)));
+    final result = await TextEditSheet.show(
+      context: context,
+      title: '书籍简介'.tr,
+      initialText: _summaryController.text,
+      hintText: '写下书籍简介...'.tr,
+      multiline: true,
+    );
     if (!mounted) return;
     if (result != null) setState(() => _summaryController.text = result);
   }
@@ -816,37 +788,6 @@ class _BookFormPageState extends State<BookFormPage> {
       return newPath;
     }
     return null;
-  }
-}
-
-/// 书籍简介编辑页
-class _SummaryEditorPage extends StatefulWidget {
-  final String initialText;
-  const _SummaryEditorPage({required this.initialText});
-  @override
-  State<_SummaryEditorPage> createState() => _SummaryEditorPageState();
-}
-
-class _SummaryEditorPageState extends State<_SummaryEditorPage> {
-  late final TextEditingController _controller;
-  @override
-  void initState() { super.initState(); _controller = TextEditingController(text: widget.initialText); }
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('书籍简介'.tr), actions: [
-        TextButton(onPressed: () => Navigator.pop(context, _controller.text.trim()), child: Text('完成'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary))),
-        const SizedBox(width: 8),
-      ]),
-      body: TextField(controller: _controller, maxLines: null, expands: true, textAlignVertical: TextAlignVertical.top,
-        style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
-        decoration: InputDecoration(hintText: '写下书籍简介...'.tr, hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)), contentPadding: const EdgeInsets.all(20), border: InputBorder.none),
-      ),
-    );
   }
 }
 

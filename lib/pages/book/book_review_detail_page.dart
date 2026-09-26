@@ -125,10 +125,21 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
 
             const SizedBox(height: 16),
 
-            // 时间
+            // 书评日期
+            if (_review.reviewDate != null) ...[
+              _buildInfoRow(
+                icon: Icons.event_outlined,
+                label: '书评日期：'.tr,
+                value: _formatDate(_review.reviewDate!),
+                colors: colors,
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 创建时间
             _buildInfoRow(
               icon: Icons.access_time,
-              label: '时间：'.tr,
+              label: '创建时间：'.tr,
               value: _formatDate(_review.createdAt),
               colors: colors,
             ),

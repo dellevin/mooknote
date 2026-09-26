@@ -159,6 +159,8 @@ const Map<String, String> enMovie = {
   '来源（选填）': 'Source (optional)',
   '影评人': 'Reviewer',
   '匿名': 'Anonymous',
+  '影评日期': 'Review Date',
+  '创建时间': 'Date added',
   '写下你的影评...': 'Write your review...',
   '请输入评论内容': 'Please enter the review content',
   '{n} 字': '{n} chars',

@@ -12,6 +12,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
+import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 人物编辑/添加页面
@@ -158,12 +159,10 @@ class _PersonFormPageState extends State<PersonFormPage> {
 
               // 其他名称
               _buildChipField('其他名称', _alternateNames, colors, onTap: () async {
-                final result = await GenreSelectorPage.show(
+                final result = await AlternateTitlesDialog.showSheet(
                   context: context,
-                  title: '添加其他名称'.tr,
-                  existingTags: [],
-                  initialSelected: _alternateNames,
-                  hint: '如：艺名、英文名'.tr,
+                  initial: _alternateNames,
+                  title: '添加其他名称',
                 );
                 if (result != null) setState(() => _alternateNames = result);
               }),
@@ -177,6 +176,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
                   existingTags: _occupationOptions,
                   initialSelected: _occupation,
                   hint: '如：导演、演员'.tr,
+                  asBottomSheet: true,
                 );
                 if (result != null) setState(() => _occupation = result);
               }),

@@ -417,6 +417,8 @@ class AppProvider extends ChangeNotifier {
   // Setters
   void setMainTabIndex(int index) {
     _mainTabIndex = index;
+    // 写穿到启动标签偏好：点击选择常驻，重启后恢复上次选择
+    UserPrefs().setDefaultMainTabIndex(index);
     notifyListeners();
   }
 

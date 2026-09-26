@@ -14,7 +14,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
-import '../../widgets/text_input_panel.dart';
+import '../../widgets/edit_sheets.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
@@ -230,6 +230,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           existingTagsFuture: compute(_collectUnique, data),
                           initialSelected: _platforms,
                           hint: '如：PS5、Switch、Steam'.tr,
+                          asBottomSheet: true,
                         );
                         if (!mounted) return;
                         if (result != null) setState(() => _platforms = result);
@@ -256,6 +257,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           existingTagsFuture: compute(_collectUnique, data),
                           initialSelected: _versions,
                           hint: '如：标准版、豪华版'.tr,
+                          asBottomSheet: true,
                         );
                         if (!mounted) return;
                         if (result != null) setState(() => _versions = result);
@@ -291,6 +293,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           existingTags: existingNames,
                           initialSelected: _genres,
                           hint: '如：RPG、动作、冒险'.tr,
+                          asBottomSheet: true,
                         );
                         if (!mounted) return;
                         if (result != null) setState(() => _genres = result);
@@ -317,6 +320,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           existingTagsFuture: compute(_collectUnique, data),
                           initialSelected: _developer,
                           hint: '如：任天堂、FromSoftware'.tr,
+                          asBottomSheet: true,
                         );
                         if (!mounted) return;
                         if (result != null) setState(() => _developer = result);
@@ -381,6 +385,7 @@ class _GameFormPageState extends State<GameFormPage> {
                           existingTagsFuture: compute(_collectUnique, data),
                           initialSelected: _purchasePlatforms,
                           hint: '如：Steam、eShop、PlayStation Store'.tr,
+                          asBottomSheet: true,
                         );
                         if (!mounted) return;
                         if (result != null) setState(() => _purchasePlatforms = result);
@@ -415,12 +420,11 @@ class _GameFormPageState extends State<GameFormPage> {
                       value: _purchasePriceController.text.isNotEmpty ? _purchasePriceController.text : '',
                       icon: Icons.payments_outlined,
                       onTap: () async {
-                        final result = await TextInputPanel.show(
+                        final result = await TextEditSheet.show(
                           context: context,
                           title: '购买价格'.tr,
-                          initialValue: _purchasePriceController.text,
-                          hint: '如：298元、49.99美元'.tr,
-                          keyboardType: TextInputType.text,
+                          initialText: _purchasePriceController.text,
+                          hintText: '如：298元、49.99美元'.tr,
                         );
                         if (!mounted) return;
                         if (result != null) setState(() => _purchasePriceController.text = result);
@@ -637,13 +641,14 @@ class _GameFormPageState extends State<GameFormPage> {
     );
   }
 
-  /// 全屏编辑游戏简介
+  /// 编辑游戏简介
   Future<void> _editSummary() async {
-    final result = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _SummaryEditorPage(initialText: _summaryController.text),
-      ),
+    final result = await TextEditSheet.show(
+      context: context,
+      title: '游戏简介'.tr,
+      initialText: _summaryController.text,
+      hintText: '写下游戏简介...'.tr,
+      multiline: true,
     );
     if (!mounted) return;
     if (result != null) {
@@ -989,63 +994,16 @@ class _GameFormPageState extends State<GameFormPage> {
 
   /// 从网络链接选择封面
   Future<void> _pickCoverFromUrl() async {
-    final urlController = TextEditingController();
-    final confirmed = await appDialog<bool>(
+    final url = await TextEditSheet.show(
       context: context,
-      builder: (ctx) {
-        final colors = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: colors.surface, elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
-              const SizedBox(height: 12),
-              TextField(
-                controller: urlController,
-                keyboardType: TextInputType.url,
-                style: TextStyle(fontSize: 14, color: colors.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'https://example.com/image.jpg',
-                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
-                  filled: true,
-                  fillColor: colors.surfaceContainerHigh,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: Text('确定'.tr),
-            ),
-          ],
-        );
-      },
+      title: '添加网络图片'.tr,
+      actionLabel: '确定'.tr,
+      hintText: 'https://example.com/image.jpg',
+      description: '请输入图片链接地址'.tr,
+      keyboardType: TextInputType.url,
     );
-
-    final url = urlController.text.trim();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      urlController.dispose();
-    });
-
-    if (confirmed != true || url.isEmpty) return;
+    if (!mounted) return;
+    if (url == null || url.isEmpty) return;
     await _downloadCoverFromUrl(url);
   }
 
@@ -1084,130 +1042,47 @@ class _GameFormPageState extends State<GameFormPage> {
     }
   }
 
-  /// 编辑游戏名称（弹窗）
+  /// 编辑游戏名称
   Future<void> _editTitle() async {
-    final controller = TextEditingController(text: _titleController.text);
-    final result = await appDialog<String>(
+    final result = await TextEditSheet.show(
       context: context,
-      builder: (ctx) {
-        final colors = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: colors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('游戏名称'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: TextStyle(fontSize: 15, color: colors.onSurface),
-            decoration: InputDecoration(
-              hintText: '请输入游戏名称'.tr,
-              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-              filled: true,
-              fillColor: colors.surfaceContainerHigh,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
-            ),
-            onSubmitted: (v) => Navigator.pop(ctx, v),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, controller.text),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: Text('确定'.tr),
-            ),
-          ],
-        );
-      },
+      title: '游戏名称'.tr,
+      initialText: _titleController.text,
+      hintText: '请输入游戏名称'.tr,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.dispose();
-    });
     if (!mounted) return;
-    if (result != null) setState(() => _titleController.text = result.trim());
+    if (result != null) setState(() => _titleController.text = result);
   }
 
   void _showPlayTimePicker() {
-    final colors = Theme.of(context).colorScheme;
-    final hoursController = TextEditingController(text: _playTimeHoursController.text);
-    final minutesController = TextEditingController(text: _playTimeMinutesController.text);
-
-    appDialog(
+    final key = GlobalKey<_PlayTimeFieldsState>();
+    showEditSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('游玩时长'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: hoursController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: '小时'.tr,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: minutesController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: '分钟'.tr,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _playTimeHoursController.text = hoursController.text;
-                _playTimeMinutesController.text = minutesController.text;
-              });
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Text('确定'.tr),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      title: '游玩时长'.tr,
+      actionBuilder: (ctx) => editSheetDoneButton(ctx, '确定'.tr, () {
+        final state = key.currentState;
+        if (state != null) {
+          setState(() {
+            _playTimeHoursController.text = state.hours;
+            _playTimeMinutesController.text = state.minutes;
+          });
+        }
+        Navigator.pop(ctx);
+      }),
+      contentBuilder: (ctx) => _PlayTimeFields(
+        key: key,
+        initialHours: _playTimeHoursController.text,
+        initialMinutes: _playTimeMinutesController.text,
       ),
-    ).then((_) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        hoursController.dispose();
-        minutesController.dispose();
-      });
-    });
+    );
   }
 
   Future<void> _selectPurchaseDate() async {
-    final picked = await showDatePicker(
+    final picked = await showDatePickerSheet(
       context: context,
-      initialDate: _purchaseDate ?? DateTime.now(),
+      title: '购买时间'.tr,
+      initial: _purchaseDate,
       firstDate: DateTime(1990),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) => child!,
     );
     if (!mounted) return;
     if (picked != null) {
@@ -1216,12 +1091,11 @@ class _GameFormPageState extends State<GameFormPage> {
   }
 
   Future<void> _selectReleaseDate() async {
-    final picked = await showDatePicker(
+    final picked = await showDatePickerSheet(
       context: context,
-      initialDate: _releaseDate ?? DateTime.now(),
+      title: '发售时间'.tr,
+      initial: _releaseDate,
       firstDate: DateTime(1970),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) => child!,
     );
     if (!mounted) return;
     if (picked != null) {
@@ -1400,59 +1274,86 @@ class GameRatingInputFormatter extends TextInputFormatter {
   }
 }
 
-/// 游戏简介全屏编辑页
-class _SummaryEditorPage extends StatefulWidget {
-  final String initialText;
-  const _SummaryEditorPage({required this.initialText});
+/// 游玩时长底部弹层内容（控制器随弹层生命周期创建与销毁）
+class _PlayTimeFields extends StatefulWidget {
+  final String initialHours;
+  final String initialMinutes;
+
+  const _PlayTimeFields({
+    super.key,
+    required this.initialHours,
+    required this.initialMinutes,
+  });
 
   @override
-  State<_SummaryEditorPage> createState() => _SummaryEditorPageState();
+  State<_PlayTimeFields> createState() => _PlayTimeFieldsState();
 }
 
-class _SummaryEditorPageState extends State<_SummaryEditorPage> {
-  late final TextEditingController _controller;
+class _PlayTimeFieldsState extends State<_PlayTimeFields> {
+  late final TextEditingController _hoursController;
+  late final TextEditingController _minutesController;
+
+  String get hours => _hoursController.text.trim();
+  String get minutes => _minutesController.text.trim();
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialText);
+    _hoursController = TextEditingController(text: widget.initialHours);
+    _minutesController = TextEditingController(text: widget.initialMinutes);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _hoursController.dispose();
+    _minutesController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        title: Text('游戏简介'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, _controller.text.trim()),
-            child: Text('完成'.tr, style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary,
-            )),
+    InputDecoration decoration(String label) => InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.4)),
+          filled: true,
+          fillColor: colors.surfaceContainerHigh,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: colors.primary, width: 1)),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _hoursController,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              style: TextStyle(fontSize: 15, color: colors.onSurface),
+              decoration: decoration('小时'.tr),
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _minutesController,
+              keyboardType: TextInputType.number,
+              style: TextStyle(fontSize: 15, color: colors.onSurface),
+              decoration: decoration('分钟'.tr),
+            ),
+          ),
         ],
-      ),
-      body: TextField(
-        controller: _controller,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
-        decoration: InputDecoration(
-          hintText: '写下游戏简介...'.tr,
-          hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-          contentPadding: const EdgeInsets.all(20),
-          border: InputBorder.none,
-        ),
       ),
     );
   }

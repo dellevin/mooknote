@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 44,
+      version: 46,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -323,6 +323,7 @@ class DatabaseHelper {
           reviewer TEXT,
           source TEXT,
           review_type INTEGER DEFAULT 1,
+          review_date TEXT,
           is_deleted INTEGER DEFAULT 0,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
@@ -458,6 +459,24 @@ class DatabaseHelper {
       await db.execute(
         'ALTER TABLE sync_tombstones ADD COLUMN pushed INTEGER NOT NULL DEFAULT 0',
       );
+    }
+    if (oldVersion < 45) {
+      // 影评表添加影评日期字段（用户可选，与创建日期区分）
+      final reviewCols = await db.rawQuery('PRAGMA table_info(movie_reviews)');
+      if (!reviewCols.any((col) => col['name'] == 'review_date')) {
+        await db.execute('ALTER TABLE movie_reviews ADD COLUMN review_date TEXT');
+      }
+    }
+    if (oldVersion < 46) {
+      // 书评/游戏评价表添加评价日期字段
+      final bookReviewCols = await db.rawQuery('PRAGMA table_info(book_reviews)');
+      if (!bookReviewCols.any((col) => col['name'] == 'review_date')) {
+        await db.execute('ALTER TABLE book_reviews ADD COLUMN review_date TEXT');
+      }
+      final gameReviewCols = await db.rawQuery('PRAGMA table_info(game_reviews)');
+      if (!gameReviewCols.any((col) => col['name'] == 'review_date')) {
+        await db.execute('ALTER TABLE game_reviews ADD COLUMN review_date TEXT');
+      }
     }
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
@@ -612,6 +631,7 @@ class DatabaseHelper {
         reviewer TEXT,
         source TEXT,
         review_type INTEGER DEFAULT 1,
+        review_date TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -644,6 +664,7 @@ class DatabaseHelper {
         reviewer TEXT,
         source TEXT,
         review_type INTEGER DEFAULT 1,
+        review_date TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -905,6 +926,7 @@ class DatabaseHelper {
         reviewer TEXT,
         source TEXT,
         review_type INTEGER DEFAULT 1,
+        review_date TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -933,6 +955,7 @@ class DatabaseHelper {
         reviewer TEXT,
         source TEXT,
         review_type INTEGER DEFAULT 1,
+        review_date TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -1005,6 +1028,7 @@ class DatabaseHelper {
         reviewer TEXT,
         source TEXT,
         review_type INTEGER DEFAULT 1,
+        review_date TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,

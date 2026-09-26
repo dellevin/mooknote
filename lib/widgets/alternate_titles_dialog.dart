@@ -1,10 +1,42 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
+import 'app_overlay.dart';
 
 /// 别名标签式输入弹窗（影视/书籍共用）
 class AlternateTitlesDialog extends StatefulWidget {
   final List<String> initial;
-  const AlternateTitlesDialog({super.key, required this.initial});
+
+  /// 以底部弹层形态展示（默认居中对话框）
+  final bool bottomSheet;
+
+  /// 弹窗标题（默认「添加别名」）
+  final String title;
+  const AlternateTitlesDialog({super.key, required this.initial, this.bottomSheet = false, this.title = '添加别名'});
+
+  /// 以 80% 高度底部弹层显示
+  static Future<List<String>?> showSheet({
+    required BuildContext context,
+    required List<String> initial,
+    String title = '添加别名',
+  }) {
+    return appModalBottomSheet<List<String>>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        final keyboard = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: keyboard),
+          child: SizedBox(
+            height: (MediaQuery.of(ctx).size.height - keyboard) * 0.8,
+            child: AlternateTitlesDialog(initial: initial, bottomSheet: true, title: title),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   State<AlternateTitlesDialog> createState() => _AlternateTitlesDialogState();
@@ -44,10 +76,11 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    if (widget.bottomSheet) return _buildSheet(colors);
     return AlertDialog(
       backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: Text('添加别名'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+      title: Text(widget.title.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -55,34 +88,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 输入框 + 添加按钮
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focus,
-                    style: TextStyle(fontSize: 14, color: colors.onSurface),
-                    decoration: InputDecoration(
-                      hintText: '输入别名'.tr,
-                      hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      filled: true,
-                      fillColor: colors.surfaceContainerHigh,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: colors.primary, width: 1)),
-                    ),
-                    onSubmitted: (_) => _add(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _add,
-                  icon: Icon(Icons.add_circle, color: colors.primary, size: 28),
-                ),
-              ],
-            ),
+            _buildInputRow(colors),
             const SizedBox(height: 12),
             // 标签列表
             if (_items.isEmpty)
@@ -93,22 +99,7 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
             else
               Flexible(
                 child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: List.generate(_items.length, (i) {
-                      return Chip(
-                        label: Text(_items[i], style: TextStyle(fontSize: 13, color: colors.onSurface)),
-                        backgroundColor: colors.surfaceContainerHighest,
-                        side: BorderSide.none,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        deleteIcon: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.4)),
-                        onDeleted: () => _remove(i),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }),
-                  ),
+                  child: _buildChips(colors),
                 ),
               ),
           ],
@@ -129,6 +120,117 @@ class _AlternateTitlesDialogState extends State<AlternateTitlesDialog> {
           child: Text('确定'.tr),
         ),
       ],
+    );
+  }
+
+  /// 底部弹层布局
+  Widget _buildSheet(ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 拖拽条
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            decoration: BoxDecoration(
+              color: colors.onSurface.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        // 标题 + 确定
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(widget.title.tr,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, _items),
+                child: Text('确定'.tr,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary)),
+              ),
+            ],
+          ),
+        ),
+        // 输入框 + 添加按钮
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: _buildInputRow(colors),
+        ),
+        // 标签列表
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: _items.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('暂无别名'.tr,
+                          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
+                    )
+                  : _buildChips(colors),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 输入框 + 添加按钮
+  Widget _buildInputRow(ColorScheme colors) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            focusNode: _focus,
+            style: TextStyle(fontSize: 14, color: colors.onSurface),
+            decoration: InputDecoration(
+              hintText: '输入别名'.tr,
+              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              filled: true,
+              fillColor: colors.surfaceContainerHigh,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: colors.primary, width: 1)),
+            ),
+            onSubmitted: (_) => _add(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: _add,
+          icon: Icon(Icons.add_circle, color: colors.primary, size: 28),
+        ),
+      ],
+    );
+  }
+
+  /// 别名 chip 流
+  Widget _buildChips(ColorScheme colors) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: List.generate(_items.length, (i) {
+        return Chip(
+          label: Text(_items[i], style: TextStyle(fontSize: 13, color: colors.onSurface)),
+          backgroundColor: colors.surfaceContainerHighest,
+          side: BorderSide.none,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          deleteIcon: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.4)),
+          onDeleted: () => _remove(i),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        );
+      }),
     );
   }
 }

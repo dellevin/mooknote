@@ -177,7 +177,11 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
         _infoRow(Icons.link, '来源'.tr, _review.source, colors),
         const Divider(height: 24),
       ],
-      _infoRow(Icons.access_time, '时间'.tr, _formatDate(_review.createdAt), colors),
+      if (_review.reviewDate != null) ...[
+        _infoRow(Icons.event_outlined, '影评日期'.tr, _formatDate(_review.reviewDate!), colors),
+        Divider(height: 24, color: colors.outlineVariant),
+      ],
+      _infoRow(Icons.access_time, '创建时间'.tr, _formatDate(_review.createdAt), colors),
     ]),
   );
 

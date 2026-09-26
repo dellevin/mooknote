@@ -10,7 +10,7 @@ import '../pages/book/book_review_detail_page.dart';
 import '../pages/game/game_reviews_page.dart';
 import '../pages/game/game_review_detail_page.dart';
 
-/// 详情页影评预览模块：列表形式展示前 5 条，超过 5 条显示"查看更多"跳转列表页。
+/// 详情页影评预览模块：列表形式展示前 3 条，超过 3 条显示"查看更多"跳转列表页。
 /// 支持影视 / 书籍 / 游戏三种类型，无影评时自动隐藏。
 class ReviewPreviewSection extends StatefulWidget {
   final String workId;
@@ -31,7 +31,7 @@ class ReviewPreviewSection extends StatefulWidget {
 }
 
 class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
-  static const int _previewCount = 5;
+  static const int _previewCount = 3;
 
   List<dynamic> _reviews = [];
   int _total = 0;
@@ -136,7 +136,7 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
             Text('共 {n} 条'.trf({'n': _total}), style: TextStyle(fontSize: 12, color: faintColor)),
           ]),
           const SizedBox(height: 12),
-          // 影评列表（前 5 条）
+          // 影评列表（前 3 条）
           for (final review in _reviews) ...[
             _buildReviewItem(review, colors, textColor, subColor, faintColor, cardColor),
             const SizedBox(height: 10),

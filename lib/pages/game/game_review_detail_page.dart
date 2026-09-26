@@ -167,7 +167,11 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
         _infoRow(Icons.link, '来源', _review.source, colors),
         const Divider(height: 24),
       ],
-      _infoRow(Icons.access_time, '时间', _formatDate(_review.createdAt), colors),
+      if (_review.reviewDate != null) ...[
+        _infoRow(Icons.event_outlined, '评价日期', _formatDate(_review.reviewDate!), colors),
+        Divider(height: 24, color: colors.outlineVariant),
+      ],
+      _infoRow(Icons.access_time, '创建时间', _formatDate(_review.createdAt), colors),
     ]),
   );
 

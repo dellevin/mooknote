@@ -9,6 +9,9 @@ class GenreSelectorPage extends StatefulWidget {
   final Future<List<String>>? existingTagsFuture;
   final List<String> initialSelected;
   final String hint;
+
+  /// 以底部弹层形态展示（默认右侧滑出面板）
+  final bool bottomSheet;
   const GenreSelectorPage({
     super.key,
     required this.title,
@@ -16,9 +19,10 @@ class GenreSelectorPage extends StatefulWidget {
     this.existingTagsFuture,
     required this.initialSelected,
     this.hint = '',
+    this.bottomSheet = false,
   }) : assert(existingTags != null || existingTagsFuture != null, 'existingTags 和 existingTagsFuture 至少提供一个');
 
-  /// 显示右侧弹窗
+  /// 显示选择弹窗：[asBottomSheet] 为 true 时使用 80% 高度底部弹层，否则右侧滑出面板
   static Future<List<String>?> show({
     required BuildContext context,
     required String title,
@@ -26,7 +30,34 @@ class GenreSelectorPage extends StatefulWidget {
     Future<List<String>>? existingTagsFuture,
     required List<String> initialSelected,
     String hint = '',
+    bool asBottomSheet = false,
   }) {
+    if (asBottomSheet) {
+      return appModalBottomSheet<List<String>>(
+        context: context,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+        builder: (ctx) {
+          final keyboard = MediaQuery.of(ctx).viewInsets.bottom;
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboard),
+            child: SizedBox(
+              height: (MediaQuery.of(ctx).size.height - keyboard) * 0.8,
+              child: GenreSelectorPage(
+                title: title,
+                existingTags: existingTags,
+                existingTagsFuture: existingTagsFuture,
+                initialSelected: initialSelected,
+                hint: hint,
+                bottomSheet: true,
+              ),
+            ),
+          );
+        },
+      );
+    }
     return showGeneralDialog<List<String>>(
       context: context,
       barrierDismissible: true,
@@ -165,16 +196,31 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
 
     return Material(
       color: colors.surface,
-      borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+      borderRadius: widget.bottomSheet
+          ? const BorderRadius.vertical(top: Radius.circular(16))
+          : const BorderRadius.horizontal(left: Radius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
-        width: screenWidth * 0.75,
+        width: widget.bottomSheet ? double.infinity : screenWidth * 0.75,
         height: double.infinity,
         child: Column(
           children: [
+            // 底部弹层模式的拖拽条
+            if (widget.bottomSheet)
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 4),
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
             // Header
             Container(
-              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 14, 8, 14),
+              padding: EdgeInsets.fromLTRB(20, widget.bottomSheet ? 8 : MediaQuery.of(context).padding.top + 14, 8, 14),
               child: Row(
                 children: [
                   Text(widget.title.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),

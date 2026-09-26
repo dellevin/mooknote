@@ -459,6 +459,7 @@ class MovieReview {
   final String reviewer;
   final String source;
   final int reviewType; // 1: 短评, 2: 长评
+  final DateTime? reviewDate; // 影评日期（用户可选，与创建日期区分）
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -470,6 +471,7 @@ class MovieReview {
     this.reviewer = '',
     this.source = '',
     this.reviewType = 1,
+    this.reviewDate,
     this.isDeleted = false,
     required this.createdAt,
     required this.updatedAt,
@@ -483,6 +485,7 @@ class MovieReview {
       reviewer: json['reviewer'] ?? '',
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
+      reviewDate: _safeParseDate(json['review_date']?.toString()),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -497,12 +500,13 @@ class MovieReview {
       'reviewer': reviewer,
       'source': source,
       'review_type': reviewType,
+      'review_date': reviewDate?.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
     };
   }
-  
+
   /// 复制并修改
   MovieReview copyWith({
     String? id,
@@ -511,6 +515,7 @@ class MovieReview {
     String? reviewer,
     String? source,
     int? reviewType,
+    DateTime? reviewDate,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -522,6 +527,7 @@ class MovieReview {
       reviewer: reviewer ?? this.reviewer,
       source: source ?? this.source,
       reviewType: reviewType ?? this.reviewType,
+      reviewDate: reviewDate ?? this.reviewDate,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -589,6 +595,7 @@ class BookReview {
   final String reviewer;
   final String source;
   final int reviewType; // 1: 短评, 2: 长评
+  final DateTime? reviewDate; // 书评日期（用户可选，与创建日期区分）
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -600,6 +607,7 @@ class BookReview {
     this.reviewer = '',
     this.source = '',
     this.reviewType = 1,
+    this.reviewDate,
     this.isDeleted = false,
     required this.createdAt,
     required this.updatedAt,
@@ -613,6 +621,7 @@ class BookReview {
       reviewer: json['reviewer'] ?? '',
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
+      reviewDate: _safeParseDate(json['review_date']?.toString()),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -627,6 +636,7 @@ class BookReview {
       'reviewer': reviewer,
       'source': source,
       'review_type': reviewType,
+      'review_date': reviewDate?.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -641,6 +651,7 @@ class BookReview {
     String? reviewer,
     String? source,
     int? reviewType,
+    DateTime? reviewDate,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -652,6 +663,7 @@ class BookReview {
       reviewer: reviewer ?? this.reviewer,
       source: source ?? this.source,
       reviewType: reviewType ?? this.reviewType,
+      reviewDate: reviewDate ?? this.reviewDate,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -838,6 +850,7 @@ class GameReview {
   final String reviewer;
   final String source;
   final int reviewType; // 1: 短评, 2: 长评
+  final DateTime? reviewDate; // 评价日期（用户可选，与创建日期区分）
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -849,6 +862,7 @@ class GameReview {
     this.reviewer = '',
     this.source = '',
     this.reviewType = 1,
+    this.reviewDate,
     this.isDeleted = false,
     required this.createdAt,
     required this.updatedAt,
@@ -862,6 +876,7 @@ class GameReview {
       reviewer: json['reviewer'] ?? '',
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
+      reviewDate: _safeParseDate(json['review_date']?.toString()),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -876,6 +891,7 @@ class GameReview {
       'reviewer': reviewer,
       'source': source,
       'review_type': reviewType,
+      'review_date': reviewDate?.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -889,6 +905,7 @@ class GameReview {
     String? reviewer,
     String? source,
     int? reviewType,
+    DateTime? reviewDate,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -900,6 +917,7 @@ class GameReview {
       reviewer: reviewer ?? this.reviewer,
       source: source ?? this.source,
       reviewType: reviewType ?? this.reviewType,
+      reviewDate: reviewDate ?? this.reviewDate,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

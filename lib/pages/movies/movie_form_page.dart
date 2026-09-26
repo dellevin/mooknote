@@ -16,6 +16,7 @@ import '../../widgets/genre_selector_page.dart';
 import '../../widgets/duration_picker.dart';
 import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/edit_sheets.dart';
 import '../../l10n/app_strings.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
@@ -291,6 +292,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         existingTagsFuture: compute(_collectUnique, data),
                         initialSelected: _directors,
                         hint: '如：张艺谋、李安'.tr,
+                        asBottomSheet: true,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _directors = result);
@@ -315,6 +317,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         existingTagsFuture: compute(_collectUnique, data),
                         initialSelected: _writers,
                         hint: '如：刘慈欣、王家卫'.tr,
+                        asBottomSheet: true,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _writers = result);
@@ -341,6 +344,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         existingTagsFuture: compute(_collectUnique, data),
                         initialSelected: _actors,
                         hint: '如：梁朝伟、周星驰'.tr,
+                        asBottomSheet: true,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _actors = result);
@@ -367,6 +371,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         existingTags: existingNames,
                         initialSelected: _genres,
                         hint: '如：剧情、科幻、悬疑'.tr,
+                        asBottomSheet: true,
                       );
                       if (!mounted) return;
                       if (result != null) setState(() => _genres = result);
@@ -384,6 +389,12 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
                         : '',
                     icon: Icons.theaters_outlined,
+                    trailing: _releaseDate != null
+                        ? GestureDetector(
+                            onTap: () => setState(() => _releaseDate = null),
+                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                          )
+                        : null,
                     onTap: () => _selectReleaseDate(),
                   ),
                 ),
@@ -558,60 +569,23 @@ class _MovieFormPageState extends State<MovieFormPage> {
     );
   }
 
-  /// 编辑名称（弹窗）
+  /// 编辑名称（底部弹层）
   Future<void> _editTitle() async {
-    final controller = TextEditingController(text: _titleController.text);
-    final result = await appDialog<String>(
+    final result = await TextEditSheet.show(
       context: context,
-      builder: (ctx) {
-        final colors = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: colors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('影视名称'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            style: TextStyle(fontSize: 15, color: colors.onSurface),
-            decoration: InputDecoration(
-              hintText: '请输入 {x}'.trf({'x': '影视名称'.tr}),
-              hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-              filled: true,
-              fillColor: colors.surfaceContainerHigh,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
-            ),
-            onSubmitted: (v) => Navigator.pop(ctx, v),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, controller.text),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: Text('确定'.tr),
-            ),
-          ],
-        );
-      },
+      title: '影视名称'.tr,
+      initialText: _titleController.text,
+      hintText: '请输入 {x}'.trf({'x': '影视名称'.tr}),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.dispose();
-    });
     if (!mounted) return;
     if (result != null) setState(() => _titleController.text = result.trim());
   }
 
-  /// 编辑别名（弹窗 + 标签式输入）
+  /// 编辑别名（底部弹层 + 标签式输入）
   Future<void> _editAlternateTitles() async {
-    final result = await appDialog<List<String>>(
+    final result = await AlternateTitlesDialog.showSheet(
       context: context,
-      builder: (ctx) => AlternateTitlesDialog(initial: _alternateTitles),
+      initial: _alternateTitles,
     );
     if (!mounted) return;
     if (result != null) setState(() => _alternateTitles = result);
@@ -705,13 +679,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
     return '{m}分'.trf({'m': m});
   }
 
-  /// 全屏编辑剧情简介
+  /// 编辑剧情简介（底部弹层）
   Future<void> _editSummary() async {
-    final result = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _SummaryEditorPage(initialText: _summaryController.text),
-      ),
+    final result = await TextEditSheet.show(
+      context: context,
+      title: '剧情简介'.tr,
+      initialText: _summaryController.text,
+      hintText: '写下剧情简介...'.tr,
+      multiline: true,
     );
     if (!mounted) return;
     if (result != null) {
@@ -1148,75 +1123,27 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
   /// 从网络链接选择封面
   Future<void> _pickCoverFromUrl() async {
-    final urlController = TextEditingController();
-
-    final confirmed = await appDialog<bool>(
+    final url = await TextEditSheet.show(
       context: context,
-      builder: (ctx) {
-        final colors = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: colors.surface,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('请输入图片链接地址'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
-              const SizedBox(height: 12),
-              TextField(
-                controller: urlController,
-                keyboardType: TextInputType.url,
-                style: TextStyle(fontSize: 14, color: colors.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'https://example.com/image.jpg',
-                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
-                  filled: true,
-                  fillColor: colors.surfaceContainerHigh,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: Text('确定'.tr),
-            ),
-          ],
-        );
-      },
+      title: '添加网络图片'.tr,
+      actionLabel: '确定'.tr,
+      hintText: 'https://example.com/image.jpg',
+      description: '请输入图片链接地址'.tr,
+      keyboardType: TextInputType.url,
     );
 
-    final url = urlController.text.trim();
-    urlController.dispose();
+    if (url == null || url.trim().isEmpty) return;
 
-    if (confirmed != true || url.isEmpty) return;
-
-    await _downloadCoverFromUrl(url);
+    await _downloadCoverFromUrl(url.trim());
   }
 
   /// 选择上映日期
   Future<void> _selectReleaseDate() async {
-    final picked = await showDatePicker(
+    final picked = await showDatePickerSheet(
       context: context,
-      initialDate: _releaseDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
+      title: '上映日期'.tr,
+      initial: _releaseDate,
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) => child!,
     );
 
     if (!mounted) return;
@@ -1227,12 +1154,11 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
   /// 选择观看日期
   Future<void> _selectWatchDate() async {
-    final picked = await showDatePicker(
+    final picked = await showDatePickerSheet(
       context: context,
-      initialDate: _watchDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
+      title: '观看日期'.tr,
+      initial: _watchDate,
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => child!,
     );
 
     if (!mounted) return;
@@ -1409,64 +1335,6 @@ class _MovieFormPageState extends State<MovieFormPage> {
     }
 
     return null;
-  }
-}
-
-/// 剧情简介全屏编辑页
-class _SummaryEditorPage extends StatefulWidget {
-  final String initialText;
-  const _SummaryEditorPage({required this.initialText});
-
-  @override
-  State<_SummaryEditorPage> createState() => _SummaryEditorPageState();
-}
-
-class _SummaryEditorPageState extends State<_SummaryEditorPage> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialText);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: colors.surface,
-      appBar: AppBar(
-        title: Text('剧情简介'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, _controller.text.trim()),
-            child: Text('完成'.tr, style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary,
-            )),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: TextField(
-        controller: _controller,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.6),
-        decoration: InputDecoration(
-          hintText: '写下剧情简介...'.tr,
-          hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3)),
-          contentPadding: const EdgeInsets.all(20),
-          border: InputBorder.none,
-        ),
-      ),
-    );
   }
 }
 
