@@ -122,11 +122,21 @@ class _HomePageState extends State<HomePage> {
                 ),
                 VerticalDivider(width: 1, thickness: 1, color: colors.outlineVariant),
               ],
-              // 第三栏：内容区
+              // 第三栏：内容区（主页与模块页双常驻：切走再切回保留滚动位置与内部状态）
               Expanded(
-                child: isHomeTab
-                    ? const DesktopHomePage()
-                    : _buildPageView(provider),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Offstage(
+                      offstage: !isHomeTab,
+                      child: const DesktopHomePage(),
+                    ),
+                    Offstage(
+                      offstage: isHomeTab,
+                      child: _buildPageView(provider),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
