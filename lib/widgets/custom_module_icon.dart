@@ -123,15 +123,16 @@ const kCustomModuleIcons = <IconData>[
 ];
 
 /// 把 DB 中的 icon 字符串解析为 FontAwesome IconData；非 codePoint（旧 emoji 数据）返回 null
+/// 注意：必须返回 kCustomModuleIcons 中的常量实例——运行时 new IconData(codePoint, ...)
+/// 是非常量调用，会导致 release 构建的图标 tree-shake 失败
 IconData? customModuleIconData(String icon) {
   if (icon.isEmpty) return null;
   final codePoint = int.tryParse(icon);
   if (codePoint == null) return null;
-  return IconData(
-    codePoint,
-    fontFamily: 'FontAwesomeSolid',
-    fontPackage: 'font_awesome_flutter',
-  );
+  for (final iconData in kCustomModuleIcons) {
+    if (iconData.codePoint == codePoint) return iconData;
+  }
+  return null;
 }
 
 /// 渲染模块图标：FontAwesome 优先，旧 emoji 数据按文本渲染，空值显示兜底图标
