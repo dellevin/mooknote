@@ -34,6 +34,7 @@ const Map<String, String> enProfile = {
   '影视角色': 'Movie Character',
   '书籍角色': 'Book Character',
   '游戏角色': 'Game Character',
+  '自定义条目': 'Custom Item',
   '随手记': 'Quick Note',
   '热力图': 'Heatmap',
   '最近添加': 'Recently Added',

@@ -24,6 +24,7 @@ import '../data/character/movie_character_dao.dart';
 import '../data/character/book_character_dao.dart';
 import '../data/character/game_character_dao.dart';
 import '../data/custom_module/custom_module_dao.dart';
+import '../data/custom_module/custom_module_item_dao.dart';
 import '../services/sync/incremental/sync_tombstones.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
@@ -55,6 +56,7 @@ class AppProvider extends ChangeNotifier {
   final BookCharacterDao _bookCharacterDao = BookCharacterDao();
   final GameCharacterDao _gameCharacterDao = GameCharacterDao();
   final CustomModuleDao _customModuleDao = CustomModuleDao();
+  final CustomModuleItemDao _customModuleItemDao = CustomModuleItemDao();
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
@@ -508,6 +510,26 @@ class AppProvider extends ChangeNotifier {
   void bumpCustomModuleItemsVersion() {
     _customModuleItemsVersion++;
     notifyListeners();
+  }
+
+  // ========== 自定义模块条目回收站 ==========
+
+  Future<List<CustomModuleItem>> getDeletedCustomModuleItems() async {
+    return await _customModuleItemDao.getDeletedItems();
+  }
+
+  Future<void> restoreCustomModuleItem(String id) async {
+    await _customModuleItemDao.restoreItem(id);
+    bumpCustomModuleItemsVersion();
+  }
+
+  Future<void> permanentDeleteCustomModuleItem(String id) async {
+    await SyncTombstones.record('custom_module_items', id);
+    final item = await _customModuleItemDao.getItemRaw(id);
+    if (item != null) {
+      await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, id);
+    }
+    await _customModuleItemDao.permanentDeleteItem(id);
   }
 
   // 根据状态获取影视列表
@@ -1298,6 +1320,7 @@ class AppProvider extends ChangeNotifier {
     final deletedMovieCharacters = await getDeletedMovieCharacters();
     final deletedBookCharacters = await getDeletedBookCharacters();
     final deletedGameCharacters = await getDeletedGameCharacters();
+    final deletedCustomModuleItems = await getDeletedCustomModuleItems();
 
     // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
     final movieIds = deletedMovies.map((m) => m.id).toList();
@@ -1357,6 +1380,9 @@ class AppProvider extends ChangeNotifier {
       for (final id in gameCharacterIds) {
         await txn.delete('game_characters', where: 'id = ?', whereArgs: [id]);
       }
+      for (final item in deletedCustomModuleItems) {
+        await txn.delete('custom_module_items', where: 'id = ?', whereArgs: [item.id]);
+      }
     });
 
     // 事务成功后，清理关联的图片文件（文件删除失败不影响数据一致性）
@@ -1384,6 +1410,9 @@ class AppProvider extends ChangeNotifier {
     for (final id in gameCharacterIds) {
       await ImagePathHelper.instance.deleteCharacterImages(id);
     }
+    for (final item in deletedCustomModuleItems) {
+      await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, item.id);
+    }
 
     await loadMovies();
     await loadBooks();
@@ -1391,6 +1420,7 @@ class AppProvider extends ChangeNotifier {
     await loadGames();
     await loadPlaylists();
     await loadPeople();
+    bumpCustomModuleItemsVersion();
   }
 
   // ========== 影评书评回收站 ==========

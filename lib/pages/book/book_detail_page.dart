@@ -862,6 +862,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 整体可滚动（封面 + 内容一起滑动）
           Padding(
@@ -905,6 +907,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     return Scaffold(
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 海报背景（高度不够时重复拼接）
           if (hasCover)
@@ -993,6 +997,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 整体可滚动（封面卡片 + 内容一起滑动）
           Padding(

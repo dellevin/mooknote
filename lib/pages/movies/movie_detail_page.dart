@@ -1028,6 +1028,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 整体可滚动（图片 + 内容一起滑动）
           Padding(
@@ -1104,6 +1106,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
     return Scaffold(
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 海报背景
           if (hasPoster)
@@ -1185,6 +1189,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 整体可滚动（海报卡片 + 内容一起滑动）
           Padding(

@@ -147,6 +147,13 @@ class ImagePathHelper {
     return p.join(dir, fileName);
   }
 
+  /// 删除自定义模块条目图片目录
+  /// 删除路径: images/custom/{moduleId}/{itemId}/
+  Future<void> deleteCustomModuleItemImages(String moduleId, String itemId) async {
+    final dirPath = await getCustomModuleImagesDir(moduleId, itemId);
+    await _deleteDirectory(dirPath);
+  }
+
   // ==================== 人物相关路径 ====================
   /// 获取人物图片目录
   /// 路径: images/people/{personId}/

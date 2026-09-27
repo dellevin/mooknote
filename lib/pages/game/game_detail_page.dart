@@ -1079,6 +1079,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           Padding(
             padding: EdgeInsets.only(top: topSafe + 48),
@@ -1153,6 +1155,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
 
     return Scaffold(
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 封面背景
           if (hasCover)
@@ -1238,6 +1242,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       body: Stack(
+        // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
+        fit: StackFit.expand,
         children: [
           // 整体可滚动（封面卡片 + 内容一起滑动）
           Padding(

@@ -85,4 +85,49 @@ class CustomModuleItemDao {
       whereArgs: [id],
     );
   });
+
+  /// 回收站：全部已删除条目（按删除时间倒序）
+  Future<List<CustomModuleItem>> getDeletedItems() => _wrap('getDeletedItems', () async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'custom_module_items',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+    return maps.map((m) => CustomModuleItem.fromJson(m)).toList();
+  });
+
+  /// 含已删除的按 id 查询（彻底删除前取 moduleId 清理图片用）
+  Future<CustomModuleItem?> getItemRaw(String id) => _wrap('getItemRaw', () async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'custom_module_items',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) return null;
+    return CustomModuleItem.fromJson(maps.first);
+  });
+
+  /// 恢复
+  Future<int> restoreItem(String id) => _wrap('restoreItem', () async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'custom_module_items',
+      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
+
+  /// 彻底删除
+  Future<int> permanentDeleteItem(String id) => _wrap('permanentDeleteItem', () async {
+    final db = await _dbHelper.database;
+    return await db.delete(
+      'custom_module_items',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
 }

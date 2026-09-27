@@ -153,13 +153,20 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
       }
     }
 
-    // 头部元信息：日期/次数字段放在头部右侧（正文不再重复）
-    final metaFields = [
-      for (final f in fields)
-        if ((f.type == CustomFieldType.date || f.type == CustomFieldType.count) &&
-            _hasValue(item.data[f.key]))
-          f,
-    ];
+    // 头部元信息：日期字段最多显示前两个（其余留在正文），次数字段仍在头部
+    var headerDateCount = 0;
+    final metaFields = <CustomFieldDef>[];
+    for (final f in fields) {
+      if (!_hasValue(item.data[f.key])) continue;
+      if (f.type == CustomFieldType.date) {
+        if (headerDateCount < 2) {
+          metaFields.add(f);
+          headerDateCount++;
+        }
+      } else if (f.type == CustomFieldType.count) {
+        metaFields.add(f);
+      }
+    }
     final metaKeys = metaFields.map((f) => f.key).toSet();
     final bodyFields = [
       for (final f in fields)
@@ -177,7 +184,10 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
     ];
 
     final topSafe = MediaQuery.of(context).padding.top;
+    // fit: expand 让 Stack 撑满屏幕，否则内容少时 Stack 收缩到内容高度，
+    // Positioned(bottom) 的浮动按钮会跑到内容底部而不是屏幕右下角
     return Stack(
+      fit: StackFit.expand,
       children: [
         // 整体可滚动（海报 + 内容一起滑动）
         Padding(
