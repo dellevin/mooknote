@@ -46,38 +46,29 @@ class FadePageRoute extends PageRouteBuilder {
               child: child,
             );
           },
-          transitionDuration: const Duration(milliseconds: 2300),
-          reverseTransitionDuration: const Duration(milliseconds: 1600),
+          transitionDuration: const Duration(milliseconds: 500),
+          reverseTransitionDuration: const Duration(milliseconds: 400),
         );
 }
 
-/// 分段直线 RectTween（与 BookOpenHero 的淡化区间同节奏）：
-/// 打开（目标比源大）：600ms 放大到全屏 → 800ms 定格 → 900ms 定格（淡出期）；
-/// 关闭（目标比源小）：900ms 定格（淡入期）→ 300ms 定格 → 400ms 缩小。
-class _PhasedRectTween extends RectTween {
-  _PhasedRectTween({super.begin, super.end});
+/// 直线 RectTween（easeInOutCubic 缓动）：打开全程放大、关闭全程缩小，
+/// 无弧线回弹、无全屏定格
+class _LinearRectTween extends RectTween {
+  _LinearRectTween({super.begin, super.end});
 
   @override
   Rect? lerp(double t) {
     final b = begin, e = end;
     if (b == null || e == null) return super.lerp(t);
-    final expanding = e.shortestSide > b.shortestSide;
-    final tt = expanding
-        ? const Interval(0.0, 600 / 2300, curve: Curves.easeInOutCubic).transform(t)
-        : const Interval(1200 / 1600, 1.0, curve: Curves.easeInOutCubic).transform(t);
-    return Rect.lerp(b, e, tt);
+    return Rect.lerp(b, e, Curves.easeInOutCubic.transform(t));
   }
 }
 
-/// 放大打开式整页 Hero — 三段式容器变换：
-/// 打开（2300ms）：①600ms 封面（海报）从所在位置放大铺满全屏
-///       ②800ms 全屏定格（海报完整展示）
-///       ③900ms 封面线性淡出，露出详情页；
-/// 关闭（1600ms）：①900ms 详情页线性淡成海报
-///       ②300ms 全屏定格
-///       ③400ms 封面缩小退回海报位置。
-/// 直线轨迹（无弧线回弹）+ 圆角随形变 + 线性同步淡化，两端状态与
-/// 列表卡片/详情页逐像素一致，无生硬切换。
+/// 放大打开式整页 Hero — 容器变换一体完成：
+/// 打开（500ms）：封面（海报）从所在位置放大铺满全屏，途中封面淡出、详情页淡入；
+/// 关闭（400ms）：详情页缩小退回海报位置，途中详情页淡出、封面淡入。
+/// 无全屏定格。直线轨迹（无弧线回弹）+ 圆角随形变 + 同步交叉淡化，
+/// 两端状态与列表卡片/详情页逐像素一致，无生硬切换。
 class BookOpenHero extends StatelessWidget {
   final String tag;
   final Widget child;
@@ -92,7 +83,7 @@ class BookOpenHero extends StatelessWidget {
     return Hero(
       tag: tag,
       // 分段直线轨迹：展开与淡化分两段进行，避免弧线回弹
-      createRectTween: (begin, end) => _PhasedRectTween(begin: begin, end: end),
+      createRectTween: (begin, end) => _LinearRectTween(begin: begin, end: end),
       flightShuttleBuilder: (ctx, animation, direction, fromCtx, toCtx) {
         final opening = direction == HeroFlightDirection.push;
         // 取 Hero 的 child（封面=海报图，书页=详情页），不在飞行体里嵌套 Hero
@@ -105,23 +96,19 @@ class BookOpenHero extends StatelessWidget {
         return AnimatedBuilder(
           animation: flight,
           builder: (context, _) {
-            // 透明度用线性区间：同步交叉淡化，无加速"闪变"
+            // 形变与交叉淡化一体进行：打开时封面在放大中淡出、详情页同步淡入；
+            // 关闭时详情页在缩小中淡出、封面同步淡入。线性区间避免加速"闪变"
             final t = flight.value;
-            // 打开：放大与定格阶段（前 1400ms）封面完全不透明；
-            //       最后 900ms 封面线性淡出、书页同步淡入
-            // 关闭：前 900ms 书页线性淡出、封面同步淡入；
-            //       定格 300ms 后封面缩小 400ms 收回
-            final pageOpacity = opening
-                ? const Interval(1400 / 2300, 1.0).transform(t)
-                : 1 - const Interval(0.0, 900 / 1600).transform(t);
-            final coverOpacity = opening
-                ? 1 - const Interval(1400 / 2300, 1.0).transform(t)
-                : const Interval(0.0, 900 / 1600).transform(t);
-            // 圆角随容器形变（与 _PhasedRectTween 同节奏），落点与列表卡片一致
-            final radiusT = opening
-                ? const Interval(0.0, 600 / 2300, curve: Curves.easeInOutCubic).transform(t)
-                : const Interval(1200 / 1600, 1.0, curve: Curves.easeInOutCubic).transform(t);
-            final radius = _cardRadius * (1 - radiusT);
+            const fadeIn = Interval(0.35, 1.0);
+            const fadeOut = Interval(0.0, 0.65);
+            final pageOpacity =
+                opening ? fadeIn.transform(t) : 1 - fadeOut.transform(t);
+            final coverOpacity =
+                opening ? 1 - fadeIn.transform(t) : fadeOut.transform(t);
+            // 圆角随容器形变（与 RectTween 同一条缓动曲线），落点与列表卡片一致
+            final radiusT = Curves.easeInOutCubic.transform(t);
+            final radius =
+                opening ? _cardRadius * (1 - radiusT) : _cardRadius * radiusT;
             return ClipRRect(
               borderRadius: BorderRadius.circular(radius),
               child: Stack(
