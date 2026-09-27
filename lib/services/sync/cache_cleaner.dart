@@ -100,6 +100,13 @@ class CacheCleaner {
     final avatarPath = userPrefs.avatarPath;
     if (avatarPath != null && avatarPath.isNotEmpty) paths.add(avatarPath);
 
+    // 自定义模块条目封面
+    final customItems = await db.query('custom_module_items', columns: ['cover_path']);
+    for (final c in customItems) {
+      final p = c['cover_path'] as String?;
+      if (p != null && p.isNotEmpty) paths.add(p);
+    }
+
     return paths;
   }
 

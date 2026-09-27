@@ -28,6 +28,7 @@ import '../online_search/search_page.dart';
 import '../online_search/online_search_page.dart';
 import '../profile/profile_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/custom_module_icon.dart';
 import '../../l10n/app_strings.dart';
 
 /// 主页 - 包含底部导航，可切换主页/我的
@@ -112,8 +113,8 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
               VerticalDivider(width: 1, thickness: 1, color: colors.outlineVariant),
-              // 第二栏：列表面板（主页时隐藏）
-              if (!isHomeTab) ...[
+              // 第二栏：列表面板（主页或自定义模块 tab 时隐藏；自定义模块无独立面板）
+              if (!isHomeTab && provider.mainTabIndex < AppProvider.customModuleTabBase) ...[
                 SizedBox(
                   width: 300,
                   child: _DesktopListPanel(
@@ -382,6 +383,19 @@ class _DesktopIconRail extends StatelessWidget {
                 accentColor: t.$5,
                 selected: selected,
                 onTap: () => onTabSelected(t.$4),
+              );
+            }),
+            // 自定义模块（统一排在固定分类之后）
+            ...context.watch<AppProvider>().enabledCustomModules.asMap().entries.map((e) {
+              final idx = AppProvider.customModuleTabBase + e.key;
+              final moduleIcon = customModuleIconData(e.value.icon);
+              return _IconRailItem(
+                icon: moduleIcon ?? Icons.dashboard_customize_outlined,
+                activeIcon: moduleIcon ?? Icons.dashboard_customize,
+                label: e.value.name,
+                accentColor: colors.primary,
+                selected: mainTabIndex == idx,
+                onTap: () => onTabSelected(idx),
               );
             }),
             const Divider(height: 24, indent: 12, endIndent: 12),
@@ -2818,6 +2832,8 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
             await provider.loadGames();
             await provider.loadPlaylists();
             await provider.loadPeople();
+            await provider.loadCustomModules();
+            provider.bumpCustomModuleItemsVersion();
           }
           if (mounted) ToastUtil.show(context, '同步成功'.tr);
         } else {

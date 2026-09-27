@@ -17,6 +17,9 @@ class IncRowCodec {
     return p.basename(absPath);
   }
 
+  /// 字符串是否为 app 图片路径（统一反斜杠后判断）
+  static bool isImagePath(String v) => v.replaceAll('\\', '/').contains('/images/');
+
   /// 逻辑路径 → 本机绝对路径
   String localPathOf(String logical) => p.join(imagesRoot, logical);
 
@@ -39,6 +42,24 @@ class IncRowCodec {
               .whereType<String>()
               .map((e) => localPathOf(toLogical(e)))
               .toList());
+        } catch (_) {}
+      }
+    }
+    final mapCol = spec.imageJsonMapColumn;
+    if (mapCol != null) {
+      final v = out[mapCol];
+      if (v is String && v.isNotEmpty) {
+        try {
+          final map = jsonDecode(v) as Map<String, dynamic>;
+          final updated = Map<String, dynamic>.from(map);
+          var changed = false;
+          map.forEach((k, val) {
+            if (val is String && isImagePath(val)) {
+              updated[k] = localPathOf(toLogical(val));
+              changed = true;
+            }
+          });
+          if (changed) out[mapCol] = jsonEncode(updated);
         } catch (_) {}
       }
     }
@@ -80,6 +101,17 @@ class IncRowCodec {
         try {
           for (final e in jsonDecode(v) as List) {
             if (e is String && e.isNotEmpty) result.add(toLogical(e));
+          }
+        } catch (_) {}
+      }
+    }
+    final mapCol = spec.imageJsonMapColumn;
+    if (mapCol != null) {
+      final v = row[mapCol];
+      if (v is String && v.isNotEmpty) {
+        try {
+          for (final val in (jsonDecode(v) as Map<String, dynamic>).values) {
+            if (val is String && isImagePath(val)) result.add(toLogical(val));
           }
         } catch (_) {}
       }

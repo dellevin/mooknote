@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../utils/slide_up_page_route.dart';
 import '../widgets/app_overlay.dart';
+import '../widgets/custom_module_icon.dart';
 import '../l10n/app_strings.dart';
+import '../pages/custom_module/custom_module_form_page.dart';
 
 /// 新增记录弹窗 — 供底部导航栏和 NavigationRail 共用
 
@@ -98,6 +101,21 @@ void showAddSheet(BuildContext context, AppProvider provider) {
       },
     ));
   }
+  // 自定义分类模块：排在固定模块之后
+  for (final m in provider.enabledCustomModules) {
+    options.add(_buildOption(
+      colors: colors,
+      icon: Icons.dashboard_customize_outlined,
+      customIcon: m.icon,
+      title: m.name,
+      subtitle: '自定义分类模块'.tr,
+      onTap: () {
+        Navigator.pop(outerContext);
+        Navigator.push(outerContext,
+            SlideUpPageRoute(page: CustomModuleFormPage(module: m)));
+      },
+    ));
+  }
 
   if (Platform.isWindows) {
     appDialog(
@@ -175,6 +193,7 @@ Widget _buildOption({
   required String title,
   required String subtitle,
   required VoidCallback onTap,
+  String customIcon = '',
 }) {
   return InkWell(
     onTap: onTap,
@@ -189,7 +208,10 @@ Widget _buildOption({
               color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+            alignment: Alignment.center,
+            child: customIcon.isNotEmpty
+                ? buildCustomModuleIcon(customIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.6))
+                : Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
           ),
           const SizedBox(width: 12),
           Expanded(

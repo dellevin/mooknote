@@ -12,6 +12,9 @@ class IncEntitySpec {
   /// 笔记式 JSON 列表图片列（如 notes.images）
   final String? imageJsonColumn;
 
+  /// 自定义模块 data_json 式 JSON 对象图片列（{字段key: 图片路径}，海报值在其中）
+  final String? imageJsonMapColumn;
+
   /// 随本行整组打包的子表：组名 → 子表名
   final Map<String, String> groups;
 
@@ -20,6 +23,7 @@ class IncEntitySpec {
     required this.tsColumn,
     this.imageColumns = const [],
     this.imageJsonColumn,
+    this.imageJsonMapColumn,
     this.groups = const {},
   });
 }
@@ -84,6 +88,15 @@ class IncEntities {
     IncEntitySpec(table: 'game_characters', tsColumn: 'updated_at', imageColumns: ['image_path']),
     // 标签为追加式（无 updated_at），按 created_at 检测
     IncEntitySpec(table: 'tags', tsColumn: 'created_at'),
+    // 自定义分类模块三表；条目的海报路径在 data_json 对象值里
+    IncEntitySpec(table: 'custom_modules', tsColumn: 'updated_at'),
+    IncEntitySpec(table: 'custom_module_designs', tsColumn: 'updated_at'),
+    IncEntitySpec(
+      table: 'custom_module_items',
+      tsColumn: 'updated_at',
+      imageColumns: ['cover_path'],
+      imageJsonMapColumn: 'data_json',
+    ),
   ];
 
   /// 子组表规格

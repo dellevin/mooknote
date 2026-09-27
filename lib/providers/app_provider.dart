@@ -23,6 +23,7 @@ import '../data/person/game_person_dao.dart';
 import '../data/character/movie_character_dao.dart';
 import '../data/character/book_character_dao.dart';
 import '../data/character/game_character_dao.dart';
+import '../data/custom_module/custom_module_dao.dart';
 import '../services/sync/incremental/sync_tombstones.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
@@ -53,6 +54,7 @@ class AppProvider extends ChangeNotifier {
   final MovieCharacterDao _movieCharacterDao = MovieCharacterDao();
   final BookCharacterDao _bookCharacterDao = BookCharacterDao();
   final GameCharacterDao _gameCharacterDao = GameCharacterDao();
+  final CustomModuleDao _customModuleDao = CustomModuleDao();
   // 数据列表
   List<Movie> _movies = [];
   List<Book> _books = [];
@@ -60,6 +62,7 @@ class AppProvider extends ChangeNotifier {
   List<Game> _games = [];
   List<Playlist> _playlists = [];
   List<Person> _people = [];
+  List<CustomModule> _customModules = [];
 
   // 当前主界面选中的标签 (0: 观影，1: 阅读，2: 笔记)
   int _mainTabIndex = 0;
@@ -208,6 +211,11 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[AppProvider] 加载人物数据失败: $e');
     }
+    try {
+      _customModules = await _customModuleDao.getAllModules();
+    } catch (e) {
+      debugPrint('[AppProvider] 加载自定义模块失败: $e');
+    }
     // 检查是否全部失败
     if (_movies.isEmpty && _books.isEmpty && _notes.isEmpty && _games.isEmpty) {
       // 可能是初始化全部失败（非空数据库场景下不合理），标记以便 UI 提示
@@ -257,7 +265,19 @@ class AppProvider extends ChangeNotifier {
       final showNote = userPrefs.showNoteTab;
       final showGame = userPrefs.showGameTab;
       final enabled = [showMovie, showBook, showNote, showGame];
-      if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
+      if (defaultIndex >= customModuleTabBase) {
+        // 自定义模块标签：校验仍在启用列表内
+        final idx = defaultIndex - customModuleTabBase;
+        if (idx >= 0 && idx < enabledCustomModules.length) {
+          _mainTabIndex = defaultIndex;
+        } else {
+          _mainTabIndex = enabled.indexWhere((e) => e);
+          if (_mainTabIndex == -1) {
+            // 固定模块全关但有自定义模块时，落到第一个自定义模块
+            _mainTabIndex = enabledCustomModules.isNotEmpty ? customModuleTabBase : 0;
+          }
+        }
+      } else if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
         _mainTabIndex = defaultIndex;
       } else {
         // 回退到第一个启用的标签
@@ -269,6 +289,8 @@ class AppProvider extends ChangeNotifier {
           _mainTabIndex = 2;
         } else if (showGame) {
           _mainTabIndex = 3;
+        } else if (enabledCustomModules.isNotEmpty) {
+          _mainTabIndex = customModuleTabBase;
         }
       }
     }
@@ -403,6 +425,90 @@ class AppProvider extends ChangeNotifier {
   List<Game> get games => UnmodifiableListView(_games);
   List<Playlist> get playlists => UnmodifiableListView(_playlists);
   List<Person> get people => UnmodifiableListView(_people);
+  List<CustomModule> get customModules => UnmodifiableListView(_customModules);
+
+  /// 启用中的自定义模块（首页 tab 用，顺序即 tab 顺序）
+  List<CustomModule> get enabledCustomModules =>
+      _customModules.where((m) => m.isEnabled).toList();
+
+  CustomModule? getCustomModuleById(String id) {
+    for (final m in _customModules) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  /// 自定义模块 tab 索引基数：mainTabIndex >= 100 时为自定义模块（100+i）
+  static const int customModuleTabBase = 100;
+
+  // ========== 自定义模块 CRUD ==========
+
+  Future<void> loadCustomModules() async {
+    _customModules = await _customModuleDao.getAllModules();
+    notifyListeners();
+  }
+
+  Future<CustomModule> addCustomModule(String name, {String icon = ''}) async {
+    final now = DateTime.now();
+    final maxSort = _customModules.isEmpty
+        ? 0
+        : _customModules.map((m) => m.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    final module = CustomModule(
+      id: const Uuid().v4(),
+      name: name,
+      icon: icon,
+      sortOrder: maxSort,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _customModuleDao.insertModule(module);
+    _customModules.add(module);
+    notifyListeners();
+    return module;
+  }
+
+  Future<void> updateCustomModule(CustomModule module) async {
+    final updated = module.copyWith(updatedAt: DateTime.now());
+    await _customModuleDao.updateModule(updated);
+    final idx = _customModules.indexWhere((m) => m.id == module.id);
+    if (idx != -1) _customModules[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> deleteCustomModule(String id) async {
+    await _customModuleDao.deleteModule(id);
+    _customModules.removeWhere((m) => m.id == id);
+    // 当前 tab 正停在被删模块上时回退到第一个固定 tab
+    if (_mainTabIndex >= customModuleTabBase) {
+      final idx = _mainTabIndex - customModuleTabBase;
+      if (idx >= enabledCustomModules.length) {
+        _mainTabIndex = 0;
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> setCustomModuleEnabled(String id, bool enabled) async {
+    await _customModuleDao.setEnabled(id, enabled);
+    final idx = _customModules.indexWhere((m) => m.id == id);
+    if (idx != -1) {
+      _customModules[idx] = _customModules[idx].copyWith(isEnabled: enabled, updatedAt: DateTime.now());
+    }
+    // 当前 tab 是被停用的模块时回退
+    if (!enabled && _mainTabIndex >= customModuleTabBase) {
+      _mainTabIndex = 0;
+    }
+    notifyListeners();
+  }
+
+  /// 自定义模块条目变更版本号：条目页各自用 DAO 读写，
+  /// 通过底部 + 弹窗等外部入口新增后，借此通知 tab 页刷新列表
+  int _customModuleItemsVersion = 0;
+  int get customModuleItemsVersion => _customModuleItemsVersion;
+  void bumpCustomModuleItemsVersion() {
+    _customModuleItemsVersion++;
+    notifyListeners();
+  }
 
   // 根据状态获取影视列表
   List<Movie> getMoviesByStatus(String status) {
@@ -433,8 +539,18 @@ class AppProvider extends ChangeNotifier {
     // 当前标签被关闭时，回退到第一个启用的标签
     final userPrefs = UserPrefs();
     final enabled = [userPrefs.showMovieTab, userPrefs.showBookTab, userPrefs.showNoteTab, userPrefs.showGameTab];
-    if (_mainTabIndex >= 0 && _mainTabIndex < enabled.length && !enabled[_mainTabIndex]) {
+    if (_mainTabIndex >= customModuleTabBase) {
+      // 自定义模块标签被停用/删除时回退
+      final idx = _mainTabIndex - customModuleTabBase;
+      if (idx >= enabledCustomModules.length) {
+        _mainTabIndex = enabled.indexWhere((e) => e);
+        if (_mainTabIndex == -1) _mainTabIndex = 0;
+      }
+    } else if (_mainTabIndex >= 0 && _mainTabIndex < enabled.length && !enabled[_mainTabIndex]) {
       _mainTabIndex = enabled.indexWhere((e) => e);
+      if (_mainTabIndex == -1) {
+        _mainTabIndex = enabledCustomModules.isNotEmpty ? customModuleTabBase : 0;
+      }
     }
     notifyListeners();
   }

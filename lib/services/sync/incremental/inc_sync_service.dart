@@ -866,6 +866,24 @@ class IncSyncService {
         } catch (_) {}
       }
     }
+    final mapCol = spec.imageJsonMapColumn;
+    if (mapCol != null) {
+      final v = out[mapCol];
+      if (v is String && v.isNotEmpty) {
+        try {
+          final map = jsonDecode(v) as Map<String, dynamic>;
+          final updated = Map<String, dynamic>.from(map);
+          var changed = false;
+          map.forEach((k, val) {
+            if (val is String && IncRowCodec.isImagePath(val)) {
+              updated[k] = IncRowCodec.toLogical(val);
+              changed = true;
+            }
+          });
+          if (changed) out[mapCol] = jsonEncode(updated);
+        } catch (_) {}
+      }
+    }
     return out;
   }
 

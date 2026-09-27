@@ -248,6 +248,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         await widget.appProvider.loadGames();
         await widget.appProvider.loadPlaylists();
         await widget.appProvider.loadPeople();
+        await widget.appProvider.loadCustomModules();
+        widget.appProvider.bumpCustomModuleItemsVersion();
       }
     } catch (e) {
       debugPrint('[IncAutoSync] 自动同步异常: $e');

@@ -1750,3 +1750,366 @@ class GalleryItem {
   });
 }
 
+// ========== 自定义分类模块 ==========
+
+/// 自定义字段类型
+enum CustomFieldType {
+  poster,      // 海报图导入
+  status,      // 状态（用户自定义选项）
+  rating,      // 评分
+  count,       // 次数（加减号）
+  text,        // 单文本
+  multiText,   // 多文本列表
+  date,        // 时间选择器
+  longText,    // 长文本
+}
+
+/// 自定义模块设计中的单个字段定义（存于 design 的 fields_json 数组中）
+class CustomFieldDef {
+  final String key;            // 字段唯一 key（生成后不变，label 可改）
+  final CustomFieldType type;
+  final String label;          // 显示名（如"名称""观看时间"）
+  final bool required;         // 是否必填（仅 text/multiText/longText 有意义）
+  final List<String> options;  // 状态选项（仅 status）
+  final bool isTitle;          // 是否为标题字段（仅 text，一个设计至多一个）
+  final bool halfWidth;        // 半行显示：与相邻半行字段并排为一行（仅 text/multiText/date/count）
+  final bool halfOnLeft;       // 半行落单时卡片靠左（false 则靠右），设计页拖到自己的虚框上可切换
+  final String icon;           // 字段自定义图标（FontAwesome codePoint 字符串，空 = 按类型默认图标）
+
+  const CustomFieldDef({
+    required this.key,
+    required this.type,
+    required this.label,
+    this.required = false,
+    this.options = const [],
+    this.isTitle = false,
+    this.halfWidth = false,
+    this.halfOnLeft = true,
+    this.icon = '',
+  });
+
+  factory CustomFieldDef.fromJson(Map<String, dynamic> json) {
+    return CustomFieldDef(
+      key: json['key'] ?? '',
+      type: CustomFieldType.values.firstWhere(
+        (t) => t.name == json['type'],
+        orElse: () => CustomFieldType.text,
+      ),
+      label: json['label'] ?? '',
+      required: json['required'] == true,
+      options: parseStringListGeneric(json['options']),
+      isTitle: json['isTitle'] == true,
+      halfWidth: json['halfWidth'] == true,
+      halfOnLeft: json['halfOnLeft'] != false,
+      icon: json['icon']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'key': key,
+    'type': type.name,
+    'label': label,
+    'required': required,
+    'options': options,
+    'isTitle': isTitle,
+    'halfWidth': halfWidth,
+    'halfOnLeft': halfOnLeft,
+    'icon': icon,
+  };
+
+  CustomFieldDef copyWith({
+    String? key,
+    CustomFieldType? type,
+    String? label,
+    bool? required,
+    List<String>? options,
+    bool? isTitle,
+    bool? halfWidth,
+    bool? halfOnLeft,
+    String? icon,
+  }) {
+    return CustomFieldDef(
+      key: key ?? this.key,
+      type: type ?? this.type,
+      label: label ?? this.label,
+      required: required ?? this.required,
+      options: options ?? this.options,
+      isTitle: isTitle ?? this.isTitle,
+      halfWidth: halfWidth ?? this.halfWidth,
+      halfOnLeft: halfOnLeft ?? this.halfOnLeft,
+      icon: icon ?? this.icon,
+    );
+  }
+}
+
+/// 自定义分类模块（用户自建分类，如"追剧""播客"）
+class CustomModule {
+  final String id;
+  final String name;
+  final String icon;          // emoji 或图标名
+  final int sortOrder;        // 模块间排序
+  final String? activeDesignId; // 当前使用的设计表 id
+  final bool isEnabled;       // 首页 tab 开关
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+
+  CustomModule({
+    required this.id,
+    required this.name,
+    this.icon = '',
+    this.sortOrder = 0,
+    this.activeDesignId,
+    this.isEnabled = true,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
+  });
+
+  factory CustomModule.fromJson(Map<String, dynamic> json) {
+    return CustomModule(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      icon: json['icon'] ?? '',
+      sortOrder: _safeParseInt(json['sort_order']),
+      activeDesignId: json['active_design_id'],
+      isEnabled: json['is_enabled'] == 1 || json['is_enabled'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'icon': icon,
+    'sort_order': sortOrder,
+    'active_design_id': activeDesignId,
+    'is_enabled': isEnabled ? 1 : 0,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt.toUtc().toIso8601String(),
+    'is_deleted': isDeleted ? 1 : 0,
+  };
+
+  CustomModule copyWith({
+    String? id,
+    String? name,
+    String? icon,
+    int? sortOrder,
+    Object? activeDesignId = _copyWithNull,
+    bool? isEnabled,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  }) {
+    return CustomModule(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      sortOrder: sortOrder ?? this.sortOrder,
+      activeDesignId: activeDesignId is _CopyWithNullSentinel ? this.activeDesignId : (activeDesignId as String?),
+      isEnabled: isEnabled ?? this.isEnabled,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+}
+
+/// 自定义模块设计表（一个模块可有多份设计，激活的只有一个）
+class CustomModuleDesign {
+  final String id;
+  final String moduleId;
+  final String name;                 // 设计名称（如"默认设计"）
+  final List<CustomFieldDef> fields; // 字段定义列表
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+
+  CustomModuleDesign({
+    required this.id,
+    required this.moduleId,
+    required this.name,
+    this.fields = const [],
+    this.isActive = false,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
+  });
+
+  factory CustomModuleDesign.fromJson(Map<String, dynamic> json) {
+    final rawFields = json['fields_json'];
+    List<CustomFieldDef> fields = [];
+    if (rawFields is String && rawFields.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawFields);
+        if (decoded is List) {
+          fields = decoded.map((e) => CustomFieldDef.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        }
+      } catch (_) {}
+    }
+    return CustomModuleDesign(
+      id: json['id'] ?? '',
+      moduleId: json['module_id'] ?? '',
+      name: json['name'] ?? '',
+      fields: fields,
+      isActive: json['is_active'] == 1 || json['is_active'] == true,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'module_id': moduleId,
+    'name': name,
+    'fields_json': jsonEncode(fields.map((f) => f.toJson()).toList()),
+    'is_active': isActive ? 1 : 0,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt.toUtc().toIso8601String(),
+    'is_deleted': isDeleted ? 1 : 0,
+  };
+
+  /// 标题字段（isTitle 的单文本，缺省取第一个单文本）
+  CustomFieldDef? get titleField {
+    for (final f in fields) {
+      if (f.type == CustomFieldType.text && f.isTitle) return f;
+    }
+    for (final f in fields) {
+      if (f.type == CustomFieldType.text) return f;
+    }
+    return null;
+  }
+
+  /// 某类型第一个字段（poster/status/rating/count 每种至多一个）
+  CustomFieldDef? firstFieldOf(CustomFieldType type) {
+    for (final f in fields) {
+      if (f.type == type) return f;
+    }
+    return null;
+  }
+
+  CustomModuleDesign copyWith({
+    String? id,
+    String? moduleId,
+    String? name,
+    List<CustomFieldDef>? fields,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  }) {
+    return CustomModuleDesign(
+      id: id ?? this.id,
+      moduleId: moduleId ?? this.moduleId,
+      name: name ?? this.name,
+      fields: fields ?? this.fields,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+}
+
+/// 自定义模块条目（按设计表填写的实际数据）
+class CustomModuleItem {
+  final String id;
+  final String moduleId;
+  // 以下四列从 data 中按设计提取，供列表页展示/排序
+  final String title;
+  final String? coverPath;
+  final double? rating;
+  final String? status;
+  final Map<String, dynamic> data; // 全部字段值 {fieldKey: value}
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+
+  CustomModuleItem({
+    required this.id,
+    required this.moduleId,
+    this.title = '',
+    this.coverPath,
+    this.rating,
+    this.status,
+    this.data = const {},
+    required this.createdAt,
+    required this.updatedAt,
+    this.isDeleted = false,
+  });
+
+  factory CustomModuleItem.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic> data = {};
+    final rawData = json['data_json'];
+    if (rawData is String && rawData.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map) data = Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+    } else if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+    return CustomModuleItem(
+      id: json['id'] ?? '',
+      moduleId: json['module_id'] ?? '',
+      title: json['title'] ?? '',
+      coverPath: json['cover_path'],
+      rating: _safeParseDouble(json['rating']),
+      status: json['status'],
+      data: data,
+      createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
+      updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
+      isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'module_id': moduleId,
+    'title': title,
+    'cover_path': coverPath,
+    'rating': rating,
+    'status': status,
+    'data_json': jsonEncode(data),
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt.toUtc().toIso8601String(),
+    'is_deleted': isDeleted ? 1 : 0,
+  };
+
+  /// 获取封面文件
+  File? get coverFile {
+    if (coverPath == null || coverPath!.isEmpty) return null;
+    return File(coverPath!);
+  }
+
+  CustomModuleItem copyWith({
+    String? id,
+    String? moduleId,
+    String? title,
+    Object? coverPath = _copyWithNull,
+    Object? rating = _copyWithNull,
+    Object? status = _copyWithNull,
+    Map<String, dynamic>? data,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+  }) {
+    return CustomModuleItem(
+      id: id ?? this.id,
+      moduleId: moduleId ?? this.moduleId,
+      title: title ?? this.title,
+      coverPath: coverPath is _CopyWithNullSentinel ? this.coverPath : (coverPath as String?),
+      rating: rating is _CopyWithNullSentinel ? this.rating : (rating as double?),
+      status: status is _CopyWithNullSentinel ? this.status : (status as String?),
+      data: data ?? this.data,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+}
+

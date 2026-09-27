@@ -194,6 +194,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             await provider.loadGames();
             await provider.loadPlaylists();
             await provider.loadPeople();
+            await provider.loadCustomModules();
+            provider.bumpCustomModuleItemsVersion();
           }
           if (mounted) {
             _showResultDialog('同步成功'.tr, details);
@@ -251,6 +253,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           await provider.loadGames();
           await provider.loadPlaylists();
           await provider.loadPeople();
+          await provider.loadCustomModules();
+          provider.bumpCustomModuleItemsVersion();
           if (mounted) _showResultDialog('同步成功'.tr, details);
         } else {
           _showResultDialog('同步成功'.tr, details);
@@ -533,6 +537,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             await provider.loadGames();
             await provider.loadPlaylists();
             await provider.loadPeople();
+            await provider.loadCustomModules();
+            provider.bumpCustomModuleItemsVersion();
           }
           if (mounted) {
             _showResultDialog('同步成功'.tr,
@@ -600,6 +606,8 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
             await provider.loadGames();
             await provider.loadPlaylists();
             await provider.loadPeople();
+            await provider.loadCustomModules();
+            provider.bumpCustomModuleItemsVersion();
           }
           if (mounted) {
             _showResultDialog('恢复完成'.tr,

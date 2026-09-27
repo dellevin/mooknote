@@ -131,8 +131,23 @@ class ImagePathHelper {
     return p.join(dir, fileName);
   }
 
-  // ==================== 人物相关路径 ====================
+  // ==================== 自定义模块相关路径 ====================
 
+  /// 获取自定义模块条目图片目录
+  /// 路径: images/custom/{moduleId}/{itemId}/
+  Future<String> getCustomModuleImagesDir(String moduleId, String itemId) async {
+    final root = await imagesRoot;
+    return p.join(root, 'custom', moduleId, itemId);
+  }
+
+  /// 获取自定义模块条目封面路径
+  /// 路径: images/custom/{moduleId}/{itemId}/{fileName}
+  Future<String> getCustomModuleCoverPath(String moduleId, String itemId, String fileName) async {
+    final dir = await getCustomModuleImagesDir(moduleId, itemId);
+    return p.join(dir, fileName);
+  }
+
+  // ==================== 人物相关路径 ====================
   /// 获取人物图片目录
   /// 路径: images/people/{personId}/
   Future<String> getPersonImagesDir(String personId) async {

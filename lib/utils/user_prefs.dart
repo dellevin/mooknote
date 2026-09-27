@@ -205,6 +205,9 @@ class UserPrefs {
   bool get showSidebarQuickActions => prefs.getBool('showSidebarQuickActions') ?? true;
   Future<bool> setShowSidebarQuickActions(bool value) => prefs.setBool('showSidebarQuickActions', value);
 
+  bool get showSidebarCustomModule => prefs.getBool('showSidebarCustomModule') ?? true;
+  Future<bool> setShowSidebarCustomModule(bool value) => prefs.setBool('showSidebarCustomModule', value);
+
   /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
   Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);

@@ -80,6 +80,9 @@ class BackupService {
     final movieCharacters = await db.query('movie_characters');
     final bookCharacters = await db.query('book_characters');
     final gameCharacters = await db.query('game_characters');
+    final customModules = await db.query('custom_modules');
+    final customModuleDesigns = await db.query('custom_module_designs');
+    final customModuleItems = await db.query('custom_module_items');
 
     // 收集图片路径
     final imagePaths = <String>{};
@@ -122,6 +125,21 @@ class BackupService {
       final ip = c['image_path'] as String?;
       if (ip != null && ip.isNotEmpty) imagePaths.add(ip);
     }
+    // 自定义模块条目：cover_path + data_json 对象值里的海报路径
+    for (final it in customModuleItems) {
+      final cp = it['cover_path'] as String?;
+      if (cp != null && cp.isNotEmpty) imagePaths.add(cp);
+      final dj = it['data_json'] as String?;
+      if (dj != null && dj.isNotEmpty) {
+        try {
+          for (final v in (jsonDecode(dj) as Map<String, dynamic>).values) {
+            if (v is String && v.replaceAll('\\', '/').contains('/images/')) {
+              imagePaths.add(v);
+            }
+          }
+        } catch (_) {}
+      }
+    }
 
     final userPrefs = UserPrefs();
     final userInfo = {
@@ -161,6 +179,9 @@ class BackupService {
         'movie_characters': movieCharacters,
         'book_characters': bookCharacters,
         'game_characters': gameCharacters,
+        'custom_modules': customModules,
+        'custom_module_designs': customModuleDesigns,
+        'custom_module_items': customModuleItems,
       },
     };
 
@@ -488,6 +509,9 @@ class BackupService {
     final movieCharactersCols = await _getTableColumns(db, 'movie_characters');
     final bookCharactersCols = await _getTableColumns(db, 'book_characters');
     final gameCharactersCols = await _getTableColumns(db, 'game_characters');
+    final customModulesCols = await _getTableColumns(db, 'custom_modules');
+    final customModuleDesignsCols = await _getTableColumns(db, 'custom_module_designs');
+    final customModuleItemsCols = await _getTableColumns(db, 'custom_module_items');
 
     await db.transaction((txn) async {
       await txn.delete('movie_reviews');
@@ -505,6 +529,9 @@ class BackupService {
       await txn.delete('movie_characters');
       await txn.delete('book_characters');
       await txn.delete('game_characters');
+      await txn.delete('custom_module_items');
+      await txn.delete('custom_module_designs');
+      await txn.delete('custom_modules');
       await txn.delete('movies');
       await txn.delete('books');
       await txn.delete('notes');
@@ -615,6 +642,22 @@ class BackupService {
           await txn.insert('game_characters', _updateImagePath(_convertToDbMapSafe(c, gameCharactersCols), 'image_path', imagePathMap));
         }
       }
+      if (data.containsKey('custom_modules')) {
+        for (final m in data['custom_modules'] as List) {
+          await txn.insert('custom_modules', _convertToDbMapSafe(m, customModulesCols));
+        }
+      }
+      if (data.containsKey('custom_module_designs')) {
+        for (final d in data['custom_module_designs'] as List) {
+          await txn.insert('custom_module_designs', _convertToDbMapSafe(d, customModuleDesignsCols));
+        }
+      }
+      if (data.containsKey('custom_module_items')) {
+        for (final it in data['custom_module_items'] as List) {
+          final map = _updateImagePath(_convertToDbMapSafe(it, customModuleItemsCols), 'cover_path', imagePathMap);
+          await txn.insert('custom_module_items', _updateDataJsonImagePaths(map, imagePathMap));
+        }
+      }
     });
 
     if (clearPushAfter) {
@@ -709,6 +752,8 @@ class BackupService {
       if (data.containsKey(key)) charCount += (data[key] as List).length;
     }
     if (charCount > 0) stats['角色'] = charCount;
+    if (data.containsKey('custom_modules')) stats['自定义模块'] = (data['custom_modules'] as List).length;
+    if (data.containsKey('custom_module_items')) stats['自定义条目'] = (data['custom_module_items'] as List).length;
     if (imageCount > 0) stats['图片'] = imageCount;
     return stats;
   }
@@ -775,6 +820,30 @@ class BackupService {
       newItem['images'] = jsonEncode(updatedImages);
     } catch (e) {
       debugPrint('[BackupService] 笔记图片路径更新失败: $e');
+    }
+    return newItem;
+  }
+
+  /// 更新自定义模块条目 data_json 内的海报路径（JSON 对象中值为图片路径的项）
+  Map<String, dynamic> _updateDataJsonImagePaths(Map<String, dynamic> item, Map<String, String> imagePathMap) {
+    final newItem = Map<String, dynamic>.from(item);
+    final dj = item['data_json'] as String?;
+    if (dj == null || dj.isEmpty) return newItem;
+
+    try {
+      final map = jsonDecode(dj) as Map<String, dynamic>;
+      final updated = Map<String, dynamic>.from(map);
+      var changed = false;
+      map.forEach((k, v) {
+        if (v is String && v.replaceAll('\\', '/').contains('/images/')) {
+          final relPath = _toRelativePath(v);
+          updated[k] = imagePathMap[relPath] ?? v;
+          changed = true;
+        }
+      });
+      if (changed) newItem['data_json'] = jsonEncode(updated);
+    } catch (e) {
+      debugPrint('[BackupService] 自定义模块 data_json 图片路径更新失败: $e');
     }
     return newItem;
   }

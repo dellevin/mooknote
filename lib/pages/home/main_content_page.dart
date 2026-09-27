@@ -10,6 +10,9 @@ import '../movies/movie_tab_page.dart';
 import '../book/book_tab_page.dart';
 import '../note/note_tab_page.dart';
 import '../game/game_tab_page.dart';
+import '../custom_module/custom_module_tab_page.dart';
+import '../../widgets/custom_module_icon.dart';
+import '../../models/data_models.dart';
 import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
@@ -50,8 +53,17 @@ class _MainContentPageState extends State<MainContentPage> {
     if (_showBookTab) tabs.add(_TabItem('阅读', 1));
     if (_showGameTab) tabs.add(_TabItem('游戏', 3));
     if (_showNoteTab) tabs.add(_TabItem('笔记', 2));
+    // 自定义模块统一排在固定模块之后，索引 100+i，不参与长按排序
+    final customs = _customModules;
+    for (var i = 0; i < customs.length; i++) {
+      tabs.add(_TabItem(customs[i].name, AppProvider.customModuleTabBase + i, customIcon: customs[i].icon));
+    }
     return tabs;
   }
+
+  /// 直接读取 provider 的启用自定义模块（provider 通知重建时拿到最新值）
+  List<CustomModule> get _customModules =>
+      context.read<AppProvider>().enabledCustomModules;
 
   int _mapToEnabledTabIndex(int originalIndex) {
     final tabs = _enabledTabs;
@@ -115,7 +127,7 @@ class _MainContentPageState extends State<MainContentPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_tabIcon(currentLabel), size: 20, color: colors.primary),
+          _tabLeadingIcon(tabs[safeIndex], size: 20, color: colors.primary),
           const SizedBox(width: 6),
           Text(currentLabel.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(width: 2),
@@ -150,7 +162,7 @@ class _MainContentPageState extends State<MainContentPage> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       leading: Container(width: 36, height: 36,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-          child: Icon(_tabIcon(tab.label), size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
+          child: _tabLeadingIcon(tab, size: 20, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
       title: Text(tab.label.tr, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface)),
       trailing: selected ? Icon(Icons.check, size: 20, color: colors.primary) : null,
       onTap: () {
@@ -167,7 +179,17 @@ class _MainContentPageState extends State<MainContentPage> {
         // 只剩一个模块时，不显示模块分类名称
         if (_enabledTabs.length <= 1) return 'MookNote';
         return const ['影视', '阅读', '笔记', '游戏'][provider.mainTabIndex].tr;
-      default: return 'MookNote';
+      default:
+        // 自定义模块
+        if (provider.mainTabIndex >= AppProvider.customModuleTabBase) {
+          final idx = provider.mainTabIndex - AppProvider.customModuleTabBase;
+          final customs = _customModules;
+          if (idx >= 0 && idx < customs.length) {
+            if (_enabledTabs.length <= 1) return 'MookNote';
+            return customs[idx].name;
+          }
+        }
+        return 'MookNote';
     }
   }
 
@@ -291,7 +313,7 @@ class _MainContentPageState extends State<MainContentPage> {
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-                                    Icon(_tabIcon(tab.label), size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
+                                    _tabLeadingIcon(tab, size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
                                     const SizedBox(width: 5),
                                     Text(tab.label.tr, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3))),
                                   ]),
@@ -382,6 +404,8 @@ class _MainContentPageState extends State<MainContentPage> {
           if (_showBookTab) const BookTabPage(),
           if (_showGameTab) const GameTabPage(),
           if (_showNoteTab) const NoteTabPage(),
+          for (final m in _customModules)
+            CustomModuleTabPage(key: ValueKey('custom-tab-${m.id}'), module: m),
         ];
 
         // 所有页面常驻：状态（滚动位置、内部分页）永久保留。
@@ -416,15 +440,24 @@ class _MainContentPageState extends State<MainContentPage> {
       case '阅读': return Icons.menu_book_outlined;
       case '笔记': return Icons.sticky_note_2_outlined;
       case '游戏': return Icons.sports_esports_outlined;
-      default: return Icons.circle;
+      default: return Icons.dashboard_customize_outlined;
     }
+  }
+
+  /// 标签前导图标：自定义模块用 FontAwesome 图标（兼容旧 emoji 数据），固定模块用 IconData
+  Widget _tabLeadingIcon(_TabItem tab, {double size = 20, Color? color}) {
+    if (tab.customIcon.isNotEmpty) {
+      return buildCustomModuleIcon(tab.customIcon, size: size - 2, color: color);
+    }
+    return Icon(_tabIcon(tab.label), size: size, color: color);
   }
 }
 
 class _TabItem {
   final String label;
   final int originalIndex;
-  _TabItem(this.label, this.originalIndex);
+  final String customIcon; // 自定义模块图标字符串，固定模块为空串
+  _TabItem(this.label, this.originalIndex, {this.customIcon = ''});
 }
 
 /// 云备份弹窗内容（异步加载远程信息，避免阻塞弹窗弹出）
@@ -487,6 +520,8 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         await provider.loadGames();
         await provider.loadPlaylists();
         await provider.loadPeople();
+        await provider.loadCustomModules();
+        provider.bumpCustomModuleItemsVersion();
       }
       if (mounted) {
         setState(() => _syncing = false);
@@ -528,6 +563,8 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         await provider.loadGames();
         await provider.loadPlaylists();
         await provider.loadPeople();
+        await provider.loadCustomModules();
+        provider.bumpCustomModuleItemsVersion();
       }
       if (mounted) {
         setState(() => _syncing = false);
@@ -560,6 +597,8 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
         await provider.loadGames();
         await provider.loadPlaylists();
         await provider.loadPeople();
+        await provider.loadCustomModules();
+        provider.bumpCustomModuleItemsVersion();
       }
       if (mounted) {
         setState(() => _syncing = false);

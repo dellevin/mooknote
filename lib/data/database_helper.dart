@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 46,
+      version: 47,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -478,6 +478,55 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE game_reviews ADD COLUMN review_date TEXT');
       }
     }
+    if (oldVersion < 47) {
+      // 自定义分类模块：模块表 + 设计表 + 条目数据表
+      await _createCustomModuleTables(db);
+    }
+  }
+
+  /// 自定义分类模块三张表（v47，onCreate 与迁移共用）
+  Future<void> _createCustomModuleTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS custom_modules (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        icon TEXT DEFAULT '',
+        sort_order INTEGER DEFAULT 0,
+        active_design_id TEXT,
+        is_enabled INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS custom_module_designs (
+        id TEXT PRIMARY KEY,
+        module_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        fields_json TEXT DEFAULT '[]',
+        is_active INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_custom_designs_module ON custom_module_designs(module_id)');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS custom_module_items (
+        id TEXT PRIMARY KEY,
+        module_id TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        cover_path TEXT,
+        rating REAL,
+        status TEXT,
+        data_json TEXT DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_custom_items_module ON custom_module_items(module_id)');
   }
   Future<void> _upgradeBooksTableV26(Database db) async {
     final columns = await db.rawQuery('PRAGMA table_info(books)');
@@ -1223,6 +1272,9 @@ class DatabaseHelper {
       )
     ''');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_game_characters_game ON game_characters(game_id)');
+
+    // 自定义分类模块三张表
+    await _createCustomModuleTables(db);
   }
 
   /// 补齐角色表缺失的列（早期 v40 迭代建表时可能未包含）

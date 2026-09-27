@@ -688,6 +688,8 @@ class _BackupPageState extends State<BackupPage> {
         await context.read<AppProvider>().loadGames();
         await context.read<AppProvider>().loadPlaylists();
         await context.read<AppProvider>().loadPeople();
+        await context.read<AppProvider>().loadCustomModules();
+        context.read<AppProvider>().bumpCustomModuleItemsVersion();
 
         if (!mounted) return;
 

@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/custom_module_icon.dart';
 
 class FeatureSettingsPage extends StatefulWidget {
   const FeatureSettingsPage({super.key});
@@ -36,6 +38,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showPerson = true;
   bool _showGallery = true;
   bool _showTags = true;
+  bool _showCustomModule = true;
   bool _showQuickActions = true;
 
   @override
@@ -62,6 +65,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showPerson = _userPrefs.showSidebarPerson;
       _showGallery = _userPrefs.showSidebarGallery;
       _showTags = _userPrefs.showSidebarTags;
+      _showCustomModule = _userPrefs.showSidebarCustomModule;
       _showQuickActions = _userPrefs.showSidebarQuickActions;
     });
   }
@@ -73,6 +77,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     if (_showBookTab) count++;
     if (_showNoteTab) count++;
     if (_showGameTab) count++;
+    count += context.read<AppProvider>().enabledCustomModules.length;
     return count;
   }
 
@@ -93,6 +98,11 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
         _ => false,
       };
     }));
+    // 自定义模块排在固定模块之后
+    final customs = context.read<AppProvider>().enabledCustomModules;
+    for (var i = 0; i < customs.length; i++) {
+      all.add((AppProvider.customModuleTabBase + i, customs[i].name, Icons.dashboard_customize_outlined));
+    }
     return all;
   }
 
@@ -156,6 +166,18 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     if (mounted) context.read<AppProvider>().refreshTabSettings();
   }
 
+  Future<void> _toggleCustomModule(AppProvider provider, CustomModule module, bool value) async {
+    if (!value && _enabledTabCount <= 1) {
+      ToastUtil.show(context, '至少保留一个标签页'.tr);
+      return;
+    }
+    await provider.setCustomModuleEnabled(module.id, value);
+    if (mounted) {
+      setState(_fixDefaultTabIndex);
+      provider.refreshTabSettings();
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +231,28 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               color: colors.outlineVariant),
           _buildSwitchItem(Icons.sticky_note_2_outlined, '笔记'.tr, '记录和管理笔记'.tr, _showNoteTab,
               _toggleNoteTab),
+          // ── 自定义模块（动态列表，各自开关首页 tab） ──
+          Consumer<AppProvider>(
+            builder: (context, provider, _) {
+              final customs = provider.customModules;
+              if (customs.isEmpty) return const SizedBox.shrink();
+              return Column(
+                children: [
+                  for (var i = 0; i < customs.length; i++) ...[
+                    Divider(height: 0.5, indent: 24, endIndent: 24, color: colors.outlineVariant),
+                    _buildSwitchItem(
+                      Icons.dashboard_customize_outlined,
+                      customs[i].name,
+                      '自定义分类模块'.tr,
+                      customs[i].isEnabled,
+                      (v) => _toggleCustomModule(provider, customs[i], v),
+                      customIcon: customs[i].icon,
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
           Divider(
               height: 0.5,
               indent: 24,
@@ -324,6 +368,16 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
             await _userPrefs.setShowSidebarTags(v);
             setState(() => _showTags = v);
           }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(Icons.dashboard_customize_outlined, '分类模块'.tr,
+              '自定义分类模块的入口与管理'.tr, _showCustomModule, (v) async {
+            await _userPrefs.setShowSidebarCustomModule(v);
+            setState(() => _showCustomModule = v);
+          }),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Text('关闭后对应功能将从界面中隐藏。'.tr,
@@ -349,7 +403,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   }
 
   Widget _buildSwitchItem(IconData icon, String title, String subtitle,
-      bool value, ValueChanged<bool> onChanged) {
+      bool value, ValueChanged<bool> onChanged, {String customIcon = ''}) {
     final colors = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
@@ -359,8 +413,10 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
           decoration: BoxDecoration(
               color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon,
-              color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+          alignment: Alignment.center,
+          child: customIcon.isNotEmpty
+              ? buildCustomModuleIcon(customIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.6))
+              : Icon(icon, color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
       title: Text(title,
           style: TextStyle(
               fontSize: 13,
