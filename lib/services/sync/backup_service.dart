@@ -421,6 +421,10 @@ class BackupService {
         backupData = unzipped.backupData;
         imageCount = unzipped.imageCount;
         imagePathMap.addAll(unzipped.imagePathMap);
+        return await _restoreBackupData(
+          backupData, imagePathMap, imageCount,
+          stagingDirPath: unzipped.stagingDirPath,
+        );
       } else {
         // 旧版 JSON
         backupData = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
@@ -443,6 +447,7 @@ class BackupService {
       return await _restoreBackupData(
         unzipped.backupData, unzipped.imagePathMap, unzipped.imageCount,
         clearPushAfter: true,
+        stagingDirPath: unzipped.stagingDirPath,
       );
     } catch (e) {
       return ImportResult.error('恢复失败: {e}'.trf({'e': e}));
@@ -452,8 +457,12 @@ class BackupService {
   /// 流式解压备份 zip：解析 data.json 并把图片逐个写盘，
   /// 任何时刻只持有单个条目的字节，避免大备份全量驻留内存。
   /// 返回 null 表示包内缺少 data.json。
+  ///
+  /// 图片先写入临时暂存目录而非正式目录：DB 事务成功后才搬入正式位置，
+  /// 恢复失败时本地原有图片不被覆盖。imagePathMap 的值是最终正式路径。
   Future<_UnzipResult?> _unzipBackup(String zipPath) async {
     final input = InputFileStream(zipPath);
+    String? stagingDirPath;
     try {
       final archive = ZipDecoder().decodeBuffer(input);
       final dataFile = archive.findFile('data.json');
@@ -467,37 +476,93 @@ class BackupService {
 
       final appDirPath = await _getAppDir();
       final imagesDir = Directory(path.join(appDirPath, 'images'));
-      if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
 
-      for (final archiveFile in archive.files) {
-        if (!archiveFile.isFile) continue;
-        if (!archiveFile.name.startsWith('images/')) continue;
-        var relativePath = archiveFile.name.substring('images/'.length);
-        while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
-          relativePath = relativePath.substring(1);
+      final tempDir = await getTemporaryDirectory();
+      stagingDirPath = path.join(
+        tempDir.path,
+        'mooknote_restore_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      final stagingImagesDir = Directory(path.join(stagingDirPath, 'images'));
+      await stagingImagesDir.create(recursive: true);
+
+      try {
+        for (final archiveFile in archive.files) {
+          if (!archiveFile.isFile) continue;
+          if (!archiveFile.name.startsWith('images/')) continue;
+          var relativePath = archiveFile.name.substring('images/'.length);
+          while (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+            relativePath = relativePath.substring(1);
+          }
+          if (relativePath.isEmpty) continue;
+          final stagedFile = File(path.join(stagingImagesDir.path, relativePath));
+          if (!await stagedFile.parent.exists()) await stagedFile.parent.create(recursive: true);
+          final out = OutputFileStream(stagedFile.path);
+          try {
+            archiveFile.writeContent(out); // 仅解压当前条目，写完即释放
+          } finally {
+            await out.close();
+          }
+          // 用完整相对路径做 key，避免不同目录下同名文件碰撞；value 为最终正式路径
+          imagePathMap[relativePath] = path.join(imagesDir.path, relativePath);
+          imageCount++;
         }
-        if (relativePath.isEmpty) continue;
-        final outputFile = File(path.join(imagesDir.path, relativePath));
-        if (!await outputFile.parent.exists()) await outputFile.parent.create(recursive: true);
-        final out = OutputFileStream(outputFile.path);
-        archiveFile.writeContent(out); // 仅解压当前条目，写完即释放
-        await out.close();
-        // 用完整相对路径做 key，避免不同目录下同名文件碰撞
-        imagePathMap[relativePath] = outputFile.path;
-        imageCount++;
+      } catch (_) {
+        // 解压失败：清掉暂存目录，避免半成品残留
+        try { await Directory(stagingDirPath).delete(recursive: true); } catch (_) {}
+        rethrow;
       }
-      return _UnzipResult(backupData, imagePathMap, imageCount);
+      return _UnzipResult(backupData, imagePathMap, imageCount, stagingDirPath);
     } finally {
       await input.close();
     }
   }
 
-  /// 共享的库表恢复逻辑：清表 → 单事务插回 → 恢复用户信息
+  /// DB 恢复成功后，把暂存图片搬入正式目录（覆盖同名文件）
+  Future<void> _moveStagedImages(String stagingDirPath, Map<String, String> imagePathMap) async {
+    final stagingImagesDir = Directory(path.join(stagingDirPath, 'images'));
+    for (final entry in imagePathMap.entries) {
+      final staged = File(path.join(stagingImagesDir.path, entry.key));
+      if (!await staged.exists()) continue;
+      final target = File(entry.value);
+      if (!await target.parent.exists()) await target.parent.create(recursive: true);
+      try {
+        await staged.rename(target.path);
+      } catch (_) {
+        // 跨设备等 rename 失败场景退化为复制
+        await staged.copy(target.path);
+      }
+    }
+  }
+
+  /// 共享的库表恢复逻辑：清表 → 单事务插回 → 恢复用户信息。
+  /// [stagingDirPath] 为解压暂存目录：DB 事务成功后图片才搬入正式位置，
+  /// 无论成败最后都会清理暂存目录。
   Future<ImportResult> _restoreBackupData(
     Map<String, dynamic> backupData,
     Map<String, String> imagePathMap,
     int imageCount, {
     bool clearPushAfter = false,
+    String? stagingDirPath,
+  }) async {
+    try {
+      return await _restoreBackupDataInner(
+        backupData, imagePathMap, imageCount,
+        clearPushAfter: clearPushAfter,
+        stagingDirPath: stagingDirPath,
+      );
+    } finally {
+      if (stagingDirPath != null) {
+        try { await Directory(stagingDirPath).delete(recursive: true); } catch (_) {}
+      }
+    }
+  }
+
+  Future<ImportResult> _restoreBackupDataInner(
+    Map<String, dynamic> backupData,
+    Map<String, String> imagePathMap,
+    int imageCount, {
+    bool clearPushAfter = false,
+    String? stagingDirPath,
   }) async {
     if (!backupData.containsKey('data')) return ImportResult.error('无效的备份文件格式'.tr);
 
@@ -683,6 +748,11 @@ class BackupService {
 
     if (clearPushAfter) {
       await SyncMetaStore.delete(SyncMetaStore.pushAfter);
+    }
+
+    // DB 事务已成功：暂存图片搬入正式目录
+    if (stagingDirPath != null) {
+      await _moveStagedImages(stagingDirPath, imagePathMap);
     }
 
     // 恢复用户信息
@@ -911,8 +981,9 @@ class _UnzipResult {
   final Map<String, dynamic> backupData;
   final Map<String, String> imagePathMap;
   final int imageCount;
+  final String? stagingDirPath;
 
-  _UnzipResult(this.backupData, this.imagePathMap, this.imageCount);
+  _UnzipResult(this.backupData, this.imagePathMap, this.imageCount, [this.stagingDirPath]);
 }
 
 // ─── 结果类型 ──────────────────────────────────────────

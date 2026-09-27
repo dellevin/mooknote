@@ -153,6 +153,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
   void dispose() {
     _coverOffset.dispose();
     _draggingCover.dispose();
+    _showTitle.dispose();
     _titleCtrl.dispose();
     _summaryCtrl.dispose();
     _ratingCtrl.dispose();

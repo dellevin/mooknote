@@ -191,15 +191,15 @@ class WebDAVService {
   }
 
   /// 上传已打包的数据（第二步）
+  /// 注意：本方法不参与 _isSyncing 锁——锁由 syncData 持有，
+  /// 这里若误清标志会把在途同步的并发防护解除
   Future<SyncResult> uploadExportedData(AutoBackupExportResult exportResult) async {
     if (!exportResult.success || exportResult.zipPath == null) {
-      _isSyncing = false;
       return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
     }
 
     final config = await getConfig();
     if (config == null) {
-      _isSyncing = false;
       return SyncResult(success: false, message: '未配置 WebDAV'.tr);
     }
 
@@ -235,8 +235,6 @@ class WebDAVService {
       }
     } catch (e) {
       return SyncResult(success: false, message: '上传失败: {e}'.trf({'e': e}));
-    } finally {
-      _isSyncing = false;
     }
   }
 

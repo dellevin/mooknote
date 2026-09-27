@@ -150,7 +150,12 @@ class CacheCleaner {
     'note_share_',
     'mooknote_download',
     'mooknote_bidir',
+    'mooknote_backup_temp_',
+    'mooknote_data_',
   ];
+
+  /// 恢复备份的图片暂存目录前缀（崩溃残留，正常流程 finally 会删）
+  static const _restoreStagingPrefix = 'mooknote_restore_';
 
   bool _isMooknoteTempFile(String name) {
     for (final prefix in _tempPrefixes) {
@@ -178,6 +183,16 @@ class CacheCleaner {
                 }
               } catch (_) {}
             }
+          } else if (entity is Directory &&
+              path.basename(entity.path).startsWith(_restoreStagingPrefix)) {
+            // 恢复暂存目录崩溃残留，超过 1 小时未动则整体删除
+            try {
+              final stat = await entity.stat();
+              if (now.difference(stat.modified).inHours >= 1) {
+                await entity.delete(recursive: true);
+                deletedCount++;
+              }
+            } catch (_) {}
           }
         }
       }

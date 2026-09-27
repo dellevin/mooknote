@@ -228,17 +228,34 @@ Widget customModuleTextCard(CustomFieldDef f, String? value, ColorScheme colors,
           children: [
             customModuleFieldLabel(f, colors, icon: multiline ? Icons.notes : Icons.short_text),
             const SizedBox(height: 8),
-            Text(
-              hasValue ? v : '点击填写'.tr,
-              style: TextStyle(
-                fontSize: 15,
-                color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
-                fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
-                height: multiline ? 1.5 : null,
+            if (multiline)
+              // 长文本卡固定占 5 行高度（15 字号 × 1.5 行高 × 5），空值/短内容也撑满
+              Container(
+                constraints: const BoxConstraints(minHeight: 15 * 1.5 * 5),
+                alignment: Alignment.topLeft,
+                child: Text(
+                  hasValue ? v : '点击填写'.tr,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+                    fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+                    height: 1.5,
+                  ),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              )
+            else
+              Text(
+                hasValue ? v : '点击填写'.tr,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+                  fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: multiline ? 4 : 1,
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
         ),
       ),

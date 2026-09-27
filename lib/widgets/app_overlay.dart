@@ -72,6 +72,40 @@ Future<T?> appModalBottomSheet<T>({
   );
 }
 
+/// 弹窗/弹层专用的 TextEditingController 宿主：
+/// controller 随弹窗子树卸载（退出动画结束后）才 dispose。
+/// 不要在路由返回 Future 的 .then 里 dispose——pop 后 Future 立即完成，
+/// 但退出动画期间子树仍在，键盘收起等 MediaQuery 变化会触发重建，
+/// TextField 用到已 dispose 的 controller 会直接崩溃。
+class OwnedTextController extends StatefulWidget {
+  final String? initialText;
+  final Widget Function(BuildContext context, TextEditingController controller) builder;
+
+  const OwnedTextController({super.key, this.initialText, required this.builder});
+
+  @override
+  State<OwnedTextController> createState() => _OwnedTextControllerState();
+}
+
+class _OwnedTextControllerState extends State<OwnedTextController> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _controller);
+}
+
 /// 毛玻璃版对话框：毛玻璃模式下自动加磨砂
 Future<T?> appDialog<T>({
   required BuildContext context,

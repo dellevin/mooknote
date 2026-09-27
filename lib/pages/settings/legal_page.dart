@@ -33,7 +33,7 @@ class _LegalPageState extends State<LegalPage> {
     try {
       final resp = await http.get(
         Uri.parse('$_baseUrl/api/pages/${widget.slug}'),
-      );
+      ).timeout(const Duration(seconds: 15));
       if (!mounted) return;
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);

@@ -135,7 +135,6 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
   /// 新建/重命名模块弹窗（底部弹出，与表单设计的字段配置弹层同款结构）
   void _showModuleDialog(BuildContext context, {CustomModule? existing}) {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: existing?.name ?? '');
     String selectedIcon = existing?.icon ?? '';
     final isEdit = existing != null;
 
@@ -144,7 +143,9 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
       backgroundColor: colors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
+      builder: (ctx) => OwnedTextController(
+        initialText: existing?.name ?? '',
+        builder: (ctx, controller) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 12,
@@ -233,6 +234,7 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

@@ -273,9 +273,9 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
   Future<void> _pickImageFromUrl() async {
     String? url;
     final confirmed = await appDialog<bool>(context: context, builder: (ctx) {
-      final urlCtrl = TextEditingController();
       final colors = Theme.of(ctx).colorScheme;
-      return AlertDialog(
+      return OwnedTextController(
+        builder: (ctx, urlCtrl) => AlertDialog(
         backgroundColor: colors.surface, elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('添加网络图片'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
@@ -308,6 +308,7 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
             child: Text('确定'.tr),
           ),
         ],
+      ),
       );
     });
     if (confirmed != true || url == null || url!.isEmpty) return;

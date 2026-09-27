@@ -141,12 +141,13 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
   }
 
   void _editItem(int index, String oldValue) {
-    final editController = TextEditingController(text: oldValue);
     appDialog<String>(
       context: context,
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
-        return AlertDialog(
+        return OwnedTextController(
+          initialText: oldValue,
+          builder: (ctx, editController) => AlertDialog(
           backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Text('编辑'.tr, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface)),
@@ -172,6 +173,7 @@ class _GenreSelectorPageState extends State<GenreSelectorPage> {
               child: Text('确定'.tr),
             ),
           ],
+        ),
         );
       },
     ).then((newValue) {

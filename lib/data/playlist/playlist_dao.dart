@@ -28,12 +28,12 @@ class PlaylistDao {
     return maps.map((m) => Playlist.fromJson(m)).toList();
   });
 
-  // 获取单个片单
+  // 获取单个片单（排除软删除；唯一调用方为 provider 状态回读，回收站走 restore 直接改标志位）
   Future<Playlist?> getPlaylistById(String id) => _wrap('getPlaylistById', () async {
     final db = await _dbHelper.database;
     final maps = await db.query(
       'playlists',
-      where: 'id = ?',
+      where: 'id = ? AND is_deleted = 0',
       whereArgs: [id],
     );
     if (maps.isEmpty) return null;

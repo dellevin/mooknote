@@ -1946,7 +1946,12 @@ class CustomModuleDesign {
       try {
         final decoded = jsonDecode(rawFields);
         if (decoded is List) {
-          fields = decoded.map((e) => CustomFieldDef.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+          // 逐元素容错：单个坏字段不拖垮整份设计的其他字段
+          for (final e in decoded) {
+            try {
+              fields.add(CustomFieldDef.fromJson(Map<String, dynamic>.from(e as Map)));
+            } catch (_) {}
+          }
         }
       } catch (_) {}
     }

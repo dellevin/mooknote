@@ -508,10 +508,21 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (final type in CustomFieldType.values) ...[
-                        _buildTypeTile(ctx, type, usedSingletons.contains(type), colors),
-                        if (type != CustomFieldType.values.last)
-                          Divider(height: 0.5, indent: 44, color: colors.outlineVariant),
+                      // 一行两个卡片：上面图标+名称，下面描述
+                      for (var i = 0; i < CustomFieldType.values.length; i += 2) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _buildTypeCard(ctx, CustomFieldType.values[i], usedSingletons.contains(CustomFieldType.values[i]), colors)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: i + 1 < CustomFieldType.values.length
+                                  ? _buildTypeCard(ctx, CustomFieldType.values[i + 1], usedSingletons.contains(CustomFieldType.values[i + 1]), colors)
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        ),
+                        if (i + 2 < CustomFieldType.values.length) const SizedBox(height: 10),
                       ],
                     ],
                   ),
@@ -524,21 +535,47 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
     );
   }
 
-  Widget _buildTypeTile(BuildContext ctx, CustomFieldType type, bool disabled, ColorScheme colors) {
+  Widget _buildTypeCard(BuildContext ctx, CustomFieldType type, bool disabled, ColorScheme colors) {
     final (label, icon) = _fieldTypeInfo(type);
-    final desc = _fieldTypeDesc(type);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      enabled: !disabled,
-      leading: Icon(icon, size: 22, color: disabled ? colors.onSurface.withValues(alpha: 0.25) : colors.onSurface.withValues(alpha: 0.7)),
-      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
-          color: disabled ? colors.onSurface.withValues(alpha: 0.3) : colors.onSurface)),
-      subtitle: Text(disabled ? '已添加（该类型仅可添加一个）'.tr : desc,
-          style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: disabled ? 0.25 : 0.45))),
-      onTap: () {
-        Navigator.pop(ctx);
-        _showFieldConfigSheet(newType: type);
-      },
+    final desc = disabled ? '已添加（该类型仅可添加一个）'.tr : _fieldTypeDesc(type);
+    return Material(
+      color: colors.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: disabled ? null : () {
+          Navigator.pop(ctx);
+          _showFieldConfigSheet(newType: type);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20,
+                      color: disabled ? colors.onSurface.withValues(alpha: 0.25) : colors.onSurface.withValues(alpha: 0.7)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
+                            color: disabled ? colors.onSurface.withValues(alpha: 0.3) : colors.onSurface)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // 固定两行高度：一行描述的卡片不与两行描述的卡片出现高度差
+              SizedBox(
+                height: 12 * 1.3 * 2,
+                child: Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, height: 1.3,
+                        color: colors.onSurface.withValues(alpha: disabled ? 0.25 : 0.45))),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -563,13 +600,11 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
     final type = isEdit ? existing.type : newType!;
     final (typeLabel, _) = _fieldTypeInfo(type);
 
-    final labelController = TextEditingController(text: isEdit ? existing.label : _defaultLabel(type));
     bool required = isEdit ? existing.required : false;
     bool isTitle = isEdit ? existing.isTitle : false;
     bool halfWidth = isEdit ? existing.halfWidth : false;
     String selectedIcon = isEdit ? existing.icon : '';
     List<String> options = isEdit ? List.from(existing.options) : (type == CustomFieldType.status ? ['想看', '在看', '看过'] : <String>[]);
-    final optionController = TextEditingController();
 
     final supportsRequired = type == CustomFieldType.text || type == CustomFieldType.multiText || type == CustomFieldType.longText;
     // 半行：单文本/多文本/时间/次数 可开（也可在列表里拖到其他半行字段上并排）
@@ -580,7 +615,10 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       backgroundColor: colors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
+      builder: (ctx) => OwnedTextController(
+        initialText: isEdit ? existing.label : _defaultLabel(type),
+        builder: (ctx, labelController) => OwnedTextController(
+          builder: (ctx, optionController) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 12,
@@ -752,6 +790,8 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
                   ),
               ],
             ),
+          ),
+        ),
           ),
         ),
       ),

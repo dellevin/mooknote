@@ -152,10 +152,11 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
 
   void _showNewDesignDialog() {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: '设计 ${_designs.length + 1}');
     appDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => OwnedTextController(
+        initialText: '设计 ${_designs.length + 1}',
+        builder: (ctx, controller) => AlertDialog(
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('新建设计'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
@@ -196,15 +197,17 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
           ),
         ],
       ),
+        ),
     );
   }
 
   void _showRenameDialog(CustomModuleDesign design) {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: design.name);
     appDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => OwnedTextController(
+        initialText: design.name,
+        builder: (ctx, controller) => AlertDialog(
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('重命名设计'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
@@ -226,6 +229,7 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
           ),
         ],
       ),
+        ),
     );
   }
 

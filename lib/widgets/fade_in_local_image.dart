@@ -32,6 +32,12 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
   /// 不再重复走 异步检查+淡入（否则 Hero 转场时详情页海报会"迟到"）
   static final Set<String> _shownPaths = {};
 
+  /// 上限保护：长时间浏览大量不同图片后整体清空，避免无界增长
+  static void _rememberShown(String path) {
+    if (_shownPaths.length > 1000) _shownPaths.clear();
+    _shownPaths.add(path);
+  }
+
   late AnimationController _controller;
   late Animation<double> _opacity;
   bool _loaded = false;
@@ -66,7 +72,7 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     if (widget.path!.startsWith('http')) {
       _useNetwork = true;
       _imageUrl = widget.path;
-      _shownPaths.add(widget.path!);
+      _rememberShown(widget.path!);
       setState(() => _loaded = true);
       _controller.forward();
       return;
@@ -76,7 +82,7 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     final exists = await file.exists();
     if (!mounted) return;
     if (exists) {
-      _shownPaths.add(widget.path!);
+      _rememberShown(widget.path!);
       setState(() => _loaded = true);
       _controller.forward();
       return;

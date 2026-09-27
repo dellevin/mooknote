@@ -619,9 +619,9 @@ class DatabaseHelper {
       }
     }
 
-    // 回填影视类型
+    // 回填影视类型（排除软删除，避免回收站内容污染标签库）
     final movies = await db.query('movies',
-        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+        where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0', whereArgs: ['[]']);
     for (final row in movies) {
       for (final genre in parseStringListGeneric(row['genres'])) {
         await insertTag(genre, 'movie_genre');
@@ -630,7 +630,7 @@ class DatabaseHelper {
 
     // 回填书籍类型
     final books = await db.query('books',
-        where: 'genres IS NOT NULL AND genres != ?', whereArgs: ['[]']);
+        where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0', whereArgs: ['[]']);
     for (final row in books) {
       for (final genre in parseStringListGeneric(row['genres'])) {
         await insertTag(genre, 'book_genre');
@@ -639,7 +639,7 @@ class DatabaseHelper {
 
     // 回填笔记标签
     final notes = await db.query('notes',
-        where: 'tags IS NOT NULL AND tags != ? AND tags != ?',
+        where: 'tags IS NOT NULL AND tags != ? AND tags != ? AND is_deleted = 0',
         whereArgs: ['[]', '']);
     for (final row in notes) {
       for (final tag in parseStringListGeneric(row['tags'])) {

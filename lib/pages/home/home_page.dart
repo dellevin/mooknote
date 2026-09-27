@@ -202,7 +202,8 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildPhoneLayout(BuildContext context) {
     return Scaffold(
-      drawer: context.watch<AppProvider>().bottomNavIndex != 1
+      // bottomNavIndex 只会是 0（主页）或 2（个人中心），抽屉只在主页启用
+      drawer: context.watch<AppProvider>().bottomNavIndex == 0
           ? CustomDrawer(isOpen: _drawerOpen)
           : null,
       onDrawerChanged: (isOpen) {
@@ -2197,11 +2198,11 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
 
   void _showAddDialog() {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController();
     final type = _currentType;
     appDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => OwnedTextController(
+        builder: (ctx, controller) => AlertDialog(
         backgroundColor: colors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('添加{type}'.trf({'type': _typeBases[_currentIndex].tr}), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
@@ -2222,6 +2223,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
             child: Text('添加'.tr)),
         ],
       ),
+        ),
     );
   }
 
@@ -2242,13 +2244,14 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
 
   void _showRenameDialog(Map<String, dynamic> tag) {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: tag['name'] as String);
     final tagId = tag['id'] as String;
     final type = tag['type'] as String;
     final oldName = tag['name'] as String;
     appDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => OwnedTextController(
+        initialText: tag['name'] as String,
+        builder: (ctx, controller) => AlertDialog(
         backgroundColor: colors.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('重命名标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: TextField(
@@ -2269,6 +2272,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
             child: Text('确定'.tr)),
         ],
       ),
+        ),
     );
   }
 

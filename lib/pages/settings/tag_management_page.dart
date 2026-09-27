@@ -870,12 +870,12 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   void _showAddDialog() {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController();
     final type = _currentType;
 
     appDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => OwnedTextController(
+        builder: (ctx, controller) => AlertDialog(
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('添加{type}'.trf({'type': _typeLabels[_currentIndex]}),
@@ -911,6 +911,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           ),
         ],
       ),
+        ),
     );
   }
 
@@ -938,14 +939,15 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
   void _showRenameDialog(Map<String, dynamic> tag) {
     final colors = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: tag['name'] as String);
     final tagId = tag['id'] as String;
     final type = tag['type'] as String;
     final oldName = tag['name'] as String;
 
     appDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => OwnedTextController(
+        initialText: tag['name'] as String,
+        builder: (ctx, controller) => AlertDialog(
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('重命名标签'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
@@ -980,6 +982,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           ),
         ],
       ),
+        ),
     );
   }
 

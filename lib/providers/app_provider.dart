@@ -177,11 +177,18 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 重试数据库初始化
+  /// 重试数据库初始化（重入保护：连点重试不叠加多次全量加载）
+  bool _retryingDb = false;
   Future<void> retryInitDatabase() async {
-    _dbInitFailed = false;
-    notifyListeners();
-    await initDatabase();
+    if (_retryingDb) return;
+    _retryingDb = true;
+    try {
+      _dbInitFailed = false;
+      notifyListeners();
+      await initDatabase();
+    } finally {
+      _retryingDb = false;
+    }
   }
 
   // 初始化数据库
@@ -988,21 +995,24 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addPlaylistItem(PlaylistItem item) async {
     await _playlistDao.addItem(item);
-    // 更新片单的 itemCount
-    final playlist = _playlists.firstWhere((p) => p.id == item.playlistId);
-    final updated = playlist.copyWith(itemCount: playlist.itemCount + 1, updatedAt: DateTime.now());
-    final idx = _playlists.indexWhere((p) => p.id == item.playlistId);
-    if (idx != -1) _playlists[idx] = updated;
+    // DAO 已按"排除软删除媒体"口径重算 item_count，从 DB 回读保持一致
+    await _syncPlaylistFromDb(item.playlistId);
     notifyListeners();
   }
 
   Future<void> removePlaylistItem(String itemId, String playlistId) async {
     await _playlistDao.removeItem(itemId, playlistId);
-    final playlist = _playlists.firstWhere((p) => p.id == playlistId);
-    final updated = playlist.copyWith(itemCount: (playlist.itemCount - 1).clamp(0, 99999), updatedAt: DateTime.now());
-    final idx = _playlists.indexWhere((p) => p.id == playlistId);
-    if (idx != -1) _playlists[idx] = updated;
+    await _syncPlaylistFromDb(playlistId);
     notifyListeners();
+  }
+
+  /// 从 DB 回读单个片单同步到内存列表。
+  /// 内存列表尚未加载（启动窗口）时静默跳过，下次 loadPlaylists 会拿到正确值。
+  Future<void> _syncPlaylistFromDb(String playlistId) async {
+    final idx = _playlists.indexWhere((p) => p.id == playlistId);
+    if (idx == -1) return;
+    final fresh = await _playlistDao.getPlaylistById(playlistId);
+    if (fresh != null) _playlists[idx] = fresh;
   }
 
   Future<List<String>> getPlaylistItemIds(String playlistId) async {
