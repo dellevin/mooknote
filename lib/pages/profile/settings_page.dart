@@ -475,6 +475,7 @@ class _SettingsPageState extends State<SettingsPage> {
               InkWell(
                 onTap: () async {
                   await _setThemeMode(i);
+                  if (!ctx.mounted) return;
                   Navigator.pop(ctx);
                 },
                 child: Padding(

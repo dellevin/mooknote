@@ -126,36 +126,57 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
     }
     return FadeTransition(
       opacity: _opacity,
-      child: _useNetwork
-          ? Image.network(
-              _imageUrl!,
-              width: widget.width,
-              height: widget.height,
-              fit: widget.fit,
-              errorBuilder: (_, e, __) {
-                debugPrint('[Image] 网络加载失败: $_imageUrl, 错误: $e');
-                return widget.errorWidget ??
-                    Container(
-                      width: widget.width,
-                      height: widget.height,
-                      color: colors.surfaceContainerHighest,
-                      child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
-                    );
-              },
-            )
-          : Image.file(
-              File(widget.path!),
-              width: widget.width,
-              height: widget.height,
-              fit: widget.fit,
-              errorBuilder: (_, __, ___) => widget.errorWidget ??
-                  Container(
-                    width: widget.width,
-                    height: widget.height,
-                    color: colors.surfaceContainerHighest,
-                    child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
-                  ),
-            ),
+      // 按显示尺寸 × dpr 限制解码尺寸：原图（如 4000×6000）全尺寸解码可达 ~96MB，
+      // 列表快速滚动时有 OOM 风险。未显式给宽高时取父级约束。
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dpr = MediaQuery.devicePixelRatioOf(context);
+          final w = widget.width ??
+              (constraints.hasBoundedWidth ? constraints.maxWidth : null);
+          final h = widget.height ??
+              (constraints.hasBoundedHeight ? constraints.maxHeight : null);
+          final cacheW = (w != null && w.isFinite && w > 0)
+              ? (w * dpr).round()
+              : null;
+          final cacheH = (h != null && h.isFinite && h > 0)
+              ? (h * dpr).round()
+              : null;
+          return _useNetwork
+              ? Image.network(
+                  _imageUrl!,
+                  width: widget.width,
+                  height: widget.height,
+                  fit: widget.fit,
+                  cacheWidth: cacheW,
+                  cacheHeight: cacheH,
+                  errorBuilder: (_, e, __) {
+                    debugPrint('[Image] 网络加载失败: $_imageUrl, 错误: $e');
+                    return widget.errorWidget ??
+                        Container(
+                          width: widget.width,
+                          height: widget.height,
+                          color: colors.surfaceContainerHighest,
+                          child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
+                        );
+                  },
+                )
+              : Image.file(
+                  File(widget.path!),
+                  width: widget.width,
+                  height: widget.height,
+                  fit: widget.fit,
+                  cacheWidth: cacheW,
+                  cacheHeight: cacheH,
+                  errorBuilder: (_, __, ___) => widget.errorWidget ??
+                      Container(
+                        width: widget.width,
+                        height: widget.height,
+                        color: colors.surfaceContainerHighest,
+                        child: Icon(Icons.broken_image_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
+                      ),
+                );
+        },
+      ),
     );
   }
 }

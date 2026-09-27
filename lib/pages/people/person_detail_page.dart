@@ -488,9 +488,9 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
               final provider = this.context.read<AppProvider>();
               await provider.removePerson(person.id);
               if (!mounted || !context.mounted) return;
+              ToastUtil.show(this.context, '已删除'.tr);
               Navigator.pop(context); // close dialog
               Navigator.pop(this.context); // close detail page
-              ToastUtil.show(this.context, '已删除'.tr);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,

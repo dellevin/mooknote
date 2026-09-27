@@ -96,11 +96,13 @@ class IncSyncService {
 
       // 1) 强制应用全部 manifest 分块（无视 seen 与时间戳）
       final seen = <String>{};
+      var failedChunks = 0;
       for (final spec in IncEntities.entities) {
         for (final chunk in manifest.chunks[spec.table] ?? []) {
           final bytes = await remote.getBlob(chunk.hash);
           if (bytes == null) {
             debugPrint('[Inc2] 恢复: 分块拉取失败 ${chunk.hash}');
+            failedChunks++;
             continue;
           }
           try {
@@ -125,8 +127,16 @@ class IncSyncService {
             seen.add(chunk.hash);
           } catch (e) {
             debugPrint('[Inc2] 恢复: 分块应用失败: $e');
+            failedChunks++;
           }
         }
+      }
+      // 分块缺失时继续对账会把未恢复的数据误判为"远程已删"，必须中止
+      if (failedChunks > 0) {
+        return IncSyncResult(
+          success: false,
+          message: '恢复中止：{n} 个数据分块拉取失败，请检查网络后重试'.trf({'n': failedChunks}),
+        );
       }
 
       // 1.5) 应用 manifest 携带的墓碑（LWW：时间戳比删除更新的行保留）
@@ -155,11 +165,13 @@ class IncSyncService {
       }
       final folded = manifest.foldedDeltas.toSet();
       final applied = <String>{};
+      var failedDeltas = 0;
       for (final name in names) {
         if (folded.contains(name)) continue;
         final delta = await remote.getDelta(name);
         if (delta == null) {
           debugPrint('[Inc2] 恢复: delta 拉取失败 $name');
+          failedDeltas++;
           continue;
         }
         imageMap.addAll(delta.images);
@@ -207,6 +219,14 @@ class IncSyncService {
           }
         }
         applied.add(name);
+      }
+
+      // delta 缺失时不能落盘同步状态：否则缺失部分永远无法再被拉取
+      if (failedDeltas > 0) {
+        return IncSyncResult(
+          success: false,
+          message: '恢复中止：{n} 个增量文件拉取失败，请检查网络后重试'.trf({'n': failedDeltas}),
+        );
       }
 
       // 4) 收尾：本地状态对齐到刚恢复的云端状态

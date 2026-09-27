@@ -140,9 +140,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final book = context.watch<AppProvider>().books
-        .where((b) => b.id == widget.book.id)
-        .firstOrNull ?? widget.book;
+    // 只订阅当前这一条：无关的 provider 变更不再重建整个详情页
+    final book = context.select<AppProvider, Book?>(
+      (p) => p.books.where((b) => b.id == widget.book.id).firstOrNull,
+    ) ?? widget.book;
 
     if (Breakpoint.isDesktop(context)) {
       return _buildDesktopStyle(book, colors);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -89,6 +90,16 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
   Set<String> _searchMatchedWorkIds = {};
   bool _searching = false;
 
+  /// 人物搜索防抖：避免每次按键都触发人物搜索 + 每人一条关联查询
+  Timer? _searchDebounce;
+  int _searchToken = 0;
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
   static const _movieRoles = [('director', '导演'), ('writer', '编剧'), ('actor', '演员'), ('voiceActor', '配音')];
   static const _bookRoles = [('author', '作者'), ('translator', '译者')];
   static const _gameRoles = [('developer', '开发者')];
@@ -131,10 +142,13 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
 
   /// 搜索：同时匹配作品标题与人物名称
   /// 匹配人物时，反查该人物在当前 Tab 类型下的作品 ID，纳入结果
-  Future<void> _onSearchChanged(String v) async {
+  /// 标题过滤即时生效，人物反查走 300ms 防抖
+  void _onSearchChanged(String v) {
     setState(() => _query = v);
+    _searchDebounce?.cancel();
     final trimmed = v.trim();
     if (trimmed.isEmpty) {
+      _searchToken++;
       setState(() {
         _searchMatchedWorkIds = {};
         _searching = false;
@@ -142,6 +156,13 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
       return;
     }
     setState(() => _searching = true);
+    final token = ++_searchToken;
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _searchPeopleWorks(trimmed, token);
+    });
+  }
+
+  Future<void> _searchPeopleWorks(String trimmed, int token) async {
     final provider = context.read<AppProvider>();
     final people = await provider.searchPeople(trimmed);
     final Set<String> matched = {};
@@ -155,7 +176,8 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
           matched.addAll((await provider.getPersonGames(p.id)).map((r) => r.gameId));
       }
     }
-    if (!mounted) return;
+    // 已销毁或期间又来了更新的搜索，丢弃本次结果
+    if (!mounted || token != _searchToken) return;
     setState(() {
       _searchMatchedWorkIds = matched;
       _searching = false;

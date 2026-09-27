@@ -65,9 +65,11 @@ class IncManifestBuilder {
           if (sliceGroups.isNotEmpty) 'g': sliceGroups,
         }));
         final hash = sha256.convert(blobBytes).toString();
-        if (await remote.putBlob(hash, Uint8List.fromList(blobBytes))) {
-          index.add(ChunkIndex(hash: hash, ids: slice.map((r) => r['id'] as String).toList()));
+        // 上传失败必须中止：残缺 manifest 会让其他设备对账时误删正常数据
+        if (!await remote.putBlob(hash, Uint8List.fromList(blobBytes))) {
+          throw StateError('分块上传失败: ${spec.table} $hash');
         }
+        index.add(ChunkIndex(hash: hash, ids: slice.map((r) => r['id'] as String).toList()));
       }
       chunks[spec.table] = index;
 
@@ -79,9 +81,11 @@ class IncManifestBuilder {
           if (!await file.exists()) continue;
           final bytes = await file.readAsBytes();
           final hash = sha256.convert(bytes).toString();
-          if (await remote.putBlob(hash, bytes)) {
-            images[logical] = hash;
+          // 上传失败必须中止：残缺图片映射会导致压实后图片引用丢失
+          if (!await remote.putBlob(hash, bytes)) {
+            throw StateError('图片上传失败: $logical');
           }
+          images[logical] = hash;
         }
       }
     }

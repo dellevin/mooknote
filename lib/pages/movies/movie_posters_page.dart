@@ -538,6 +538,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeMoviePoster(poster.id);
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 _loadPosters();
                 ToastUtil.show(context, '已删除'.tr);

@@ -143,9 +143,10 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final movie = context.watch<AppProvider>().movies
-        .where((m) => m.id == widget.movie.id)
-        .firstOrNull ?? widget.movie;
+    // 只订阅当前这一条：无关的 provider 变更不再重建整个详情页
+    final movie = context.select<AppProvider, Movie?>(
+      (p) => p.movies.where((m) => m.id == widget.movie.id).firstOrNull,
+    ) ?? widget.movie;
 
     if (Breakpoint.isDesktop(context)) {
       return _buildDesktopStyle(movie, colors);

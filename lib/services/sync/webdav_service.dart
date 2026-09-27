@@ -522,16 +522,24 @@ class WebDAVService {
 
       if (response.statusCode == 200) {
         await localFile.parent.create(recursive: true);
-        // 流式写盘，避免大备份全量读入内存
+        // 流式写盘，避免大备份全量读入内存；
+        // 每个分块都套用空闲超时，防止服务器发完头后挂起导致同步永久卡死
         final sink = localFile.openWrite();
         var total = 0;
         try {
-          await for (final chunk in response.stream) {
+          await for (final chunk in response.stream.timeout(_httpTimeout)) {
             sink.add(chunk);
             total += chunk.length;
           }
         } finally {
           await sink.close();
+        }
+        // 校验实际下载字节数，截断的响应不能当成功
+        final expected = response.contentLength;
+        if (expected != null && expected >= 0 && total != expected) {
+          debugPrint('[WebDAV] 下载不完整: $total/$expected bytes');
+          try { await localFile.delete(); } catch (_) {}
+          return false;
         }
         debugPrint('[WebDAV] Downloaded $total bytes');
         return true;
@@ -554,7 +562,7 @@ class WebDAVService {
     final path = config['path']!;
 
     final baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
-    final dirUrl = '$baseUrl$path';
+    final dirUrl = '$baseUrl${_normalizePath(path)}';
 
     final client = http.Client();
     try {

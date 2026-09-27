@@ -35,6 +35,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
   List<Book>? _filteredBooks;
   List<Note>? _filteredNotes;
 
+  // 缓存时间范围过滤结果（源列表或时间范围变化时才重算）
+  List<Game>? _cachedGames;
+  List<Game>? _filteredGames;
+  List<Movie>? _rangeSrcMovies;
+  List<Book>? _rangeSrcBooks;
+  List<Note>? _rangeSrcNotes;
+  List<Game>? _rangeSrcGames;
+  int? _rangeTimeRange;
+  List<Movie>? _rangeMovies;
+  List<Book>? _rangeBooks;
+  List<Note>? _rangeNotes;
+  List<Game>? _rangeGames;
+
   (List<Movie>, List<Book>, List<Note>) _getFilteredLists(
       List<Movie> movies, List<Book> books, List<Note> notes) {
     if (!identical(movies, _cachedMovies) ||
@@ -48,6 +61,34 @@ class _StatisticsPageState extends State<StatisticsPage> {
       _filteredNotes = notes.where((n) => !n.isDeleted).toList();
     }
     return (_filteredMovies!, _filteredBooks!, _filteredNotes!);
+  }
+
+  List<Game> _getFilteredGames(List<Game> games) {
+    if (!identical(games, _cachedGames)) {
+      _cachedGames = games;
+      _filteredGames = games.where((g) => !g.isDeleted).toList();
+    }
+    return _filteredGames!;
+  }
+
+  (List<Movie>, List<Book>, List<Note>, List<Game>) _getRangedLists(
+      List<Movie> fm, List<Book> fb, List<Note> fn, List<Game> fg) {
+    if (!identical(fm, _rangeSrcMovies) ||
+        !identical(fb, _rangeSrcBooks) ||
+        !identical(fn, _rangeSrcNotes) ||
+        !identical(fg, _rangeSrcGames) ||
+        _rangeTimeRange != _timeRange) {
+      _rangeSrcMovies = fm;
+      _rangeSrcBooks = fb;
+      _rangeSrcNotes = fn;
+      _rangeSrcGames = fg;
+      _rangeTimeRange = _timeRange;
+      _rangeMovies = _filterItemsByRange(fm, _movieDate);
+      _rangeBooks = _filterItemsByRange(fb, _bookDate);
+      _rangeNotes = _filterItemsByRange(fn, _noteDate);
+      _rangeGames = _filterItemsByRange(fg, (g) => g.createdAt);
+    }
+    return (_rangeMovies!, _rangeBooks!, _rangeNotes!, _rangeGames!);
   }
 
   /// 影视用观看日期优先，无则创建日期
@@ -86,12 +127,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
     final games = context.select<AppProvider, List<Game>>((p) => p.games);
     final (fm, fb, fn) = _getFilteredLists(movies, books, notes);
+    final fg = _getFilteredGames(games);
 
-    // 按时间范围过滤
-    final rfm = _filterItemsByRange(fm, _movieDate);
-    final rfb = _filterItemsByRange(fb, _bookDate);
-    final rfn = _filterItemsByRange(fn, _noteDate);
-    final rfg = _filterItemsByRange(games.where((g) => !g.isDeleted).toList(), (g) => g.createdAt);
+    // 按时间范围过滤（结果有缓存，源列表/范围不变时不重算）
+    final (rfm, rfb, rfn, rfg) = _getRangedLists(fm, fb, fn, fg);
 
     return Scaffold(
       backgroundColor: colors.surface,

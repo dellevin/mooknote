@@ -1128,6 +1128,47 @@ class DatabaseHelper {
       'CREATE INDEX idx_playlist_items_playlist ON playlist_items(playlist_id)',
     );
 
+    // 阅读器书籍表（v14 引入、v24 增加 book_id，新装用户直接建最终结构）
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS reader_books (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT DEFAULT '',
+        cover_path TEXT,
+        file_path TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_extension TEXT NOT NULL DEFAULT 'epub',
+        last_read_cfi TEXT DEFAULT '',
+        reading_percentage REAL DEFAULT 0.0,
+        book_id TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    // 书籍批注表（v23 引入：高亮、下划线、书签）
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS book_annotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        cfi TEXT NOT NULL DEFAULT '',
+        chapter TEXT DEFAULT '',
+        type TEXT NOT NULL DEFAULT 'highlight',
+        color TEXT NOT NULL DEFAULT 'FFEB3B',
+        reader_note TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_book_annotations_book_id ON book_annotations(book_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_book_annotations_type ON book_annotations(book_id, type)',
+    );
+
     // 人物表
     await _createPeopleTables(db);
     // 角色表

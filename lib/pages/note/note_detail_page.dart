@@ -138,10 +138,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final note = context.watch<AppProvider>().notes.firstWhere(
-      (n) => n.id == widget.note.id,
-      orElse: () => widget.note,
-    );
+    // 只订阅当前这一条：无关的 provider 变更不再重建整个详情页
+    final note = context.select<AppProvider, Note?>(
+      (p) => p.notes.where((n) => n.id == widget.note.id).firstOrNull,
+    ) ?? widget.note;
 
     if (Breakpoint.isDesktop(context)) {
       return _buildDesktopStyle(note, colors);

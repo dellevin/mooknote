@@ -30,6 +30,7 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
 
   Future<void> _loadCurrentIcon() async {
     final nativeIcon = await AppIconChannel.getCurrentIcon();
+    if (!mounted) return;
     setState(() => _currentIconName = nativeIcon);
   }
 
@@ -39,8 +40,9 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
       final success = await AppIconChannel.switchIcon(iconName);
       if (success) {
         await _userPrefs.setAppIconName(iconName);
+        if (!mounted) return;
         setState(() => _currentIconName = iconName);
-        if (mounted) ToastUtil.show(context, '图标已切换，请返回桌面查看'.tr);
+        ToastUtil.show(context, '图标已切换，请返回桌面查看'.tr);
       } else {
         if (mounted) ToastUtil.show(context, '图标切换失败'.tr);
       }

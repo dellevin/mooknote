@@ -115,6 +115,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
       _bookTotal = 0;
     });
     _userPrefs.addSearchHistory(q).then((_) {
+      if (!mounted) return;
       setState(() {
         _history = _userPrefs.searchHistory;
       });

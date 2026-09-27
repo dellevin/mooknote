@@ -998,8 +998,9 @@ class _StrollDialogState extends State<_StrollDialog> {
       case 'book': await provider.removeBook(item.data.id);
       case 'note': await provider.removeNote(item.data.id);
     }
+    if (!mounted) return;
     setState(() => _items.remove(item));
-    if (mounted) ToastUtil.show(context, '已删除'.tr);
+    ToastUtil.show(context, '已删除'.tr);
   }
 
   @override
@@ -2941,6 +2942,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
     );
     if (confirmed == true) {
       await WebDAVService.instance.clearConfig();
+      if (!mounted) return;
       setState(() {
         _urlController.clear();
         _usernameController.clear();
@@ -2948,7 +2950,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
         _pathController.text = '/mooknote';
         _isConfigured = false;
       });
-      if (mounted) ToastUtil.show(context,'配置已清除'.tr);
+      ToastUtil.show(context,'配置已清除'.tr);
     }
   }
 

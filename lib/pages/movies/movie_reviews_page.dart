@@ -308,6 +308,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeMovieReview(review.id);
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 _loadReviews();
                 ToastUtil.show(context, '已删除'.tr);

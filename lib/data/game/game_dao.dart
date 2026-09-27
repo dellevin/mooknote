@@ -102,12 +102,17 @@ class GameDao {
   // 删除游戏记录（软删除）
   Future<int> deleteGame(String id) => _wrap('deleteGame', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'games',
-      {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final result = await txn.update(
+        'games',
+        {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      // 片单保留条目引用（可恢复），仅刷新计数排除已删媒体
+      await PlaylistDao.refreshItemCountsForMedia(txn, id, 'game');
+      return result;
+    });
   });
 
   // 获取所有类型（去重）
@@ -147,12 +152,16 @@ class GameDao {
   // 恢复已删除的游戏
   Future<int> restoreGame(String id) => _wrap('restoreGame', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'games',
-      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final result = await txn.update(
+        'games',
+        {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      await PlaylistDao.refreshItemCountsForMedia(txn, id, 'game');
+      return result;
+    });
   });
 
   // 彻底删除游戏

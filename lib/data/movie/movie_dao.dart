@@ -175,12 +175,17 @@ class MovieDao {
   // 删除影视记录（软删除）
   Future<int> deleteMovie(String id) => _wrap('deleteMovie', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'movies',
-      {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final result = await txn.update(
+        'movies',
+        {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      // 片单保留条目引用（可恢复），仅刷新计数排除已删媒体
+      await PlaylistDao.refreshItemCountsForMedia(txn, id, 'movie');
+      return result;
+    });
   });
 
   // 获取所有导演（去重）
@@ -261,12 +266,16 @@ class MovieDao {
   // 恢复已删除的影视
   Future<int> restoreMovie(String id) => _wrap('restoreMovie', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'movies',
-      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final result = await txn.update(
+        'movies',
+        {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      await PlaylistDao.refreshItemCountsForMedia(txn, id, 'movie');
+      return result;
+    });
   });
 
   // 彻底删除影视

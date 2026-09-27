@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
@@ -55,8 +56,21 @@ class BackupService {
 
   // ─── 共享导出逻辑 ─────────────────────────────────────
 
+  /// 导出互斥锁：手动导出 / 自动备份 / WebDAV 上传共用同一批固定临时文件，
+  /// 并发执行会互踩，这里把导出阶段串行化
+  Future<void> _exportLock = Future.value();
+
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final prev = _exportLock;
+    final completer = Completer<void>();
+    _exportLock = completer.future;
+    return prev.then((_) => action()).whenComplete(completer.complete);
+  }
+
   /// 收集所有表数据和图片，构建 ZIP 文件
-  Future<_ExportData> _buildExportData() async {
+  Future<_ExportData> _buildExportData() => _serialized(_buildExportDataUnlocked);
+
+  Future<_ExportData> _buildExportDataUnlocked() async {
     // 阶段1：主线程收集数据（DB 查询、SharedPreferences 需主线程）
     final db = await DatabaseHelper.instance.database;
 
@@ -313,8 +327,15 @@ class BackupService {
         await backupDir.create(recursive: true);
       }
 
-      // 复制到目标路径
-      final destPath = path.join(backupDir.path, fileName);
+      // 复制到目标路径（同秒重名时追加序号，避免并发备份互相覆盖）
+      var destPath = path.join(backupDir.path, fileName);
+      var suffix = 1;
+      while (await File(destPath).exists()) {
+        destPath = path.join(
+          backupDir.path,
+          fileName.replaceFirst('.zip', '_${suffix++}.zip'),
+        );
+      }
       await zipFile.copy(destPath);
 
       // 清理原始临时 zip
@@ -700,19 +721,32 @@ class BackupService {
     final keys = prefs.getKeys();
     final map = <String, dynamic>{};
     for (final key in keys) {
+      // 敏感信息不随备份导出（备份文件会被用户分享）
+      if (_sensitivePrefsKeys.contains(key)) continue;
       map[key] = prefs.get(key);
     }
     return map;
   }
 
+  /// 含密码/令牌/设备身份的 prefs 键，导出与恢复两端都须排除
+  static const Set<String> _sensitivePrefsKeys = {
+    'webdav_config',
+    'movieSearchToken',
+    'bookSearchToken',
+    'sync_client_id',
+  };
+
   /// 恢复 SharedPreferences（保留当前设备的同步和路径配置）
   Future<void> _restoreSharedPrefs(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
-    // 这些键是设备特定的，不应从备份恢复
+    // 这些键是设备特定或敏感的，不应从备份恢复
     const skipKeys = {
       'avatarPath',
       'webdav_config',
       'webdav_last_sync',
+      'movieSearchToken',
+      'bookSearchToken',
+      'sync_client_id',
     };
     for (final entry in data.entries) {
       final key = entry.key;
@@ -1019,7 +1053,9 @@ class _ZipComputeResult {
 
 /// 在后台 isolate 中执行 JSON 编码 + ZIP 压缩，避免阻塞主线程
 _ZipComputeResult _buildZipInIsolate(_ZipComputeParams params) {
-  final tempZipPath = path.join(params.tempDirPath, 'mooknote_backup_temp.zip');
+  // 文件名带微秒时间戳：即使外层锁失效，并发 isolate 也不会操作同一文件
+  final unique = DateTime.now().microsecondsSinceEpoch;
+  final tempZipPath = path.join(params.tempDirPath, 'mooknote_backup_temp_$unique.zip');
   final encoder = ZipFileEncoder();
   encoder.create(tempZipPath);
 
@@ -1027,7 +1063,7 @@ _ZipComputeResult _buildZipInIsolate(_ZipComputeParams params) {
     // data.json
     final jsonString = const JsonEncoder.withIndent('  ').convert(params.backupData);
     final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
-    final dataFile = File(path.join(params.tempDirPath, 'mooknote_data.json'));
+    final dataFile = File(path.join(params.tempDirPath, 'mooknote_data_$unique.json'));
     dataFile.writeAsBytesSync(jsonBytes);
     encoder.addFile(dataFile, 'data.json');
     dataFile.deleteSync();

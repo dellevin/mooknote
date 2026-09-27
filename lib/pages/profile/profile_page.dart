@@ -1289,6 +1289,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               onTap: () async {
                 Navigator.pop(ctx);
                 await _userPrefs.clearAvatarPath();
+                if (!mounted) return;
                 setState(() => _avatarPath = null);
               },
             ),
@@ -1314,6 +1315,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
         await File(pickedFile.path).copy(savedPath);
         await _userPrefs.setAvatarPath(savedPath);
+        if (!mounted) return;
         setState(() => _avatarPath = savedPath);
       }
     } catch (e) {

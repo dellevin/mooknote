@@ -51,6 +51,21 @@ class BookExcerptDao {
     return excerpt.id;
   });
 
+  /// 批量插入摘抄（单事务，供导入使用，避免逐条 DB 往返）
+  Future<void> insertExcerpts(List<BookExcerpt> excerpts) => _wrap('insertExcerpts', () async {
+    if (excerpts.isEmpty) return;
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      for (final excerpt in excerpts) {
+        await txn.insert(
+          'book_excerpts',
+          excerpt.toJson(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    });
+  });
+
   /// 更新摘抄
   Future<void> updateExcerpt(BookExcerpt excerpt) => _wrap('updateExcerpt', () async {
     final db = await _dbHelper.database;

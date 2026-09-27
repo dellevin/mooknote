@@ -729,26 +729,25 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
   Future<void> _saveImportedExcerpts(List<({String content, String comment, String chapter})> excerpts) async {
     final provider = context.read<AppProvider>();
     final now = DateTime.now();
-    int imported = 0;
 
-    for (int i = 0; i < excerpts.length; i++) {
-      final item = excerpts[i];
-      final excerpt = BookExcerpt(
-        id: '${widget.book.id}_${now.millisecondsSinceEpoch}_$i',
-        bookId: widget.book.id,
-        chapter: item.chapter,
-        content: item.content,
-        comment: item.comment,
-        createdAt: now,
-        updatedAt: now,
-      );
-      await provider.addBookExcerpt(excerpt);
-      imported++;
-    }
+    final entities = [
+      for (int i = 0; i < excerpts.length; i++)
+        BookExcerpt(
+          id: '${widget.book.id}_${now.millisecondsSinceEpoch}_$i',
+          bookId: widget.book.id,
+          chapter: excerpts[i].chapter,
+          content: excerpts[i].content,
+          comment: excerpts[i].comment,
+          createdAt: now,
+          updatedAt: now,
+        ),
+    ];
+    // 批量插入：单事务 + 仅一次通知，避免几百条导入时 UI 卡死
+    await provider.addBookExcerpts(entities);
 
     _loadExcerpts();
     if (mounted) {
-      ToastUtil.show(context, '成功导入 {n} 条摘抄'.trf({'n': imported}));
+      ToastUtil.show(context, '成功导入 {n} 条摘抄'.trf({'n': entities.length}));
     }
   }
 }

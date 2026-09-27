@@ -102,15 +102,20 @@ class BookDao {
   // 软删除书籍记录（移入回收站）
   Future<int> deleteBook(String id) => _wrap('deleteBook', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'books',
-      {
-        'is_deleted': 1,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final result = await txn.update(
+        'books',
+        {
+          'is_deleted': 1,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      // 片单保留条目引用（可恢复），仅刷新计数排除已删媒体
+      await PlaylistDao.refreshItemCountsForMedia(txn, id, 'book');
+      return result;
+    });
   });
 
   // 搜索书籍（标题、别名）
@@ -166,12 +171,16 @@ class BookDao {
   // 恢复已删除的书籍
   Future<int> restoreBook(String id) => _wrap('restoreBook', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'books',
-      {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final result = await txn.update(
+        'books',
+        {'is_deleted': 0, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      await PlaylistDao.refreshItemCountsForMedia(txn, id, 'book');
+      return result;
+    });
   });
 
   // 彻底删除书籍

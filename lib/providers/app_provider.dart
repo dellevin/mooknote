@@ -1215,6 +1215,13 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 批量添加摘抄（导入用：单事务写入 + 只通知一次）
+  Future<void> addBookExcerpts(List<BookExcerpt> excerpts) async {
+    if (excerpts.isEmpty) return;
+    await _bookExcerptDao.insertExcerpts(excerpts);
+    notifyListeners();
+  }
+
   /// 更新摘抄
   Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
     await _bookExcerptDao.updateExcerpt(excerpt);

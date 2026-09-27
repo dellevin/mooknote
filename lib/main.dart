@@ -424,18 +424,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           final monetColor = lightScheme?.primary;
           AppTheme.setMonetColor(monetColor);
 
-          return Consumer<AppProvider>(
-            builder: (context, provider, _) {
-              AppTheme.setFontFamily(provider.fontFamily);
-              final isFrosted = provider.frostedActive;
+          // 只订阅影响 MaterialApp 主题/语言的字段：
+          // 媒体数据等高频变更不再触发整个 MaterialApp 重建
+          return Selector<AppProvider,
+              ({String fontFamily, bool frostedActive, int colorSchemeIndex, ThemeMode themeMode, Locale? locale, String? frostedCoverPath})>(
+            selector: (_, p) => (
+              fontFamily: p.fontFamily,
+              frostedActive: p.frostedActive,
+              colorSchemeIndex: p.colorSchemeIndex,
+              themeMode: p.themeMode,
+              locale: p.locale,
+              frostedCoverPath: p.frostedCoverPath,
+            ),
+            builder: (context, sel, _) {
+              AppTheme.setFontFamily(sel.fontFamily);
+              final isFrosted = sel.frostedActive;
               final light = AppTheme.getLightTheme(
-                provider.colorSchemeIndex,
+                sel.colorSchemeIndex,
                 monetColor: monetColor,
               );
               ThemeData dark;
               if (isFrosted) {
                 dark = AppTheme.frostedTheme;
-              } else if (provider.colorSchemeIndex == -1 && monetColor != null) {
+              } else if (sel.colorSchemeIndex == -1 && monetColor != null) {
                 final scheme = ColorScheme.fromSeed(
                   seedColor: monetColor,
                   brightness: Brightness.dark,
@@ -468,7 +479,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 debugShowCheckedModeBanner: false,
                 theme: light,
                 darkTheme: dark,
-                themeMode: isFrosted ? ThemeMode.dark : provider.themeMode,
+                themeMode: isFrosted ? ThemeMode.dark : sel.themeMode,
                 builder: (ctx, nav) {
                   Widget shell = AppShell(child: nav!);
                   // 毛玻璃主题：全局背景层（模糊封面 + 深色遮罩）垫底
@@ -476,7 +487,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     shell = Stack(
                       fit: StackFit.expand,
                       children: [
-                        FrostedBackground(coverPath: provider.frostedCoverPath),
+                        FrostedBackground(coverPath: sel.frostedCoverPath),
                         shell,
                       ],
                     );
@@ -499,7 +510,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   Locale('zh', 'CN'),
                   Locale('en', 'US'),
                 ],
-                locale: provider.locale,
+                locale: sel.locale,
                 home: const HomePage(),
                 navigatorKey: _navigatorKey,
                 navigatorObservers: [routeObserver],

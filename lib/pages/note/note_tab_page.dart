@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
@@ -266,17 +267,18 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Widget _buildWaterfallView(bool isWideContent) {
     return LayoutBuilder(builder: (context, constraints) {
       final colCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 160, minCount: 2, maxCount: 4);
-      final columns = List.generate(colCount, (_) => <Note>[]);
-      for (int i = 0; i < _items.length; i++) {
-        columns[i % colCount].add(_items[i]);
-      }
-      return SingleChildScrollView(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          for (int c = 0; c < colCount; c++) ...[
-            if (c > 0) const SizedBox(width: 8),
-            Expanded(child: Column(children: columns[c].map(_buildWaterfallCard).toList())),
-          ],
-        ]),
+      // MasonryGridView 按需构建卡片，替代原来一次性展开全部笔记的 Row+Column
+      return MasonryGridView.count(
+        controller: _scrollController,
+        crossAxisCount: colCount,
+        mainAxisSpacing: 0, // 卡片自带 bottom margin 8
+        crossAxisSpacing: 8,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+        itemCount: _items.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _items.length) return _buildLoadMore();
+          return _buildWaterfallCard(_items[index]);
+        },
       );
     });
   }

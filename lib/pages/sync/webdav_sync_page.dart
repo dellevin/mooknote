@@ -150,6 +150,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
           password: password,
           path: path,
         );
+        if (!mounted) return;
         setState(() => _isConfigured = true);
         // 保存成功后立即加载远程备份信息
         _loadRemoteInfo();

@@ -367,6 +367,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeGameScreenshot(screenshot.id);
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 _loadScreenshots();
                 ToastUtil.show(context, '已删除'.tr);

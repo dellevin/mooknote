@@ -166,9 +166,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final game = context.watch<AppProvider>().games
-        .where((g) => g.id == widget.game.id)
-        .firstOrNull ?? widget.game;
+    // 只订阅当前这一条：无关的 provider 变更不再重建整个详情页
+    final game = context.select<AppProvider, Game?>(
+      (p) => p.games.where((g) => g.id == widget.game.id).firstOrNull,
+    ) ?? widget.game;
 
     if (Breakpoint.isDesktop(context)) {
       return _buildDesktopStyle(game, colors);

@@ -681,15 +681,16 @@ class _BackupPageState extends State<BackupPage> {
       if (result.cancelled) {
         ToastUtil.show(context, '已取消导入'.tr);
       } else if (result.success) {
-        // 刷新数据
-        await context.read<AppProvider>().loadMovies();
-        await context.read<AppProvider>().loadBooks();
-        await context.read<AppProvider>().loadNotes();
-        await context.read<AppProvider>().loadGames();
-        await context.read<AppProvider>().loadPlaylists();
-        await context.read<AppProvider>().loadPeople();
-        await context.read<AppProvider>().loadCustomModules();
-        context.read<AppProvider>().bumpCustomModuleItemsVersion();
+        // 刷新数据（provider 是全局单例，不随本页面销毁，先取引用避免 async gap 后用 context）
+        final provider = context.read<AppProvider>();
+        await provider.loadMovies();
+        await provider.loadBooks();
+        await provider.loadNotes();
+        await provider.loadGames();
+        await provider.loadPlaylists();
+        await provider.loadPeople();
+        await provider.loadCustomModules();
+        provider.bumpCustomModuleItemsVersion();
 
         if (!mounted) return;
 

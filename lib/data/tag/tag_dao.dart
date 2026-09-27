@@ -56,6 +56,9 @@ class TagDao {
     if (parentId.isNotEmpty) {
       if (parentId == tagId) return false;
       final type = tag['type'] as String;
+      // 父标签必须存在且类型一致，否则子标签会从层级浏览中消失
+      final parent = await getTagById(parentId);
+      if (parent == null || parent['type'] != type) return false;
       final descendants = await _collectDescendantIds(db, tagId, type);
       if (descendants.contains(parentId)) return false;
     }

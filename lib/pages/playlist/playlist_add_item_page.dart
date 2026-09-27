@@ -164,6 +164,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
           final playlistItems = await provider.getPlaylistItems(widget.playlist.id);
           final match = playlistItems.firstWhere((pi) => pi.itemId == item.id);
           await provider.removePlaylistItem(match.id, widget.playlist.id);
+          if (!mounted) return;
           setState(() {
             _existingItemIds.remove(item.id);
           });
@@ -175,6 +176,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
             addedAt: DateTime.now(),
           );
           await provider.addPlaylistItem(playlistItem);
+          if (!mounted) return;
           setState(() {
             _existingItemIds.add(item.id);
           });

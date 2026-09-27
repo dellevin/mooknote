@@ -245,6 +245,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
             ElevatedButton(
               onPressed: () async {
                 await context.read<AppProvider>().removeGameReview(review.id);
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 _loadReviews();
                 ToastUtil.show(context, '已删除'.tr);
