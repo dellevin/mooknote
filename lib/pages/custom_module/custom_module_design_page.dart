@@ -27,12 +27,10 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
   CustomModuleDesign? _design;
   bool _loading = true;
 
-  /// poster/status/rating/count 每种至多一个
+  /// poster/rating 每种至多一个（状态/次数允许多个）
   static const _singletonTypes = {
     CustomFieldType.poster,
-    CustomFieldType.status,
     CustomFieldType.rating,
-    CustomFieldType.count,
   };
 
   @override
@@ -176,11 +174,12 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
     );
   }
 
-  /// 可半行的类型（单文本/多文本/时间/次数）；状态/评分固定整行合并卡，海报/长文本固定整行
+  /// 可半行的类型（单文本/多文本/时间/次数/时长）；状态/评分固定整行合并卡，海报/长文本固定整行
   static bool _halfCapable(CustomFieldType t) =>
       t == CustomFieldType.text ||
       t == CustomFieldType.multiText ||
       t == CustomFieldType.date ||
+      t == CustomFieldType.duration ||
       t == CustomFieldType.count;
 
   /// halfWidth 不由用户开关控制，完全由拖放位置决定（见 _dropOnField / _dropOnGap）
@@ -433,6 +432,8 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
         return customModuleMultiTextCard(f, const [], colors, onTap: () {});
       case CustomFieldType.date:
         return customModuleDateCard(f, null, colors, onTap: () {}, onClear: () {});
+      case CustomFieldType.duration:
+        return customModuleDurationCard(f, null, colors, onTap: () {}, onClear: () {});
     }
   }
 
@@ -473,8 +474,9 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       case CustomFieldType.rating: return ('评分'.tr, Icons.star_outline);
       case CustomFieldType.count: return ('次数'.tr, Icons.plus_one);
       case CustomFieldType.text: return ('单文本'.tr, Icons.short_text);
-      case CustomFieldType.multiText: return ('多文本'.tr, Icons.format_list_bulleted);
+      case CustomFieldType.multiText: return ('多文本标签'.tr, Icons.format_list_bulleted);
       case CustomFieldType.date: return ('时间'.tr, Icons.calendar_today_outlined);
+      case CustomFieldType.duration: return ('时长'.tr, Icons.schedule_outlined);
       case CustomFieldType.longText: return ('长文本'.tr, Icons.notes);
     }
   }
@@ -590,6 +592,7 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       case CustomFieldType.text: return '一行短文本（如 名称）'.tr;
       case CustomFieldType.multiText: return '多个文本条目（如 导演、编剧）'.tr;
       case CustomFieldType.date: return '选择一个日期'.tr;
+      case CustomFieldType.duration: return '时:分滚轮选择时长（如 影视总时长）'.tr;
       case CustomFieldType.longText: return '多行长文本（如 简介）'.tr;
     }
   }
@@ -818,6 +821,7 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       case CustomFieldType.text: return '名称';
       case CustomFieldType.multiText: return '';
       case CustomFieldType.date: return '时间';
+      case CustomFieldType.duration: return '时长';
       case CustomFieldType.longText: return '简介';
     }
   }

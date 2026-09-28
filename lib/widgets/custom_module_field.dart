@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/data_models.dart';
 import '../l10n/app_strings.dart';
 import 'custom_module_icon.dart';
@@ -127,7 +128,7 @@ Widget customModuleStatusRow(CustomFieldDef f, String? selected, ColorScheme col
   );
 }
 
-/// 评分行（合并卡内一行）
+/// 评分行（合并卡内一行：星星 + 可手动输入 0-10 的输入框，与影视表单一致）
 Widget customModuleRatingRow(CustomFieldDef f, double? rating, ColorScheme colors,
     ValueChanged<double?> onChanged) {
   final r = rating ?? 0;
@@ -155,10 +156,9 @@ Widget customModuleRatingRow(CustomFieldDef f, double? rating, ColorScheme color
           ),
         );
       }),
-      const Spacer(),
+      const SizedBox(width: 8),
+      _RatingManualInput(value: rating, onChanged: onChanged),
       if (r > 0) ...[
-        Text(r % 1 == 0 ? r.toInt().toString() : r.toString(),
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
         const SizedBox(width: 6),
         GestureDetector(
           onTap: () => onChanged(null),
@@ -167,6 +167,85 @@ Widget customModuleRatingRow(CustomFieldDef f, double? rating, ColorScheme color
       ],
     ],
   );
+}
+
+/// 评分手动输入框（0-10，最多 1 位小数）：内部持有 controller，
+/// 外部值变化（点星/清除）时同步，正在输入时不打扰
+class _RatingManualInput extends StatefulWidget {
+  final double? value;
+  final ValueChanged<double?> onChanged;
+  const _RatingManualInput({required this.value, required this.onChanged});
+
+  @override
+  State<_RatingManualInput> createState() => _RatingManualInputState();
+}
+
+class _RatingManualInputState extends State<_RatingManualInput> {
+  late final TextEditingController _controller;
+
+  static String _fmt(double? v) =>
+      v == null ? '' : (v % 1 == 0 ? v.toInt().toString() : v.toString());
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _fmt(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(covariant _RatingManualInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当前文本解析值与外部值相等说明是用户在输入（含 "7." 中间态），不重置
+    if (double.tryParse(_controller.text) != widget.value) {
+      _controller.text = _fmt(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: 48, height: 28,
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: TextField(
+        controller: _controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.center,
+        inputFormatters: [_RatingInputFormatter()],
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+        decoration: InputDecoration(
+          hintText: '0-10',
+          hintStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+          isDense: true,
+        ),
+        onChanged: (text) => widget.onChanged(double.tryParse(text)),
+      ),
+    );
+  }
+}
+
+/// 评分输入格式化器：只允许 0-10，最多1位小数
+class _RatingInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    if (!RegExp(r'^\d{0,2}\.?\d{0,1}$').hasMatch(text)) return oldValue;
+    final n = double.tryParse(text);
+    if (n != null && n > 10) return oldValue;
+    return newValue;
+  }
 }
 
 /// 次数卡（与影视表单 观看次数 卡一致：标签在上，− N 次 + 步进器在下，可半行）
@@ -294,6 +373,56 @@ Widget customModuleMultiTextCard(CustomFieldDef f, List<String> items, ColorSche
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+/// 格式化时长（分钟）：120 -> "2小时0分"，0 -> ""
+String formatCustomModuleDuration(int minutes) {
+  if (minutes <= 0) return '';
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (h > 0 && m > 0) return '{h}小时{m}分'.trf({'h': h, 'm': m});
+  if (h > 0) return '{h}小时'.trf({'h': h});
+  return '{m}分'.trf({'m': m});
+}
+
+/// 时长卡（与时间卡一致：标签行在上、时长值在下，点卡片弹出时:分滚轮，可半行）
+Widget customModuleDurationCard(CustomFieldDef f, int? minutes, ColorScheme colors,
+    {required VoidCallback onTap, required VoidCallback onClear}) {
+  final hasValue = minutes != null && minutes > 0;
+  return GestureDetector(
+    onTap: onTap,
+    child: customModuleCard(
+      colors,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              customModuleFieldLabel(f, colors, icon: Icons.schedule_outlined),
+              if (hasValue) ...[
+                const Spacer(),
+                GestureDetector(
+                  onTap: onClear,
+                  child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasValue ? formatCustomModuleDuration(minutes) : '点击填写'.tr,
+            style: TextStyle(
+              fontSize: 15,
+              color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+              fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     ),
   );

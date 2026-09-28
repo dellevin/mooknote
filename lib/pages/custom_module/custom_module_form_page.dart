@@ -11,6 +11,7 @@ import '../../data/custom_module/custom_module_item_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/custom_module_field.dart';
+import '../../widgets/duration_picker.dart';
 import '../../widgets/edit_sheets.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../l10n/app_strings.dart';
@@ -68,6 +69,10 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
         case CustomFieldType.count:
           final v = data[f.key];
           _values[f.key] = v is int ? v : (v is num ? v.toInt() : 0);
+          break;
+        case CustomFieldType.duration:
+          final v = data[f.key];
+          _values[f.key] = v is num ? v.toInt() : null;
           break;
         case CustomFieldType.rating:
           final v = data[f.key];
@@ -145,6 +150,7 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
         (f.type == CustomFieldType.text ||
             f.type == CustomFieldType.multiText ||
             f.type == CustomFieldType.date ||
+            f.type == CustomFieldType.duration ||
             f.type == CustomFieldType.count);
 
     final bodyFields = fields.where((f) => f.type != CustomFieldType.poster).toList();
@@ -243,6 +249,12 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
           onTap: () => _pickDate(f),
           onClear: () => setState(() => _values[f.key] = null),
         );
+      case CustomFieldType.duration:
+        return customModuleDurationCard(
+          f, _values[f.key] as int?, colors,
+          onTap: () => _pickDuration(f),
+          onClear: () => setState(() => _values[f.key] = null),
+        );
       case CustomFieldType.count:
         return customModuleCountCard(f, (_values[f.key] as int?) ?? 0, colors,
             (v) => setState(() => _values[f.key] = v));
@@ -337,6 +349,17 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
       initial: iso != null ? DateTime.tryParse(iso) : null,
     );
     if (picked != null) setState(() => _values[f.key] = picked.toIso8601String());
+  }
+
+  /// 时长：时:分滚轮底部弹层（与影视表单 影视总时长 一致），值存总分钟数
+  Future<void> _pickDuration(CustomFieldDef f) async {
+    final result = await DurationPicker.show(
+      context: context,
+      initialMinutes: (_values[f.key] as int?) ?? 0,
+      title: f.label,
+    );
+    if (!mounted || result == null) return;
+    setState(() => _values[f.key] = result);
   }
 
   // ─── 保存 ───

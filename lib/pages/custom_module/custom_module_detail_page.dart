@@ -4,6 +4,7 @@ import '../../data/custom_module/custom_module_design_dao.dart';
 import '../../data/custom_module/custom_module_item_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/custom_module_field.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/slide_up_page_route.dart';
 import '../../l10n/app_strings.dart';
@@ -396,6 +397,9 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
       case CustomFieldType.date:
         final date = DateTime.tryParse(value.toString());
         return Text(date != null ? _formatDate(date) : value.toString(),
+            style: TextStyle(fontSize: 15, color: colors.onSurface));
+      case CustomFieldType.duration:
+        return Text(formatCustomModuleDuration((value as num).toInt()),
             style: TextStyle(fontSize: 15, color: colors.onSurface));
       case CustomFieldType.longText:
         return Text(value.toString(),

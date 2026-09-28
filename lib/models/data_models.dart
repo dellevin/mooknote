@@ -1762,6 +1762,7 @@ enum CustomFieldType {
   multiText,   // 多文本列表
   date,        // 时间选择器
   longText,    // 长文本
+  duration,    // 时长（时:分滚轮，值存总分钟数）
 }
 
 /// 自定义模块设计中的单个字段定义（存于 design 的 fields_json 数组中）
@@ -1772,7 +1773,7 @@ class CustomFieldDef {
   final bool required;         // 是否必填（仅 text/multiText/longText 有意义）
   final List<String> options;  // 状态选项（仅 status）
   final bool isTitle;          // 是否为标题字段（仅 text，一个设计至多一个）
-  final bool halfWidth;        // 半行显示：与相邻半行字段并排为一行（仅 text/multiText/date/count）
+  final bool halfWidth;        // 半行显示：与相邻半行字段并排为一行（仅 text/multiText/date/count/duration）
   final bool halfOnLeft;       // 半行落单时卡片靠左（false 则靠右），设计页拖到自己的虚框上可切换
   final String icon;           // 字段自定义图标（FontAwesome codePoint 字符串，空 = 按类型默认图标）
 
