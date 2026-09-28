@@ -39,6 +39,17 @@ class MovieReviewDao {
     return MovieReview.fromJson(maps.first);
   });
 
+  /// 获取全部影评（导出用）
+  Future<List<MovieReview>> getAllReviews() => _wrap('getAllReviews', () async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'movie_reviews',
+      where: 'is_deleted = 0',
+      orderBy: 'created_at DESC',
+    );
+    return List.generate(maps.length, (i) => MovieReview.fromJson(maps[i]));
+  });
+
   /// 添加影评
   Future<int> insertReview(MovieReview review) => _wrap('insertReview', () async {
     final db = await _dbHelper.database;

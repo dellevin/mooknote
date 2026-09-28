@@ -413,6 +413,12 @@ const Map<String, String> enProfile = {
   '服务器处理超时，请稍后重试': 'Server timed out, please try again later',
   '在线带图导出': 'Online export with images',
   '开启': 'Enable',
+  '评论者': 'Reviewer',
+  '评论日期': 'Review Date',
+  '仅导出{entity}': 'Export {entity} only',
+  '是否连同{reviewLabel}一起导出？': 'Include {reviewLabel} in the export?',
+  '选择"是"时，Excel 中会额外附带一个{reviewLabel}工作表':
+      'If you choose "Yes", the Excel file will include an extra {reviewLabel} sheet.',
   '开启后，导出时会将本地数据库与图片打包上传至服务器，由服务器生成附带封面图片的 Excel 后回传下载。请知悉：\n· 需增强搜索的影视与书籍 Token 均有效\n· 涉及本地数据上传云端，请酌情使用\n· 数据仅用于生成文件，下载完成后服务器将立即删除':
       'When enabled, exporting packs your local database and images and uploads them to the server, which generates an Excel with cover images and sends it back. Please note:\n· Both movie and book enhanced-search tokens must be valid\n· Local data is uploaded to the cloud; use at your own discretion\n· Data is only used to generate the file and is deleted from the server immediately after download',
 

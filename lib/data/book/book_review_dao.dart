@@ -40,6 +40,17 @@ class BookReviewDao {
     return null;
   });
 
+  /// 获取全部书评（导出用）
+  Future<List<BookReview>> getAllReviews() => _wrap('getAllReviews', () async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'book_reviews',
+      where: 'is_deleted = 0',
+      orderBy: 'created_at DESC',
+    );
+    return List.generate(maps.length, (i) => BookReview.fromJson(maps[i]));
+  });
+
   /// 插入书评
   Future<String> insertReview(BookReview review) => _wrap('insertReview', () async {
     final db = await _dbHelper.database;

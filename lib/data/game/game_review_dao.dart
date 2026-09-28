@@ -39,6 +39,17 @@ class GameReviewDao {
     return GameReview.fromJson(maps.first);
   });
 
+  /// 获取全部游戏评价（导出用）
+  Future<List<GameReview>> getAllReviews() => _wrap('getAllReviews', () async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'game_reviews',
+      where: 'is_deleted = 0',
+      orderBy: 'created_at DESC',
+    );
+    return List.generate(maps.length, (i) => GameReview.fromJson(maps[i]));
+  });
+
   /// 添加评价
   Future<int> insertReview(GameReview review) => _wrap('insertReview', () async {
     final db = await _dbHelper.database;

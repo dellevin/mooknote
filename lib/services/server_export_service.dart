@@ -50,6 +50,7 @@ class ServerExportService {
   /// 执行完整流程，成功返回下载好的 xlsx 文件
   static Future<File> export({
     required String type,
+    bool withReviews = false,
     required ServerExportProgress onProgress,
   }) async {
     final prefs = UserPrefs();
@@ -102,6 +103,7 @@ class ServerExportService {
         movieToken: movieToken,
         bookToken: bookToken,
         type: type,
+        withReviews: withReviews,
         onProgress: onProgress,
       );
 
@@ -131,6 +133,7 @@ class ServerExportService {
     required String movieToken,
     required String bookToken,
     required String type,
+    required bool withReviews,
     required ServerExportProgress onProgress,
   }) async {
     final uri = Uri.parse('${ServerConfig.apiBase}/export/excel');
@@ -140,6 +143,7 @@ class ServerExportService {
       ..fields['book_token'] = bookToken
       ..fields['type'] = type
       ..fields['lang'] = AppStrings.isEnglish ? 'en' : 'zh'
+      ..fields['with_reviews'] = withReviews ? '1' : '0'
       ..files.add(await http.MultipartFile.fromPath('file', zipPath));
 
     // MultipartRequest.finalize() 是字节流，包一层 StreamedRequest 统计已发字节得到上传进度。

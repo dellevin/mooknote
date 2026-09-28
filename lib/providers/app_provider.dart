@@ -1080,6 +1080,21 @@ class AppProvider extends ChangeNotifier {
     return await _reviewDao.getReviewCount(movieId);
   }
 
+  /// 获取全部影评（导出用）
+  Future<List<MovieReview>> getAllMovieReviews() async {
+    return await _reviewDao.getAllReviews();
+  }
+
+  /// 获取全部书评（导出用）
+  Future<List<BookReview>> getAllBookReviews() async {
+    return await _bookReviewDao.getAllReviews();
+  }
+
+  /// 获取全部游戏评价（导出用）
+  Future<List<GameReview>> getAllGameReviews() async {
+    return await _gameReviewDao.getAllReviews();
+  }
+
   // ========== 海报墙相关方法 ==========
 
   /// 获取影视的所有海报

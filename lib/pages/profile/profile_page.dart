@@ -1517,9 +1517,19 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         color: colors.onSurface.withValues(alpha: 0.4))),
                 trailing: Icon(Icons.chevron_right,
                     color: colors.onSurface.withValues(alpha: 0.25)),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
-                  _doExport(context, label, withImages: withImages);
+                  const reviewLabels = {'影视': '影评', '阅读': '书评', '游戏': '游戏评价'};
+                  final reviewLabel = reviewLabels[label];
+                  var withReviews = false;
+                  if (reviewLabel != null) {
+                    final entityLabel = label == '阅读' ? '书籍' : label;
+                    final r = await _askExportWithReviews(context, entityLabel, reviewLabel);
+                    if (r == null) return; // 取消导出
+                    withReviews = r;
+                  }
+                  if (!context.mounted) return;
+                  _doExport(context, label, withImages: withImages, withReviews: withReviews);
                 },
               ),
               if (label != options.last.$1)
@@ -1533,9 +1543,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     );
   }
 
-  Future<void> _doExport(BuildContext context, String type, {bool withImages = false}) async {
+  Future<void> _doExport(BuildContext context, String type, {bool withImages = false, bool withReviews = false}) async {
     if (withImages) {
-      return _doOnlineExport(context, type);
+      return _doOnlineExport(context, type, withReviews: withReviews);
     }
     final provider = context.read<AppProvider>();
     try {
@@ -1543,15 +1553,21 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       switch (type) {
         case '影视':
           file = await ExcelExporter.exportMovies(
-              provider.movies.where((m) => !m.isDeleted).toList());
+            provider.movies.where((m) => !m.isDeleted).toList(),
+            reviews: withReviews ? await provider.getAllMovieReviews() : null,
+          );
           break;
         case '阅读':
           file = await ExcelExporter.exportBooks(
-              provider.books.where((b) => !b.isDeleted).toList());
+            provider.books.where((b) => !b.isDeleted).toList(),
+            reviews: withReviews ? await provider.getAllBookReviews() : null,
+          );
           break;
         case '游戏':
           file = await ExcelExporter.exportGames(
-              provider.games.where((g) => !g.isDeleted).toList());
+            provider.games.where((g) => !g.isDeleted).toList(),
+            reviews: withReviews ? await provider.getAllGameReviews() : null,
+          );
           break;
         default:
           file = await ExcelExporter.exportNotes(
@@ -1563,6 +1579,35 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       if (!context.mounted) return;
       _showExportResult(context, false, '导出失败：{e}'.trf({'e': e}));
     }
+  }
+
+  /// 导出前询问是否连同评论一起导出（影视/阅读/游戏）；返回 null 表示取消
+  Future<bool?> _askExportWithReviews(BuildContext context, String entityLabel, String reviewLabel) async {
+    final colors = Theme.of(context).colorScheme;
+    return appDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('是否连同{reviewLabel}一起导出？'.trf({'reviewLabel': reviewLabel.tr}),
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text(
+          '选择"是"时，Excel 中会额外附带一个{reviewLabel}工作表'
+              .trf({'reviewLabel': reviewLabel.tr}),
+          style: TextStyle(fontSize: 13, height: 1.6, color: colors.onSurface),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('仅导出{entity}'.trf({'entity': entityLabel.tr})),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('是'.tr),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 打开"附带封面图片"开关前的告知确认（涉及数据上传云端）
@@ -1599,7 +1644,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   }
 
   /// 在线带图导出：进度弹窗 → 打包/上传/排队/生成/下载 → 复用结果弹窗
-  Future<void> _doOnlineExport(BuildContext context, String label) async {
+  Future<void> _doOnlineExport(BuildContext context, String label, {bool withReviews = false}) async {
     const typeMap = {'影视': 'movies', '阅读': 'books', '游戏': 'games', '笔记': 'notes'};
     final type = typeMap[label] ?? 'movies';
 
@@ -1611,6 +1656,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
     final exportFuture = ServerExportService.export(
       type: type,
+      withReviews: withReviews,
       onProgress: (stage, {percent = 0, position = 0}) {
         switch (stage) {
           case ServerExportStage.packing:
