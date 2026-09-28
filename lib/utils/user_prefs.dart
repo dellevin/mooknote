@@ -146,6 +146,10 @@ class UserPrefs {
   bool get showMovieTab => prefs.getBool('showMovieTab') ?? true;
   Future<bool> setShowMovieTab(bool value) => prefs.setBool('showMovieTab', value);
 
+  /// Excel 导出是否附带封面图片（在线生成）
+  bool get exportWithImages => prefs.getBool('exportWithImages') ?? false;
+  Future<bool> setExportWithImages(bool value) => prefs.setBool('exportWithImages', value);
+
   /// 是否显示阅读标签
   bool get showBookTab => prefs.getBool('showBookTab') ?? true;
   Future<bool> setShowBookTab(bool value) => prefs.setBool('showBookTab', value);

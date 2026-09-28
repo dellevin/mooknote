@@ -13,6 +13,7 @@ import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/excel_exporter.dart';
+import '../../services/server_export_service.dart';
 import '../settings/recycle_bin_page.dart';
 import '../sync/backup_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -1436,12 +1437,14 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     }
     options.add(('笔记', Icons.sticky_note_2_outlined, provider.notes.where((n) => !n.isDeleted).length));
 
+    bool withImages = userPrefs.exportWithImages;
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Padding(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1468,6 +1471,29 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         fontSize: 11,
                         color: colors.onSurface.withValues(alpha: 0.4)))),
             const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              value: withImages,
+              onChanged: (v) async {
+                if (v) {
+                  final ok = await _confirmEnableOnlineExport(ctx);
+                  if (!ok) return;
+                }
+                setSheetState(() => withImages = v);
+                UserPrefs().setExportWithImages(v);
+              },
+              title: Text('附带封面图片（在线生成）'.tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurface)),
+              subtitle: Text('需要增强搜索 Token，上传数据后由服务器生成'.tr,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
+            ),
+            Divider(height: 0.5, color: colors.outlineVariant),
             for (final (label, icon, count) in options) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -1493,7 +1519,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                     color: colors.onSurface.withValues(alpha: 0.25)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _doExport(context, label);
+                  _doExport(context, label, withImages: withImages);
                 },
               ),
               if (label != options.last.$1)
@@ -1502,11 +1528,15 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             const SizedBox(height: 20),
           ],
         ),
+        ),
       ),
     );
   }
 
-  Future<void> _doExport(BuildContext context, String type) async {
+  Future<void> _doExport(BuildContext context, String type, {bool withImages = false}) async {
+    if (withImages) {
+      return _doOnlineExport(context, type);
+    }
     final provider = context.read<AppProvider>();
     try {
       File file;
@@ -1532,6 +1562,143 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     } catch (e) {
       if (!context.mounted) return;
       _showExportResult(context, false, '导出失败：{e}'.trf({'e': e}));
+    }
+  }
+
+  /// 打开"附带封面图片"开关前的告知确认（涉及数据上传云端）
+  Future<bool> _confirmEnableOnlineExport(BuildContext context) async {
+    final colors = Theme.of(context).colorScheme;
+    final ok = await appDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('在线带图导出'.tr,
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text(
+          '开启后，导出时会将本地数据库与图片打包上传至服务器，由服务器生成附带封面图片的 Excel 后回传下载。请知悉：\n'
+                  '· 需增强搜索的影视与书籍 Token 均有效\n'
+                  '· 涉及本地数据上传云端，请酌情使用\n'
+                  '· 数据仅用于生成文件，下载完成后服务器将立即删除'
+              .tr,
+          style: TextStyle(fontSize: 13, height: 1.6, color: colors.onSurface),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('取消'.tr),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('开启'.tr),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  /// 在线带图导出：进度弹窗 → 打包/上传/排队/生成/下载 → 复用结果弹窗
+  Future<void> _doOnlineExport(BuildContext context, String label) async {
+    const typeMap = {'影视': 'movies', '阅读': 'books', '游戏': 'games', '笔记': 'notes'};
+    final type = typeMap[label] ?? 'movies';
+
+    String statusText = '正在打包数据...'.tr;
+    double? progressValue;
+    StateSetter? dialogSetState;
+    BuildContext? dialogCtx;
+    bool exportFinished = false;
+
+    final exportFuture = ServerExportService.export(
+      type: type,
+      onProgress: (stage, {percent = 0, position = 0}) {
+        switch (stage) {
+          case ServerExportStage.packing:
+            statusText = '正在打包数据...'.tr;
+            progressValue = null;
+          case ServerExportStage.uploading:
+            statusText = '正在上传 {p}%'.trf({'p': percent});
+            progressValue = percent / 100;
+          case ServerExportStage.queued:
+            statusText = position > 0
+                ? '排队中（第 {n} 位）...'.trf({'n': position})
+                : '排队中...'.tr;
+            progressValue = null;
+          case ServerExportStage.processing:
+            statusText = '服务器生成中...'.tr;
+            progressValue = null;
+          case ServerExportStage.downloading:
+            statusText = '正在下载结果...'.tr;
+            progressValue = null;
+        }
+        dialogSetState?.call(() {});
+      },
+    );
+
+    File? resultFile;
+    Object? exportError;
+    exportFuture.then((file) {
+      resultFile = file;
+    }).catchError((e) {
+      exportError = e;
+    }).whenComplete(() {
+      exportFinished = true;
+      final ctx = dialogCtx;
+      if (ctx != null && ctx.mounted) Navigator.pop(ctx);
+    });
+
+    await appDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        dialogCtx = ctx;
+        if (exportFinished) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ctx.mounted) Navigator.pop(ctx);
+          });
+        }
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            dialogSetState = setState;
+            final colors = Theme.of(ctx).colorScheme;
+            return AlertDialog(
+              backgroundColor: colors.surface,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: Text('带图导出'.tr,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: progressValue,
+                    minHeight: 4,
+                    backgroundColor: colors.surfaceContainerHighest,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: colors.onSurface.withValues(alpha: 0.7)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+    if (resultFile != null) {
+      _showExportResult(context, true, '已导出到 {path}'.trf({'path': resultFile!.path}));
+    } else {
+      _showExportResult(context, false, '导出失败：{e}'.trf({'e': exportError ?? ''}));
     }
   }
 

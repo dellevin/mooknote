@@ -393,6 +393,29 @@ const Map<String, String> enProfile = {
   '已导出到 {path}': 'Exported to {path}',
   '导出失败：{e}': 'Export failed: {e}',
 
+  // ─── 在线带图导出 ─────────────────────────────────────
+  '附带封面图片（在线生成）': 'Include cover images (generated online)',
+  '需要增强搜索 Token，上传数据后由服务器生成':
+      'Requires enhanced-search tokens; data is uploaded and generated on the server',
+  '带图导出': 'Export with images',
+  '正在打包数据...': 'Packing data...',
+  '正在上传 {p}%': 'Uploading {p}%',
+  '排队中...': 'Queued...',
+  '排队中（第 {n} 位）...': 'Queued (position {n})...',
+  '服务器生成中...': 'Generating on server...',
+  '正在下载结果...': 'Downloading result...',
+  '需要先在增强搜索设置中填写影视和书籍 Token':
+      'Please set both movie and book tokens in enhanced search settings first',
+  '设备信息未就绪，请稍后重试': 'Device info not ready, please try again later',
+  '不支持的导出类型': 'Unsupported export type',
+  '数据库文件不存在': 'Database file not found',
+  '服务器处理失败': 'Server processing failed',
+  '服务器处理超时，请稍后重试': 'Server timed out, please try again later',
+  '在线带图导出': 'Online export with images',
+  '开启': 'Enable',
+  '开启后，导出时会将本地数据库与图片打包上传至服务器，由服务器生成附带封面图片的 Excel 后回传下载。请知悉：\n· 需增强搜索的影视与书籍 Token 均有效\n· 涉及本地数据上传云端，请酌情使用\n· 数据仅用于生成文件，下载完成后服务器将立即删除':
+      'When enabled, exporting packs your local database and images and uploads them to the server, which generates an Excel with cover images and sends it back. Please note:\n· Both movie and book enhanced-search tokens must be valid\n· Local data is uploaded to the cloud; use at your own discretion\n· Data is only used to generate the file and is deleted from the server immediately after download',
+
   // ─── 应用图标选择页 ───────────────────────────────────
   '图标已切换，请返回桌面查看':
       'Icon changed. Go back to the home screen to see it.',

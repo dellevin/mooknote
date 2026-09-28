@@ -159,23 +159,25 @@ class ExcelExporter {
     return values.map((v) => TextCellValue(v)).toList();
   }
 
-  static Future<File> _save(Excel excel, String name) async {
-    if (excel.sheets.containsKey('Sheet1')) {
-      excel.delete('Sheet1');
-    }
-    final fileName = '${name}_${'导出'.tr}_${_timestamp()}.xlsx';
-    String filePath;
+  /// 导出文件存放目录（带图在线导出的下载结果也存这里）
+  static Future<Directory> exportDirectory() async {
     if (Platform.isAndroid) {
       final exportDir = Directory('/sdcard/Download/mooknote/export');
       if (!await exportDir.exists()) {
         await exportDir.create(recursive: true);
       }
-      filePath = p.join(exportDir.path, fileName);
-    } else {
-      final tempDir = await getTemporaryDirectory();
-      filePath = p.join(tempDir.path, fileName);
+      return exportDir;
     }
-    final file = File(filePath);
+    return getTemporaryDirectory();
+  }
+
+  static Future<File> _save(Excel excel, String name) async {
+    if (excel.sheets.containsKey('Sheet1')) {
+      excel.delete('Sheet1');
+    }
+    final fileName = '${name}_${'导出'.tr}_${_timestamp()}.xlsx';
+    final dir = await exportDirectory();
+    final file = File(p.join(dir.path, fileName));
     await file.writeAsBytes(excel.encode()!);
     return file;
   }
