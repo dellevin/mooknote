@@ -62,29 +62,15 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(person.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_link_outlined),
-            tooltip: '关联作品'.tr,
-            onPressed: () => _editWorks(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: '编辑'.tr,
-            onPressed: () => _navigateToEdit(person),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: '删除'.tr,
-            onPressed: () => _showDeleteDialog(person),
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 88),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // 头部：头像 + 基本信息
             _buildHeader(person, colors),
             const SizedBox(height: 24),
@@ -123,7 +109,74 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
               const SizedBox(height: 12),
               _buildWorksSection(colors),
             ],
-          ],
+              ],
+            ),
+          ),
+          Positioned(right: 16, bottom: 24, child: _buildFloatingButtons(person)),
+        ],
+      ),
+    );
+  }
+
+  /// 右下角悬浮操作按钮（样式与影视详情页一致）
+  Widget _buildFloatingButtons(Person person) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildFloatingButton(
+          icon: Icons.edit_outlined,
+          onPressed: () => _navigateToEdit(person),
+          tooltip: '编辑',
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+        ),
+        const SizedBox(height: 12),
+        _buildFloatingButton(
+          icon: Icons.add_link_outlined,
+          onPressed: () => _editWorks(),
+          tooltip: '关联作品',
+          backgroundColor: colors.secondaryContainer,
+          foregroundColor: colors.onSecondaryContainer,
+        ),
+        const SizedBox(height: 12),
+        _buildFloatingButton(
+          icon: Icons.delete_outline,
+          onPressed: () => _showDeleteDialog(person),
+          tooltip: '删除',
+          backgroundColor: colors.error,
+          foregroundColor: colors.onError,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
+    return Tooltip(
+      message: tooltip.tr,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: backgroundColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 18, color: foregroundColor),
         ),
       ),
     );

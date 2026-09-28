@@ -92,72 +92,70 @@ class _PersonFormPageState extends State<PersonFormPage> {
         backgroundColor: colors.surface,
         appBar: AppBar(
           title: Text(isEdit ? '编辑人物'.tr : '添加人物'.tr),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: FilledButton(
-                onPressed: _save,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text('保存'.tr),
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: FilledButton(
+              onPressed: _save,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
+              child: Text('保存'.tr),
             ),
-          ],
+          ),
         ),
         body: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
-              // 头像
-              Center(child: _buildPhotoPicker(colors)),
-              const SizedBox(height: 24),
-
-              // 名称
-              _buildField('名称', _nameCtrl, hint: '人物名称', required: true),
-              const SizedBox(height: 16),
-
-              // 性别
-              _buildSectionLabel('性别', colors),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                children: _genderOptions.map((opt) {
-                  final selected = _gender == opt.$2;
-                  return GestureDetector(
-                    onTap: () => setState(() => _gender = selected ? null : opt.$2),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected ? colors.primary : colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        opt.$1.tr,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
-                          color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+              // 头像 + 名称（名片式一行）
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPhotoPicker(colors),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildField('名称', _nameCtrl, hint: '人物名称', required: true)),
+                ],
               ),
               const SizedBox(height: 16),
 
-              // 出生日期
-              _buildDateField('出生日期', _birthDate, (d) => setState(() => _birthDate = d), colors, clearable: true),
+              // 性别 + 出生日期（一行两列）
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildGenderField(colors)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildDateField('出生日期', _birthDate, (d) => setState(() => _birthDate = d), colors, clearable: true)),
+                ],
+              ),
               const SizedBox(height: 16),
 
-              // 出生地
-              _buildField('出生地', _birthPlaceCtrl, hint: '如：北京',
-                onChanged: (v) => _birthPlace = v.isEmpty ? null : v),
+              // 出生地 + 职业（一行两列）
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildField('出生地', _birthPlaceCtrl, hint: '如：北京',
+                    onChanged: (v) => _birthPlace = v.isEmpty ? null : v)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildChipField('职业', _occupation, colors, onTap: () async {
+                    final result = await GenreSelectorPage.show(
+                      context: context,
+                      title: '选择职业'.tr,
+                      existingTags: _occupationOptions,
+                      initialSelected: _occupation,
+                      hint: '如：导演、演员'.tr,
+                      asBottomSheet: true,
+                    );
+                    if (result != null) setState(() => _occupation = result);
+                  })),
+                ],
+              ),
               const SizedBox(height: 16),
 
-              // 其他名称
+              // 其他名称（全宽）
               _buildChipField('其他名称', _alternateNames, colors, onTap: () async {
                 final result = await AlternateTitlesDialog.showSheet(
                   context: context,
@@ -168,40 +166,24 @@ class _PersonFormPageState extends State<PersonFormPage> {
               }),
               const SizedBox(height: 16),
 
-              // 职业
-              _buildChipField('职业', _occupation, colors, onTap: () async {
-                final result = await GenreSelectorPage.show(
-                  context: context,
-                  title: '选择职业'.tr,
-                  existingTags: _occupationOptions,
-                  initialSelected: _occupation,
-                  hint: '如：导演、演员'.tr,
-                  asBottomSheet: true,
-                );
-                if (result != null) setState(() => _occupation = result);
-              }),
-              const SizedBox(height: 16),
-
               // 简介
               _buildSectionLabel('人物简介', colors),
               const SizedBox(height: 6),
-              Container(
-                constraints: const BoxConstraints(minHeight: 120),
-                child: TextFormField(
-                  controller: _summaryCtrl,
-                  maxLines: null,
-                  style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
-                  decoration: InputDecoration(
-                    hintText: '写下人物简介...'.tr,
-                    hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
-                    filled: true,
-                    fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.all(12),
-                  ),
+              TextFormField(
+                controller: _summaryCtrl,
+                minLines: 5,
+                maxLines: null,
+                style: TextStyle(fontSize: 14, color: colors.onSurface, height: 1.6),
+                decoration: InputDecoration(
+                  hintText: '写下人物简介...'.tr,
+                  hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.25)),
+                  filled: true,
+                  fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.all(12),
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -211,50 +193,67 @@ class _PersonFormPageState extends State<PersonFormPage> {
 
   Widget _buildPhotoPicker(ColorScheme colors) {
     final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: _showPhotoOptions,
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              shape: BoxShape.circle,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (hasPhoto)
-                  FadeInLocalImage(path: _photoPath, fit: BoxFit.cover)
-                else
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.person_add_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
-                      const SizedBox(height: 4),
-                      Text('添加图片'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
-                    ],
-                  ),
-                if (_isDownloading)
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  ),
-              ],
-            ),
-          ),
+    return GestureDetector(
+      onTap: _showPhotoOptions,
+      child: Container(
+        width: 72,
+        height: 72,
+        // 与右侧"名称"输入框对齐（label 高度 + 间距）
+        margin: const EdgeInsets.only(top: 18),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          shape: BoxShape.circle,
         ),
-        if (hasPhoto)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: GestureDetector(
-              onTap: () => setState(() => _photoPath = null),
-              child: Text('移除图片'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
-            ),
-          ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (hasPhoto)
+              FadeInLocalImage(path: _photoPath, fit: BoxFit.cover)
+            else
+              Icon(Icons.person_add_outlined, size: 26, color: colors.onSurface.withValues(alpha: 0.25)),
+            if (_isDownloading)
+              Container(
+                color: Colors.black.withValues(alpha: 0.4),
+                child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 性别选择（紧凑 chips，供一行两列布局使用）
+  Widget _buildGenderField(ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel('性别', colors),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          children: _genderOptions.map((opt) {
+            final selected = _gender == opt.$2;
+            return GestureDetector(
+              onTap: () => setState(() => _gender = selected ? null : opt.$2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected ? colors.primary : colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  opt.$1.tr,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
+                    color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ],
     );
   }
@@ -289,6 +288,12 @@ class _PersonFormPageState extends State<PersonFormPage> {
                 title: Text('网络链接'.tr, style: TextStyle(color: colors.onSurface)),
                 onTap: () { Navigator.pop(ctx); _pickPhotoFromUrl(); },
               ),
+              if (_photoPath != null && _photoPath!.isNotEmpty)
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: colors.error),
+                  title: Text('移除图片'.tr, style: TextStyle(color: colors.error)),
+                  onTap: () { Navigator.pop(ctx); setState(() => _photoPath = null); },
+                ),
             ],
           ),
         ),
@@ -477,7 +482,9 @@ class _PersonFormPageState extends State<PersonFormPage> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: chips.isEmpty
-                ? Text('点击选择{label}'.trf({'label': label.tr}), style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)))
+                ? Text('点击选择{label}'.trf({'label': label.tr}),
+                    style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.25)),
+                    maxLines: 1, overflow: TextOverflow.ellipsis)
                 : Wrap(
                     spacing: 4, runSpacing: 4,
                     children: chips.map((c) => Container(
