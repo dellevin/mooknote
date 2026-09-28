@@ -69,6 +69,8 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
     final d = _design;
     if (d != null && d.fields.isEmpty) {
       await _designDao.deleteDesign(widget.moduleId, d.id);
+      // 丢弃的可能正是自动启用的新设计，通知保活的 tab 页刷新
+      if (mounted) context.read<AppProvider>().bumpCustomModuleItemsVersion();
     }
     if (mounted) Navigator.pop(context);
   }

@@ -89,14 +89,11 @@ class MovieListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Hero(
-        tag: 'poster-movie-${movie.id}',
-        child: FadeInLocalImage(
-          path: movie.posterPath,
-          fit: BoxFit.cover,
-          placeholder: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-          errorWidget: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-        ),
+      child: FadeInLocalImage(
+        path: movie.posterPath,
+        fit: BoxFit.cover,
+        placeholder: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }

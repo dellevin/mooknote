@@ -202,10 +202,8 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildPhoneLayout(BuildContext context) {
     return Scaffold(
-      // bottomNavIndex 只会是 0（主页）或 2（个人中心），抽屉只在主页启用
-      drawer: context.watch<AppProvider>().bottomNavIndex == 0
-          ? CustomDrawer(isOpen: _drawerOpen)
-          : null,
+      // 主页和「我的」页都有打开抽屉的入口（AppBar 菜单键 / 边缘手势），抽屉始终挂载
+      drawer: CustomDrawer(isOpen: _drawerOpen),
       onDrawerChanged: (isOpen) {
         if (_drawerOpen != isOpen) setState(() => _drawerOpen = isOpen);
       },

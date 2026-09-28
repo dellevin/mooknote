@@ -89,14 +89,11 @@ class GameListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Hero(
-        tag: 'poster-game-${game.id}',
-        child: FadeInLocalImage(
-          path: game.coverPath,
-          fit: BoxFit.cover,
-          placeholder: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-          errorWidget: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-        ),
+      child: FadeInLocalImage(
+        path: game.coverPath,
+        fit: BoxFit.cover,
+        placeholder: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }

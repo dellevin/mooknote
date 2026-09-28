@@ -146,7 +146,10 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
   Future<void> _activateDesign(CustomModuleDesign design) async {
     await _designDao.setActiveDesign(widget.moduleId, design.id);
     if (!mounted) return;
-    await context.read<AppProvider>().loadCustomModules();
+    final provider = context.read<AppProvider>();
+    await provider.loadCustomModules();
+    // 激活状态变化要通知保活的 tab 页刷新（本页可能从管理页进入，返回时 tab 不会重载）
+    provider.bumpCustomModuleItemsVersion();
     await _load();
   }
 
@@ -183,10 +186,11 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
                 updatedAt: now,
               );
               await _designDao.insertDesign(design);
-              // 第一份设计自动设为使用中
-              if (_designs.isEmpty) {
+              // 模块当前没有启用中的设计时，新设计自动设为使用中
+              if (!_designs.any((d) => d.isActive)) {
                 await _designDao.setActiveDesign(widget.moduleId, design.id);
                 if (mounted) await context.read<AppProvider>().loadCustomModules();
+                if (mounted) context.read<AppProvider>().bumpCustomModuleItemsVersion();
               }
               if (!mounted) return;
               if (ctx.mounted) Navigator.pop(ctx);
@@ -252,7 +256,10 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
             onPressed: () async {
               await _designDao.deleteDesign(widget.moduleId, design.id);
               if (!mounted) return;
-              await context.read<AppProvider>().loadCustomModules();
+              final provider = context.read<AppProvider>();
+              await provider.loadCustomModules();
+              // 删掉的可能正是启用中的设计，通知保活的 tab 页刷新
+              provider.bumpCustomModuleItemsVersion();
               await _load();
               if (ctx.mounted) Navigator.pop(ctx);
             },

@@ -89,14 +89,11 @@ class BookListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Hero(
-        tag: 'poster-book-${book.id}',
-        child: FadeInLocalImage(
-          path: book.coverPath,
-          fit: BoxFit.cover,
-          placeholder: Center(child: Icon(Icons.menu_book_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
-          errorWidget: Center(child: Icon(Icons.menu_book_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
-        ),
+      child: FadeInLocalImage(
+        path: book.coverPath,
+        fit: BoxFit.cover,
+        placeholder: Center(child: Icon(Icons.menu_book_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(child: Icon(Icons.menu_book_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }

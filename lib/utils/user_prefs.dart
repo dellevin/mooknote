@@ -224,6 +224,10 @@ class UserPrefs {
   int get statsTimeRange => prefs.getInt('statsTimeRange') ?? 2;
   Future<bool> setStatsTimeRange(int value) => prefs.setInt('statsTimeRange', value);
 
+  /// 「我的」页模块数据选中项 (0: 影视, 1: 阅读, 2: 游戏, 3: 笔记)
+  int get profileModuleIndex => prefs.getInt('profileModuleIndex') ?? 0;
+  Future<bool> setProfileModuleIndex(int value) => prefs.setInt('profileModuleIndex', value);
+
   /// 影视排序方式 (0: 更新时间, 1: 创建时间, 2: 评分, 3: 观看日期, 4: 上映时间)
   int get movieSortMode => prefs.getInt('movieSortMode') ?? 0;
   Future<bool> setMovieSortMode(int value) => prefs.setInt('movieSortMode', value);

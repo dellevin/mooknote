@@ -905,85 +905,179 @@ class _RecentItem {
   _RecentItem({required this.type, required this.title, required this.date, required this.data, this.imagePath});
 }
 
-// ─── 抽屉骨架屏 ────────────────────────────────────────────────────────
+// ─── 抽屉骨架屏（与真实区块同构：同款卡片容器 + 同位占位，切换不跳动） ────────
 
-/// 热力图骨架屏（模拟月份标签 + 贡献格子）
+/// 热力图骨架屏：与 _buildCalendarSection 同构（卡片 + 头部 + 月份行 + 7×20 格子 + 图例）
 class _HeatmapSkeleton extends StatelessWidget {
   const _HeatmapSkeleton();
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme.outlineVariant;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: List.generate(6, (i) => Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ShimmerSkeleton(width: 22, height: 10, borderRadius: 3, color: c),
-          )),
-        ),
-        const SizedBox(height: 10),
-        for (var r = 0; r < 7; r++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 5),
+    final colors = Theme.of(context).colorScheme;
+    final c = colors.outlineVariant;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 头部：图标 + 标题
+          Row(children: [
+            ShimmerSkeleton(width: 14, height: 14, borderRadius: 3, color: c),
+            const SizedBox(width: 8),
+            ShimmerSkeleton(width: 44, height: 13, borderRadius: 4, color: c),
+          ]),
+          const SizedBox(height: 14),
+          // 月份标签行（真实为首/中/尾三个稀疏 9px 文字）
+          SizedBox(
+            height: 16,
             child: Row(
-              children: List.generate(6, (c2) => Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: ShimmerSkeleton(width: 14, height: 14, borderRadius: 3, color: c),
-              )),
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ShimmerSkeleton(width: 18, height: 9, borderRadius: 2, color: c),
+                ShimmerSkeleton(width: 18, height: 9, borderRadius: 2, color: c),
+                ShimmerSkeleton(width: 18, height: 9, borderRadius: 2, color: c),
+              ],
             ),
           ),
-      ],
+          const SizedBox(height: 2),
+          // 7×20 格子：尺寸公式与真实热力图一致
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const totalWeeks = 20;
+              const cellGap = 1.5;
+              final cellSize = ((constraints.maxWidth - (totalWeeks - 1) * cellGap) / totalWeeks).clamp(6.0, 10.0);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(7, (day) => Row(
+                  children: List.generate(totalWeeks, (week) => Padding(
+                    padding: EdgeInsets.only(right: week < totalWeeks - 1 ? cellGap : 0, bottom: day < 6 ? cellGap : 0),
+                    child: ShimmerSkeleton(width: cellSize, height: cellSize, borderRadius: 2, color: c),
+                  )),
+                )),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          // 图例行（右对齐：少 + 5 格 + 多）
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ShimmerSkeleton(width: 12, height: 9, borderRadius: 2, color: c),
+              const SizedBox(width: 3),
+              for (var i = 0; i < 5; i++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 2),
+                  child: ShimmerSkeleton(width: 12, height: 12, borderRadius: 2, color: c),
+                ),
+              ShimmerSkeleton(width: 12, height: 9, borderRadius: 2, color: c),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 最近添加骨架屏（模拟缩略图 + 标题行）
+/// 最近添加骨架屏：与 _buildRecentSection 同构（卡片 + 头部 + 6 行 图标+标题+时间）
 class _RecentSkeleton extends StatelessWidget {
   const _RecentSkeleton();
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme.outlineVariant;
-    return Column(
-      children: List.generate(4, (i) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Row(
-          children: [
-            ShimmerSkeleton(width: 44, height: 44, borderRadius: 8, color: c),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final colors = Theme.of(context).colorScheme;
+    final c = colors.outlineVariant;
+    // 标题条宽度错落，贴近真实条目长度分布
+    const titleWidths = [150.0, 110.0, 170.0, 90.0, 130.0, 100.0];
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            ShimmerSkeleton(width: 14, height: 14, borderRadius: 3, color: c),
+            const SizedBox(width: 8),
+            ShimmerSkeleton(width: 56, height: 13, borderRadius: 4, color: c),
+          ]),
+          const SizedBox(height: 14),
+          for (var i = 0; i < 6; i++)
+            Padding(
+              padding: EdgeInsets.only(top: 2, bottom: i < 5 ? 10 : 0),
+              child: Row(
                 children: [
-                  ShimmerSkeleton(width: 150, height: 13, borderRadius: 4, color: c),
-                  const SizedBox(height: 6),
-                  ShimmerSkeleton(width: 90, height: 11, borderRadius: 4, color: c),
+                  ShimmerSkeleton(width: 22, height: 22, borderRadius: 5, color: c),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ShimmerSkeleton(width: titleWidths[i], height: 13, borderRadius: 4, color: c),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ShimmerSkeleton(width: 28, height: 10, borderRadius: 3, color: c),
                 ],
               ),
             ),
-          ],
-        ),
-      )),
+        ],
+      ),
     );
   }
 }
 
-/// 工具卡片骨架屏（模拟图标宫格）
+/// 工具骨架屏：与 _buildToolsCard 同构（组标题 + 列表卡，探索/工具两组）
 class _ToolsSkeleton extends StatelessWidget {
   const _ToolsSkeleton();
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme.outlineVariant;
-    return Wrap(
-      spacing: 20,
-      runSpacing: 14,
-      children: List.generate(8, (i) => Column(
-        children: [
-          ShimmerSkeleton(width: 38, height: 38, borderRadius: 10, color: c),
-          const SizedBox(height: 6),
-          ShimmerSkeleton(width: 30, height: 10, borderRadius: 3, color: c),
-        ],
-      )),
+    final colors = Theme.of(context).colorScheme;
+    final c = colors.outlineVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _groupTitleBone(c),
+        const SizedBox(height: 6),
+        _groupCardBone(colors, c, 4),
+        const SizedBox(height: 16),
+        _groupTitleBone(c),
+        const SizedBox(height: 6),
+        _groupCardBone(colors, c, 3),
+      ],
+    );
+  }
+
+  Widget _groupTitleBone(Color c) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: ShimmerSkeleton(width: 26, height: 11, borderRadius: 3, color: c),
+    );
+  }
+
+  Widget _groupCardBone(ColorScheme colors, Color c, int rows) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        children: List.generate(rows * 2 - 1, (i) {
+          if (i.isOdd) return Divider(height: 1, indent: 52, endIndent: 20, color: colors.outlineVariant);
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+            child: Row(
+              children: [
+                ShimmerSkeleton(width: 20, height: 20, borderRadius: 5, color: c),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ShimmerSkeleton(width: 64, height: 14, borderRadius: 4, color: c),
+                  ),
+                ),
+                ShimmerSkeleton(width: 16, height: 16, borderRadius: 4, color: c),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 }

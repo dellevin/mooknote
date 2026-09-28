@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import '../../utils/image_picker_helper.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -223,18 +223,11 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
   /// 从相册选择（多选，仅图片）
   Future<void> _pickFromGallery() async {
     try {
-      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
-        context,
-        pickerConfig: const AssetPickerConfig(
-          requestType: RequestType.image, // 只允许选择图片，不能选择视频
-        ),
-      );
-      if (!mounted || assets == null || assets.isEmpty) return;
+      final files = await pickLocalImages(context);
+      if (!mounted || files.isEmpty) return;
 
       int added = 0;
-      for (final asset in assets) {
-        final file = await asset.file;
-        if (file == null) continue;
+      for (final file in files) {
 
         // 生成文件名（保留原扩展名，加序号防止同毫秒重名）
         final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';

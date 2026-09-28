@@ -63,12 +63,12 @@ class AppRouter {
         if (movie == null) {
           return _buildUnknownRoute(settings.name);
         }
-        // 整页 Hero：详情页像翻书一样从列表海报位置展开（海报与页面一体动画）
-        return FadePageRoute(
-          page: BookOpenHero(
-            tag: 'poster-movie-${movie.id}',
-            child: MovieDetailPage(movie: movie),
-          ),
+        // 从底部弹出详情（与表单页同一转场样式）
+        return SlideUpPageRoute(
+          page: MovieDetailPage(movie: movie),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
         );
 
       case '/book-detail':
@@ -76,11 +76,11 @@ class AppRouter {
         if (book == null) {
           return _buildUnknownRoute(settings.name);
         }
-        return FadePageRoute(
-          page: BookOpenHero(
-            tag: 'poster-book-${book.id}',
-            child: BookDetailPage(book: book),
-          ),
+        return SlideUpPageRoute(
+          page: BookDetailPage(book: book),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
         );
 
       case '/note-detail':
@@ -109,11 +109,11 @@ class AppRouter {
         if (game == null) {
           return _buildUnknownRoute(settings.name);
         }
-        return FadePageRoute(
-          page: BookOpenHero(
-            tag: 'poster-game-${game.id}',
-            child: GameDetailPage(game: game),
-          ),
+        return SlideUpPageRoute(
+          page: GameDetailPage(game: game),
+          duration: const Duration(milliseconds: 600),
+          reverseDuration: const Duration(milliseconds: 400),
+          beginOffsetY: 1.0,
         );
 
       case '/douban-webview':

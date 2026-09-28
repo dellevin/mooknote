@@ -50,6 +50,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   @override
   void initState() {
     super.initState();
+    _myModuleIndex = _userPrefs.profileModuleIndex;
     _loadUserData();
   }
 
@@ -322,8 +323,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     final result = <(String, IconData)>[];
     if (_userPrefs.showMovieTab) result.add(_moduleDefs[0]);
     if (_userPrefs.showBookTab) result.add(_moduleDefs[1]);
-    if (_userPrefs.showNoteTab) result.add(_moduleDefs[2]);
-    if (_userPrefs.showGameTab) result.add(_moduleDefs[3]);
+    if (_userPrefs.showGameTab) result.add(_moduleDefs[2]);
+    if (_userPrefs.showNoteTab) result.add(_moduleDefs[3]);
     return result;
   }
 
@@ -331,7 +332,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   Widget _buildMyModule(List<Movie> movies, List<Book> books, List<Note> notes, List<Game> games) {
     final modules = _visibleModules;
     if (modules.isEmpty) return const SizedBox.shrink();
-    final index = _myModuleIndex.clamp(0, modules.length - 1);
+    // _myModuleIndex 是 _moduleDefs 下标（跨界面持久化），映射到当前可见下标；
+    // 所选模块的标签被隐藏时回退到第一个可见模块
+    var index = modules.indexOf(_moduleDefs[_myModuleIndex.clamp(0, _moduleDefs.length - 1)]);
+    if (index < 0) index = 0;
     final (title, _) = modules[index];
 
     Widget content;
@@ -370,7 +374,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   for (int i = 0; i < modules.length; i++) ...[
                     if (i != 0) const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: () => setState(() => _myModuleIndex = i),
+                      onTap: () {
+                        setState(() => _myModuleIndex = _moduleDefs.indexOf(modules[i]));
+                        _userPrefs.setProfileModuleIndex(_myModuleIndex);
+                      },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.all(6),

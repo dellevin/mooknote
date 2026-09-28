@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import '../../utils/image_picker_helper.dart';
 import 'package:path/path.dart' as p;
 import '../../providers/app_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -802,13 +802,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
   /// 选择图片
   Future<void> _pickImage() async {
     try {
-      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
-        context,
-        pickerConfig: const AssetPickerConfig(
-          requestType: RequestType.image, // 只允许选择图片，不能选择视频
-        ),
-      );
-      if (!mounted || assets == null || assets.isEmpty) return;
+      final files = await pickLocalImages(context);
+      if (!mounted || files.isEmpty) return;
 
       // 如果是编辑模式，使用现有笔记ID；如果是新建模式，使用临时ID（保存时会替换）
       String noteId;
@@ -825,9 +820,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       await ImagePathHelper.instance.ensureDirExists(targetDir);
 
       final newPaths = <String>[];
-      for (final asset in assets) {
-        final file = await asset.file;
-        if (file == null) continue;
+      for (final file in files) {
         final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
         final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
         final targetPath = p.join(targetDir, fileName);
