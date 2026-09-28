@@ -154,6 +154,33 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     );
   }
 
+  /// 左滑露出的圆形操作按钮（实心 + 白图标，与详情页悬浮按钮同风格）
+  Widget _buildSlideAction({
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 18, color: iconColor),
+      ),
+    );
+  }
+
   Widget _buildSlidableCard(BuildContext context, Playlist playlist, int index, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
     final typeColor = _typeColor(playlist.type, colors);
@@ -177,7 +204,10 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                 padding: const EdgeInsets.only(right: 8),
                 child: Row(
                   children: [
-                    GestureDetector(
+                    _buildSlideAction(
+                      icon: Icons.edit_outlined,
+                      color: colors.primary,
+                      iconColor: colors.onPrimary,
                       onTap: () async {
                         setState(() => _slideOffsets[playlist.id] = 0.0);
                         final result = await Navigator.push<bool>(
@@ -189,29 +219,16 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                           _loadAllItemIds();
                         }
                       },
-                      child: Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: colors.primary.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.edit_outlined, size: 20, color: colors.primary),
-                      ),
                     ),
                     const SizedBox(width: 8),
-                    GestureDetector(
+                    _buildSlideAction(
+                      icon: Icons.delete_outline,
+                      color: colors.error,
+                      iconColor: colors.onError,
                       onTap: () async {
                         setState(() => _slideOffsets[playlist.id] = 0.0);
                         await _showDeleteDialog(context, playlist, provider);
                       },
-                      child: Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: colors.error.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.delete_outline, size: 20, color: colors.error),
-                      ),
                     ),
                   ],
                 ),

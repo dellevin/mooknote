@@ -126,6 +126,7 @@ const Map<String, String> enPeople = {
   '编辑片单': 'Edit Playlist',
   '删除片单': 'Delete Playlist',
   '确定要删除片单「{name}」吗？': 'Delete playlist "{name}"?',
+  '确定要将「{name}」从片单中移除吗？': 'Remove "{name}" from this playlist?',
 
   // 片单类型标签
   '影视': 'Movies & TV',

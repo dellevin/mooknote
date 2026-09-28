@@ -9,6 +9,7 @@ import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
 import 'playlist_add_item_page.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_overlay.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final Playlist playlist;
@@ -236,9 +237,9 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     return Padding(
       key: Key(itemId),
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Stack(
-        clipBehavior: Clip.hardEdge,
+        clipBehavior: Clip.none,
         children: [
           // 底层：删除按钮
           Positioned(
@@ -250,18 +251,21 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
               child: Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: GestureDetector(
-                  onTap: () async {
-                    setState(() => _slideOffsets[itemId] = 0.0);
-                    await provider.removePlaylistItem(item.playlistItem.id, item.playlistItem.playlistId);
-                    if (mounted) _loadItems();
-                  },
+                  onTap: () => _confirmRemoveItem(item, provider),
                   child: Container(
                     width: 40, height: 40,
                     decoration: BoxDecoration(
-                      color: colors.error.withValues(alpha: 0.12),
+                      color: colors.error,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.error.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Icon(Icons.delete_outline, size: 20, color: colors.error),
+                    child: Icon(Icons.delete_outline, size: 18, color: colors.onError),
                   ),
                 ),
               ),
@@ -288,14 +292,14 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 }
                 if (_isHorizontalDrag) {
                   setState(() {
-                    _slideOffsets[itemId] = (_dragStartOffset + dx).clamp(-_actionWidth * 2, 0.0);
+                    _slideOffsets[itemId] = (_dragStartOffset + dx).clamp(-_actionWidth, 0.0);
                   });
                 }
               },
               onPointerUp: (_) {
                 if (_isHorizontalDrag) {
                   final offset = _slideOffsets[itemId] ?? 0.0;
-                  final target = offset < -_actionWidth ? -_actionWidth * 2 : 0.0;
+                  final target = offset < -_actionWidth / 2 ? -_actionWidth : 0.0;
                   setState(() => _slideOffsets[itemId] = target);
                 }
                 _isHorizontalDrag = false;
@@ -325,6 +329,13 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                         color: colors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5), width: 0.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors.shadow.withValues(alpha: 0.06),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
@@ -384,6 +395,49 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
         ],
       ),
     );
+  }
+
+  /// 删除前确认
+  void _confirmRemoveItem(_ResolvedItem item, AppProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+    appDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        content: Text('确定要将「{name}」从片单中移除吗？'.trf({'name': item.title}),
+            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await provider.removePlaylistItem(item.playlistItem.id, item.playlistItem.playlistId);
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx, true);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text('删除'.tr),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    ).then((confirmed) {
+      if (confirmed == true && mounted) {
+        setState(() => _slideOffsets[item.playlistItem.id] = 0.0);
+        _loadItems();
+      }
+    });
   }
 
   /// 章形状的状态标签 — 双圈外圆 + 内长方框，模拟印章效果
