@@ -15,7 +15,7 @@ class CacheCleaner {
 
   /// 执行完整缓存清理，返回各分类删除数量
   Future<CacheCleanResult> clean() async {
-    final dbImagePaths = await _getAllDbImagePaths();
+    final dbImagePaths = await getAllDbImagePaths();
     final deletedImages = await _cleanImageDirectory(dbImagePaths);
     final deletedTemp = await _cleanTempDirectory();
     final deletedEmptyDirs = await _cleanEmptyDirectories();
@@ -27,7 +27,8 @@ class CacheCleaner {
   }
 
   /// 直接查 DB 收集所有图片路径（含软删除记录，与 BackupService 保持一致）
-  Future<Set<String>> _getAllDbImagePaths() async {
+  /// 设置页的缓存扫描也走这里，保证"扫描到的"和"实际清的"判定口径一致
+  Future<Set<String>> getAllDbImagePaths() async {
     final db = await DatabaseHelper.instance.database;
     final paths = <String>{};
 
@@ -100,11 +101,12 @@ class CacheCleaner {
     final avatarPath = userPrefs.avatarPath;
     if (avatarPath != null && avatarPath.isNotEmpty) paths.add(avatarPath);
 
-    // 自定义模块条目封面
-    final customItems = await db.query('custom_module_items', columns: ['cover_path']);
+    // 自定义模块条目：封面 + data_json 中的图片路径（海报字符串、多图列表）
+    final customItems = await db.query('custom_module_items', columns: ['cover_path', 'data_json']);
     for (final c in customItems) {
       final p = c['cover_path'] as String?;
       if (p != null && p.isNotEmpty) paths.add(p);
+      collectCustomModuleDataImagePaths(c['data_json'] as String?, paths);
     }
 
     return paths;
@@ -157,7 +159,8 @@ class CacheCleaner {
   /// 恢复备份的图片暂存目录前缀（崩溃残留，正常流程 finally 会删）
   static const _restoreStagingPrefix = 'mooknote_restore_';
 
-  bool _isMooknoteTempFile(String name) {
+  /// 判断是否为 mooknote 自己产生的临时文件（设置页扫描也调用，避免口径漂移）
+  static bool isMooknoteTempFile(String name) {
     for (final prefix in _tempPrefixes) {
       if (name.startsWith(prefix)) return true;
     }
@@ -174,7 +177,7 @@ class CacheCleaner {
         await for (final entity in tempDir.list(followLinks: false)) {
           if (entity is File) {
             final name = path.basename(entity.path);
-            if (_isMooknoteTempFile(name)) {
+            if (isMooknoteTempFile(name)) {
               try {
                 final stat = await entity.stat();
                 if (now.difference(stat.modified).inHours >= 1) {
@@ -208,7 +211,7 @@ class CacheCleaner {
         await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
           if (entity is File) {
             final name = path.basename(entity.path);
-            if (_isMooknoteTempFile(name)) {
+            if (isMooknoteTempFile(name)) {
               try {
                 await entity.delete();
                 deletedCount++;

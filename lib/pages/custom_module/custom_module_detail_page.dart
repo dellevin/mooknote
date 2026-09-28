@@ -84,7 +84,7 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
         backgroundColor: colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('删除条目'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定删除「${_item!.title.isEmpty ? '未命名' : _item!.title}」吗？',
+        content: Text('确定删除「{title}」吗？'.trf({'title': _item!.title.isEmpty ? '未命名'.tr : _item!.title}),
             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.7))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr)),
@@ -147,7 +147,7 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
     for (final f in fields) {
       if (f.type == CustomFieldType.rating && headerRatingKey == null && _hasValue(item.data[f.key])) {
         headerRatingKey = f.key;
-        rating = (item.data[f.key] as num).toDouble();
+        rating = num.tryParse(item.data[f.key].toString())?.toDouble();
       } else if (f.type == CustomFieldType.status && headerStatusKey == null && _hasValue(item.data[f.key])) {
         headerStatusKey = f.key;
         status = item.data[f.key].toString();
@@ -264,7 +264,10 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
                   padding: const EdgeInsets.only(top: 16, bottom: 110),
                   child: Center(
                     child: Text(
-                      '创建于 ${_formatDate(item.createdAt)} · 更新于 ${_formatDate(item.updatedAt)}',
+                      '创建于 {created} · 更新于 {updated}'.trf({
+                        'created': _formatDate(item.createdAt),
+                        'updated': _formatDate(item.updatedAt),
+                      }),
                       style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
                     ),
                   ),
@@ -378,7 +381,7 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
       case CustomFieldType.status:
         return Align(alignment: Alignment.centerLeft, child: _chip(value.toString(), colors, filled: true));
       case CustomFieldType.rating:
-        final r = (value as num).toDouble();
+        final r = num.tryParse(value.toString())?.toDouble() ?? 0;
         return Row(children: [
           const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
           const SizedBox(width: 4),
@@ -386,7 +389,7 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
         ]);
       case CustomFieldType.count:
-        return Text('{n} 次'.trf({'n': (value as num).toInt()}),
+        return Text('{n} 次'.trf({'n': num.tryParse(value.toString())?.toInt() ?? 0}),
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface));
       case CustomFieldType.text:
         return Text(value.toString(),
@@ -399,16 +402,77 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
         return Text(date != null ? _formatDate(date) : value.toString(),
             style: TextStyle(fontSize: 15, color: colors.onSurface));
       case CustomFieldType.duration:
-        return Text(formatCustomModuleDuration((value as num).toInt()),
+        return Text(formatCustomModuleDuration(num.tryParse(value.toString())?.toInt() ?? 0),
             style: TextStyle(fontSize: 15, color: colors.onSurface));
+      case CustomFieldType.progress:
+        final (current, total) = parseCustomModuleProgress(value) ?? (0, 0);
+        final ratio = total > 0 ? (current / total).clamp(0.0, 1.0) : 0.0;
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('$current/$total',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface)),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: colors.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(colors.primary),
+            ),
+          ),
+        ]);
+      case CustomFieldType.dateRange:
+        return Text(formatCustomModuleDateRange(value),
+            style: TextStyle(fontSize: 15, color: colors.onSurface));
+      case CustomFieldType.multiImage:
+        final paths = parseStringListGeneric(value);
+        return SizedBox(
+          height: 72,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: paths.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 6),
+            itemBuilder: (ctx, i) => GestureDetector(
+              onTap: () => _previewImage(paths, i),
+              child: Container(
+                width: 72, height: 72,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(6)),
+                clipBehavior: Clip.antiAlias,
+                child: FadeInLocalImage(path: paths[i], width: 72, height: 72, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+        );
       case CustomFieldType.longText:
         return Text(value.toString(),
             style: TextStyle(fontSize: 15, height: 1.7, color: colors.onSurface.withValues(alpha: 0.85)));
     }
   }
 
-  Widget _orphanValue(dynamic value, ColorScheme colors) {
-    if (value is List) {
+  /// 图片预览（与笔记详情一致：点按关闭）
+  void _previewImage(List<String> paths, int index) {
+    appDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.9),
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4,
+              child: FadeInLocalImage(path: paths[index], fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _orphanValue(dynamic value, ColorScheme colors) {    if (value is List) {
       return Wrap(spacing: 8, runSpacing: 8,
           children: [for (final s in value.map((x) => x.toString())) _chip(s, colors)]);
     }

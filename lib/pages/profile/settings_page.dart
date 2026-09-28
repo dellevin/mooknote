@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,7 +11,6 @@ import '../../utils/user_prefs.dart';
 import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
-import '../../data/database_helper.dart';
 import '../../services/sync/cache_cleaner.dart';
 import '../../services/media_scan_channel.dart';
 import '../online_search/enhanced_search_settings_page.dart';
@@ -1217,7 +1215,7 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (_) => Center(child: CircularProgressIndicator(color: colors.primary)),
     );
 
-    final dbImagePaths = await _getAllDbImagePaths();
+    final dbImagePaths = await CacheCleaner.instance.getAllDbImagePaths();
 
     final imageInfo = await _scanImageDirectory(dbImagePaths);
     final tempInfo = await _scanTempDirectory();
@@ -1348,74 +1346,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// 直接查 DB 收集所有图片路径（含软删除记录，与 CacheCleaner 保持一致）
-  Future<Set<String>> _getAllDbImagePaths() async {
-    final db = await DatabaseHelper.instance.database;
-    final paths = <String>{};
-
-    final movies = await db.query('movies', columns: ['poster_path']);
-    for (final m in movies) {
-      final p = m['poster_path'] as String?;
-      if (p != null && p.isNotEmpty) paths.add(p);
-    }
-
-    final books = await db.query('books', columns: ['cover_path']);
-    for (final b in books) {
-      final p = b['cover_path'] as String?;
-      if (p != null && p.isNotEmpty) paths.add(p);
-    }
-
-    final notes = await db.query('notes', columns: ['images']);
-    for (final n in notes) {
-      final imagesJson = n['images'] as String?;
-      if (imagesJson != null && imagesJson.isNotEmpty) {
-        try {
-          for (final ip in jsonDecode(imagesJson) as List<dynamic>) {
-            if (ip is String && ip.isNotEmpty) paths.add(ip);
-          }
-        } catch (_) {}
-      }
-    }
-
-    final moviePosters = await db.query('movie_posters', columns: ['poster_path']);
-    for (final p in moviePosters) {
-      final pp = p['poster_path'] as String?;
-      if (pp != null && pp.isNotEmpty) paths.add(pp);
-    }
-
-    final games = await db.query('games', columns: ['cover_path']);
-    for (final g in games) {
-      final p = g['cover_path'] as String?;
-      if (p != null && p.isNotEmpty) paths.add(p);
-    }
-
-    final gameScreenshots = await db.query('game_screenshots', columns: ['screenshot_path']);
-    for (final s in gameScreenshots) {
-      final p = s['screenshot_path'] as String?;
-      if (p != null && p.isNotEmpty) paths.add(p);
-    }
-
-    final people = await db.query('people', columns: ['photo_path']);
-    for (final p in people) {
-      final pp = p['photo_path'] as String?;
-      if (pp != null && pp.isNotEmpty) paths.add(pp);
-    }
-
-    for (final table in const ['movie_characters', 'book_characters', 'game_characters']) {
-      final rows = await db.query(table, columns: ['image_path']);
-      for (final r in rows) {
-        final p = r['image_path'] as String?;
-        if (p != null && p.isNotEmpty) paths.add(p);
-      }
-    }
-
-    final userPrefs = UserPrefs();
-    final avatarPath = userPrefs.avatarPath;
-    if (avatarPath != null && avatarPath.isNotEmpty) paths.add(avatarPath);
-
-    return paths;
-  }
-
   // ─── 扫描方法（只统计不删除） ──────────────────────────────────────────────
 
   /// 返回 (文件数, 总字节数)
@@ -1454,11 +1384,7 @@ class _SettingsPageState extends State<SettingsPage> {
         await for (final entity in tempDir.list(followLinks: false)) {
           if (entity is File) {
             final name = path.basename(entity.path);
-            if (name.startsWith('book_poster_') ||
-                name.startsWith('movie_poster_') ||
-                name.startsWith('note_share_') ||
-                name.startsWith('mooknote_download') ||
-                name.startsWith('mooknote_bidir')) {
+            if (CacheCleaner.isMooknoteTempFile(name)) {
               try {
                 final stat = await entity.stat();
                 if (now.difference(stat.modified).inHours >= 1) {
@@ -1477,11 +1403,7 @@ class _SettingsPageState extends State<SettingsPage> {
         await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
           if (entity is File) {
             final name = path.basename(entity.path);
-            if (name.startsWith('book_poster_') ||
-                name.startsWith('movie_poster_') ||
-                name.startsWith('note_share_') ||
-                name.startsWith('mooknote_download') ||
-                name.startsWith('mooknote_bidir')) {
+            if (CacheCleaner.isMooknoteTempFile(name)) {
               try {
                 totalSize += await entity.length();
                 count++;

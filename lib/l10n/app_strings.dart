@@ -7,6 +7,7 @@ import 'en/en_explore_note.dart';
 import 'en/en_widgets.dart';
 import 'en/en_search_sync.dart';
 import 'en/en_people.dart';
+import 'en/en_custom_module.dart';
 
 /// 轻量 i18n：中文原文作为 key，英文缺失时回退中文。
 ///
@@ -29,6 +30,7 @@ class AppStrings {
     ...enWidgets,
     ...enSearchSync,
     ...enPeople,
+    ...enCustomModule,
   };
 
   static String lookup(String zh) {

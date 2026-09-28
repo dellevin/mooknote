@@ -43,7 +43,7 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerLowest,
       appBar: AppBar(
-        title: Text('分类模块'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        title: Text('自定义分类'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
       ),
       body: Consumer<AppProvider>(
@@ -95,7 +95,7 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
         ),
         title: Text(module.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
         subtitle: Text(
-          '$count 个条目${module.isEnabled ? '' : ' · 已停用'}',
+          '{n} 个条目'.trf({'n': count}) + (module.isEnabled ? '' : ' · ${'已停用'.tr}'),
           style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
         ),
         trailing: PopupMenuButton<String>(
@@ -250,7 +250,10 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('删除模块'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Text(
-          '删除「${module.name}」后，其下的${count > 0 ? ' $count 个条目和所有' : ''}表单设计将一并删除。',
+          '删除「{name}」后，其下的{items}表单设计将一并删除。'.trf({
+            'name': module.name,
+            'items': count > 0 ? ' {n} 个条目和所有'.trf({'n': count}) : '',
+          }),
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.7)),
         ),
         actions: [

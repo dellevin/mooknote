@@ -1,7 +1,26 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+
+/// 从自定义模块条目 data_json 中收集图片路径
+/// （海报等字段为字符串值、多图字段为字符串列表值；按 '/images/' 判定）
+/// CacheCleaner 与 BackupService 共用，避免两处判定逻辑漂移漏收
+void collectCustomModuleDataImagePaths(String? dataJson, Set<String> out) {
+  if (dataJson == null || dataJson.isEmpty) return;
+  try {
+    for (final v in (jsonDecode(dataJson) as Map<String, dynamic>).values) {
+      if (v is String && v.replaceAll('\\', '/').contains('/images/')) {
+        out.add(v);
+      } else if (v is List) {
+        for (final e in v) {
+          if (e is String && e.replaceAll('\\', '/').contains('/images/')) out.add(e);
+        }
+      }
+    }
+  } catch (_) {}
+}
 
 /// 图片路径管理助手 - 按分类和ID组织图片存储
 ///

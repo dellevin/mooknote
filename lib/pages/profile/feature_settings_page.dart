@@ -373,7 +373,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildSwitchItem(Icons.dashboard_customize_outlined, '分类模块'.tr,
+          _buildSwitchItem(Icons.dashboard_customize_outlined, '自定义分类'.tr,
               '自定义分类模块的入口与管理'.tr, _showCustomModule, (v) async {
             await _userPrefs.setShowSidebarCustomModule(v);
             setState(() => _showCustomModule = v);

@@ -51,7 +51,7 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
     return Scaffold(
       backgroundColor: colors.surfaceContainerLowest,
       appBar: AppBar(
-        title: Text(module != null ? '${module.name} · 表单设计' : '表单设计'.tr,
+        title: Text(module != null ? '{name} · 表单设计'.trf({'name': module.name}) : '表单设计'.tr,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
       ),
@@ -246,7 +246,7 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('删除设计'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Text(
-          '删除「${design.name}」？已录入条目的数据会保留，但不再按此表单显示。',
+          '删除「{name}」？已录入条目的数据会保留，但不再按此表单显示。'.trf({'name': design.name}),
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.7)),
         ),
         actions: [

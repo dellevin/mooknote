@@ -174,12 +174,14 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
     );
   }
 
-  /// 可半行的类型（单文本/多文本/时间/次数/时长）；状态/评分固定整行合并卡，海报/长文本固定整行
+  /// 可半行的类型（单文本/多文本/时间/次数/时长/进度/日期区间）；状态/评分固定整行合并卡，海报/长文本/多图固定整行
   static bool _halfCapable(CustomFieldType t) =>
       t == CustomFieldType.text ||
       t == CustomFieldType.multiText ||
       t == CustomFieldType.date ||
       t == CustomFieldType.duration ||
+      t == CustomFieldType.progress ||
+      t == CustomFieldType.dateRange ||
       t == CustomFieldType.count;
 
   /// halfWidth 不由用户开关控制，完全由拖放位置决定（见 _dropOnField / _dropOnGap）
@@ -434,6 +436,12 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
         return customModuleDateCard(f, null, colors, onTap: () {}, onClear: () {});
       case CustomFieldType.duration:
         return customModuleDurationCard(f, null, colors, onTap: () {}, onClear: () {});
+      case CustomFieldType.progress:
+        return customModuleProgressCard(f, null, colors, onTap: () {}, onClear: () {});
+      case CustomFieldType.dateRange:
+        return customModuleDateRangeCard(f, null, colors, onTap: () {}, onClear: () {});
+      case CustomFieldType.multiImage:
+        return customModuleMultiImageCard(f, const [], colors, onAdd: () {}, onTapImage: (_) {}, onRemoveImage: (_) {});
     }
   }
 
@@ -447,7 +455,7 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('删除字段'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
         content: Text(
-          '删除「${field.label}」字段？已录入条目中该字段的内容会被保留，但不再显示。',
+          '删除「{label}」字段？已录入条目中该字段的内容会被保留，但不再显示。'.trf({'label': field.label}),
           style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.7)),
         ),
         actions: [
@@ -477,6 +485,9 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       case CustomFieldType.multiText: return ('多文本标签'.tr, Icons.format_list_bulleted);
       case CustomFieldType.date: return ('时间'.tr, Icons.calendar_today_outlined);
       case CustomFieldType.duration: return ('时长'.tr, Icons.schedule_outlined);
+      case CustomFieldType.progress: return ('进度'.tr, Icons.timelapse);
+      case CustomFieldType.dateRange: return ('日期区间'.tr, Icons.date_range_outlined);
+      case CustomFieldType.multiImage: return ('多图'.tr, Icons.photo_library_outlined);
       case CustomFieldType.longText: return ('长文本'.tr, Icons.notes);
     }
   }
@@ -593,6 +604,9 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       case CustomFieldType.multiText: return '多个文本条目（如 导演、编剧）'.tr;
       case CustomFieldType.date: return '选择一个日期'.tr;
       case CustomFieldType.duration: return '时:分滚轮选择时长（如 影视总时长）'.tr;
+      case CustomFieldType.progress: return '当前/总量进度（如 看到 12/24 集）'.tr;
+      case CustomFieldType.dateRange: return '开始 ~ 结束日期'.tr;
+      case CustomFieldType.multiImage: return '导入多张图片'.tr;
       case CustomFieldType.longText: return '多行长文本（如 简介）'.tr;
     }
   }
@@ -639,7 +653,7 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
                       decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
                 ),
                 const SizedBox(height: 16),
-                Text('${isEdit ? '编辑' : '添加'}$typeLabel',
+                Text('${isEdit ? '编辑'.tr : '添加'.tr}$typeLabel',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                 const SizedBox(height: 16),
                 TextField(
@@ -822,6 +836,9 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       case CustomFieldType.multiText: return '';
       case CustomFieldType.date: return '时间';
       case CustomFieldType.duration: return '时长';
+      case CustomFieldType.progress: return '进度';
+      case CustomFieldType.dateRange: return '起止日期';
+      case CustomFieldType.multiImage: return '多图';
       case CustomFieldType.longText: return '简介';
     }
   }

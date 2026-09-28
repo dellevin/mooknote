@@ -10,9 +10,12 @@ import '../../data/custom_module/custom_module_design_dao.dart';
 import '../../data/custom_module/custom_module_item_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
+import '../../utils/image_picker_helper.dart';
+import '../../widgets/app_overlay.dart';
 import '../../widgets/custom_module_field.dart';
 import '../../widgets/duration_picker.dart';
 import '../../widgets/edit_sheets.dart';
+import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../l10n/app_strings.dart';
 
@@ -38,6 +41,9 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
 
   /// 全部字段值 {fieldKey: value}
   final Map<String, dynamic> _values = {};
+
+  /// 条目 id：新增时页面级生成一次（封面/多图目录与最终保存的条目 id 保持一致）
+  late final String _itemId = widget.item?.id ?? const Uuid().v4();
 
   bool get _isEdit => widget.item != null;
 
@@ -73,6 +79,13 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
         case CustomFieldType.duration:
           final v = data[f.key];
           _values[f.key] = v is num ? v.toInt() : null;
+          break;
+        case CustomFieldType.progress:
+        case CustomFieldType.dateRange:
+          _values[f.key] = data[f.key];
+          break;
+        case CustomFieldType.multiImage:
+          _values[f.key] = parseStringListGeneric(data[f.key]);
           break;
         case CustomFieldType.rating:
           final v = data[f.key];
@@ -120,7 +133,7 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
           const SizedBox(height: 16),
           Text('该模块还没有启用中的表单设计'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.5))),
           const SizedBox(height: 6),
-          Text('请先到 侧边栏 → 分类模块 中设计表单'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+          Text('请先到 侧边栏 → 自定义分类 中设计表单'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
         ],
       ),
     );
@@ -151,6 +164,8 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
             f.type == CustomFieldType.multiText ||
             f.type == CustomFieldType.date ||
             f.type == CustomFieldType.duration ||
+            f.type == CustomFieldType.progress ||
+            f.type == CustomFieldType.dateRange ||
             f.type == CustomFieldType.count);
 
     final bodyFields = fields.where((f) => f.type != CustomFieldType.poster).toList();
@@ -255,6 +270,26 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
           onTap: () => _pickDuration(f),
           onClear: () => setState(() => _values[f.key] = null),
         );
+      case CustomFieldType.progress:
+        return customModuleProgressCard(
+          f, _values[f.key], colors,
+          onTap: () => _editProgress(f),
+          onClear: () => setState(() => _values[f.key] = null),
+        );
+      case CustomFieldType.dateRange:
+        return customModuleDateRangeCard(
+          f, _values[f.key], colors,
+          onTap: () => _editDateRange(f),
+          onClear: () => setState(() => _values[f.key] = null),
+        );
+      case CustomFieldType.multiImage:
+        final paths = (_values[f.key] as List<String>?) ?? [];
+        return customModuleMultiImageCard(
+          f, paths, colors,
+          onAdd: () => _pickMultiImages(f),
+          onTapImage: (i) => _previewImage(paths, i),
+          onRemoveImage: (i) => setState(() => paths.removeAt(i)),
+        );
       case CustomFieldType.count:
         return customModuleCountCard(f, (_values[f.key] as int?) ?? 0, colors,
             (v) => setState(() => _values[f.key] = v));
@@ -297,9 +332,8 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
         source: ImageSource.gallery, maxWidth: 800, maxHeight: 1200, imageQuality: 85,
       );
       if (picked == null) return;
-      final itemId = widget.item?.id ?? const Uuid().v4();
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final targetPath = await ImagePathHelper.instance.getCustomModuleCoverPath(widget.module.id, itemId, fileName);
+      final targetPath = await ImagePathHelper.instance.getCustomModuleCoverPath(widget.module.id, _itemId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(picked.path).copy(targetPath);
       if (!mounted) return;
@@ -362,6 +396,158 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
     setState(() => _values[f.key] = result);
   }
 
+  /// 进度：弹层输入 当前/总量；保存时都为 0 视为未填写
+  Future<void> _editProgress(CustomFieldDef f) async {
+    final (cur, total) = parseCustomModuleProgress(_values[f.key]) ?? (0, 0);
+    final result = await showEditSheet<Map<String, int>>(
+      context: context,
+      title: f.label,
+      contentBuilder: (ctx) => OwnedTextController(
+        initialText: cur > 0 ? cur.toString() : '',
+        builder: (ctx, curCtrl) => OwnedTextController(
+          initialText: total > 0 ? total.toString() : '',
+          builder: (ctx, totalCtrl) {
+            final colors = Theme.of(ctx).colorScheme;
+            Widget numField(String label, String hint, TextEditingController ctrl) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(fontSize: 15, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                  ),
+                ),
+              ],
+            );
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  numField('当前进度'.tr, '如 12'.tr, curCtrl),
+                  const SizedBox(height: 16),
+                  numField('总量'.tr, '如 24'.tr, totalCtrl),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(ctx, {
+                        'current': int.tryParse(curCtrl.text.trim()) ?? 0,
+                        'total': int.tryParse(totalCtrl.text.trim()) ?? 0,
+                      }),
+                      child: Text('保存'.tr),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    final c = result['current'] ?? 0, t = result['total'] ?? 0;
+    setState(() => _values[f.key] = (c == 0 && t == 0) ? null : {'current': c, 'total': t});
+  }
+
+  /// 日期区间：弹层两行分别选 开始/结束日期；保存时都为空视为未填写
+  Future<void> _editDateRange(CustomFieldDef f) async {
+    var (start, end) = parseCustomModuleDateRange(_values[f.key]);
+    final result = await showEditSheet<Map<String, String>>(
+      context: context,
+      title: f.label,
+      actionBuilder: (ctx) => editSheetDoneButton(ctx, '确定'.tr, () {
+        Navigator.pop(ctx, {
+          if (start != null) 'start': start!,
+          if (end != null) 'end': end!,
+        });
+      }),
+      contentBuilder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final colors = Theme.of(ctx).colorScheme;
+          Widget row(String label, String? iso, VoidCallback onPick, VoidCallback onClear) {
+            final d = iso != null ? DateTime.tryParse(iso) : null;
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: Text(label, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6))),
+              subtitle: Text(
+                d != null
+                    ? '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}'
+                    : '点击选择'.tr,
+                style: TextStyle(fontSize: 15, color: d != null ? colors.onSurface : colors.onSurface.withValues(alpha: 0.3)),
+              ),
+              trailing: iso != null
+                  ? GestureDetector(onTap: onClear, child: Icon(Icons.close, size: 18, color: colors.onSurface.withValues(alpha: 0.4)))
+                  : null,
+              onTap: onPick,
+            );
+          }
+          return Column(children: [
+            row('开始日期'.tr, start, () async {
+              final d = await showDatePickerSheet(context: ctx, title: '开始日期'.tr, initial: start != null ? DateTime.tryParse(start!) : null);
+              if (d != null) setSheetState(() => start = d.toIso8601String());
+            }, () => setSheetState(() => start = null)),
+            row('结束日期'.tr, end, () async {
+              final d = await showDatePickerSheet(context: ctx, title: '结束日期'.tr, initial: end != null ? DateTime.tryParse(end!) : null);
+              if (d != null) setSheetState(() => end = d.toIso8601String());
+            }, () => setSheetState(() => end = null)),
+          ]);
+        },
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() => _values[f.key] = result.isEmpty ? null : result);
+  }
+
+  /// 多图：多选本地图片复制到条目图片目录
+  Future<void> _pickMultiImages(CustomFieldDef f) async {
+    try {
+      final files = await pickLocalImages(context);
+      if (!mounted || files.isEmpty) return;
+      final dir = await ImagePathHelper.instance.getCustomModuleImagesDir(widget.module.id, _itemId);
+      await ImagePathHelper.instance.ensureDirExists(dir);
+      final paths = (_values[f.key] as List<String>?) ?? <String>[];
+      for (final file in files) {
+        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+        final fileName = 'img_${DateTime.now().millisecondsSinceEpoch}_${paths.length}$ext';
+        final targetPath = p.join(dir, fileName);
+        await file.copy(targetPath);
+        paths.add(targetPath);
+      }
+      setState(() => _values[f.key] = paths);
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
+    }
+  }
+
+  /// 图片预览（与笔记详情一致：点按关闭）
+  void _previewImage(List<String> paths, int index) {
+    appDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.9),
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4,
+              child: FadeInLocalImage(path: paths[index], fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ─── 保存 ───
 
   Future<void> _save() async {
@@ -397,7 +583,7 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
 
     final now = DateTime.now();
     final item = CustomModuleItem(
-      id: widget.item?.id ?? const Uuid().v4(),
+      id: _itemId,
       moduleId: widget.module.id,
       title: title,
       coverPath: posterField != null ? _values[posterField.key] as String? : null,

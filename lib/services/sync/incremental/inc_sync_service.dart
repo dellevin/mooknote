@@ -898,6 +898,13 @@ class IncSyncService {
             if (val is String && IncRowCodec.isImagePath(val)) {
               updated[k] = IncRowCodec.toLogical(val);
               changed = true;
+            } else if (val is List) {
+              // 多图字段：列表内每个图片路径都要归一化，否则跨设备比较永远不相等
+              updated[k] = [
+                for (final e in val)
+                  e is String && IncRowCodec.isImagePath(e) ? IncRowCodec.toLogical(e) : e,
+              ];
+              changed = true;
             }
           });
           if (changed) out[mapCol] = jsonEncode(updated);

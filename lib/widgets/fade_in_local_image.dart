@@ -141,12 +141,22 @@ class _FadeInLocalImageState extends State<FadeInLocalImage>
               (constraints.hasBoundedWidth ? constraints.maxWidth : null);
           final h = widget.height ??
               (constraints.hasBoundedHeight ? constraints.maxHeight : null);
-          final cacheW = (w != null && w.isFinite && w > 0)
+          var cacheW = (w != null && w.isFinite && w > 0)
               ? (w * dpr).round()
               : null;
-          final cacheH = (h != null && h.isFinite && h > 0)
+          var cacheH = (h != null && h.isFinite && h > 0)
               ? (h * dpr).round()
               : null;
+          // cacheWidth/cacheHeight 同时给定时，ResizeImage 默认 exact 策略会把图
+          // 强解成目标尺寸（破坏宽高比：竖/横图被拉成正方形），BoxFit 的裁剪随之失效。
+          // 只保留长边约束、按原比例解码，缩放/裁剪交给绘制阶段的 BoxFit。
+          if (cacheW != null && cacheH != null) {
+            if (cacheW >= cacheH) {
+              cacheH = null;
+            } else {
+              cacheW = null;
+            }
+          }
           return _useNetwork
               ? Image.network(
                   _imageUrl!,

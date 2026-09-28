@@ -142,8 +142,10 @@ Widget customModuleRatingRow(CustomFieldDef f, double? rating, ColorScheme color
         final isFilled = starValue <= starRating;
         final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
         return GestureDetector(
-          onTap: () {
-            final newRating = (starValue * 2).toDouble();
+          // 点左右半边分别给半星/整星（豆瓣式）：左半 = N-0.5 星，右半 = N 星
+          onTapDown: (d) {
+            final half = d.localPosition.dx < 14; // 星 24 + 左右各 2 padding
+            final newRating = (starValue * 2 - (half ? 1 : 0)).toDouble();
             onChanged(r == newRating ? null : newRating);
           },
           child: Padding(
@@ -424,6 +426,202 @@ Widget customModuleDurationCard(CustomFieldDef f, int? minutes, ColorScheme colo
           ),
         ],
       ),
+    ),
+  );
+}
+
+/// 进度值解析：{'current': c, 'total': t}，缺失/异常返回 null
+(int, int)? parseCustomModuleProgress(dynamic v) {
+  if (v is! Map) return null;
+  final c = v['current'], t = v['total'];
+  final current = c is num ? c.toInt() : int.tryParse(c?.toString() ?? '');
+  final total = t is num ? t.toInt() : int.tryParse(t?.toString() ?? '');
+  if (current == null && total == null) return null;
+  return (current ?? 0, total ?? 0);
+}
+
+/// 进度卡（标签行在上，进度条 + 「12/24」在下，点卡片弹层编辑，可半行）
+Widget customModuleProgressCard(CustomFieldDef f, dynamic value, ColorScheme colors,
+    {required VoidCallback onTap, required VoidCallback onClear}) {
+  final progress = parseCustomModuleProgress(value);
+  final hasValue = progress != null && (progress.$1 > 0 || progress.$2 > 0);
+  final (current, total) = progress ?? (0, 0);
+  final ratio = total > 0 ? (current / total).clamp(0.0, 1.0) : 0.0;
+  return GestureDetector(
+    onTap: onTap,
+    child: customModuleCard(
+      colors,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              customModuleFieldLabel(f, colors, icon: Icons.timelapse),
+              if (hasValue) ...[
+                const Spacer(),
+                GestureDetector(
+                  onTap: onClear,
+                  child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: colors.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(colors.primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasValue ? '$current/$total' : '点击填写'.tr,
+            style: TextStyle(
+              fontSize: 15,
+              color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+              fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// 日期区间值解析：{'start': iso?, 'end': iso?}
+(String?, String?) parseCustomModuleDateRange(dynamic v) {
+  if (v is! Map) return (null, null);
+  final s = v['start']?.toString(), e = v['end']?.toString();
+  return ((s == null || s.isEmpty) ? null : s, (e == null || e.isEmpty) ? null : e);
+}
+
+/// 日期区间显示：「2026.01.03 ~ 2026.02.15」，允许单边
+String formatCustomModuleDateRange(dynamic v) {
+  final (s, e) = parseCustomModuleDateRange(v);
+  String fmt(String iso) {
+    final d = DateTime.tryParse(iso);
+    return d == null
+        ? iso
+        : '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}';
+  }
+  if (s == null && e == null) return '';
+  if (s != null && e != null) return '${fmt(s)} ~ ${fmt(e)}';
+  return s != null ? '${fmt(s)} ~' : '~ ${fmt(e!)}';
+}
+
+/// 日期区间卡（与时间卡一致：标签行在上、区间值在下，点卡片弹层编辑，可半行）
+Widget customModuleDateRangeCard(CustomFieldDef f, dynamic value, ColorScheme colors,
+    {required VoidCallback onTap, required VoidCallback onClear}) {
+  final text = formatCustomModuleDateRange(value);
+  final hasValue = text.isNotEmpty;
+  return GestureDetector(
+    onTap: onTap,
+    child: customModuleCard(
+      colors,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              customModuleFieldLabel(f, colors, icon: Icons.date_range_outlined),
+              if (hasValue) ...[
+                const Spacer(),
+                GestureDetector(
+                  onTap: onClear,
+                  child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasValue ? text : '点击填写'.tr,
+            style: TextStyle(
+              fontSize: 15,
+              color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+              fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// 多图卡（标签行在上，横向缩略图 + 末尾添加块在下，固定整行）
+/// 缩略图点按预览、右上角 × 移除；设计页预览传空回调即为不可交互
+Widget customModuleMultiImageCard(CustomFieldDef f, List<String> paths, ColorScheme colors,
+    {required VoidCallback onAdd,
+    required void Function(int index) onTapImage,
+    required void Function(int index) onRemoveImage}) {
+  return customModuleCard(
+    colors,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            customModuleFieldLabel(f, colors, icon: Icons.photo_library_outlined),
+            if (paths.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              Text('{n}张'.trf({'n': paths.length}),
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+            ],
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 64,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: paths.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 6),
+            itemBuilder: (ctx, i) {
+              if (i == paths.length) {
+                // 末尾添加块
+                return GestureDetector(
+                  onTap: onAdd,
+                  child: Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(Icons.add, size: 22, color: colors.onSurface.withValues(alpha: 0.35)),
+                  ),
+                );
+              }
+              return Stack(children: [
+                GestureDetector(
+                  onTap: () => onTapImage(i),
+                  child: Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: colors.outlineVariant, width: 0.5),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: FadeInLocalImage(path: paths[i], width: 64, height: 64, fit: BoxFit.cover),
+                  ),
+                ),
+                Positioned(top: -4, right: -4,
+                  child: GestureDetector(
+                    onTap: () => onRemoveImage(i),
+                    child: Container(width: 16, height: 16,
+                      decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.6), shape: BoxShape.circle),
+                      child: Icon(Icons.close, size: 11, color: colors.surface)),
+                  ),
+                ),
+              ]);
+            },
+          ),
+        ),
+      ],
     ),
   );
 }

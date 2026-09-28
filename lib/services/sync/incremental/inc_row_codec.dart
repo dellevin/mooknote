@@ -57,6 +57,13 @@ class IncRowCodec {
             if (val is String && isImagePath(val)) {
               updated[k] = localPathOf(toLogical(val));
               changed = true;
+            } else if (val is List) {
+              // 多图字段：列表内每个图片路径都要本地化
+              updated[k] = [
+                for (final e in val)
+                  e is String && isImagePath(e) ? localPathOf(toLogical(e)) : e,
+              ];
+              changed = true;
             }
           });
           if (changed) out[mapCol] = jsonEncode(updated);
@@ -111,7 +118,14 @@ class IncRowCodec {
       if (v is String && v.isNotEmpty) {
         try {
           for (final val in (jsonDecode(v) as Map<String, dynamic>).values) {
-            if (val is String && isImagePath(val)) result.add(toLogical(val));
+            if (val is String && isImagePath(val)) {
+              result.add(toLogical(val));
+            } else if (val is List) {
+              // 多图字段：列表内每个图片路径都要收集
+              for (final e in val) {
+                if (e is String && isImagePath(e)) result.add(toLogical(e));
+              }
+            }
           }
         } catch (_) {}
       }

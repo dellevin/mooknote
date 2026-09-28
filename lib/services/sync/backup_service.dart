@@ -139,20 +139,11 @@ class BackupService {
       final ip = c['image_path'] as String?;
       if (ip != null && ip.isNotEmpty) imagePaths.add(ip);
     }
-    // 自定义模块条目：cover_path + data_json 对象值里的海报路径
+    // 自定义模块条目：cover_path + data_json 中的图片路径（海报字符串、多图列表）
     for (final it in customModuleItems) {
       final cp = it['cover_path'] as String?;
       if (cp != null && cp.isNotEmpty) imagePaths.add(cp);
-      final dj = it['data_json'] as String?;
-      if (dj != null && dj.isNotEmpty) {
-        try {
-          for (final v in (jsonDecode(dj) as Map<String, dynamic>).values) {
-            if (v is String && v.replaceAll('\\', '/').contains('/images/')) {
-              imagePaths.add(v);
-            }
-          }
-        } catch (_) {}
-      }
+      collectCustomModuleDataImagePaths(it['data_json'] as String?, imagePaths);
     }
 
     final userPrefs = UserPrefs();
@@ -928,11 +919,13 @@ class BackupService {
     return newItem;
   }
 
-  /// 更新自定义模块条目 data_json 内的海报路径（JSON 对象中值为图片路径的项）
+  /// 更新自定义模块条目 data_json 内的图片路径（字符串值与字符串列表值）
   Map<String, dynamic> _updateDataJsonImagePaths(Map<String, dynamic> item, Map<String, String> imagePathMap) {
     final newItem = Map<String, dynamic>.from(item);
     final dj = item['data_json'] as String?;
     if (dj == null || dj.isEmpty) return newItem;
+
+    String remap(String v) => imagePathMap[_toRelativePath(v)] ?? v;
 
     try {
       final map = jsonDecode(dj) as Map<String, dynamic>;
@@ -940,8 +933,13 @@ class BackupService {
       var changed = false;
       map.forEach((k, v) {
         if (v is String && v.replaceAll('\\', '/').contains('/images/')) {
-          final relPath = _toRelativePath(v);
-          updated[k] = imagePathMap[relPath] ?? v;
+          updated[k] = remap(v);
+          changed = true;
+        } else if (v is List) {
+          updated[k] = [
+            for (final e in v)
+              e is String && e.replaceAll('\\', '/').contains('/images/') ? remap(e) : e,
+          ];
           changed = true;
         }
       });

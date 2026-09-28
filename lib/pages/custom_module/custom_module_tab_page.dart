@@ -94,7 +94,7 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
           children: [
             Icon(Icons.dashboard_outlined, size: 56, color: colors.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
-            Text('「${widget.module.name}」还没有启用中的表单设计',
+            Text('「{name}」还没有启用中的表单设计'.trf({'name': widget.module.name}),
                 style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.5))),
             const SizedBox(height: 16),
             FilledButton.tonalIcon(

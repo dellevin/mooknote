@@ -1,0 +1,122 @@
+/// 英文翻译 - 自定义分类模块域
+const Map<String, String> enCustomModule = {
+  // ── 入口（侧边栏 / 功能设置 / 添加面板） ──
+  '自定义分类': 'Custom Categories',
+  '自定义分类模块': 'Custom Category',
+  '自定义分类模块的入口与管理': 'Entry and management for custom categories',
+
+  // ── manage_page（模块管理） ──
+  '新建模块': 'New Category',
+  '还没有自定义模块': 'No custom categories yet',
+  '点击右下角新建属于你的分类': 'Tap the button below to create your own category',
+  '{n} 个条目': '{n} entries',
+  '已停用': 'Disabled',
+  '设计表单': 'Design Form',
+  '重命名模块': 'Rename Category',
+  '模块名称（如：追剧、播客）': 'Category name (e.g. TV Shows, Podcasts)',
+  '请输入模块名称': 'Please enter a category name',
+  '删除模块': 'Delete Category',
+  '删除「{name}」后，其下的{items}表单设计将一并删除。':
+      'Deleting "{name}" will also delete its{items} form designs.',
+  ' {n} 个条目和所有': ' {n} entries and all',
+
+  // ── tab_page（主标签页） ──
+  '「{name}」还没有启用中的表单设计': '"{name}" has no active form design',
+  '去设计表单': 'Set Up Form',
+  '还没有条目': 'No entries yet',
+  '点击底部 + 新增': 'Tap + at the bottom to add',
+  '确定要删除《{title}》吗？删除后可在回收站恢复。':
+      'Delete "{title}"? You can restore it from the Recycle Bin later.',
+
+  // ── design_list_page（设计列表） ──
+  '表单设计': 'Form Design',
+  '{name} · 表单设计': '{name} · Form Design',
+  '新建设计': 'New Design',
+  '还没有表单设计': 'No form designs yet',
+  '点击右下角新建一个表单设计': 'Tap the button below to create a form design',
+  '{n} 个字段': '{n} fields',
+  '使用中': 'Active',
+  '设为使用中': 'Set as Active',
+  '设计名称': 'Design Name',
+  '重命名设计': 'Rename Design',
+  '删除设计': 'Delete Design',
+  '删除「{name}」？已录入条目的数据会保留，但不再按此表单显示。':
+      'Delete "{name}"? Existing entries keep their data but will no longer use this form.',
+
+  // ── design_page（设计编辑） ──
+  '请至少添加一个字段': 'Add at least one field',
+  '添加字段': 'Add Field',
+  '设计不存在或已删除': 'Design no longer exists',
+  '还没有字段': 'No fields yet',
+  '点击右上角 + 添加表单字段': 'Tap + at the top right to add fields',
+  '删除字段': 'Delete Field',
+  '删除「{label}」字段？已录入条目中该字段的内容会被保留，但不再显示。':
+      'Delete field "{label}"? Existing entries keep its content, but it will no longer be shown.',
+  '海报图': 'Poster',
+  '次数': 'Count',
+  '单文本': 'Text',
+  '多文本标签': 'Text Tags',
+  '时长': 'Duration',
+  '进度': 'Progress',
+  '日期区间': 'Date Range',
+  '多图': 'Images',
+  '长文本': 'Long Text',
+  '已添加（该类型仅可添加一个）': 'Added (only one allowed per type)',
+  '导入一张封面图': 'Add a cover image',
+  '自定义状态选项（如 想看/在看/看过）': 'Custom status options (e.g. Want/Watching/Watched)',
+  '星级评分': 'Star rating',
+  '次数统计（加减号控制）': 'Counter (with +/- buttons)',
+  '一行短文本（如 名称）': 'One line of short text (e.g. Name)',
+  '多个文本条目（如 导演、编剧）': 'Multiple text entries (e.g. Director, Writer)',
+  '选择一个日期': 'Pick a date',
+  '时:分滚轮选择时长（如 影视总时长）': 'Hour:minute wheel picker (e.g. total runtime)',
+  '当前/总量进度（如 看到 12/24 集）': 'Current/total progress (e.g. episode 12/24)',
+  '开始 ~ 结束日期': 'Start ~ end dates',
+  '导入多张图片': 'Add multiple images',
+  '多行长文本（如 简介）': 'Multi-line text (e.g. Summary)',
+  '字段名称': 'Field Name',
+  '必填': 'Required',
+  '图标': 'Icon',
+  '设为标题': 'Set as Title',
+  '列表页以此字段作为条目标题（需保留一个标题，可在其他文本字段上开启来更换）':
+      'Use this field as the entry title in list view (one title is required; enable it on another text field to switch)',
+  '列表页以此字段作为条目标题': 'Use this field as the entry title in list view',
+  '半行显示': 'Half Row',
+  '与相邻的半行字段并排为一行': 'Sits side by side with adjacent half-row fields',
+  '状态选项': 'Status Options',
+  '新选项名称': 'New option name',
+  '请输入字段名称': 'Please enter a field name',
+  '请至少添加一个状态选项': 'Add at least one status option',
+
+  // ── form_page（条目录入） ──
+  '新增': 'New',
+  '该模块还没有启用中的表单设计': 'This category has no active form design',
+  '请先到 侧边栏 → 自定义分类 中设计表单': 'Design a form first via Sidebar → Custom Categories',
+  '当前设计还没有字段，请先到设计页添加': 'The current design has no fields yet — add them in the design page',
+  '请输入 {x}': 'Please enter {x}',
+  '当前进度': 'Current',
+  '如 12': 'e.g. 12',
+  '总量': 'Total',
+  '如 24': 'e.g. 24',
+  '点击选择': 'Tap to select',
+  '结束日期': 'End Date',
+  '请填写「{label}」': 'Please fill in "{label}"',
+
+  // ── detail_page（条目详情） ──
+  '条目不存在': 'Entry no longer exists',
+  '删除条目': 'Delete Entry',
+  '确定删除「{title}」吗？': 'Delete "{title}"?',
+  '已删除': 'Deleted',
+  '表单设计已被删除': 'The form design has been deleted',
+  '创建于 {created} · 更新于 {updated}': 'Created {created} · Updated {updated}',
+  '{n} 次': '{n} times',
+
+  // ── custom_module_field（字段组件） ──
+  '移除': 'Remove',
+  '点击填写': 'Tap to fill in',
+  '{n}个：{x}': '{n}: {x}',
+  '{h}小时{m}分': '{h}h {m}min',
+  '{h}小时': '{h}h',
+  '{m}分': '{m}min',
+  '{n}张': '{n}',
+};
