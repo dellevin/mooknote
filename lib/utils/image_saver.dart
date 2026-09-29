@@ -63,6 +63,7 @@ class ImageSaver {
     if (!context.mounted) return;
     _showSheet(
       context: context,
+      preview: FileImage(src),
       onConfirm: () => saveFromFile(sourcePath, context: context),
     );
   }
@@ -75,6 +76,7 @@ class ImageSaver {
   }) async {
     _showSheet(
       context: context,
+      preview: MemoryImage(bytes),
       onConfirm: () => saveFromBytes(bytes, originalPath: originalPath, context: context),
     );
   }
@@ -82,6 +84,7 @@ class ImageSaver {
   static void _showSheet({
     required BuildContext context,
     required Future<void> Function() onConfirm,
+    ImageProvider? preview,
   }) {
     final colors = Theme.of(context).colorScheme;
     appModalBottomSheet(
@@ -91,52 +94,95 @@ class ImageSaver {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetCtx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 28, height: 3,
+              margin: const EdgeInsets.only(top: 10, bottom: 12),
+              decoration: BoxDecoration(
+                color: colors.onSurface.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(1.5),
+              ),
+            ),
+            // 图片预览缩略图
+            if (preview != null)
               Container(
-                width: 32, height: 4,
-                margin: const EdgeInsets.only(bottom: 8),
+                width: 88, height: 88,
+                margin: const EdgeInsets.only(bottom: 14),
                 decoration: BoxDecoration(
-                  color: colors.onSurface.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: colors.outlineVariant, width: 0.8),
+                  image: DecorationImage(image: preview, fit: BoxFit.cover),
                 ),
               ),
-              InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () {
-                  Navigator.pop(sheetCtx);
-                  onConfirm();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(Icons.download_outlined, size: 20, color: colors.primary),
-                      const SizedBox(width: 12),
-                      Text('下载图片'.tr),
-                    ],
+            // 操作组
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _sheetAction(
+                    colors,
+                    icon: Icons.download_outlined,
+                    label: '下载图片'.tr,
+                    color: colors.primary,
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      onConfirm();
+                    },
                   ),
-                ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => Navigator.pop(sheetCtx),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(Icons.close, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-                      const SizedBox(width: 12),
-                      Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
-                    ],
+                  Divider(
+                      height: 0.5,
+                      thickness: 0.5,
+                      indent: 56,
+                      color: colors.outlineVariant.withValues(alpha: 0.3)),
+                  _sheetAction(
+                    colors,
+                    icon: Icons.close,
+                    label: '取消'.tr,
+                    color: colors.onSurface.withValues(alpha: 0.6),
+                    onTap: () => Navigator.pop(sheetCtx),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _sheetAction(
+    ColorScheme colors, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        child: Row(
+          children: [
+            Container(
+              width: 30, height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: color))),
+          ],
         ),
       ),
     );

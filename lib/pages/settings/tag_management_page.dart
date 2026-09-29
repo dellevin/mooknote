@@ -401,17 +401,25 @@ class _TagManagementPageState extends State<TagManagementPage> {
     }
   }
 
+  /// 拖拽反馈 — 条形行样式，与列表中的标签行一致（非药丸）
   Widget _dragFeedback(String name, ColorScheme colors) {
     return Material(
       color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: colors.primary,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.outlineVariant, width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: colors.shadow.withValues(alpha: 0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        child: Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onPrimary)),
+        child: Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
       ),
     );
   }

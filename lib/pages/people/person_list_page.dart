@@ -139,11 +139,9 @@ class _PersonListPageState extends State<PersonListPage> {
     final index = _letterFirstIndex[letter];
     if (index == null) return;
     if (!_itemScrollController.isAttached) return;
-    _itemScrollController.scrollTo(
-      index: index,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOutCubic,
-    );
+    // 直接跳转（无动画）：索引栏拖动时内容跟手，类似电话通讯录的丝滑手感；
+    // 动画滚动会在连续跨字母时互相打断，产生"假滑动"的飞屏感
+    _itemScrollController.jumpTo(index: index);
   }
 
   Widget _buildIndexBar(ColorScheme colors) {

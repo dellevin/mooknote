@@ -35,12 +35,20 @@ class _GalleryPageState extends State<GalleryPage> {
   bool _loading = true;
   String? _error;
   String? _selectedCategory; // null = 全部
-  bool _descending = true; // 按时间倒序
+  bool _searching = false;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadImages();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadImages() async {
@@ -65,8 +73,14 @@ class _GalleryPageState extends State<GalleryPage> {
     if (_selectedCategory != null) {
       items = items.where((i) => i.category == _selectedCategory).toList();
     }
-    if (!_descending) {
-      items = items.reversed.toList();
+    // 按标题搜索：影视/书籍/游戏/笔记标题，角色图再匹配父作品标题
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      items = items
+          .where((i) =>
+              i.entityTitle.toLowerCase().contains(q) ||
+              (i.parentTitle?.toLowerCase().contains(q) ?? false))
+          .toList();
     }
     return items;
   }
@@ -93,13 +107,40 @@ class _GalleryPageState extends State<GalleryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('图库'.tr),
+        title: _searching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: TextStyle(fontSize: 15, color: colors.onSurface),
+                cursorColor: colors.primary,
+                decoration: InputDecoration(
+                  hintText: '搜索图片标题...'.tr,
+                  hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurface.withValues(alpha: 0.3)),
+                  isDense: true,
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v.trim()),
+              )
+            : Text('图库'.tr),
         actions: [
           if (!_loading && _allItems.isNotEmpty)
             IconButton(
-              icon: Icon(_descending ? Icons.arrow_downward : Icons.arrow_upward, size: 20),
-              tooltip: _descending ? '当前：最新在前'.tr : '当前：最早在前'.tr,
-              onPressed: () => setState(() => _descending = !_descending),
+              icon: Icon(_searching ? Icons.close : Icons.search, size: 20),
+              tooltip: _searching ? '取消'.tr : '搜索'.tr,
+              onPressed: () => setState(() {
+                if (_searching) {
+                  _searching = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                } else {
+                  _searching = true;
+                }
+              }),
             ),
         ],
       ),
@@ -109,7 +150,9 @@ class _GalleryPageState extends State<GalleryPage> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: colors.error)),
+                    child: Text(_error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colors.error)),
                   ),
                 )
               : _allItems.isEmpty
@@ -117,60 +160,93 @@ class _GalleryPageState extends State<GalleryPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.photo_library_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.2)),
+                          Icon(Icons.photo_library_outlined,
+                              size: 64,
+                              color: colors.onSurface.withValues(alpha: 0.2)),
                           const SizedBox(height: 12),
-                          Text('还没有保存过图片'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+                          Text('还没有保存过图片'.tr,
+                              style: TextStyle(
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.5))),
                         ],
                       ),
                     )
-                  : CustomScrollView(
-                      slivers: [
-                        // 类别筛选条
-                        if (_availableCategories.length > 1)
-                          SliverToBoxAdapter(
-                            child: SizedBox(
-                              height: 44,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                children: [
-                                  _buildChip(null, '全部'.tr, colors),
-                                  ..._availableCategories.map((c) => _buildChip(c, (_categoryLabels[c] ?? c).tr, colors)),
-                                ],
+                  : _filteredItems.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.search_off,
+                                  size: 56,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.2)),
+                              const SizedBox(height: 12),
+                              Text('未找到相关内容'.tr,
+                                  style: TextStyle(
+                                      color: colors.onSurface
+                                          .withValues(alpha: 0.5))),
+                            ],
+                          ),
+                        )
+                      : CustomScrollView(
+                          slivers: [
+                            // 类别筛选条
+                            if (_availableCategories.length > 1)
+                              SliverToBoxAdapter(
+                                child: SizedBox(
+                                  height: 44,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    children: [
+                                      _buildChip(null, '全部'.tr, colors),
+                                      ..._availableCategories.map((c) =>
+                                          _buildChip(
+                                              c,
+                                              (_categoryLabels[c] ?? c).tr,
+                                              colors)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            // 瀑布流网格
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              sliver: SliverMasonryGrid.count(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childCount: _filteredItems.length,
+                                itemBuilder: (context, index) {
+                                  final item = _filteredItems[index];
+                                  return _buildCard(item, index, colors);
+                                },
                               ),
                             ),
-                          ),
-                        // 瀑布流网格
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          sliver: SliverMasonryGrid.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childCount: _filteredItems.length,
-                            itemBuilder: (context, index) {
-                              final item = _filteredItems[index];
-                              return _buildCard(item, index, colors);
-                            },
-                          ),
-                        ),
-                        // 底部计数
-                        SliverToBoxAdapter(
-                          child: SafeArea(
-                            top: false,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Center(
-                                child: Text(
-                                  '共 {n} 张图片'.trf({'n': _filteredItems.length}),
-                                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
+                            // 底部计数
+                            SliverToBoxAdapter(
+                              child: SafeArea(
+                                top: false,
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: Text(
+                                      '共 {n} 张图片'
+                                          .trf({'n': _filteredItems.length}),
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.5)),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
     );
   }
 
@@ -198,7 +274,10 @@ class _GalleryPageState extends State<GalleryPage> {
             ),
             child: Text(
               categoryLabel.tr,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: colors.onSurface.withValues(alpha: 0.6)),
             ),
           ),
           const SizedBox(height: 4),
@@ -207,7 +286,10 @@ class _GalleryPageState extends State<GalleryPage> {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: colors.onSurface),
           ),
           // 角色图片显示父作品
           if (item.parentTitle != null && item.parentTitle!.isNotEmpty) ...[
@@ -216,7 +298,9 @@ class _GalleryPageState extends State<GalleryPage> {
               item.parentTitle!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.45)),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: colors.onSurface.withValues(alpha: 0.45)),
             ),
           ],
         ],
@@ -254,7 +338,8 @@ class _GalleryPageState extends State<GalleryPage> {
       child: FilterChip(
         label: Text(label),
         selected: selected,
-        onSelected: (_) => setState(() => _selectedCategory = selected ? null : category),
+        onSelected: (_) =>
+            setState(() => _selectedCategory = selected ? null : category),
         showCheckmark: false,
         padding: const EdgeInsets.symmetric(horizontal: 4),
       ),
@@ -337,7 +422,8 @@ class _GalleryImageCardState extends State<_GalleryImageCard> {
           fit: BoxFit.cover,
           errorWidget: Container(
             color: widget.colors.surfaceContainerHighest,
-            child: Icon(Icons.broken_image_outlined, color: widget.colors.onSurface.withValues(alpha: 0.3)),
+            child: Icon(Icons.broken_image_outlined,
+                color: widget.colors.onSurface.withValues(alpha: 0.3)),
           ),
         ),
       ),
