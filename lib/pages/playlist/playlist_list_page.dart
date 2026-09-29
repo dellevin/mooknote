@@ -189,7 +189,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
     return Padding(
       key: Key(playlist.id),
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Stack(
         clipBehavior: Clip.hardEdge,
         children: [
@@ -288,11 +288,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                   index: index,
                   child: Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5), width: 0.5),
-                    ),
+                    decoration: _cardDecoration(colors),
                     child: Row(
                       children: [
                         _buildCoverWall(context, playlist, covers, typeColor),
@@ -356,8 +352,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.75,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: playlists.length,
       itemBuilder: (context, index) {
@@ -378,11 +374,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
           },
           onLongPress: () => _showActionSheet(context, playlist, provider),
           child: Container(
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5), width: 0.5),
-            ),
+            decoration: _cardDecoration(colors, radius: 12),
             clipBehavior: Clip.antiAlias,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,6 +414,22 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   }
 
   // ─── 通用组件 ──────────────────────────────────────────────────────
+
+  /// 卡片装饰 — 背景接近页面底色，靠清晰描边 + 轻投影做出分隔
+  BoxDecoration _cardDecoration(ColorScheme colors, {double radius = 14}) {
+    return BoxDecoration(
+      color: colors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: colors.outlineVariant, width: 0.8),
+      boxShadow: [
+        BoxShadow(
+          color: colors.shadow.withValues(alpha: 0.06),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
 
   Widget _buildTypeTag(String label, Color color, {bool compact = false}) {
     return Container(
@@ -465,33 +473,69 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       'game' => Icons.sports_esports_outlined,
       _ => Icons.list_outlined,
     };
+    final valid = covers.whereType<String>().where((p) => p.isNotEmpty).toList();
 
-    if (covers.isEmpty) {
-      return Container(
-        color: typeColor.withValues(alpha: 0.08),
-        child: Center(child: Icon(typeIcon, size: 32, color: typeColor.withValues(alpha: 0.4))),
+    // 空片单：类型色占位
+    if (valid.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(6),
+        child: Container(
+          decoration: BoxDecoration(
+            color: typeColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(child: Icon(typeIcon, size: 32, color: typeColor.withValues(alpha: 0.4))),
+        ),
       );
     }
 
-    return Row(
-      children: List.generate(covers.length, (i) {
-        final path = covers[i];
-        return Expanded(
-          child: path != null && path.isNotEmpty
-              ? FadeInLocalImage(
-                  path: path,
-                  fit: BoxFit.cover,
-                  errorWidget: Container(
-                    color: colors.surfaceContainerHighest,
-                    child: Icon(typeIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
-                  ),
-                )
-              : Container(
-                  color: colors.surfaceContainerHighest,
-                  child: Icon(typeIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
-                ),
+    // 照片叠放：首张在最前，后面的向右错位露出边缘
+    final count = valid.length;
+    return LayoutBuilder(
+      builder: (_, constraints) {
+        const offset = 7.0;
+        const inset = 6.0;
+        final cardW = constraints.maxWidth - inset * 2 - offset * (count - 1);
+        final cardH = constraints.maxHeight - inset * 2;
+        return Stack(
+          children: [
+            for (var i = count - 1; i >= 0; i--)
+              Positioned(
+                left: inset + i * offset,
+                top: inset,
+                width: cardW,
+                height: cardH,
+                child: _buildStackedCover(valid[i], colors, typeIcon),
+              ),
+          ],
         );
-      }),
+      },
+    );
+  }
+
+  /// 叠放照片卡 — 浅色描边 + 轻投影营造"照片堆"层次
+  Widget _buildStackedCover(String path, ColorScheme colors, IconData typeIcon) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.surface, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withValues(alpha: 0.10),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: FadeInLocalImage(
+        path: path,
+        fit: BoxFit.cover,
+        errorWidget: Container(
+          color: colors.surfaceContainerHighest,
+          child: Icon(typeIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
+        ),
+      ),
     );
   }
 
@@ -580,6 +624,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   void _showActionSheet(BuildContext context, Playlist playlist, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
+    final typeColor = _typeColor(playlist.type, colors);
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
@@ -587,50 +632,88 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 10, bottom: 4),
-              child: Container(
-                width: 28, height: 3,
-                decoration: BoxDecoration(
-                  color: colors.onSurface.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(1.5),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Container(
+                  width: 28, height: 3,
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
                 ),
               ),
             ),
-            _buildSheetAction(
-              context: ctx,
-              icon: Icons.edit_outlined,
-              label: '编辑片单'.tr,
-              color: colors.primary,
-              onTap: () async {
-                Navigator.pop(ctx);
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(builder: (_) => PlaylistCreatePage(playlist: playlist)),
-                );
-                if (result == true && mounted) {
-                  provider.loadPlaylists();
-                  _loadAllItemIds();
-                }
-              },
+            // 片单信息头
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(playlist.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildTypeTag(playlist.typeLabel, typeColor, compact: true),
+                      const SizedBox(width: 8),
+                      Icon(Icons.collections_outlined, size: 11, color: colors.onSurface.withValues(alpha: 0.3)),
+                      const SizedBox(width: 3),
+                      Text('{n} 个条目'.trf({'n': playlist.itemCount}),
+                          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            Divider(height: 0.5, thickness: 0.5, color: colors.outlineVariant.withValues(alpha: 0.3)),
-            _buildSheetAction(
-              context: ctx,
-              icon: Icons.delete_outline,
-              label: '删除片单'.tr,
-              color: colors.error,
-              onTap: () async {
-                Navigator.pop(ctx);
-                final confirmed = await _showDeleteDialog(context, playlist, provider);
-                if (confirmed == true && mounted) {
-                  provider.loadPlaylists();
-                  _loadAllItemIds();
-                }
-              },
+            // 操作组
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _buildSheetAction(
+                    icon: Icons.edit_outlined,
+                    label: '编辑片单'.tr,
+                    color: colors.primary,
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(builder: (_) => PlaylistCreatePage(playlist: playlist)),
+                      );
+                      if (result == true && mounted) {
+                        provider.loadPlaylists();
+                        _loadAllItemIds();
+                      }
+                    },
+                  ),
+                  Divider(height: 0.5, thickness: 0.5, indent: 56, color: colors.outlineVariant.withValues(alpha: 0.3)),
+                  _buildSheetAction(
+                    icon: Icons.delete_outline,
+                    label: '删除片单'.tr,
+                    color: colors.error,
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      final confirmed = await _showDeleteDialog(context, playlist, provider);
+                      if (confirmed == true && mounted) {
+                        provider.loadPlaylists();
+                        _loadAllItemIds();
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -638,7 +721,6 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   }
 
   Widget _buildSheetAction({
-    required BuildContext context,
     required IconData icon,
     required String label,
     required Color color,
@@ -647,12 +729,20 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: color),
+            Container(
+              width: 30, height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
             const SizedBox(width: 12),
-            Text(label, style: TextStyle(fontSize: 14, color: color)),
+            Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: color))),
           ],
         ),
       ),
