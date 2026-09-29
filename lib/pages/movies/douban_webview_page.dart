@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../widgets/app_overlay.dart';
+import '../../utils/douban_parser.dart';
 import '../../l10n/app_strings.dart';
 
 /// 豆瓣WebView页面 - 用于抓取 影视/书籍/游戏 信息
@@ -39,6 +40,34 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
     };
   }
 
+  /// 豆瓣书籍/游戏可裸 GET 网页版解析；电影域名有反爬质询只能走页面内 JS
+  bool get _isDoubanDirectFetch =>
+      widget.source == 'douban' &&
+      (widget.category == 'book' || widget.category == 'game');
+
+  bool get _isDoubanSubject =>
+      widget.source == 'douban' &&
+      (widget.category == 'book' ||
+          widget.category == 'movie' ||
+          widget.category == 'game');
+
+  /// 手机版链接转网页版：m.douban.com/book|movie|game/subject/xxx → 对应网页版
+  ///（网页版元信息块结构规整，解析更稳）
+  String get _effectiveUrl {
+    if (widget.source != 'douban') return widget.url;
+    if (widget.category == 'book') {
+      return DoubanBookParser.normalizeSubjectUrl(widget.url) ?? widget.url;
+    }
+    if (widget.category == 'game') {
+      return DoubanGameParser.normalizeSubjectUrl(widget.url) ?? widget.url;
+    }
+    if (widget.category == 'movie') {
+      final m = RegExp(r'm\.douban\.com/movie/subject/(\d+)').firstMatch(widget.url);
+      if (m != null) return 'https://movie.douban.com/subject/${m[1]}/';
+    }
+    return widget.url;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -68,9 +97,13 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
       body: Stack(
         children: [
           InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+            initialUrlRequest: URLRequest(url: WebUri(_effectiveUrl)),
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
+              // 书籍/电影抓网页版需桌面 UA，否则豆瓣检测到移动端 UA 会重定向回 m.douban.com
+              userAgent: _isDoubanSubject
+                  ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                  : '',
             ),
             onWebViewCreated: (controller) {
               _controller = controller;
@@ -159,36 +192,67 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
     final info = await _extractInfo();
     if (info == null) return;
 
-    final secondaryLabel = switch (widget.category) {
-      'book' => '作者'.tr,
-      'game' => '开发商'.tr,
-      _ => '导演'.tr,
-    };
-
     // 显示提取的信息
     if (mounted) {
       appDialog(
         context: context,
         builder: (ctx) {
           final colors = Theme.of(ctx).colorScheme;
+          String valueOf(Object? v) =>
+              v is List ? v.join(' / ') : v?.toString() ?? '';
           final isFanqie = widget.source == 'fanqie';
-          final rows = isFanqie
-              ? <Widget>[
-                  _buildInfoRow(colors, '书名'.tr, info['title']?.toString() ?? '未提取到'.tr),
-                  _buildInfoRow(colors, '作者'.tr, info['author']?.toString() ?? '未提取到'.tr),
-                  _buildInfoRow(colors, '类型'.tr, info['genres']?.toString() ?? '未提取到'.tr),
-                  if (info['summary'] != null)
-                    _buildInfoRow(colors, '简介'.tr, _truncate(info['summary'])),
+          // 按分类列出全部可提取字段，空值行跳过
+          final List<(String, Object?)> fields = isFanqie
+              ? [
+                  ('书名'.tr, info['title']),
+                  ('作者'.tr, info['author']),
+                  ('类型'.tr, info['genres']),
+                  ('简介'.tr, info['summary']),
                 ]
-              : <Widget>[
-                  _buildInfoRow(colors, '标题'.tr, info['title']?.toString() ?? '未提取到'.tr),
-                  _buildInfoRow(colors, '评分'.tr, info['rating']?.toString() ?? '未提取到'.tr),
-                  _buildInfoRow(colors, secondaryLabel, info['director']?.toString() ?? '未提取到'.tr),
-                  _buildInfoRow(colors, '类型'.tr, info['genres']?.toString() ?? '未提取到'.tr),
-                  _buildInfoRow(colors, '日期'.tr, info['releaseDate']?.toString() ?? '未提取到'.tr),
-                  if (info['summary'] != null)
-                    _buildInfoRow(colors, '简介'.tr, _truncate(info['summary'])),
-                ];
+              : switch (widget.category) {
+                  'book' => [
+                      ('标题'.tr, info['title']),
+                      ('评分'.tr, info['rating']),
+                      ('作者'.tr, info['author']),
+                      ('译者'.tr, info['translator']),
+                      ('出版社'.tr, info['publisher']),
+                      ('出版日期'.tr, info['releaseDate']),
+                      ('ISBN'.tr, info['isbn']),
+                      ('类型'.tr, info['genres']),
+                      ('简介'.tr, info['summary']),
+                    ],
+                  'game' => [
+                      ('标题'.tr, info['title']),
+                      ('评分'.tr, info['rating']),
+                      ('开发者'.tr, info['developer']),
+                      ('类型'.tr, info['genres']),
+                      ('平台'.tr, info['platforms']),
+                      ('日期'.tr, info['releaseDate']),
+                      ('别名'.tr, info['alternateTitles']),
+                      ('简介'.tr, info['summary']),
+                    ],
+                  _ => [
+                      ('标题'.tr, info['title']),
+                      ('评分'.tr, info['rating']),
+                      ('导演'.tr, info['director']),
+                      ('编剧'.tr, info['writers']),
+                      ('主演'.tr, info['actors']),
+                      ('类型'.tr, info['genres']),
+                      ('上映日期'.tr, info['releaseDate']),
+                      ('别名'.tr, info['alternateTitles']),
+                      ('简介'.tr, info['summary']),
+                    ],
+                };
+          final summaryLabel = '简介'.tr;
+          final rows = <Widget>[
+            for (final (label, value) in fields)
+              if (valueOf(value).isNotEmpty)
+                _buildInfoRow(colors, label,
+                    label == summaryLabel ? _truncate(value) : valueOf(value)),
+          ];
+          if (rows.isEmpty) {
+            rows.add(_buildInfoRow(colors, '标题'.tr, '未提取到'.tr));
+          }
           return AlertDialog(
             backgroundColor: colors.surface,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -281,22 +345,38 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
         ),
       );
 
-      // 执行JavaScript代码提取页面信息
-      final result = await _controller!.evaluateJavascript(source: _scriptFor(widget.source));
+      // 豆瓣书籍/游戏：优先直接 GET 网页版 HTML 解析（字段规整）；
+      // 电影域名有反爬质询（sec.douban.com），裸请求拿不到，只能走页面内 JS 提取
+      Map<String, dynamic>? movieInfo;
+      if (_isDoubanDirectFetch) {
+        // 用 WebView 当前地址（用户可能在页面里跳转到了别的条目）
+        final currentUrl = (await _controller!.getUrl())?.toString() ?? widget.url;
+        movieInfo = widget.category == 'game'
+            ? await DoubanGameParser.fetch(currentUrl)
+            : await DoubanBookParser.fetch(currentUrl);
+      }
+      if (movieInfo == null) {
+        // 执行JavaScript代码提取页面信息
+        final result = await _controller!.evaluateJavascript(source: _scriptFor(widget.source));
+
+        // 解析提取的信息
+        // evaluateJavascript 返回 JS 值，JSON.stringify 的结果是字符串
+        final String jsonStr = result?.toString() ?? '';
+
+        // 关闭加载提示
+        if (mounted) Navigator.pop(context);
+
+        if (jsonStr.isEmpty) return null;
+
+        // result 是 JSON.stringify 的输出，可能带外层引号
+        final String cleanJson = jsonStr.startsWith('"') && jsonStr.endsWith('"')
+            ? jsonDecode(jsonStr) as String
+            : jsonStr;
+        return jsonDecode(cleanJson) as Map<String, dynamic>;
+      }
 
       // 关闭加载提示
       if (mounted) Navigator.pop(context);
-
-      // 解析提取的信息
-      // evaluateJavascript 返回 JS 值，JSON.stringify 的结果是字符串
-      final String jsonStr = result?.toString() ?? '';
-      if (jsonStr.isEmpty) return null;
-
-      // result 是 JSON.stringify 的输出，可能带外层引号
-      final String cleanJson = jsonStr.startsWith('"') && jsonStr.endsWith('"')
-          ? jsonDecode(jsonStr) as String
-          : jsonStr;
-      final Map<String, dynamic> movieInfo = jsonDecode(cleanJson) as Map<String, dynamic>;
 
       return movieInfo;
     } catch (e) {
@@ -330,296 +410,219 @@ String _scriptFor(String source) {
   };
 }
 
-/// 影视抓取脚本（移动版豆瓣 subject 页）
+/// 影视抓取脚本（豆瓣网页版 subject 页为主，保留移动版回退）
+/// 元信息解析与书籍一致：#info 按 <br> 分段，span.pl 为标签，
+/// 段内 <a> 链接文本（排除"更多..."伪链接）或标签后的纯文本为值
 const String _movieScript = r'''
         (function() {
           const info = {};
+          const q = (s) => document.querySelector(s);
+          const t = (el) => el ? el.textContent.trim() : '';
 
-          // 获取标题 - 移动版页面
-          const titleEl = document.querySelector('.sub-title');
-          info.title = titleEl ? titleEl.textContent.trim() : '';
+          // 标题（网页版 / 移动版回退）
+          info.title = t(q('h1 span[property="v:itemreviewed"]')
+            || q('#wrapper h1 span') || q('.sub-title') || q('h1'));
 
-          // 获取年份 - 从 original-title 中提取
-          const originalTitleEl = document.querySelector('.sub-original-title');
-          if (originalTitleEl) {
-            const yearMatch = originalTitleEl.textContent.match(/\((\d{4})\)/);
-            info.year = yearMatch ? yearMatch[1] : '';
-          } else {
-            info.year = '';
+          // 封面（电影网页版 a 是"更多海报"链接，取 img src；webp → jpg）
+          const coverEl = q('#mainpic img') || q('.sub-cover img');
+          let coverUrl = coverEl ? coverEl.src : '';
+          if (coverUrl && coverUrl.includes('.webp')) coverUrl = coverUrl.replace('.webp', '.jpg');
+          info.coverUrl = coverUrl;
+
+          // 评分
+          info.rating = t(q('.rating_self strong') || q('.ll.rating_num')
+            || q('.score-num') || q('.rating-num') || q('.score'));
+
+          // 剧情简介（网页版 v:summary，开头常带全角空格缩进）
+          let summary = t(q('span[property="v:summary"]') || q('.subject-intro p'));
+          info.summary = summary.replace(/^[\s　]+/, '').substring(0, 1000);
+
+          // 元信息块 #info：按 <br> 分段，span.pl 为标签，段内 <a> 文本
+          //（排除 javascript: 伪链接如"更多..."）或标签后的纯文本为值
+          const meta = {};
+          const infoDiv = q('#info');
+          if (infoDiv) {
+            const tmp = document.createElement('div');
+            infoDiv.innerHTML.split(/<br\s*\/?>/i).forEach(seg => {
+              tmp.innerHTML = seg;
+              const labelEl = tmp.querySelector('.pl');
+              if (!labelEl) return;
+              const label = labelEl.textContent.replace(/[:：\s]/g, '');
+              if (!label) return;
+              let values = Array.from(tmp.querySelectorAll('a'))
+                .filter(a => !(a.getAttribute('href') || '').startsWith('javascript'))
+                .map(a => a.textContent.trim()).filter(v => v);
+              if (values.length === 0) {
+                const rest = tmp.textContent.replace(labelEl.textContent, '').trim();
+                if (rest) values = [rest];
+              }
+              if (values.length > 0) meta[label] = values;
+            });
           }
+          const pick = (k) => (meta[k] || []).join(' / ');
 
-          // 获取封面图 - 从 sub-cover 中的 img 标签获取
-          const coverEl = document.querySelector('.sub-cover img');
-          if (coverEl) {
-            let coverUrl = coverEl.src;
-            // 将 webp 转换为 jpg 格式，提高兼容性
-            if (coverUrl && coverUrl.includes('.webp')) {
-              coverUrl = coverUrl.replace('.webp', '.jpg');
-            }
-            info.coverUrl = coverUrl;
-          } else {
-            info.coverUrl = '';
-          }
+          info.director = pick('导演');
+          info.writers = meta['编剧'] || [];
+          info.actors = meta['主演'] || [];
+          info.genres = pick('类型');
 
-          // 获取评分 - 移动版可能在 mark-item 中
-          const ratingEl = document.querySelector('.score-num')
-            || document.querySelector('.rating-num')
-            || document.querySelector('.score');
-          info.rating = ratingEl ? ratingEl.textContent.trim() : '';
+          // 上映日期（如 "2026-09-25(中国大陆)"）规整为 yyyy-MM-dd
+          const dm = pick('上映日期').match(/(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?/);
+          info.releaseDate = dm
+            ? dm[1] + '-' + (dm[2] || '01').padStart(2, '0') + '-' + (dm[3] || '01').padStart(2, '0')
+            : '';
 
-          // 获取导演 - 从演职员列表中找
-          const directorEl = document.querySelector('.movie-celebrities .item__celebrity .role');
-          if (directorEl && directorEl.textContent.includes('导演')) {
-            const nameEl = directorEl.closest('.item__celebrity').querySelector('.name');
-            info.director = nameEl ? nameEl.textContent.trim() : '';
-          } else {
-            info.director = '';
-          }
-
-          // 获取编剧 - 从演职员列表中找（匹配"编剧"或"剧本"）
-          const writerEls = document.querySelectorAll('.movie-celebrities .item__celebrity');
-          const writers = [];
-          writerEls.forEach(el => {
-            const roleEl = el.querySelector('.role');
-            if (roleEl && (roleEl.textContent.includes('编剧') || roleEl.textContent.includes('剧本'))) {
-              const nameEl = el.querySelector('.name');
-              if (nameEl) writers.push(nameEl.textContent.trim());
-            }
-          });
-          info.writers = writers;
-
-          // 获取主演- 从演职员列表中找前5个
-          const actorEls = document.querySelectorAll('.movie-celebrities .item__celebrity');
-          const actors = [];
-          actorEls.forEach(el => {
-            const roleEl = el
-            .querySelector('.role');
-            if (roleEl && (
-            roleEl.textContent.includes('配音') ||
-            roleEl.textContent.includes('主演') ||
-            roleEl.textContent.includes('演员') ||
-            roleEl.textContent.includes('参演') ||
-            roleEl.textContent.includes('饰')
-            )) {
-              const nameEl = el.querySelector('.name');
-              if (nameEl) actors.push(nameEl.textContent.trim());
-            }
-          });
-          info.actors = actors;
-
-          // 获取类型 - 从 sub-meta 或标签中提取
-          const metaEl = document.querySelector('.sub-meta');
-          if (metaEl) {
-            const metaText = metaEl.textContent;
-            const parts = metaText.split('/').map(s => s.trim());
-            // 过滤出类型（通常是中文，不是日期，不是时长）
-            info.genres = parts.filter(p =>
-              p && !p.match(/^\d{4}/) && !p.includes('分钟') && !p.includes('上映')
-            ).join(',');
-          } else {
-            info.genres = '';
-          }
-
-          // 获取上映日期
-          if (metaEl) {
-            const dateMatch = metaEl.textContent.match(/(\d{4}-\d{2}-\d{2})/);
-            info.releaseDate = dateMatch ? dateMatch[1] : '';
-          } else {
-            info.releaseDate = '';
-          }
-
-          // 获取简介
-          const summaryEl = document.querySelector('.subject-intro p');
-          if (summaryEl) {
-            info.summary = summaryEl.textContent.trim().substring(0, 500);
-          } else {
-            info.summary = '';
-          }
-
-          // 获取别名 - 从 original-title 中提取（去掉年份）
-          if (originalTitleEl) {
-            const fullText = originalTitleEl.textContent.trim();
-            info.alternateTitles = [fullText.replace(/\s*\(\d{4}\)\s*$/, '')];
-          } else {
-            info.alternateTitles = [];
-          }
+          // 又名 → 别名
+          const aka = pick('又名');
+          info.alternateTitles = aka ? aka.split('/').map(s => s.trim()).filter(Boolean) : [];
 
           return JSON.stringify(info);
         })()
       ''';
 
-/// 书籍抓取脚本（豆瓣 subject 页，兼容移动版/网页版）
+/// 书籍抓取脚本（豆瓣网页版 subject 页为主，保留移动版回退）
+/// 元信息解析与参考 Python 版一致：#info 按 <br> 分段，span.pl 为标签，
+/// 段内 <a> 链接文本或标签后的纯文本为值（作者/译者/出版社/出版年/ISBN/原作名）
 const String _bookScript = r'''
         (function() {
           const info = {};
+          const q = (s) => document.querySelector(s);
+          const t = (el) => el ? el.textContent.trim() : '';
 
-          // 标题（多种结构回退）
-          const titleEl = document.querySelector('.sub-title')
-            || document.querySelector('h1[property="v:itemreviewed"]')
-            || document.querySelector('.title h1')
-            || document.querySelector('h1');
-          info.title = titleEl ? titleEl.textContent.trim() : '';
+          // 标题（网页版 / 移动版回退）
+          info.title = t(q('#wrapper h1 span') || q('h1 span') || q('.sub-title') || q('h1'));
 
-          // 封面（多种结构回退）
-          const coverEl = document.querySelector('.sub-cover img')
-            || document.querySelector('#mainpic img')
-            || document.querySelector('.nbg img')
-            || document.querySelector('.pic img');
-          if (coverEl) {
-            let coverUrl = coverEl.src;
-            if (coverUrl && coverUrl.includes('.webp')) {
-              coverUrl = coverUrl.replace('.webp', '.jpg');
-            }
-            info.coverUrl = coverUrl;
-          } else {
-            info.coverUrl = '';
-          }
+          // 封面（webp → jpg，提高兼容性）
+          const coverEl = q('#mainpic img') || q('.sub-cover img') || q('.nbg img');
+          let coverUrl = coverEl ? coverEl.src : '';
+          if (coverUrl && coverUrl.includes('.webp')) coverUrl = coverUrl.replace('.webp', '.jpg');
+          info.coverUrl = coverUrl;
 
           // 评分
-          const ratingEl = document.querySelector('.score-num')
-            || document.querySelector('.rating-num')
-            || document.querySelector('.score')
-            || document.querySelector('.rating_self strong')
-            || document.querySelector('.ll.rating_num');
-          info.rating = ratingEl ? ratingEl.textContent.trim() : '';
+          info.rating = t(q('.rating_self strong') || q('.ll.rating_num')
+            || q('.rating_num') || q('.score-num') || q('.score'));
 
-          // 简介（网页版为 section-intro_desc，另加多级回退）
-          const summaryEl = document.querySelector('.section-intro_desc')
-            || document.querySelector('.subject-intro p')
-            || document.querySelector('#link-report .intro')
-            || document.querySelector('.intro');
-          info.summary = summaryEl ? summaryEl.textContent.trim().substring(0, 1000) : '';
+          // 简介（网页版 #link-report 里短/全文并存，取最长的一段）
+          let summary = '';
+          document.querySelectorAll('#link-report .intro').forEach(el => {
+            const v = el.textContent.trim();
+            if (v.length > summary.length) summary = v;
+          });
+          if (!summary) summary = t(q('.section-intro_desc') || q('.subject-intro p') || q('.intro'));
+          info.summary = summary.substring(0, 1000);
 
-          // 副标题/别名
-          const originalTitleEl = document.querySelector('.sub-original-title')
-            || document.querySelector('h2');
-          info.alternateTitles = originalTitleEl ? [originalTitleEl.textContent.trim()] : [];
-
-          // 元信息：作者 / 译者 / 出版社 / 出版日期 / ISBN / 类型
-          const metaEl = document.querySelector('.sub-meta')
-            || document.querySelector('#info')
-            || document.querySelector('.pub');
-          const metaText = metaEl ? metaEl.textContent.replace(/\s+/g, ' ').trim() : '';
-          info.director = metaText; // 暂存整行，供解析
-          info.author = '';
-          info.translator = '';
-          info.publisher = '';
-          info.releaseDate = '';
-          info.isbn = '';
-          info.genres = '';
-
-          if (metaText) {
-            // 作者
-            const authorMatch = metaText.match(/作者[:\s]*([^\/\n]+?)(?:\s*译者|\s*出版社|\s*出版年|\s*页数|\s*定价|\s*装帧|\s*丛书|\s*ISBN|$)/);
-            if (authorMatch) info.author = authorMatch[1].trim();
-
-            // 译者
-            const translatorMatch = metaText.match(/译者[:\s]*([^\/\n]+?)(?:\s*出版社|\s*出版年|\s*页数|\s*定价|\s*装帧|\s*丛书|\s*ISBN|$)/);
-            if (translatorMatch) info.translator = translatorMatch[1].trim();
-
-            // 出版社
-            const publisherMatch = metaText.match(/出版社[:\s]*([^\/\n]+?)(?:\s*出版年|\s*页数|\s*定价|\s*装帧|\s*丛书|\s*ISBN|$)/);
-            if (publisherMatch) info.publisher = publisherMatch[1].trim();
-
-            // 出版日期 / 年份
-            const dateMatch = metaText.match(/\d{4}-\d{1,2}(-\d{1,2})?/);
-            if (dateMatch) info.releaseDate = dateMatch[0];
-
-            // ISBN
-            const isbnMatch = metaText.match(/ISBN[:\s]*([\dXx-]+)/);
-            if (isbnMatch) info.isbn = isbnMatch[1].trim();
-
-            // 类型标签
-            const tagEls = document.querySelectorAll('.sub-tags a, .tags a, .tagCrumb a');
-            const tags = [];
-            tagEls.forEach(el => {
-              const t = el.textContent.trim();
-              if (t) tags.push(t);
+          // 元信息块 #info：按 <br> 分段，span.pl 为标签，段内 <a> 文本
+          // 或标签后的纯文本为值
+          const meta = {};
+          const infoDiv = q('#info');
+          if (infoDiv) {
+            const tmp = document.createElement('div');
+            infoDiv.innerHTML.split(/<br\s*\/?>/i).forEach(seg => {
+              tmp.innerHTML = seg;
+              const labelEl = tmp.querySelector('.pl');
+              if (!labelEl) return;
+              const label = labelEl.textContent.replace(/[:：\s]/g, '');
+              if (!label) return;
+              let values = Array.from(tmp.querySelectorAll('a'))
+                .map(a => a.textContent.trim()).filter(v => v);
+              if (values.length === 0) {
+                const rest = tmp.textContent.replace(labelEl.textContent, '').trim();
+                if (rest) values = [rest];
+              }
+              if (values.length > 0) meta[label] = values;
             });
-            info.genres = tags.join(',');
           }
+          const pick = (k) => (meta[k] || []).join(' / ');
+
+          info.author = pick('作者');
+          info.translator = pick('译者');
+          info.publisher = pick('出版社');
+          info.isbn = pick('ISBN');
+          info.director = info.author; // 供提取预览弹窗"作者"行展示
+
+          // 出版年（如 "2026-7" / "2026-7-1"）规整为 yyyy-MM-dd，供 Dart DateTime.parse
+          const dm = pick('出版年').match(/(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?/);
+          info.releaseDate = dm
+            ? dm[1] + '-' + (dm[2] || '01').padStart(2, '0') + '-' + (dm[3] || '01').padStart(2, '0')
+            : '';
+
+          // 原作名 → 别名
+          info.alternateTitles = pick('原作名') ? [pick('原作名')] : [];
+
+          // 类型标签（网页版 / 移动版回退）
+          const tags = [];
+          document.querySelectorAll('#db-tags-section .tag a, .sub-tags a, .tags a').forEach(el => {
+            const v = el.textContent.trim();
+            if (v) tags.push(v);
+          });
+          info.genres = tags.join(',');
 
           return JSON.stringify(info);
         })()
       ''';
 
-/// 游戏抓取脚本（豆瓣 game subject 页 card 结构）
+/// 游戏抓取脚本（豆瓣 www.douban.com/game 桌面页为主，保留移动版回退）
+/// 元信息为 dl.thing-attr：dt 为标签，dd 内 <a> 链接文本或纯文本为值
+///（类型里首条通用"游戏"链接除外）
 const String _gameScript = r'''
         (function() {
           const info = {};
+          const q = (s) => document.querySelector(s);
+          const t = (el) => el ? el.textContent.trim() : '';
 
-          // 标题：card 内的 title
-          const titleEl = document.querySelector('.card h1.title')
-            || document.querySelector('h1.title')
-            || document.querySelector('.sub-title')
-            || document.querySelector('h1[property="v:itemreviewed"]');
-          info.title = titleEl ? titleEl.textContent.trim() : '';
+          // 标题（桌面版 #content h1 / 移动版回退）
+          info.title = t(q('#content h1') || q('.card h1.title')
+            || q('h1.title') || q('.sub-title') || q('h1'));
 
-          // 封面：subject-info 内的 cover 图
-          const coverEl = document.querySelector('.subject-info .cover')
-            || document.querySelector('.sub-cover img')
-            || document.querySelector('#mainpic img');
-          if (coverEl) {
-            let coverUrl = coverEl.src;
-            if (coverUrl && coverUrl.includes('.webp')) {
-              coverUrl = coverUrl.replace('.webp', '.jpg');
+          // 封面（.pic 内 a 的 href 是大图，img src 兜底；webp → jpg）
+          const picA = q('.item-subject-info .pic a') || q('.pic a');
+          const coverEl = q('.item-subject-info .pic img') || q('.pic img')
+            || q('.subject-info .cover') || q('.sub-cover img') || q('#mainpic img');
+          let coverUrl = picA ? (picA.getAttribute('href') || '')
+            : (coverEl ? coverEl.src : '');
+          if (coverUrl && coverUrl.includes('.webp')) coverUrl = coverUrl.replace('.webp', '.jpg');
+          info.coverUrl = coverUrl;
+
+          // 评分
+          info.rating = t(q('.rating_self strong') || q('.ll.rating_num')
+            || q('.subject-info .rating strong') || q('.score-num') || q('.rating-num'));
+
+          // 简介（桌面版 #link-report 第一个 p / 移动版回退）
+          let summary = t(q('#link-report p'));
+          if (!summary) summary = t(q('.subject-intro .bd p') || q('.section-intro_desc')
+            || q('.subject-intro p') || q('.intro'));
+          info.summary = summary.replace(/^[\s　]+/, '').substring(0, 1000);
+
+          // 元信息 dl.thing-attr：dt 标签 + dd 值
+          const meta = {};
+          document.querySelectorAll('dl.thing-attr dt').forEach(dt => {
+            const dd = dt.nextElementSibling;
+            if (!dd || dd.tagName !== 'DD') return;
+            const label = dt.textContent.replace(/[:：\s]/g, '');
+            if (!label) return;
+            let values = Array.from(dd.querySelectorAll('a'))
+              .filter(a => !(a.getAttribute('href') || '').startsWith('javascript'))
+              .map(a => a.textContent.trim()).filter(v => v);
+            if (values.length === 0) {
+              const rest = dd.textContent.trim();
+              if (rest) values = [rest];
             }
-            info.coverUrl = coverUrl;
-          } else {
-            info.coverUrl = '';
-          }
+            if (values.length > 0) meta[label] = values;
+          });
+          const pick = (k) => (meta[k] || []).join(' / ');
 
-          // 评分：subject-info 内 rating 的 strong
-          const ratingEl = document.querySelector('.subject-info .rating strong')
-            || document.querySelector('.score-num')
-            || document.querySelector('.rating-num');
-          info.rating = ratingEl ? ratingEl.textContent.trim() : '';
+          // 类型：剔除通用"游戏"链接（href="/game/explore"）
+          info.genres = (meta['类型'] || []).filter(v => v !== '游戏').join(',');
+          info.platforms = (meta['平台'] || []).join(',');
+          info.alternateTitles = meta['别名'] || [];
+          info.developer = pick('开发商');
 
-          // 简介：subject-intro 内 bd 的 p
-          const summaryEl = document.querySelector('.subject-intro .bd p')
-            || document.querySelector('.section-intro_desc')
-            || document.querySelector('.subject-intro p')
-            || document.querySelector('.intro');
-          info.summary = summaryEl ? summaryEl.textContent.trim().substring(0, 1000) : '';
-
-          // 元信息：subject-info 内 meta（斜杠分隔：类型 / 平台 / 发行日期）
-          const metaEl = document.querySelector('.subject-info .meta')
-            || document.querySelector('.sub-meta');
-          const metaText = metaEl ? metaEl.textContent.replace(/\s+/g, ' ').trim() : '';
-          info.director = metaText; // 暂存整行，供解析
-          info.developer = '';
-          info.platforms = '';
-          info.releaseDate = '';
-          info.genres = '';
-
-          if (metaText) {
-            // 发行日期（通常在最末尾，如 "2020-07-08 发行"）
-            const dateMatch = metaText.match(/\d{4}-\d{1,2}(-\d{1,2})?/);
-            if (dateMatch) info.releaseDate = dateMatch[0];
-
-            // 按 / 切分，过滤空段和日期段
-            const parts = metaText.split('/').map(s => s.trim()).filter(s => s && !s.match(/^\d{4}/));
-            const platformNames = ['pc','ps4','ps5','psp','psv','ps3','ps2','xbox one','xbox series','xsx','xss','xbox 360','switch','wii u','wii','3ds','nds','nes','snes','steam','epic','itunes','ios','android','google play','itunes store','web','街机','街机盒'];
-            const genres = [];
-            const platforms = [];
-            parts.forEach(p => {
-              const lower = p.toLowerCase();
-              if (platformNames.some(n => lower.includes(n))) {
-                platforms.push(p);
-              } else {
-                genres.push(p);
-              }
-            });
-
-            // 孤立的日期年份（如 "2020"）单列给 releaseDate
-            if (!info.releaseDate) {
-              const yearMatch = metaText.match(/\b(19|20)\d{2}\b/);
-              if (yearMatch) info.releaseDate = yearMatch[0] + '-01-01';
-            }
-
-            info.genres = genres.join(',');
-            info.platforms = platforms.join(',');
-          }
+          // 发行日期（无则退 预计上市时间）规整为 yyyy-MM-dd
+          const dateSrc = pick('发行日期') || pick('预计上市时间');
+          const dm = dateSrc.match(/(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?/);
+          info.releaseDate = dm
+            ? dm[1] + '-' + (dm[2] || '01').padStart(2, '0') + '-' + (dm[3] || '01').padStart(2, '0')
+            : '';
 
           return JSON.stringify(info);
         })()

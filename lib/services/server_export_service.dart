@@ -43,6 +43,7 @@ class ServerExportService {
   };
 
   static const _uploadTimeout = Duration(minutes: 10);
+  static const _responseTimeout = Duration(seconds: 60);
   static const _pollTimeout = Duration(minutes: 8);
   static const _pollInterval = Duration(seconds: 2);
   static const _downloadTimeout = Duration(minutes: 5);
@@ -156,6 +157,8 @@ class ServerExportService {
     final total = request.contentLength;
     streamed.contentLength = total;
     var sent = 0;
+    Timer? responseTimer;
+    var responseTimedOut = false;
     bodyStream.listen(
       (chunk) {
         sent += chunk.length;
@@ -164,11 +167,30 @@ class ServerExportService {
           onProgress(ServerExportStage.uploading, percent: (sent * 100) ~/ total);
         }
       },
-      onDone: () => streamed.sink.close(),
+      onDone: () {
+        streamed.sink.close();
+        // 请求体发完后若服务器迟迟不回响应头，说明后端异常——
+        // 主动断开，避免界面一直卡在"正在上传100%"
+        responseTimer = Timer(_responseTimeout, () {
+          responseTimedOut = true;
+          client.close();
+        });
+      },
       onError: streamed.sink.addError,
     );
 
-    final response = await client.send(streamed).timeout(_uploadTimeout);
+    final http.StreamedResponse response;
+    try {
+      response = await client.send(streamed).timeout(_uploadTimeout);
+    } on TimeoutException {
+      throw ServerExportException('上传超时，请检查网络后重试'.tr);
+    } catch (_) {
+      throw ServerExportException(
+        responseTimedOut ? '服务器无响应，请稍后重试'.tr : '网络连接失败，请检查网络后重试'.tr,
+      );
+    } finally {
+      responseTimer?.cancel();
+    }
     final body = await http.Response.fromStream(response);
     final json = _parseJson(body.body);
     if (json['code'] == 0 && json['data'] is Map) {

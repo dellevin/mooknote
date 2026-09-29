@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/douban_parser.dart';
 import '../../l10n/app_strings.dart';
 
 /// 豆瓣官方 logo（绿色）
@@ -98,13 +100,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           _buildSourceCard(
             colors: colors,
             icon: SizedBox(
-                width: 20,
-                height: 20,
+                width: 18,
+                height: 18,
                 child: SvgPicture.string(_doubanSvg, fit: BoxFit.contain)),
             iconTileColor: _doubanColor,
             title: '豆瓣'.tr,
@@ -115,12 +117,12 @@ class _QuickAddPageState extends State<QuickAddPage> {
             onParse: () => _parseDouban(),
           ),
           if (_category == 'book') ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildSourceCard(
               colors: colors,
               icon: SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 18,
+                  height: 18,
                   child: SvgPicture.string(_fanqieSvg, fit: BoxFit.contain)),
               iconTileColor: _fanqieColor,
               title: '番茄阅读'.tr,
@@ -131,16 +133,12 @@ class _QuickAddPageState extends State<QuickAddPage> {
               onParse: _parseFanqie,
             ),
           ],
-          const SizedBox(height: 12),
-          Text('点击右侧箭头展开，填入链接后点「解析」，跳转到对应表单'.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
         ],
       ),
     );
   }
 
-  /// 添加来源列表项 — 右侧箭头展开后填入链接解析
+  /// 添加来源卡片 — 点击标题行展开/收起链接输入区
   Widget _buildSourceCard({
     required ColorScheme colors,
     required Widget icon,
@@ -159,7 +157,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
         border: Border.all(color: colors.outline),
         boxShadow: [
           BoxShadow(
-            color: colors.onSurface.withValues(alpha: 0.018),
+            color: colors.onSurface.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -169,34 +167,35 @@ class _QuickAddPageState extends State<QuickAddPage> {
         children: [
           InkWell(
             onTap: onToggle,
+            borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 34,
+                    height: 34,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: iconTileColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(9),
                     ),
                     child: icon,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title,
                             style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: colors.onSurface)),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(subtitle,
                             style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: colors.onSurface.withValues(alpha: 0.4))),
                       ],
                     ),
@@ -205,7 +204,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(Icons.expand_more,
-                        color: colors.onSurface.withValues(alpha: 0.4)),
+                        size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
                   ),
                 ],
               ),
@@ -219,42 +218,24 @@ class _QuickAddPageState extends State<QuickAddPage> {
             firstChild: const SizedBox(width: double.infinity),
             secondChild: Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              child: Row(
                 children: [
-                  const Divider(height: 1, thickness: 0.6),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.url,
-                    style: TextStyle(fontSize: 14, color: colors.onSurface),
-                    decoration: InputDecoration(
-                      hintText: 'https://...',
-                      hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.25)),
-                      prefixIcon: Icon(Icons.link, size: 18, color: colors.onSurface.withValues(alpha: 0.3)),
-                      filled: true,
-                      fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      onPressed: _parsing ? null : onParse,
-                      icon: _parsing
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.auto_fix_high_outlined, size: 18),
-                      label: Text(_parsing ? '解析中...'.tr : '解析'.tr),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
+                  Expanded(child: _buildLinkField(colors, controller, onParse)),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _parsing ? null : onParse,
+                    icon: _parsing
+                        ? const SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.auto_fix_high_outlined, size: 13),
+                    label: Text(_parsing ? '解析中...'.tr : '解析'.tr),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      minimumSize: const Size(0, 26),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(13)),
+                      textStyle: const TextStyle(fontSize: 11.5),
                     ),
                   ),
                 ],
@@ -266,11 +247,92 @@ class _QuickAddPageState extends State<QuickAddPage> {
     );
   }
 
+  /// 链接输入框 — 裸 TextField（decoration: null，彻底绕开主题边框），
+  /// 自绘圆角底；空时显示粘贴按钮，有内容时显示清空按钮
+  Widget _buildLinkField(
+      ColorScheme colors, TextEditingController controller, VoidCallback onParse) {
+    return Container(
+      height: 26,
+      decoration: BoxDecoration(
+        color: colors.onSurface.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Icon(Icons.link,
+                size: 12, color: colors.onSurface.withValues(alpha: 0.3)),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (_, value, __) => Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  if (value.text.isEmpty)
+                    IgnorePointer(
+                      child: Text('https://...',
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              color: colors.onSurface.withValues(alpha: 0.25))),
+                    ),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.url,
+                    style: TextStyle(fontSize: 11.5, color: colors.onSurface),
+                    decoration: null,
+                    textAlignVertical: TextAlignVertical.center,
+                    cursorHeight: 13,
+                    onSubmitted: _parsing ? null : (_) => onParse(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (_, value, __) => GestureDetector(
+              onTap: value.text.isEmpty
+                  ? () => _pasteInto(controller)
+                  : controller.clear,
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: Icon(
+                  value.text.isEmpty
+                      ? Icons.content_paste_outlined
+                      : Icons.close,
+                  size: 13,
+                  color: colors.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 从剪贴板粘贴链接
+  Future<void> _pasteInto(TextEditingController controller) async {
+    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
+    if (text == null || text.isEmpty) return;
+    controller.text = text;
+    controller.selection = TextSelection.collapsed(offset: text.length);
+  }
+
   Future<void> _parseDouban() async {
     final url = _doubanController.text.trim();
     if (url.isEmpty) {
       ToastUtil.show(context, '请输入豆瓣链接'.tr);
       return;
+    }
+    // 按链接自动切换分类（书籍/游戏/影视），避免选错标签页导致解析失败
+    final detected = _detectDoubanCategory(url);
+    if (detected != null && detected != _category) {
+      setState(() => _category = detected);
     }
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _parsing = true);
@@ -284,6 +346,17 @@ class _QuickAddPageState extends State<QuickAddPage> {
     } finally {
       if (mounted) setState(() => _parsing = false);
     }
+  }
+
+  /// 从豆瓣链接识别分类；无法识别返回 null（保持当前分类）
+  String? _detectDoubanCategory(String url) {
+    if (DoubanBookParser.isBookSubjectUrl(url)) return 'book';
+    if (DoubanGameParser.isGameSubjectUrl(url)) return 'game';
+    if (RegExp(r'(?:m\.douban\.com/movie|movie\.douban\.com)/subject/\d+')
+        .hasMatch(url)) {
+      return 'movie';
+    }
+    return null;
   }
 
   Future<void> _parseFanqie() async {
@@ -367,9 +440,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
         prefill['platforms'] = _splitList(info['platforms']);
         Navigator.of(context).pushNamed('/game-form', arguments: {'prefill': prefill});
       default:
-        prefill['directors'] = info['director']?.toString().trim().isNotEmpty == true
-            ? [info['director'].toString().trim()]
-            : const [];
+        prefill['directors'] = _splitList(info['director']);
         prefill['writers'] = (info['writers'] as List?)?.map((e) => e.toString()).toList() ?? const [];
         prefill['actors'] = (info['actors'] as List?)?.map((e) => e.toString()).toList() ?? const [];
         prefill['alternateTitles'] = (info['alternateTitles'] as List?)?.map((e) => e.toString()).toList() ?? const [];

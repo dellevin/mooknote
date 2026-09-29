@@ -141,6 +141,7 @@ const Map<String, String> enSearchSync = {
   '作者': 'Author',
   '出版社': 'Publisher',
   '出版日期': 'Publish date',
+  'ISBN': 'ISBN',
   '中图分类号': 'CLC classification',
   '主题词': 'Subjects',
 
@@ -151,8 +152,6 @@ const Map<String, String> enSearchSync = {
   '番茄阅读': 'Fanqie Reading',
   '输入番茄小说链接，自动解析并填充信息':
       'Enter a Fanqie Novel link to auto-parse and fill in info',
-  '点击右侧箭头展开，填入链接后点「解析」，跳转到对应表单':
-      'Tap the arrow on the right, paste the link, tap Parse to open the form',
   '解析中...': 'Parsing...',
   '解析': 'Parse',
   '请输入豆瓣链接': 'Please enter a Douban link',
