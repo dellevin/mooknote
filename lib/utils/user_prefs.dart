@@ -82,7 +82,7 @@ class UserPrefs {
 
   // ========== 详情页样式 ==========
 
-  /// 详情页展示样式: 0=标准(封面顶部), 1=叠层(封面+毛玻璃卡片)
+  /// 详情页展示样式: 0=标准(封面顶部), 1=叠层(封面+毛玻璃卡片), 2=浅色极简, 3=豆瓣(海报左置+模糊背景头)
   int get detailPageStyle => prefs.getInt('detailPageStyle') ?? 0;
   Future<bool> setDetailPageStyle(int value) => prefs.setInt('detailPageStyle', value);
 

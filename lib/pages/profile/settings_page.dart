@@ -1,7 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,8 +8,6 @@ import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
-import '../../utils/image_path_helper.dart';
-import '../../services/sync/cache_cleaner.dart';
 import '../../services/media_scan_channel.dart';
 import '../online_search/enhanced_search_settings_page.dart';
 import '../settings/legal_page.dart';
@@ -21,6 +17,7 @@ import 'layout_settings_page.dart';
 import 'detail_module_settings_page.dart';
 import 'changelog_page.dart';
 import 'font_picker_page.dart';
+import 'cache_cleaner_page.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 设置页面
@@ -171,7 +168,9 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.cleaning_services_outlined,
             title: '清除缓存数据'.tr,
             subtitle: '清理未在数据库中引用的文件'.tr,
-            onTap: () => _showClearCacheDialog(context),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CacheCleanerPage())),
           ),
           Divider(
               height: 0.5,
@@ -297,95 +296,128 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     final nicknameController = TextEditingController(text: _userPrefs.nickname);
     final mottoController = TextEditingController(text: _userPrefs.motto);
-    appDialog(
+    // 控制器不手动 dispose：底部弹层关闭动画期间 TextField 仍在树中
+    appModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('个人信息'.tr,
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nicknameController,
-              style: TextStyle(fontSize: 14, color: colors.onSurface),
-              decoration: InputDecoration(
-                labelText: '昵称'.tr,
-                labelStyle: TextStyle(
-                    fontSize: 13,
-                    color: colors.onSurface.withValues(alpha: 0.5)),
-                filled: true,
-                fillColor: colors.surfaceContainerHighest,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: mottoController,
-              maxLines: 2,
-              style: TextStyle(fontSize: 14, color: colors.onSurface),
-              decoration: InputDecoration(
-                labelText: '座右铭'.tr,
-                labelStyle: TextStyle(
-                    fontSize: 13,
-                    color: colors.onSurface.withValues(alpha: 0.5)),
-                filled: true,
-                fillColor: colors.surfaceContainerHighest,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none),
-              ),
-            ),
-          ],
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(
-              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text('取消'.tr, style: const TextStyle(fontSize: 14)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final nickname = nicknameController.text.trim();
-              final motto = mottoController.text.trim();
-              if (nickname.isNotEmpty) await _userPrefs.setNickname(nickname);
-              if (motto.isNotEmpty) await _userPrefs.setMotto(motto);
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (context.mounted) ToastUtil.show(context, '已保存'.tr);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: colors.onPrimary,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text('保存'.tr, style: const TextStyle(fontSize: 14)),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-    ).then((_) {
-      nicknameController.dispose();
-      mottoController.dispose();
-    });
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 拖拽手柄
+              Center(
+                child: Container(
+                  width: 28,
+                  height: 3,
+                  margin: const EdgeInsets.only(top: 10, bottom: 14),
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text('个人信息'.tr,
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: nicknameController,
+                  style: TextStyle(fontSize: 14, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    labelText: '昵称'.tr,
+                    labelStyle: TextStyle(
+                        fontSize: 13,
+                        color: colors.onSurface.withValues(alpha: 0.5)),
+                    prefixIcon: Icon(Icons.person_outline,
+                        size: 20,
+                        color: colors.onSurface.withValues(alpha: 0.4)),
+                    filled: true,
+                    fillColor: colors.surfaceContainerHighest,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: mottoController,
+                  maxLines: 2,
+                  style: TextStyle(fontSize: 14, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    labelText: '座右铭'.tr,
+                    labelStyle: TextStyle(
+                        fontSize: 13,
+                        color: colors.onSurface.withValues(alpha: 0.5)),
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Icon(Icons.format_quote,
+                          size: 20,
+                          color: colors.onSurface.withValues(alpha: 0.4)),
+                    ),
+                    filled: true,
+                    fillColor: colors.surfaceContainerHighest,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final nickname = nicknameController.text.trim();
+                    final motto = mottoController.text.trim();
+                    if (nickname.isNotEmpty) {
+                      await _userPrefs.setNickname(nickname);
+                    }
+                    if (motto.isNotEmpty) await _userPrefs.setMotto(motto);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (context.mounted) ToastUtil.show(context, '已保存'.tr);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    elevation: 0,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('保存'.tr,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   static List<String> get _themeModeLabels => ['跟随系统'.tr, '浅色模式'.tr, '深色模式'.tr, '毛玻璃'.tr];
@@ -1204,247 +1236,5 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
-  }
-
-  void _showClearCacheDialog(BuildContext pageContext) async {
-    final colors = Theme.of(context).colorScheme;
-    // 先扫描分析
-    appDialog(
-      context: pageContext,
-      barrierDismissible: false,
-      builder: (_) => Center(child: CircularProgressIndicator(color: colors.primary)),
-    );
-
-    final dbImagePaths = await CacheCleaner.instance.getAllDbImagePaths();
-
-    final imageInfo = await _scanImageDirectory(dbImagePaths);
-    final tempInfo = await _scanTempDirectory();
-    final emptyDirInfo = await _scanEmptyDirectories();
-
-    if (!pageContext.mounted) return;
-    Navigator.pop(pageContext); // 关闭 loading
-
-    final totalSize = imageInfo.$2 + tempInfo.$2 + emptyDirInfo.$2;
-    final totalCount = imageInfo.$1 + tempInfo.$1 + emptyDirInfo.$1;
-    if (totalCount == 0) {
-      _showCacheResult(pageContext, true, '没有需要清理的缓存'.tr, false);
-      return;
-    }
-
-    appDialog(
-      context: pageContext,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('缓存分析'.tr,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('共发现 {n} 项可清理缓存，合计 {size}'.trf({'n': totalCount, 'size': _formatSize(totalSize)}),
-                style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-            const SizedBox(height: 14),
-            if (imageInfo.$1 > 0) _buildCacheItem('孤立图片'.tr, imageInfo.$1, imageInfo.$2, Icons.image_outlined, colors),
-            if (tempInfo.$1 > 0) _buildCacheItem('临时文件'.tr, tempInfo.$1, tempInfo.$2, Icons.folder_outlined, colors),
-            if (emptyDirInfo.$1 > 0) _buildCacheItem('空文件夹'.tr, emptyDirInfo.$1, emptyDirInfo.$2, Icons.folder_off_outlined, colors),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await _clearCacheData(pageContext);
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: colors.error,
-                foregroundColor: colors.onError,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-            child: Text('确认清除'.tr),
-          ),
-        ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildCacheItem(String label, int count, int size, IconData icon, ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(label,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface)),
-          ),
-          Text('{n}项  {size}'.trf({'n': count, 'size': _formatSize(size)}),
-              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.5))),
-        ],
-      ),
-    );
-  }
-
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
-  Future<void> _clearCacheData(BuildContext context) async {
-    try {
-      appDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => const Center(child: CircularProgressIndicator()));
-      final result = await CacheCleaner.instance.clean();
-      if (!context.mounted) return;
-      Navigator.pop(context);
-      final success = result.total > 0;
-      _showCacheResult(
-          context, true, success ? result.description : '没有需要清理的缓存'.tr, success);
-    } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context);
-      _showCacheResult(context, false, '清理失败: {e}'.trf({'e': e}), false);
-    }
-  }
-
-  void _showCacheResult(
-      BuildContext context, bool success, String message, bool cleaned) {
-    final colors = Theme.of(context).colorScheme;
-    appDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: Icon(
-          success
-              ? (cleaned ? Icons.check_circle_outline : Icons.info_outline)
-              : Icons.error_outline,
-          color: success ? colors.primary : colors.error,
-          size: 32,
-        ),
-        content: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: colors.onSurface),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('确定'.tr),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── 扫描方法（只统计不删除） ──────────────────────────────────────────────
-
-  /// 返回 (文件数, 总字节数)
-  Future<(int, int)> _scanImageDirectory(Set<String> dbImagePaths) async {
-    int count = 0, totalSize = 0;
-    try {
-      final appDirPath = await ImagePathHelper.getAppDir();
-      final imagesDir = Directory(path.join(appDirPath, 'images'));
-      if (!await imagesDir.exists()) return (0, 0);
-      final normalizedDbPaths = dbImagePaths.map(_normalizePath).toSet();
-      await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
-        if (entity is File &&
-            !normalizedDbPaths.contains(_normalizePath(entity.path)) &&
-            !path.basename(entity.path).startsWith('avatar')) {
-          try {
-            totalSize += await entity.length();
-            count++;
-          } catch (_) {}
-        }
-      }
-    } catch (_) {}
-    return (count, totalSize);
-  }
-
-  /// 规范化路径用于跨平台比较（统一分隔符）
-  String _normalizePath(String p) {
-    return path.normalize(p.replaceAll('\\', '/'));
-  }
-
-  Future<(int, int)> _scanTempDirectory() async {
-    int count = 0, totalSize = 0;
-    final now = DateTime.now();
-    try {
-      final tempDir = await getTemporaryDirectory();
-      if (await tempDir.exists()) {
-        await for (final entity in tempDir.list(followLinks: false)) {
-          if (entity is File) {
-            final name = path.basename(entity.path);
-            if (CacheCleaner.isMooknoteTempFile(name)) {
-              try {
-                final stat = await entity.stat();
-                if (now.difference(stat.modified).inHours >= 1) {
-                  totalSize += await entity.length();
-                  count++;
-                }
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    try {
-      final cacheDir = await getApplicationCacheDirectory();
-      if (await cacheDir.exists()) {
-        await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
-          if (entity is File) {
-            final name = path.basename(entity.path);
-            if (CacheCleaner.isMooknoteTempFile(name)) {
-              try {
-                totalSize += await entity.length();
-                count++;
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    return (count, totalSize);
-  }
-
-  Future<(int, int)> _scanEmptyDirectories() async {
-    int count = 0;
-    try {
-      final appDirPath = await ImagePathHelper.getAppDir();
-      final cacheDir = await getApplicationCacheDirectory();
-      final dirs = [
-        Directory(path.join(appDirPath, 'images')),
-        cacheDir,
-      ];
-      for (final dir in dirs) {
-        if (!await dir.exists()) continue;
-        count += await _countEmptyDirsRecursive(dir);
-      }
-    } catch (_) {}
-    return (count, 0);
-  }
-
-  Future<int> _countEmptyDirsRecursive(Directory dir) async {
-    int count = 0;
-    try {
-      final children = await dir.list(followLinks: false).toList();
-      for (final child in children) {
-        if (child is Directory) {
-          count += await _countEmptyDirsRecursive(child);
-          final remaining = await child.list(followLinks: false).toList();
-          if (remaining.isEmpty) count++;
-        }
-      }
-    } catch (_) {}
-    return count;
   }
 }

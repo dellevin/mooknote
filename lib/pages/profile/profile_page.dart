@@ -25,6 +25,7 @@ import 'settings_page.dart';
 import 'watchlist_page.dart';
 import '../quick_add/quick_add_page.dart';
 import '../../widgets/app_overlay.dart';
+import 'avatar_crop_page.dart';
 
 /// 个人中心页面
 class ProfilePage extends StatefulWidget {
@@ -1310,22 +1311,27 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   Future<void> _pickAvatarFromFile() async {
     try {
-      final pickedFile = await _picker.pickImage(
-          source: ImageSource.gallery,
-          maxWidth: 400,
-          maxHeight: 400,
-          imageQuality: 85);
-      if (pickedFile != null) {
-        final appDirPath = await ImagePathHelper.getAppDir();
-        final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedPath = path.join(appDirPath, 'avatars', fileName);
-        final avatarDir = Directory(path.join(appDirPath, 'avatars'));
-        if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
-        await File(pickedFile.path).copy(savedPath);
-        await _userPrefs.setAvatarPath(savedPath);
-        if (!mounted) return;
-        setState(() => _avatarPath = savedPath);
-      }
+      final pickedFile =
+          await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile == null) return;
+      // 先读取原图字节，进入裁剪页调整圆形区域
+      final bytes = await File(pickedFile.path).readAsBytes();
+      if (!mounted) return;
+      final Uint8List? cropped = await Navigator.push<Uint8List>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => AvatarCropPage(imageBytes: bytes)),
+      );
+      if (cropped == null) return;
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+      final savedPath = path.join(appDirPath, 'avatars', fileName);
+      final avatarDir = Directory(path.join(appDirPath, 'avatars'));
+      if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
+      await File(savedPath).writeAsBytes(cropped);
+      await _userPrefs.setAvatarPath(savedPath);
+      if (!mounted) return;
+      setState(() => _avatarPath = savedPath);
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择头像失败'.tr);
     }

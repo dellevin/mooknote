@@ -1769,6 +1769,7 @@ class GalleryItem {
     required this.createdAt,
   });
 
+  /// 仅 customTitle 可替换（图库改名后用），传 null 表示清除
   GalleryItem copyWith({String? customTitle}) {
     return GalleryItem(
       path: path,
@@ -1777,7 +1778,7 @@ class GalleryItem {
       entityId: entityId,
       entityTitle: entityTitle,
       parentTitle: parentTitle,
-      customTitle: customTitle ?? this.customTitle,
+      customTitle: customTitle,
       createdAt: createdAt,
     );
   }

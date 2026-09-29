@@ -44,6 +44,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
     final updatedReview = reviews
         .where((r) => r.id == widget.review.id)
         .firstOrNull;
+    if (!mounted) return;
     if (updatedReview != null && updatedReview.id == _review.id) {
       setState(() {
         _review = updatedReview;
@@ -211,6 +212,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
       ),
     );
     if (confirmed == true) {
+      if (!mounted) return;
       await context.read<AppProvider>().removeBookReview(_review.id);
       if (mounted) { ToastUtil.show(context, '已删除'.tr); Navigator.pop(context); }
     }

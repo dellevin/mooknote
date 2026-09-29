@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../../data/database_helper.dart';
+import '../../data/gallery/image_asset_dao.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/user_prefs.dart';
@@ -18,12 +19,200 @@ class CacheCleaner {
     final dbImagePaths = await getAllDbImagePaths();
     final deletedImages = await _cleanImageDirectory(dbImagePaths);
     final deletedTemp = await _cleanTempDirectory();
+    final deletedSystem = await _cleanSystemCache();
     final deletedEmptyDirs = await _cleanEmptyDirectories();
+    // 顺带清理图片改名孤儿记录（图片已不存在时的残留）
+    final validLogical = dbImagePaths.map(ImageAssetDao.toLogicalPath).toSet();
+    await ImageAssetDao().deleteOrphans(validLogical);
     return CacheCleanResult(
       images: deletedImages,
       temp: deletedTemp,
+      systemCache: deletedSystem,
       emptyDirs: deletedEmptyDirs,
     );
+  }
+
+  /// 扫描分析（只统计不删除），供清理页展示
+  Future<CacheScanResult> analyze() async {
+    final dbImagePaths = await getAllDbImagePaths();
+    final normalizedDbPaths = dbImagePaths.map(_normalize).toSet();
+
+    // 孤立图片
+    int imageCount = 0, imageSize = 0;
+    try {
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final imagesDir = Directory(path.join(appDirPath, 'images'));
+      if (await imagesDir.exists()) {
+        await for (final entity in imagesDir.list(recursive: true, followLinks: false)) {
+          if (entity is File &&
+              !normalizedDbPaths.contains(_normalize(entity.path)) &&
+              !path.basename(entity.path).startsWith('avatar')) {
+            try {
+              imageSize += await entity.length();
+              imageCount++;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 临时文件（与清理口径一致：仅 mooknote 前缀、tempDir 需超 1 小时）
+    int tempCount = 0, tempSize = 0;
+    final now = DateTime.now();
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await for (final entity in tempDir.list(followLinks: false)) {
+          if (entity is File && isMooknoteTempFile(path.basename(entity.path))) {
+            try {
+              final stat = await entity.stat();
+              if (now.difference(stat.modified).inHours >= 1) {
+                tempSize += await entity.length();
+                tempCount++;
+              }
+            } catch (_) {}
+          } else if (entity is Directory &&
+              path.basename(entity.path).startsWith(_restoreStagingPrefix)) {
+            try {
+              final stat = await entity.stat();
+              if (now.difference(stat.modified).inHours >= 1) {
+                tempCount++;
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+    try {
+      final cacheDir = await getApplicationCacheDirectory();
+      if (await cacheDir.exists()) {
+        await for (final entity in cacheDir.list(recursive: true, followLinks: false)) {
+          if (entity is File && isMooknoteTempFile(path.basename(entity.path))) {
+            try {
+              tempSize += await entity.length();
+              tempCount++;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 空文件夹
+    int emptyDirCount = 0;
+    try {
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final cacheDir = await getApplicationCacheDirectory();
+      for (final dir in [Directory(path.join(appDirPath, 'images')), cacheDir]) {
+        if (!await dir.exists()) continue;
+        emptyDirCount += await _countEmptyDirsRecursive(dir);
+      }
+    } catch (_) {}
+
+    // 系统缓存（WebView / code_cache / cache 目录其余内容）
+    final system = await _scanSystemCache();
+
+    return CacheScanResult(
+      images: imageCount,
+      imagesSize: imageSize,
+      temp: tempCount,
+      tempSize: tempSize,
+      systemCache: system.$1,
+      systemCacheSize: system.$2,
+      emptyDirs: emptyDirCount,
+    );
+  }
+
+  /// 系统缓存目录：app_webview、code_cache、cache（cache 中排除 mooknote
+  /// 前缀临时文件——那些归「临时文件」类，避免重复计数）
+  Future<List<Directory>> _systemCacheDirs() async {
+    final cacheDir = await getApplicationCacheDirectory();
+    final appDataDir = cacheDir.parent;
+    return [
+      Directory(path.join(appDataDir.path, 'app_webview')),
+      Directory(path.join(appDataDir.path, 'code_cache')),
+      cacheDir,
+    ];
+  }
+
+  /// 返回 (文件数, 总字节数)
+  Future<(int, int)> _scanSystemCache() async {
+    int count = 0, size = 0;
+    try {
+      for (final dir in await _systemCacheDirs()) {
+        if (!await dir.exists()) continue;
+        final isCacheRoot = path.basename(dir.path) == 'cache';
+        await for (final entity in dir.list(recursive: true, followLinks: false)) {
+          if (entity is! File) continue;
+          if (isCacheRoot && isMooknoteTempFile(path.basename(entity.path))) {
+            continue; // 归「临时文件」类
+          }
+          try {
+            size += await entity.length();
+            count++;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    return (count, size);
+  }
+
+  /// 清空系统缓存目录内容（保留目录本身），返回删除的文件数
+  Future<int> _cleanSystemCache() async {
+    int deleted = 0;
+    for (final dir in await _systemCacheDirs()) {
+      if (!await dir.exists()) continue;
+      final isCacheRoot = path.basename(dir.path) == 'cache';
+      try {
+        await for (final entity in dir.list(followLinks: false)) {
+          if (isCacheRoot &&
+              entity is File &&
+              isMooknoteTempFile(path.basename(entity.path))) {
+            continue; // 由临时文件清理负责
+          }
+          try {
+            if (entity is File) {
+              await entity.delete();
+              deleted++;
+            } else if (entity is Directory) {
+              deleted += await _countFilesRecursive(entity);
+              await entity.delete(recursive: true);
+            }
+          } catch (_) {}
+        }
+      } catch (e) {
+        debugPrint('清理系统缓存失败: $e');
+      }
+    }
+    return deleted;
+  }
+
+  Future<int> _countFilesRecursive(Directory dir) async {
+    int count = 0;
+    try {
+      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          count++;
+        } else if (entity is Directory) {
+          count += await _countFilesRecursive(entity);
+        }
+      }
+    } catch (_) {}
+    return count;
+  }
+
+  Future<int> _countEmptyDirsRecursive(Directory dir) async {
+    int count = 0;
+    try {
+      final children = await dir.list(followLinks: false).toList();
+      for (final child in children) {
+        if (child is Directory) {
+          count += await _countEmptyDirsRecursive(child);
+          final remaining = await child.list(followLinks: false).toList();
+          if (remaining.isEmpty) count++;
+        }
+      }
+    } catch (_) {}
+    return count;
   }
 
   /// 直接查 DB 收集所有图片路径（含软删除记录，与 BackupService 保持一致）
@@ -285,17 +474,54 @@ class CacheCleaner {
 class CacheCleanResult {
   final int images;
   final int temp;
+  final int systemCache;
   final int emptyDirs;
 
   const CacheCleanResult({
     required this.images,
     required this.temp,
+    required this.systemCache,
     required this.emptyDirs,
   });
 
-  int get total => images + temp + emptyDirs;
+  int get total => images + temp + systemCache + emptyDirs;
 
   String get description =>
-      '已清理 {images} 个孤立图片，{temp} 个临时文件，{emptyDirs} 个空文件夹'
-          .trf({'images': images, 'temp': temp, 'emptyDirs': emptyDirs});
+      '已清理 {images} 个孤立图片，{temp} 个临时文件，{system} 个系统缓存，{emptyDirs} 个空文件夹'
+          .trf({
+        'images': images,
+        'temp': temp,
+        'system': systemCache,
+        'emptyDirs': emptyDirs,
+      });
+}
+
+/// 缓存扫描分析结果（只统计不删除）
+class CacheScanResult {
+  final int images;
+  final int imagesSize;
+  final int temp;
+  final int tempSize;
+  final int systemCache;
+  final int systemCacheSize;
+  final int emptyDirs;
+
+  const CacheScanResult({
+    required this.images,
+    required this.imagesSize,
+    required this.temp,
+    required this.tempSize,
+    required this.systemCache,
+    required this.systemCacheSize,
+    required this.emptyDirs,
+  });
+
+  int get total => images + temp + systemCache + emptyDirs;
+  int get totalSize => imagesSize + tempSize + systemCacheSize;
+
+  static String formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 }

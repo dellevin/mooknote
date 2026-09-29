@@ -64,7 +64,8 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
     final saved = await ImageRenameDialog.show(context, item.path);
     if (saved == null || !mounted) return;
     setState(() {
-      _items[_currentIndex] = item.copyWith(customTitle: saved);
+      _items[_currentIndex] =
+          item.copyWith(customTitle: saved.isEmpty ? null : saved);
     });
   }
 

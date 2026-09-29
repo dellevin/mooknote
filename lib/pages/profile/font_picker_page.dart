@@ -151,19 +151,18 @@ class _FontPickerPageState extends State<FontPickerPage> {
     setState(() => _loadingPath = font.path);
     try {
       final family = await _fontManager.loadFontFile(font.path);
+      if (!mounted) return;
       if (family != null) {
         setState(() => _selectedFamily = family);
-        if (mounted) {
-          ToastUtil.show(context, '已应用: {name}'.trf({'name': font.displayName}));
-          Navigator.pop(context, family);
-        }
+        ToastUtil.show(context, '已应用: {name}'.trf({'name': font.displayName}));
+        Navigator.pop(context, family);
       } else {
-        if (mounted) ToastUtil.show(context, '字体加载失败'.tr);
+        ToastUtil.show(context, '字体加载失败'.tr);
       }
     } catch (e) {
       if (mounted) ToastUtil.show(context, '加载失败: {e}'.trf({'e': e}));
     } finally {
-      setState(() => _loadingPath = null);
+      if (mounted) setState(() => _loadingPath = null);
     }
   }
 

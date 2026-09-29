@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -14,6 +15,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
+import '../profile/avatar_crop_page.dart';
 
 /// 人物编辑/添加页面
 class PersonFormPage extends StatefulWidget {
@@ -303,13 +305,23 @@ class _PersonFormPageState extends State<PersonFormPage> {
 
   Future<void> _pickPhoto() async {
     try {
-      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 600, maxHeight: 600, imageQuality: 85);
+      final XFile? picked =
+          await _picker.pickImage(source: ImageSource.gallery);
       if (picked == null) return;
-      final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      // 先读取原图字节，进入裁剪页调整圆形区域
+      final bytes = await File(picked.path).readAsBytes();
+      if (!mounted) return;
+      final cropped = await Navigator.push<Uint8List>(
+        context,
+        MaterialPageRoute(builder: (_) => AvatarCropPage(imageBytes: bytes)),
+      );
+      if (cropped == null) return;
+      final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.png';
       final personId = widget.person?.id ?? const Uuid().v4();
-      final targetPath = await ImagePathHelper.instance.getPersonPhotoPath(personId, fileName);
+      final targetPath =
+          await ImagePathHelper.instance.getPersonPhotoPath(personId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-      await File(picked.path).copy(targetPath);
+      await File(targetPath).writeAsBytes(cropped);
       if (mounted) setState(() => _photoPath = targetPath);
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));

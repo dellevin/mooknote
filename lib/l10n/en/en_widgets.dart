@@ -116,8 +116,8 @@ const Map<String, String> enWidgets = {
   '恢复备份失败': 'Failed to restore backup',
 
   // ── cache_cleaner ──
-  '已清理 {images} 个孤立图片，{temp} 个临时文件，{emptyDirs} 个空文件夹':
-      'Cleaned {images} orphaned images, {temp} temp files, {emptyDirs} empty folders',
+  '已清理 {images} 个孤立图片，{temp} 个临时文件，{system} 个系统缓存，{emptyDirs} 个空文件夹':
+      'Cleaned {images} orphaned images, {temp} temp files, {system} system cache files, {emptyDirs} empty folders',
 
   // ── app_router ──
   '未找到页面：{name}': 'Page not found: {name}',

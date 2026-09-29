@@ -125,9 +125,11 @@ const Map<String, String> enGame = {
   '默认样式': 'Default Style',
   '毛玻璃层叠': 'Frosted Layered',
   '浅色极简': 'Light Minimal',
+  '豆瓣风格': 'Douban Style',
   '标准封面顶部布局': 'Standard cover-top layout',
   '封面背景 + 毛玻璃卡片': 'Cover background + frosted cards',
   '封面卡片 + 浅色信息卡片层叠': 'Cover card + layered light info cards',
+  '封面左置 + 模糊背景信息头': 'Cover left + blurred backdrop header',
 
   // ─── 删除确认 ───
   '确定要删除《{title}》吗？删除后可在回收站恢复。':

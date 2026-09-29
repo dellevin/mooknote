@@ -151,6 +151,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return switch (_detailStyle) {
       1 => _buildOverlayStyle(book, colors),
       2 => _buildMinimalLayeredStyle(book, colors),
+      3 => _buildDoubanStyle(book, colors),
       _ => _buildStandardStyle(book, colors),
     };
   }
@@ -1026,6 +1027,198 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
+  /// 豆瓣样式：模糊封面背景头 + 封面左/信息右 + 圆角内容区
+  Widget _buildDoubanStyle(Book book, ColorScheme colors) {
+    final topSafe = MediaQuery.of(context).padding.top;
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+
+    // 复用毛玻璃样式的滚动控制器（同一时刻只会有一个样式生效）
+    _overlayScrollController ??= ScrollController()..addListener(() {
+      final show = (_overlayScrollController?.offset ?? 0) > 10;
+      if (_showTitle.value != show) _showTitle.value = show;
+    });
+
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          SingleChildScrollView(
+            controller: _overlayScrollController,
+            child: Column(children: [
+              // 头部：模糊封面背景 + 信息头
+              Stack(children: [
+                Positioned.fill(
+                  child: hasCover
+                      ? Image(
+                          image: FileImage(File(book.coverPath!)),
+                          fit: BoxFit.cover)
+                      : Container(color: colors.surfaceContainerHighest),
+                ),
+                Positioned.fill(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                      child: Container(
+                          color: Colors.black.withValues(alpha: 0.45)),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, topSafe + 56, 20, 40),
+                  child: _buildDoubanHeader(book),
+                ),
+              ]),
+              // 圆角内容区（上叠 16px 盖住背景边缘）
+              Transform.translate(
+                offset: const Offset(0, -16),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      ..._orderedModules(book, colors, 0),
+                      const SizedBox(height: 120),
+                    ],
+                  ),
+                ),
+              ),
+            ]),
+          ),
+          // 顶部导航栏：滚动后变为 surface 底并显示标题
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _showTitle,
+              builder: (_, show, __) => AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: EdgeInsets.only(top: topSafe),
+                color: show ? colors.surface : Colors.transparent,
+                child: SizedBox(
+                  height: 48,
+                  child: Row(children: [
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: Icon(
+                        widget.embedded
+                            ? Icons.arrow_back
+                            : Icons.arrow_back_ios_new,
+                        color: show ? colors.onSurface : Colors.white,
+                        size: 18),
+                      onPressed: widget.embedded
+                          ? () => context.read<AppProvider>().selectBook(null)
+                          : () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: AnimatedOpacity(
+                        opacity: show ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(book.title,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: colors.onSurface),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                    _buildStyleButton(
+                        color: show ? colors.onSurface : Colors.white),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: _buildFloatingActionButtons(book),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 豆瓣信息头：封面在左，标题/作者/出版信息/评分在右
+  Widget _buildDoubanHeader(Book book) {
+    final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
+    final meta = <String>[
+      if (book.publishDate != null) '${book.publishDate!.year}',
+      if (book.publisher != null && book.publisher!.isNotEmpty)
+        book.publisher!,
+      ...book.genres,
+    ].join(' · ');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 104, height: 150,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: hasCover
+              ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
+              : Container(color: Colors.white24, child: const Icon(Icons.menu_book, color: Colors.white38, size: 32)),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 2),
+            Text(book.title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, height: 1.3)),
+            if (book.alternateTitles.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(book.alternateTitles.join(' / '),
+                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5), height: 1.4),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+            if (book.authors.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(book.authors.join(' / '),
+                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+            if (meta.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(meta,
+                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+            const SizedBox(height: 10),
+            Row(children: [
+              if (book.rating != null && book.rating! > 0) ...[
+                const Icon(Icons.star, size: 18, color: Color(0xFFFFB800)),
+                const SizedBox(width: 4),
+                Text(book.rating!.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFFFFB800))),
+                const SizedBox(width: 12),
+              ],
+              _statusChip(book.status),
+            ]),
+            if (book.finishDate != null || book.readCount > 0) ...[
+              const SizedBox(height: 8),
+              Text([
+                if (book.finishDate != null)
+                  '${'读完'.tr} ${_formatDate(book.finishDate!)}',
+                if (book.readCount > 0)
+                  '共 {n} 次'.trf({'n': book.readCount}),
+              ].join(' · '),
+                style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45))),
+            ],
+          ]),
+        ),
+      ],
+    );
+  }
+
   /// 浅色极简：居中封面卡片
   Widget _buildLayeredCover(Book book) {
     final colors = Theme.of(context).colorScheme;
@@ -1520,9 +1713,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   void _showStylePicker() {
     final colors = Theme.of(context).colorScheme;
-    const names = ['默认样式', '毛玻璃层叠', '浅色极简'];
-    const icons = [Icons.article_outlined, Icons.blur_on_outlined, Icons.layers_outlined];
-    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片', '封面卡片 + 浅色信息卡片层叠'];
+    const names = ['默认样式', '毛玻璃层叠', '浅色极简', '豆瓣风格'];
+    const icons = [Icons.article_outlined, Icons.blur_on_outlined, Icons.layers_outlined, Icons.art_track_outlined];
+    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片', '封面卡片 + 浅色信息卡片层叠', '封面左置 + 模糊背景信息头'];
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,

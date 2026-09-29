@@ -33,6 +33,7 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
     final provider = context.read<AppProvider>();
     final reviews = await provider.getGameReviews(widget.gameId);
     final updatedReview = reviews.where((r) => r.id == widget.review.id).firstOrNull;
+    if (!mounted) return;
     if (updatedReview != null && updatedReview.id == _review.id) {
       setState(() => _review = updatedReview);
     }
@@ -71,6 +72,7 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
       ),
     );
     if (confirmed == true) {
+      if (!mounted) return;
       await context.read<AppProvider>().removeGameReview(_review.id);
       if (mounted) { ToastUtil.show(context, '已删除'.tr); Navigator.pop(context); }
     }

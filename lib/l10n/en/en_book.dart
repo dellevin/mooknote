@@ -186,9 +186,11 @@ const Map<String, String> enBook = {
   '默认样式': 'Default',
   '毛玻璃层叠': 'Frosted Overlay',
   '浅色极简': 'Light Minimal',
+  '豆瓣风格': 'Douban Style',
   '标准封面顶部布局': 'Standard layout with cover on top',
   '封面背景 + 毛玻璃卡片': 'Cover background + frosted cards',
   '封面卡片 + 浅色信息卡片层叠': 'Cover card + layered light info cards',
+  '封面左置 + 模糊背景信息头': 'Cover left + blurred backdrop header',
   '暂无封面': 'No cover yet',
   '上下滑动调整图片位置': 'Swipe up or down to adjust image position',
 

@@ -122,9 +122,11 @@ const Map<String, String> enMovie = {
   '默认样式': 'Default',
   '毛玻璃层叠': 'Frosted Overlay',
   '浅色极简': 'Light Minimal',
+  '豆瓣风格': 'Douban Style',
   '标准封面顶部布局': 'Standard top-cover layout',
   '封面背景 + 毛玻璃卡片': 'Cover background + frosted cards',
   '海报卡片 + 浅色信息卡片层叠': 'Poster card with layered light info cards',
+  '海报左置 + 模糊背景信息头': 'Poster left + blurred backdrop header',
   '上下滑动调整图片位置': 'Swipe vertically to adjust the image position',
 
   // 删除对话框 / 提示

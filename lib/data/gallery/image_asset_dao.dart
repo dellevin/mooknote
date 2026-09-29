@@ -92,6 +92,8 @@ class ImageAssetDao {
     if (oldLogical == newLogical) return;
     try {
       final db = await _dbHelper.database;
+      // 目标路径已有记录时先删除，避免 UNIQUE 冲突导致旧记录更新失败
+      await db.delete('image_assets', where: 'path = ?', whereArgs: [newLogical]);
       await db.update(
         'image_assets',
         {'path': newLogical, 'updated_at': DateTime.now().toIso8601String()},
@@ -100,6 +102,26 @@ class ImageAssetDao {
       );
     } catch (e) {
       debugPrint('[ImageAssetDao] onFileMoved error: $e');
+    }
+  }
+
+  /// 清理孤儿记录：图片已不存在于任何实体时的残留改名（缓存清理时调用）
+  Future<int> deleteOrphans(Set<String> validLogicalPaths) async {
+    try {
+      final db = await _dbHelper.database;
+      final rows = await db.query('image_assets', columns: ['path']);
+      var removed = 0;
+      for (final r in rows) {
+        final p = r['path'] as String;
+        if (!validLogicalPaths.contains(p)) {
+          await db.delete('image_assets', where: 'path = ?', whereArgs: [p]);
+          removed++;
+        }
+      }
+      return removed;
+    } catch (e) {
+      debugPrint('[ImageAssetDao] deleteOrphans error: $e');
+      return 0;
     }
   }
 }

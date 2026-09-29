@@ -164,6 +164,7 @@ const Map<String, String> enProfile = {
   '没有需要清理的缓存': 'No cache needs cleaning',
   '孤立图片': 'Orphaned Images',
   '临时文件': 'Temp Files',
+  '系统缓存': 'System Cache',
   '空文件夹': 'Empty Folders',
   '确认清除': 'Confirm Clear',
   '清理失败: {e}': 'Clean failed: {e}',
@@ -171,7 +172,9 @@ const Map<String, String> enProfile = {
       'Load failed, please check your network',
   '共发现 {n} 项可清理缓存，合计 {size}':
       '{n} cleanable cache items found, totaling {size}',
+  '共发现 {n} 项可清理缓存': '{n} cleanable cache items found',
   '{n}项  {size}': '{n} items  {size}',
+  '立即清理（{size}）': 'Clean Now ({size})',
 
   // ─── 功能设置页 ───────────────────────────────────────
   '至少保留一个标签页': 'At least one tab must remain',
@@ -379,6 +382,7 @@ const Map<String, String> enProfile = {
       'Fortune does not favor those who have nothing.',
   '选择头像失败': 'Failed to select avatar',
   '更换头像': 'Change avatar',
+  '调整头像': 'Adjust Avatar',
   '从文件管理器选择': 'Select from Files',
   '移除头像': 'Remove avatar',
   '选择备份方式': 'Choose backup method',
