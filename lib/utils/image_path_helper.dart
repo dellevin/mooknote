@@ -150,6 +150,22 @@ class ImagePathHelper {
     return p.join(dir, fileName);
   }
 
+  // ==================== 评价相关路径 ====================
+
+  /// 获取评价图片目录（影评/书评/游戏评价共用）
+  /// 路径: images/reviews/{reviewId}/
+  Future<String> getReviewImagesDir(String reviewId) async {
+    final root = await imagesRoot;
+    return p.join(root, 'reviews', reviewId);
+  }
+
+  /// 删除评价图片目录
+  /// 删除路径: images/reviews/{reviewId}/
+  Future<void> deleteReviewImages(String reviewId) async {
+    final dirPath = await getReviewImagesDir(reviewId);
+    await _deleteDirectory(dirPath);
+  }
+
   // ==================== 自定义模块相关路径 ====================
 
   /// 获取自定义模块条目图片目录

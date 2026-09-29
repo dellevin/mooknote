@@ -460,6 +460,7 @@ class MovieReview {
   final String source;
   final int reviewType; // 1: 短评, 2: 长评
   final DateTime? reviewDate; // 影评日期（用户可选，与创建日期区分）
+  final List<String> images; // 图片路径列表
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -472,6 +473,7 @@ class MovieReview {
     this.source = '',
     this.reviewType = 1,
     this.reviewDate,
+    this.images = const [],
     this.isDeleted = false,
     required this.createdAt,
     required this.updatedAt,
@@ -486,6 +488,7 @@ class MovieReview {
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
       reviewDate: _safeParseDate(json['review_date']?.toString()),
+      images: Movie.parseStringList(json['images']),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -501,6 +504,7 @@ class MovieReview {
       'source': source,
       'review_type': reviewType,
       'review_date': reviewDate?.toUtc().toIso8601String(),
+      'images': jsonEncode(images),
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -516,6 +520,7 @@ class MovieReview {
     String? source,
     int? reviewType,
     DateTime? reviewDate,
+    List<String>? images,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -528,6 +533,7 @@ class MovieReview {
       source: source ?? this.source,
       reviewType: reviewType ?? this.reviewType,
       reviewDate: reviewDate ?? this.reviewDate,
+      images: images ?? this.images,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -596,6 +602,7 @@ class BookReview {
   final String source;
   final int reviewType; // 1: 短评, 2: 长评
   final DateTime? reviewDate; // 书评日期（用户可选，与创建日期区分）
+  final List<String> images; // 图片路径列表
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -608,6 +615,7 @@ class BookReview {
     this.source = '',
     this.reviewType = 1,
     this.reviewDate,
+    this.images = const [],
     this.isDeleted = false,
     required this.createdAt,
     required this.updatedAt,
@@ -622,6 +630,7 @@ class BookReview {
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
       reviewDate: _safeParseDate(json['review_date']?.toString()),
+      images: Movie.parseStringList(json['images']),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -637,6 +646,7 @@ class BookReview {
       'source': source,
       'review_type': reviewType,
       'review_date': reviewDate?.toUtc().toIso8601String(),
+      'images': jsonEncode(images),
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -652,6 +662,7 @@ class BookReview {
     String? source,
     int? reviewType,
     DateTime? reviewDate,
+    List<String>? images,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -664,6 +675,7 @@ class BookReview {
       source: source ?? this.source,
       reviewType: reviewType ?? this.reviewType,
       reviewDate: reviewDate ?? this.reviewDate,
+      images: images ?? this.images,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -851,6 +863,7 @@ class GameReview {
   final String source;
   final int reviewType; // 1: 短评, 2: 长评
   final DateTime? reviewDate; // 评价日期（用户可选，与创建日期区分）
+  final List<String> images; // 图片路径列表
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -863,6 +876,7 @@ class GameReview {
     this.source = '',
     this.reviewType = 1,
     this.reviewDate,
+    this.images = const [],
     this.isDeleted = false,
     required this.createdAt,
     required this.updatedAt,
@@ -877,6 +891,7 @@ class GameReview {
       source: json['source'] ?? '',
       reviewType: json['review_type'] ?? 1,
       reviewDate: _safeParseDate(json['review_date']?.toString()),
+      images: Movie.parseStringList(json['images']),
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
@@ -892,6 +907,7 @@ class GameReview {
       'source': source,
       'review_type': reviewType,
       'review_date': reviewDate?.toUtc().toIso8601String(),
+      'images': jsonEncode(images),
       'is_deleted': isDeleted ? 1 : 0,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -906,6 +922,7 @@ class GameReview {
     String? source,
     int? reviewType,
     DateTime? reviewDate,
+    List<String>? images,
     bool? isDeleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -918,6 +935,7 @@ class GameReview {
       source: source ?? this.source,
       reviewType: reviewType ?? this.reviewType,
       reviewDate: reviewDate ?? this.reviewDate,
+      images: images ?? this.images,
       isDeleted: isDeleted ?? this.isDeleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1723,6 +1741,7 @@ class GalleryItem {
   final String entityId;
   final String entityTitle;
   final String? parentTitle;
+  final String? customTitle;
   final DateTime createdAt;
 
   // category 取值：
@@ -1746,8 +1765,22 @@ class GalleryItem {
     required this.entityId,
     required this.entityTitle,
     this.parentTitle,
+    this.customTitle,
     required this.createdAt,
   });
+
+  GalleryItem copyWith({String? customTitle}) {
+    return GalleryItem(
+      path: path,
+      category: category,
+      entityType: entityType,
+      entityId: entityId,
+      entityTitle: entityTitle,
+      parentTitle: parentTitle,
+      customTitle: customTitle ?? this.customTitle,
+      createdAt: createdAt,
+    );
+  }
 }
 
 // ========== 自定义分类模块 ==========

@@ -14,6 +14,7 @@ import '../../utils/image_saver.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/note_editor.dart';
 import '../../widgets/tag_side_panel.dart';
+import '../../widgets/image_rename_dialog.dart';
 import 'note_share_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
@@ -827,7 +828,15 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       barrierDismissible: true,
       builder: (context) => GestureDetector(
         onTap: () => Navigator.pop(context),
-        onLongPress: () => ImageSaver.showSaveFromFileSheet(images[initialIndex], context: context),
+        onLongPress: () => ImageSaver.showSaveFromFileSheet(
+          images[initialIndex],
+          context: context,
+          extraAction: (
+            icon: Icons.edit_outlined,
+            label: '重命名'.tr,
+            onTap: () => ImageRenameDialog.show(context, images[initialIndex]),
+          ),
+        ),
         child: Container(
           color: Colors.black.withValues(alpha: 0.9),
           child: Center(

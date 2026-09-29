@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/image_grid_editor.dart';
 import 'game_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
 
@@ -153,6 +154,10 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
           child: Text(_review.typeText.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
         ),
       ]),
+      if (_review.images.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        ImageGridEditor(images: _review.images, readOnly: true),
+      ],
     ]),
   );
 
@@ -167,11 +172,8 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
         _infoRow(Icons.link, '来源', _review.source, colors),
         const Divider(height: 24),
       ],
-      if (_review.reviewDate != null) ...[
-        _infoRow(Icons.event_outlined, '评价日期', _formatDate(_review.reviewDate!), colors),
-        Divider(height: 24, color: colors.outlineVariant),
-      ],
-      _infoRow(Icons.access_time, '创建时间', _formatDate(_review.createdAt), colors),
+      // 优先评价日期，无则创建时间
+      _infoRow(Icons.event_outlined, '评价日期', _formatDate(_review.reviewDate ?? _review.createdAt), colors),
     ]),
   );
 

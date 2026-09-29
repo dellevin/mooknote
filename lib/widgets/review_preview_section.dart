@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
 import '../l10n/app_strings.dart';
+import 'fade_in_local_image.dart';
 import '../pages/movies/movie_reviews_page.dart';
 import '../pages/movies/movie_review_detail_page.dart';
 import '../pages/book/book_reviews_page.dart';
@@ -173,6 +174,8 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
   ) {
     final int reviewType = review.reviewType as int;
     final String reviewer = review.reviewer as String;
+    final List<String> images = review.images as List<String>;
+    final DateTime date = (review.reviewDate as DateTime?) ?? review.createdAt as DateTime;
     return InkWell(
       onTap: () => _openReviewDetail(review),
       borderRadius: BorderRadius.circular(8),
@@ -206,15 +209,33 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
               ),
             ),
             const SizedBox(height: 8),
-            // 评论内容
-            Text(
-              review.content as String,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, color: textColor, height: 1.5),
+            // 评论内容（有图时右侧小缩略图）
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    review.content as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: textColor, height: 1.5),
+                  ),
+                ),
+                if (images.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: FadeInLocalImage(path: images.first, fit: BoxFit.cover),
+                    ),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 8),
-            // 评论人 + 日期
+            // 评论人 + 日期（优先评价日期，无则创建时间）
             Row(children: [
               if (reviewer.isNotEmpty)
                 Expanded(
@@ -228,7 +249,7 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
               else
                 const Spacer(),
               Text(
-                _formatDate(review.createdAt as DateTime),
+                _formatDate(date),
                 style: TextStyle(fontSize: 11, color: faintColor),
               ),
             ]),

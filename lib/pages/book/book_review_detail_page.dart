@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/image_grid_editor.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书评详情页
@@ -84,6 +85,12 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
               ),
             ),
 
+            // 图片
+            if (_review.images.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              ImageGridEditor(images: _review.images, readOnly: true),
+            ],
+
             const SizedBox(height: 32),
 
             // 分隔线
@@ -125,22 +132,11 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
 
             const SizedBox(height: 16),
 
-            // 书评日期
-            if (_review.reviewDate != null) ...[
-              _buildInfoRow(
-                icon: Icons.event_outlined,
-                label: '书评日期：'.tr,
-                value: _formatDate(_review.reviewDate!),
-                colors: colors,
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // 创建时间
+            // 书评日期（优先评价日期，无则创建时间）
             _buildInfoRow(
-              icon: Icons.access_time,
-              label: '创建时间：'.tr,
-              value: _formatDate(_review.createdAt),
+              icon: Icons.event_outlined,
+              label: '书评日期：'.tr,
+              value: _formatDate(_review.reviewDate ?? _review.createdAt),
               colors: colors,
             ),
           ],

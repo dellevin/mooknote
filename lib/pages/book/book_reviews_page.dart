@@ -7,6 +7,7 @@ import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 import 'book_review_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/image_grid_editor.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书籍书评列表页面
@@ -210,6 +211,12 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
               ),
             ),
 
+            // 图片（有图时显示首图）
+            if (review.images.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ReviewImageThumb(images: review.images),
+            ],
+
             const SizedBox(height: 12),
 
             // 底部信息
@@ -247,9 +254,9 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                // 日期
+                // 日期（优先书评日期，无则创建时间）
                 Text(
-                  _formatDate(review.createdAt),
+                  _formatDate(review.reviewDate ?? review.createdAt),
                   style: TextStyle(
                     fontSize: 10,
                     color: colors.onSurface.withValues(alpha: 0.4),

@@ -4,6 +4,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/image_grid_editor.dart';
 import 'movie_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
@@ -163,6 +164,10 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
           child: Text(_review.typeText.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
         ),
       ]),
+      if (_review.images.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        ImageGridEditor(images: _review.images, readOnly: true),
+      ],
     ]),
   );
 
@@ -177,11 +182,8 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
         _infoRow(Icons.link, '来源'.tr, _review.source, colors),
         const Divider(height: 24),
       ],
-      if (_review.reviewDate != null) ...[
-        _infoRow(Icons.event_outlined, '影评日期'.tr, _formatDate(_review.reviewDate!), colors),
-        Divider(height: 24, color: colors.outlineVariant),
-      ],
-      _infoRow(Icons.access_time, '创建时间'.tr, _formatDate(_review.createdAt), colors),
+      // 优先影评日期，无则创建时间
+      _infoRow(Icons.event_outlined, '影评日期'.tr, _formatDate(_review.reviewDate ?? _review.createdAt), colors),
     ]),
   );
 

@@ -97,6 +97,7 @@ class BackupService {
     final customModules = await db.query('custom_modules');
     final customModuleDesigns = await db.query('custom_module_designs');
     final customModuleItems = await db.query('custom_module_items');
+    final imageAssets = await db.query('image_assets');
 
     // 收集图片路径
     final imagePaths = <String>{};
@@ -121,6 +122,19 @@ class BackupService {
           }
         } catch (e) {
           debugPrint('[BackupService] 笔记图片解析失败 (noteId=${n['id']}): $e');
+        }
+      }
+    }
+    // 评价图片（影评/书评/游戏评价，images JSON 列表）
+    for (final r in [...movieReviews, ...bookReviews, ...gameReviews]) {
+      final imagesJson = r['images'] as String?;
+      if (imagesJson != null && imagesJson.isNotEmpty) {
+        try {
+          for (final ip in jsonDecode(imagesJson) as List<dynamic>) {
+            if (ip is String && ip.isNotEmpty) imagePaths.add(ip);
+          }
+        } catch (e) {
+          debugPrint('[BackupService] 评价图片解析失败 (reviewId=${r['id']}): $e');
         }
       }
     }
@@ -187,6 +201,7 @@ class BackupService {
         'custom_modules': customModules,
         'custom_module_designs': customModuleDesigns,
         'custom_module_items': customModuleItems,
+        'image_assets': imageAssets,
       },
     };
 
@@ -589,6 +604,7 @@ class BackupService {
     final customModulesCols = await _getTableColumns(db, 'custom_modules');
     final customModuleDesignsCols = await _getTableColumns(db, 'custom_module_designs');
     final customModuleItemsCols = await _getTableColumns(db, 'custom_module_items');
+    final imageAssetsCols = await _getTableColumns(db, 'image_assets');
 
     await db.transaction((txn) async {
       await txn.delete('movie_reviews');
@@ -614,6 +630,7 @@ class BackupService {
       await txn.delete('notes');
       await txn.delete('games');
       await txn.delete('tags');
+      await txn.delete('image_assets');
 
       if (data.containsKey('movies')) {
         for (final m in data['movies'] as List) {
@@ -632,7 +649,7 @@ class BackupService {
       }
       if (data.containsKey('movie_reviews')) {
         for (final r in data['movie_reviews'] as List) {
-          await txn.insert('movie_reviews', _convertToDbMapSafe(r, movieReviewsCols));
+          await txn.insert('movie_reviews', _updateNoteImagesPath(_convertToDbMapSafe(r, movieReviewsCols), imagePathMap));
         }
       }
       if (data.containsKey('movie_posters')) {
@@ -642,7 +659,7 @@ class BackupService {
       }
       if (data.containsKey('book_reviews')) {
         for (final r in data['book_reviews'] as List) {
-          await txn.insert('book_reviews', _convertToDbMapSafe(r, bookReviewsCols));
+          await txn.insert('book_reviews', _updateNoteImagesPath(_convertToDbMapSafe(r, bookReviewsCols), imagePathMap));
         }
       }
       if (data.containsKey('book_excerpts')) {
@@ -657,7 +674,7 @@ class BackupService {
       }
       if (data.containsKey('game_reviews')) {
         for (final r in data['game_reviews'] as List) {
-          await txn.insert('game_reviews', _convertToDbMapSafe(r, gameReviewsCols));
+          await txn.insert('game_reviews', _updateNoteImagesPath(_convertToDbMapSafe(r, gameReviewsCols), imagePathMap));
         }
       }
       if (data.containsKey('game_screenshots')) {
@@ -733,6 +750,12 @@ class BackupService {
         for (final it in data['custom_module_items'] as List) {
           final map = _updateImagePath(_convertToDbMapSafe(it, customModuleItemsCols), 'cover_path', imagePathMap);
           await txn.insert('custom_module_items', _updateDataJsonImagePaths(map, imagePathMap));
+        }
+      }
+      // image_assets.path 为逻辑路径（images/ 下相对路径），无需重映射
+      if (data.containsKey('image_assets')) {
+        for (final a in data['image_assets'] as List) {
+          await txn.insert('image_assets', _convertToDbMapSafe(a, imageAssetsCols));
         }
       }
     });

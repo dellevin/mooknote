@@ -8,6 +8,7 @@ import '../../utils/toast_util.dart';
 import 'game_review_form_page.dart';
 import 'game_review_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/image_grid_editor.dart';
 
 /// 游戏评价列表页面
 class GameReviewsPage extends StatefulWidget {
@@ -184,6 +185,10 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 13, color: colors.onSurface, height: 1.5),
             ),
+            if (review.images.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ReviewImageThumb(images: review.images),
+            ],
             const SizedBox(height: 12),
             if (review.reviewer.isNotEmpty)
               Text(review.reviewer,
@@ -198,7 +203,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
                         style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4)),
                         overflow: TextOverflow.ellipsis),
                   ),
-                Text(_formatDate(review.createdAt),
+                Text(_formatDate(review.reviewDate ?? review.createdAt),
                     style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
               ],
             ),

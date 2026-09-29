@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import 'image_asset_dao.dart';
 
 /// 图库数据访问对象 —— 聚合所有实体的图片
 class GalleryDao {
@@ -215,6 +216,47 @@ class GalleryDao {
         parentTitle: (c['parent_title'] as String?) ?? '',
         createdAt: _parseDate(c['created_at'] as String?),
       ));
+    }
+
+    // 9. 评价图片（movie/book/game_reviews.images JSON 数组，JOIN 父作品）
+    const reviewSources = [
+      ('movie_reviews', 'movie_id', 'movies', 'movie_review_image', 'movie'),
+      ('book_reviews', 'book_id', 'books', 'book_review_image', 'book'),
+      ('game_reviews', 'game_id', 'games', 'game_review_image', 'game'),
+    ];
+    for (final (table, fk, parentTable, category, entityType) in reviewSources) {
+      final rows = await db.rawQuery(
+        "SELECT r.images, r.created_at, r.$fk AS parent_id, p.title AS parent_title "
+        "FROM $table r INNER JOIN $parentTable p ON r.$fk = p.id "
+        "WHERE r.is_deleted = ? AND p.is_deleted = ? "
+        "AND r.images IS NOT NULL AND r.images != ?",
+        [0, 0, ''],
+      );
+      for (final r in rows) {
+        final paths = parseStringListGeneric(r['images']);
+        final title = (r['parent_title'] as String?) ?? '';
+        final created = _parseDate(r['created_at'] as String?);
+        for (final imgPath in paths) {
+          if (imgPath.isEmpty) continue;
+          items.add(GalleryItem(
+            path: imgPath,
+            category: category,
+            entityType: entityType,
+            entityId: r['parent_id'] as String,
+            entityTitle: title,
+            createdAt: created,
+          ));
+        }
+      }
+    }
+
+    // 关联自定义名称（图库重命名，按逻辑路径匹配）
+    final titleMap = await ImageAssetDao().getTitleMap();
+    if (titleMap.isNotEmpty) {
+      for (var i = 0; i < items.length; i++) {
+        final title = titleMap[ImageAssetDao.toLogicalPath(items[i].path)];
+        if (title != null) items[i] = items[i].copyWith(customTitle: title);
+      }
     }
 
     // 按创建时间倒序

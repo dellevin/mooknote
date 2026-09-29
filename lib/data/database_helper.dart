@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 47,
+      version: 49,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -324,6 +324,7 @@ class DatabaseHelper {
           source TEXT,
           review_type INTEGER DEFAULT 1,
           review_date TEXT,
+          images TEXT,
           is_deleted INTEGER DEFAULT 0,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
@@ -482,6 +483,32 @@ class DatabaseHelper {
       // 自定义分类模块：模块表 + 设计表 + 条目数据表
       await _createCustomModuleTables(db);
     }
+    if (oldVersion < 48) {
+      // 影评/书评/游戏评价表添加图片字段（JSON 字符串存储路径列表）
+      for (final table in ['movie_reviews', 'book_reviews', 'game_reviews']) {
+        final cols = await db.rawQuery('PRAGMA table_info($table)');
+        if (!cols.any((col) => col['name'] == 'images')) {
+          await db.execute('ALTER TABLE $table ADD COLUMN images TEXT');
+        }
+      }
+    }
+    if (oldVersion < 49) {
+      // 图片元数据表：图库自定义重命名（逻辑路径 → 显示名）
+      await _createImageAssetsTable(db);
+    }
+  }
+
+  /// 图片元数据表（v49，onCreate 与迁移共用）
+  Future<void> _createImageAssetsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS image_assets (
+        id TEXT PRIMARY KEY,
+        path TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
   }
 
   /// 自定义分类模块三张表（v47，onCreate 与迁移共用）
@@ -681,6 +708,7 @@ class DatabaseHelper {
         source TEXT,
         review_type INTEGER DEFAULT 1,
         review_date TEXT,
+        images TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -714,6 +742,7 @@ class DatabaseHelper {
         source TEXT,
         review_type INTEGER DEFAULT 1,
         review_date TEXT,
+        images TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -976,6 +1005,7 @@ class DatabaseHelper {
         source TEXT,
         review_type INTEGER DEFAULT 1,
         review_date TEXT,
+        images TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -1005,6 +1035,7 @@ class DatabaseHelper {
         source TEXT,
         review_type INTEGER DEFAULT 1,
         review_date TEXT,
+        images TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -1078,6 +1109,7 @@ class DatabaseHelper {
         source TEXT,
         review_type INTEGER DEFAULT 1,
         review_date TEXT,
+        images TEXT,
         is_deleted INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -1316,6 +1348,9 @@ class DatabaseHelper {
 
     // 自定义分类模块三张表
     await _createCustomModuleTables(db);
+
+    // 图片元数据表（图库重命名）
+    await _createImageAssetsTable(db);
   }
 
   /// 补齐角色表缺失的列（早期 v40 迭代建表时可能未包含）

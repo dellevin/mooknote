@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/image_picker_helper.dart';
 import 'package:path/path.dart' as p;
+import '../../data/gallery/image_asset_dao.dart';
 import '../../providers/app_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -14,6 +15,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/tag_side_panel.dart';
 import '../../widgets/note_editor.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/image_rename_dialog.dart';
 import '../../l10n/app_strings.dart';
 
 /// 添加/编辑笔记页面 - 极简书写界面
@@ -781,6 +783,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         final sourceFile = File(imagePath);
         if (await sourceFile.exists()) {
           await sourceFile.rename(newPath);
+          await ImageAssetDao().onFileMoved(imagePath, newPath);
           newPaths.add(newPath);
         }
       } else {
@@ -906,7 +909,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
       barrierDismissible: true,
       builder: (context) => GestureDetector(
         onTap: () => Navigator.pop(context),
-        onLongPress: () => ImageSaver.showSaveFromFileSheet(_images[index], context: context),
+        onLongPress: () => ImageSaver.showSaveFromFileSheet(
+          _images[index],
+          context: context,
+          extraAction: (
+            icon: Icons.edit_outlined,
+            label: '重命名'.tr,
+            onTap: () => ImageRenameDialog.show(context, _images[index]),
+          ),
+        ),
         child: Container(
           color: Colors.black.withValues(alpha: 0.9),
           child: Center(

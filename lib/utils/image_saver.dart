@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../l10n/app_strings.dart';
+import '../data/gallery/image_asset_dao.dart';
 import '../widgets/app_overlay.dart';
 
 /// 图片保存工具 —— 将图片复制/写入到 /sdcard/Pictures/mooknote/
@@ -50,9 +51,11 @@ class ImageSaver {
   static String _pad(int n) => n.toString().padLeft(2, '0');
 
   /// 长按保存的统一入口：弹出底部确认框，点击「下载」后才执行保存
+  /// [extraAction] 可选额外操作项，显示在「下载图片」与「取消」之间
   static Future<void> showSaveFromFileSheet(
     String sourcePath, {
     required BuildContext context,
+    ({IconData icon, String label, VoidCallback onTap})? extraAction,
   }) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final src = File(sourcePath);
@@ -61,10 +64,16 @@ class ImageSaver {
       return;
     }
     if (!context.mounted) return;
+    // 有自定义名称时在缩略图下方展示
+    final title = await ImageAssetDao()
+        .getTitle(ImageAssetDao.toLogicalPath(sourcePath));
+    if (!context.mounted) return;
     _showSheet(
       context: context,
       preview: FileImage(src),
+      title: title,
       onConfirm: () => saveFromFile(sourcePath, context: context),
+      extraAction: extraAction,
     );
   }
 
@@ -85,6 +94,8 @@ class ImageSaver {
     required BuildContext context,
     required Future<void> Function() onConfirm,
     ImageProvider? preview,
+    String? title,
+    ({IconData icon, String label, VoidCallback onTap})? extraAction,
   }) {
     final colors = Theme.of(context).colorScheme;
     appModalBottomSheet(
@@ -116,6 +127,21 @@ class ImageSaver {
                   image: DecorationImage(image: preview, fit: BoxFit.cover),
                 ),
               ),
+            // 自定义图片名称（有的话）
+            if (title != null && title.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 24, right: 24, bottom: 12),
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: colors.onSurface.withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
             // 操作组
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -136,6 +162,23 @@ class ImageSaver {
                       onConfirm();
                     },
                   ),
+                  if (extraAction != null) ...[
+                    Divider(
+                        height: 0.5,
+                        thickness: 0.5,
+                        indent: 56,
+                        color: colors.outlineVariant.withValues(alpha: 0.3)),
+                    _sheetAction(
+                      colors,
+                      icon: extraAction.icon,
+                      label: extraAction.label,
+                      color: colors.onSurface.withValues(alpha: 0.6),
+                      onTap: () {
+                        Navigator.pop(sheetCtx);
+                        extraAction.onTap();
+                      },
+                    ),
+                  ],
                   Divider(
                       height: 0.5,
                       thickness: 0.5,

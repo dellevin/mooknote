@@ -7,6 +7,7 @@ import '../../data/game/game_dao.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/image_rename_dialog.dart';
 import '../../utils/image_saver.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
@@ -33,6 +34,7 @@ class GalleryViewerPage extends StatefulWidget {
 class _GalleryViewerPageState extends State<GalleryViewerPage> {
   late PageController _pageController;
   late int _currentIndex;
+  late List<GalleryItem> _items;
   bool _infoVisible = true;
 
   @override
@@ -40,6 +42,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    _items = List<GalleryItem>.from(widget.items);
   }
 
   @override
@@ -53,6 +56,16 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
       return '来自：《{title}》— {name}'.trf({'title': item.parentTitle, 'name': item.entityTitle});
     }
     return '来自：《{title}》'.trf({'title': item.entityTitle});
+  }
+
+  /// 重命名当前图片（自定义显示名，存 image_assets，逻辑路径 key 可跨设备同步）
+  Future<void> _renameCurrentItem() async {
+    final item = _items[_currentIndex];
+    final saved = await ImageRenameDialog.show(context, item.path);
+    if (saved == null || !mounted) return;
+    setState(() {
+      _items[_currentIndex] = item.copyWith(customTitle: saved);
+    });
   }
 
   Future<void> _navigateToDetail(GalleryItem item) async {
@@ -115,13 +128,21 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
           // 图片页面视图
           PageView.builder(
             controller: _pageController,
-            itemCount: widget.items.length,
+            itemCount: _items.length,
             onPageChanged: (index) => setState(() => _currentIndex = index),
             itemBuilder: (context, index) {
-              final item = widget.items[index];
+              final item = _items[index];
               return GestureDetector(
                 onTap: () => setState(() => _infoVisible = !_infoVisible),
-                onLongPress: () => ImageSaver.showSaveFromFileSheet(item.path, context: context),
+                onLongPress: () => ImageSaver.showSaveFromFileSheet(
+                  item.path,
+                  context: context,
+                  extraAction: (
+                    icon: Icons.edit_outlined,
+                    label: '重命名'.tr,
+                    onTap: _renameCurrentItem,
+                  ),
+                ),
                 child: InteractiveViewer(
                   minScale: 0.5,
                   maxScale: 3.0,
@@ -163,7 +184,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
                       ),
                       const Spacer(),
                       Text(
-                        '${_currentIndex + 1} / ${widget.items.length}',
+                        '${_currentIndex + 1} / ${_items.length}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -187,7 +208,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
               child: SafeArea(
                 top: false,
                 child: GestureDetector(
-                  onTap: () => _navigateToDetail(widget.items[_currentIndex]),
+                  onTap: () => _navigateToDetail(_items[_currentIndex]),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
@@ -206,7 +227,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _buildInfoText(widget.items[_currentIndex]),
+                            _buildInfoText(_items[_currentIndex]),
                             style: const TextStyle(color: Colors.white, fontSize: 14),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -221,7 +242,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
             ),
 
           // 底部圆点指示器（图片较多时不显示，避免溢出）
-          if (widget.items.length > 1 && widget.items.length <= 20 && _infoVisible)
+          if (_items.length > 1 && _items.length <= 20 && _infoVisible)
             Positioned(
               bottom: 56,
               left: 0,
@@ -231,7 +252,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    widget.items.length,
+                    _items.length,
                     (index) => Container(
                       width: 8,
                       height: 8,

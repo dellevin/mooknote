@@ -1366,6 +1366,26 @@ class AppProvider extends ChangeNotifier {
 
     // 事务内批量删除数据库记录，保证原子性
     final db = await DatabaseHelper.instance.database;
+
+    // 收集将被级联删除的评价ID（评价图片在 reviews/{reviewId} 目录，需单独清理）
+    final reviewIds = <String>{
+      ...deletedMovieReviews.map((r) => r.id),
+      ...deletedBookReviews.map((r) => r.id),
+      ...deletedGameReviews.map((r) => r.id),
+    };
+    for (final id in movieIds) {
+      final rows = await db.query('movie_reviews', columns: ['id'], where: 'movie_id = ?', whereArgs: [id]);
+      reviewIds.addAll(rows.map((r) => r['id'] as String));
+    }
+    for (final id in bookIds) {
+      final rows = await db.query('book_reviews', columns: ['id'], where: 'book_id = ?', whereArgs: [id]);
+      reviewIds.addAll(rows.map((r) => r['id'] as String));
+    }
+    for (final id in gameIds) {
+      final rows = await db.query('game_reviews', columns: ['id'], where: 'game_id = ?', whereArgs: [id]);
+      reviewIds.addAll(rows.map((r) => r['id'] as String));
+    }
+
     await db.transaction((txn) async {
       for (final id in movieIds) {
         await txn.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
@@ -1442,6 +1462,9 @@ class AppProvider extends ChangeNotifier {
     for (final id in gameCharacterIds) {
       await ImagePathHelper.instance.deleteCharacterImages(id);
     }
+    for (final id in reviewIds) {
+      await ImagePathHelper.instance.deleteReviewImages(id);
+    }
     for (final item in deletedCustomModuleItems) {
       await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, item.id);
     }
@@ -1467,6 +1490,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> permanentDeleteMovieReview(String id) async {
     await SyncTombstones.record('movie_reviews', id);
+    await ImagePathHelper.instance.deleteReviewImages(id);
     await _reviewDao.permanentDeleteReview(id);
   }
 
@@ -1480,6 +1504,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> permanentDeleteBookReview(String id) async {
     await SyncTombstones.record('book_reviews', id);
+    await ImagePathHelper.instance.deleteReviewImages(id);
     await _bookReviewDao.permanentDeleteReview(id);
   }
 
@@ -1495,6 +1520,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> permanentDeleteGameReview(String id) async {
     await SyncTombstones.record('game_reviews', id);
+    await ImagePathHelper.instance.deleteReviewImages(id);
     await _gameReviewDao.permanentDeleteReview(id);
   }
 

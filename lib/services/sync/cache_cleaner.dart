@@ -59,6 +59,21 @@ class CacheCleaner {
       }
     }
 
+    // 评价图片（影评/书评/游戏评价）
+    for (final table in const ['movie_reviews', 'book_reviews', 'game_reviews']) {
+      final rows = await db.query(table, columns: ['images']);
+      for (final r in rows) {
+        final imagesJson = r['images'] as String?;
+        if (imagesJson != null && imagesJson.isNotEmpty) {
+          try {
+            for (final ip in jsonDecode(imagesJson) as List<dynamic>) {
+              if (ip is String && ip.isNotEmpty) paths.add(ip);
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
     // 影视海报墙图片
     final moviePosters = await db.query('movie_posters', columns: ['poster_path']);
     for (final p in moviePosters) {

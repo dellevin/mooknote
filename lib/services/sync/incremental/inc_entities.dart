@@ -72,9 +72,9 @@ class IncEntities {
       imageColumns: ['cover_path'],
       groups: {'game_people': 'game_people', 'game_screenshots': 'game_screenshots'},
     ),
-    IncEntitySpec(table: 'movie_reviews', tsColumn: 'updated_at'),
-    IncEntitySpec(table: 'book_reviews', tsColumn: 'updated_at'),
-    IncEntitySpec(table: 'game_reviews', tsColumn: 'updated_at'),
+    IncEntitySpec(table: 'movie_reviews', tsColumn: 'updated_at', imageJsonColumn: 'images'),
+    IncEntitySpec(table: 'book_reviews', tsColumn: 'updated_at', imageJsonColumn: 'images'),
+    IncEntitySpec(table: 'game_reviews', tsColumn: 'updated_at', imageJsonColumn: 'images'),
     IncEntitySpec(table: 'book_excerpts', tsColumn: 'updated_at'),
     IncEntitySpec(table: 'people', tsColumn: 'updated_at', imageColumns: ['photo_path']),
     IncEntitySpec(
@@ -88,6 +88,8 @@ class IncEntities {
     IncEntitySpec(table: 'game_characters', tsColumn: 'updated_at', imageColumns: ['image_path']),
     // 标签为追加式（无 updated_at），按 created_at 检测
     IncEntitySpec(table: 'tags', tsColumn: 'created_at'),
+    // 图库自定义重命名（path 为逻辑路径，无需图片列处理）
+    IncEntitySpec(table: 'image_assets', tsColumn: 'updated_at'),
     // 自定义分类模块三表；条目的海报路径在 data_json 对象值里
     IncEntitySpec(table: 'custom_modules', tsColumn: 'updated_at'),
     IncEntitySpec(table: 'custom_module_designs', tsColumn: 'updated_at'),

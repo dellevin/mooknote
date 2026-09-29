@@ -16,6 +16,9 @@ const _categoryLabels = {
   'note_image': '笔记图片',
   'game_cover': '游戏封面',
   'game_screenshot': '游戏截图',
+  'movie_review_image': '影评图片',
+  'book_review_image': '书评图片',
+  'game_review_image': '游戏评价图片',
   'person_photo': '人物照片',
   'movie_character': '影视角色',
   'book_character': '书籍角色',
@@ -73,11 +76,12 @@ class _GalleryPageState extends State<GalleryPage> {
     if (_selectedCategory != null) {
       items = items.where((i) => i.category == _selectedCategory).toList();
     }
-    // 按标题搜索：影视/书籍/游戏/笔记标题，角色图再匹配父作品标题
+    // 按标题搜索：自定义名、影视/书籍/游戏/笔记标题，角色图再匹配父作品标题
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       items = items
           .where((i) =>
+              (i.customTitle?.toLowerCase().contains(q) ?? false) ||
               i.entityTitle.toLowerCase().contains(q) ||
               (i.parentTitle?.toLowerCase().contains(q) ?? false))
           .toList();
@@ -98,7 +102,7 @@ class _GalleryPageState extends State<GalleryPage> {
       MaterialPageRoute(
         builder: (_) => GalleryViewerPage(items: items, initialIndex: index),
       ),
-    );
+    ).then((_) => _loadImages()); // 预览页可能重命名图片，返回后刷新
   }
 
   @override
@@ -252,7 +256,10 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Widget _buildCard(GalleryItem item, int index, ColorScheme colors) {
     final categoryLabel = _categoryLabels[item.category] ?? item.category;
-    final title = item.entityTitle.isNotEmpty ? item.entityTitle : '未命名'.tr;
+    // 自定义名优先，无则用来源标题
+    final title = (item.customTitle != null && item.customTitle!.isNotEmpty)
+        ? item.customTitle!
+        : (item.entityTitle.isNotEmpty ? item.entityTitle : '未命名'.tr);
     return GestureDetector(
       onTap: () => _openPreview(index),
       child: Column(
@@ -326,6 +333,10 @@ class _GalleryPageState extends State<GalleryPage> {
         return 16 / 9; // 横版截图
       case 'note_image':
         return 1 / 1; // 笔记图片方形
+      case 'movie_review_image':
+      case 'book_review_image':
+      case 'game_review_image':
+        return 1 / 1; // 评价图片方形占位（真实尺寸读出后覆盖）
       default:
         return 3 / 4;
     }

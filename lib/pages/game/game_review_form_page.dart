@@ -1,8 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:path/path.dart' as p;
+import '../../data/gallery/image_asset_dao.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/image_picker_helper.dart';
+import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/image_grid_editor.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -26,6 +32,8 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   late TextEditingController _sourceController;
   late int _reviewType;
   late DateTime _reviewDate;
+  late List<String> _images;
+  String? _tempReviewId; // 新建评价时选图用的临时ID（保存时移到正式ID目录）
 
   @override
   void initState() {
@@ -35,6 +43,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
     _sourceController = TextEditingController(text: widget.review?.source ?? '');
     _reviewType = widget.review?.reviewType ?? 1;
     _reviewDate = widget.review?.reviewDate ?? DateTime.now();
+    _images = List<String>.from(widget.review?.images ?? []);
   }
 
   @override
@@ -83,6 +92,14 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                     Text('评论内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildContentField(colors),
+                    const SizedBox(height: 20),
+                    Text('图片'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    const SizedBox(height: 8),
+                    ImageGridEditor(
+                      images: _images,
+                      onAdd: _pickImage,
+                      onRemove: (i) => setState(() => _images.removeAt(i)),
+                    ),
                   ],
                 ),
               ),
@@ -268,23 +285,94 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
     );
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final files = await pickLocalImages(context);
+      if (!mounted || files.isEmpty) return;
+
+      // 编辑模式用现有ID；新建模式用临时ID（保存时移到正式ID目录）
+      final String reviewId;
+      if (widget.review != null) {
+        reviewId = widget.review!.id;
+      } else {
+        reviewId = _tempReviewId ?? const Uuid().v4();
+        _tempReviewId = reviewId;
+      }
+
+      // 复制图片到应用目录: images/reviews/{reviewId}/{fileName}
+      final targetDir = await ImagePathHelper.instance.getReviewImagesDir(reviewId);
+      await ImagePathHelper.instance.ensureDirExists(targetDir);
+
+      final newPaths = <String>[];
+      for (final file in files) {
+        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+        final targetPath = p.join(targetDir, fileName);
+        await file.copy(targetPath);
+        newPaths.add(targetPath);
+      }
+
+      if (newPaths.isNotEmpty && mounted) {
+        setState(() => _images.addAll(newPaths));
+      }
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
+    }
+  }
+
+  /// 新建保存时把图片从临时ID目录移到正式ID目录
+  Future<List<String>> _moveImagesToNewId(String oldId, String newId) async {
+    final List<String> newPaths = [];
+    final newDir = await ImagePathHelper.instance.getReviewImagesDir(newId);
+
+    for (final imagePath in _images) {
+      final normalizedPath = imagePath.replaceAll('\\', '/');
+      if (normalizedPath.contains('/reviews/$oldId/')) {
+        final fileName = p.basename(imagePath);
+        final newPath = p.join(newDir, fileName);
+        await ImagePathHelper.instance.ensureDirExists(newDir);
+        final sourceFile = File(imagePath);
+        if (await sourceFile.exists()) {
+          await sourceFile.rename(newPath);
+          await ImageAssetDao().onFileMoved(imagePath, newPath);
+          newPaths.add(newPath);
+        }
+      } else {
+        newPaths.add(imagePath);
+      }
+    }
+
+    try {
+      await ImagePathHelper.instance.deleteReviewImages(oldId);
+    } catch (_) {}
+
+    return newPaths;
+  }
+
   Future<void> _saveReview() async {
     if (!_formKey.currentState!.validate()) return;
+    final provider = context.read<AppProvider>();
     try {
       final now = DateTime.now();
       if (widget.review == null) {
+        final reviewId = const Uuid().v4();
+        List<String> finalImages = _images;
+        if (_images.isNotEmpty && _tempReviewId != null) {
+          finalImages = await _moveImagesToNewId(_tempReviewId!, reviewId);
+        }
         final newReview = GameReview(
-          id: const Uuid().v4(),
+          id: reviewId,
           gameId: widget.gameId,
           content: _contentController.text.trim(),
           reviewer: _reviewerController.text.trim(),
           source: _sourceController.text.trim(),
           reviewType: _reviewType,
           reviewDate: _reviewDate,
+          images: finalImages,
           createdAt: now,
           updatedAt: now,
         );
-        await context.read<AppProvider>().addGameReview(newReview);
+        await provider.addGameReview(newReview);
       } else {
         final updatedReview = widget.review!.copyWith(
           content: _contentController.text.trim(),
@@ -292,9 +380,10 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
           source: _sourceController.text.trim(),
           reviewType: _reviewType,
           reviewDate: _reviewDate,
+          images: _images,
           updatedAt: now,
         );
-        await context.read<AppProvider>().updateGameReview(updatedReview);
+        await provider.updateGameReview(updatedReview);
       }
       if (!mounted) return;
       ToastUtil.show(context, (widget.review == null ? '添加成功' : '更新成功').tr);

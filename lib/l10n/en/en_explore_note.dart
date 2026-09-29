@@ -98,6 +98,9 @@ const Map<String, String> enExploreNote = {
   '笔记图片': 'Note Images',
   '游戏封面': 'Game Covers',
   '游戏截图': 'Game Screenshots',
+  '影评图片': 'Review Images',
+  '书评图片': 'Book Review Images',
+  '游戏评价图片': 'Game Review Images',
   '人物照片': 'Person Photos',
   '影视角色': 'Movie Characters',
   '书籍角色': 'Book Characters',
@@ -114,6 +117,7 @@ const Map<String, String> enExploreNote = {
   '来自：《{title}》— {name}': 'From "{title}" — {name}',
   '来自：《{title}》': 'From "{title}"',
   '原记录已不存在': 'The original entry no longer exists',
+  '输入图片名称，留空恢复默认': 'Enter image name, leave empty to restore default',
 
   // ── 日历 ──
   '创建日期': 'Date Created',
