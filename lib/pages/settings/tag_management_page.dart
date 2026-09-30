@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
@@ -267,7 +268,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           if (roots.isEmpty)
             _buildEmptyGroup('暂无标签'.tr, colors)
           else
-            ..._buildTreeNodes(roots, childrenByParent, 0),
+            ..._buildTreeNodes(roots, childrenByParent, 0, ''),
         ],
       ),
     );
@@ -283,22 +284,74 @@ class _TagManagementPageState extends State<TagManagementPage> {
     return map;
   }
 
-  /// 递归构建树节点列表
+  /// 递归构建树节点列表（含行间缝隙放置区）
   List<Widget> _buildTreeNodes(
     List<Map<String, dynamic>> nodes,
     Map<String, List<Map<String, dynamic>>> childrenByParent,
     int depth,
+    String parentId,
   ) {
     final result = <Widget>[];
-    for (final tag in nodes) {
+    for (var i = 0; i < nodes.length; i++) {
+      final tag = nodes[i];
       final id = tag['id'] as String;
       final sub = childrenByParent[id] ?? [];
+      result.add(_buildDropGap(nodes, parentId, i, depth));
       result.add(_buildTagRow(tag, sub, depth));
       if (sub.isNotEmpty && !_collapsedIds.contains(id)) {
-        result.addAll(_buildTreeNodes(sub, childrenByParent, depth + 1));
+        result.addAll(_buildTreeNodes(sub, childrenByParent, depth + 1, id));
       }
     }
+    result.add(_buildDropGap(nodes, parentId, nodes.length, depth));
     return result;
+  }
+
+  /// 行间缝隙放置区：拖到两行之间时展开并显示指示线，松手插入该位置
+  Widget _buildDropGap(List<Map<String, dynamic>> siblings, String parentId, int insertIndex, int depth) {
+    final colors = Theme.of(context).colorScheme;
+    return DragTarget<Map<String, dynamic>>(
+      onWillAcceptWithDetails: (details) => _canDropInGap(details.data, parentId),
+      onAcceptWithDetails: (details) => _doGapDrop(details.data, siblings, parentId, insertIndex),
+      builder: (context, candidates, rejected) {
+        final active = candidates.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          height: active ? 16 : 6,
+          margin: EdgeInsets.only(left: depth * 20.0 + 28),
+          child: Center(
+            child: Container(
+              height: 2,
+              decoration: BoxDecoration(
+                color: active ? colors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 缝隙放置校验：父级不能是自身或自己的后代（防成环）
+  bool _canDropInGap(Map<String, dynamic> dragged, String parentId) {
+    if (parentId.isEmpty) return true;
+    final draggedId = dragged['id'] as String;
+    if (parentId == draggedId) return false;
+    final allTags = _tagCache[dragged['type'] as String] ?? [];
+    return !_collectDescendants(allTags, draggedId).contains(parentId);
+  }
+
+  Future<void> _doGapDrop(Map<String, dynamic> dragged, List<Map<String, dynamic>> siblings, String parentId, int insertIndex) async {
+    final type = dragged['type'] as String;
+    final draggedId = dragged['id'] as String;
+    // 目标组现有顺序（去掉被拖项）；若被拖项原本在插入点之前，移除后插入点前移一位
+    final ids = siblings.map((s) => s['id'] as String).where((id) => id != draggedId).toList();
+    var idx = insertIndex;
+    final oldIndex = siblings.indexWhere((s) => s['id'] == draggedId);
+    if (oldIndex >= 0 && oldIndex < insertIndex) idx -= 1;
+    ids.insert(idx.clamp(0, ids.length), draggedId);
+    await context.read<AppProvider>().reorderTags(type, parentId, ids, draggedId);
+    await _loadTags(type);
   }
 
   Widget _buildTagRow(Map<String, dynamic> tag, List<Map<String, dynamic>> children, int depth) {
@@ -341,6 +394,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         Expanded(
           child: GestureDetector(
             key: ValueKey(id),
+            behavior: HitTestBehavior.opaque,
             onTap: () => _showTagMenu(tag),
             child: Opacity(
               opacity: isHidden ? 0.4 : 1.0,
@@ -401,21 +455,23 @@ class _TagManagementPageState extends State<TagManagementPage> {
     }
   }
 
-  /// 拖拽反馈 — 条形行样式，与列表中的标签行一致（非药丸）
+  /// 拖拽反馈 — 全宽灰色行，与列表中的标签行视觉一致
   Widget _dragFeedback(String name, ColorScheme colors) {
+    final width = MediaQuery.of(context).size.width - 40; // 对齐列表 padding: 20
     return Material(
       color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        width: width,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colors.outlineVariant, width: 0.8),
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+          border: Border(bottom: BorderSide(color: colors.outlineVariant, width: 0.5)),
           boxShadow: [
             BoxShadow(
-              color: colors.shadow.withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: colors.shadow.withValues(alpha: 0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -685,22 +741,23 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final provider = context.read<AppProvider>();
     final colors = Theme.of(context).colorScheme;
 
-    List<({String title, String? subtitle, String type})> items = [];
+    // item 为对应的 Movie/Book/Game/Note 对象，点击跳转详情
+    List<({String title, String? subtitle, String type, Object item})> items = [];
     if (_currentType == 'movie_genre') {
       for (final m in provider.movies.where((m) => !m.isDeleted && m.genres.contains(tagName))) {
-        items.add((title: m.title, subtitle: m.directors.take(2).join(' / '), type: '影视'));
+        items.add((title: m.title, subtitle: m.directors.take(2).join(' / '), type: '影视', item: m));
       }
     } else if (_currentType == 'book_genre') {
       for (final b in provider.books.where((b) => !b.isDeleted && b.genres.contains(tagName))) {
-        items.add((title: b.title, subtitle: b.authors.take(2).join(' / '), type: '书籍'));
+        items.add((title: b.title, subtitle: b.authors.take(2).join(' / '), type: '书籍', item: b));
       }
     } else if (_currentType == 'game_genre') {
       for (final g in provider.games.where((g) => !g.isDeleted && g.genres.contains(tagName))) {
-        items.add((title: g.title, subtitle: g.platforms.take(2).join(' / '), type: '游戏'));
+        items.add((title: g.title, subtitle: g.platforms.take(2).join(' / '), type: '游戏', item: g));
       }
     } else {
       for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) {
-        items.add((title: n.title.isNotEmpty ? n.title : '随手记'.tr, subtitle: null, type: '笔记'));
+        items.add((title: n.title.isNotEmpty ? n.title : '随手记'.tr, subtitle: null, type: '笔记', item: n));
       }
     }
 
@@ -740,11 +797,19 @@ class _TagManagementPageState extends State<TagManagementPage> {
                         subtitle: item.subtitle != null && item.subtitle!.isNotEmpty
                             ? Text(item.subtitle!, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)))
                             : null,
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)),
-                          child: Text(item.type.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
-                        ),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)),
+                            child: Text(item.type.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.3)),
+                        ]),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _openItemDetail(item.item);
+                        },
                       ),
                     ],
                   ),
@@ -754,6 +819,19 @@ class _TagManagementPageState extends State<TagManagementPage> {
         ),
       ),
     );
+  }
+
+  /// 跳转到条目对应的详情页
+  void _openItemDetail(Object item) {
+    if (item is Movie) {
+      Navigator.pushNamed(context, '/movie-detail', arguments: item);
+    } else if (item is Book) {
+      Navigator.pushNamed(context, '/book-detail', arguments: item);
+    } else if (item is Game) {
+      Navigator.pushNamed(context, '/game-detail', arguments: item);
+    } else if (item is Note) {
+      Navigator.pushNamed(context, '/note-detail', arguments: item);
+    }
   }
 
   // ─── 移动到分类 ─────────────────────────────────────────────────────────
@@ -786,53 +864,118 @@ class _TagManagementPageState extends State<TagManagementPage> {
         .where((t) => (t['id'] as String) != tagId && !descendants.contains(t['id'] as String))
         .toList();
 
+    var query = '';
+
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(child: Container(
-              width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 12),
-              decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
-            )),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('移动到「{name}」'.trf({'name': name}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            ),
-            const SizedBox(height: 4),
-            _moveOption(
-              colors,
-              icon: Icons.home_outlined,
-              title: '顶级（无父级）'.tr,
-              selected: currentParent.isEmpty,
-              onTap: () => _doMoveParent(ctx, tagId, type, ''),
-            ),
-            if (candidates.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('设为某分类的子级'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+      builder: (ctx) => OwnedTextController(
+        builder: (ctx, controller) => StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final bc = Theme.of(ctx).colorScheme;
+            final filtered = query.isEmpty
+                ? candidates
+                : candidates.where((c) => (c['name'] as String).toLowerCase().contains(query.toLowerCase())).toList();
+            return SafeArea(
+              child: Padding(
+                // 键盘弹出时顶起面板
+                padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(child: Container(
+                      width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 12),
+                      decoration: BoxDecoration(color: bc.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
+                    )),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text('移动到「{name}」'.trf({'name': name}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: bc.onSurface)),
+                    ),
+                    // 搜索框
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                      child: Container(
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: bc.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(children: [
+                          const SizedBox(width: 12),
+                          Icon(Icons.search_rounded, size: 17, color: bc.onSurface.withValues(alpha: 0.35)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              style: TextStyle(fontSize: 14, color: bc.onSurface),
+                              cursorColor: bc.primary,
+                              decoration: InputDecoration(
+                                hintText: '搜索分类...'.tr,
+                                hintStyle: TextStyle(fontSize: 14, color: bc.onSurface.withValues(alpha: 0.3)),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
+                              ),
+                              onChanged: (v) => setSheetState(() => query = v.trim()),
+                            ),
+                          ),
+                          if (query.isNotEmpty)
+                            GestureDetector(
+                              onTap: () { controller.clear(); setSheetState(() => query = ''); },
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(color: bc.surfaceContainerHighest, shape: BoxShape.circle),
+                                child: Icon(Icons.close_rounded, size: 13, color: bc.onSurface.withValues(alpha: 0.4)),
+                              ),
+                            ),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _moveOption(
+                      bc,
+                      icon: Icons.home_outlined,
+                      title: '顶级（无父级）'.tr,
+                      selected: currentParent.isEmpty,
+                      onTap: () => _doMoveParent(ctx, tagId, type, ''),
+                    ),
+                    if (filtered.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('设为某分类的子级'.tr, style: TextStyle(fontSize: 12, color: bc.onSurface.withValues(alpha: 0.4))),
+                        ),
+                      ),
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.only(bottom: 16),
+                          children: filtered.map((c) => _moveOption(
+                            bc,
+                            icon: Icons.folder_outlined,
+                            title: c['name'] as String,
+                            selected: c['id'] == currentParent,
+                            onTap: () => _doMoveParent(ctx, tagId, type, c['id'] as String),
+                          )).toList(),
+                        ),
+                      ),
+                    ] else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text('没有找到相关分类'.tr, style: TextStyle(fontSize: 13, color: bc.onSurface.withValues(alpha: 0.4))),
+                      ),
+                  ],
                 ),
               ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(bottom: 16),
-                  children: candidates.map((c) => _moveOption(
-                    colors,
-                    icon: Icons.folder_outlined,
-                    title: c['name'] as String,
-                    selected: c['id'] == currentParent,
-                    onTap: () => _doMoveParent(ctx, tagId, type, c['id'] as String),
-                  )).toList(),
-                ),
-              ),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );

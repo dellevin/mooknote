@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 49,
+      version: 50,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -495,6 +495,13 @@ class DatabaseHelper {
     if (oldVersion < 49) {
       // 图片元数据表：图库自定义重命名（逻辑路径 → 显示名）
       await _createImageAssetsTable(db);
+    }
+    if (oldVersion < 50) {
+      // 标签表添加排序字段（同级拖拽排序）
+      final tagCols = await db.rawQuery('PRAGMA table_info(tags)');
+      if (!tagCols.any((col) => col['name'] == 'sort_order')) {
+        await db.execute('ALTER TABLE tags ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+      }
     }
   }
 
@@ -1067,6 +1074,7 @@ class DatabaseHelper {
         created_at TEXT NOT NULL,
         is_hidden INTEGER NOT NULL DEFAULT 0,
         parent_id TEXT DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
         UNIQUE(name, type)
       )
     ''');

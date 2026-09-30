@@ -1564,6 +1564,12 @@ class AppProvider extends ChangeNotifier {
     return result;
   }
 
+  /// 重排同级标签顺序（[movedTagId] 跨父级时会顺带改 parent_id）
+  /// 只动 tags 表，不影响影视/书籍等数据，无需 _reloadByTagType
+  Future<bool> reorderTags(String type, String parentId, List<String> orderedIds, String movedTagId) {
+    return _tagDao.reorderSiblings(type, parentId, orderedIds, movedTagId);
+  }
+
   Future<bool> renameTag(String tagId, String newName, String type) async {
     final result = await _tagDao.renameTag(tagId, newName);
     if (result) {

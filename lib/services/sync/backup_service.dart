@@ -684,11 +684,9 @@ class BackupService {
       }
       if (data.containsKey('tags')) {
         for (final t in data['tags'] as List) {
-          final map = _convertToDbMapSafe(t, tagsCols);
-          await txn.rawInsert(
-            'INSERT OR IGNORE INTO tags (id, name, type, created_at) VALUES (?, ?, ?, ?)',
-            [map['id'], map['name'], map['type'], map['created_at']],
-          );
+          // 走 _convertToDbMapSafe 全列插入，保留 parent_id / is_hidden 等字段
+          await txn.insert('tags', _convertToDbMapSafe(t, tagsCols),
+              conflictAlgorithm: ConflictAlgorithm.ignore);
         }
       }
       if (data.containsKey('people')) {

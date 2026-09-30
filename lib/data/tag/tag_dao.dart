@@ -15,7 +15,7 @@ class TagDao {
     }
   }
 
-  /// 获取指定类型的所有标签，按名称排序
+  /// 获取指定类型的所有标签，按同级排序值 + 名称排序
   /// [excludeHidden] 为 true 时，过滤掉隐藏标签
   Future<List<Map<String, dynamic>>> getTagsByType(String type, {bool excludeHidden = false}) => _wrap('getTagsByType', () async {
     final db = await _dbHelper.database;
@@ -23,7 +23,7 @@ class TagDao {
     return await db.query('tags',
         where: where,
         whereArgs: [type],
-        orderBy: 'name ASC');
+        orderBy: 'sort_order ASC, name ASC');
   });
 
   /// 根据ID获取标签
@@ -65,6 +65,29 @@ class TagDao {
 
     await db.update('tags', {'parent_id': parentId},
         where: 'id = ?', whereArgs: [tagId]);
+    return true;
+  });
+
+  /// 重排某父级下的子标签顺序：[orderedIds] 为排好序的完整同级 ID 列表，
+  /// [movedTagId] 为被拖拽的标签（若原属其它父级会先改其 parent_id，含环校验）
+  Future<bool> reorderSiblings(String type, String parentId, List<String> orderedIds, String movedTagId) => _wrap('reorderSiblings', () async {
+    final db = await _dbHelper.database;
+    if (parentId.isNotEmpty) {
+      if (parentId == movedTagId) return false;
+      final parent = await getTagById(parentId);
+      if (parent == null || parent['type'] != type) return false;
+      final descendants = await _collectDescendantIds(db, movedTagId, type);
+      if (descendants.contains(parentId)) return false;
+    }
+
+    await db.transaction((txn) async {
+      await txn.update('tags', {'parent_id': parentId},
+          where: 'id = ?', whereArgs: [movedTagId]);
+      for (var i = 0; i < orderedIds.length; i++) {
+        await txn.update('tags', {'sort_order': i},
+            where: 'id = ? AND type = ?', whereArgs: [orderedIds[i], type]);
+      }
+    });
     return true;
   });
 
