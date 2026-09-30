@@ -53,39 +53,50 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     double? rating;
     String subtitle = '';
     dynamic entity;
+    String? itemType;
 
-    if (type == 'movie') {
+    if (type == 'movie' || type == 'all') {
       final movie = provider.movies.where((m) => m.id == item.itemId).firstOrNull;
-      if (movie == null) return null;
-      entity = movie;
-      status = movie.status;
-      title = movie.title;
-      coverPath = movie.posterPath;
-      rating = movie.rating;
-      subtitle = movie.directors.isNotEmpty ? movie.directors.take(2).join(' / ') : '';
-    } else if (type == 'book') {
-      final book = provider.books.where((b) => b.id == item.itemId).firstOrNull;
-      if (book == null) return null;
-      entity = book;
-      status = book.status;
-      title = book.title;
-      coverPath = book.coverPath;
-      rating = book.rating;
-      subtitle = book.authors.isNotEmpty ? book.authors.take(2).join(' / ') : '';
-    } else if (type == 'game') {
-      final game = provider.games.where((g) => g.id == item.itemId).firstOrNull;
-      if (game == null) return null;
-      entity = game;
-      status = game.status;
-      title = game.title;
-      coverPath = game.coverPath;
-      rating = game.rating;
-      subtitle = game.developer.isNotEmpty ? game.developer.take(2).join(' / ') : '';
+      if (movie != null) {
+        entity = movie;
+        itemType = 'movie';
+        status = movie.status;
+        title = movie.title;
+        coverPath = movie.posterPath;
+        rating = movie.rating;
+        subtitle = movie.directors.isNotEmpty ? movie.directors.take(2).join(' / ') : '';
+      }
     }
+    if (entity == null && (type == 'book' || type == 'all')) {
+      final book = provider.books.where((b) => b.id == item.itemId).firstOrNull;
+      if (book != null) {
+        entity = book;
+        itemType = 'book';
+        status = book.status;
+        title = book.title;
+        coverPath = book.coverPath;
+        rating = book.rating;
+        subtitle = book.authors.isNotEmpty ? book.authors.take(2).join(' / ') : '';
+      }
+    }
+    if (entity == null && (type == 'game' || type == 'all')) {
+      final game = provider.games.where((g) => g.id == item.itemId).firstOrNull;
+      if (game != null) {
+        entity = game;
+        itemType = 'game';
+        status = game.status;
+        title = game.title;
+        coverPath = game.coverPath;
+        rating = game.rating;
+        subtitle = game.developer.isNotEmpty ? game.developer.take(2).join(' / ') : '';
+      }
+    }
+    if (entity == null) return null;
 
     return _ResolvedItem(
       playlistItem: item,
       entity: entity,
+      type: itemType!,
       title: title,
       coverPath: coverPath,
       rating: rating,
@@ -189,7 +200,6 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
   }
 
   Widget _buildList(BuildContext context, AppProvider provider) {
-    final type = widget.playlist.type;
     final resolved = _items
         .map((item) => _resolve(item, provider))
         .whereType<_ResolvedItem>()
@@ -224,13 +234,14 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
         );
       },
       itemBuilder: (context, index) {
-        return _buildItem(context, resolved[index], type, provider);
+        return _buildItem(context, resolved[index], provider);
       },
     );
   }
 
-  Widget _buildItem(BuildContext context, _ResolvedItem item, String type, AppProvider provider) {
+  Widget _buildItem(BuildContext context, _ResolvedItem item, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
+    final type = item.type;
     final statusColor = _statusColor(item.status);
     final statusLabel = _statusLabel(type, item.status);
     final itemId = item.playlistItem.id;
@@ -361,10 +372,35 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                                  Row(
+                                    children: [
+                                      if (widget.playlist.type == 'all') ...[
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: colors.surfaceContainerHighest,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            switch (type) {
+                                              'movie' => '影视'.tr,
+                                              'book' => '书籍'.tr,
+                                              'game' => '游戏'.tr,
+                                              _ => type,
+                                            },
+                                            style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.45)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 5),
+                                      ],
+                                      Flexible(
+                                        child: Text(item.title,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                                      ),
+                                    ],
+                                  ),
                                   if (item.subtitle.isNotEmpty) ...[
                                     const SizedBox(height: 3),
                                     Text(item.subtitle,
@@ -503,6 +539,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 class _ResolvedItem {
   final PlaylistItem playlistItem;
   final dynamic entity;
+  final String type;
   final String title;
   final String? coverPath;
   final double? rating;
@@ -512,6 +549,7 @@ class _ResolvedItem {
   _ResolvedItem({
     required this.playlistItem,
     this.entity,
+    required this.type,
     required this.title,
     this.coverPath,
     this.rating,

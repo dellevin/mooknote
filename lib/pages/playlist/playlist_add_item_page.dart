@@ -51,7 +51,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
 
     // 获取对应类型的条目列表
     List<_SelectableItem> items;
-    if (type == 'movie') {
+    if (type == 'movie' || type == 'all') {
       items = provider.movies
           .where((m) => !m.isDeleted)
           .map((m) => _SelectableItem(
@@ -60,10 +60,14 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
                 coverPath: m.posterPath,
                 rating: m.rating,
                 subtitle: m.directors.isNotEmpty ? m.directors.take(2).join(' / ') : '',
+                type: 'movie',
               ))
           .toList();
-    } else if (type == 'book') {
-      items = provider.books
+    } else {
+      items = [];
+    }
+    if (type == 'book' || type == 'all') {
+      items.addAll(provider.books
           .where((b) => !b.isDeleted)
           .map((b) => _SelectableItem(
                 id: b.id,
@@ -71,10 +75,11 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
                 coverPath: b.coverPath,
                 rating: b.rating,
                 subtitle: b.authors.isNotEmpty ? b.authors.take(2).join(' / ') : '',
-              ))
-          .toList();
-    } else {
-      items = provider.games
+                type: 'book',
+              )));
+    }
+    if (type == 'game' || type == 'all') {
+      items.addAll(provider.games
           .where((g) => !g.isDeleted)
           .map((g) => _SelectableItem(
                 id: g.id,
@@ -82,8 +87,8 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
                 coverPath: g.coverPath,
                 rating: g.rating,
                 subtitle: g.developer.isNotEmpty ? g.developer.take(2).join(' / ') : '',
-              ))
-          .toList();
+                type: 'game',
+              )));
     }
 
     // 搜索过滤
@@ -93,7 +98,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('添加{type}'.trf({'type': widget.playlist.typeLabel.tr})),
+        title: Text(type == 'all' ? '添加条目'.tr : '添加{type}'.trf({'type': widget.playlist.typeLabel.tr})),
       ),
       body: Column(
         children: [
@@ -104,7 +109,9 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
               controller: _searchController,
               style: TextStyle(fontSize: 15, color: colors.onSurface),
               decoration: InputDecoration(
-                hintText: '搜索{type}名称'.trf({'type': widget.playlist.typeLabel.tr}),
+                hintText: type == 'all'
+                    ? '搜索影视/书籍/游戏'.tr
+                    : '搜索{type}名称'.trf({'type': widget.playlist.typeLabel.tr}),
                 hintStyle: TextStyle(color: colors.onSurface.withValues(alpha: 0.3), fontSize: 15),
                 prefixIcon: Icon(Icons.search, color: colors.onSurface.withValues(alpha: 0.4), size: 22),
                 suffixIcon: _searchController.text.isNotEmpty
@@ -139,7 +146,10 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
                 ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                 : items.isEmpty
                     ? Center(
-                        child: Text('没有找到{type}'.trf({'type': widget.playlist.typeLabel.tr}),
+                        child: Text(
+                            type == 'all'
+                                ? '没有找到条目'.tr
+                                : '没有找到{type}'.trf({'type': widget.playlist.typeLabel.tr}),
                             style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))),
                       )
                     : ListView.builder(
@@ -204,9 +214,9 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
                     ? FadeInLocalImage(
                         path: item.coverPath,
                         fit: BoxFit.cover,
-                        errorWidget: _buildPlaceholder(type, colors),
+                        errorWidget: _buildPlaceholder(item.type, colors),
                       )
-                    : _buildPlaceholder(type, colors),
+                    : _buildPlaceholder(item.type, colors),
               ),
             ),
             const SizedBox(width: 10),
@@ -215,13 +225,23 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isAdded ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface)),
+                  Row(
+                    children: [
+                      if (type == 'all') ...[
+                        _buildTypeTag(item.type, colors),
+                        const SizedBox(width: 5),
+                      ],
+                      Flexible(
+                        child: Text(item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isAdded ? colors.onSurface.withValues(alpha: 0.4) : colors.onSurface)),
+                      ),
+                    ],
+                  ),
                   if (item.subtitle.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(item.subtitle,
@@ -247,6 +267,23 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
     );
   }
 
+  Widget _buildTypeTag(String itemType, ColorScheme colors) {
+    final label = switch (itemType) {
+      'movie' => '影视',
+      'book' => '书籍',
+      'game' => '游戏',
+      _ => itemType,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(label.tr, style: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.45))),
+    );
+  }
+
   Widget _buildPlaceholder(String type, ColorScheme colors) {
     final icon = switch (type) {
       'movie' => Icons.movie_outlined,
@@ -267,6 +304,7 @@ class _SelectableItem {
   final String? coverPath;
   final double? rating;
   final String subtitle;
+  final String type;
 
   _SelectableItem({
     required this.id,
@@ -274,5 +312,6 @@ class _SelectableItem {
     this.coverPath,
     this.rating,
     this.subtitle = '',
+    required this.type,
   });
 }

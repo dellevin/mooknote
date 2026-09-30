@@ -54,6 +54,20 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       } else if (playlist.type == 'game') {
         final game = provider.games.where((g) => g.id == id).firstOrNull;
         covers.add(game?.coverPath);
+      } else {
+        // 所有类型：依次在影视/书籍/游戏中查找
+        final movie = provider.movies.where((m) => m.id == id).firstOrNull;
+        if (movie != null) {
+          covers.add(movie.posterPath);
+          continue;
+        }
+        final book = provider.books.where((b) => b.id == id).firstOrNull;
+        if (book != null) {
+          covers.add(book.coverPath);
+          continue;
+        }
+        final game = provider.games.where((g) => g.id == id).firstOrNull;
+        covers.add(game?.coverPath);
       }
     }
     return covers;
@@ -351,7 +365,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.62,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -359,7 +373,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       itemBuilder: (context, index) {
         final playlist = playlists[index];
         final typeColor = _typeColor(playlist.type, colors);
-        final covers = _getCoverPaths(playlist, provider, limit: 3);
+        final covers = _getCoverPaths(playlist, provider, limit: 4);
 
         return GestureDetector(
           onTap: () async {
@@ -452,6 +466,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       'movie' => Colors.blue,
       'book' => Colors.teal,
       'game' => Colors.orange,
+      'all' => Colors.purple,
       _ => colors.onSurface,
     };
   }
@@ -467,49 +482,49 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   Widget _buildGridCoverWall(BuildContext context, Playlist playlist, List<String?> covers, Color typeColor) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final typeIcon = switch (playlist.type) {
       'movie' => Icons.movie_outlined,
       'book' => Icons.menu_book_outlined,
       'game' => Icons.sports_esports_outlined,
+      'all' => Icons.all_inclusive,
       _ => Icons.list_outlined,
     };
     final valid = covers.whereType<String>().where((p) => p.isNotEmpty).toList();
 
-    // 空片单：类型色占位
+    // 空片单：类型色渐变 + 大图标（与新增页预览卡回退样式一致）
     if (valid.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(6),
-        child: Container(
-          decoration: BoxDecoration(
-            color: typeColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              typeColor.withValues(alpha: isDark ? 0.22 : 0.10),
+              typeColor.withValues(alpha: isDark ? 0.40 : 0.24),
+            ],
           ),
-          child: Center(child: Icon(typeIcon, size: 32, color: typeColor.withValues(alpha: 0.4))),
         ),
+        child: Center(child: Icon(typeIcon, size: 36, color: typeColor.withValues(alpha: isDark ? 0.7 : 0.5))),
       );
     }
 
-    // 照片叠放：首张在最前，后面的向右错位露出边缘
+    // 层叠封面（与新增页预览卡一致）：首张在最前，后面的向右错位露出边缘
     final count = valid.length;
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        const offset = 7.0;
-        const inset = 6.0;
-        final cardW = constraints.maxWidth - inset * 2 - offset * (count - 1);
-        final cardH = constraints.maxHeight - inset * 2;
-        return Stack(
-          children: [
-            for (var i = count - 1; i >= 0; i--)
-              Positioned(
-                left: inset + i * offset,
-                top: inset,
-                width: cardW,
-                height: cardH,
-                child: _buildStackedCover(valid[i], colors, typeIcon),
-              ),
-          ],
-        );
-      },
+    const offset = 8.0;
+    const inset = 8.0;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = count - 1; i >= 0; i--)
+          Positioned(
+            left: inset + i * offset,
+            top: inset,
+            right: inset + (count - 1 - i) * offset,
+            bottom: inset,
+            child: _buildStackedCover(valid[i], colors, typeIcon),
+          ),
+      ],
     );
   }
 
@@ -517,11 +532,11 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   Widget _buildStackedCover(String path, ColorScheme colors, IconData typeIcon) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: colors.surface, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: colors.shadow.withValues(alpha: 0.10),
+            color: colors.shadow.withValues(alpha: 0.12),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -545,6 +560,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       'movie' => Icons.movie_outlined,
       'book' => Icons.menu_book_outlined,
       'game' => Icons.sports_esports_outlined,
+      'all' => Icons.all_inclusive,
       _ => Icons.list_outlined,
     };
 

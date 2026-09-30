@@ -1152,6 +1152,7 @@ class Playlist {
     'movie' => '影视',
     'book' => '书籍',
     'game' => '游戏',
+    'all' => '所有',
     _ => type,
   };
 }

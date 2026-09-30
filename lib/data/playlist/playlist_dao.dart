@@ -148,20 +148,32 @@ class PlaylistDao {
       whereArgs: [playlistId],
     );
     if (rows.isEmpty) return;
-    final table = _typeTables[rows.first['type'] as String];
+    final type = rows.first['type'] as String;
     final int count;
-    if (table == null) {
+    if (type == 'all') {
+      // 所有类型：条目在任一媒体表存在且未软删除即计数
       count = Sqflite.firstIntValue(await db.rawQuery(
-        'SELECT COUNT(*) FROM playlist_items WHERE playlist_id = ?',
+        'SELECT COUNT(*) FROM playlist_items pi WHERE pi.playlist_id = ? AND ('
+        'EXISTS(SELECT 1 FROM movies m WHERE m.id = pi.item_id AND m.is_deleted = 0) OR '
+        'EXISTS(SELECT 1 FROM books b WHERE b.id = pi.item_id AND b.is_deleted = 0) OR '
+        'EXISTS(SELECT 1 FROM games g WHERE g.id = pi.item_id AND g.is_deleted = 0))',
         [playlistId],
       )) ?? 0;
     } else {
-      count = Sqflite.firstIntValue(await db.rawQuery(
-        'SELECT COUNT(*) FROM playlist_items pi '
-        'JOIN $table m ON m.id = pi.item_id AND m.is_deleted = 0 '
-        'WHERE pi.playlist_id = ?',
-        [playlistId],
-      )) ?? 0;
+      final table = _typeTables[type];
+      if (table == null) {
+        count = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM playlist_items WHERE playlist_id = ?',
+          [playlistId],
+        )) ?? 0;
+      } else {
+        count = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM playlist_items pi '
+          'JOIN $table m ON m.id = pi.item_id AND m.is_deleted = 0 '
+          'WHERE pi.playlist_id = ?',
+          [playlistId],
+        )) ?? 0;
+      }
     }
     await db.update(
       'playlists',
@@ -176,7 +188,7 @@ class PlaylistDao {
   static Future<void> refreshItemCountsForMedia(DatabaseExecutor db, String itemId, String type) async {
     final affected = await db.rawQuery(
       'SELECT DISTINCT playlist_id FROM playlist_items WHERE item_id = ? '
-      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ?)',
+      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ? OR type = \'all\')',
       [itemId, type],
     );
     for (final row in affected) {
@@ -239,13 +251,13 @@ class PlaylistDao {
   static Future<void> removeMediaFromPlaylists(DatabaseExecutor db, String itemId, String type) async {
     final affected = await db.rawQuery(
       'SELECT DISTINCT playlist_id FROM playlist_items WHERE item_id = ? '
-      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ?)',
+      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ? OR type = \'all\')',
       [itemId, type],
     );
     if (affected.isEmpty) return;
     await db.rawDelete(
       'DELETE FROM playlist_items WHERE item_id = ? '
-      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ?)',
+      'AND playlist_id IN (SELECT id FROM playlists WHERE type = ? OR type = \'all\')',
       [itemId, type],
     );
     final now = DateTime.now().toIso8601String();
