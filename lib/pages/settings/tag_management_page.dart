@@ -257,20 +257,39 @@ class _TagManagementPageState extends State<TagManagementPage> {
       }
     }
 
-    return SingleChildScrollView(
+    if (roots.isEmpty) {
+      return SingleChildScrollView(
+        key: ValueKey(type),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSearchBar(colors),
+            const SizedBox(height: 8),
+            _buildEmptyGroup('暂无标签'.tr, colors),
+          ],
+        ),
+      );
+    }
+
+    // 扁平化 + 按需构建，标签量大时不卡顿
+    final items = _flattenTree(roots, childrenByParent);
+    return ListView.builder(
       key: ValueKey(type),
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSearchBar(colors),
-          const SizedBox(height: 8),
-          if (roots.isEmpty)
-            _buildEmptyGroup('暂无标签'.tr, colors)
-          else
-            ..._buildTreeNodes(roots, childrenByParent, 0, ''),
-        ],
-      ),
+      itemCount: items.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Column(children: [
+            _buildSearchBar(colors),
+            const SizedBox(height: 8),
+          ]);
+        }
+        final item = items[index - 1];
+        return item.isGap
+            ? _buildDropGap(item.siblings!, item.parentId!, item.insertIndex, item.depth)
+            : _buildTagRow(item.tag!, item.children!, item.depth);
+      },
     );
   }
 
@@ -284,26 +303,29 @@ class _TagManagementPageState extends State<TagManagementPage> {
     return map;
   }
 
-  /// 递归构建树节点列表（含行间缝隙放置区）
-  List<Widget> _buildTreeNodes(
-    List<Map<String, dynamic>> nodes,
+  /// 将树扁平化为「行/缝隙」序列，供 ListView.builder 按需构建（长列表性能）
+  List<_TreeItem> _flattenTree(
+    List<Map<String, dynamic>> roots,
     Map<String, List<Map<String, dynamic>>> childrenByParent,
-    int depth,
-    String parentId,
   ) {
-    final result = <Widget>[];
-    for (var i = 0; i < nodes.length; i++) {
-      final tag = nodes[i];
-      final id = tag['id'] as String;
-      final sub = childrenByParent[id] ?? [];
-      result.add(_buildDropGap(nodes, parentId, i, depth));
-      result.add(_buildTagRow(tag, sub, depth));
-      if (sub.isNotEmpty && !_collapsedIds.contains(id)) {
-        result.addAll(_buildTreeNodes(sub, childrenByParent, depth + 1, id));
+    final items = <_TreeItem>[];
+
+    void walk(List<Map<String, dynamic>> nodes, int depth, String parentId) {
+      for (var i = 0; i < nodes.length; i++) {
+        final tag = nodes[i];
+        final id = tag['id'] as String;
+        final sub = childrenByParent[id] ?? [];
+        items.add(_TreeItem.gap(nodes, parentId, i, depth));
+        items.add(_TreeItem.row(tag, sub, depth));
+        if (sub.isNotEmpty && !_collapsedIds.contains(id)) {
+          walk(sub, depth + 1, id);
+        }
       }
+      items.add(_TreeItem.gap(nodes, parentId, nodes.length, depth));
     }
-    result.add(_buildDropGap(nodes, parentId, nodes.length, depth));
-    return result;
+
+    walk(roots, 0, '');
+    return items;
   }
 
   /// 行间缝隙放置区：拖到两行之间时展开并显示指示线，松手插入该位置
@@ -364,7 +386,24 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final hasChildren = children.isNotEmpty;
     final collapsed = _collapsedIds.contains(id);
 
-    final rowContent = Row(
+    final rowContent = Stack(
+      children: [
+        // 层级引导线：每个祖先层级一条竖线（文件树风格）
+        if (depth > 0)
+          Positioned(
+            left: 0, top: 0, bottom: 0,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < depth; i++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 9.5),
+                    child: Container(width: 1, color: colors.outlineVariant.withValues(alpha: 0.6)),
+                  ),
+              ],
+            ),
+          ),
+        Row(
       children: [
         SizedBox(width: depth * 20.0),
         // 展开/收起箭头
@@ -406,6 +445,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
               ),
             ),
           ),
+        ),
+      ],
         ),
       ],
     );
@@ -1349,6 +1390,33 @@ class _TagManagementPageState extends State<TagManagementPage> {
       ),
     );
   }
+}
+
+// ─── 树扁平化条目 ─────────────────────────────────────────────────────────
+
+/// 扁平化后的树条目：标签行 或 行间缝隙放置区
+class _TreeItem {
+  final bool isGap;
+  // 行字段
+  final Map<String, dynamic>? tag;
+  final List<Map<String, dynamic>>? children;
+  // 缝隙字段
+  final List<Map<String, dynamic>>? siblings;
+  final String? parentId;
+  final int insertIndex;
+
+  final int depth;
+
+  _TreeItem.row(this.tag, this.children, this.depth)
+      : isGap = false,
+        siblings = null,
+        parentId = null,
+        insertIndex = 0;
+
+  _TreeItem.gap(this.siblings, this.parentId, this.insertIndex, this.depth)
+      : isGap = true,
+        tag = null,
+        children = null;
 }
 
 // ─── 新标签高亮动画 Widget ─────────────────────────────────────────────────
