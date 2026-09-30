@@ -69,9 +69,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-MookNote is a Flutter media-tracking app centered on **影视 / 阅读 / 游戏 / 笔记** four media types, with additional people/characters, playlists, image galleries, EPUB reader, online search, and cloud/WebDAV sync. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
+MookNote is a Flutter media-tracking app centered on **影视 / 阅读 / 游戏 / 笔记** four media types, with additional people/characters, playlists (片单), custom modules (自定义分类), image galleries, online search, and cloud/WebDAV sync. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
 
-**Platforms:** Android is primary. Windows desktop is fully supported (hidden title bar, FFI sqflite, WebView2 + `epub://` custom protocol). `ios/`, `linux/`, `macos/`, `web/` directories exist but are secondary.
+**Platforms:** Android is primary. Windows desktop is fully supported (hidden title bar, FFI sqflite, wide-screen master-detail layout). `ios/`, `linux/`, `macos/`, `web/` directories exist but are secondary.
 
 ## Common Commands
 
@@ -103,24 +103,24 @@ $env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
 
 ### App Structure (lib/)
 
-- **main.dart** — App entry; initializes `UserPrefs`, `AppProvider`, auto-backup, usage stats, and sync validation on startup. Applies dynamic_color (Monet), frosted-glass theme, window_manager, media_kit, and WebView2 `epub://` protocol on Windows
-- **models/data_models.dart** — All data models in one file (~21 classes): `Movie`, `Book`, `Note`, `Game`, `Playlist`, `PlaylistItem`, `Person`, `MoviePerson`/`BookPerson`/`GamePerson`, `MovieCharacter`/`BookCharacter`/`GameCharacter`, `GalleryItem`, `MovieReview`, `BookReview`, `GameReview`, `MoviePoster`, `BookExcerpt`, `GameScreenshot`. Each has `fromJson`/`toJson`/`copyWith`
+- **main.dart** — App entry; initializes `UserPrefs`, `AppProvider`, auto-backup, usage stats, and sync validation on startup. Applies dynamic_color (Monet), frosted-glass theme, window_manager, media_kit
+- **models/data_models.dart** — All data models in one file (24 classes): `Movie`, `Book`, `Note`, `Game`, `Playlist`, `PlaylistItem`, `Person`, `MoviePerson`/`BookPerson`/`GamePerson`, `MovieCharacter`/`BookCharacter`/`GameCharacter`, `GalleryItem`, `MovieReview`, `BookReview`, `GameReview`, `MoviePoster`, `BookExcerpt`, `GameScreenshot`, `CustomFieldDef`/`CustomModule`/`CustomModuleDesign`/`CustomModuleItem`. Each has `fromJson`/`toJson`/`copyWith`
 - **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) has all app state (~260 members). Manages the four media type lists (movies, books, games, notes, playlists, people), theme mode, tab indices, drawer state, per-type UI preferences. Uses DAO pattern; `_useRemote` flag switches between local SQLite and remote server
 - **data/** — DAO layer + database:
-  - `database_helper.dart` — SQLite (sqflite), **version 42**, migration chain in `_onUpgrade`
-  - Per-entity DAOs: `movie/`, `book/`, `game/`, `note/`, `person/`, `character/`, `tag/`, `gallery/`, `epub/` (reader), `playlist/`, `book_source/` (CRUD operations)
+  - `database_helper.dart` — SQLite (sqflite), **version 49**, migration chain in `_onUpgrade`
+  - Per-entity DAOs: `movie/`, `book/`, `game/`, `note/`, `person/`, `character/`, `tag/`, `gallery/` (含 `image_asset_dao` 图片自定义名), `playlist/`, `custom_module/` (CRUD operations)
 - **pages/** — UI by feature domain. Large subsystems:
-  - `movies/`, `book/`, `game/`, `note/` — detail/form/list pages per media type
-  - `epub_reader/` — full EPUB reader (webview renderer, page-turn sessions for Android/iOS, selection toolbar/handles, TOC, search, highlights, footnotes, image viewer, mixins)
-  - `people/`, `character/`, `playlist/`, `explore/` (stats, gallery, calendar), `online_search/`, `markdown_reader/`, `quick_add/`, `profile/`, `settings/`, `sync/`
-- **services/** — Non-UI logic: `epub/` (parser, stream service), `sync/` (server sync via ServerDataService, webdav, backup service), `usage_stats_service.dart`, `changelog_service.dart`, `font_download_manager.dart`, `app_icon_channel.dart`, `server_config.dart`
-- **utils/** — `image_path_helper.dart`, `responsive.dart`, `toast_util.dart`, `slide_up_page_route.dart`, `theme/app_theme.dart`, `user_prefs.dart`, `server_config.dart`, `book_source/`
+  - `movies/`, `book/`, `game/`, `note/` — detail/form/list pages per media type; detail pages each have 4 style builders (标准/毛玻璃/浅色极简/豆瓣) dispatched by global `UserPrefs.detailPageStyle`, modules ordered by `getDetailModules(type)`
+  - `custom_module/` — 自定义分类 (module manage, form designer, entry form/detail, tab page)
+  - `people/`, `character/`, `playlist/`, `explore/` (stats, gallery, calendar), `online_search/`, `quick_add/`, `profile/`, `settings/`, `sync/`, `home/`
+- **services/** — Non-UI logic: `sync/` (server sync, webdav, backup service, cache_cleaner, incremental/), `server_export_service.dart`, `usage_stats_service.dart`, `changelog_service.dart`, `font_download_manager.dart`, `app_icon_channel.dart`, `media_scan_channel.dart`
+- **utils/** — `image_path_helper.dart`, `responsive.dart`, `toast_util.dart`, `slide_up_page_route.dart`, `theme/app_theme.dart`, `user_prefs.dart`, `server_config.dart`, `excel_exporter.dart`, `image_saver.dart`, `douban_parser.dart`, `image_picker_helper.dart`
 - **widgets/** — Shared widgets (list items, star rating, drawer, bottom nav, app shell, frosted background, shimmer skeleton, master-detail scaffold)
 - **utils/app_router.dart** — Named route generator using `onGenerateRoute` with `SlideUpPageRoute` transitions
 
 ### UI / Tabs
 
-Main tabs (mobile `main_content_page.dart` / desktop `home_page.dart`) switch by **影视 → 阅读 → 游戏 → 笔记** via a swipeable `PageView`. Tab visibility is user-configurable (`UserPrefs.showMovieTab` / `showBookTab` / `showGameTab` / `showNoteTab`).
+Main tabs (mobile `home/main_content_page.dart` / desktop `home_page.dart`) switch by **影视 → 阅读 → 游戏 → 笔记** via a swipeable `PageView`. Tab visibility is user-configurable (`UserPrefs.showMovieTab` / `showBookTab` / `showGameTab` / `showNoteTab`). Custom modules can also be enabled as additional tabs.
 
 ### State Management
 

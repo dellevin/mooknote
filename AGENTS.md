@@ -69,7 +69,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-MookNote is a Flutter-based Android app for tracking movies, books, and notes. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
+MookNote is a Flutter media-tracking app centered on **影视 / 阅读 / 游戏 / 笔记** four media types, with additional people/characters, playlists (片单), custom modules (自定义分类), image galleries, online search, and cloud/WebDAV sync. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
+
+**Platforms:** Android is primary. Windows desktop is fully supported (hidden title bar, FFI sqflite, wide-screen master-detail layout). `ios/`, `linux/`, `macos/`, `web/` directories exist but are secondary.
 
 ## Common Commands
 
@@ -102,17 +104,13 @@ $env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
 ### App Structure (lib/)
 
 - **main.dart** — App entry; initializes `UserPrefs`, `AppProvider`, auto-backup, usage stats, and sync validation on startup
-- **models/data_models.dart** — All data models in one file: `Movie`, `Book`, `Note`, `MovieReview`, `BookReview`, `MoviePoster`, `BookExcerpt`. Each has `fromJson`/`toJson`/`copyWith`
-- **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) holds all app state. Manages movies, books, notes lists, theme mode, tab indices, drawer state. Uses DAO pattern for data access. Has a `_useRemote` flag to switch between local SQLite and remote server
-- **pages/** — UI pages organized by feature domain: `movies/`, `book/`, `note/`, `sync/`, `markdown_reader/`
-- **utils/** — Business logic layer:
-  - `database_helper.dart` — SQLite database (sqflite), version 13, with migration chain
-  - `movie/`, `book/`, `note/` — DAO classes for each entity (CRUD operations)
-  - `tag/tag_dao.dart` — Tag management
-  - `sync/` — Server sync, WebDAV sync, auto-backup, backup service
-  - `theme/app_theme.dart` — Minimalist black/white/gray theme with Material 3
-  - `user_prefs.dart` — SharedPreferences wrapper (singleton)
-- **widgets/** — Shared reusable widgets (list items, star rating, drawer, bottom nav, shimmer skeleton)
+- **models/data_models.dart** — All data models in one file (24 classes): `Movie`, `Book`, `Note`, `Game`, `Playlist`, `PlaylistItem`, `Person`, `MoviePerson`/`BookPerson`/`GamePerson`, `MovieCharacter`/`BookCharacter`/`GameCharacter`, `GalleryItem`, `MovieReview`, `BookReview`, `GameReview`, `MoviePoster`, `BookExcerpt`, `GameScreenshot`, `CustomFieldDef`/`CustomModule`/`CustomModuleDesign`/`CustomModuleItem`. Each has `fromJson`/`toJson`/`copyWith`
+- **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) holds all app state. Manages the four media type lists (movies, books, games, notes, playlists, people), theme mode, tab indices, drawer state. Uses DAO pattern for data access. Has a `_useRemote` flag to switch between local SQLite and remote server
+- **data/** — DAO layer (per-entity: `movie/`, `book/`, `game/`, `note/`, `person/`, `character/`, `tag/`, `gallery/`, `playlist/`, `custom_module/`) + `database_helper.dart` — SQLite database (sqflite), version 49, with migration chain in `_onUpgrade`
+- **pages/** — UI pages organized by feature domain: `movies/`, `book/`, `game/`, `note/`, `people/`, `character/`, `playlist/`, `custom_module/`, `explore/`, `online_search/`, `quick_add/`, `profile/`, `settings/`, `sync/`, `home/`
+- **services/** — Non-UI logic: `sync/` (server sync, WebDAV sync, auto-backup, backup service, cache_cleaner, incremental/), `server_export_service.dart`, `usage_stats_service.dart`, `changelog_service.dart`, `font_download_manager.dart`, `app_icon_channel.dart`, `media_scan_channel.dart`
+- **utils/** — `image_path_helper.dart`, `responsive.dart`, `toast_util.dart`, `slide_up_page_route.dart`, `theme/app_theme.dart` (Material 3 minimalist theme), `user_prefs.dart` (SharedPreferences wrapper, singleton), `server_config.dart`, `excel_exporter.dart`, `image_saver.dart`, `douban_parser.dart`
+- **widgets/** — Shared reusable widgets (list items, star rating, drawer, bottom nav, app shell, shimmer skeleton, master-detail scaffold)
 - **utils/app_router.dart** — Named route generator using `onGenerateRoute` with `SlideUpPageRoute` transitions
 
 ### State Management
