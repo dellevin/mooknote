@@ -11,6 +11,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/platform_utils.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
@@ -1761,7 +1762,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
-        if (!Platform.isWindows) ...[
+        if (!PlatformUtils.isDesktop) ...[
           const SizedBox(height: 12),
           _buildFloatingButton(
             icon: Icons.share_outlined,

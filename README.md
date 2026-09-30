@@ -193,10 +193,15 @@ flutter pub get
 ## 构建
 
 ```bash
-# 构建 Release APK
+# 通用构建 Release APK
 flutter build apk --release
+# 多版本构建
+flutter build apk --release --split-per-abi
 # 构建 Windows 版本
 flutter build windows --release
+# 构建linux版本
+flutter build linux --release
+
 # 只构建 arm64-v8a
 flutter build apk --release --target-platform android-arm64
 # 构建 App Bundle（Google Play）

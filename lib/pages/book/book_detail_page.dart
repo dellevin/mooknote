@@ -12,6 +12,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/platform_utils.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/genre_selector_page.dart';
@@ -1491,7 +1492,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
-        if (!Platform.isWindows) ...[
+        if (!PlatformUtils.isDesktop) ...[
           const SizedBox(height: 12),
           _buildFloatingButton(
             icon: Icons.share_outlined,

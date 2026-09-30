@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../widgets/custom_title_bar.dart';
+import 'platform_utils.dart';
 
 /// Toast 工具类（带滑入+淡入动画）
 class ToastUtil {
@@ -72,7 +72,7 @@ class _AnimatedToastState extends State<_AnimatedToast>
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: (Platform.isWindows ? CustomTitleBar.height : MediaQuery.of(context).padding.top) + 80,
+      top: (PlatformUtils.isDesktop ? CustomTitleBar.height : MediaQuery.of(context).padding.top) + 80,
       left: 0,
       right: 0,
       child: FadeTransition(

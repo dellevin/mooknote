@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/platform_utils.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/custom_module_icon.dart';
@@ -72,7 +72,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   int get _enabledTabCount {
     int count = 0;
-    if (_showDesktopHomeTab && Platform.isWindows) count++;
+    if (_showDesktopHomeTab && PlatformUtils.isDesktop) count++;
     if (_showMovieTab) count++;
     if (_showBookTab) count++;
     if (_showNoteTab) count++;
@@ -83,7 +83,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   List<(int, String, IconData)> get _enabledTabs {
     final all = <(int, String, IconData)>[];
-    if (_showDesktopHomeTab && Platform.isWindows) all.add((-1, '主页'.tr, Icons.dashboard_outlined));
+    if (_showDesktopHomeTab && PlatformUtils.isDesktop) all.add((-1, '主页'.tr, Icons.dashboard_outlined));
     all.addAll([
       (0, '影视'.tr, Icons.movie_outlined),
       (1, '阅读'.tr, Icons.menu_book_outlined),
@@ -198,7 +198,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
           // ── 模块开关 ──
           _buildSectionHeader('模块开关'.tr),
-          if (Platform.isWindows) ...[
+          if (PlatformUtils.isDesktop) ...[
             _buildSwitchItem(Icons.dashboard_outlined, '主页'.tr, '桌面端数据概览与分析'.tr, _showDesktopHomeTab, (v) async {
               await _userPrefs.setShowDesktopHomeTab(v);
               setState(() {

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/platform_utils.dart';
 import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
 import '../../services/media_scan_channel.dart';
@@ -51,7 +52,8 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         children: [
           _buildSectionHeader('显示设置'.tr),
-          if (!Platform.isWindows)
+          // 应用图标仅 Android 有原生实现（app_icon_channel）
+          if (Platform.isAndroid)
             _buildNavigationItem(
               icon: Icons.apps_outlined,
               title: '应用图标'.tr,
@@ -59,13 +61,13 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
             ),
-          if (!Platform.isWindows)
+          if (Platform.isAndroid)
             Divider(
                 height: 0.5,
                 indent: 24,
                 endIndent: 24,
                 color: colors.outlineVariant),
-          if (!Platform.isWindows) ...[
+          if (!PlatformUtils.isDesktop) ...[
             _buildNavigationItem(
               icon: Icons.tune_outlined,
               title: '功能设置'.tr,
@@ -115,8 +117,8 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          if (!Platform.isWindows) _buildFontSelector(),
-          if (!Platform.isWindows)
+          if (!PlatformUtils.isDesktop) _buildFontSelector(),
+          if (!PlatformUtils.isDesktop)
             Divider(
                 height: 0.5,
                 indent: 24,
@@ -149,7 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          if (!Platform.isWindows) ...[
+          if (!PlatformUtils.isDesktop) ...[
             _buildSwitchItem(
               icon: Icons.swipe_vertical_outlined,
               title: '底部导航栏滚动隐藏'.tr,
@@ -177,7 +179,8 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          if (!Platform.isWindows) ...[
+          // 存储权限仅 Android 需要（permission_handler 无桌面实现）
+          if (Platform.isAndroid) ...[
             _buildActionItem(
               icon: Icons.folder_outlined,
               title: '获取系统权限'.tr,

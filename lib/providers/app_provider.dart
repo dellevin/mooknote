@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -28,6 +27,7 @@ import '../data/custom_module/custom_module_item_dao.dart';
 import '../services/sync/incremental/sync_tombstones.dart';
 import '../data/database_helper.dart';
 import '../utils/image_path_helper.dart';
+import '../utils/platform_utils.dart';
 import '../utils/user_prefs.dart';
 import '../utils/theme/app_theme.dart';
 import '../l10n/app_strings.dart';
@@ -261,8 +261,8 @@ class AppProvider extends ChangeNotifier {
     _showBookCardDate = userPrefs.showBookCardDate;
     _showGameCardDate = userPrefs.showGameCardDate;
     final defaultIndex = userPrefs.defaultMainTabIndex;
-    // Windows 桌面端且主页开启时，强制默认为主页
-    if (Platform.isWindows && userPrefs.showDesktopHomeTab) {
+    // 桌面端且主页开启时，强制默认为主页
+    if (PlatformUtils.isDesktop && userPrefs.showDesktopHomeTab) {
       if (defaultIndex != -1) {
         userPrefs.setDefaultMainTabIndex(-1);
       }

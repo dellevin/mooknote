@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/image_picker_helper.dart';
+import '../../utils/platform_utils.dart';
 import 'package:path/path.dart' as p;
 import '../../data/gallery/image_asset_dao.dart';
 import '../../providers/app_provider.dart';
@@ -151,8 +152,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
     final colors = Theme.of(context).colorScheme;
     final topPadding = MediaQuery.of(context).padding.top;
 
-    // Windows 桌面端：与编辑页一致的布局
-    if (Platform.isWindows) {
+    // 桌面端：与编辑页一致的布局
+    if (PlatformUtils.isDesktop) {
       return _buildWindowsDesktopLayout(colors, topPadding);
     }
 

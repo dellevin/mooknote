@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/data_models.dart';
 import '../l10n/app_strings.dart';
 import 'slide_up_page_route.dart';
+import 'platform_utils.dart';
 import '../pages/movies/movie_form_page.dart';
 import '../pages/book/book_form_page.dart';
 import '../pages/note/note_form_page.dart';
@@ -133,8 +133,8 @@ class AppRouter {
         if (url.isEmpty) {
           return _buildUnknownRoute(settings.name);
         }
-        if (Platform.isWindows) {
-          // Windows 无 webview 支持，用系统浏览器打开
+        if (PlatformUtils.isDesktop) {
+          // 桌面端无 webview 支持，用系统浏览器打开
           launchUrl(Uri.parse(url));
           return null;
         }

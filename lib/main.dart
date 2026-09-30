@@ -15,6 +15,7 @@ import 'package:media_kit/media_kit.dart';
 import 'pages/home/home_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
+import 'utils/platform_utils.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
 import 'services/usage_stats_service.dart';
@@ -33,8 +34,8 @@ final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<v
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  // Windows 桌面：使用 FFI 初始化 sqflite
-  if (Platform.isWindows) {
+  // 桌面端（Windows / Linux）：使用 FFI 初始化 sqflite
+  if (PlatformUtils.isDesktop) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     // 初始化 window_manager：隐藏原生标题栏
@@ -397,8 +398,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
-    // Windows: 同步窗口边框明暗
-    if (Platform.isWindows) {
+    // 桌面端: 同步窗口边框明暗
+    if (PlatformUtils.isDesktop) {
       windowManager.setBrightness(isDark ? Brightness.dark : Brightness.light);
     }
   }

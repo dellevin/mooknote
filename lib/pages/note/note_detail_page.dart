@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -12,6 +11,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/image_saver.dart';
 import '../../utils/responsive.dart';
+import '../../utils/platform_utils.dart';
 import '../../widgets/note_editor.dart';
 import '../../widgets/tag_side_panel.dart';
 import '../../widgets/image_rename_dialog.dart';
@@ -900,7 +900,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
           backgroundColor: colors.error,
           foregroundColor: colors.onError,
         ),
-        if (!Platform.isWindows) ...[
+        if (!PlatformUtils.isDesktop) ...[
           const SizedBox(height: 12),
           _buildFloatingButton(
             icon: Icons.share_outlined,

@@ -9,6 +9,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
+import '../../utils/platform_utils.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/custom_drawer.dart';
 import '../../widgets/bottom_nav_bar.dart';
@@ -352,7 +353,7 @@ class _DesktopIconRail extends StatelessWidget {
         width: 160,
         child: Column(
           children: [
-            SizedBox(height: (Platform.isWindows ? 0 : MediaQuery.of(context).padding.top) + 8),
+            SizedBox(height: (PlatformUtils.isDesktop ? 0 : MediaQuery.of(context).padding.top) + 8),
             // 头像 + 昵称 + 座右铭
             _buildProfileHeader(context),
             const SizedBox(height: 10),
@@ -3735,7 +3736,7 @@ class _DesktopListPanelState extends State<_DesktopListPanel> {
     return Column(
       children: [
         // 顶部搜索栏
-        SizedBox(height: Platform.isWindows ? 0 : MediaQuery.of(context).padding.top),
+        SizedBox(height: PlatformUtils.isDesktop ? 0 : MediaQuery.of(context).padding.top),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: Row(

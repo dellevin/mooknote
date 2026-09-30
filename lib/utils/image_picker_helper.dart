@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'platform_utils.dart';
 
 /// 多选本地图片：移动端走相册（wechat_assets_picker）；
-/// Windows 走系统文件选择器（wechat_assets_picker 依赖的 photo_manager 无 Windows 实现）
+/// 桌面端（Windows / Linux）走系统文件选择器（wechat_assets_picker 依赖的 photo_manager 无桌面实现）
 Future<List<File>> pickLocalImages(BuildContext context) async {
-  if (Platform.isWindows) {
+  if (PlatformUtils.isDesktop) {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: true,

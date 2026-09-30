@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:io' show Platform;
 import '../providers/app_provider.dart';
+import '../utils/platform_utils.dart';
 import '../utils/user_prefs.dart';
 import '../utils/slide_up_page_route.dart';
 import '../widgets/app_overlay.dart';
@@ -117,7 +117,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     ));
   }
 
-  if (Platform.isWindows) {
+  if (PlatformUtils.isDesktop) {
     appDialog(
       context: context,
       builder: (ctx) {

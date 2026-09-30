@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import '../utils/platform_utils.dart';
 import 'custom_title_bar.dart';
 
 class AppShell extends StatelessWidget {
@@ -8,7 +8,7 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isWindows) return child;
+    if (!PlatformUtils.isDesktop) return child;
     return Column(
       children: [
         const CustomTitleBar(),
