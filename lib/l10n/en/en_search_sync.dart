@@ -246,7 +246,6 @@ const Map<String, String> enSearchSync = {
   '云端没有增量基线数据': 'No incremental baseline data in the cloud',
   '无法读取远程增量列表，同步中止': 'Could not read the remote delta list; sync aborted',
   '恢复失败: {e}': 'Restore failed: {e}',
-  '清理远程增量失败，请重试': 'Failed to clean up remote deltas, please try again',
   '上传基线失败': 'Failed to upload baseline',
   '推送失败: {e}': 'Push failed: {e}',
   'delta 上传失败': 'Failed to upload delta',

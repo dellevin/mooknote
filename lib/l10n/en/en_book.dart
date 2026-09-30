@@ -122,9 +122,7 @@ const Map<String, String> enBook = {
   '来源：': 'Source: ',
   '书评人：': 'Reviewer: ',
   '类型：': 'Type: ',
-  '时间：': 'Time: ',
   '书评日期：': 'Review Date: ',
-  '创建时间：': 'Date added: ',
   '搜索书评内容、书评人、来源...': 'Search review content, reviewer, source...',
   '确定要删除这条书评吗？删除后可在回收站恢复。': 'Delete this review? You can restore it from the Recycle Bin.',
 

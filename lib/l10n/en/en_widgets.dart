@@ -148,7 +148,6 @@ const Map<String, String> enWidgets = {
 
   // ── 补齐：状态/通用 ──
   '放弃': 'Abandoned',
-  '游戏评论': 'Game Review',
   '暂无{type}': 'No {type} yet',
   '没有找到"{q}"相关标签': 'No tags found for "{q}"',
   '移动到「{name}」': 'Move to "{name}"',

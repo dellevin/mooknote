@@ -69,7 +69,6 @@ const Map<String, String> enPeople = {
   '选择日期': 'Select date',
   '如：北京': 'e.g. Beijing',
   '添加其他名称': 'Add other names',
-  '如：艺名、英文名': 'e.g. stage name, English name',
   '选择职业': 'Select occupation',
   '如：导演、演员': 'e.g. director, actor',
   '人物简介': 'Bio',

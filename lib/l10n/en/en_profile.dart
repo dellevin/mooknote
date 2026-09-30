@@ -166,12 +166,9 @@ const Map<String, String> enProfile = {
   '临时文件': 'Temp Files',
   '系统缓存': 'System Cache',
   '空文件夹': 'Empty Folders',
-  '确认清除': 'Confirm Clear',
   '清理失败: {e}': 'Clean failed: {e}',
   '加载失败，请检查网络':
       'Load failed, please check your network',
-  '共发现 {n} 项可清理缓存，合计 {size}':
-      '{n} cleanable cache items found, totaling {size}',
   '共发现 {n} 项可清理缓存': '{n} cleanable cache items found',
   '{n}项  {size}': '{n} items  {size}',
   '立即清理（{size}）': 'Clean Now ({size})',
@@ -426,8 +423,6 @@ const Map<String, String> enProfile = {
   '是否连同{reviewLabel}一起导出？': 'Include {reviewLabel} in the export?',
   '选择"是"时，Excel 中会额外附带一个{reviewLabel}工作表':
       'If you choose "Yes", the Excel file will include an extra {reviewLabel} sheet.',
-  '开启后，导出时会将本地数据库与图片打包上传至服务器，由服务器生成附带封面图片的 Excel 后回传下载。请知悉：\n· 需增强搜索的影视与书籍 Token 均有效\n· 涉及本地数据上传云端，请酌情使用\n· 数据仅用于生成文件，下载完成后服务器将立即删除':
-      'When enabled, exporting packs your local database and images and uploads them to the server, which generates an Excel with cover images and sends it back. Please note:\n· Both movie and book enhanced-search tokens must be valid\n· Local data is uploaded to the cloud; use at your own discretion\n· Data is only used to generate the file and is deleted from the server immediately after download',
 
   // ─── 应用图标选择页 ───────────────────────────────────
   '图标已切换，请返回桌面查看':

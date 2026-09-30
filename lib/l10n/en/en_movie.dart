@@ -97,7 +97,6 @@ const Map<String, String> enMovie = {
   '请输入图片链接地址': 'Enter the image URL',
   '请输入图片链接': 'Please enter an image URL',
   '请输入 {x}': 'Please enter {x}',
-  '输入次数': 'Enter the count',
   '{n}个：{x}': '{n}: {x}',
   '{n}人：{x}': '{n}: {x}',
 
