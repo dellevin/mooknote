@@ -195,14 +195,14 @@ class WebDAVService {
 
   /// 打包本地数据（第一步，用于上传前单独调用以显示进度）
   Future<AutoBackupExportResult> exportLocalData() async {
-    return BackupService.instance.exportDataForWebDAVShards();
+    return BackupService.instance.exportDataForWebDAV();
   }
 
-  /// 上传已打包的分片数据（第二步）
+  /// 上传已打包的备份 zip（第二步）
   /// 注意：本方法不参与 _isSyncing 锁——锁由 syncData 持有，
   /// 这里若误清标志会把在途同步的并发防护解除
   Future<SyncResult> uploadExportedData(AutoBackupExportResult exportResult) async {
-    if (!exportResult.success || exportResult.shardDirPath == null) {
+    if (!exportResult.success || exportResult.zipPath == null) {
       return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
     }
 
@@ -222,9 +222,9 @@ class WebDAVService {
 
       final client = http.Client();
       try {
-        final backupName = _generateBackupDirName();
-        final success = await _uploadShardDir(client, dirUrl, backupName, username, password, exportResult);
-        try { await Directory(exportResult.shardDirPath!).delete(recursive: true); } catch (_) {}
+        final backupName = _generateBackupFileName();
+        final success = await _uploadFile(client, '$dirUrl/$backupName', username, password, exportResult.zipPath!);
+        try { await File(exportResult.zipPath!).delete(); } catch (_) {}
         if (success) {
           debugPrint('[WebDAV] 备份上传成功: $backupName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
           await _cleanupOldBackups(client, dirUrl, username, password);
@@ -232,7 +232,7 @@ class WebDAVService {
           await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
           return SyncResult(
             success: true, message: '同步完成'.tr,
-            uploadedFiles: exportResult.shardFileNames.length, uploadedImages: exportResult.imageCount,
+            uploadedFiles: 1, uploadedImages: exportResult.imageCount,
           );
         } else {
           return SyncResult(success: false, message: '上传备份文件失败'.tr);
@@ -277,17 +277,17 @@ class WebDAVService {
 
       try {
         if (direction == SyncDirection.upload) {
-          final exportResult = await BackupService.instance.exportDataForWebDAVShards();
-          if (!exportResult.success || exportResult.shardDirPath == null) {
+          final exportResult = await BackupService.instance.exportDataForWebDAV();
+          if (!exportResult.success || exportResult.zipPath == null) {
             return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
           }
 
-          final backupName = _generateBackupDirName();
-          final success = await _uploadShardDir(client, dirUrl, backupName, username, password, exportResult);
-          // 清理临时分片目录
-          try { await Directory(exportResult.shardDirPath!).delete(recursive: true); } catch (_) {}
+          final backupName = _generateBackupFileName();
+          final success = await _uploadFile(client, '$dirUrl/$backupName', username, password, exportResult.zipPath!);
+          // 清理临时 zip
+          try { await File(exportResult.zipPath!).delete(); } catch (_) {}
           if (success) {
-            uploadedFiles = exportResult.shardFileNames.length;
+            uploadedFiles = 1;
             uploadedImages = exportResult.imageCount;
             debugPrint('[WebDAV] 备份上传成功: $backupName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
             // 清理旧备份
@@ -458,7 +458,9 @@ class WebDAVService {
       }
 
       final remoteLength = int.tryParse(verify.headers['content-length'] ?? '');
-      if (remoteLength != null && remoteLength != bytes.length) {
+      // 坚果云等服务器对刚 PUT 的文件 HEAD 返回 content-length: 0（异步落盘），
+      // 0 视为"未报告大小"跳过校验；否则会误判失败导致整组备份被回滚删除
+      if (remoteLength != null && remoteLength > 0 && remoteLength != bytes.length) {
         debugPrint('[WebDAV] 文件大小不一致: 本地 ${bytes.length} 远程 $remoteLength');
         return false;
       }
@@ -525,7 +527,9 @@ class WebDAVService {
       }
 
       final remoteLength = int.tryParse(verify.headers['content-length'] ?? '');
-      if (remoteLength != null && remoteLength != length) {
+      // 坚果云等服务器对刚 PUT 的文件 HEAD 返回 content-length: 0（异步落盘），
+      // 0 视为"未报告大小"跳过校验；否则会误判失败导致整组备份被回滚删除
+      if (remoteLength != null && remoteLength > 0 && remoteLength != length) {
         debugPrint('[WebDAV] 文件大小不一致: 本地 $length 远程 $remoteLength');
         return false;
       }
@@ -636,65 +640,10 @@ class WebDAVService {
     }
   }
 
-  /// 生成带毫秒时间戳的备份目录名（分片型备份是一个目录而非单个 zip）
-  String _generateBackupDirName() {
+  /// 生成带毫秒时间戳的备份文件名（单个 zip）
+  String _generateBackupFileName() {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    return '$_backupPrefix$ts';
-  }
-
-  /// 并行上传分片目录：MKCOL 建目录 → 并发 4 路上传分片 → 最后传 manifest.json。
-  /// manifest 是"提交点"：只有它存在，下载方才认为该备份完整。
-  Future<bool> _uploadShardDir(
-    http.Client client,
-    String dirUrl,
-    String backupName,
-    String username,
-    String password,
-    AutoBackupExportResult exportResult,
-  ) async {
-    final backupUrl = '$dirUrl/$backupName';
-    final shardDir = Directory(exportResult.shardDirPath!);
-
-    final mkcol = await _sendAuthed(client, 'MKCOL', backupUrl, username, password);
-    await mkcol.stream.drain();
-    // 405 = 目录已存在，视为成功（时间戳命名正常不会撞）
-    if (mkcol.statusCode != 201 && mkcol.statusCode != 405) {
-      debugPrint('[WebDAV] MKCOL $backupUrl -> ${mkcol.statusCode}');
-      return false;
-    }
-
-    const concurrency = 4;
-    final names = exportResult.shardFileNames;
-    var failed = false;
-    var next = 0;
-    Future<void> worker() async {
-      while (!failed) {
-        final i = next++;
-        if (i >= names.length) return;
-        final ok = await _uploadFile(
-          client, '$backupUrl/${names[i]}', username, password,
-          p.join(shardDir.path, names[i]),
-        );
-        if (!ok) failed = true;
-      }
-    }
-    await Future.wait(List.generate(concurrency, (_) => worker()));
-
-    // 提交点：最后上传 manifest
-    if (!failed) {
-      failed = !await _uploadFile(
-        client, '$backupUrl/manifest.json', username, password,
-        p.join(shardDir.path, 'manifest.json'),
-        contentType: 'application/json',
-      );
-    }
-
-    if (failed) {
-      // 清理半成品目录，避免占用备份名额、干扰"最新备份"判断
-      await _deleteRemoteFile(client, backupUrl, username, password);
-      return false;
-    }
-    return true;
+    return '$_backupPrefix$ts.zip';
   }
 
   /// 下载分片型备份：先取 manifest.json 校验完整性，再并发 4 路下载全部分片。

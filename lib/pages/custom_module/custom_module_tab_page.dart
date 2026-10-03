@@ -32,6 +32,7 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
   bool _hasActiveDesign = false;
   bool _loading = true;
   int _itemsVersion = 0;
+  late final AppProvider _appProvider;
 
   @override
   bool get wantKeepAlive => true;
@@ -42,12 +43,14 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
     _load();
     // 条目通过底部 + 弹窗等外部入口新增后，版本号变化触发刷新；
     // 用显式监听替代 build 内的 watch+副作用
-    _itemsVersion = context.read<AppProvider>().customModuleItemsVersion;
-    context.read<AppProvider>().addListener(_onItemsVersionChanged);
+    // 缓存 provider 引用：dispose 阶段不可再用 context.read（element 已卸载）
+    _appProvider = context.read<AppProvider>();
+    _itemsVersion = _appProvider.customModuleItemsVersion;
+    _appProvider.addListener(_onItemsVersionChanged);
   }
 
   void _onItemsVersionChanged() {
-    final version = context.read<AppProvider>().customModuleItemsVersion;
+    final version = _appProvider.customModuleItemsVersion;
     if (version != _itemsVersion) {
       _itemsVersion = version;
       _load();
@@ -56,7 +59,7 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
 
   @override
   void dispose() {
-    context.read<AppProvider>().removeListener(_onItemsVersionChanged);
+    _appProvider.removeListener(_onItemsVersionChanged);
     super.dispose();
   }
 

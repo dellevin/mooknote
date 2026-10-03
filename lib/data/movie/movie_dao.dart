@@ -59,11 +59,13 @@ class MovieDao {
   });
 
   static String _buildMovieOrderBy(int sortMode) {
+    // 不用 NULLS LAST（SQLite 3.30+ 才支持，Android 11 及以下会报语法错误），
+    // 改用 "col IS NULL, col DESC"：IS NULL 非空行为 0 升序在前，空值自然垫底
     switch (sortMode) {
       case 1: return 'created_at DESC';
-      case 2: return 'rating DESC NULLS LAST, updated_at DESC';
-      case 3: return 'watch_date DESC NULLS LAST, created_at DESC';
-      case 4: return 'release_date DESC NULLS LAST, created_at DESC';
+      case 2: return 'rating IS NULL, rating DESC, updated_at DESC';
+      case 3: return 'watch_date IS NULL, watch_date DESC, created_at DESC';
+      case 4: return 'release_date IS NULL, release_date DESC, created_at DESC';
       default: return 'updated_at DESC';
     }
   }

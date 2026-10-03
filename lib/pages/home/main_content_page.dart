@@ -544,7 +544,7 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
       setState(() => _syncStep = '正在打包数据...'.tr);
       await Future.delayed(Duration.zero); // 让 UI 先渲染进度动画
       final exportResult = await WebDAVService.instance.exportLocalData();
-      if (!exportResult.success || exportResult.shardDirPath == null) {
+      if (!exportResult.success || exportResult.zipPath == null) {
         if (mounted) {
           Navigator.pop(context); // 关闭 bottom sheet
           _showResultDialog(navigator, title: '同步失败'.tr, message: exportResult.errorMessage ?? '创建备份失败'.tr, isSuccess: false);

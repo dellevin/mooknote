@@ -107,18 +107,30 @@ class _NoteTabPageState extends State<NoteTabPage> {
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final sortMode = UserPrefs().noteSortMode;
-    final list = await context.read<AppProvider>().loadNotesPaged(offset: 0, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
+    try {
+      final list = await context.read<AppProvider>().loadNotesPaged(offset: 0, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
+    } catch (e) {
+      debugPrint('[NoteTab] 首屏加载失败: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasMore = false; });
+    }
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
     final sortMode = UserPrefs().noteSortMode;
-    final list = await context.read<AppProvider>().loadNotesPaged(offset: _offset, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
+    try {
+      final list = await context.read<AppProvider>().loadNotesPaged(offset: _offset, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() { _items.addAll(list); _offset += list.length; _hasMore = list.length >= 20; _isLoading = false; });
+    } catch (e) {
+      debugPrint('[NoteTab] 分页加载失败: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   void _onNoteTap(Note note) {
@@ -195,7 +207,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Widget _buildListView(bool isWideContent) {
     final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
-      child: ListView.builder(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 10, 12, 100),
+      child: ListView.builder(controller: _scrollController, physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 100),
         itemCount: _items.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _items.length) return _buildLoadMore();
@@ -209,7 +222,8 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Widget _buildTimelineView(bool isWideContent) {
     final colors = Theme.of(context).colorScheme;
     return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
-      child: ListView.builder(controller: _scrollController, padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+      child: ListView.builder(controller: _scrollController, physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
         itemCount: _items.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _items.length) return _buildLoadMore();

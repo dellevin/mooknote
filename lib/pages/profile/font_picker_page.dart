@@ -150,7 +150,9 @@ class _FontPickerPageState extends State<FontPickerPage> {
 
     setState(() => _loadingPath = font.path);
     try {
+      debugPrint('[字体] 选择字体文件: ${font.path}');
       final family = await _fontManager.loadFontFile(font.path);
+      debugPrint('[字体] 注册结果: ${family ?? '失败'}');
       if (!mounted) return;
       if (family != null) {
         setState(() => _selectedFamily = family);

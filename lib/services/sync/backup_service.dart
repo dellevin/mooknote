@@ -295,34 +295,21 @@ class BackupService {
 
   // ─── 自动备份导出 ─────────────────────────────────────
 
-  /// 导出数据为 WebDAV 分片目录：data.zip + images_NNN.zip（每片约 8MB）
-  /// + manifest.json。单连接吞吐受限的网络下，分片并行上传可成倍提速。
-  /// 返回临时目录路径，调用方负责递归删除。
-  Future<AutoBackupExportResult> exportDataForWebDAVShards() {
-    return _serialized(() async {
-      try {
-        final payload = await _collectBackupPayload();
-        final tempDir = await getTemporaryDirectory();
-        final result = await compute(_buildShardsInIsolate, _ShardComputeParams(
-          backupData: payload.backupData,
-          imagePaths: payload.imagePaths,
-          tempDirPath: tempDir.path,
-          movieCount: payload.movieCount,
-          bookCount: payload.bookCount,
-          noteCount: payload.noteCount,
-        ));
-        return AutoBackupExportResult.success(
-          shardDirPath: result.shardDirPath!,
-          shardFileNames: result.shardFileNames,
-          movieCount: payload.movieCount,
-          bookCount: payload.bookCount,
-          noteCount: payload.noteCount,
-          imageCount: result.imageCount,
-        );
-      } catch (e) {
-        return AutoBackupExportResult.error('导出失败: {e}'.trf({'e': e}));
-      }
-    });
+  /// 导出数据为单个备份 zip（WebDAV 上传用）。与本地手动备份同一格式。
+  /// 返回临时 zip 路径，调用方负责删除。
+  Future<AutoBackupExportResult> exportDataForWebDAV() async {
+    try {
+      final data = await _buildExportData();
+      return AutoBackupExportResult.success(
+        zipPath: data.zipPath,
+        movieCount: data.movieCount,
+        bookCount: data.bookCount,
+        noteCount: data.noteCount,
+        imageCount: data.imageCount,
+      );
+    } catch (e) {
+      return AutoBackupExportResult.error('导出失败: {e}'.trf({'e': e}));
+    }
   }
 
   /// 执行本地自动备份：导出到 /sdcard/Download/mooknote/autoBackUp/，保留最新 maxKeep 个
@@ -1095,9 +1082,7 @@ class _UnzipResult {
 class AutoBackupExportResult {
   final bool success;
   final String? errorMessage;
-  final String? zipPath; // 单 zip 路径（本地自动备份），调用方负责删除
-  final String? shardDirPath; // 分片临时目录路径（WebDAV），调用方负责递归删除
-  final List<String> shardFileNames; // 分片文件名（不含 manifest.json，其须最后上传）
+  final String? zipPath; // 单 zip 路径，调用方负责删除
   final int movieCount;
   final int bookCount;
   final int noteCount;
@@ -1107,8 +1092,6 @@ class AutoBackupExportResult {
     required this.success,
     this.errorMessage,
     this.zipPath,
-    this.shardDirPath,
-    this.shardFileNames = const [],
     this.movieCount = 0,
     this.bookCount = 0,
     this.noteCount = 0,
@@ -1117,8 +1100,6 @@ class AutoBackupExportResult {
 
   factory AutoBackupExportResult.success({
     String? zipPath,
-    String? shardDirPath,
-    List<String> shardFileNames = const [],
     required int movieCount,
     required int bookCount,
     required int noteCount,
@@ -1126,7 +1107,6 @@ class AutoBackupExportResult {
   }) {
     return AutoBackupExportResult._(
       success: true, zipPath: zipPath,
-      shardDirPath: shardDirPath, shardFileNames: shardFileNames,
       movieCount: movieCount, bookCount: bookCount,
       noteCount: noteCount, imageCount: imageCount,
     );
@@ -1233,7 +1213,7 @@ class _ZipComputeResult {
   _ZipComputeResult({this.zipPath, required this.imageCount});
 }
 
-/// 备份收集阶段的产物（单 zip 导出与 WebDAV 分片导出共用）
+/// 备份收集阶段的产物
 class _BackupPayload {
   final Map<String, dynamic> backupData;
   final List<String> imagePaths;
@@ -1248,122 +1228,6 @@ class _BackupPayload {
     required this.bookCount,
     required this.noteCount,
   });
-}
-
-class _ShardComputeParams {
-  final Map<String, dynamic> backupData;
-  final List<String> imagePaths;
-  final String tempDirPath;
-  final int movieCount;
-  final int bookCount;
-  final int noteCount;
-
-  _ShardComputeParams({
-    required this.backupData,
-    required this.imagePaths,
-    required this.tempDirPath,
-    required this.movieCount,
-    required this.bookCount,
-    required this.noteCount,
-  });
-}
-
-class _ShardComputeResult {
-  final String? shardDirPath;
-  final List<String> shardFileNames;
-  final int imageCount;
-
-  _ShardComputeResult({
-    this.shardDirPath,
-    this.shardFileNames = const [],
-    required this.imageCount,
-  });
-}
-
-/// 分片大小目标：8MB。太小会放大每请求的认证/握手开销，太大则并行粒度不够
-const int _shardTargetBytes = 8 * 1024 * 1024;
-
-/// 在后台 isolate 中构建 WebDAV 分片目录：
-/// data.zip（DEFLATE）+ images_NNN.zip（图片 STORE 直存）+ manifest.json
-Future<_ShardComputeResult> _buildShardsInIsolate(_ShardComputeParams params) async {
-  final unique = DateTime.now().microsecondsSinceEpoch;
-  final shardDir = Directory(path.join(params.tempDirPath, 'mooknote_shards_$unique'));
-  shardDir.createSync();
-
-  try {
-    final shardNames = <String>[];
-
-    // data.zip：仅 data.json（纯文本，DEFLATE 收益高）
-    final jsonString = const JsonEncoder.withIndent('  ').convert(params.backupData);
-    final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
-    final dataJsonFile = File(path.join(params.tempDirPath, 'mooknote_data_$unique.json'));
-    dataJsonFile.writeAsBytesSync(jsonBytes);
-    final dataEncoder = ZipFileEncoder();
-    dataEncoder.create(path.join(shardDir.path, 'data.zip'));
-    await dataEncoder.addFile(dataJsonFile, 'data.json');
-    await dataEncoder.close();
-    dataJsonFile.deleteSync();
-    shardNames.add('data.zip');
-
-    // 图片分片：按累计大小切片；图片本身已是压缩格式，STORE 直存
-    var imageCount = 0;
-    var shardIndex = 0;
-    var shardBytes = 0;
-    ZipFileEncoder? encoder;
-
-    Future<void> closeCurrent() async {
-      if (encoder != null) {
-        await encoder!.close();
-        encoder = null;
-      }
-    }
-
-    for (final imagePath in params.imagePaths) {
-      final file = File(imagePath);
-      if (!file.existsSync()) continue;
-      // 与单 zip 导出一致：统一用 /images/ 子串匹配提取相对路径，兼容旧路径
-      final normalized = imagePath.replaceAll('\\', '/');
-      final idx = normalized.indexOf('/images/');
-      final relativePath = idx >= 0 ? normalized.substring(idx + 8) : path.basename(imagePath);
-
-      final length = file.lengthSync();
-      if (encoder == null || (shardBytes > 0 && shardBytes + length > _shardTargetBytes)) {
-        await closeCurrent();
-        shardIndex++;
-        final name = 'images_${shardIndex.toString().padLeft(3, '0')}.zip';
-        encoder = ZipFileEncoder();
-        encoder!.create(path.join(shardDir.path, name));
-        shardNames.add(name);
-        shardBytes = 0;
-      }
-      await encoder!.addFile(file, 'images/$relativePath', ZipFileEncoder.STORE);
-      shardBytes += length;
-      imageCount++;
-    }
-    await closeCurrent();
-
-    // manifest.json：下载方只认含 manifest 的备份，上传方最后传它作为"提交点"
-    final manifest = {
-      'format': 'mooknote-sharded',
-      'version': 1,
-      'created': DateTime.now().toIso8601String(),
-      'shards': shardNames,
-      'movieCount': params.movieCount,
-      'bookCount': params.bookCount,
-      'noteCount': params.noteCount,
-      'imageCount': imageCount,
-    };
-    File(path.join(shardDir.path, 'manifest.json')).writeAsStringSync(jsonEncode(manifest));
-
-    return _ShardComputeResult(
-      shardDirPath: shardDir.path,
-      shardFileNames: shardNames,
-      imageCount: imageCount,
-    );
-  } catch (e) {
-    try { await shardDir.delete(recursive: true); } catch (_) {}
-    rethrow;
-  }
 }
 
 /// 在后台 isolate 中执行 JSON 编码 + ZIP 压缩，避免阻塞主线程

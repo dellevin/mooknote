@@ -142,6 +142,10 @@ class UserPrefs {
   bool get hideBottomNavOnScroll => prefs.getBool('hideBottomNavOnScroll') ?? true;
   Future<bool> setHideBottomNavOnScroll(bool value) => prefs.setBool('hideBottomNavOnScroll', value);
 
+  /// 调试模式：记录运行日志（默认关闭）
+  bool get debugMode => prefs.getBool('debugMode') ?? false;
+  Future<bool> setDebugMode(bool value) => prefs.setBool('debugMode', value);
+
   /// 是否显示观影标签
   bool get showMovieTab => prefs.getBool('showMovieTab') ?? true;
   Future<bool> setShowMovieTab(bool value) => prefs.setBool('showMovieTab', value);

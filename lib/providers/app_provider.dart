@@ -308,40 +308,52 @@ class AppProvider extends ChangeNotifier {
   
   // 加载影视数据
   Future<void> loadMovies() async {
+    final sw = Stopwatch()..start();
     _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().effectiveMovieSortMode);
+    debugPrint('[AppProvider] 影视加载完成: ${_movies.length} 条, ${sw.elapsedMilliseconds}ms');
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
   // 加载书籍数据
   Future<void> loadBooks() async {
+    final sw = Stopwatch()..start();
     _books = await _bookDao.getAllBooks(sortMode: UserPrefs().effectiveBookSortMode);
+    debugPrint('[AppProvider] 书籍加载完成: ${_books.length} 条, ${sw.elapsedMilliseconds}ms');
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
   // 加载笔记数据
   Future<void> loadNotes({int? sortMode}) async {
+    final sw = Stopwatch()..start();
     _notes = await _noteDao.getAllNotes(sortMode: sortMode ?? UserPrefs().noteSortMode);
+    debugPrint('[AppProvider] 笔记加载完成: ${_notes.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
   // 加载游戏数据
   Future<void> loadGames() async {
+    final sw = Stopwatch()..start();
     _games = await _gameDao.getAllGames(sortMode: UserPrefs().effectiveGameSortMode);
+    debugPrint('[AppProvider] 游戏加载完成: ${_games.length} 条, ${sw.elapsedMilliseconds}ms');
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
 
   // 加载片单数据
   Future<void> loadPlaylists() async {
+    final sw = Stopwatch()..start();
     _playlists = await _playlistDao.getAllPlaylists();
+    debugPrint('[AppProvider] 片单加载完成: ${_playlists.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
   // 加载人物数据
   Future<void> loadPeople() async {
+    final sw = Stopwatch()..start();
     _people = await _personDao.getAllPeople();
+    debugPrint('[AppProvider] 人物加载完成: ${_people.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
@@ -453,7 +465,9 @@ class AppProvider extends ChangeNotifier {
   // ========== 自定义模块 CRUD ==========
 
   Future<void> loadCustomModules() async {
+    final sw = Stopwatch()..start();
     _customModules = await _customModuleDao.getAllModules();
+    debugPrint('[AppProvider] 自定义模块加载完成: ${_customModules.length} 个, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
@@ -551,10 +565,37 @@ class AppProvider extends ChangeNotifier {
 
   // Setters
   void setMainTabIndex(int index) {
+    if (index != _mainTabIndex) {
+      debugPrint('[主页] 切换标签: ${_mainTabName(index)}');
+    }
     _mainTabIndex = index;
     // 写穿到启动标签偏好：点击选择常驻，重启后恢复上次选择
     UserPrefs().setDefaultMainTabIndex(index);
     notifyListeners();
+  }
+
+  /// 日志用：主标签名称
+  String _mainTabName(int index) {
+    switch (index) {
+      case -1:
+        return '主页';
+      case 0:
+        return '影视';
+      case 1:
+        return '阅读';
+      case 2:
+        return '笔记';
+      case 3:
+        return '游戏';
+      default:
+        if (index >= customModuleTabBase) {
+          final i = index - customModuleTabBase;
+          final modules = enabledCustomModules;
+          if (i >= 0 && i < modules.length) return modules[i].name;
+          return '自定义模块';
+        }
+        return '未知($index)';
+    }
   }
 
   void setHomeModuleSwitchMode(int mode) {
@@ -708,9 +749,13 @@ class AppProvider extends ChangeNotifier {
     _languageMode = prefs.languageMode;
     AppStrings.isEnglish = _languageMode == 2;
     AppTheme.setFontFamily(_fontFamily);
-    // 异步预加载已缓存的字体（不阻塞 UI）
+    // 异步预加载已缓存的字体（不阻塞 UI），注册完成后刷新页面让文本用上新字体
     if (_fontFamily.isNotEmpty) {
-      FontDownloadManager().preloadCachedFont(_fontFamily);
+      debugPrint('[字体] 启动恢复字体: $_fontFamily');
+      FontDownloadManager().preloadCachedFont(_fontFamily).then((ok) {
+        debugPrint('[字体] 预加载${ok ? '成功' : '失败'}: $_fontFamily');
+        if (ok) notifyListeners();
+      });
     }
     notifyListeners();
   }
@@ -725,6 +770,7 @@ class AppProvider extends ChangeNotifier {
 
   void setFontFamily(String family) {
     if (_fontFamily != family) {
+      debugPrint('[字体] 切换字体: ${_fontFamily.isEmpty ? '默认' : _fontFamily} → ${family.isEmpty ? '默认' : family}');
       _fontFamily = family;
       UserPrefs().setFontFamily(family);
       AppTheme.setFontFamily(family);
@@ -870,10 +916,32 @@ class AppProvider extends ChangeNotifier {
   
   // ─── 图片上传辅助 ────────────────────────────────────────────────
 
+  /// 日志用标题兜底：空标题/超长标题处理
+  static String _logTitle(String title) {
+    if (title.isEmpty) return '(无标题)';
+    return title.length > 30 ? '${title.substring(0, 30)}…' : title;
+  }
+
+  /// 日志用：按 id 从列表查标题，查不到返回 '?'
+  static String _titleById<T>(List<T> items, String id,
+      String Function(T) getId, String Function(T) getTitle) {
+    for (final e in items) {
+      if (getId(e) == id) return _logTitle(getTitle(e));
+    }
+    return '?';
+  }
+
+  /// 日志用：正文摘要（去换行，截 20 字）
+  static String _logSnippet(String text) {
+    final t = text.replaceAll('\n', ' ').trim();
+    return t.length > 20 ? '${t.substring(0, 20)}…' : t;
+  }
+
   // 添加影视记录
   Future<void> addMovie(Movie movie) async {
     await _movieDao.insertMovie(movie);
     _movies.add(movie);
+    debugPrint('[数据] 新增影视《${_logTitle(movie.title)}》');
     notifyListeners();
   }
 
@@ -881,6 +949,7 @@ class AppProvider extends ChangeNotifier {
     await _movieDao.updateMovie(movie);
     final idx = _movies.indexWhere((m) => m.id == movie.id);
     if (idx != -1) _movies[idx] = movie;
+    debugPrint('[数据] 更新影视《${_logTitle(movie.title)}》');
     notifyListeners();
   }
 
@@ -906,13 +975,17 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> removeMovie(String id) async {
     await _movieDao.deleteMovie(id);
-    _movies.removeWhere((m) => m.id == id);
+    final idx = _movies.indexWhere((m) => m.id == id);
+    final title = idx != -1 ? _movies[idx].title : '';
+    if (idx != -1) _movies.removeAt(idx);
+    debugPrint('[数据] 删除影视《${_logTitle(title)}》');
     notifyListeners();
   }
 
   Future<void> addBook(Book book) async {
     await _bookDao.insertBook(book);
     _books.add(book);
+    debugPrint('[数据] 新增书籍《${_logTitle(book.title)}》');
     notifyListeners();
   }
 
@@ -920,18 +993,23 @@ class AppProvider extends ChangeNotifier {
     await _bookDao.updateBook(book);
     final idx = _books.indexWhere((b) => b.id == book.id);
     if (idx != -1) _books[idx] = book;
+    debugPrint('[数据] 更新书籍《${_logTitle(book.title)}》');
     notifyListeners();
   }
 
   Future<void> removeBook(String id) async {
     await _bookDao.deleteBook(id);
-    _books.removeWhere((b) => b.id == id);
+    final idx = _books.indexWhere((b) => b.id == id);
+    final title = idx != -1 ? _books[idx].title : '';
+    if (idx != -1) _books.removeAt(idx);
+    debugPrint('[数据] 删除书籍《${_logTitle(title)}》');
     notifyListeners();
   }
 
   Future<void> addNote(Note note) async {
     await _noteDao.insertNote(note);
     _notes.add(note);
+    debugPrint('[数据] 新增笔记《${_logTitle(note.title)}》');
     notifyListeners();
   }
 
@@ -939,18 +1017,23 @@ class AppProvider extends ChangeNotifier {
     await _noteDao.updateNote(note);
     final idx = _notes.indexWhere((n) => n.id == note.id);
     if (idx != -1) _notes[idx] = note;
+    debugPrint('[数据] 更新笔记《${_logTitle(note.title)}》');
     notifyListeners();
   }
 
   Future<void> removeNote(String id) async {
     await _noteDao.deleteNote(id);
-    _notes.removeWhere((n) => n.id == id);
+    final idx = _notes.indexWhere((n) => n.id == id);
+    final title = idx != -1 ? _notes[idx].title : '';
+    if (idx != -1) _notes.removeAt(idx);
+    debugPrint('[数据] 删除笔记《${_logTitle(title)}》');
     notifyListeners();
   }
 
   Future<void> addGame(Game game) async {
     await _gameDao.insertGame(game);
     _games.add(game);
+    debugPrint('[数据] 新增游戏《${_logTitle(game.title)}》');
     notifyListeners();
   }
 
@@ -958,12 +1041,16 @@ class AppProvider extends ChangeNotifier {
     await _gameDao.updateGame(game);
     final idx = _games.indexWhere((g) => g.id == game.id);
     if (idx != -1) _games[idx] = game;
+    debugPrint('[数据] 更新游戏《${_logTitle(game.title)}》');
     notifyListeners();
   }
 
   Future<void> removeGame(String id) async {
     await _gameDao.deleteGame(id);
-    _games.removeWhere((g) => g.id == id);
+    final idx = _games.indexWhere((g) => g.id == id);
+    final title = idx != -1 ? _games[idx].title : '';
+    if (idx != -1) _games.removeAt(idx);
+    debugPrint('[数据] 删除游戏《${_logTitle(title)}》');
     notifyListeners();
   }
 
@@ -972,13 +1059,17 @@ class AppProvider extends ChangeNotifier {
   Future<void> addPlaylist(Playlist playlist) async {
     await _playlistDao.insertPlaylist(playlist);
     _playlists.add(playlist);
+    debugPrint('[数据] 新增片单《${_logTitle(playlist.name)}》');
     notifyListeners();
   }
 
   Future<void> removePlaylist(String id) async {
     await SyncTombstones.record('playlists', id);
     await _playlistDao.deletePlaylist(id);
-    _playlists.removeWhere((p) => p.id == id);
+    final idx = _playlists.indexWhere((p) => p.id == id);
+    final name = idx != -1 ? _playlists[idx].name : '';
+    if (idx != -1) _playlists.removeAt(idx);
+    debugPrint('[数据] 删除片单《${_logTitle(name)}》');
     notifyListeners();
   }
 
@@ -986,6 +1077,7 @@ class AppProvider extends ChangeNotifier {
     await _playlistDao.updatePlaylist(playlist);
     final idx = _playlists.indexWhere((p) => p.id == playlist.id);
     if (idx != -1) _playlists[idx] = playlist;
+    debugPrint('[数据] 更新片单《${_logTitle(playlist.name)}》');
     notifyListeners();
   }
 
@@ -1060,18 +1152,25 @@ class AppProvider extends ChangeNotifier {
   /// 添加影评
   Future<void> addMovieReview(MovieReview review) async {
     await _reviewDao.insertReview(review);
+    debugPrint('[数据] 新增影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 更新影评
   Future<void> updateMovieReview(MovieReview review) async {
     await _reviewDao.updateReview(review);
+    debugPrint('[数据] 更新影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 删除影评
   Future<void> removeMovieReview(String id) async {
+    final review = await _reviewDao.getReviewById(id);
     await _reviewDao.deleteReview(id);
+    final parent = review != null
+        ? _titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)
+        : '?';
+    debugPrint('[数据] 删除影评《$parent》');
     notifyListeners();
   }
 
@@ -1117,6 +1216,7 @@ class AppProvider extends ChangeNotifier {
   /// 添加海报
   Future<void> addMoviePoster(MoviePoster poster) async {
     await _posterDao.insertPoster(poster);
+    debugPrint('[数据] 新增海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
     notifyListeners();
   }
 
@@ -1128,6 +1228,7 @@ class AppProvider extends ChangeNotifier {
       await _posterDao.deletePoster(id);
       // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
       await _touchParentUpdatedAt('movies', poster.movieId);
+      debugPrint('[数据] 删除海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
     }
     notifyListeners();
   }
@@ -1147,18 +1248,25 @@ class AppProvider extends ChangeNotifier {
   /// 添加游戏评价
   Future<void> addGameReview(GameReview review) async {
     await _gameReviewDao.insertReview(review);
+    debugPrint('[数据] 新增游戏评价《${_titleById(_games, review.gameId, (g) => g.id, (g) => g.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 更新游戏评价
   Future<void> updateGameReview(GameReview review) async {
     await _gameReviewDao.updateReview(review);
+    debugPrint('[数据] 更新游戏评价《${_titleById(_games, review.gameId, (g) => g.id, (g) => g.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 删除游戏评价
   Future<void> removeGameReview(String id) async {
+    final review = await _gameReviewDao.getReviewById(id);
     await _gameReviewDao.deleteReview(id);
+    final parent = review != null
+        ? _titleById(_games, review.gameId, (g) => g.id, (g) => g.title)
+        : '?';
+    debugPrint('[数据] 删除游戏评价《$parent》');
     notifyListeners();
   }
 
@@ -1177,6 +1285,7 @@ class AppProvider extends ChangeNotifier {
   /// 添加游戏截图
   Future<void> addGameScreenshot(GameScreenshot screenshot) async {
     await _gameScreenshotDao.insertScreenshot(screenshot);
+    debugPrint('[数据] 新增游戏截图《${_titleById(_games, screenshot.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
@@ -1188,6 +1297,7 @@ class AppProvider extends ChangeNotifier {
       await _gameScreenshotDao.deleteScreenshot(id);
       // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
       await _touchParentUpdatedAt('games', screenshot.gameId);
+      debugPrint('[数据] 删除游戏截图《${_titleById(_games, screenshot.gameId, (g) => g.id, (g) => g.title)}》');
     }
     notifyListeners();
   }
@@ -1207,18 +1317,25 @@ class AppProvider extends ChangeNotifier {
   /// 添加书评
   Future<void> addBookReview(BookReview review) async {
     await _bookReviewDao.insertReview(review);
+    debugPrint('[数据] 新增书评《${_titleById(_books, review.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 更新书评
   Future<void> updateBookReview(BookReview review) async {
     await _bookReviewDao.updateReview(review);
+    debugPrint('[数据] 更新书评《${_titleById(_books, review.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 删除书评
   Future<void> removeBookReview(String id) async {
+    final review = await _bookReviewDao.getReviewById(id);
     await _bookReviewDao.deleteReview(id);
+    final parent = review != null
+        ? _titleById(_books, review.bookId, (b) => b.id, (b) => b.title)
+        : '?';
+    debugPrint('[数据] 删除书评《$parent》');
     notifyListeners();
   }
 
@@ -1237,6 +1354,7 @@ class AppProvider extends ChangeNotifier {
   /// 添加摘抄
   Future<void> addBookExcerpt(BookExcerpt excerpt) async {
     await _bookExcerptDao.insertExcerpt(excerpt);
+    debugPrint('[数据] 新增摘抄《${_titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(excerpt.content)}');
     notifyListeners();
   }
 
@@ -1244,18 +1362,25 @@ class AppProvider extends ChangeNotifier {
   Future<void> addBookExcerpts(List<BookExcerpt> excerpts) async {
     if (excerpts.isEmpty) return;
     await _bookExcerptDao.insertExcerpts(excerpts);
+    debugPrint('[数据] 批量新增摘抄《${_titleById(_books, excerpts.first.bookId, (b) => b.id, (b) => b.title)}》×${excerpts.length}');
     notifyListeners();
   }
 
   /// 更新摘抄
   Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
     await _bookExcerptDao.updateExcerpt(excerpt);
+    debugPrint('[数据] 更新摘抄《${_titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(excerpt.content)}');
     notifyListeners();
   }
 
   /// 删除摘抄
   Future<void> removeBookExcerpt(String id) async {
+    final excerpt = await _bookExcerptDao.getExcerptById(id);
     await _bookExcerptDao.deleteExcerpt(id);
+    final parent = excerpt != null
+        ? _titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)
+        : '?';
+    debugPrint('[数据] 删除摘抄《$parent》');
     notifyListeners();
   }
 
@@ -1547,12 +1672,15 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> toggleTagHidden(String tagId) async {
+    final tag = await _tagDao.getTagById(tagId);
     await _tagDao.toggleHidden(tagId);
+    debugPrint('[数据] 切换标签显隐「${tag?['name'] ?? '?'}」');
     notifyListeners();
   }
 
   Future<String> addTag(String name, String type, {String parentId = ''}) async {
     final id = await _tagDao.addTag(name, type, parentId: parentId);
+    debugPrint('[数据] 新增标签「$name」($type)');
     await _reloadByTagType(type);
     return id;
   }
@@ -1573,6 +1701,7 @@ class AppProvider extends ChangeNotifier {
   Future<bool> renameTag(String tagId, String newName, String type) async {
     final result = await _tagDao.renameTag(tagId, newName);
     if (result) {
+      debugPrint('[数据] 重命名标签为「$newName」($type)');
       await _reloadByTagType(type);
     }
     return result;
@@ -1580,13 +1709,18 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> deleteTag(String tagId, String type,
       {String? replacementName}) async {
+    final tag = await _tagDao.getTagById(tagId);
     await _tagDao.deleteTag(tagId, replacementName: replacementName);
+    debugPrint('[数据] 删除标签「${tag?['name'] ?? '?'}」($type)'
+        '${replacementName != null ? '，替换为「$replacementName」' : ''}');
     await _reloadByTagType(type);
   }
 
   /// 仅删除标签本身，不级联影响已有条目
   Future<void> deleteTagOnly(String tagId, String type) async {
+    final tag = await _tagDao.getTagById(tagId);
     await _tagDao.deleteTagOnly(tagId);
+    debugPrint('[数据] 移除标签「${tag?['name'] ?? '?'}」($type，不级联)');
     await _reloadByTagType(type);
   }
 
@@ -1669,12 +1803,14 @@ class AppProvider extends ChangeNotifier {
   /// 添加人物
   Future<void> addPerson(Person person) async {
     await _personDao.insertPerson(person);
+    debugPrint('[数据] 新增人物《${_logTitle(person.name)}》');
     await loadPeople();
   }
 
   /// 更新人物
   Future<void> updatePerson(Person person) async {
     await _personDao.updatePerson(person);
+    debugPrint('[数据] 更新人物《${_logTitle(person.name)}》');
     await loadPeople();
   }
 
@@ -1685,7 +1821,10 @@ class AppProvider extends ChangeNotifier {
 
   /// 软删除人物
   Future<void> removePerson(String id) async {
+    final idx = _people.indexWhere((p) => p.id == id);
+    final name = idx != -1 ? _people[idx].name : '';
     await _personDao.deletePerson(id);
+    debugPrint('[数据] 删除人物《${_logTitle(name)}》');
     await loadPeople();
   }
 
@@ -1919,22 +2058,28 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addMovieCharacter(MovieCharacter character) async {
     await _movieCharacterDao.insert(character);
+    debugPrint('[数据] 新增影视角色「${_logTitle(character.name)}」《${_titleById(_movies, character.movieId, (m) => m.id, (m) => m.title)}》');
     notifyListeners();
   }
 
   Future<void> updateMovieCharacter(MovieCharacter character) async {
     await _movieCharacterDao.update(character);
+    debugPrint('[数据] 更新影视角色「${_logTitle(character.name)}」《${_titleById(_movies, character.movieId, (m) => m.id, (m) => m.title)}》');
     notifyListeners();
   }
 
   Future<void> deleteMovieCharacter(String id) async {
+    final character = await _movieCharacterDao.getById(id);
     await _movieCharacterDao.delete(id);
+    debugPrint('[数据] 删除影视角色「${_logTitle(character?.name ?? '?')}」');
     notifyListeners();
   }
 
   /// 恢复已删除的影视角色
   Future<void> restoreMovieCharacter(String id) async {
     await _movieCharacterDao.restore(id);
+    final character = await _movieCharacterDao.getById(id);
+    debugPrint('[数据] 恢复影视角色「${_logTitle(character?.name ?? '?')}」');
     notifyListeners();
   }
 
@@ -1961,22 +2106,28 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addBookCharacter(BookCharacter character) async {
     await _bookCharacterDao.insert(character);
+    debugPrint('[数据] 新增书籍角色「${_logTitle(character.name)}」《${_titleById(_books, character.bookId, (b) => b.id, (b) => b.title)}》');
     notifyListeners();
   }
 
   Future<void> updateBookCharacter(BookCharacter character) async {
     await _bookCharacterDao.update(character);
+    debugPrint('[数据] 更新书籍角色「${_logTitle(character.name)}」《${_titleById(_books, character.bookId, (b) => b.id, (b) => b.title)}》');
     notifyListeners();
   }
 
   Future<void> deleteBookCharacter(String id) async {
+    final character = await _bookCharacterDao.getById(id);
     await _bookCharacterDao.delete(id);
+    debugPrint('[数据] 删除书籍角色「${_logTitle(character?.name ?? '?')}」');
     notifyListeners();
   }
 
   /// 恢复已删除的书籍角色
   Future<void> restoreBookCharacter(String id) async {
     await _bookCharacterDao.restore(id);
+    final character = await _bookCharacterDao.getById(id);
+    debugPrint('[数据] 恢复书籍角色「${_logTitle(character?.name ?? '?')}」');
     notifyListeners();
   }
 
@@ -2003,22 +2154,28 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addGameCharacter(GameCharacter character) async {
     await _gameCharacterDao.insert(character);
+    debugPrint('[数据] 新增游戏角色「${_logTitle(character.name)}」《${_titleById(_games, character.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
   Future<void> updateGameCharacter(GameCharacter character) async {
     await _gameCharacterDao.update(character);
+    debugPrint('[数据] 更新游戏角色「${_logTitle(character.name)}」《${_titleById(_games, character.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
   Future<void> deleteGameCharacter(String id) async {
+    final character = await _gameCharacterDao.getById(id);
     await _gameCharacterDao.delete(id);
+    debugPrint('[数据] 删除游戏角色「${_logTitle(character?.name ?? '?')}」');
     notifyListeners();
   }
 
   /// 恢复已删除的游戏角色
   Future<void> restoreGameCharacter(String id) async {
     await _gameCharacterDao.restore(id);
+    final character = await _gameCharacterDao.getById(id);
+    debugPrint('[数据] 恢复游戏角色「${_logTitle(character?.name ?? '?')}」');
     notifyListeners();
   }
 

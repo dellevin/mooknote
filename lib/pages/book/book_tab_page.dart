@@ -326,16 +326,22 @@ class _BookTabViewState extends State<_BookTabView>
     final sortMode = UserPrefs().effectiveBookSortMode;
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadBooksPaged(status: _status, offset: 0, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() {
-      _items.clear();
-      _items.addAll(list);
-      _offset = list.length;
-      _hasMore = list.length >= 20;
-      _isLoading = false;
-    });
-    _scheduleChainLoad();
+    try {
+      final list = await provider.loadBooksPaged(status: _status, offset: 0, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() {
+        _items.clear();
+        _items.addAll(list);
+        _offset = list.length;
+        _hasMore = list.length >= 20;
+        _isLoading = false;
+      });
+      _scheduleChainLoad();
+    } catch (e) {
+      debugPrint('[BookTab] 首屏加载失败: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasMore = false; });
+    }
   }
 
   Future<void> _loadMore() async {
@@ -343,15 +349,21 @@ class _BookTabViewState extends State<_BookTabView>
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveBookSortMode;
-    final list = await provider.loadBooksPaged(status: _status, offset: _offset, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() {
-      _items.addAll(list);
-      _offset += list.length;
-      _hasMore = list.length >= 20;
-      _isLoading = false;
-    });
-    _scheduleChainLoad();
+    try {
+      final list = await provider.loadBooksPaged(status: _status, offset: _offset, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() {
+        _items.addAll(list);
+        _offset += list.length;
+        _hasMore = list.length >= 20;
+        _isLoading = false;
+      });
+      _scheduleChainLoad();
+    } catch (e) {
+      debugPrint('[BookTab] 分页加载失败: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _refresh() async {
@@ -411,6 +423,7 @@ class _BookTabViewState extends State<_BookTabView>
             : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
         return GridView.builder(
           controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
@@ -434,6 +447,7 @@ class _BookTabViewState extends State<_BookTabView>
   Widget _buildListView() {
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
@@ -517,6 +531,7 @@ class _BookTabViewState extends State<_BookTabView>
   Widget _buildCoverCardView() {
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {

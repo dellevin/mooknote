@@ -334,16 +334,22 @@ class _GameTabViewState extends State<_GameTabView>
     final sortMode = UserPrefs().effectiveGameSortMode;
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() {
-      _items.clear();
-      _items.addAll(list);
-      _offset = list.length;
-      _hasMore = list.length >= 20;
-      _isLoading = false;
-    });
-    _scheduleChainLoad();
+    try {
+      final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() {
+        _items.clear();
+        _items.addAll(list);
+        _offset = list.length;
+        _hasMore = list.length >= 20;
+        _isLoading = false;
+      });
+      _scheduleChainLoad();
+    } catch (e) {
+      debugPrint('[GameTab] 首屏加载失败: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasMore = false; });
+    }
   }
 
   Future<void> _loadMore() async {
@@ -351,15 +357,21 @@ class _GameTabViewState extends State<_GameTabView>
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveGameSortMode;
-    final list = await provider.loadGamesPaged(status: _status, offset: _offset, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() {
-      _items.addAll(list);
-      _offset += list.length;
-      _hasMore = list.length >= 20;
-      _isLoading = false;
-    });
-    _scheduleChainLoad();
+    try {
+      final list = await provider.loadGamesPaged(status: _status, offset: _offset, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() {
+        _items.addAll(list);
+        _offset += list.length;
+        _hasMore = list.length >= 20;
+        _isLoading = false;
+      });
+      _scheduleChainLoad();
+    } catch (e) {
+      debugPrint('[GameTab] 分页加载失败: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _refresh() async {
@@ -422,6 +434,7 @@ class _GameTabViewState extends State<_GameTabView>
         final provider = context.read<AppProvider>();
         return GridView.builder(
           controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
@@ -444,6 +457,7 @@ class _GameTabViewState extends State<_GameTabView>
   Widget _buildListView() {
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
@@ -534,6 +548,7 @@ class _GameTabViewState extends State<_GameTabView>
   Widget _buildCoverCardView() {
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {

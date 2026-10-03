@@ -55,10 +55,11 @@ class GameDao {
   });
 
   static String _buildGameOrderBy(int sortMode) {
+    // 不用 NULLS LAST（SQLite 3.30+ 才支持），改用 "col IS NULL, col DESC" 兼容写法
     switch (sortMode) {
       case 1: return 'created_at DESC';
-      case 2: return 'rating DESC NULLS LAST, updated_at DESC';
-      case 3: return 'release_date DESC NULLS LAST, created_at DESC';
+      case 2: return 'rating IS NULL, rating DESC, updated_at DESC';
+      case 3: return 'release_date IS NULL, release_date DESC, created_at DESC';
       default: return 'updated_at DESC';
     }
   }

@@ -32,6 +32,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
   final _searchController = TextEditingController();
   bool _showTypePicker = false;
   final Set<String> _collapsedIds = {}; // 已折叠的标签ID（默认展开）
+  bool _selectionMode = false; // 多选模式：点击变勾选，底部出现批量操作栏
+  final Set<String> _selectedIds = {};
 
   @override
   void initState() {
@@ -104,11 +106,117 @@ class _TagManagementPageState extends State<TagManagementPage> {
   }
 
   void _onTabChanged(int index) {
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      _exitSelection();
+    });
     _loadTags(_tabTypes[index]);
   }
 
   String get _currentType => _tabTypes[_currentIndex];
+
+  // ─── 多选模式 ──────────────────────────────────────────────────────────
+
+  void _exitSelection() {
+    _selectionMode = false;
+    _selectedIds.clear();
+  }
+
+  void _toggleSelected(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _toggleSelectAll() {
+    final tags = _tagCache[_currentType] ?? [];
+    setState(() {
+      if (_selectedIds.length == tags.length) {
+        _selectedIds.clear();
+      } else {
+        _selectedIds
+          ..clear()
+          ..addAll(tags.map((t) => t['id'] as String));
+      }
+    });
+  }
+
+  /// 当前类型下所有被选中的标签
+  List<Map<String, dynamic>> _selectedTags() {
+    return (_tagCache[_currentType] ?? [])
+        .where((t) => _selectedIds.contains(t['id'] as String))
+        .toList();
+  }
+
+  Widget _buildSelectionBar(ColorScheme colors) {
+    final hasSelection = _selectedIds.isNotEmpty;
+    final sel = _selectedTags();
+    // 全部已隐藏时按钮变为"取消隐藏"，否则把未隐藏的设为隐藏
+    final allHidden =
+        sel.isNotEmpty && sel.every((t) => (t['is_hidden'] as int?) == 1);
+    return SafeArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          border: Border(
+              top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _selectionAction(
+              allHidden
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              allHidden ? '取消隐藏'.tr : '隐藏'.tr,
+              hasSelection ? _batchToggleHidden : null,
+              colors,
+            ),
+            _selectionAction(
+              Icons.drive_file_move_outlined,
+              '移动到分类'.tr,
+              hasSelection ? _batchMove : null,
+              colors,
+            ),
+            _selectionAction(
+              Icons.delete_outline,
+              '删除'.tr,
+              hasSelection ? _batchDelete : null,
+              colors,
+              isDestructive: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _selectionAction(
+      IconData icon, String label, VoidCallback? onTap, ColorScheme colors,
+      {bool isDestructive = false}) {
+    final color = onTap == null
+        ? colors.onSurface.withValues(alpha: 0.25)
+        : isDestructive
+            ? colors.error
+            : colors.onSurface.withValues(alpha: 0.75);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(fontSize: 11, color: color)),
+        ]),
+      ),
+    );
+  }
 
   // ─── build ─────────────────────────────────────────────────────────────
 
@@ -118,19 +226,44 @@ class _TagManagementPageState extends State<TagManagementPage> {
 
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
-      appBar: AppBar(title: Text('标签'.tr), actions: [
-        _isSyncing
-            ? Padding(padding: const EdgeInsets.all(16),
-                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
-            : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签'.tr, onPressed: _syncTags),
-      ]),
+      appBar: AppBar(
+        leading: _selectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                tooltip: '退出多选'.tr,
+                onPressed: () => setState(_exitSelection),
+              )
+            : null,
+        title: Text(_selectionMode
+            ? '已选 {n} 项'.trf({'n': _selectedIds.length})
+            : '标签'.tr),
+        actions: [
+          if (_selectionMode)
+            IconButton(
+              icon: const Icon(Icons.select_all, size: 20),
+              tooltip: '全选'.tr,
+              onPressed: _toggleSelectAll,
+            )
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.checklist, size: 20),
+              tooltip: '多选'.tr,
+              onPressed: () => setState(() => _selectionMode = true),
+            ),
+            _isSyncing
+                ? Padding(padding: const EdgeInsets.all(16),
+                    child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
+                : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签'.tr, onPressed: _syncTags),
+          ],
+        ],
+      ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         switchInCurve: Curves.easeOut,
         switchOutCurve: Curves.easeIn,
         child: _buildTagList(_currentType),
       ),
-      floatingActionButton: Column(
+      floatingActionButton: _selectionMode ? null : Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -202,6 +335,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
           ),
         ],
       ),
+      bottomNavigationBar: _selectionMode ? _buildSelectionBar(colors) : null,
     );
   }
 
@@ -451,6 +585,37 @@ class _TagManagementPageState extends State<TagManagementPage> {
       ],
     );
 
+    // 多选模式：点击勾选，禁用拖拽
+    if (_selectionMode) {
+      final selected = _selectedIds.contains(id);
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _toggleSelected(id),
+        child: Container(
+          decoration: BoxDecoration(
+            color: selected
+                ? colors.primary.withValues(alpha: 0.07)
+                : Colors.transparent,
+            border: depth == 0
+                ? Border(
+                    bottom: BorderSide(color: colors.outlineVariant, width: 0.5))
+                : null,
+          ),
+          child: Row(children: [
+            Expanded(child: rowContent),
+            Icon(
+              selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 20,
+              color: selected
+                  ? colors.primary
+                  : colors.onSurface.withValues(alpha: 0.25),
+            ),
+            const SizedBox(width: 4),
+          ]),
+        ),
+      );
+    }
+
     // 拖动目标：把拖来的标签设为当前标签的子级
     return DragTarget<Map<String, dynamic>>(
       onWillAcceptWithDetails: (details) => _canDropOn(details.data, tag),
@@ -600,16 +765,27 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final tagId = tag['id'] as String;
     final isNew = tagId == _newlyAddedTagId;
     final isHidden = (tag['is_hidden'] as int?) == 1;
+    final selected = _selectionMode && _selectedIds.contains(tagId);
 
     return GestureDetector(
       key: ValueKey(tagId),
-      onTap: () => _showTagMenu(tag),
-      onLongPress: () => _showTagMenu(tag),
+      onTap: () => _selectionMode ? _toggleSelected(tagId) : _showTagMenu(tag),
+      onLongPress: () {
+        if (!_selectionMode) _showTagMenu(tag);
+      },
       child: Opacity(
         opacity: isHidden ? 0.4 : 1.0,
-        child: isNew
-            ? _NewTagHighlight(child: _tagChipContent(name, count, colors, isHidden: isHidden))
-            : _tagChipContent(name, count, colors, isHidden: isHidden),
+        child: Container(
+          decoration: selected
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colors.primary, width: 1.5),
+                )
+              : null,
+          child: isNew
+              ? _NewTagHighlight(child: _tagChipContent(name, count, colors, isHidden: isHidden))
+              : _tagChipContent(name, count, colors, isHidden: isHidden),
+        ),
       ),
     );
   }
@@ -721,7 +897,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 ),
                 _menuAction(Icons.drive_file_move_outlined, '移动到分类'.tr, colors, () {
                   Navigator.pop(ctx);
-                  _showMoveDialog(tag);
+                  _showMoveDialog([tag]);
                 }),
                 _menuAction(
                     Icons.open_in_new_outlined,
@@ -892,18 +1068,27 @@ class _TagManagementPageState extends State<TagManagementPage> {
     return result;
   }
 
-  void _showMoveDialog(Map<String, dynamic> tag) {
+  void _showMoveDialog(List<Map<String, dynamic>> tags) {
     final colors = Theme.of(context).colorScheme;
-    final tagId = tag['id'] as String;
-    final type = tag['type'] as String;
-    final name = tag['name'] as String;
-    final currentParent = (tag['parent_id'] as String?) ?? '';
+    final type = tags.first['type'] as String;
+    final single = tags.length == 1;
+    // 单个时高亮当前父级；批量时不高亮
+    final currentParent =
+        single ? ((tags.first['parent_id'] as String?) ?? '') : '';
+    final title = single
+        ? '移动到「{name}」'.trf({'name': tags.first['name'] as String})
+        : '移动 {n} 个标签'.trf({'n': tags.length});
 
+    // 目标候选：排除所有被移动标签及各自的后代（防成环）
     final allTags = _tagCache[type] ?? [];
-    final descendants = _collectDescendants(allTags, tagId);
-    final candidates = allTags
-        .where((t) => (t['id'] as String) != tagId && !descendants.contains(t['id'] as String))
-        .toList();
+    final excluded = <String>{};
+    for (final t in tags) {
+      final id = t['id'] as String;
+      excluded.add(id);
+      excluded.addAll(_collectDescendants(allTags, id));
+    }
+    final candidates =
+        allTags.where((t) => !excluded.contains(t['id'] as String)).toList();
 
     var query = '';
 
@@ -932,7 +1117,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                     )),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text('移动到「{name}」'.trf({'name': name}), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: bc.onSurface)),
+                      child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: bc.onSurface)),
                     ),
                     // 搜索框
                     Padding(
@@ -984,7 +1169,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                       icon: Icons.home_outlined,
                       title: '顶级（无父级）'.tr,
                       selected: currentParent.isEmpty,
-                      onTap: () => _doMoveParent(ctx, tagId, type, ''),
+                      onTap: () => _doMoveParent(ctx, tags, ''),
                     ),
                     if (filtered.isNotEmpty) ...[
                       Padding(
@@ -1003,7 +1188,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                             icon: Icons.folder_outlined,
                             title: c['name'] as String,
                             selected: c['id'] == currentParent,
-                            onTap: () => _doMoveParent(ctx, tagId, type, c['id'] as String),
+                            onTap: () => _doMoveParent(ctx, tags, c['id'] as String),
                           )).toList(),
                         ),
                       ),
@@ -1022,12 +1207,20 @@ class _TagManagementPageState extends State<TagManagementPage> {
     );
   }
 
-  Future<void> _doMoveParent(BuildContext ctx, String tagId, String type, String parentId) async {
-    final success = await context.read<AppProvider>().setTagParent(tagId, type, parentId);
-    if (ctx.mounted) {
-      Navigator.pop(ctx);
-      ToastUtil.show(context, success ? '移动成功'.tr : '无法移动到该分类'.tr);
+  Future<void> _doMoveParent(BuildContext ctx, List<Map<String, dynamic>> tags, String parentId) async {
+    final provider = context.read<AppProvider>();
+    final type = tags.first['type'] as String;
+    var ok = true;
+    for (final t in tags) {
+      final r = await provider.setTagParent(t['id'] as String, type, parentId);
+      ok = ok && r;
     }
+    if (ctx.mounted) Navigator.pop(ctx);
+    if (!mounted) return;
+    ToastUtil.show(context, ok
+        ? '移动成功'.tr
+        : (tags.length == 1 ? '无法移动到该分类'.tr : '部分标签无法移动到该分类'.tr));
+    setState(_exitSelection);
     await _loadTags(type);
   }
 
@@ -1056,6 +1249,114 @@ class _TagManagementPageState extends State<TagManagementPage> {
         ),
       ),
     );
+  }
+
+  // ─── 批量操作 ──────────────────────────────────────────────────────────
+
+  /// 批量隐藏/取消隐藏：全部已隐藏则全部取消，否则把未隐藏的设为隐藏
+  Future<void> _batchToggleHidden() async {
+    final tags = _selectedTags();
+    if (tags.isEmpty) return;
+    final allHidden = tags.every((t) => (t['is_hidden'] as int?) == 1);
+    final provider = context.read<AppProvider>();
+    for (final t in tags) {
+      final hidden = (t['is_hidden'] as int?) == 1;
+      // 只翻转需要变化的一侧，混合状态结果可预期
+      if (hidden == allHidden) {
+        await provider.toggleTagHidden(t['id'] as String);
+      }
+    }
+    if (!mounted) return;
+    ToastUtil.show(context, allHidden
+        ? '已取消隐藏 {n} 个标签'.trf({'n': tags.length})
+        : '已隐藏 {n} 个标签'.trf({'n': tags.length}));
+    setState(_exitSelection);
+    await _loadTags(_currentType);
+  }
+
+  void _batchMove() {
+    final tags = _selectedTags();
+    if (tags.isEmpty) return;
+    _showMoveDialog(tags);
+  }
+
+  /// 批量删除：仅删除标签 或 从所有条目中移除（批量不支持替换，避免歧义）
+  void _batchDelete() {
+    final tags = _selectedTags();
+    if (tags.isEmpty) return;
+    final type = _currentType;
+    String selectedAction = 'deleteOnly';
+
+    appDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final bc = Theme.of(ctx).colorScheme;
+          return AlertDialog(
+            backgroundColor: bc.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('删除 {n} 个标签'.trf({'n': tags.length}),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: bc.onSurface)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDeleteOption(
+                  value: 'deleteOnly',
+                  groupValue: selectedAction,
+                  onChanged: (v) => setDialogState(() => selectedAction = v!),
+                  title: '仅删除标签'.tr,
+                  subtitle: '保留已有条目上的标签名，不影响数据'.tr,
+                  colors: bc,
+                ),
+                const SizedBox(height: 8),
+                _buildDeleteOption(
+                  value: 'remove',
+                  groupValue: selectedAction,
+                  onChanged: (v) => setDialogState(() => selectedAction = v!),
+                  title: '从所有条目中移除'.tr,
+                  subtitle: '彻底清除这些标签在所有条目中的记录'.tr,
+                  colors: bc,
+                ),
+              ],
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消'.tr, style: TextStyle(color: bc.onSurface.withValues(alpha: 0.4)))),
+              Container(
+                decoration: BoxDecoration(color: const Color(0xFFE53935), borderRadius: BorderRadius.circular(20)),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.pop(ctx, selectedAction),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Text('删除'.tr, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          );
+        },
+      ),
+    ).then((action) async {
+      if (action == null || !mounted) return;
+      final provider = context.read<AppProvider>();
+      for (final t in tags) {
+        final id = t['id'] as String;
+        if (action == 'deleteOnly') {
+          await provider.deleteTagOnly(id, type);
+        } else {
+          await provider.deleteTag(id, type);
+        }
+      }
+      if (!mounted) return;
+      ToastUtil.show(context, '删除成功'.tr);
+      setState(_exitSelection);
+      await _loadTags(type);
+    });
   }
 
   // ─── 添加标签 ──────────────────────────────────────────────────────────

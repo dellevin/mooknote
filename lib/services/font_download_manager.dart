@@ -71,7 +71,10 @@ class FontDownloadManager {
   /// 返回加载成功后的 family 名称
   Future<String?> loadFontFile(String filePath, {String? family}) async {
     final file = File(filePath);
-    if (!await file.exists()) return null;
+    if (!await file.exists()) {
+      debugPrint('[FontDownload] 字体文件不存在: $filePath');
+      return null;
+    }
 
     final fileName = path.basename(filePath);
     final familyName = family ?? path.basenameWithoutExtension(fileName);
@@ -87,7 +90,9 @@ class FontDownloadManager {
       loader.addFont(Future.value(ByteData.sublistView(bytes)));
       await loader.load();
       _loadedFonts.add(familyName);
-      debugPrint('[FontDownload] 字体加载成功: $familyName');
+      debugPrint('[FontDownload] 字体加载成功: $familyName (来源: $filePath)');
+      // 复制到缓存目录，否则重启后 preloadCachedFont 找不到文件
+      await _persistFontFile(file, familyName);
       return familyName;
     } catch (e) {
       debugPrint('[FontDownload] 字体加载失败: $familyName, error=$e');
@@ -95,30 +100,42 @@ class FontDownloadManager {
     }
   }
 
-  /// 预加载已缓存的字体（应用启动时调用）
-  Future<void> preloadCachedFont(String family) async {
-    if (family.isEmpty) return;
-    if (_loadedFonts.contains(family)) return;
+  /// 把字体文件复制到缓存目录（源文件已在缓存目录则跳过）
+  Future<void> _persistFontFile(File source, String familyName) async {
+    try {
+      final fontDir = await _getFontDir();
+      final ext = path.extension(source.path).toLowerCase();
+      final dest = File(path.join(fontDir.path, '$familyName$ext'));
+      if (source.path == dest.path) return;
+      await source.copy(dest.path);
+      debugPrint('[FontDownload] 字体已缓存: ${dest.path}');
+    } catch (e) {
+      debugPrint('[FontDownload] 字体缓存失败: $e');
+    }
+  }
 
+  /// 预加载已缓存的字体（应用启动时调用）
+  /// 返回是否成功注册字体
+  Future<bool> preloadCachedFont(String family) async {
+    if (family.isEmpty) return false;
+    if (_loadedFonts.contains(family)) return true;
+
+    debugPrint('[FontDownload] 启动预加载: $family');
     // 尝试从默认字体目录加载
     try {
       final fontDir = await _getFontDir();
-      final file = File(path.join(fontDir.path, '$family.ttf'));
-      if (await file.exists()) {
-        await loadFontFile(file.path, family: family);
-        return;
-      }
-      // 尝试其他扩展名
-      for (final ext in ['.otf', '.ttc']) {
-        final file2 = File(path.join(fontDir.path, '$family$ext'));
-        if (await file2.exists()) {
-          await loadFontFile(file2.path, family: family);
-          return;
+      for (final ext in ['.ttf', '.otf', '.ttc']) {
+        final file = File(path.join(fontDir.path, '$family$ext'));
+        if (await file.exists()) {
+          final result = await loadFontFile(file.path, family: family);
+          return result != null;
         }
       }
+      debugPrint('[FontDownload] 预加载失败: 缓存目录未找到 $family (${fontDir.path})');
     } catch (e) {
-      debugPrint('[FontDownload] 预加载失败: $family, error=$e');
+      debugPrint('[FontDownload] 预加载异常: $family, error=$e');
     }
+    return false;
   }
 
   /// 获取字体缓存目录

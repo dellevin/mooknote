@@ -18,6 +18,7 @@ import 'utils/app_router.dart';
 import 'utils/platform_utils.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
+import 'services/log_service.dart';
 import 'services/usage_stats_service.dart';
 import 'services/sync/backup_service.dart';
 import 'services/sync/webdav_service.dart';
@@ -29,7 +30,7 @@ import 'widgets/app_shell.dart';
 import 'widgets/frosted_background.dart';
 import './widgets/app_overlay.dart';
 
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver = LoggingRouteObserver();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +48,10 @@ void main() async {
     });
   }
   await UserPrefs.init();
+  // 调试模式：接管全局日志输出
+  if (UserPrefs().debugMode) {
+    LogService.instance.install();
+  }
   final appProvider = AppProvider();
   runApp(MyApp(appProvider: appProvider));
 
@@ -406,6 +411,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('[App] 生命周期: $state');
     if (state == AppLifecycleState.resumed) {
       _applySystemUI();
       // 从备份页返回后可能改了自动备份设置，重新启动定时器

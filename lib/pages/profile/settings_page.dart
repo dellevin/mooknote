@@ -10,8 +10,10 @@ import '../../utils/platform_utils.dart';
 import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
 import '../../services/media_scan_channel.dart';
+import '../../services/log_service.dart';
 import '../online_search/enhanced_search_settings_page.dart';
 import '../settings/legal_page.dart';
+import '../settings/debug_log_page.dart';
 import 'app_icon_picker_page.dart';
 import 'feature_settings_page.dart';
 import 'layout_settings_page.dart';
@@ -32,6 +34,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   bool _hideBottomNavOnScroll = true;
+  bool _debugMode = false;
   int _themeMode = 0; // 0=系统, 1=浅色, 2=深色
   String _fontFamily = '';
 
@@ -39,6 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _hideBottomNavOnScroll = _userPrefs.hideBottomNavOnScroll;
+    _debugMode = _userPrefs.debugMode;
     _themeMode = _userPrefs.themeMode;
     _fontFamily = _userPrefs.fontFamily;
   }
@@ -158,6 +162,32 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: '下滑时自动隐藏底部导航栏'.tr,
               value: _hideBottomNavOnScroll,
               onChanged: _toggleHideBottomNavOnScroll,
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+          ],
+          _buildSwitchItem(
+            icon: Icons.bug_report_outlined,
+            title: '调试模式'.tr,
+            subtitle: '记录应用运行日志'.tr,
+            value: _debugMode,
+            onChanged: _toggleDebugMode,
+          ),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          if (_debugMode) ...[
+            _buildNavigationItem(
+              icon: Icons.article_outlined,
+              title: '运行日志'.tr,
+              subtitle: '查看、按时间筛选和保存日志'.tr,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const DebugLogPage())),
             ),
             Divider(
                 height: 0.5,
@@ -293,6 +323,12 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleHideBottomNavOnScroll(bool value) async {
     await _userPrefs.setHideBottomNavOnScroll(value);
     setState(() => _hideBottomNavOnScroll = value);
+  }
+
+  Future<void> _toggleDebugMode(bool value) async {
+    await _userPrefs.setDebugMode(value);
+    if (value) LogService.instance.install();
+    setState(() => _debugMode = value);
   }
 
   void _showProfileEditDialog(BuildContext context) {

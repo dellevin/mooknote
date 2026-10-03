@@ -338,17 +338,23 @@ class _MovieTabViewState extends State<_MovieTabView>
     final sortMode = UserPrefs().effectiveMovieSortMode;
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
-    final list = await provider.loadMoviesPaged(
-        status: _status, category: _category, offset: 0, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() {
-      _items.clear();
-      _items.addAll(list);
-      _offset = list.length;
-      _hasMore = list.length >= 20;
-      _isLoading = false;
-    });
-    _scheduleChainLoad();
+    try {
+      final list = await provider.loadMoviesPaged(
+          status: _status, category: _category, offset: 0, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() {
+        _items.clear();
+        _items.addAll(list);
+        _offset = list.length;
+        _hasMore = list.length >= 20;
+        _isLoading = false;
+      });
+      _scheduleChainLoad();
+    } catch (e) {
+      debugPrint('[MovieTab] 首屏加载失败: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasMore = false; });
+    }
   }
 
   Future<void> _loadMore() async {
@@ -356,16 +362,22 @@ class _MovieTabViewState extends State<_MovieTabView>
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveMovieSortMode;
-    final list = await provider.loadMoviesPaged(
-        status: _status, category: _category, offset: _offset, sortMode: sortMode);
-    if (!mounted) return;
-    setState(() {
-      _items.addAll(list);
-      _offset += list.length;
-      _hasMore = list.length >= 20;
-      _isLoading = false;
-    });
-    _scheduleChainLoad();
+    try {
+      final list = await provider.loadMoviesPaged(
+          status: _status, category: _category, offset: _offset, sortMode: sortMode);
+      if (!mounted) return;
+      setState(() {
+        _items.addAll(list);
+        _offset += list.length;
+        _hasMore = list.length >= 20;
+        _isLoading = false;
+      });
+      _scheduleChainLoad();
+    } catch (e) {
+      debugPrint('[MovieTab] 分页加载失败: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _refresh() async {
@@ -428,6 +440,7 @@ class _MovieTabViewState extends State<_MovieTabView>
         final provider = context.read<AppProvider>();
         return GridView.builder(
           controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
@@ -450,6 +463,7 @@ class _MovieTabViewState extends State<_MovieTabView>
   Widget _buildListView() {
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
@@ -542,6 +556,7 @@ class _MovieTabViewState extends State<_MovieTabView>
   Widget _buildCoverCardView() {
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {

@@ -226,6 +226,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
                       : RefreshIndicator(
                           onRefresh: _loadDeletedItems,
                           child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             itemCount: _filteredItems.length,
                             itemBuilder: (_, i) => _buildCard(_filteredItems[i]),
