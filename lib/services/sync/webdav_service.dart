@@ -52,6 +52,14 @@ enum SyncDirection {
   download,  // 仅下载
 }
 
+/// 远程备份条目：目录型（分片备份）或旧版单 zip 文件
+class _RemoteBackupEntry {
+  final String name;
+  final bool isDir;
+
+  _RemoteBackupEntry(this.name, this.isDir);
+}
+
 /// WebDAV 服务类 - 完整备份 zip 同步
 class WebDAVService {
   static final WebDAVService _instance = WebDAVService._internal();
@@ -187,14 +195,14 @@ class WebDAVService {
 
   /// 打包本地数据（第一步，用于上传前单独调用以显示进度）
   Future<AutoBackupExportResult> exportLocalData() async {
-    return BackupService.instance.exportDataForAutoBackup();
+    return BackupService.instance.exportDataForWebDAVShards();
   }
 
-  /// 上传已打包的数据（第二步）
+  /// 上传已打包的分片数据（第二步）
   /// 注意：本方法不参与 _isSyncing 锁——锁由 syncData 持有，
   /// 这里若误清标志会把在途同步的并发防护解除
   Future<SyncResult> uploadExportedData(AutoBackupExportResult exportResult) async {
-    if (!exportResult.success || exportResult.zipPath == null) {
+    if (!exportResult.success || exportResult.shardDirPath == null) {
       return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
     }
 
@@ -214,18 +222,17 @@ class WebDAVService {
 
       final client = http.Client();
       try {
-        final fileName = _generateBackupFileName();
-        final zipUrl = '$dirUrl/$fileName';
-        final success = await _uploadFile(client, zipUrl, username, password, exportResult.zipPath!);
-        try { await File(exportResult.zipPath!).delete(); } catch (_) {}
+        final backupName = _generateBackupDirName();
+        final success = await _uploadShardDir(client, dirUrl, backupName, username, password, exportResult);
+        try { await Directory(exportResult.shardDirPath!).delete(recursive: true); } catch (_) {}
         if (success) {
-          debugPrint('[WebDAV] 备份上传成功: $fileName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+          debugPrint('[WebDAV] 备份上传成功: $backupName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
           await _cleanupOldBackups(client, dirUrl, username, password);
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
           return SyncResult(
             success: true, message: '同步完成'.tr,
-            uploadedFiles: 1, uploadedImages: exportResult.imageCount,
+            uploadedFiles: exportResult.shardFileNames.length, uploadedImages: exportResult.imageCount,
           );
         } else {
           return SyncResult(success: false, message: '上传备份文件失败'.tr);
@@ -270,20 +277,19 @@ class WebDAVService {
 
       try {
         if (direction == SyncDirection.upload) {
-          final exportResult = await BackupService.instance.exportDataForAutoBackup();
-          if (!exportResult.success || exportResult.zipPath == null) {
+          final exportResult = await BackupService.instance.exportDataForWebDAVShards();
+          if (!exportResult.success || exportResult.shardDirPath == null) {
             return SyncResult(success: false, message: exportResult.errorMessage ?? '创建备份失败'.tr);
           }
 
-          final fileName = _generateBackupFileName();
-          final zipUrl = '$dirUrl/$fileName';
-          final success = await _uploadFile(client, zipUrl, username, password, exportResult.zipPath!);
-          // 清理临时 zip 文件
-          try { await File(exportResult.zipPath!).delete(); } catch (_) {}
+          final backupName = _generateBackupDirName();
+          final success = await _uploadShardDir(client, dirUrl, backupName, username, password, exportResult);
+          // 清理临时分片目录
+          try { await Directory(exportResult.shardDirPath!).delete(recursive: true); } catch (_) {}
           if (success) {
-            uploadedFiles = 1;
+            uploadedFiles = exportResult.shardFileNames.length;
             uploadedImages = exportResult.imageCount;
-            debugPrint('[WebDAV] 备份上传成功: $fileName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
+            debugPrint('[WebDAV] 备份上传成功: $backupName (影视${exportResult.movieCount} 书籍${exportResult.bookCount} 笔记${exportResult.noteCount} 图片${exportResult.imageCount})');
             // 清理旧备份
             await _cleanupOldBackups(client, dirUrl, username, password);
           } else {
@@ -291,34 +297,54 @@ class WebDAVService {
           }
 
         } else if (direction == SyncDirection.download) {
-          // 找到最新的备份文件
+          // 找到最新的备份（目录型或旧版单 zip）
           final backups = await _listRemoteBackups(client, dirUrl, username, password);
           if (backups.isEmpty) {
             return SyncResult(success: false, message: '服务器上没有备份文件，请先从其他设备上传'.tr);
           }
-          final latestFile = backups.last;
-          final zipUrl = '$dirUrl/$latestFile';
+          final latest = backups.last;
 
           final tempDir = await getTemporaryDirectory();
-          final tempZip = File(p.join(tempDir.path, 'mooknote_download.zip'));
-          final success = await _downloadFile(client, zipUrl, username, password, tempZip);
 
-          if (success && await tempZip.exists()) {
-            // 流式解压恢复（restoreFromZipFile 内部已捕获异常，不会抛出）
-            final importResult = await BackupService.instance.restoreFromZipFile(tempZip.path);
-            try { await tempZip.delete(); } catch (_) {}
+          if (latest.isDir) {
+            final localDirPath = await _downloadShardDir(client, dirUrl, latest.name, username, password, tempDir.path);
+            if (localDirPath != null) {
+              final importResult = await BackupService.instance.restoreFromShardDir(localDirPath);
+              try { await Directory(localDirPath).delete(recursive: true); } catch (_) {}
 
-            if (importResult.success) {
-              downloadedFiles = 1;
-              downloadedImages = importResult.stats?['图片'] ?? 0;
-              needReload = true;
-              debugPrint('[WebDAV] 备份恢复成功 ($latestFile): ${importResult.statsText}');
+              if (importResult.success) {
+                downloadedFiles = 1;
+                downloadedImages = importResult.stats?['图片'] ?? 0;
+                needReload = true;
+                debugPrint('[WebDAV] 备份恢复成功 (${latest.name}): ${importResult.statsText}');
+              } else {
+                return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败'.tr);
+              }
             } else {
-              return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败'.tr);
+              return SyncResult(success: false, message: '下载备份文件失败'.tr);
             }
           } else {
-            try { await tempZip.delete(); } catch (_) {}
-            return SyncResult(success: false, message: '下载备份文件失败'.tr);
+            final zipUrl = '$dirUrl/${latest.name}';
+            final tempZip = File(p.join(tempDir.path, 'mooknote_download.zip'));
+            final success = await _downloadFile(client, zipUrl, username, password, tempZip);
+
+            if (success && await tempZip.exists()) {
+              // 流式解压恢复（restoreFromZipFile 内部已捕获异常，不会抛出）
+              final importResult = await BackupService.instance.restoreFromZipFile(tempZip.path);
+              try { await tempZip.delete(); } catch (_) {}
+
+              if (importResult.success) {
+                downloadedFiles = 1;
+                downloadedImages = importResult.stats?['图片'] ?? 0;
+                needReload = true;
+                debugPrint('[WebDAV] 备份恢复成功 (${latest.name}): ${importResult.statsText}');
+              } else {
+                return SyncResult(success: false, message: importResult.errorMessage ?? '恢复备份失败'.tr);
+              }
+            } else {
+              try { await tempZip.delete(); } catch (_) {}
+              return SyncResult(success: false, message: '下载备份文件失败'.tr);
+            }
           }
         }
 
@@ -452,8 +478,9 @@ class WebDAVService {
     String url,
     String username,
     String password,
-    String filePath,
-  ) async {
+    String filePath, {
+    String contentType = 'application/zip',
+  }) async {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -461,16 +488,24 @@ class WebDAVService {
         return false;
       }
       final length = await file.length();
+      // 预探测认证方案：若服务器要求 Digest，首包即带正确 Authorization，
+      // 避免整个文件以 Basic 发出后被 401 拒绝、再整体重传一遍
+      final preemptAuth = await _probeAuthScheme(client, 'PUT', url, username, password);
+      final sw = Stopwatch()..start();
       final response = await _sendAuthedStream(
         client, 'PUT', url, username, password,
-        headers: {'Content-Type': 'application/zip'},
+        headers: {'Content-Type': contentType},
         contentLength: length,
         bodyStreamFactory: () => file.openRead(),
         timeout: _httpTimeout,
+        initialAuth: preemptAuth,
       );
+      final sentMs = sw.elapsedMilliseconds;
       await response.stream.drain();
 
-      debugPrint('[WebDAV] PUT $url -> ${response.statusCode}');
+      debugPrint('[WebDAV] PUT $url -> ${response.statusCode} '
+          '(${length ~/ 1024}KB, 发送等待 ${sentMs}ms, 总耗时 ${sw.elapsedMilliseconds}ms, '
+          '约 ${(length / 1024 / max(sw.elapsedMilliseconds / 1000, 0.001)).toStringAsFixed(0)}KB/s)');
       final putOk = response.statusCode == 200 ||
           response.statusCode == 201 ||
           response.statusCode == 204;
@@ -564,22 +599,25 @@ class WebDAVService {
 
     final client = http.Client();
     try {
-      // 列出备份文件，找到最新的
+      // 列出备份，找到最新的（目录型则 HEAD 其 manifest.json）
       final backups = await _listRemoteBackups(client, dirUrl, username, password);
       if (backups.isEmpty) return null;
 
-      final latestFile = backups.last;
-      final zipUrl = '$dirUrl/$latestFile';
+      final latest = backups.last;
+      final targetUrl = latest.isDir
+          ? '$dirUrl/${latest.name}/manifest.json'
+          : '$dirUrl/${latest.name}';
 
       final response = await _sendAuthed(
-        client, 'HEAD', zipUrl, username, password,
+        client, 'HEAD', targetUrl, username, password,
         timeout: _shortTimeout,
       );
       await response.stream.drain();
 
       if (response.statusCode == 200) {
         final lastModified = response.headers['last-modified'];
-        final contentLength = response.headers['content-length'];
+        // 目录型备份的总大小需累积分片，HEAD manifest 拿不到，返回 null
+        final contentLength = latest.isDir ? null : response.headers['content-length'];
         DateTime? modifiedTime;
         if (lastModified != null) {
           modifiedTime = HttpDate.parse(lastModified).toLocal();
@@ -598,14 +636,128 @@ class WebDAVService {
     }
   }
 
-  /// 生成带毫秒时间戳的备份文件名
-  String _generateBackupFileName() {
+  /// 生成带毫秒时间戳的备份目录名（分片型备份是一个目录而非单个 zip）
+  String _generateBackupDirName() {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    return '$_backupPrefix$ts.zip';
+    return '$_backupPrefix$ts';
   }
 
-  /// 获取远程目录中的备份文件列表（按时间戳升序）
-  Future<List<String>> _listRemoteBackups(
+  /// 并行上传分片目录：MKCOL 建目录 → 并发 4 路上传分片 → 最后传 manifest.json。
+  /// manifest 是"提交点"：只有它存在，下载方才认为该备份完整。
+  Future<bool> _uploadShardDir(
+    http.Client client,
+    String dirUrl,
+    String backupName,
+    String username,
+    String password,
+    AutoBackupExportResult exportResult,
+  ) async {
+    final backupUrl = '$dirUrl/$backupName';
+    final shardDir = Directory(exportResult.shardDirPath!);
+
+    final mkcol = await _sendAuthed(client, 'MKCOL', backupUrl, username, password);
+    await mkcol.stream.drain();
+    // 405 = 目录已存在，视为成功（时间戳命名正常不会撞）
+    if (mkcol.statusCode != 201 && mkcol.statusCode != 405) {
+      debugPrint('[WebDAV] MKCOL $backupUrl -> ${mkcol.statusCode}');
+      return false;
+    }
+
+    const concurrency = 4;
+    final names = exportResult.shardFileNames;
+    var failed = false;
+    var next = 0;
+    Future<void> worker() async {
+      while (!failed) {
+        final i = next++;
+        if (i >= names.length) return;
+        final ok = await _uploadFile(
+          client, '$backupUrl/${names[i]}', username, password,
+          p.join(shardDir.path, names[i]),
+        );
+        if (!ok) failed = true;
+      }
+    }
+    await Future.wait(List.generate(concurrency, (_) => worker()));
+
+    // 提交点：最后上传 manifest
+    if (!failed) {
+      failed = !await _uploadFile(
+        client, '$backupUrl/manifest.json', username, password,
+        p.join(shardDir.path, 'manifest.json'),
+        contentType: 'application/json',
+      );
+    }
+
+    if (failed) {
+      // 清理半成品目录，避免占用备份名额、干扰"最新备份"判断
+      await _deleteRemoteFile(client, backupUrl, username, password);
+      return false;
+    }
+    return true;
+  }
+
+  /// 下载分片型备份：先取 manifest.json 校验完整性，再并发 4 路下载全部分片。
+  /// 成功返回本地分片目录路径，失败返回 null。
+  Future<String?> _downloadShardDir(
+    http.Client client,
+    String dirUrl,
+    String backupName,
+    String username,
+    String password,
+    String tempDirPath,
+  ) async {
+    final backupUrl = '$dirUrl/$backupName';
+    final localDir = Directory(p.join(tempDirPath, 'mooknote_dl_${DateTime.now().microsecondsSinceEpoch}'));
+    await localDir.create(recursive: true);
+
+    Future<String?> fail() async {
+      try { await localDir.delete(recursive: true); } catch (_) {}
+      return null;
+    }
+
+    final manifestFile = File(p.join(localDir.path, 'manifest.json'));
+    if (!await _downloadFile(client, '$backupUrl/manifest.json', username, password, manifestFile)) {
+      debugPrint('[WebDAV] 分片备份缺少 manifest.json，视为不完整: $backupName');
+      return fail();
+    }
+
+    late final List<String> shards;
+    try {
+      final manifest = jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
+      shards = (manifest['shards'] as List).cast<String>();
+    } catch (e) {
+      debugPrint('[WebDAV] manifest 解析失败: $e');
+      return fail();
+    }
+    // 清单来自服务器，防止路径穿越写出本地目录
+    if (shards.any((s) => s.contains('/') || s.contains('\\') || s == '..' || s.isEmpty)) {
+      debugPrint('[WebDAV] manifest 含非法分片名');
+      return fail();
+    }
+
+    const concurrency = 4;
+    var failed = false;
+    var next = 0;
+    Future<void> worker() async {
+      while (!failed) {
+        final i = next++;
+        if (i >= shards.length) return;
+        final ok = await _downloadFile(
+          client, '$backupUrl/${shards[i]}', username, password,
+          File(p.join(localDir.path, shards[i])),
+        );
+        if (!ok) failed = true;
+      }
+    }
+    await Future.wait(List.generate(concurrency, (_) => worker()));
+
+    if (failed) return fail();
+    return localDir.path;
+  }
+
+  /// 获取远程目录中的备份列表（按时间戳升序；含目录型分片备份与旧版单 zip）
+  Future<List<_RemoteBackupEntry>> _listRemoteBackups(
     http.Client client,
     String dirUrl,
     String username,
@@ -629,21 +781,25 @@ class WebDAVService {
       // 兼容不同命名空间: <D:href>, <d:href>, <href>
       final hrefRegExp = RegExp(r'<(?:\w+:)?href[^>]*>([^<]+)</(?:\w+:)?href>', caseSensitive: false);
       final matches = hrefRegExp.allMatches(body);
-      final backupFiles = <String>[];
+      final backups = <_RemoteBackupEntry>[];
       for (final match in matches) {
         var href = match.group(1) ?? '';
         // URL decode
         href = Uri.decodeFull(href);
+        final isDir = href.endsWith('/');
         // 提取文件名部分
         final fileName = href.split('/').where((s) => s.isNotEmpty).lastOrNull;
-        if (fileName != null && fileName.startsWith(_backupPrefix) && fileName.endsWith('.zip')) {
-          backupFiles.add(fileName);
+        if (fileName == null || !fileName.startsWith(_backupPrefix)) continue;
+        if (isDir) {
+          backups.add(_RemoteBackupEntry(fileName, true));
+        } else if (fileName.endsWith('.zip')) {
+          backups.add(_RemoteBackupEntry(fileName, false));
         }
       }
-      // 按文件名中的时间戳升序排列
-      backupFiles.sort();
-      debugPrint('[WebDAV] 找到 ${backupFiles.length} 个备份文件: $backupFiles');
-      return backupFiles;
+      // 按名称中的时间戳升序排列
+      backups.sort((a, b) => a.name.compareTo(b.name));
+      debugPrint('[WebDAV] 找到 ${backups.length} 个备份: ${backups.map((e) => e.name).toList()}');
+      return backups;
     } catch (e) {
       debugPrint('[WebDAV] 列出备份文件失败: $e');
       return [];
@@ -683,10 +839,11 @@ class WebDAVService {
     if (backups.length <= _maxBackupCount) return;
 
     final toDelete = backups.sublist(0, backups.length - _maxBackupCount);
-    for (final fileName in toDelete) {
-      final fileUrl = '$dirUrl/$fileName';
+    for (final entry in toDelete) {
+      // DELETE 对目录型备份会递归删除整个集合
+      final fileUrl = '$dirUrl/${entry.name}';
       final deleted = await _deleteRemoteFile(client, fileUrl, username, password);
-      debugPrint('[WebDAV] 删除旧备份 $fileName: ${deleted ? '成功' : '失败'}');
+      debugPrint('[WebDAV] 删除旧备份 ${entry.name}: ${deleted ? '成功' : '失败'}');
     }
   }
 
@@ -770,8 +927,39 @@ class WebDAVService {
     return response;
   }
 
+  /// 探测目标 URL 的认证方案：先发一个无实体的 HEAD。
+  /// 若服务器要求 Digest，基于挑战直接算出 [method] 对应的 Authorization 返回，
+  /// 供后续带大实体的请求首包使用；Basic 可用或探测失败时返回 null，
+  /// 走原有的 Basic → 401 → Digest 重试逻辑。
+  Future<String?> _probeAuthScheme(
+    http.Client client,
+    String method,
+    String url,
+    String username,
+    String password,
+  ) async {
+    try {
+      final uri = Uri.parse(url);
+      final probe = http.Request('HEAD', uri);
+      probe.headers['Authorization'] = _basicAuth(username, password);
+      final resp = await client.send(probe).timeout(_shortTimeout);
+      await resp.stream.drain();
+      if (resp.statusCode == 401) {
+        final challenge = resp.headers['www-authenticate'];
+        if (challenge != null && challenge.toLowerCase().startsWith('digest')) {
+          return _buildDigestHeader(challenge, method, uri, username, password);
+        }
+      }
+    } catch (_) {
+      // 探测失败不阻塞主流程
+    }
+    return null;
+  }
+
   /// [_sendAuthed] 的流式上传变体：请求体由 [bodyStreamFactory] 按需打开
   /// （Digest 重试与重定向时会重新调用以获取新流），用于大文件上传。
+  /// [initialAuth] 为首包直接使用的 Authorization（如预探测得到的 Digest 头），
+  /// 避免带大实体的请求先以 Basic 发出再 401 重传。
   Future<http.StreamedResponse> _sendAuthedStream(
     http.Client client,
     String method,
@@ -782,6 +970,7 @@ class WebDAVService {
     required int contentLength,
     required Stream<List<int>> Function() bodyStreamFactory,
     Duration? timeout,
+    String? initialAuth,
     void Function(String newUrl)? onRedirect,
   }) async {
     final uri = Uri.parse(url);
@@ -789,7 +978,7 @@ class WebDAVService {
     http.StreamedRequest buildRequest(String? authorization) {
       final req = http.StreamedRequest(method, uri);
       if (headers != null) req.headers.addAll(headers);
-      req.headers['Authorization'] = authorization ?? _basicAuth(username, password);
+      req.headers['Authorization'] = authorization ?? initialAuth ?? _basicAuth(username, password);
       req.contentLength = contentLength;
       // 服务器提前关闭连接（如 Digest 挑战）时 sink 会拒绝写入，捕获后取消泵送
       StreamSubscription<List<int>>? sub;

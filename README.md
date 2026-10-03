@@ -172,7 +172,7 @@ flutter run -d emulator-5554
 
 flutter run -d  windows
 ```
-
+ 
 如果 `pub get` 失败，可尝试设置国内镜像：
 
 ```powershell
