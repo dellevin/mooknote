@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -45,12 +46,23 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
   /// 条目 id：新增时页面级生成一次（封面/多图目录与最终保存的条目 id 保持一致）
   late final String _itemId = widget.item?.id ?? const Uuid().v4();
 
+  /// 原型编辑模式：直接编辑条目 JSON（仅编辑已有条目时可用）
+  bool _rawMode = false;
+  final _JsonEditingController _rawController = _JsonEditingController();
+  String? _rawError;
+
   bool get _isEdit => widget.item != null;
 
   @override
   void initState() {
     super.initState();
     _loadDesign();
+  }
+
+  @override
+  void dispose() {
+    _rawController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDesign() async {
@@ -109,18 +121,31 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
         title: Text(_isEdit ? '编辑'.tr : '新增'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
         actions: [
-          if (!_loading && _design != null)
+          if (!_loading && _design != null) ...[
+            if (_isEdit)
+              IconButton(
+                icon: Icon(
+                  _rawMode ? Icons.dashboard_customize_outlined : Icons.data_object,
+                  size: 20,
+                  color: colors.primary,
+                ),
+                tooltip: _rawMode ? '表单编辑'.tr : '原型编辑（JSON）'.tr,
+                onPressed: _toggleRawMode,
+              ),
             TextButton(
-              onPressed: _save,
+              onPressed: _rawMode ? _saveRaw : _save,
               child: Text('保存'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.primary)),
             ),
+          ],
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _design == null
               ? _buildNoDesign(colors)
-              : _buildForm(colors),
+              : _rawMode
+                  ? _buildRawEditor(colors)
+                  : _buildForm(colors),
     );
   }
 
@@ -548,6 +573,214 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
     );
   }
 
+  // ─── 原型编辑（JSON） ───
+
+  void _toggleRawMode() {
+    setState(() {
+      _rawMode = !_rawMode;
+      if (_rawMode) {
+        _rawError = null;
+        _rawController.text =
+            const JsonEncoder.withIndent('  ').convert(_currentDataMerged());
+      }
+    });
+  }
+
+  /// 原始 data 叠加当前表单值：设计外旧字段也要展示出来，供手动清理/修正
+  Map<String, dynamic> _currentDataMerged() {
+    final merged = Map<String, dynamic>.from(widget.item?.data ?? const {});
+    _values.forEach((k, v) {
+      if (v == null || (v is String && v.isEmpty) || (v is List && v.isEmpty)) {
+        merged.remove(k);
+      } else {
+        merged[k] = v;
+      }
+    });
+    return merged;
+  }
+
+  Widget _buildRawEditor(ColorScheme colors) {
+    _rawController.colors = colors;
+    return Column(
+      children: [
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              controller: _rawController,
+              maxLines: null,
+              expands: true,
+              keyboardType: TextInputType.multiline,
+              textAlignVertical: TextAlignVertical.top,
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'monospace',
+                color: colors.onSurface,
+                height: 1.5,
+              ),
+              // 全局主题给输入框加了下划线边框，这里要全部显式置空
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                isCollapsed: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: (_) {
+                if (_rawError != null) setState(() => _rawError = null);
+              },
+            ),
+          ),
+        ),
+        if (_rawError != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Row(children: [
+              Icon(Icons.error_outline, size: 14, color: colors.error),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(_rawError!,
+                    style: TextStyle(fontSize: 12, color: colors.error)),
+              ),
+            ]),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: Text(
+            '直接编辑条目 JSON，保存时校验格式与字段类型，不通过不会保存'.tr,
+            style: TextStyle(
+                fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 校验原型编辑内容，返回错误信息（null = 通过）
+  String? _validateRawData(String text) {
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(text);
+    } on FormatException catch (e) {
+      return 'JSON 语法错误：${e.message}'.tr;
+    }
+    if (decoded is! Map) return '内容必须是 JSON 对象 {...}'.tr;
+
+    final byKey = {for (final f in _design!.fields) f.key: f};
+    for (final entry in decoded.entries) {
+      final f = byKey[entry.key];
+      if (f == null) continue; // 设计之外的旧字段不校验类型，允许保留或自行删除
+      final v = entry.value;
+      if (v == null) continue;
+      final err = _checkFieldValue(f, v);
+      if (err != null) return '「${f.label}」$err';
+    }
+    // 必填校验与表单模式一致
+    for (final f in _design!.fields) {
+      if (!f.required) continue;
+      final v = decoded[f.key];
+      final empty = v == null ||
+          (v is String && v.trim().isEmpty) ||
+          (v is List && v.isEmpty);
+      if (empty) return '「${f.label}」为必填项'.tr;
+    }
+    return null;
+  }
+
+  /// 按当前设计的字段类型校验单个值，返回错误描述（null = 通过）
+  String? _checkFieldValue(CustomFieldDef f, dynamic v) {
+    switch (f.type) {
+      case CustomFieldType.text:
+      case CustomFieldType.longText:
+      case CustomFieldType.poster:
+        return v is String ? null : '必须是字符串'.tr;
+      case CustomFieldType.status:
+        if (v is! String) return '必须是字符串'.tr;
+        if (f.options.isNotEmpty && !f.options.contains(v)) {
+          return '必须是已定义的状态选项之一'.tr;
+        }
+        return null;
+      case CustomFieldType.date:
+        if (v is! String) return '必须是字符串'.tr;
+        return DateTime.tryParse(v) != null ? null : '日期格式无效'.tr;
+      case CustomFieldType.multiText:
+      case CustomFieldType.multiImage:
+        return (v is List && v.every((e) => e is String))
+            ? null
+            : '必须是字符串数组'.tr;
+      case CustomFieldType.count:
+      case CustomFieldType.duration:
+        return v is int ? null : '必须是整数'.tr;
+      case CustomFieldType.rating:
+        return v is num ? null : '必须是数字'.tr;
+      case CustomFieldType.progress:
+        return (v is Map && v['current'] is int && v['total'] is int)
+            ? null
+            : '必须是 {"current": 整数, "total": 整数}'.tr;
+      case CustomFieldType.dateRange:
+        if (v is! Map) return '必须是 {"start": "日期", "end": "日期"}'.tr;
+        for (final k in ['start', 'end']) {
+          final d = v[k];
+          if (d != null && (d is! String || DateTime.tryParse(d) == null)) {
+            return '日期格式无效'.tr;
+          }
+        }
+        return null;
+    }
+  }
+
+  /// 原型编辑保存：先校验，通过后直接用 JSON 作为条目 data
+  Future<void> _saveRaw() async {
+    final err = _validateRawData(_rawController.text);
+    if (err != null) {
+      setState(() => _rawError = err);
+      return;
+    }
+    final decoded =
+        Map<String, dynamic>.from(jsonDecode(_rawController.text) as Map);
+    // 清理 null/空值，保持 data_json 精简
+    final data = <String, dynamic>{};
+    decoded.forEach((k, v) {
+      if (v == null) return;
+      if (v is String && v.isEmpty) return;
+      if (v is List && v.isEmpty) return;
+      data[k] = v;
+    });
+
+    final design = _design!;
+    String title = '';
+    final titleField = design.titleField;
+    if (titleField != null) title = data[titleField.key]?.toString() ?? '';
+    final posterField = design.firstFieldOf(CustomFieldType.poster);
+    final ratingField = design.firstFieldOf(CustomFieldType.rating);
+    final statusField = design.firstFieldOf(CustomFieldType.status);
+    final ratingV = ratingField != null ? data[ratingField.key] : null;
+
+    final item = CustomModuleItem(
+      id: _itemId,
+      moduleId: widget.module.id,
+      title: title,
+      coverPath: posterField != null ? data[posterField.key] as String? : null,
+      rating: ratingV is num ? ratingV.toDouble() : null,
+      status: statusField != null ? data[statusField.key] as String? : null,
+      data: data,
+      createdAt: widget.item!.createdAt,
+      updatedAt: DateTime.now(),
+    );
+    await _itemDao.updateItem(item);
+    if (!mounted) return;
+    context.read<AppProvider>().bumpCustomModuleItemsVersion();
+    Navigator.pop(context, true);
+  }
+
   // ─── 保存 ───
 
   Future<void> _save() async {
@@ -602,5 +835,54 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
     // 通知 tab 页刷新（条目可能来自底部 + 弹窗等外部入口）
     context.read<AppProvider>().bumpCustomModuleItemsVersion();
     Navigator.pop(context, true);
+  }
+}
+
+/// 原型编辑用的 JSON 语法高亮控制器：
+/// 键名=蓝、字符串=红、数字=绿、true/false/null=紫，颜色随明暗主题切换
+class _JsonEditingController extends TextEditingController {
+  ColorScheme? colors;
+
+  static final RegExp _tokenPattern = RegExp(
+    r'("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b',
+  );
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final base = style ?? const TextStyle();
+    final text = value.text;
+    if (text.isEmpty) return TextSpan(text: text, style: base);
+
+    final isDark = colors?.brightness == Brightness.dark;
+    final keyColor = isDark ? const Color(0xFF9CDCFE) : const Color(0xFF0451A5);
+    final stringColor = isDark ? const Color(0xFFCE9178) : const Color(0xFFA31515);
+    final numberColor = isDark ? const Color(0xFFB5CEA8) : const Color(0xFF098658);
+    final keywordColor = isDark ? const Color(0xFF569CD6) : const Color(0xFF7C3AED);
+
+    final children = <TextSpan>[];
+    var pos = 0;
+    for (final m in _tokenPattern.allMatches(text)) {
+      if (m.start > pos) {
+        children.add(TextSpan(text: text.substring(pos, m.start)));
+      }
+      final color = m.group(1) != null
+          ? (m.group(2) != null ? keyColor : stringColor)
+          : m.group(3) != null
+              ? numberColor
+              : keywordColor;
+      children.add(TextSpan(
+        text: m.group(0)!,
+        style: base.copyWith(color: color),
+      ));
+      pos = m.end;
+    }
+    if (pos < text.length) {
+      children.add(TextSpan(text: text.substring(pos)));
+    }
+    return TextSpan(style: base, children: children);
   }
 }

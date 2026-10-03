@@ -1,9 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../data/custom_module/custom_module_design_dao.dart';
+import '../../utils/platform_utils.dart';
+import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
 import 'custom_module_design_page.dart';
@@ -54,6 +61,13 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
         title: Text(module != null ? '{name} · 表单设计'.trf({'name': module.name}) : '表单设计'.tr,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined, size: 20),
+            tooltip: '导入设计'.tr,
+            onPressed: _importDesign,
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -124,6 +138,9 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
                   case 'rename':
                     _showRenameDialog(design);
                     break;
+                  case 'export':
+                    _exportDesign(design);
+                    break;
                   case 'delete':
                     _confirmDelete(design);
                     break;
@@ -133,6 +150,7 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
                 if (!design.isActive)
                   PopupMenuItem(value: 'activate', child: Text('设为使用中'.tr)),
                 PopupMenuItem(value: 'rename', child: Text('编辑'.tr)),
+                PopupMenuItem(value: 'export', child: Text('导出'.tr)),
                 PopupMenuItem(value: 'delete', child: Text('删除'.tr, style: TextStyle(color: colors.error))),
               ],
             ),
@@ -268,5 +286,118 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
         ],
       ),
     );
+  }
+
+  // ─── 导入 / 导出设计 ────────────────────────────────────────────────────
+
+  /// 导出设计为 JSON 文件：Android 写入 Download/mooknote/design/，桌面端存到指定位置
+  Future<void> _exportDesign(CustomModuleDesign design) async {
+    try {
+      final payload = {
+        'format': 'mooknote-form-design',
+        'version': 1,
+        'name': design.name,
+        'fields': design.fields.map((f) => f.toJson()).toList(),
+      };
+      final content = const JsonEncoder.withIndent('  ').convert(payload);
+      final fileName = '表单设计_${design.name}.json';
+      if (PlatformUtils.isDesktop) {
+        final savePath = await FilePicker.platform.saveFile(
+          dialogTitle: '导出表单设计'.tr,
+          fileName: fileName,
+        );
+        if (savePath == null) return;
+        await File(savePath).writeAsString(content);
+        if (mounted) ToastUtil.show(context, '已导出'.tr);
+      } else {
+        // Android：直接写入 /sdcard/Download/mooknote/design/
+        var status = await Permission.manageExternalStorage.status;
+        if (!status.isGranted) {
+          status = await Permission.manageExternalStorage.request();
+        }
+        if (!status.isGranted) {
+          status = await Permission.storage.request();
+        }
+        if (!status.isGranted) {
+          if (mounted) ToastUtil.show(context, '需要存储权限才能导出'.tr);
+          return;
+        }
+        final dir = Directory('/sdcard/Download/mooknote/design');
+        await dir.create(recursive: true);
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsString(content);
+        if (mounted) {
+          ToastUtil.show(context, '已导出到 {path}'.trf({'path': file.path}));
+        }
+      }
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '导出失败: $e'.tr);
+    }
+  }
+
+  /// 从 JSON 文件导入设计：作为当前模块的新设计插入（不覆盖已有设计）
+  Future<void> _importDesign() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: '导入表单设计'.tr,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final picked = result.files.first;
+      final String content;
+      if (picked.bytes != null) {
+        content = utf8.decode(picked.bytes!);
+      } else if (picked.path != null) {
+        content = await File(picked.path!).readAsString();
+      } else {
+        return;
+      }
+
+      final decoded = jsonDecode(content);
+      if (decoded is! Map ||
+          decoded['format'] != 'mooknote-form-design' ||
+          decoded['fields'] is! List) {
+        if (mounted) ToastUtil.show(context, '文件无效：不是表单设计文件'.tr);
+        return;
+      }
+      // 逐字段容错解析（与 fromJson 一致），但至少要有一个可用字段
+      final fields = <CustomFieldDef>[];
+      for (final e in decoded['fields'] as List) {
+        try {
+          fields.add(CustomFieldDef.fromJson(Map<String, dynamic>.from(e as Map)));
+        } catch (_) {}
+      }
+      if (fields.isEmpty) {
+        if (mounted) ToastUtil.show(context, '文件无效：没有可用字段'.tr);
+        return;
+      }
+
+      var name = (decoded['name'] ?? '').toString().trim();
+      if (name.isEmpty) name = '导入的设计'.tr;
+      final now = DateTime.now();
+      final design = CustomModuleDesign(
+        id: const Uuid().v4(),
+        moduleId: widget.moduleId,
+        name: name,
+        fields: fields,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await _designDao.insertDesign(design);
+      // 模块当前没有启用中的设计时，导入的设计自动设为使用中
+      if (!_designs.any((d) => d.isActive)) {
+        await _designDao.setActiveDesign(widget.moduleId, design.id);
+        if (mounted) await context.read<AppProvider>().loadCustomModules();
+        if (mounted) context.read<AppProvider>().bumpCustomModuleItemsVersion();
+      }
+      if (!mounted) return;
+      ToastUtil.show(context, '已导入「{name}」（{n} 个字段）'
+          .trf({'name': design.name, 'n': fields.length}));
+      _load();
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '导入失败: $e'.tr);
+    }
   }
 }
