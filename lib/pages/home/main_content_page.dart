@@ -79,14 +79,20 @@ class _MainContentPageState extends State<MainContentPage> {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final isDropdown = provider.homeModuleSwitchMode == 1;
-        return Column(
+        return Stack(
           children: [
-            if (!Breakpoint.isDesktop(context)) ...[
-              _buildAppBar(context, isDropdown),
-              // 只剩一个模块时，顶部模块分类栏没有显示必要
-              if (!isDropdown && _enabledTabs.length > 1) _buildTabBar(context),
-            ],
-            Expanded(child: _buildTabContent()),
+            Column(
+              children: [
+                if (!Breakpoint.isDesktop(context)) ...[
+                  _buildAppBar(context, isDropdown),
+                  // 只剩一个模块时，顶部模块分类栏没有显示必要
+                  if (!isDropdown && _enabledTabs.length > 1) _buildTabBar(context),
+                ],
+                Expanded(child: _buildTabContent()),
+              ],
+            ),
+            // 浮动徽章图标层（覆盖整页含 AppBar，可拖拽换位）
+            const FloatBadgeOverlay(page: 'home'),
           ],
         );
       },
@@ -429,8 +435,6 @@ class _MainContentPageState extends State<MainContentPage> {
                   ),
                 ),
               ),
-            // 浮动徽章图标层（与"我的"页共享位置，可拖拽换位）
-            const FloatBadgeOverlay(page: 'home'),
           ],
         );
       },

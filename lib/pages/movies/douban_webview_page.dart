@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/douban_parser.dart';
+import '../../utils/steam_parser.dart';
 import '../../l10n/app_strings.dart';
 
 /// 豆瓣WebView页面 - 用于抓取 影视/书籍/游戏 信息
@@ -33,6 +34,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
 
   String _titleFor() {
     if (widget.source == 'fanqie') return '番茄阅读'.tr;
+    if (widget.source == 'steam') return 'Steam'.tr;
     return switch (widget.category) {
       'book' => '豆瓣书籍'.tr,
       'game' => '豆瓣游戏'.tr,
@@ -348,7 +350,11 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
       // 豆瓣书籍/游戏：优先直接 GET 网页版 HTML 解析（字段规整）；
       // 电影域名有反爬质询（sec.douban.com），裸请求拿不到，只能走页面内 JS 提取
       Map<String, dynamic>? movieInfo;
-      if (_isDoubanDirectFetch) {
+      if (widget.source == 'steam') {
+        // 用 WebView 当前地址（用户可能在页面里跳转到了别的游戏）
+        final currentUrl = (await _controller!.getUrl())?.toString() ?? widget.url;
+        movieInfo = await SteamGameParser.fetch(currentUrl);
+      } else if (_isDoubanDirectFetch) {
         // 用 WebView 当前地址（用户可能在页面里跳转到了别的条目）
         final currentUrl = (await _controller!.getUrl())?.toString() ?? widget.url;
         movieInfo = widget.category == 'game'
@@ -404,6 +410,7 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
 String _scriptFor(String source) {
   return switch (source) {
     'fanqie' => _fanqieScript,
+    'steam' => _steamScript,
     'book' => _bookScript,
     'game' => _gameScript,
     _ => _movieScript,
@@ -623,6 +630,57 @@ const String _gameScript = r'''
           info.releaseDate = dm
             ? dm[1] + '-' + (dm[2] || '01').padStart(2, '0') + '-' + (dm[3] || '01').padStart(2, '0')
             : '';
+
+          return JSON.stringify(info);
+        })()
+      ''';
+
+/// Steam 商店页抓取脚本（store.steampowered.com/app/xxx 页面内兜底提取）
+/// 字段与 SteamGameParser 输出一致；开发者/发行商/类型/平台返回数组
+const String _steamScript = r'''
+        (function() {
+          const info = {};
+          const q = (s) => document.querySelector(s);
+          const t = (el) => el ? el.textContent.trim() : '';
+
+          // 标题 / 封面 / 简介
+          info.title = t(q('#appHubAppName'));
+          const coverEl = q('.game_header_image_full');
+          info.coverUrl = coverEl ? coverEl.src : '';
+          info.summary = t(q('.game_description_snippet')).substring(0, 1000);
+
+          // 发行日期：「2023 年 5 月 26 日」规整为 yyyy-MM-dd
+          const dm = t(q('.release_date .date'))
+            .match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(?:(\d{1,2})\s*日)?/);
+          info.releaseDate = dm
+            ? dm[1] + '-' + dm[2].padStart(2, '0') + '-' + (dm[3] || '01').padStart(2, '0')
+            : '';
+
+          // 开发者 / 发行商（dev_row：subtitle 标签 + summary 内 <a>）
+          const rows = {};
+          document.querySelectorAll('.dev_row').forEach(row => {
+            const label = t(row.querySelector('.subtitle')).replace(/[:：\s]/g, '');
+            const vals = Array.from(row.querySelectorAll('.summary a'))
+              .map(a => a.textContent.trim()).filter(Boolean);
+            if (label && vals.length > 0) rows[label] = vals;
+          });
+          info.developer = rows['开发者'] || [];
+          info.publisher = rows['发行商'] || [];
+
+          // 用户标签作为类型（前 5 个，剔除 "+"）
+          const tags = [];
+          document.querySelectorAll('.app_tag').forEach(a => {
+            const v = a.textContent.trim();
+            if (v && v !== '+' && !tags.includes(v)) tags.push(v);
+          });
+          info.genres = tags.slice(0, 5);
+
+          // 平台图标
+          const platforms = [];
+          if (q('.platform_img.win')) platforms.push('Windows');
+          if (q('.platform_img.mac')) platforms.push('macOS');
+          if (q('.platform_img.linux')) platforms.push('SteamOS + Linux');
+          info.platforms = platforms;
 
           return JSON.stringify(info);
         })()

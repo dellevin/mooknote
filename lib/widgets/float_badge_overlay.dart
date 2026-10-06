@@ -6,8 +6,8 @@ import '../utils/user_prefs.dart';
 
 /// 浮动徽章叠加层：放在"我的"/主页等内容区 Stack 顶层，
 /// 展示已开启浮动显示的徽章图标，可自由拖拽换位。
-/// 位置以 0~1 比例坐标持久化（UserPrefs.badgeFloat），各页面共享同一份位置；
-/// [page] 控制只显示勾选了对应该页面的徽章（UserPrefs.badgeFloatPages）。
+/// 位置以 0~1 比例坐标按页面分开持久化（UserPrefs.badgeFloatFor）。
+/// [page] = 'profile'（我的）/ 'home'（主页），各自独立存取位置。
 /// 注意：本组件不会拦截图标以外的点击（Stack 默认不自身命中）。
 class FloatBadgeOverlay extends StatefulWidget {
   /// 'profile' = 我的页，'home' = 主页
@@ -55,7 +55,7 @@ class _FloatBadgeOverlayState extends State<FloatBadgeOverlay>
   void _load() {
     if (!mounted) return;
     setState(() {
-      _badgeFloat = _userPrefs.badgeFloat;
+      _badgeFloat = _userPrefs.badgeFloatFor(widget.page);
       _badgeDefs = {for (final d in BadgeService.cachedDefs()) d.slug: d};
     });
     BadgeService.fetchDefs().then((fresh) {
@@ -67,9 +67,7 @@ class _FloatBadgeOverlayState extends State<FloatBadgeOverlay>
   @override
   Widget build(BuildContext context) {
     final slugs = _badgeFloat.keys
-        .where((s) =>
-            _badgeDefs.containsKey(s) &&
-            _userPrefs.badgeFloatPages(s).contains(widget.page))
+        .where((s) => _badgeDefs.containsKey(s))
         .toList();
     if (slugs.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(
@@ -82,7 +80,8 @@ class _FloatBadgeOverlayState extends State<FloatBadgeOverlay>
               pos: _badgeFloat[slug]!,
               constraints: constraints,
               onChanged: (p) => setState(() => _badgeFloat[slug] = p),
-              onDragEnd: () => _userPrefs.setBadgeFloat(_badgeFloat),
+              onDragEnd: () =>
+                  _userPrefs.setBadgeFloatFor(widget.page, _badgeFloat),
             ),
         ],
       ),
@@ -116,6 +115,8 @@ class _FloatBadgeIconState extends State<_FloatBadgeIcon> {
 
   // 拖拽中的实时位置（像素），null 表示未在拖拽，用父级传入的比例坐标
   Offset? _dragPos;
+  // 按压状态（点击反馈）
+  bool _pressed = false;
 
   Offset get _basePos => Offset(
         widget.pos.x * widget.constraints.maxWidth - _iconSize / 2,
@@ -135,7 +136,18 @@ class _FloatBadgeIconState extends State<_FloatBadgeIcon> {
       left: p.dx.clamp(0.0, maxX),
       top: p.dy.clamp(0.0, maxY),
       child: GestureDetector(
-        onPanStart: (_) => _dragPos = _basePos,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () {
+          // 拖拽赢得手势竞技场时也会触发，此时保持按压态
+          if (_dragPos == null && _pressed) {
+            setState(() => _pressed = false);
+          }
+        },
+        onPanStart: (_) {
+          _dragPos = _basePos;
+          if (!_pressed) setState(() => _pressed = true);
+        },
         onPanUpdate: (details) {
           final cur = _dragPos ?? _basePos;
           setState(() => _dragPos = Offset(
@@ -157,17 +169,32 @@ class _FloatBadgeIconState extends State<_FloatBadgeIcon> {
             ));
             widget.onDragEnd();
           }
-          setState(() => _dragPos = null);
+          setState(() {
+            _dragPos = null;
+            _pressed = false;
+          });
         },
-        onPanCancel: () => setState(() => _dragPos = null),
+        onPanCancel: () => setState(() {
+              _dragPos = null;
+              _pressed = false;
+            }),
         child: SizedBox(
           width: _iconSize,
           height: _iconSize,
-          child: BadgeIcon(
-              icon: widget.icon,
-              size: _iconSize,
-              locked: false,
-              colors: colors),
+          child: AnimatedScale(
+            scale: _pressed ? 0.85 : 1.0,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            child: AnimatedOpacity(
+              opacity: _pressed ? 0.7 : 1.0,
+              duration: const Duration(milliseconds: 120),
+              child: BadgeIcon(
+                  icon: widget.icon,
+                  size: _iconSize,
+                  locked: false,
+                  colors: colors),
+            ),
+          ),
         ),
       ),
     );

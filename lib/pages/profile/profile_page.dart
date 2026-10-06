@@ -94,32 +94,35 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Column(
+    return Stack(
       children: [
-        AppBar(
-          titleSpacing: 8,
-          leadingWidth: 44,
-          leading: Breakpoint.isDesktop(context)
-              ? const SizedBox.shrink()
-              : Builder(
-                  builder: (context) => IconButton(
-                    icon: Icon(Icons.menu, color: colors.onSurface),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                ),
-          title: Text('我的'.tr),
-        ),
-        Expanded(
-          child: Consumer<AppProvider>(
-            builder: (context, provider, child) {
-              final movies =
-                  provider.movies.where((m) => !m.isDeleted).toList();
-              final books = provider.books.where((b) => !b.isDeleted).toList();
-              final notes = provider.notes.where((n) => !n.isDeleted).toList();
-              final games = provider.games.where((g) => !g.isDeleted).toList();
-              return Stack(
-                children: [
-                  SingleChildScrollView(
+        Column(
+          children: [
+            AppBar(
+              titleSpacing: 8,
+              leadingWidth: 44,
+              leading: Breakpoint.isDesktop(context)
+                  ? const SizedBox.shrink()
+                  : Builder(
+                      builder: (context) => IconButton(
+                        icon: Icon(Icons.menu, color: colors.onSurface),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
+              title: Text('我的'.tr),
+            ),
+            Expanded(
+              child: Consumer<AppProvider>(
+                builder: (context, provider, child) {
+                  final movies =
+                      provider.movies.where((m) => !m.isDeleted).toList();
+                  final books =
+                      provider.books.where((b) => !b.isDeleted).toList();
+                  final notes =
+                      provider.notes.where((n) => !n.isDeleted).toList();
+                  final games =
+                      provider.games.where((g) => !g.isDeleted).toList();
+                  return SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -135,14 +138,14 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         const SizedBox(height: 120),
                       ],
                     ),
-                  ),
-                  // 浮动徽章图标层（与主页共享位置，可拖拽换位）
-                  const FloatBadgeOverlay(page: 'profile'),
-                ],
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
+        // 浮动徽章图标层（与主页共享位置，可拖拽换位；覆盖整页含 AppBar）
+        const FloatBadgeOverlay(page: 'profile'),
       ],
     );
   }

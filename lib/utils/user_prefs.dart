@@ -22,6 +22,44 @@ class UserPrefs {
     if (!_prefs!.containsKey('firstUseDate')) {
       await _prefs!.setString('firstUseDate', DateTime.now().toIso8601String());
     }
+    // 迁移旧版共享徽章位置到按页面分开存储
+    await _migrateBadgeFloat();
+  }
+
+  /// 旧版 badgeFloat（共享位置）+ badgeFloatPages → badgeFloat_home / badgeFloat_profile
+  static Future<void> _migrateBadgeFloat() async {
+    final p = _prefs!;
+    if (p.containsKey('badgeFloat_home') ||
+        p.containsKey('badgeFloat_profile')) {
+      return;
+    }
+    final old = p.getString('badgeFloat') ?? '';
+    if (old.isEmpty) return;
+    try {
+      final map = jsonDecode(old) as Map;
+      Map pagesMap = {};
+      final pagesStr = p.getString('badgeFloatPages') ?? '';
+      if (pagesStr.isNotEmpty) {
+        try {
+          pagesMap = jsonDecode(pagesStr) as Map;
+        } catch (_) {}
+      }
+      final home = <String, dynamic>{};
+      final profile = <String, dynamic>{};
+      for (final e in map.entries) {
+        final slug = e.key.toString();
+        final pages = (pagesMap[slug] as List?)
+                ?.map((x) => x.toString())
+                .toSet() ??
+            {'profile', 'home'};
+        if (pages.contains('home')) home[slug] = e.value;
+        if (pages.contains('profile')) profile[slug] = e.value;
+      }
+      await p.setString('badgeFloat_home', jsonEncode(home));
+      await p.setString('badgeFloat_profile', jsonEncode(profile));
+      await p.remove('badgeFloat');
+      await p.remove('badgeFloatPages');
+    } catch (_) {}
   }
   
   /// 获取实例
@@ -371,9 +409,11 @@ class UserPrefs {
   Future<bool> setBadgePendingCelebrate(List<String> value) =>
       prefs.setStringList('badgePendingCelebrate', value);
 
-  /// "我的"页浮动显示的徽章（JSON: {slug: {"x": 0.0~1.0, "y": 0.0~1.0}}）
-  Map<String, ({double x, double y})> get badgeFloat {
-    final str = prefs.getString('badgeFloat') ?? '';
+  /// 浮动徽章位置（按页面分开存储）
+  /// key: badgeFloat_home / badgeFloat_profile，JSON: {slug: {"x": 0.0~1.0, "y": 0.0~1.0}}
+  /// slug 存在于某页的 map 中 = 在该页浮动显示
+  Map<String, ({double x, double y})> badgeFloatFor(String page) {
+    final str = prefs.getString('badgeFloat_$page') ?? '';
     if (str.isEmpty) return {};
     try {
       final map = jsonDecode(str) as Map;
@@ -388,37 +428,14 @@ class UserPrefs {
       return {};
     }
   }
-  Future<bool> setBadgeFloat(Map<String, ({double x, double y})> value) =>
+  Future<bool> setBadgeFloatFor(
+          String page, Map<String, ({double x, double y})> value) =>
       prefs.setString(
-          'badgeFloat',
+          'badgeFloat_$page',
           jsonEncode({
             for (final e in value.entries)
               e.key: {'x': e.value.x, 'y': e.value.y},
           }));
-
-  /// 浮动徽章显示在哪些页面：slug → {'profile', 'home'} 子集（JSON 存储）
-  /// 无记录时默认两个页面都显示（兼容旧数据）
-  Set<String> badgeFloatPages(String slug) {
-    final str = prefs.getString('badgeFloatPages') ?? '';
-    if (str.isNotEmpty) {
-      try {
-        final v = (jsonDecode(str) as Map)[slug];
-        if (v is List && v.isNotEmpty) {
-          return v.map((e) => e.toString()).toSet();
-        }
-      } catch (_) {}
-    }
-    return {'profile', 'home'};
-  }
-
-  Future<bool> setBadgeFloatPages(String slug, Set<String> pages) {
-    Map map = {};
-    try {
-      map = jsonDecode(prefs.getString('badgeFloatPages') ?? '{}') as Map;
-    } catch (_) {}
-    map[slug] = pages.toList();
-    return prefs.setString('badgeFloatPages', jsonEncode(map));
-  }
 
   // ========== 搜索历史 ==========
 

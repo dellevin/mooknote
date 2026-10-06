@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/douban_parser.dart';
+import '../../utils/steam_parser.dart';
 import '../../l10n/app_strings.dart';
 
 /// 豆瓣官方 logo（绿色）
@@ -17,6 +18,12 @@ const _doubanSvg = '''
 
 const _doubanColor = Color(0xFF319C4A);
 const _fanqieColor = Color(0xFFF44336);
+const _steamColor = Color(0xFF1B2838);
+
+/// Steam logo（Steam 藏青）
+const _steamSvg = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M1008 512c0 274.005333-222.378667 496-496.810667 496A496.512 496.512 0 0 1 33.194667 647.210667l190.421333 78.592a140.544 140.544 0 0 0 278.186667-34.218667l168.96-120.405333a187.477333 187.477333 0 0 0 191.616-186.965334 187.434667 187.434667 0 0 0-374.784 0v2.389334l-118.4 171.392a140.032 140.032 0 0 0-86.997334 24.192L16 472.192C36.394667 216.789333 250.24 16 511.189333 16 785.621333 16 1008 237.994667 1008 512zM327.381333 768.597333l-61.013333-25.173333c11.221333 23.253333 30.592 41.6 54.442667 51.584a105.685333 105.685333 0 0 0 137.984-56.789333c10.794667-26.026667 11.008-54.613333 0.213333-80.64a105.130667 105.130667 0 0 0-134.826667-58.368l63.018667 26.026666a77.738667 77.738667 0 0 1-59.818667 143.402667z m347.605334-259.797333a124.928 124.928 0 0 1-124.8-124.586667 124.928 124.928 0 0 1 124.8-124.586666 124.928 124.928 0 0 1 124.8 124.586666 124.8 124.8 0 0 1-124.8 124.586667z m0.213333-31.189333a93.653333 93.653333 0 0 0 0-187.221334A93.781333 93.781333 0 0 0 581.418667 384a94.037333 94.037333 0 0 0 93.781333 93.610667z" fill="#1B2838"/></svg>
+''';
 
 /// 番茄阅读 logo（红色）— 红色描边轮廓
 const _fanqieSvg = '''
@@ -41,14 +48,17 @@ class _QuickAddPageState extends State<QuickAddPage> {
   String _category = 'movie';
   final _doubanController = TextEditingController();
   final _fanqieController = TextEditingController();
+  final _steamController = TextEditingController();
   bool _parsing = false;
   bool _doubanExpanded = false;
   bool _fanqieExpanded = false;
+  bool _steamExpanded = false;
 
   @override
   void dispose() {
     _doubanController.dispose();
     _fanqieController.dispose();
+    _steamController.dispose();
     super.dispose();
   }
 
@@ -131,6 +141,23 @@ class _QuickAddPageState extends State<QuickAddPage> {
               expanded: _fanqieExpanded,
               onToggle: () => setState(() => _fanqieExpanded = !_fanqieExpanded),
               onParse: _parseFanqie,
+            ),
+          ],
+          if (_category == 'game') ...[
+            const SizedBox(height: 10),
+            _buildSourceCard(
+              colors: colors,
+              icon: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: SvgPicture.string(_steamSvg, fit: BoxFit.contain)),
+              iconTileColor: _steamColor,
+              title: 'Steam'.tr,
+              subtitle: '输入 Steam 商店链接，自动解析并填充信息'.tr,
+              controller: _steamController,
+              expanded: _steamExpanded,
+              onToggle: () => setState(() => _steamExpanded = !_steamExpanded),
+              onParse: _parseSteam,
             ),
           ],
         ],
@@ -377,6 +404,49 @@ class _QuickAddPageState extends State<QuickAddPage> {
     } finally {
       if (mounted) setState(() => _parsing = false);
     }
+  }
+
+  Future<void> _parseSteam() async {
+    final url = _steamController.text.trim();
+    if (url.isEmpty) {
+      ToastUtil.show(context, '请输入 Steam 商店链接'.tr);
+      return;
+    }
+    if (!SteamGameParser.isSteamAppUrl(url)) {
+      ToastUtil.show(context, '链接格式不正确，应为 Steam 商店 app 链接'.tr);
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _parsing = true);
+    try {
+      final result = await Navigator.of(context).pushNamed(
+        '/douban-webview',
+        arguments: {'url': url, 'category': 'game', 'source': 'steam'},
+      ) as Map<String, dynamic>?;
+      if (!mounted || result == null) return;
+      await _openGameFromInfo(result);
+    } finally {
+      if (mounted) setState(() => _parsing = false);
+    }
+  }
+
+  /// Steam 结果 → 游戏表单预填充
+  Future<void> _openGameFromInfo(Map<String, dynamic> info) async {
+    final id = const Uuid().v4();
+    final coverPath = await _downloadCover(info['coverUrl']?.toString() ?? '', id);
+
+    if (!mounted) return;
+
+    final prefill = <String, dynamic>{
+      'title': info['title']?.toString() ?? '',
+      'developer': (info['developer'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      'genres': (info['genres'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      'platforms': (info['platforms'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      'summary': info['summary']?.toString() ?? '',
+      'releaseDate': _parseDate(info['releaseDate']?.toString()),
+      'coverPath': coverPath,
+    };
+    Navigator.of(context).pushNamed('/game-form', arguments: {'prefill': prefill});
   }
 
   /// 番茄结果 → 书籍表单预填充

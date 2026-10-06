@@ -16,9 +16,10 @@ class BadgesPage extends StatefulWidget {
 
 class _BadgesPageState extends State<BadgesPage> {
   List<BadgeDef> _defs = [];
-  Map<String, int> _metrics = {};
+  Map<String, int> _values = {};
   Map<String, String> _unlocked = {};
   bool _loading = true;
+  bool _offline = false;
 
   /// 分组主题色（按指标归类）
   static const _groupColors = <String, Color>{
@@ -36,10 +37,12 @@ class _BadgesPageState extends State<BadgesPage> {
   }
 
   Future<void> _load() async {
-    final defs = await BadgeService.fetchDefs();
-    final metrics = await BadgeService.collectMetrics();
+    final fresh = await BadgeService.tryFetchFresh();
+    final defs = fresh ?? BadgeService.cachedDefs();
+    // 规则 SQL 本地执行：values 用于进度展示，evaluate 判定解锁
+    final values = await BadgeService.computeValues(defs);
     // 进入页面时也评估一次（保底，正常启动时已评估过）
-    await BadgeService.evaluate(defs, metrics);
+    await BadgeService.evaluate(defs);
     // 取出待庆祝的新解锁并清空队列
     final pendingSlugs = UserPrefs().badgePendingCelebrate;
     if (pendingSlugs.isNotEmpty) {
@@ -48,7 +51,8 @@ class _BadgesPageState extends State<BadgesPage> {
     if (!mounted) return;
     setState(() {
       _defs = defs;
-      _metrics = metrics;
+      _values = values;
+      _offline = fresh == null;
       _unlocked = UserPrefs().badgeUnlocked;
       _loading = false;
     });
@@ -115,7 +119,11 @@ class _BadgesPageState extends State<BadgesPage> {
                       children: [
                         const SizedBox(height: 120),
                         Center(
-                          child: Text('暂无徽章，请检查网络后下拉刷新'.tr,
+                          child: Text(
+                              _offline
+                                  ? '徽章获取需要开启联网功能，请允许该软件联网'
+                                      .tr
+                                  : '暂无徽章，请检查网络后下拉刷新'.tr,
                               style: TextStyle(
                                   fontSize: 13,
                                   color: colors.onSurface
@@ -127,6 +135,34 @@ class _BadgesPageState extends State<BadgesPage> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       children: [
+                        // 离线提示（有缓存定义时仍可浏览，但无法刷新/庆祝）
+                        if (_offline) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: colors.errorContainer
+                                  .withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.wifi_off,
+                                    size: 16, color: colors.error),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '徽章获取需要开启联网功能，请允许该软件联网'
+                                        .tr,
+                                    style: TextStyle(
+                                        fontSize: 12, color: colors.error),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                         // 顶部汇总
                         Center(
                           child: Container(
@@ -208,7 +244,7 @@ class _BadgesPageState extends State<BadgesPage> {
       {required bool showDivider}) {
     final unlockedAt = _unlocked[badge.slug];
     final unlocked = unlockedAt != null;
-    final current = _metrics[badge.metric] ?? 0;
+    final current = _values[badge.slug] ?? 0;
     final progress = (current / badge.threshold).clamp(0.0, 1.0);
 
     return Material(
@@ -361,7 +397,7 @@ class _BadgesPageState extends State<BadgesPage> {
     final colors = Theme.of(context).colorScheme;
     final unlockedAt = _unlocked[badge.slug];
     final unlocked = unlockedAt != null;
-    final current = _metrics[badge.metric] ?? 0;
+    final current = _values[badge.slug] ?? 0;
     final progress = (current / badge.threshold).clamp(0.0, 1.0);
 
     final prefs = UserPrefs();
@@ -369,29 +405,28 @@ class _BadgesPageState extends State<BadgesPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) {
-          final floated = prefs.badgeFloat.containsKey(badge.slug);
-          final floatPages = prefs.badgeFloatPages(badge.slug);
+          final floated = prefs.badgeFloatFor('home').containsKey(badge.slug) ||
+              prefs.badgeFloatFor('profile').containsKey(badge.slug);
 
-          /// 切换某个页面的浮动显示；关掉最后一个页面时直接取消浮动
+          /// 默认位置：右上角，按该页已有数量纵向错开
+          ({double x, double y}) defaultPos(
+                  Map<String, ({double x, double y})> map) =>
+              (x: 0.85, y: 0.02 + (map.length % 6) * 0.08);
+
+          /// 切换某个页面的浮动显示（两页位置各自独立）
           Future<void> togglePage(String page) async {
-            final next = Set<String>.from(floatPages);
-            if (next.contains(page)) {
-              next.remove(page);
-            } else {
-              next.add(page);
-            }
-            if (next.isEmpty) {
-              final map = prefs.badgeFloat;
+            final map = prefs.badgeFloatFor(page);
+            if (map.containsKey(badge.slug)) {
               map.remove(badge.slug);
-              await prefs.setBadgeFloat(map);
             } else {
-              await prefs.setBadgeFloatPages(badge.slug, next);
+              map[badge.slug] = defaultPos(map);
             }
+            await prefs.setBadgeFloatFor(page, map);
             setDlgState(() {});
           }
 
           Widget pageChip(String label, String page) {
-            final selected = floatPages.contains(page);
+            final selected = prefs.badgeFloatFor(page).containsKey(badge.slug);
             return ChoiceChip(
               label: Text(label.tr, style: const TextStyle(fontSize: 12)),
               selected: selected,
@@ -401,7 +436,7 @@ class _BadgesPageState extends State<BadgesPage> {
             );
           }
 
-          // 已解锁的徽章可浮动显示图标（我的页/主页，位置共享）
+          // 已解锁的徽章可浮动显示图标（我的页/主页，位置各自独立）
           final floatSwitch = SwitchListTile(
             dense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -409,17 +444,15 @@ class _BadgesPageState extends State<BadgesPage> {
                 style: const TextStyle(fontSize: 13)),
             value: floated,
             onChanged: (v) async {
-              final map = prefs.badgeFloat;
-              if (v) {
-                // 默认放在右上角，按数量纵向错开
-                map[badge.slug] = (
-                  x: 0.85,
-                  y: 0.02 + (map.length % 6) * 0.08,
-                );
-              } else {
-                map.remove(badge.slug);
+              for (final page in const ['home', 'profile']) {
+                final map = prefs.badgeFloatFor(page);
+                if (v) {
+                  map[badge.slug] = defaultPos(map);
+                } else {
+                  map.remove(badge.slug);
+                }
+                await prefs.setBadgeFloatFor(page, map);
               }
-              await prefs.setBadgeFloat(map);
               setDlgState(() {});
             },
           );
@@ -668,7 +701,7 @@ class _UnlockDialog extends StatelessWidget {
 }
 
 /// 银白闪卡：按住时银色光带循环扫过、图标左右摆动，抬起播完当前一次后停
-/// 灰白相间横向条纹底（上覆柔光罩），上面是徽章图标，分割线下方靠右是名称/用户名/座右铭/解锁时间
+/// 灰白相间横向条纹底（上覆柔光罩），上面是徽章图标，分割线下方靠右是标题/描述/用户名/获得时间
 class _HoloBadgeCard extends StatefulWidget {
   final BadgeDef badge;
   final String unlockedAt;
@@ -809,14 +842,43 @@ class _HoloBadgeCardState extends State<_HoloBadgeCard>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text(
-                                widget.badge.name,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF2B2F3A),
-                                ),
+                              Row(
+                                children: [
+                                  // MookNote 图标标记
+                                  Image.asset(
+                                    'assets/images/mooknote.png',
+                                    height: 42,
+                                  ),
+                                  const Spacer(),
+                                  Flexible(
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        widget.badge.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF2B2F3A),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              if (widget.badge.desc.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.badge.desc,
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: const Color(0xFF8A8F9E)
+                                        .withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 3),
                               Text(
                                 prefs.nickname,
@@ -828,23 +890,9 @@ class _HoloBadgeCardState extends State<_HoloBadgeCard>
                                   color: Color(0xFF6B7080),
                                 ),
                               ),
-                              if (prefs.motto.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  prefs.motto,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: const Color(0xFF8A8F9E)
-                                        .withValues(alpha: 0.9),
-                                  ),
-                                ),
-                              ],
                               const SizedBox(height: 8),
                               Text(
-                                dateStr,
+                                '获得时间：$dateStr',
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,

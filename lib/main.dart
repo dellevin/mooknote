@@ -271,8 +271,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       await BadgeService.recordActiveDay();
       final defs = await BadgeService.fetchDefs();
       if (defs.isEmpty) return;
-      final metrics = await BadgeService.collectMetrics();
-      await BadgeService.evaluate(defs, metrics);
+      await BadgeService.evaluate(defs);
     } catch (_) {}
   }
 
