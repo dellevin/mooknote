@@ -1902,7 +1902,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text('上下滑动调整图片位置'.tr,
-                                      style: TextStyle(fontSize: 13, color: Colors.white70)),
+                                      style: const TextStyle(fontSize: 13, color: Colors.white70)),
                                 ),
                               ),
                             ),

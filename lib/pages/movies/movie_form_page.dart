@@ -364,7 +364,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
                       final provider = context.read<AppProvider>();
                       final tags = await provider.getTags('movie_genre', excludeHidden: true);
                       final existingNames = tags.map((t) => t['name'] as String).toList();
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       final result = await GenreSelectorPage.show(
                         context: context,
                         title: '选择类型'.tr,
@@ -1260,7 +1260,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
         updatedAt: now,
       );
 
+      if (!mounted) return;
       await context.read<AppProvider>().addMovie(newMovie);
+      if (!mounted) return;
       await context.read<AppProvider>().loadMovies();
     } else {
       final updatedMovie = widget.movie!.copyWith(

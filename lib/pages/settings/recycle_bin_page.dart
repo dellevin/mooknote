@@ -543,6 +543,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     final confirmed =
         await _showConfirmDialog('确定要彻底删除吗？此操作不可恢复。'.tr);
     if (!confirmed) return;
+    if (!mounted) return;
     final provider = context.read<AppProvider>();
     switch (item.type) {
       case _ItemType.movie:
@@ -640,7 +641,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
               Navigator.pop(ctx);
               await pageContext.read<AppProvider>().clearRecycleBin();
               _loadDeletedItems();
-              if (mounted) ToastUtil.show(pageContext, '回收站已清空'.tr);
+              if (pageContext.mounted) ToastUtil.show(pageContext, '回收站已清空'.tr);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,

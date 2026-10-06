@@ -373,6 +373,8 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       return;
     }
 
+    if (!mounted) return;
+
     final url = urlController.text.trim();
     urlController.dispose();
     if (url.isEmpty) {
@@ -438,6 +440,7 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
         createdAt: DateTime.now(),
       );
 
+      if (!mounted) return;
       await context.read<AppProvider>().addMoviePoster(newPoster);
       _loadPosters();
 

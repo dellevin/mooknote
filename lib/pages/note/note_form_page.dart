@@ -104,6 +104,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           images: _images,
           updatedAt: now,
         );
+        if (!mounted) return;
         await context.read<AppProvider>().updateNote(updatedNote);
       } else if (_savedNote != null) {
         final updatedNote = _savedNote!.copyWith(
@@ -113,6 +114,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           images: _images,
           updatedAt: now,
         );
+        if (!mounted) return;
         await context.read<AppProvider>().updateNote(updatedNote);
         _savedNote = updatedNote;
       } else {
@@ -131,6 +133,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
           createdAt: _createdAt,
           updatedAt: now,
         );
+        if (!mounted) return;
         await context.read<AppProvider>().addNote(newNote);
         _savedNote = newNote;
         _isEditing = true;
@@ -238,7 +241,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _confirmLeave();
-        if (shouldPop && context.mounted) Navigator.pop(context);
+        if (shouldPop && mounted) Navigator.pop(context);
       },
       child: Scaffold(
         backgroundColor: colors.surface,
@@ -254,7 +257,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 IconButton(icon: Icon(Icons.close, color: colors.onSurface, size: 18),
                   onPressed: () async {
                     final shouldPop = await _confirmLeave();
-                    if (shouldPop && context.mounted) Navigator.pop(context);
+                    if (shouldPop && mounted) Navigator.pop(context);
                   }),
                 Expanded(child: Text(_titleController.text.isNotEmpty ? _titleController.text : '新建笔记'.tr,
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6)),
@@ -364,7 +367,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
             constraints: const BoxConstraints(),
             onPressed: () async {
               final shouldPop = await _confirmLeave();
-              if (shouldPop && context.mounted) Navigator.pop(context);
+              if (shouldPop && mounted) Navigator.pop(context);
             },
             icon: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
           ),
@@ -386,7 +389,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(width: 6, height: 6,
-                    decoration: BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                    decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
                   const SizedBox(width: 4),
                   Text('已保存'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
                 ],
@@ -697,6 +700,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
     final title = _titleController.text.trim();
 
     if (title.isEmpty && content.isEmpty) {
+      if (!mounted) return;
       ToastUtil.show(context, '标题或内容不能为空'.tr);
       return;
     }
@@ -713,6 +717,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         images: _images,
         updatedAt: now,
       );
+      if (!mounted) return;
       await context.read<AppProvider>().updateNote(updatedNote);
     } else if (_savedNote != null) {
       // 自动保存过的新笔记，更新它
@@ -723,6 +728,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         images: _images,
         updatedAt: now,
       );
+      if (!mounted) return;
       await context.read<AppProvider>().updateNote(updatedNote);
     } else {
       // 添加新笔记
@@ -746,6 +752,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
         createdAt: _createdAt,
         updatedAt: now,
       );
+      if (!mounted) return;
       await context.read<AppProvider>().addNote(newNote);
     }
 

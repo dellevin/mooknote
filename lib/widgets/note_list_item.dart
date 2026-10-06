@@ -301,6 +301,7 @@ class _NoteListItemContent extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeNote(note.id);
+              if (!ctx.mounted) return;
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(

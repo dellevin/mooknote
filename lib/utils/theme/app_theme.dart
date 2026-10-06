@@ -241,21 +241,21 @@ class AppTheme {
           side: const BorderSide(color: borderStrong),
         ),
       ),
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: const Color(0xCC121418), // 80% 深色（封装 sheet 用 transparent + FrostedPanel）
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Color(0xCC121418), // 80% 深色（封装 sheet 用 transparent + FrostedPanel）
         surfaceTintColor: Colors.transparent,
         showDragHandle: true,
         dragHandleColor: borderStrong,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          side: const BorderSide(color: borderStrong),
+          side: BorderSide(color: borderStrong),
         ),
       ),
       listTileTheme: const ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         minLeadingWidth: 0, dense: true,
       ),
-      dividerTheme: DividerThemeData(color: border, thickness: 0.5, space: 0),
+      dividerTheme: const DividerThemeData(color: border, thickness: 0.5, space: 0),
       scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.hovered)) return onSurface.withValues(alpha: 0.3);
@@ -269,10 +269,10 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: false,
-        border: UnderlineInputBorder(borderSide: const BorderSide(color: borderStrong, width: 0.5)),
-        enabledBorder: UnderlineInputBorder(borderSide: const BorderSide(color: borderStrong, width: 0.5)),
-        focusedBorder: UnderlineInputBorder(borderSide: const BorderSide(color: accent, width: 1)),
-        errorBorder: UnderlineInputBorder(borderSide: const BorderSide(color: Color(0xFFEF6A6A), width: 0.5)),
+        border: const UnderlineInputBorder(borderSide: BorderSide(color: borderStrong, width: 0.5)),
+        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: borderStrong, width: 0.5)),
+        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: accent, width: 1)),
+        errorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFEF6A6A), width: 0.5)),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
         hintStyle: TextStyle(fontFamily: _fontFamily, fontSize: 15, fontWeight: _regular, color: onSurfaceFaint),
         labelStyle: TextStyle(fontFamily: _fontFamily, fontSize: 13, fontWeight: _medium, color: onSurfaceWeak),
@@ -356,7 +356,7 @@ class AppTheme {
       ),
       
       // 卡片 - 无阴影，细边框
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: _white,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -374,7 +374,7 @@ class AppTheme {
       ),
       
       // 分割线 - 极细
-      dividerTheme: DividerThemeData(
+      dividerTheme: const DividerThemeData(
         color: _lighterGray,
         thickness: 0.5,
         space: 0,
@@ -394,19 +394,19 @@ class AppTheme {
       // 输入框 - 无边框，底部线
       inputDecorationTheme: InputDecorationTheme(
         filled: false,
-        border: UnderlineInputBorder(
+        border: const UnderlineInputBorder(
           borderSide: BorderSide(color: _lighterGray, width: 0.5),
         ),
-        enabledBorder: UnderlineInputBorder(
+        enabledBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: _lighterGray, width: 0.5),
         ),
-        focusedBorder: UnderlineInputBorder(
+        focusedBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: _black, width: 1),
         ),
-        errorBorder: UnderlineInputBorder(
+        errorBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: error, width: 0.5),
         ),
-        contentPadding: EdgeInsets.symmetric(vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
         hintStyle: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 15,
@@ -427,8 +427,8 @@ class AppTheme {
           backgroundColor: _black,
           foregroundColor: _white,
           elevation: 0,
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: TextStyle(
             fontFamily: _fontFamily,
             fontSize: 14,
@@ -441,7 +441,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: _black,
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           textStyle: TextStyle(
             fontFamily: _fontFamily,
             fontSize: 14,
@@ -581,10 +581,10 @@ class AppTheme {
         ),
       ),
       
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: _darkGray,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         margin: EdgeInsets.zero,
       ),
 
@@ -594,7 +594,7 @@ class AppTheme {
         dense: true,
       ),
       
-      dividerTheme: DividerThemeData(
+      dividerTheme: const DividerThemeData(
         color: _darkGray,
         thickness: 0.5,
         space: 0,
@@ -613,19 +613,19 @@ class AppTheme {
       
       inputDecorationTheme: InputDecorationTheme(
         filled: false,
-        border: UnderlineInputBorder(
+        border: const UnderlineInputBorder(
           borderSide: BorderSide(color: _darkGray, width: 0.5),
         ),
-        enabledBorder: UnderlineInputBorder(
+        enabledBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: _darkGray, width: 0.5),
         ),
-        focusedBorder: UnderlineInputBorder(
+        focusedBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: _white, width: 1),
         ),
-        errorBorder: UnderlineInputBorder(
+        errorBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: Color(0xFFEF4444), width: 0.5),
         ),
-        contentPadding: EdgeInsets.symmetric(vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
         hintStyle: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 15,
@@ -645,15 +645,15 @@ class AppTheme {
           backgroundColor: _white,
           foregroundColor: _black,
           elevation: 0,
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
       ),
       
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: _white,
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           textStyle: TextStyle(
             fontFamily: _fontFamily,
             fontSize: 14,

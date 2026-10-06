@@ -428,7 +428,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       trailing: Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: colors.primary,
+          activeThumbColor: colors.primary,
           activeTrackColor: colors.primary.withValues(alpha: 0.3),
           inactiveThumbColor: colors.surface,
           inactiveTrackColor: colors.outline),
@@ -514,6 +514,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               InkWell(
                 onTap: () async {
                   await _userPrefs.setDefaultMainTabIndex(t.$1);
+                  if (!ctx.mounted) return;
                   setState(() => _defaultTabIndex = t.$1);
                   Navigator.pop(ctx);
                 },

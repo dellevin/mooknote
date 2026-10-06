@@ -126,8 +126,11 @@ class _MovieTabPageState extends State<MovieTabPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) return;
         _currentPage = 0;
-        if (isCategory) provider.setMovieCategoryIndex(0);
-        else if (!wall) provider.setMovieStatusIndex(0);
+        if (isCategory) {
+          provider.setMovieCategoryIndex(0);
+        } else if (!wall) {
+          provider.setMovieStatusIndex(0);
+        }
         _pageController.jumpToPage(0);
       });
     }
@@ -219,8 +222,11 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final cur = wall ? 0 : (isCategory ? provider.movieCategoryIndex : provider.movieStatusIndex);
     // 回显守卫：仅在真实拖动导致索引变化时推送，避免死循环
     if (cur != index) {
-      if (isCategory) provider.setMovieCategoryIndex(index);
-      else if (!wall) provider.setMovieStatusIndex(index);
+      if (isCategory) {
+        provider.setMovieCategoryIndex(index);
+      } else if (!wall) {
+        provider.setMovieStatusIndex(index);
+      }
     }
   }
 }

@@ -462,7 +462,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         // Header
         Padding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 14), child: Row(children: [
-          Image.asset('assets/images/ticket/maoyan.png', width: 36, height: 36, errorBuilder: (_, __, ___) => Icon(Icons.local_movies, size: 36, color: text)),
+          Image.asset('assets/images/ticket/maoyan.png', width: 36, height: 36, errorBuilder: (_, __, ___) => const Icon(Icons.local_movies, size: 36, color: text)),
           const SizedBox(width: 10),
           Text(_platformCtrl.text.isNotEmpty ? _platformCtrl.text : 'MookNote', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: text, letterSpacing: 0.5)),
         ])),
@@ -487,7 +487,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
           const SizedBox(height: 8),
           Row(children: [
             Text('{row}排{num}座'.trf({'row': _seatRowCtrl.text, 'num': _seatNumCtrl.text}), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: text.withValues(alpha: 0.8))),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('|', style: TextStyle(color: const Color(0xFFD0CCC0), fontWeight: FontWeight.w300))),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('|', style: TextStyle(color: Color(0xFFD0CCC0), fontWeight: FontWeight.w300))),
             Text(widget.movie.releaseDate != null
                 ? '{y}年{m}月{d}日'.trf({'y': widget.movie.releaseDate!.year, 'm': widget.movie.releaseDate!.month, 'd': widget.movie.releaseDate!.day})
                 : '待定'.tr, style: TextStyle(fontSize: 14, color: text.withValues(alpha: 0.6))),
@@ -509,7 +509,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
             _ticketDetail('出票日期'.tr, _issueTimeCtrl.text),
             _ticketDetail(_platformCtrl.text.isNotEmpty ? _platformCtrl.text : '平台'.tr, '已出票'.tr),
             const SizedBox(height: 4),
-            Text(_ticketCodeCtrl.text, style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 0.8, color: muted)),
+            Text(_ticketCodeCtrl.text, style: const TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 0.8, color: muted)),
           ])),
         ])),
       ]),
@@ -563,7 +563,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
         Padding(padding: const EdgeInsets.fromLTRB(24, 22, 24, 0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // 影院
           Row(children: [
-            Icon(Icons.location_on_outlined, size: 14, color: red),
+            const Icon(Icons.location_on_outlined, size: 14, color: red),
             const SizedBox(width: 4),
             Text(_cinemaCtrl.text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF6B6B6B), letterSpacing: 0.3)),
           ]),
@@ -579,7 +579,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
           const SizedBox(height: 20),
           // 三列网格
           Container(
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: line, width: 0.5), bottom: BorderSide(color: line, width: 0.5))),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: line, width: 0.5), bottom: BorderSide(color: line, width: 0.5))),
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(children: [
               _gridCol('影厅'.tr, _hallCtrl.text, red),
@@ -657,7 +657,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
     return SizedBox(height: 28, child: Stack(children: [
       Positioned(left: 20, right: 20, top: 13, child: CustomPaint(
         size: const Size(double.infinity, 1), painter: _DashedLinePainter(color: const Color(0xFFC8C4B8), dashWidth: 6, dashSpace: 8))),
-      Positioned(left: 2, top: 4, child: Icon(Icons.content_cut, size: 16, color: const Color(0xFF999999))),
+      const Positioned(left: 2, top: 4, child: Icon(Icons.content_cut, size: 16, color: Color(0xFF999999))),
     ]));
   }
 
@@ -665,8 +665,8 @@ class _MovieSharePageState extends State<MovieSharePage> {
     return Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: SizedBox(height: 24, child: Stack(children: [
       Positioned(left: 0, right: 0, top: 11, child: CustomPaint(
         size: const Size(double.infinity, 1), painter: _DashedLinePainter(color: const Color(0xFFD8D0C0), dashWidth: 9, dashSpace: 9))),
-      Positioned(left: -30, top: 5.5, child: Container(width: 13, height: 13, decoration: BoxDecoration(color: const Color(0xFFEBE5DB), shape: BoxShape.circle))),
-      Positioned(right: -30, top: 5.5, child: Container(width: 13, height: 13, decoration: BoxDecoration(color: const Color(0xFFEBE5DB), shape: BoxShape.circle))),
+      Positioned(left: -30, top: 5.5, child: Container(width: 13, height: 13, decoration: const BoxDecoration(color: Color(0xFFEBE5DB), shape: BoxShape.circle))),
+      Positioned(right: -30, top: 5.5, child: Container(width: 13, height: 13, decoration: const BoxDecoration(color: Color(0xFFEBE5DB), shape: BoxShape.circle))),
     ])));
   }
 

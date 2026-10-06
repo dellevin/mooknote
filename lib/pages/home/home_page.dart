@@ -306,9 +306,9 @@ class _HomePageState extends State<HomePage> {
           provider.setBottomNavIndex(2);
         }
       },
-      children: [
-        const MainContentPage(),
-        const ProfilePage(),
+      children: const [
+        MainContentPage(),
+        ProfilePage(),
       ],
     );
   }
@@ -500,8 +500,8 @@ class _DesktopIconRail extends StatelessWidget {
 
   void _showFeedbackDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final email = 'dellevin99@gmail.com';
-    final qqGroup = '1087203310';
+    const email = 'dellevin99@gmail.com';
+    const qqGroup = '1087203310';
     appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1489,13 +1489,23 @@ class _PersonListDialogState extends State<_PersonListDialog> {
     }
 
     for (final m in provider.movies.where((m) => !m.isDeleted)) {
-      for (final d in m.directors) addRole(d, '导演', movie: m);
-      for (final w in m.writers) addRole(w, '编剧', movie: m);
-      for (final a in m.actors) addRole(a, '主演', movie: m);
+      for (final d in m.directors) {
+        addRole(d, '导演', movie: m);
+      }
+      for (final w in m.writers) {
+        addRole(w, '编剧', movie: m);
+      }
+      for (final a in m.actors) {
+        addRole(a, '主演', movie: m);
+      }
     }
     for (final b in provider.books.where((b) => !b.isDeleted)) {
-      for (final a in b.authors) addRole(a, '作者', book: b);
-      for (final t in b.translators) addRole(t, '译者', book: b);
+      for (final a in b.authors) {
+        addRole(a, '作者', book: b);
+      }
+      for (final t in b.translators) {
+        addRole(t, '译者', book: b);
+      }
     }
 
     var list = map.values.toList();
@@ -1829,10 +1839,18 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
   void _updateUsageCounts() {
     final provider = context.read<AppProvider>();
     final counts = <String, int>{};
-    for (final m in provider.movies.where((m) => !m.isDeleted)) { for (final g in m.genres) counts[g] = (counts[g] ?? 0) + 1; }
-    for (final b in provider.books.where((b) => !b.isDeleted)) { for (final g in b.genres) counts[g] = (counts[g] ?? 0) + 1; }
-    for (final n in provider.notes.where((n) => !n.isDeleted)) { for (final t in n.tags) counts[t] = (counts[t] ?? 0) + 1; }
-    for (final g in provider.games.where((g) => !g.isDeleted)) { for (final genre in g.genres) counts[genre] = (counts[genre] ?? 0) + 1; }
+    for (final m in provider.movies.where((m) => !m.isDeleted)) { for (final g in m.genres) {
+      counts[g] = (counts[g] ?? 0) + 1;
+    } }
+    for (final b in provider.books.where((b) => !b.isDeleted)) { for (final g in b.genres) {
+      counts[g] = (counts[g] ?? 0) + 1;
+    } }
+    for (final n in provider.notes.where((n) => !n.isDeleted)) { for (final t in n.tags) {
+      counts[t] = (counts[t] ?? 0) + 1;
+    } }
+    for (final g in provider.games.where((g) => !g.isDeleted)) { for (final genre in g.genres) {
+      counts[genre] = (counts[genre] ?? 0) + 1;
+    } }
     _usageCounts = counts;
   }
 
@@ -2157,13 +2175,21 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
     final colors = Theme.of(context).colorScheme;
     List<({String title, String? subtitle, String type})> items = [];
     if (_currentType == 'movie_genre') {
-      for (final m in provider.movies.where((m) => !m.isDeleted && m.genres.contains(tagName))) items.add((title: m.title, subtitle: m.directors.take(2).join(' / '), type: '影视'));
+      for (final m in provider.movies.where((m) => !m.isDeleted && m.genres.contains(tagName))) {
+        items.add((title: m.title, subtitle: m.directors.take(2).join(' / '), type: '影视'));
+      }
     } else if (_currentType == 'book_genre') {
-      for (final b in provider.books.where((b) => !b.isDeleted && b.genres.contains(tagName))) items.add((title: b.title, subtitle: b.authors.take(2).join(' / '), type: '书籍'));
+      for (final b in provider.books.where((b) => !b.isDeleted && b.genres.contains(tagName))) {
+        items.add((title: b.title, subtitle: b.authors.take(2).join(' / '), type: '书籍'));
+      }
     } else if (_currentType == 'game_genre') {
-      for (final g in provider.games.where((g) => !g.isDeleted && g.genres.contains(tagName))) items.add((title: g.title, subtitle: g.platforms.take(2).join(' / '), type: '游戏'));
+      for (final g in provider.games.where((g) => !g.isDeleted && g.genres.contains(tagName))) {
+        items.add((title: g.title, subtitle: g.platforms.take(2).join(' / '), type: '游戏'));
+      }
     } else {
-      for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) items.add((title: n.title.isNotEmpty ? n.title : '随手记'.tr, subtitle: null, type: '笔记'));
+      for (final n in provider.notes.where((n) => !n.isDeleted && n.tags.contains(tagName))) {
+        items.add((title: n.title.isNotEmpty ? n.title : '随手记'.tr, subtitle: null, type: '笔记'));
+      }
     }
     appModalBottomSheet(
       context: context,
@@ -2278,6 +2304,7 @@ class _TagManagementDialogState extends State<_TagManagementDialog> {
   Future<void> _doRenameTag(BuildContext ctx, String tagId, String newName, String type, String oldName) async {
     if (newName.isEmpty || newName == oldName) { if (ctx.mounted) Navigator.pop(ctx); return; }
     final success = await context.read<AppProvider>().renameTag(tagId, newName, type);
+    if (!mounted) return;
     if (ctx.mounted) { Navigator.pop(ctx); ToastUtil.show(context, (success ? '重命名成功' : '重命名失败：标签名已存在').tr); }
     if (success) await _loadTags(type);
   }
@@ -2702,10 +2729,15 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
         ToastUtil.show(context,'已取消导入'.tr);
       } else if (result.success) {
         await context.read<AppProvider>().loadMovies();
+        if (!mounted) return;
         await context.read<AppProvider>().loadBooks();
+        if (!mounted) return;
         await context.read<AppProvider>().loadNotes();
+        if (!mounted) return;
         await context.read<AppProvider>().loadGames();
+        if (!mounted) return;
         await context.read<AppProvider>().loadPlaylists();
+        if (!mounted) return;
         await context.read<AppProvider>().loadPeople();
         if (!mounted) return;
         ToastUtil.show(context,'导入成功'.tr);
@@ -2805,6 +2837,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
       if (!mounted) return;
       if (result['success'] == true) {
         await WebDAVService.instance.saveConfig(url: url, username: username, password: password, path: path);
+        if (!mounted) return;
         setState(() => _isConfigured = true);
         _loadRemoteInfo();
         ToastUtil.show(context,result['message'] ?? '连接成功，配置已保存'.tr);
@@ -2877,6 +2910,7 @@ class _WebDAVBackupContentState extends State<_WebDAVBackupContent> {
           await provider.loadPlaylists();
           await provider.loadPeople();
         }
+        if (!mounted) return;
         ToastUtil.show(context,'同步成功'.tr);
       } else {
         ToastUtil.show(context,result.message);

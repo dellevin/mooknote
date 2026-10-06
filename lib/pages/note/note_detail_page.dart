@@ -91,6 +91,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty && content.isEmpty) return;
     try {
+      if (!mounted) return;
       final latest = context.read<AppProvider>().notes
           .where((n) => n.id == widget.note.id).firstOrNull ?? widget.note;
       final updated = latest.copyWith(
@@ -117,10 +118,12 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
       content = _contentCtrl.text.trim();
     }
     if (title.isEmpty && content.isEmpty) {
+      if (!mounted) return;
       ToastUtil.show(context, '标题或内容不能为空'.tr);
       return;
     }
     try {
+      if (!mounted) return;
       final latest = context.read<AppProvider>().notes
           .where((n) => n.id == widget.note.id).firstOrNull ?? widget.note;
       final updated = latest.copyWith(

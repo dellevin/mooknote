@@ -43,7 +43,7 @@ class BadgeDef {
 class BadgeService {
   BadgeService._();
 
-  static final _url = '${ServerConfig.apiBase}/badges';
+  static const _url = '${ServerConfig.apiBase}/badges';
 
   /// 拉取徽章定义（网络失败时回退本地缓存，无缓存返回空）
   static Future<List<BadgeDef>> fetchDefs() async {

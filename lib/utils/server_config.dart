@@ -4,13 +4,13 @@ import 'package:flutter/foundation.dart';
 class ServerConfig {
   ServerConfig._();
 
-  static final String baseUrl = kDebugMode
+  static const String baseUrl = kDebugMode
       ? 'http://192.168.31.48:27047'
       : 'http://api.mooknote.iletter.top';
 
-  static final String apiBase = '$baseUrl/api';
+  static const String apiBase = '$baseUrl/api';
 
-  static final String vipBaseUrl = kDebugMode
+  static const String vipBaseUrl = kDebugMode
       ? 'http://vipapi.mooknote.iletter.top'
       // ? 'http://192.168.31.48:8081'
       : 'http://vipapi.mooknote.iletter.top';

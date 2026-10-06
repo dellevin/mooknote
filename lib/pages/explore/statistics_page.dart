@@ -654,7 +654,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: colors.onSurface))),
-          Icon(Icons.star, size: 16, color: const Color(0xFFFFB800)),
+          const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
           const SizedBox(width: 4),
           Text(rating.toStringAsFixed(1), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: colors.onSurface)),
         ],

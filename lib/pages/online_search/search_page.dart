@@ -417,9 +417,9 @@ class _SearchPageBodyState extends State<SearchPageBody> {
               const SizedBox(height: 4),
               Row(children: [
                 if (movie.rating != null) ...[
-                  Icon(Icons.star, size: 13, color: const Color(0xFFFFB800)),
+                  const Icon(Icons.star, size: 13, color: Color(0xFFFFB800)),
                   const SizedBox(width: 2),
-                  Text('${movie.rating}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFFFB800))),
+                  Text('${movie.rating}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
                   const SizedBox(width: 8),
                 ],
                 if (movie.genres.isNotEmpty)
@@ -457,9 +457,9 @@ class _SearchPageBodyState extends State<SearchPageBody> {
               const SizedBox(height: 4),
               Row(children: [
                 if (book.rating != null) ...[
-                  Icon(Icons.star, size: 13, color: const Color(0xFFFFB800)),
+                  const Icon(Icons.star, size: 13, color: Color(0xFFFFB800)),
                   const SizedBox(width: 2),
-                  Text('${book.rating}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFFFB800))),
+                  Text('${book.rating}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
                   const SizedBox(width: 8),
                 ],
                 if (book.authors.isNotEmpty)
@@ -535,9 +535,9 @@ class _SearchPageBodyState extends State<SearchPageBody> {
               const SizedBox(height: 4),
               Row(children: [
                 if (game.rating != null) ...[
-                  Icon(Icons.star, size: 13, color: const Color(0xFFFFB800)),
+                  const Icon(Icons.star, size: 13, color: Color(0xFFFFB800)),
                   const SizedBox(width: 2),
-                  Text('${game.rating}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFFFB800))),
+                  Text('${game.rating}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
                   const SizedBox(width: 8),
                 ],
                 if (game.platforms.isNotEmpty)

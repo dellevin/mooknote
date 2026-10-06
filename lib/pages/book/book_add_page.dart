@@ -151,7 +151,7 @@ class _BookAddPageState extends State<BookAddPage> {
                       final p = context.read<AppProvider>();
                       final tags = await p.getTags('book_genre', excludeHidden: true);
                       final names = tags.map((t) => t['name'] as String).toList();
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: names, initialSelected: _genres, hint: '如：小说、历史'.tr);
                       if (r != null) setState(() => _genres = r);
                     }), const SizedBox(height: 16),
@@ -367,7 +367,9 @@ class _BookAddPageState extends State<BookAddPage> {
         status: _status, publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate,
         createdAt: now, updatedAt: now,
       );
+      if (!mounted) return;
       await context.read<AppProvider>().addBook(book);
+      if (!mounted) return;
       await context.read<AppProvider>().loadBooks();
       if (!mounted) return;
       context.read<AppProvider>().finishAdding();

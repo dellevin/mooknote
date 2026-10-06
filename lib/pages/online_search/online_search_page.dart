@@ -129,7 +129,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
 
   Future<void> _tryUnlockPlayback(String query) async {
     try {
-      final url = '${ServerConfig.baseUrl}/api/enhance-video';
+      const url = '${ServerConfig.baseUrl}/api/enhance-video';
       final resp =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       if (!mounted) return;
@@ -154,10 +154,10 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_rounded,
               size: 52,
-              color: const Color(0xFF16A34A),
+              color: Color(0xFF16A34A),
             ),
             const SizedBox(height: 14),
             Text(
@@ -237,11 +237,12 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
             data['code'] == 403 ||
             data['msg']?.toString().contains('token') == true ||
             data['msg']?.toString().contains('过期') == true) {
-          if (mounted)
+          if (mounted) {
             setState(() {
               _movieLoading = false;
               _movieLoadingMore = false;
             });
+          }
           _showTokenExpiredDialog();
           return;
         }
@@ -307,11 +308,12 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
             data['code'] == 403 ||
             data['msg']?.toString().contains('token') == true ||
             data['msg']?.toString().contains('过期') == true) {
-          if (mounted)
+          if (mounted) {
             setState(() {
               _bookLoading = false;
               _bookLoadingMore = false;
             });
+          }
           _showTokenExpiredDialog();
           return;
         }
@@ -545,14 +547,17 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   // ── 影视搜索结果 ──────────────────────────────────────────────
 
   Widget _buildMovieResults(ColorScheme colors) {
-    if (!_hasSearched)
+    if (!_hasSearched) {
       return _buildEmptyState(colors, '搜索你想看的影视作品'.tr, Icons.movie_outlined);
-    if (UserPrefs().movieSearchToken.isEmpty)
+    }
+    if (UserPrefs().movieSearchToken.isEmpty) {
       return _buildEmptyState(
           colors, '填入 Token 后可正常使用该功能'.tr, Icons.vpn_key_outlined);
+    }
     if (_movieLoading) return _buildLoadingState(colors);
-    if (_movieList.isEmpty)
+    if (_movieList.isEmpty) {
       return _buildEmptyState(colors, '未找到相关内容'.tr, Icons.search_off_outlined);
+    }
 
     final hasMore = _moviePage < _moviePageCount;
     final itemCount = _movieList.length + 1; // +1 for bottom indicator
@@ -773,14 +778,17 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   // ── 书籍搜索结果 ──────────────────────────────────────────────
 
   Widget _buildBookResults(ColorScheme colors) {
-    if (!_hasSearched)
+    if (!_hasSearched) {
       return _buildEmptyState(colors, '搜索你想看的书籍'.tr, Icons.menu_book_outlined);
-    if (UserPrefs().bookSearchToken.isEmpty)
+    }
+    if (UserPrefs().bookSearchToken.isEmpty) {
       return _buildEmptyState(
           colors, '填入 Token 后可正常使用该功能'.tr, Icons.vpn_key_outlined);
+    }
     if (_bookLoading) return _buildLoadingState(colors);
-    if (_bookList.isEmpty)
+    if (_bookList.isEmpty) {
       return _buildEmptyState(colors, '未找到相关书籍'.tr, Icons.search_off_outlined);
+    }
 
     final hasMore = _bookPage < _bookPageCount;
     final itemCount = _bookList.length + 1;
@@ -970,8 +978,9 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   // ── 搜索历史 ──────────────────────────────────────────────────
 
   Widget _buildHistoryPanel(ColorScheme colors) {
-    if (_history.isEmpty)
+    if (_history.isEmpty) {
       return _buildEmptyState(colors, '搜索你想看的影视/书籍作品'.tr, Icons.manage_search_outlined);
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
@@ -1099,10 +1108,11 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                                 onPressed: () {
                                   Navigator.pop(ctx);
                                   _userPrefs.removeSearchHistory(kw).then((_) {
-                                    if (mounted)
+                                    if (mounted) {
                                       setState(() {
                                         _history = _userPrefs.searchHistory;
                                       });
+                                    }
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(

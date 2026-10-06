@@ -1485,6 +1485,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
       return;
     }
     final success = await context.read<AppProvider>().renameTag(tagId, newName, type);
+    if (!mounted) return;
     if (ctx.mounted) {
       Navigator.pop(ctx);
       ToastUtil.show(context, success ? '重命名成功'.tr : '重命名失败：标签名已存在'.tr);

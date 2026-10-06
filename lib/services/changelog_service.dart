@@ -30,7 +30,7 @@ class ChangelogItem {
 
 /// 版本更新检查服务
 class ChangelogService {
-  static final _apiUrl = '${ServerConfig.apiBase}/changelog';
+  static const _apiUrl = '${ServerConfig.apiBase}/changelog';
 
   /// 获取更新日志列表
   static Future<List<ChangelogItem>> fetchChangelog() async {

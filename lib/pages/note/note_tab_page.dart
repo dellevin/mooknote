@@ -191,12 +191,12 @@ class _NoteTabPageState extends State<NoteTabPage> {
         child: Column(children: List.generate(4, (_) => Container(margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(10),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))]),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const ShimmerSkeleton(width: double.infinity, height: 140, borderRadius: 10),
-            Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const ShimmerSkeleton(width: double.infinity, height: 14), const SizedBox(height: 6),
-              const ShimmerSkeleton(width: double.infinity, height: 12), const SizedBox(height: 6),
-              const ShimmerSkeleton(width: 60, height: 10),
+          child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ShimmerSkeleton(width: double.infinity, height: 140, borderRadius: 10),
+            Padding(padding: EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ShimmerSkeleton(width: double.infinity, height: 14), SizedBox(height: 6),
+              ShimmerSkeleton(width: double.infinity, height: 12), SizedBox(height: 6),
+              ShimmerSkeleton(width: 60, height: 10),
             ])),
           ]),
         ))),

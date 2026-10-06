@@ -62,13 +62,23 @@ class _PersonListPageState extends State<PersonListPage> {
     }
 
     for (final m in provider.movies.where((m) => !m.isDeleted)) {
-      for (final d in m.directors) addRole(d, '导演', movie: m);
-      for (final w in m.writers) addRole(w, '编剧', movie: m);
-      for (final a in m.actors) addRole(a, '主演', movie: m);
+      for (final d in m.directors) {
+        addRole(d, '导演', movie: m);
+      }
+      for (final w in m.writers) {
+        addRole(w, '编剧', movie: m);
+      }
+      for (final a in m.actors) {
+        addRole(a, '主演', movie: m);
+      }
     }
     for (final b in provider.books.where((b) => !b.isDeleted)) {
-      for (final a in b.authors) addRole(a, '作者', book: b);
-      for (final t in b.translators) addRole(t, '译者', book: b);
+      for (final a in b.authors) {
+        addRole(a, '作者', book: b);
+      }
+      for (final t in b.translators) {
+        addRole(t, '译者', book: b);
+      }
     }
 
     var list = map.values.toList();

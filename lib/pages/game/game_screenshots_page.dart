@@ -336,6 +336,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
         screenshotPath: targetPath,
         createdAt: DateTime.now(),
       );
+      if (!mounted) return;
       await context.read<AppProvider>().addGameScreenshot(newScreenshot);
       _loadScreenshots();
       if (mounted) ToastUtil.show(context, '添加成功'.tr);

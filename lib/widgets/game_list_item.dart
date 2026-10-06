@@ -135,6 +135,7 @@ class GameListItem extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeGame(game.id);
+              if (!context.mounted) return;
               Navigator.pop(context);
               ToastUtil.show(context, '已删除'.tr);
             },

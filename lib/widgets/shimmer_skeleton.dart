@@ -83,7 +83,7 @@ class MovieSkeletonGrid extends StatelessWidget {
             mainAxisSpacing: 16,
           ),
           itemCount: count * 3,
-          itemBuilder: (_, __) => Column(
+          itemBuilder: (_, __) => const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -93,10 +93,10 @@ class MovieSkeletonGrid extends StatelessWidget {
                   borderRadius: 8,
                 ),
               ),
-              const SizedBox(height: 8),
-              const ShimmerSkeleton(width: double.infinity, height: 14),
-              const SizedBox(height: 4),
-              const ShimmerSkeleton(width: 70, height: 12),
+              SizedBox(height: 8),
+              ShimmerSkeleton(width: double.infinity, height: 14),
+              SizedBox(height: 4),
+              ShimmerSkeleton(width: 70, height: 12),
             ],
           ),
         );
@@ -123,7 +123,7 @@ class BookSkeletonGrid extends StatelessWidget {
             mainAxisSpacing: 16,
           ),
           itemCount: count * 3,
-          itemBuilder: (_, __) => Column(
+          itemBuilder: (_, __) => const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -133,10 +133,10 @@ class BookSkeletonGrid extends StatelessWidget {
                   borderRadius: 4,
                 ),
               ),
-              const SizedBox(height: 8),
-              const ShimmerSkeleton(width: double.infinity, height: 14),
-              const SizedBox(height: 4),
-              const ShimmerSkeleton(width: 70, height: 12),
+              SizedBox(height: 8),
+              ShimmerSkeleton(width: double.infinity, height: 14),
+              SizedBox(height: 4),
+              ShimmerSkeleton(width: 70, height: 12),
             ],
           ),
         );
@@ -163,7 +163,7 @@ class GameSkeletonGrid extends StatelessWidget {
             mainAxisSpacing: 16,
           ),
           itemCount: count * 3,
-          itemBuilder: (_, __) => Column(
+          itemBuilder: (_, __) => const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -173,10 +173,10 @@ class GameSkeletonGrid extends StatelessWidget {
                   borderRadius: 8,
                 ),
               ),
-              const SizedBox(height: 8),
-              const ShimmerSkeleton(width: double.infinity, height: 14),
-              const SizedBox(height: 4),
-              const ShimmerSkeleton(width: 70, height: 12),
+              SizedBox(height: 8),
+              ShimmerSkeleton(width: double.infinity, height: 14),
+              SizedBox(height: 4),
+              ShimmerSkeleton(width: 70, height: 12),
             ],
           ),
         );

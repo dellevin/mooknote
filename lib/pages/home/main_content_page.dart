@@ -214,7 +214,7 @@ class _MainContentPageState extends State<MainContentPage> {
   void _showCloudSheet(BuildContext context) async {
     final colors = Theme.of(context).colorScheme;
     final hasConfig = (await WebDAVService.instance.getConfig()) != null;
-    if (!mounted) return;
+    if (!context.mounted) return;
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,

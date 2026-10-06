@@ -135,6 +135,7 @@ class MovieListItem extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeMovie(movie.id);
+              if (!context.mounted) return;
               Navigator.pop(context);
               ToastUtil.show(context, '已删除'.tr);
             },

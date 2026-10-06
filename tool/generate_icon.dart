@@ -1,3 +1,6 @@
+// 命令行工具，输出到 stdout 是预期行为
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:math' as math;
@@ -10,7 +13,7 @@ void main() {
   File('${outputDir.path}/app_icon_m.png').writeAsBytesSync(bytes1024);
   print('Generated app_icon_m.png (1024×1024)');
 
-  final androidMipmapDir = 'android/app/src/main/res';
+  const androidMipmapDir = 'android/app/src/main/res';
   final densities = {
     'mipmap-mdpi': 48, 'mipmap-hdpi': 72, 'mipmap-xhdpi': 96,
     'mipmap-xxhdpi': 144, 'mipmap-xxxhdpi': 192,
@@ -201,6 +204,8 @@ List<int> _be32(int v) => [(v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, 
 
 int _crc32(List<int> data) {
   int crc = 0xFFFFFFFF;
-  for (final b in data) { crc ^= b; for (int i = 0; i < 8; i++) crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320 : (crc >> 1); }
+  for (final b in data) { crc ^= b; for (int i = 0; i < 8; i++) {
+    crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320 : (crc >> 1);
+  } }
   return crc ^ 0xFFFFFFFF;
 }

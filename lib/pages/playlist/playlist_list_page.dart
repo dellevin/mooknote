@@ -577,7 +577,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
     const cellSize = 31.0;
     const gap = 2.0;
-    final wallSize = cellSize * 2 + gap;
+    const wallSize = cellSize * 2 + gap;
 
     return SizedBox(
       width: wallSize,
@@ -587,15 +587,15 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
           Row(
             children: [
               _buildCoverCell(covers, 0, cellSize, typeIcon, colors, typeColor),
-              SizedBox(width: gap),
+              const SizedBox(width: gap),
               _buildCoverCell(covers, 1, cellSize, typeIcon, colors, typeColor),
             ],
           ),
-          SizedBox(height: gap),
+          const SizedBox(height: gap),
           Row(
             children: [
               _buildCoverCell(covers, 2, cellSize, typeIcon, colors, typeColor),
-              SizedBox(width: gap),
+              const SizedBox(width: gap),
               _buildCoverCell(covers, 3, cellSize, typeIcon, colors, typeColor),
             ],
           ),

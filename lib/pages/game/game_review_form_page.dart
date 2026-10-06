@@ -156,7 +156,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                 if (game.rating != null) ...[
                   const SizedBox(height: 4),
                   Row(children: [
-                    Icon(Icons.star, size: 14, color: const Color(0xFFFFB800)),
+                    const Icon(Icons.star, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
                     Text('${game.rating}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
                   ]),

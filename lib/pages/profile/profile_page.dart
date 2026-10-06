@@ -282,8 +282,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   Widget _buildPosterMosaic(List<String> paths) {
     const cellCount = 30;
     final posters = paths.take(cellCount).toList();
-    while (posters.length < cellCount)
+    while (posters.length < cellCount) {
       posters.add(posters[posters.length % paths.length]);
+    }
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
@@ -1091,7 +1092,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   void _showFeedbackDialog(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final email = 'dellevin99@gmail.com';
+    const email = 'dellevin99@gmail.com';
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
@@ -1149,7 +1150,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: email));
+                      Clipboard.setData(const ClipboardData(text: email));
                       ToastUtil.show(context, '已复制到剪贴板'.tr);
                     },
                     child: Container(
@@ -1211,7 +1212,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: '1087203310'));
+                      Clipboard.setData(const ClipboardData(text: '1087203310'));
                       ToastUtil.show(context, '已复制到剪贴板'.tr);
                     },
                     child: Container(

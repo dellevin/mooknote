@@ -286,7 +286,7 @@ class _GameFormPageState extends State<GameFormPage> {
                         for (final g in gameGenres) {
                           if (!existingNames.contains(g)) existingNames.add(g);
                         }
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         final result = await GenreSelectorPage.show(
                           context: context,
                           title: '选择类型'.tr,
@@ -1195,7 +1195,9 @@ class _GameFormPageState extends State<GameFormPage> {
           updatedAt: now,
         );
 
+        if (!mounted) return;
         await context.read<AppProvider>().addGame(newGame);
+        if (!mounted) return;
         await context.read<AppProvider>().loadGames();
       } else {
         final updatedGame = widget.game!.copyWith(

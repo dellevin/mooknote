@@ -67,10 +67,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _error = '网络错误'.tr;
         _loading = false;
       });
+      }
     }
   }
 
@@ -160,7 +162,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     DateTime? publishDate;
     if (yearStr.toString().isNotEmpty) {
-      publishDate = DateTime.tryParse('${yearStr}-01-01');
+      publishDate = DateTime.tryParse('$yearStr-01-01');
     }
 
     final bookId = const Uuid().v4();

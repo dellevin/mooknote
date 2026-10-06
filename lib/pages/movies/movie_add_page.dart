@@ -165,7 +165,7 @@ class _MovieAddPageState extends State<MovieAddPage> {
                       final p = context.read<AppProvider>();
                       final tags = await p.getTags('movie_genre', excludeHidden: true);
                       final names = tags.map((t) => t['name'] as String).toList();
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: names, initialSelected: _genres, hint: '如：剧情、科幻'.tr);
                       if (r != null) setState(() => _genres = r);
                     }), const SizedBox(height: 16),
@@ -374,7 +374,9 @@ class _MovieAddPageState extends State<MovieAddPage> {
         rating: rating, status: _status, category: _category, watchDate: _watchDate,
         createdAt: now, updatedAt: now,
       );
+      if (!mounted) return;
       await context.read<AppProvider>().addMovie(movie);
+      if (!mounted) return;
       await context.read<AppProvider>().loadMovies();
       if (!mounted) return;
       context.read<AppProvider>().finishAdding();

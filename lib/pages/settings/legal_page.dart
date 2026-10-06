@@ -21,7 +21,7 @@ class _LegalPageState extends State<LegalPage> {
   bool _isLoading = true;
   String? _error;
 
-  static final String _baseUrl = ServerConfig.baseUrl;
+  static const String _baseUrl = ServerConfig.baseUrl;
 
   @override
   void initState() {

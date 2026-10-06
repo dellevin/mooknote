@@ -563,7 +563,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                           _buildEditSectionLabel('游玩时长', colors),
                           const SizedBox(height: 6),
                           Row(children: [
-                            Container(
+                            SizedBox(
                               width: 80,
                               child: TextFormField(
                                 controller: _playTimeHoursCtrl,
@@ -582,7 +582,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             const SizedBox(width: 8),
                             Text('小时'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
                             const SizedBox(width: 12),
-                            Container(
+                            SizedBox(
                               width: 80,
                               child: TextFormField(
                                 controller: _playTimeMinutesCtrl,

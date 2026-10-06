@@ -473,7 +473,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.movie_outlined, size: 20, color: const Color(0xFF4A90D9))),
+                child: const Icon(Icons.movie_outlined, size: 20, color: Color(0xFF4A90D9))),
             title: Text('添加影视'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface)),
             subtitle: Text('记录一部影视作品'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
@@ -486,7 +486,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.menu_book_outlined, size: 20, color: const Color(0xFF7E57C2))),
+                child: const Icon(Icons.menu_book_outlined, size: 20, color: Color(0xFF7E57C2))),
             title: Text('添加书籍'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface)),
             subtitle: Text('记录一本书籍'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
             trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),

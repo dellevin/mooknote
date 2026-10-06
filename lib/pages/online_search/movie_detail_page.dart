@@ -120,11 +120,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         _loading = false;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = '网络错误'.tr;
           _loading = false;
         });
+      }
     }
   }
 
@@ -156,10 +157,11 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         }
       }
     } catch (_) {}
-    if (mounted)
+    if (mounted) {
       setState(() {
         _staffLoading = false;
       });
+    }
   }
 
   Future<void> _loadPlayInfo() async {
@@ -1094,7 +1096,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                                   const SizedBox(height: 8),
                                   if (score.toString().isNotEmpty && score != '0.0') ...[
                                     Row(children: [
-                                      Icon(Icons.star_rounded, size: 16, color: const Color(0xFFF59E0B)),
+                                      const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
                                       const SizedBox(width: 3),
                                       Text('$score', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
                                       Text(' /10', style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
@@ -1693,19 +1695,21 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   // ── 演职人员 Tab ──────────────────────────────────────────
 
   Widget _buildStaffTab(ColorScheme colors) {
-    if (_staffLoading)
+    if (_staffLoading) {
       return Center(
           child: SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
                   strokeWidth: 2, color: colors.primary)));
-    if (_staffList.isEmpty)
+    }
+    if (_staffList.isEmpty) {
       return Center(
           child: Text('暂无演职信息'.tr,
               style: TextStyle(
                   fontSize: 13,
                   color: colors.onSurface.withValues(alpha: 0.35))));
+    }
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

@@ -215,7 +215,7 @@ class _BookFormPageState extends State<BookFormPage> {
                     onTap: () async {
                       final provider = context.read<AppProvider>();
                       final tags = await provider.getTags('book_genre', excludeHidden: true);
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       final r = await GenreSelectorPage.show(context: context, title: '选择类型'.tr, existingTags: tags.map((t) => t['name'] as String).toList(), initialSelected: _genres, hint: '如：小说、历史、传记'.tr, asBottomSheet: true);
                       if (!mounted) return;
                       if (r != null) setState(() => _genres = r);
@@ -753,7 +753,9 @@ class _BookFormPageState extends State<BookFormPage> {
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
           publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, createdAt: now, updatedAt: now,
         );
+        if (!mounted) return;
         await context.read<AppProvider>().addBook(newBook);
+        if (!mounted) return;
         await context.read<AppProvider>().loadBooks();
       } else {
         final updatedBook = widget.book!.copyWith(

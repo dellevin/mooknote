@@ -26,7 +26,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
   late TextEditingController _titleCtrl;
   late TextEditingController _contentCtrl;
   List<String> _tags = [];
-  List<String> _images = [];
+  final List<String> _images = [];
   String _editMode = 'edit'; // 'edit' | 'preview'
   late String _tempId;
   final _editorKey = GlobalKey<NoteEditorState>();
@@ -406,6 +406,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
       content = _contentCtrl.text.trim();
     }
     if (title.isEmpty && content.isEmpty) {
+      if (!mounted) return;
       ToastUtil.show(context, '标题或内容不能为空'.tr);
       return;
     }
@@ -417,7 +418,7 @@ class _NoteAddPageState extends State<NoteAddPage> {
         final newDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
         for (final imgPath in _images) {
           final normalized = imgPath.replaceAll('\\', '/');
-          if (normalized.contains('/notes/${_tempId}/')) {
+          if (normalized.contains('/notes/$_tempId/')) {
             final fileName = p.basename(imgPath);
             final newPath = p.join(newDir, fileName);
             await ImagePathHelper.instance.ensureDirExists(newDir);
@@ -439,7 +440,9 @@ class _NoteAddPageState extends State<NoteAddPage> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
+      if (!mounted) return;
       await context.read<AppProvider>().addNote(note);
+      if (!mounted) return;
       await context.read<AppProvider>().loadNotes();
       if (!mounted) return;
       context.read<AppProvider>().finishAdding();
