@@ -467,6 +467,21 @@ class UserPrefs {
   int get lastSearchTab => prefs.getInt('lastSearchTab') ?? 0;
   Future<bool> setLastSearchTab(int value) => prefs.setInt('lastSearchTab', value);
 
+  // ========== TMDB 搜索 ==========
+
+  /// TMDB API Token（v4 Read Access Token 或 v3 API Key）
+  String get tmdbApiToken => prefs.getString('tmdbApiToken') ?? '';
+  Future<bool> setTmdbApiToken(String value) => prefs.setString('tmdbApiToken', value);
+
+  /// TMDB 认证方式: bearer(v4) / apikey(v3)
+  String get tmdbAuthType => prefs.getString('tmdbAuthType') ?? 'bearer';
+  Future<bool> setTmdbAuthType(String value) => prefs.setString('tmdbAuthType', value);
+
+  /// 搜索页模式: 0=本地, 1=增强, 2=TMDB（从旧版 lastSearchOnline 迁移）
+  int get lastSearchMode =>
+      prefs.getInt('lastSearchMode') ?? (lastSearchOnline ? 1 : 0);
+  Future<bool> setLastSearchMode(int value) => prefs.setInt('lastSearchMode', value);
+
   // ========== 播放解锁 ==========
 
   /// 播放解锁时间（ISO 字符串），解锁后 7 天有效

@@ -90,6 +90,52 @@ const Map<String, String> enSearchSync = {
   '作者会在 QQ 群不定期发放增强搜索的token':
       'The author gives out enhanced search Tokens in the QQ group from time to time',
 
+  // ── TMDB 搜索 ──
+  'TMDB 搜索': 'TMDB Search',
+  '使用 TMDB API 搜索电影和剧集': 'Search movies and TV shows via TMDB API',
+  '请输入 API Token': 'Enter an API Token',
+  '测试成功，Token 已保存': 'Test passed, Token saved',
+  'Token 无效，未保存': 'Invalid Token, not saved',
+  '网络不通，无法连接 TMDB 服务器，未保存':
+      'Network unreachable, cannot connect to TMDB server, not saved',
+  '已清除 TMDB Token': 'TMDB Token cleared',
+  'TMDB 搜索已开启': 'TMDB search is enabled',
+  '填写 API Token 并测试成功后开启':
+      'Enter an API Token and pass the test to enable',
+  'TMDB API Token': 'TMDB API Token',
+  '输入 API Token 或 API Key': 'Enter API Token or API Key',
+  '测试中...': 'Testing...',
+  '清除已保存的 Token': 'Clear saved Token',
+  '在 themoviedb.org 注册账号后，于 设置 → API 页面申请 Token':
+      'Register at themoviedb.org, then apply for a Token under Settings → API',
+  '支持 API Read Access Token 和 API Key，会自动识别':
+      'Supports API Read Access Token and API Key, auto-detected',
+  '需要设备能正常访问 TMDB 服务器': 'Requires network access to TMDB servers',
+  'Token 仅保存在本地，用于搜索电影和剧集信息':
+      'Token is stored locally only, used to search movies and TV shows',
+  '请先在设置中配置 TMDB Token': 'Configure the TMDB Token in Settings first',
+  '搜索电影、剧集...': 'Search movies, TV shows...',
+  'Token 已失效，请前往设置重新验证': 'Token expired, re-verify in Settings',
+  '剧集': 'TV Show',
+  '已在本地库中': 'Already in library',
+  '获取详情失败，请检查网络': 'Failed to get details, please check your network',
+  '搜索你想看的电影或剧集': 'Search for movies or TV shows',
+  '已经是所有数据啦': "That's all the data",
+  '电影详情': 'Movie Details',
+  '剧集详情': 'TV Show Details',
+  '季': 'S',
+  '集': 'E',
+  '主创': 'Created by',
+  '已砍': 'Canceled',
+  '制作中': 'In Production',
+  '制片': 'Producer',
+  '个人简介': 'Biography',
+  '代表作品': 'Known For',
+  '同步到本地人物库': 'Sync to local people library',
+  '选择要更新的人物': 'Select the person to update',
+  '已更新「{name}」': 'Updated "{name}"',
+  '已添加「{name}」': 'Added "{name}"',
+
   // ── 在线影视详情 ──
   '加载失败': 'Load failed',
   '网络错误': 'Network error',

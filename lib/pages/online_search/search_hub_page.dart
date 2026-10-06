@@ -3,8 +3,9 @@ import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import 'search_page.dart';
 import 'online_search_page.dart';
+import 'tmdb_search_page.dart';
 
-/// 统一搜索页 —— 本地搜索 / 增强搜索（在线）切换
+/// 统一搜索页 —— 本地 / 增强 / TMDB 切换
 class SearchHubPage extends StatefulWidget {
   const SearchHubPage({super.key});
 
@@ -13,45 +14,66 @@ class SearchHubPage extends StatefulWidget {
 }
 
 class _SearchHubPageState extends State<SearchHubPage> {
-  late bool _isOnline;
+  late int _mode;
+
+  bool get _enhancedOn => UserPrefs().enhancedSearchEnabled;
+  bool get _tmdbOn => UserPrefs().tmdbApiToken.isNotEmpty;
+
+  /// 可用模式: 0=本地, 1=增强, 2=TMDB
+  List<int> get _modes => [0, if (_enhancedOn) 1, if (_tmdbOn) 2];
 
   @override
   void initState() {
     super.initState();
-    _isOnline = UserPrefs().lastSearchOnline;
+    _mode = UserPrefs().lastSearchMode;
+    if (!_modes.contains(_mode)) _mode = 0;
   }
 
-  void _switchTo(bool online) {
-    if (!mounted || _isOnline == online) return;
-    setState(() => _isOnline = online);
-    UserPrefs().setLastSearchOnline(online);
+  void _switchTo(int mode) {
+    if (!mounted || _mode == mode) return;
+    setState(() => _mode = mode);
+    UserPrefs().setLastSearchMode(mode);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final showToggle = UserPrefs().enhancedSearchEnabled;
+    final modes = _modes;
+    if (!modes.contains(_mode)) _mode = 0;
+    final children = <Widget>[
+      const SearchPageBody(),
+      if (_enhancedOn) const OnlineSearchPageBody(),
+      if (_tmdbOn) const TmdbSearchPageBody(),
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text('搜索'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
-          if (showToggle) _buildToggle(colors),
+          if (modes.length > 1) _buildToggle(colors, modes),
           const SizedBox(width: 4),
         ],
       ),
       body: IndexedStack(
-        index: _isOnline ? 1 : 0,
-        children: const [
-          SearchPageBody(),
-          OnlineSearchPageBody(),
-        ],
+        index: modes.indexOf(_mode),
+        children: children,
       ),
     );
   }
 
-  Widget _buildToggle(ColorScheme colors) {
+  Widget _buildToggle(ColorScheme colors, List<int> modes) {
+    String labelOf(int mode) {
+      switch (mode) {
+        case 1:
+          return '增强'.tr;
+        case 2:
+          return 'TMDB';
+        default:
+          return '本地'.tr;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.all(2),
@@ -62,8 +84,9 @@ class _SearchHubPageState extends State<SearchHubPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _toggleBtn('本地'.tr, !_isOnline, () => _switchTo(false), colors),
-          _toggleBtn('增强'.tr, _isOnline, () => _switchTo(true), colors),
+          for (final m in modes)
+            _toggleBtn(
+                labelOf(m), _mode == m, () => _switchTo(m), colors),
         ],
       ),
     );

@@ -12,6 +12,7 @@ import '../../utils/toast_util.dart';
 import '../../services/media_scan_channel.dart';
 import '../../services/log_service.dart';
 import '../online_search/enhanced_search_settings_page.dart';
+import '../online_search/tmdb_settings_page.dart';
 import '../settings/legal_page.dart';
 import '../settings/debug_log_page.dart';
 import '../settings/prefs_editor_page.dart';
@@ -153,6 +154,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 context,
                 MaterialPageRoute(
                     builder: (_) => const EnhancedSearchSettingsPage())),
+          ),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildActionItem(
+            icon: Icons.movie_filter_outlined,
+            title: 'TMDB 搜索'.tr,
+            subtitle: '使用 TMDB API 搜索电影和剧集'.tr,
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TmdbSettingsPage())),
           ),
           Divider(
               height: 0.5,
