@@ -21,6 +21,7 @@ import 'detail_module_settings_page.dart';
 import 'changelog_page.dart';
 import 'font_picker_page.dart';
 import 'cache_cleaner_page.dart';
+import 'permissions_page.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 设置页面
@@ -214,8 +215,9 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildActionItem(
               icon: Icons.folder_outlined,
               title: '获取系统权限'.tr,
-              subtitle: '前往系统设置开启存储权限'.tr,
-              onTap: _showStoragePermissionDialog,
+              subtitle: '查看并开启存储、照片等媒体权限'.tr,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const PermissionsPage())),
             ),
             Divider(
                 height: 0.5,
@@ -1235,45 +1237,5 @@ class _SettingsPageState extends State<SettingsPage> {
         ToastUtil.show(context, '扫描失败'.tr);
       }
     }
-  }
-
-  void _showStoragePermissionDialog() {
-    final colors = Theme.of(context).colorScheme;
-    appDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('需要存储权限'.tr,
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface)),
-        content: Text(
-          'Android 11+ 需要在系统设置中授予"所有文件访问权限"才能扫描字体文件。\n\n是否前往设置？'.tr,
-          style: TextStyle(
-              fontSize: 14,
-              color: colors.onSurface.withValues(alpha: 0.6),
-              height: 1.6),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消'.tr,
-                style:
-                    TextStyle(color: colors.onSurface.withValues(alpha: 0.4))),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              // 跳转到应用设置页（用户可在权限中找到"所有文件访问"）
-              openAppSettings();
-            },
-            child: Text('前往设置'.tr, style: TextStyle(color: colors.primary)),
-          ),
-        ],
-      ),
-    );
   }
 }

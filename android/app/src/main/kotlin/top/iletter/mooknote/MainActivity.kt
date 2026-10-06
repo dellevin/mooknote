@@ -1,11 +1,14 @@
 package top.iletter.mooknote
 
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -14,6 +17,7 @@ class MainActivity : FlutterActivity() {
 
     private val CHANNEL = "top.iletter.mooknote/icon"
     private val MEDIA_SCAN_CHANNEL = "top.iletter.mooknote/media_scan"
+    private val SETTINGS_CHANNEL = "top.iletter.mooknote/settings"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -64,6 +68,23 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }.start()
+                }
+                else -> result.notImplemented()
+            }
+        }
+        // 跳转系统设置界面（permission_handler 对已授权的存储权限不再拉起授权页，需原生直达）
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SETTINGS_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                // 系统"所有文件访问"授权页（Android 11+）
+                "openAllFilesAccess" -> {
+                    try {
+                        val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                        intent.data = Uri.parse("package:$packageName")
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
                 else -> result.notImplemented()
             }

@@ -169,9 +169,33 @@ class _DebugLogPageState extends State<DebugLogPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           backgroundColor: colors.surface,
-          title: Text('筛选模块'.tr,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text('筛选模块'.tr,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () => setDlgState(() => selected = Set.of(all)),
+                child: Text('全选'.tr, style: const TextStyle(fontSize: 13)),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () => setDlgState(() => selected = {}),
+                child: Text('全不选'.tr, style: const TextStyle(fontSize: 13)),
+              ),
+            ],
+          ),
           content: SizedBox(
             width: double.maxFinite,
             height: 320,
@@ -197,21 +221,21 @@ class _DebugLogPageState extends State<DebugLogPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => setDlgState(() => selected = Set.of(all)),
-              child: Text('全选'.tr),
-            ),
-            TextButton(
-              onPressed: () => setDlgState(() => selected = {}),
-              child: Text('全不选'.tr),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('取消'.tr),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, selected),
-              child: Text('确定'.tr),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('取消'.tr),
+                  ),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx, selected),
+                    child: Text('确定'.tr),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
