@@ -396,6 +396,30 @@ class UserPrefs {
               e.key: {'x': e.value.x, 'y': e.value.y},
           }));
 
+  /// 浮动徽章显示在哪些页面：slug → {'profile', 'home'} 子集（JSON 存储）
+  /// 无记录时默认两个页面都显示（兼容旧数据）
+  Set<String> badgeFloatPages(String slug) {
+    final str = prefs.getString('badgeFloatPages') ?? '';
+    if (str.isNotEmpty) {
+      try {
+        final v = (jsonDecode(str) as Map)[slug];
+        if (v is List && v.isNotEmpty) {
+          return v.map((e) => e.toString()).toSet();
+        }
+      } catch (_) {}
+    }
+    return {'profile', 'home'};
+  }
+
+  Future<bool> setBadgeFloatPages(String slug, Set<String> pages) {
+    Map map = {};
+    try {
+      map = jsonDecode(prefs.getString('badgeFloatPages') ?? '{}') as Map;
+    } catch (_) {}
+    map[slug] = pages.toList();
+    return prefs.setString('badgeFloatPages', jsonEncode(map));
+  }
+
   // ========== 搜索历史 ==========
 
   /// 搜索历史记录

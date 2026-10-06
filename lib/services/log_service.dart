@@ -42,9 +42,13 @@ class LogService {
   static final LogService instance = LogService._();
 
   static const int _maxEntries = 3000;
+  static const int _maxErrors = 100;
 
   /// 按时间正序存放（新日志在末尾）
   final List<LogEntry> entries = [];
+
+  /// 崩溃/异常记录（带堆栈），与普通日志分开存放
+  final List<LogEntry> errors = [];
 
   bool _installed = false;
   bool get installed => _installed;
@@ -66,11 +70,13 @@ class LogService {
     _originalOnError = FlutterError.onError;
     FlutterError.onError = (details) {
       add('[FlutterError] ${details.exceptionAsString()}');
+      addError('[FlutterError] ${details.exceptionAsString()}\n${details.stack}');
       _originalOnError?.call(details);
     };
 
     PlatformDispatcher.instance.onError = (error, stack) {
       add('[Uncaught] $error\n$stack');
+      addError('[Uncaught] $error\n$stack');
       return false; // 不拦截，继续走默认处理
     };
 
@@ -92,7 +98,16 @@ class LogService {
     }
   }
 
+  /// 记录崩溃/异常（带堆栈），独立环形缓冲
+  void addError(String message) {
+    errors.add(LogEntry(DateTime.now(), message));
+    if (errors.length > _maxErrors) {
+      errors.removeRange(0, errors.length - _maxErrors);
+    }
+  }
+
   void clear() => entries.clear();
+  void clearErrors() => errors.clear();
 }
 
 /// 记录页面导航轨迹的路由观察者（替换全局 routeObserver 使用）

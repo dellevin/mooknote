@@ -14,6 +14,9 @@ import '../../services/log_service.dart';
 import '../online_search/enhanced_search_settings_page.dart';
 import '../settings/legal_page.dart';
 import '../settings/debug_log_page.dart';
+import '../settings/prefs_editor_page.dart';
+import '../settings/db_viewer_page.dart';
+import '../settings/crash_log_page.dart';
 import 'app_icon_picker_page.dart';
 import 'feature_settings_page.dart';
 import 'layout_settings_page.dart';
@@ -189,6 +192,42 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: '查看、按时间筛选和保存日志'.tr,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const DebugLogPage())),
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            _buildNavigationItem(
+              icon: Icons.tune,
+              title: '偏好设置编辑器'.tr,
+              subtitle: '查看和修改 SharedPreferences 数据'.tr,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const PrefsEditorPage())),
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            _buildNavigationItem(
+              icon: Icons.storage,
+              title: '数据库查看器'.tr,
+              subtitle: '浏览表数据，执行 SELECT 查询'.tr,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const DbViewerPage())),
+            ),
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            _buildNavigationItem(
+              icon: Icons.error_outline,
+              title: '崩溃日志'.tr,
+              subtitle: '带堆栈的异常记录，与普通日志分开'.tr,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const CrashLogPage())),
             ),
             Divider(
                 height: 0.5,

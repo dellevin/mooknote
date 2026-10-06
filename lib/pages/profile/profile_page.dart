@@ -13,8 +13,8 @@ import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/excel_exporter.dart';
-import '../../services/badge_service.dart';
 import '../../services/server_export_service.dart';
+import '../../widgets/float_badge_overlay.dart';
 import '../settings/recycle_bin_page.dart';
 import '../sync/backup_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -51,16 +51,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   // Hero 背景封面路径缓存，避免每次 build 都 shuffle 换图
   List<String> _heroCoverPaths = const [];
 
-  // 浮动显示的徽章图标（slug → 定义/位置），可拖拽
-  Map<String, BadgeDef> _badgeDefs = {};
-  Map<String, ({double x, double y})> _badgeFloat = {};
-
   @override
   void initState() {
     super.initState();
     _myModuleIndex = _userPrefs.profileModuleIndex;
     _loadUserData();
-    _loadBadgeFloat();
   }
 
   @override
@@ -80,37 +75,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     // 从其他页面返回时刷新用户数据（头像、昵称等）+ 换一次背景图
     _loadUserData();
     _invalidateHeroCache();
-    // 徽章页可能改了浮动显示开关
-    _loadBadgeFloat();
-  }
-
-  /// 加载浮动徽章图标：先读缓存定义即时展示，再后台刷新定义
-  void _loadBadgeFloat() {
-    if (!mounted) return;
-    setState(() {
-      _badgeFloat = _userPrefs.badgeFloat;
-      _badgeDefs = {for (final d in BadgeService.cachedDefs()) d.slug: d};
-    });
-    BadgeService.fetchDefs().then((fresh) {
-      if (!mounted || fresh.isEmpty) return;
-      setState(() => _badgeDefs = {for (final d in fresh) d.slug: d});
-    });
   }
 
   void _invalidateHeroCache() {
     setState(() => _heroCoverPaths = const []);
-  }
-
-  /// 浮动徽章图标：只显示 PNG/SVG 图标，可自由拖拽，位置持久化（0~1 比例坐标）
-  Widget _buildFloatBadge(String slug, BoxConstraints constraints) {
-    return _FloatBadgeIcon(
-      key: ValueKey(slug),
-      icon: _badgeDefs[slug]!.icon,
-      pos: _badgeFloat[slug]!,
-      constraints: constraints,
-      onChanged: (p) => setState(() => _badgeFloat[slug] = p),
-      onDragEnd: () => _userPrefs.setBadgeFloat(_badgeFloat),
-    );
   }
 
   Future<void> _loadUserData() async {
@@ -149,34 +117,28 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
               final books = provider.books.where((b) => !b.isDeleted).toList();
               final notes = provider.notes.where((n) => !n.isDeleted).toList();
               final games = provider.games.where((g) => !g.isDeleted).toList();
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  return Stack(
-                    children: [
-                      SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildHero(movies, books, notes, games),
-                            const SizedBox(height: 20),
-                            _buildMyModule(movies, books, notes, games),
-                            const SizedBox(height: 20),
-                            _buildWatchlist(movies, books, games),
-                            const SizedBox(height: 20),
-                            _buildTagsSection(movies, books, notes),
-                            const SizedBox(height: 20),
-                            _buildToolsGrid(context),
-                            const SizedBox(height: 120),
-                          ],
-                        ),
-                      ),
-                      // 浮动徽章图标层（只显示图标，可拖拽换位）
-                      for (final slug in _badgeFloat.keys)
-                        if (_badgeDefs.containsKey(slug))
-                          _buildFloatBadge(slug, constraints),
-                    ],
-                  );
-                },
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHero(movies, books, notes, games),
+                        const SizedBox(height: 20),
+                        _buildMyModule(movies, books, notes, games),
+                        const SizedBox(height: 20),
+                        _buildWatchlist(movies, books, games),
+                        const SizedBox(height: 20),
+                        _buildTagsSection(movies, books, notes),
+                        const SizedBox(height: 20),
+                        _buildToolsGrid(context),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
+                  ),
+                  // 浮动徽章图标层（与主页共享位置，可拖拽换位）
+                  const FloatBadgeOverlay(page: 'profile'),
+                ],
               );
             },
           ),
@@ -1847,88 +1809,4 @@ class _WatchlistItem {
     required this.createdAt,
     required this.onTap,
   });
-}
-
-/// 浮动徽章图标：本地状态实时跟手拖拽，松手后回写父级持久化
-class _FloatBadgeIcon extends StatefulWidget {
-  final String icon;
-  final ({double x, double y}) pos;
-  final BoxConstraints constraints;
-  final ValueChanged<({double x, double y})> onChanged;
-  final VoidCallback onDragEnd;
-
-  const _FloatBadgeIcon({
-    super.key,
-    required this.icon,
-    required this.pos,
-    required this.constraints,
-    required this.onChanged,
-    required this.onDragEnd,
-  });
-
-  @override
-  State<_FloatBadgeIcon> createState() => _FloatBadgeIconState();
-}
-
-class _FloatBadgeIconState extends State<_FloatBadgeIcon> {
-  static const double _iconSize = 64;
-
-  // 拖拽中的实时位置（像素），null 表示未在拖拽，用父级传入的比例坐标
-  Offset? _dragPos;
-
-  Offset get _basePos => Offset(
-        widget.pos.x * widget.constraints.maxWidth - _iconSize / 2,
-        widget.pos.y * widget.constraints.maxHeight - _iconSize / 2,
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final maxX =
-        (widget.constraints.maxWidth - _iconSize).clamp(0.0, double.infinity);
-    final maxY =
-        (widget.constraints.maxHeight - _iconSize).clamp(0.0, double.infinity);
-    final p = _dragPos ?? _basePos;
-
-    return Positioned(
-      left: p.dx.clamp(0.0, maxX),
-      top: p.dy.clamp(0.0, maxY),
-      child: GestureDetector(
-        onPanStart: (_) => _dragPos = _basePos,
-        onPanUpdate: (details) {
-          final cur = _dragPos ?? _basePos;
-          setState(() => _dragPos = Offset(
-                (cur.dx + details.delta.dx).clamp(0.0, maxX),
-                (cur.dy + details.delta.dy).clamp(0.0, maxY),
-              ));
-        },
-        onPanEnd: (_) {
-          final p = _dragPos;
-          if (p != null &&
-              widget.constraints.maxWidth > 0 &&
-              widget.constraints.maxHeight > 0) {
-            // 转回比例坐标（以图标中心点记）
-            widget.onChanged((
-              x: ((p.dx + _iconSize / 2) / widget.constraints.maxWidth)
-                  .clamp(0.0, 1.0),
-              y: ((p.dy + _iconSize / 2) / widget.constraints.maxHeight)
-                  .clamp(0.0, 1.0),
-            ));
-            widget.onDragEnd();
-          }
-          setState(() => _dragPos = null);
-        },
-        onPanCancel: () => setState(() => _dragPos = null),
-        child: SizedBox(
-          width: _iconSize,
-          height: _iconSize,
-          child: BadgeIcon(
-              icon: widget.icon,
-              size: _iconSize,
-              locked: false,
-              colors: colors),
-        ),
-      ),
-    );
-  }
 }
