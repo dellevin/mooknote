@@ -18,6 +18,7 @@ import 'utils/app_router.dart';
 import 'utils/platform_utils.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
+import 'services/badge_service.dart';
 import 'services/log_service.dart';
 import 'services/usage_stats_service.dart';
 import 'services/sync/backup_service.dart';
@@ -130,6 +131,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _applySystemUI();
       _requestStoragePermissionIfNeeded();
       _checkUpdate(); // 不阻塞，完成后自行弹窗
+      _evaluateBadges(); // 记录活跃日 + 评估徽章，有新解锁自行弹窗
     });
   }
 
@@ -262,9 +264,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
+  /// 评估成就徽章：记录活跃日、拉取定义、本地判定解锁
+  /// 新解锁进入待庆祝队列，在徽章页打开时统一庆祝（不在主页弹窗）
+  Future<void> _evaluateBadges() async {
+    try {
+      await BadgeService.recordActiveDay();
+      final defs = await BadgeService.fetchDefs();
+      if (defs.isEmpty) return;
+      final metrics = await BadgeService.collectMetrics();
+      await BadgeService.evaluate(defs, metrics);
+    } catch (_) {}
+  }
+
   /// 延迟到首页渲染后再检查版本更新，确保 context 已就绪
-  Future<void> _checkUpdate() async {
-    if (_updateCheckDone) return;
+  Future<void> _checkUpdate() async {    if (_updateCheckDone) return;
     _updateCheckDone = true;
     await Future.delayed(const Duration(milliseconds: 500));
     var ctx = _navigatorKey.currentContext;

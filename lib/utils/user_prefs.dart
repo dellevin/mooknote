@@ -338,6 +338,64 @@ class UserPrefs {
   String get deviceId => prefs.getString('deviceId') ?? '';
   Future<bool> setDeviceId(String value) => prefs.setString('deviceId', value);
 
+  // ========== 成就徽章 ==========
+
+  /// 上次活跃日期（yyyy-M-d），用于连续使用天数统计
+  String get lastActiveDate => prefs.getString('lastActiveDate') ?? '';
+  Future<bool> setLastActiveDate(String value) => prefs.setString('lastActiveDate', value);
+
+  /// 连续使用天数
+  int get streakDays => prefs.getInt('streakDays') ?? 0;
+  Future<bool> setStreakDays(int value) => prefs.setInt('streakDays', value);
+
+  /// 徽章定义缓存（服务端返回的原始 JSON，离线时使用）
+  String get badgeDefsCache => prefs.getString('badgeDefsCache') ?? '';
+  Future<bool> setBadgeDefsCache(String value) => prefs.setString('badgeDefsCache', value);
+
+  /// 已解锁徽章（JSON: {slug: 解锁时间 ISO8601}）
+  Map<String, String> get badgeUnlocked {
+    final str = prefs.getString('badgeUnlocked') ?? '';
+    if (str.isEmpty) return {};
+    try {
+      return Map<String, String>.from(jsonDecode(str) as Map);
+    } catch (_) {
+      return {};
+    }
+  }
+  Future<bool> setBadgeUnlocked(Map<String, String> value) =>
+      prefs.setString('badgeUnlocked', jsonEncode(value));
+
+  /// 待庆祝的新解锁徽章 slug 列表（进入徽章页时弹出庆祝并清空）
+  List<String> get badgePendingCelebrate =>
+      prefs.getStringList('badgePendingCelebrate') ?? [];
+  Future<bool> setBadgePendingCelebrate(List<String> value) =>
+      prefs.setStringList('badgePendingCelebrate', value);
+
+  /// "我的"页浮动显示的徽章（JSON: {slug: {"x": 0.0~1.0, "y": 0.0~1.0}}）
+  Map<String, ({double x, double y})> get badgeFloat {
+    final str = prefs.getString('badgeFloat') ?? '';
+    if (str.isEmpty) return {};
+    try {
+      final map = jsonDecode(str) as Map;
+      return {
+        for (final e in map.entries)
+          e.key.toString(): (
+            x: ((e.value as Map)['x'] as num).toDouble(),
+            y: ((e.value as Map)['y'] as num).toDouble(),
+          ),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+  Future<bool> setBadgeFloat(Map<String, ({double x, double y})> value) =>
+      prefs.setString(
+          'badgeFloat',
+          jsonEncode({
+            for (final e in value.entries)
+              e.key: {'x': e.value.x, 'y': e.value.y},
+          }));
+
   // ========== 搜索历史 ==========
 
   /// 搜索历史记录

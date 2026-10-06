@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_title_bar.dart';
-import 'platform_utils.dart';
 
 /// Toast 工具类（带滑入+淡入动画）
 class ToastUtil {
@@ -13,16 +11,28 @@ class ToastUtil {
     _currentToast = null;
 
     final overlay = Overlay.of(context);
-    _currentToast = OverlayEntry(
-      builder: (context) => _AnimatedToast(message: message),
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _AnimatedToast(
+        message: message,
+        onDismiss: () {
+          if (_currentToast == entry) {
+            entry.remove();
+            _currentToast = null;
+          }
+        },
+      ),
     );
+    _currentToast = entry;
 
-    overlay.insert(_currentToast!);
+    overlay.insert(entry);
 
     // 2秒后自动消失
     Future.delayed(const Duration(seconds: 2), () {
-      _currentToast?.remove();
-      _currentToast = null;
+      if (_currentToast == entry) {
+        entry.remove();
+        _currentToast = null;
+      }
     });
   }
 }
@@ -30,8 +40,9 @@ class ToastUtil {
 /// 带动画的 Toast 内容
 class _AnimatedToast extends StatefulWidget {
   final String message;
+  final VoidCallback onDismiss;
 
-  const _AnimatedToast({required this.message});
+  const _AnimatedToast({required this.message, required this.onDismiss});
 
   @override
   State<_AnimatedToast> createState() => _AnimatedToastState();
@@ -42,6 +53,7 @@ class _AnimatedToastState extends State<_AnimatedToast>
   late AnimationController _ctrl;
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
+  bool _dismissing = false;
 
   @override
   void initState() {
@@ -52,7 +64,7 @@ class _AnimatedToastState extends State<_AnimatedToast>
     );
     _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slide = Tween<Offset>(
-      begin: const Offset(0, -0.3),
+      begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _ctrl.forward();
@@ -63,6 +75,13 @@ class _AnimatedToastState extends State<_AnimatedToast>
     });
   }
 
+  /// 点击手动关闭：淡出动画结束后移除
+  void _dismiss() {
+    if (_dismissing) return;
+    _dismissing = true;
+    _ctrl.reverse().then((_) => widget.onDismiss());
+  }
+
   @override
   void dispose() {
     _ctrl.dispose();
@@ -71,8 +90,9 @@ class _AnimatedToastState extends State<_AnimatedToast>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Positioned(
-      top: (PlatformUtils.isDesktop ? CustomTitleBar.height : MediaQuery.of(context).padding.top) + 80,
+      bottom: MediaQuery.of(context).padding.bottom + 96,
       left: 0,
       right: 0,
       child: FadeTransition(
@@ -82,17 +102,25 @@ class _AnimatedToastState extends State<_AnimatedToast>
           child: Center(
             child: Material(
               color: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A).withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Text(
-                  widget.message,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
+              child: GestureDetector(
+                onTap: _dismiss,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: screenWidth > 480 ? 480 : screenWidth * 0.85,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A).withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
+                      widget.message,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
