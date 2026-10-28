@@ -552,6 +552,40 @@ class UserPrefs {
   String get bangumiProxy => prefs.getString('bangumiProxy') ?? '';
   Future<bool> setBangumiProxy(String value) => prefs.setString('bangumiProxy', value);
 
+  /// Bangumi 在线添加后自动打开编辑页（默认关，保持原有静默入库流）
+  bool get bangumiOpenEditorAfterAdd =>
+      prefs.getBool('bangumiOpenEditorAfterAdd') ?? false;
+  Future<bool> setBangumiOpenEditorAfterAdd(bool value) =>
+      prefs.setBool('bangumiOpenEditorAfterAdd', value);
+
+  /// Bangumi 人物头像来源记录：personId → {url: 图片 URL, path: 当时写入的本地路径}。
+  /// 两项都匹配才认定本地头像仍来自 Bangumi；头像被 TMDB 同步或手动更换后
+  /// 文件路径必然变化，会重新提示覆盖（旧版仅存 URL 的记录自动降级，提示一次后自愈）
+  Map<String, Map<String, String?>> get bangumiPersonPhotos {
+    final raw = prefs.getString('bangumiPersonPhotos');
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      return (jsonDecode(raw) as Map).map((k, v) {
+        if (v is Map) {
+          return MapEntry(k.toString(), {
+            'url': v['url']?.toString(),
+            'path': v['path']?.toString(),
+          });
+        }
+        return MapEntry(k.toString(), {'url': v.toString(), 'path': null});
+      });
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> setBangumiPersonPhoto(
+      String personId, String url, String path) async {
+    final m = bangumiPersonPhotos;
+    m[personId] = {'url': url, 'path': path};
+    await prefs.setString('bangumiPersonPhotos', jsonEncode(m));
+  }
+
   /// 搜索页模式: 0=本地, 1=增强, 2=TMDB, 3=Bangumi（从旧版 lastSearchOnline 迁移）
   int get lastSearchMode =>
       prefs.getInt('lastSearchMode') ?? (lastSearchOnline ? 1 : 0);

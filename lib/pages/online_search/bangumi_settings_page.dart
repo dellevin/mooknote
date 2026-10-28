@@ -137,6 +137,8 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
             const SizedBox(height: 12),
             _buildClearButton(colors),
           ],
+          const SizedBox(height: 20),
+          _buildEditorToggle(colors),
           const SizedBox(height: 32),
           _buildTips(colors),
         ],
@@ -363,6 +365,51 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 添加后自动打开编辑页开关（默认关，保持原有静默入库流）
+  Widget _buildEditorToggle(ColorScheme colors) {
+    final enabled = _userPrefs.bangumiOpenEditorAfterAdd;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('添加后打开编辑页'.tr,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface)),
+                const SizedBox(height: 2),
+                Text('点击想看/在看/看过后，直接弹出自动填好的编辑表单'.tr,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.45))),
+              ],
+            ),
+          ),
+          Switch(
+            value: enabled,
+            activeThumbColor: colors.primary,
+            activeTrackColor: colors.primary.withValues(alpha: 0.3),
+            inactiveThumbColor: colors.surface,
+            inactiveTrackColor: colors.outline,
+            onChanged: (v) {
+              setState(() {});
+              _userPrefs.setBangumiOpenEditorAfterAdd(v);
+            },
+          ),
+        ],
+      ),
     );
   }
 

@@ -88,7 +88,7 @@ class BangumiService {
         'accept': 'application/json',
       };
 
-  Future<Map<String, dynamic>> _request(String method, String path,
+  Future<Object?> _send(String method, String path,
       {Map<String, dynamic>? body, Map<String, String> query = const {}}) async {
     http.Response resp;
     try {
@@ -114,7 +114,18 @@ class BangumiService {
     }
     if (resp.statusCode == 401) throw BangumiAuthException();
     if (resp.statusCode != 200) throw BangumiNetworkException();
-    return json.decode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    return json.decode(utf8.decode(resp.bodyBytes));
+  }
+
+  Future<Map<String, dynamic>> _request(String method, String path,
+      {Map<String, dynamic>? body, Map<String, String> query = const {}}) async {
+    return await _send(method, path, body: body, query: query)
+        as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> _requestList(String method, String path,
+      {Map<String, dynamic>? body, Map<String, String> query = const {}}) async {
+    return await _send(method, path, body: body, query: query) as List<dynamic>;
   }
 
   // ── 搜索 / 详情 ──────────────────────────────────────────────
@@ -132,4 +143,40 @@ class BangumiService {
   /// 条目详情
   Future<Map<String, dynamic>> subjectDetail(int id) =>
       _request('GET', '/v0/subjects/$id');
+
+  /// 条目关联人物（制作人员），元素含 id/name/relation/images/career
+  Future<List<dynamic>> subjectPersons(int id) =>
+      _requestList('GET', '/v0/subjects/$id/persons');
+
+  /// 条目关联角色，元素含 id/name/relation/images/summary/actors（声优列表）
+  Future<List<dynamic>> subjectCharacters(int id) =>
+      _requestList('GET', '/v0/subjects/$id/characters');
+
+  /// 人物详情（含 gender/birth_*/infobox/summary）
+  Future<Map<String, dynamic>> personDetail(int id) =>
+      _request('GET', '/v0/persons/$id');
+
+  /// 角色详情（infobox 含简体中文名）
+  Future<Map<String, dynamic>> characterDetail(int id) =>
+      _request('GET', '/v0/characters/$id');
+
+  /// 条目本篇分集（type=0），自动翻页拉全；元素含 ep/name/name_cn/airdate 等
+  Future<List<dynamic>> subjectEpisodes(int id) async {
+    final out = <dynamic>[];
+    var offset = 0;
+    while (true) {
+      final page = await _request('GET', '/v0/episodes', query: {
+        'subject_id': '$id',
+        'type': '0',
+        'limit': '100',
+        'offset': '$offset',
+      });
+      final data = (page['data'] as List? ?? []);
+      out.addAll(data);
+      final total = (page['total'] as num?)?.toInt() ?? out.length;
+      offset += data.length;
+      if (data.isEmpty || offset >= total) break;
+    }
+    return out;
+  }
 }
