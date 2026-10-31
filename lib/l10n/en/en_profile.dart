@@ -407,6 +407,8 @@ const Map<String, String> enProfile = {
   '调整头像': 'Adjust Avatar',
   '从文件管理器选择': 'Select from Files',
   '移除头像': 'Remove avatar',
+  '编辑背景': 'Edit Background',
+  '恢复默认背景': 'Restore Default Background',
   '选择备份方式': 'Choose backup method',
   '本地备份': 'Local backup',
   '备份到本地文件夹，支持恢复':

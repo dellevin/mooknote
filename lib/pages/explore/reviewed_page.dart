@@ -13,6 +13,8 @@ import '../../l10n/app_strings.dart';
 
 enum _ItemType { movie, book, game }
 
+enum _SortKey { created, actionDate, count, rating }
+
 class _GenreGroup {
   final _ItemType type;
   final List<String> genres;
@@ -27,6 +29,8 @@ class _ReviewedItem {
   final String? coverPath;
   final double? rating;
   final DateTime createdAt;
+  final DateTime? actionDate; // 观看 / 读完 / 最近通关日期
+  final int count; // 观看 / 阅读 / 游玩次数
   final int? year; // 上映/出版/发售年份
   final List<String> genres;
   final _ItemType type;
@@ -39,6 +43,8 @@ class _ReviewedItem {
     this.coverPath,
     this.rating,
     required this.createdAt,
+    this.actionDate,
+    this.count = 0,
     this.year,
     required this.genres,
     required this.type,
@@ -58,19 +64,44 @@ class _ReviewedPageState extends State<ReviewedPage> {
   _ItemType? _selectedType; // null = 全部
   String? _selectedGenre; // null = 全部
 
+  final UserPrefs _userPrefs = UserPrefs();
+  // 排序：读取持久化偏好（默认创建时间降序，与原年份分组行为一致）
+  late _SortKey _sortKey = _SortKey.values[_userPrefs.reviewedSortKey.clamp(0, _SortKey.values.length - 1)];
+  late bool _sortAscending = _userPrefs.reviewedSortAscending;
+  // 游戏最近通关日期（gameId -> 最近一条通关记录日期），异步加载
+  Map<String, DateTime?> _gameCompletionDate = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGameCompletionDates();
+  }
+
+  Future<void> _loadGameCompletionDates() async {
+    final map = await context.read<AppProvider>().getGameCompletionsMap();
+    if (!mounted) return;
+    setState(() {
+      _gameCompletionDate = map.map((gameId, list) {
+        final dates = list.where((c) => !c.isDeleted).map((c) => c.completionDate);
+        return MapEntry(gameId, dates.isEmpty ? null : dates.reduce((a, b) => a.isAfter(b) ? a : b));
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final allItems = _buildAllItems(provider);
         final years = _buildYearList(allItems);
-        final filtered = _filterItems(allItems);
+        final filtered = _sortItems(_filterItems(allItems));
 
         return Scaffold(
           appBar: AppBar(
             title: Text('已阅'.tr),
             actions: [
               if (allItems.isNotEmpty) ...[
+                _buildSortButton(context),
                 _buildFilterButton(years, allItems, context),
                 IconButton(
                   icon: Icon(UserPrefs().reviewedLayoutStyle == 1 ? Icons.view_list_outlined : Icons.grid_view_outlined, size: 20),
@@ -116,6 +147,15 @@ class _ReviewedPageState extends State<ReviewedPage> {
   // ─── 列表视图 ─────────────────────────────────────────────────────
 
   Widget _buildListView(BuildContext context, List<_ReviewedItem> filtered) {
+    // 非「创建时间」排序时全局平铺，避免排序结果被年份分组切块
+    if (_sortKey != _SortKey.created) {
+      return ListView(
+        padding: const EdgeInsets.only(top: 6, bottom: 12),
+        children: [
+          for (final item in filtered) _buildListItem(context, item),
+        ],
+      );
+    }
     // 按录入年份分组（今年 / 去年 / yyyy年），同年内保持原排序
     final groups = <int, List<_ReviewedItem>>{};
     for (final item in filtered) {
@@ -467,10 +507,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
                 height: MediaQuery.of(sheetContext).size.height * 0.62,
                 child: Column(
                 children: [
-                  Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 10),
-                      decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                     child: Row(
                       children: [
                         Text('筛选'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface)),
@@ -703,6 +741,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
           coverPath: m.posterPath,
           rating: m.rating,
           createdAt: m.createdAt,
+          actionDate: m.watchDate,
+          count: m.watchCount,
           year: m.releaseDate?.year,
           genres: m.genres,
           type: _ItemType.movie,
@@ -720,6 +760,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
           coverPath: b.coverPath,
           rating: b.rating,
           createdAt: b.createdAt,
+          actionDate: b.finishDate,
+          count: b.readCount,
           year: b.publishDate?.year,
           genres: b.genres,
           type: _ItemType.book,
@@ -737,6 +779,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
           coverPath: g.coverPath,
           rating: g.rating,
           createdAt: g.createdAt,
+          actionDate: _gameCompletionDate[g.id],
+          count: g.playCount,
           year: g.releaseDate?.year,
           genres: g.genres,
           type: _ItemType.game,
@@ -745,8 +789,132 @@ class _ReviewedPageState extends State<ReviewedPage> {
       }
     }
 
-    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
+  }
+
+  // ─── 排序 ─────────────────────────────────────────────────────────
+
+  static const _sortLabels = <_SortKey, String>{
+    _SortKey.created: '创建时间',
+    _SortKey.actionDate: '完成时间',
+    _SortKey.count: '次数',
+    _SortKey.rating: '我的评分',
+  };
+
+  List<_ReviewedItem> _sortItems(List<_ReviewedItem> items) {
+    Comparable? keyOf(_ReviewedItem i) => switch (_sortKey) {
+      _SortKey.created => i.createdAt,
+      _SortKey.actionDate => i.actionDate,
+      _SortKey.count => i.count,
+      _SortKey.rating => i.rating,
+    };
+    items.sort((a, b) {
+      final ka = keyOf(a);
+      final kb = keyOf(b);
+      // 空值（未填完成时间 / 未评分）始终排在最后，与升降序无关
+      if (ka == null && kb == null) return 0;
+      if (ka == null) return 1;
+      if (kb == null) return -1;
+      final r = ka.compareTo(kb);
+      if (r != 0) return _sortAscending ? r : -r;
+      // 同值回退到创建时间，保证顺序稳定
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return items;
+  }
+
+  Widget _buildSortButton(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final active = _sortKey != _SortKey.created || _sortAscending;
+    return IconButton(
+      tooltip: '排序'.tr,
+      icon: Icon(
+        _sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+        size: 20,
+        color: active ? colors.primary : colors.onSurface.withValues(alpha: 0.7),
+      ),
+      onPressed: _showSortSheet,
+    );
+  }
+
+  void _showSortSheet() {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, sheetSetState) {
+            void choose(_SortKey key) {
+              _userPrefs.setReviewedSortKey(key.index);
+              setState(() => _sortKey = key);
+              sheetSetState(() {});
+            }
+
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    child: Row(
+                      children: [
+                        Text('排序'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface)),
+                        const Spacer(),
+                        // 升降序切换
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            final next = !_sortAscending;
+                            _userPrefs.setReviewedSortAscending(next);
+                            setState(() => _sortAscending = next);
+                            sheetSetState(() {});
+                          },
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(
+                              _sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                              size: 16, color: colors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _sortAscending ? '升序'.tr : '降序'.tr,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.primary),
+                            ),
+                          ]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  for (final key in _SortKey.values)
+                    InkWell(
+                      onTap: () => choose(key),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        child: Row(
+                          children: [
+                            Text(
+                              _sortLabels[key]!.tr,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: _sortKey == key ? FontWeight.w700 : FontWeight.w500,
+                                color: _sortKey == key ? colors.primary : colors.onSurface.withValues(alpha: 0.75),
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_sortKey == key) Icon(Icons.check_rounded, size: 20, color: colors.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   List<int> _buildYearList(List<_ReviewedItem> items) {

@@ -57,19 +57,55 @@ class PlaylistDao {
     );
   });
 
-  // 软删除片单
-  Future<int> deletePlaylist(String id) => _wrap('deletePlaylist', () async {
+  // 软删除片单（保留 playlist_items 引用，回收站恢复后内容完整；片单本身已从列表查询排除）
+  // txn 可传入外部事务复用，避免 sqflite 嵌套事务死锁
+  Future<int> deletePlaylist(String id, {DatabaseExecutor? txn}) => _wrap('deletePlaylist', () async {
+    final db = txn ?? await _dbHelper.database;
+    return await db.update(
+      'playlists',
+      {'is_deleted': 1, 'updated_at': DateTime.now().toUtc().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  });
+
+  // 获取已软删的片单（回收站）
+  Future<List<Playlist>> getDeletedPlaylists() => _wrap('getDeletedPlaylists', () async {
     final db = await _dbHelper.database;
-    // 事务：条目删除与片单软删必须同成同败，避免留下"可见的空片单"
+    final maps = await db.query(
+      'playlists',
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+      orderBy: 'updated_at DESC',
+    );
+    return maps.map((m) => Playlist.fromJson(m)).toList();
+  });
+
+  // 恢复片单：取消软删并重算 item_count（媒体在此期间被删的条目计数自动剔除）
+  Future<int> restorePlaylist(String id) => _wrap('restorePlaylist', () async {
+    final db = await _dbHelper.database;
     return await db.transaction((txn) async {
-      await txn.delete('playlist_items', where: 'playlist_id = ?', whereArgs: [id]);
-      return await txn.update(
+      final result = await txn.update(
         'playlists',
-        {'is_deleted': 1, 'updated_at': DateTime.now().toUtc().toIso8601String()},
+        {'is_deleted': 0, 'updated_at': DateTime.now().toUtc().toIso8601String()},
         where: 'id = ?',
         whereArgs: [id],
       );
+      await _refreshItemCount(txn, id);
+      return result;
     });
+  });
+
+  // 彻底删除片单（含其条目）。txn 可传入外部事务复用
+  Future<int> permanentDeletePlaylist(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDeletePlaylist', () async {
+    Future<int> run(DatabaseExecutor db) async {
+      await db.delete('playlist_items', where: 'playlist_id = ?', whereArgs: [id]);
+      return await db.delete('playlists', where: 'id = ?', whereArgs: [id]);
+    }
+    if (txn != null) return run(txn);
+    final db = await _dbHelper.database;
+    return await db.transaction(run);
   });
 
   // 获取片单内条目

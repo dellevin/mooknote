@@ -46,6 +46,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _nickname = 'Mook';
   String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
+  String? _heroBgPath;
 
   // 我的模块切换索引 (0=影视, 1=阅读, 2=游戏, 3=笔记)
   int _myModuleIndex = 0;
@@ -89,6 +90,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         _nickname = _userPrefs.nickname;
         _motto = _userPrefs.motto;
         _avatarPath = _userPrefs.avatarPath;
+        _heroBgPath = _userPrefs.heroBackgroundPath;
       });
     } catch (_) {}
   }
@@ -169,7 +171,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     }
     final coverPaths = _heroCoverPaths;
 
-    final hasData = coverPaths.length >= 4;
+    final customBg =
+        _heroBgPath != null && _heroBgPath!.isNotEmpty && File(_heroBgPath!).existsSync();
+    final hasData = customBg || coverPaths.length >= 4;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -177,7 +181,21 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
       child: Stack(
         children: [
-          if (hasData)
+          if (customBg)
+            Positioned.fill(
+              child: FadeInLocalImage(
+                  path: _heroBgPath!,
+                  fit: BoxFit.cover,
+                  errorWidget: Container(
+                      decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [colors.primary, colors.primary.withValues(alpha: 0.6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ))),
+            )
+          else if (coverPaths.length >= 4)
             Positioned.fill(child: _buildPosterMosaic(coverPaths))
           else
             Positioned.fill(
@@ -274,6 +292,25 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   ],
                 ),
               ],
+            ),
+          ),
+          // 右上角：编辑 Hero 背景（置于最上层，避免被压暗层挡住点击）
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.25),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _pickHeroBackground,
+                child: Padding(
+                  padding: const EdgeInsets.all(7),
+                  child: Icon(Icons.image_outlined,
+                      size: 17,
+                      color: Colors.white.withValues(alpha: 0.85)),
+                ),
+              ),
             ),
           ),
         ],
@@ -1104,6 +1141,108 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     }
     if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
     return count.toString();
+  }
+
+  // ─── Hero 背景图 ─────────────────────────────────────────────────────
+
+  Future<void> _pickHeroBackground() async {
+    final colors = Theme.of(context).colorScheme;
+    await appModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('编辑背景'.tr,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)))),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.folder_outlined,
+                    size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
+            title: Text('从文件管理器选择'.tr,
+                style: TextStyle(fontSize: 14, color: colors.onSurface)),
+            trailing: Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25)),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await _pickHeroBgFromFile();
+            },
+          ),
+          if (_heroBgPath != null && _heroBgPath!.isNotEmpty) ...[
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.restart_alt_outlined,
+                      size: 20, color: colors.error)),
+              title: Text('恢复默认背景'.tr,
+                  style: TextStyle(fontSize: 14, color: colors.error)),
+              trailing: Icon(Icons.chevron_right,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _userPrefs.clearHeroBackgroundPath();
+                if (!mounted) return;
+                setState(() => _heroBgPath = null);
+              },
+            ),
+          ],
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pickHeroBgFromFile() async {
+    try {
+      final pickedFile =
+          await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile == null) return;
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final bgDir = Directory(path.join(appDirPath, 'hero_bg'));
+      if (!await bgDir.exists()) await bgDir.create(recursive: true);
+      final ext = path.extension(pickedFile.path);
+      final fileName =
+          'hero_${DateTime.now().millisecondsSinceEpoch}${ext.isNotEmpty ? ext : '.jpg'}';
+      final savedPath = path.join(bgDir.path, fileName);
+      await File(pickedFile.path).copy(savedPath);
+      await _userPrefs.setHeroBackgroundPath(savedPath);
+      if (!mounted) return;
+      setState(() => _heroBgPath = savedPath);
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
+    }
   }
 
   // ─── 头像 ────────────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ class RecycleBinPage extends StatefulWidget {
   State<RecycleBinPage> createState() => _RecycleBinPageState();
 }
 
-enum _ItemType { movie, book, note, game, movieReview, bookReview, bookExcerpt, gameReview, person, movieCharacter, bookCharacter, gameCharacter, customModuleItem }
+enum _ItemType { movie, book, note, game, movieReview, bookReview, bookExcerpt, gameReview, person, movieCharacter, bookCharacter, gameCharacter, customModuleItem, playlist }
 
 class _DeletedItem {
   final _ItemType type;
@@ -128,6 +128,14 @@ class _DeletedItem {
         icon = Icons.dashboard_customize_outlined,
         typeLabel = moduleName;
 
+  _DeletedItem.playlist(Playlist p)
+      : type = _ItemType.playlist,
+        id = p.id,
+        title = p.name,
+        subtitle = '删除于 {date}'.trf({'date': _fmtDate(p.updatedAt)}),
+        icon = Icons.playlist_play_outlined,
+        typeLabel = '片单'.tr;
+
   static String _fmtDate(DateTime dt) =>
       '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
 }
@@ -162,6 +170,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     final bookCharacters = await provider.getDeletedBookCharacters();
     final gameCharacters = await provider.getDeletedGameCharacters();
     final customItems = await provider.getDeletedCustomModuleItems();
+    final playlists = await provider.getDeletedPlaylists();
     // 仅显示所属模块仍存在的条目；模块整体删除时其条目随之隐藏
     final moduleNames = {for (final m in provider.customModules) m.id: m.name};
     if (!mounted) return;
@@ -182,6 +191,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         for (final i in customItems)
           if (moduleNames.containsKey(i.moduleId))
             _DeletedItem.customModuleItem(i, moduleNames[i.moduleId]!),
+        for (final p in playlists) _DeletedItem.playlist(p),
       ];
       _isLoading = false;
     });
@@ -255,6 +265,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       _filterChip('书籍角色'.tr, _ItemType.bookCharacter),
       _filterChip('游戏角色'.tr, _ItemType.gameCharacter),
       _filterChip('自定义条目'.tr, _ItemType.customModuleItem),
+      _filterChip('片单'.tr, _ItemType.playlist),
     ];
     return Container(
       width: double.infinity,
@@ -541,6 +552,9 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
       case _ItemType.customModuleItem:
         await provider.restoreCustomModuleItem(item.id);
         if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': item.typeLabel}));
+      case _ItemType.playlist:
+        await provider.restorePlaylist(item.id);
+        if (mounted) ToastUtil.show(context, '{type}已恢复'.trf({'type': '片单'.tr}));
     }
     _loadDeletedItems();
   }
@@ -587,6 +601,8 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
         await provider.permanentDeleteGameCharacter(item.id);
       case _ItemType.customModuleItem:
         await provider.permanentDeleteCustomModuleItem(item.id);
+      case _ItemType.playlist:
+        await provider.permanentDeletePlaylist(item.id);
     }
     _loadDeletedItems();
     if (mounted) ToastUtil.show(context, '已彻底删除'.tr);

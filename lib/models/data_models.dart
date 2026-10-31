@@ -230,6 +230,7 @@ class Book {
   final DateTime? startDate; // 开始阅读日期
   final DateTime? finishDate; // 读完日期
   final int readCount; // 阅读次数
+  final int readDuration; // 阅读总时长（分钟）
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -253,6 +254,7 @@ class Book {
     this.startDate,
     this.finishDate,
     this.readCount = 0,
+    this.readDuration = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -278,6 +280,7 @@ class Book {
       startDate: _safeParseDate(json['start_date']),
       finishDate: _safeParseDate(json['finish_date']),
       readCount: json['read_count'] ?? 0,
+      readDuration: _safeParseInt(json['read_duration']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
       updatedAt: _safeParseDate(json['updated_at'], fallback: DateTime.now())!,
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
@@ -304,6 +307,7 @@ class Book {
       'start_date': startDate?.toUtc().toIso8601String(),
       'finish_date': finishDate?.toUtc().toIso8601String(),
       'read_count': readCount,
+      'read_duration': readDuration,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -336,6 +340,7 @@ class Book {
     DateTime? startDate,
     DateTime? finishDate,
     int? readCount,
+    int? readDuration,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -359,6 +364,7 @@ class Book {
       startDate: startDate ?? this.startDate,
       finishDate: finishDate ?? this.finishDate,
       readCount: readCount ?? this.readCount,
+      readDuration: readDuration ?? this.readDuration,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -1065,6 +1071,7 @@ class MovieEpisode {
   final String movieId;
   final int episodeNo; // 集号
   final String title; // 本集标题（可空）
+  final int duration; // 本集时长（分钟）
   final bool watched; // 是否观看
   final DateTime? watchDate; // 观看日期
   final double? rating; // 本集评分 1-10
@@ -1079,6 +1086,7 @@ class MovieEpisode {
     required this.movieId,
     required this.episodeNo,
     this.title = '',
+    this.duration = 0,
     this.watched = false,
     this.watchDate,
     this.rating,
@@ -1095,6 +1103,7 @@ class MovieEpisode {
       movieId: json['movie_id']?.toString() ?? '',
       episodeNo: _safeParseInt(json['episode_no']),
       title: json['title']?.toString() ?? '',
+      duration: _safeParseInt(json['duration']),
       watched: json['watched'] == 1 || json['watched'] == true,
       watchDate: _safeParseDate(json['watch_date']?.toString()),
       rating: _safeParseDouble(json['rating']),
@@ -1112,6 +1121,7 @@ class MovieEpisode {
       'movie_id': movieId,
       'episode_no': episodeNo,
       'title': title,
+      'duration': duration,
       'watched': watched ? 1 : 0,
       'watch_date': watchDate?.toUtc().toIso8601String(),
       'rating': rating,
@@ -1128,6 +1138,7 @@ class MovieEpisode {
     String? movieId,
     int? episodeNo,
     String? title,
+    int? duration,
     bool? watched,
     Object? watchDate = _copyWithNull,
     Object? rating = _copyWithNull,
@@ -1142,6 +1153,7 @@ class MovieEpisode {
       movieId: movieId ?? this.movieId,
       episodeNo: episodeNo ?? this.episodeNo,
       title: title ?? this.title,
+      duration: duration ?? this.duration,
       watched: watched ?? this.watched,
       watchDate: watchDate is _CopyWithNullSentinel ? this.watchDate : (watchDate as DateTime?),
       rating: rating is _CopyWithNullSentinel ? this.rating : (rating as double?),

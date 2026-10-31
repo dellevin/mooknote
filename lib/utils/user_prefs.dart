@@ -91,6 +91,11 @@ class UserPrefs {
   String? get avatarPath => prefs.getString('avatarPath');
   Future<bool> setAvatarPath(String value) => prefs.setString('avatarPath', value);
   Future<bool> clearAvatarPath() => prefs.remove('avatarPath');
+
+  /// 「我的」Hero 自定义背景图路径（为空时用海报拼贴/渐变兜底）
+  String? get heroBackgroundPath => prefs.getString('heroBackgroundPath');
+  Future<bool> setHeroBackgroundPath(String value) => prefs.setString('heroBackgroundPath', value);
+  Future<bool> clearHeroBackgroundPath() => prefs.remove('heroBackgroundPath');
   
   // ========== 应用设置 ==========
   
@@ -404,9 +409,21 @@ class UserPrefs {
   int get reviewedLayoutStyle => prefs.getInt('reviewedLayoutStyle') ?? 0;
   Future<bool> setReviewedLayoutStyle(int value) => prefs.setInt('reviewedLayoutStyle', value);
 
+  /// 已阅页排序字段 (0: 创建时间, 1: 完成时间, 2: 次数, 3: 评分)
+  int get reviewedSortKey => prefs.getInt('reviewedSortKey') ?? 0;
+  Future<bool> setReviewedSortKey(int value) => prefs.setInt('reviewedSortKey', value);
+
+  /// 已阅页排序是否升序
+  bool get reviewedSortAscending => prefs.getBool('reviewedSortAscending') ?? false;
+  Future<bool> setReviewedSortAscending(bool value) => prefs.setBool('reviewedSortAscending', value);
+
   /// 片单页布局样式 (0: 列表, 1: 网格)
   int get playlistLayoutStyle => prefs.getInt('playlistLayoutStyle') ?? 0;
   Future<bool> setPlaylistLayoutStyle(int value) => prefs.setInt('playlistLayoutStyle', value);
+
+  /// 片单详情页布局样式 (0: 列表, 1: 海报墙)
+  int get playlistDetailLayoutStyle => prefs.getInt('playlistDetailLayoutStyle') ?? 0;
+  Future<bool> setPlaylistDetailLayoutStyle(int value) => prefs.setInt('playlistDetailLayoutStyle', value);
 
   // ========== 应用图标设置 ==========
 

@@ -11,6 +11,8 @@ import '../game/game_detail_page.dart';
 import 'playlist_add_item_page.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/app_overlay.dart';
+import '../../utils/responsive.dart';
+import '../../utils/user_prefs.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final Playlist playlist;
@@ -24,6 +26,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
   List<PlaylistItem> _items = [];
   bool _loading = true;
   String _statusFilter = 'all'; // all / 具体状态 / none
+  int _layoutStyle = UserPrefs().playlistDetailLayoutStyle; // 0:列表 1:海报墙
   final Map<String, double> _slideOffsets = {};
   static const _actionWidth = 56.0;
 
@@ -451,6 +454,16 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
         }
       },
     );
+    final layoutToggle = IconButton(
+      icon: Icon(_layoutStyle == 0 ? Icons.grid_view_outlined : Icons.view_list_outlined, size: 22),
+      tooltip: _layoutStyle == 0 ? '海报墙'.tr : '列表'.tr,
+      onPressed: () {
+        final next = _layoutStyle == 0 ? 1 : 0;
+        setState(() => _layoutStyle = next);
+        UserPrefs().setPlaylistDetailLayoutStyle(next);
+      },
+    );
+    final actions = [layoutToggle, addAction];
 
     return Scaffold(
       extendBodyBehindAppBar: showWall,
@@ -461,9 +474,9 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
               scrolledUnderElevation: 0,
               foregroundColor: Colors.white,
               iconTheme: const IconThemeData(color: Colors.white),
-              actions: [addAction],
+              actions: actions,
             )
-          : AppBar(title: Text(playlist.name), actions: [addAction]),
+          : AppBar(title: Text(playlist.name), actions: actions),
       body: _loading
           ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
           : _items.isEmpty
@@ -513,7 +526,14 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
         _buildHeader(context, playlist, resolved),
         if (resolved.isNotEmpty && playlist.type != 'all') _buildFilterChips(context, playlist, resolved),
         Expanded(
-          child: GestureDetector(
+          child: visible.isEmpty
+              ? Center(
+                  child: Text('该分类下暂无条目'.tr,
+                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+                )
+              : _layoutStyle == 1
+                  ? _buildGridView(context, visible, provider)
+                  : GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: _closeAllSlides,
             child: NotificationListener<ScrollNotification>(
@@ -521,12 +541,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
                 _closeAllSlides();
                 return false;
               },
-              child: visible.isEmpty
-                  ? Center(
-                      child: Text('该分类下暂无条目'.tr,
-                          style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
-                    )
-                  : ReorderableListView.builder(
+              child: ReorderableListView.builder(
                   padding: const EdgeInsets.only(top: 12, bottom: 24),
                   itemCount: visible.length,
                   onReorder: (oldIndex, newIndex) {
@@ -572,6 +587,110 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
           ),
         ),
       ],
+    );
+  }
+
+  /// 海报墙视图：封面卡片网格（点击进详情，长按从片单移除）
+  Widget _buildGridView(BuildContext context, List<_ResolvedItem> visible, AppProvider provider) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: visible.length,
+          itemBuilder: (context, index) => _buildGridCard(context, visible[index], provider),
+        );
+      },
+    );
+  }
+
+  Widget _buildGridCard(BuildContext context, _ResolvedItem item, AppProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+    final typeColor = switch (item.type) {
+      'movie' => Colors.blue,
+      'book' => Colors.teal,
+      'game' => Colors.orange,
+      _ => colors.onSurface,
+    };
+    final typeLabel = switch (item.type) {
+      'movie' => '影视',
+      'book' => '书籍',
+      'game' => '游戏',
+      _ => item.type,
+    };
+
+    return GestureDetector(
+      onTap: () {
+        final page = switch (item.type) {
+          'movie' => MovieDetailPage(movie: item.entity as Movie),
+          'book' => BookDetailPage(book: item.entity as Book),
+          'game' => GameDetailPage(game: item.entity as Game),
+          _ => null,
+        };
+        if (page != null) Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+      },
+      onLongPress: () => _confirmRemoveItem(item, provider),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: colors.surfaceContainerHighest,
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadow.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: item.coverPath != null && item.coverPath!.isNotEmpty
+                  ? FadeInLocalImage(
+                      path: item.coverPath,
+                      fit: BoxFit.cover,
+                      errorWidget: _buildPlaceholder(item.type, colors),
+                    )
+                  : _buildPlaceholder(item.type, colors),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              if (item.rating != null)
+                AnimatedStarRating(rating: item.rating!, starSize: 10, showNumber: true)
+              else
+                const SizedBox(height: 14),
+              if (widget.playlist.type == 'all') ...[
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(typeLabel.tr,
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: typeColor)),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -126,6 +126,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
             if (book.startDate != null || book.finishDate != null || book.readCount > 0) {
               result.add(_buildLayeredReadingDates(book));
             }
+            if (book.readDuration > 0) {
+              result.add(_buildLayeredInfoRow('阅读时长'.tr, _formatReadDuration(book.readDuration), colors));
+            }
           } else {
             result.add(_buildAuthorsSection(book));
             if (book.translators.isNotEmpty) result.add(_buildTranslatorsSection(book));
@@ -135,6 +138,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             if (book.startDate != null || book.finishDate != null || book.readCount > 0) {
               result.add(_buildReadingDatesSection(book));
             }
+            if (book.readDuration > 0) result.add(_buildReadDurationSection(book));
           }
         case 'genres':
           if (book.genres.isNotEmpty) {
@@ -241,26 +245,26 @@ class _BookDetailPageState extends State<BookDetailPage> {
         // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
         fit: StackFit.expand,
         children: [
-          // 海报背景（高度不够时重复拼接）
+          // 兜底色：封面解码完成前也保持深色，不透明（避免转场中"先透明后磨砂"）
+          const Positioned.fill(child: ColoredBox(color: Color(0xFF121418))),
+          // 海报背景（静态模糊，转场动画期间即生效，不依赖 BackdropFilter）
           if (hasCover)
             Positioned.fill(
-              child: Image(
-                image: ResizeImage(FileImage(File(book.coverPath!)), width: 1080),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: screenH,
-                repeat: ImageRepeat.repeatY,
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                child: Image(
+                  image: ResizeImage(FileImage(File(book.coverPath!)), width: 1080),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: screenH,
+                  repeat: ImageRepeat.repeatY,
+                ),
               ),
-            )
-          else
-            Container(color: colors.surfaceContainerHighest),
-
-          // 毛玻璃层
-          ClipRect(
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-              child: Container(color: Colors.black.withValues(alpha: 0.3)),
             ),
+
+          // 深色遮罩
+          Positioned.fill(
+            child: ColoredBox(color: Colors.black.withValues(alpha: 0.3)),
           ),
 
           // 内容
@@ -1468,6 +1472,52 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
       ],
     );
+  }
+
+  Widget _buildReadDurationSection(Book book) {
+    final isOverlay = _detailStyle == 1;
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(
+              '阅读时长'.tr,
+              style: TextStyle(
+                fontSize: 13,
+                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              _formatReadDuration(book.readDuration),
+              style: TextStyle(
+                fontSize: 15,
+                color: isOverlay ? Colors.white : colors.onSurface,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 阅读总时长（分钟）→ X天X小时X分
+  String _formatReadDuration(int minutes) {
+    if (minutes <= 0) return '';
+    final d = minutes ~/ 1440;
+    final h = (minutes % 1440) ~/ 60;
+    final m = minutes % 60;
+    final parts = <String>[];
+    if (d > 0) parts.add('{d}天'.trf({'d': d}));
+    if (h > 0) parts.add('{h}小时'.trf({'h': h}));
+    if (m > 0) parts.add('{m}分'.trf({'m': m}));
+    return parts.join('');
   }
 
   Widget _buildDateChip(String label, DateTime date, bool isOverlay) {

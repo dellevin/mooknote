@@ -60,6 +60,7 @@ class ImageGridEditor extends StatelessWidget {
   final VoidCallback? onAdd;
   final ValueChanged<int>? onRemove;
   final bool readOnly;
+  final WrapAlignment alignment;
 
   const ImageGridEditor({
     super.key,
@@ -67,6 +68,7 @@ class ImageGridEditor extends StatelessWidget {
     this.onAdd,
     this.onRemove,
     this.readOnly = false,
+    this.alignment = WrapAlignment.center,
   });
 
   @override
@@ -75,6 +77,7 @@ class ImageGridEditor extends StatelessWidget {
       builder: (context, constraints) {
         final size = ((constraints.maxWidth - 10 * 2) / 3).clamp(60.0, 120.0);
         return Wrap(
+          alignment: alignment,
           spacing: 10,
           runSpacing: 10,
           children: [

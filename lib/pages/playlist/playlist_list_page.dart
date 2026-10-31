@@ -509,53 +509,64 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       );
     }
 
-    // 层叠封面（与新增页预览卡一致）：首张在最前，后面的向右错位露出边缘
+    // 拼贴封面墙：1张铺满 / 2张左右 / 3张上二下一 / ≥4张四角2×2
     final count = valid.length;
-    const offset = 8.0;
-    const inset = 8.0;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var i = count - 1; i >= 0; i--)
-          Positioned(
-            left: inset + i * offset,
-            top: inset,
-            right: inset + (count - 1 - i) * offset,
-            bottom: inset,
-            child: _buildStackedCover(valid[i], colors, typeIcon),
+    const hGap = SizedBox(width: 2);
+    const vGap = SizedBox(height: 2);
+
+    Widget cell(String path) => Expanded(
+          child: FadeInLocalImage(
+            path: path,
+            fit: BoxFit.cover,
+            errorWidget: Container(
+              color: colors.surfaceContainerHighest,
+              child: Icon(typeIcon,
+                  size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
+            ),
           ),
+        );
+
+    Widget row2(List<String> paths) => Row(
+          children: [
+            cell(paths[0]),
+            hGap,
+            cell(paths[1]),
+          ],
+        );
+
+    if (count == 1) {
+      return FadeInLocalImage(path: valid.first, fit: BoxFit.cover);
+    }
+    if (count == 2) {
+      return Row(children: [cell(valid[0]), hGap, cell(valid[1])]);
+    }
+    if (count == 3) {
+      return Column(
+        children: [
+          Expanded(child: row2(valid.sublist(0, 2))),
+          vGap,
+          Expanded(
+            child: Row(
+              children: [
+                cell(valid[2]),
+                hGap,
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        Expanded(child: row2(valid.sublist(0, 2))),
+        vGap,
+        Expanded(child: row2(valid.sublist(2, 4))),
       ],
     );
   }
 
-  /// 叠放照片卡 — 浅色描边 + 轻投影营造"照片堆"层次
-  Widget _buildStackedCover(String path, ColorScheme colors, IconData typeIcon) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.surface, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withValues(alpha: 0.12),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: FadeInLocalImage(
-        path: path,
-        fit: BoxFit.cover,
-        errorWidget: Container(
-          color: colors.surfaceContainerHighest,
-          child: Icon(typeIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
-        ),
-      ),
-    );
-  }
-
   Widget _buildCoverWall(BuildContext context, Playlist playlist, List<String?> covers, Color typeColor) {
-    final colors = Theme.of(context).colorScheme;
     final typeIcon = switch (playlist.type) {
       'movie' => Icons.movie_outlined,
       'book' => Icons.menu_book_outlined,
@@ -575,64 +586,71 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       );
     }
 
-    const cellSize = 31.0;
-    const gap = 2.0;
-    const wallSize = cellSize * 2 + gap;
-
-    return SizedBox(
-      width: wallSize,
-      height: wallSize,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _buildCoverCell(covers, 0, cellSize, typeIcon, colors, typeColor),
-              const SizedBox(width: gap),
-              _buildCoverCell(covers, 1, cellSize, typeIcon, colors, typeColor),
-            ],
-          ),
-          const SizedBox(height: gap),
-          Row(
-            children: [
-              _buildCoverCell(covers, 2, cellSize, typeIcon, colors, typeColor),
-              const SizedBox(width: gap),
-              _buildCoverCell(covers, 3, cellSize, typeIcon, colors, typeColor),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCoverCell(List<String?> covers, int index, double size, IconData typeIcon, ColorScheme colors, Color typeColor) {
-    if (index >= covers.length) {
+    final valid = covers.whereType<String>().where((p) => p.isNotEmpty).toList();
+    if (valid.isEmpty) {
       return Container(
-        width: size, height: size,
+        width: 64, height: 64,
         decoration: BoxDecoration(
-          color: typeColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(4),
+          color: typeColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
         ),
+        child: Icon(typeIcon, size: 28, color: typeColor),
       );
     }
-    final path = covers[index];
+
+    const wallSize = 64.0;
+    const gap = 2.0;
+
+    Widget cell(String path) => Expanded(
+          child: FadeInLocalImage(
+            path: path,
+            fit: BoxFit.cover,
+            errorWidget: Container(
+              color: typeColor.withValues(alpha: 0.08),
+              child: Icon(typeIcon, size: 14, color: typeColor.withValues(alpha: 0.3)),
+            ),
+          ),
+        );
+
+    Widget row2(List<String> paths) => Row(
+          children: [cell(paths[0]), const SizedBox(width: gap), cell(paths[1])],
+        );
+
+    Widget wall;
+    final count = valid.length;
+    if (count == 1) {
+      wall = FadeInLocalImage(path: valid.first, fit: BoxFit.cover);
+    } else if (count == 2) {
+      wall = Row(children: [cell(valid[0]), const SizedBox(width: gap), cell(valid[1])]);
+    } else if (count == 3) {
+      wall = Column(
+        children: [
+          Expanded(child: row2(valid.sublist(0, 2))),
+          const SizedBox(height: gap),
+          Expanded(
+            child: Row(
+              children: [
+                cell(valid[2]),
+                const SizedBox(width: gap),
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      wall = Column(
+        children: [
+          Expanded(child: row2(valid.sublist(0, 2))),
+          const SizedBox(height: gap),
+          Expanded(child: row2(valid.sublist(2, 4))),
+        ],
+      );
+    }
+
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: SizedBox(
-        width: size, height: size,
-        child: path != null && path.isNotEmpty
-            ? FadeInLocalImage(
-                path: path,
-                fit: BoxFit.cover,
-                errorWidget: Container(
-                  color: typeColor.withValues(alpha: 0.08),
-                  child: Icon(typeIcon, size: 12, color: typeColor.withValues(alpha: 0.3)),
-                ),
-              )
-            : Container(
-                color: typeColor.withValues(alpha: 0.08),
-                child: Icon(typeIcon, size: 12, color: typeColor.withValues(alpha: 0.3)),
-              ),
-      ),
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(width: wallSize, height: wallSize, child: wall),
     );
   }
 

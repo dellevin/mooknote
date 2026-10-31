@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 53,
+      version: 55,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -526,6 +526,20 @@ class DatabaseHelper {
       await _createBookChaptersTable(db);
       await _createGameLevelsTable(db);
     }
+    if (oldVersion < 54) {
+      // books 添加 read_duration 列（阅读总时长，分钟）
+      final cols = await db.rawQuery('PRAGMA table_info(books)');
+      if (!cols.any((col) => col['name'] == 'read_duration')) {
+        await db.execute('ALTER TABLE books ADD COLUMN read_duration INTEGER DEFAULT 0');
+      }
+    }
+    if (oldVersion < 55) {
+      // movie_episodes 添加 duration 列（单集时长，分钟）
+      final cols = await db.rawQuery('PRAGMA table_info(movie_episodes)');
+      if (!cols.any((col) => col['name'] == 'duration')) {
+        await db.execute('ALTER TABLE movie_episodes ADD COLUMN duration INTEGER DEFAULT 0');
+      }
+    }
   }
 
   /// 游戏通关记录表（v51，onCreate 与迁移共用）
@@ -552,6 +566,7 @@ class DatabaseHelper {
         movie_id TEXT NOT NULL,
         episode_no INTEGER NOT NULL DEFAULT 0,
         title TEXT DEFAULT '',
+        duration INTEGER DEFAULT 0,
         watched INTEGER DEFAULT 0,
         watch_date TEXT,
         rating REAL,
@@ -1082,6 +1097,7 @@ class DatabaseHelper {
         start_date TEXT,
         finish_date TEXT,
         read_count INTEGER DEFAULT 0,
+        read_duration INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,

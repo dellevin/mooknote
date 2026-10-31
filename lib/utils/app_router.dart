@@ -65,6 +65,7 @@ class AppRouter {
           duration: const Duration(milliseconds: 600),
           reverseDuration: const Duration(milliseconds: 400),
           beginOffsetY: 1.0,
+          withFade: false,
         );
 
       case '/book-detail':
@@ -77,6 +78,7 @@ class AppRouter {
           duration: const Duration(milliseconds: 600),
           reverseDuration: const Duration(milliseconds: 400),
           beginOffsetY: 1.0,
+          withFade: false,
         );
 
       case '/note-detail':
@@ -110,6 +112,7 @@ class AppRouter {
           duration: const Duration(milliseconds: 600),
           reverseDuration: const Duration(milliseconds: 400),
           beginOffsetY: 1.0,
+          withFade: false,
         );
 
       case '/douban-webview':

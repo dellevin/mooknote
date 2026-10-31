@@ -12,6 +12,7 @@ import '../../utils/slide_up_page_route.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/edit_sheets.dart';
+import '../../widgets/duration_picker.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_grid_editor.dart';
 import '../../data/gallery/image_asset_dao.dart';
@@ -50,6 +51,12 @@ class ProgressConfig<T> {
   final String Function(T) reviewOf;
   final List<String> Function(T) imagesOf;
 
+  /// 单条时长（分钟）。为 null 表示该类型不支持时长（仅分集支持）
+  final int? Function(T)? durationOf;
+
+  /// 时长字段名称，如「本集时长」
+  final String durationLabel;
+
   final T Function({
     required String id,
     required String parentId,
@@ -62,6 +69,7 @@ class ProgressConfig<T> {
     required List<String> images,
     required DateTime createdAt,
     required DateTime updatedAt,
+    int duration,
   }) create;
 
   final T Function(
@@ -74,6 +82,7 @@ class ProgressConfig<T> {
     String? review,
     List<String>? images,
     DateTime? updatedAt,
+    int? duration,
   }) edit;
 
   final Future<String> Function(String parentId, String itemId) imagesDir;
@@ -98,10 +107,15 @@ class ProgressConfig<T> {
     required this.ratingOf,
     required this.reviewOf,
     required this.imagesOf,
+    this.durationOf,
+    this.durationLabel = '时长',
     required this.create,
     required this.edit,
     required this.imagesDir,
   });
+
+  /// 是否支持单条时长
+  bool get hasDuration => durationOf != null;
 
   String itemName(int seq) => itemNoun.trf({'n': seq});
 
@@ -111,6 +125,7 @@ class ProgressConfig<T> {
     itemNoun: '第{n}集',
     doneLabel: '已观看',
     dateLabel: '观看日期',
+    durationLabel: '本集时长',
     load: (p, id) => p.getMovieEpisodes(id),
     add: (p, e) => p.addMovieEpisode(e),
     addBatch: (p, list) => p.addMovieEpisodesBatch(list),
@@ -125,6 +140,7 @@ class ProgressConfig<T> {
     ratingOf: (e) => e.rating,
     reviewOf: (e) => e.review,
     imagesOf: (e) => e.images,
+    durationOf: (e) => e.duration,
     create: ({
       required id,
       required parentId,
@@ -137,11 +153,13 @@ class ProgressConfig<T> {
       required images,
       required createdAt,
       required updatedAt,
+      duration = 0,
     }) => MovieEpisode(
       id: id,
       movieId: parentId,
       episodeNo: seq,
       title: title,
+      duration: duration,
       watched: done,
       watchDate: date,
       rating: rating,
@@ -150,10 +168,11 @@ class ProgressConfig<T> {
       createdAt: createdAt,
       updatedAt: updatedAt,
     ),
-    edit: (e, {seq, title, done, date, rating, review, images, updatedAt}) =>
+    edit: (e, {seq, title, done, date, rating, review, images, updatedAt, duration}) =>
         e.copyWith(
       episodeNo: seq,
       title: title,
+      duration: duration,
       watched: done,
       watchDate: date,
       rating: rating,
@@ -197,6 +216,7 @@ class ProgressConfig<T> {
       required images,
       required createdAt,
       required updatedAt,
+      duration = 0,
     }) => BookChapter(
       id: id,
       bookId: parentId,
@@ -210,7 +230,7 @@ class ProgressConfig<T> {
       createdAt: createdAt,
       updatedAt: updatedAt,
     ),
-    edit: (c, {seq, title, done, date, rating, review, images, updatedAt}) =>
+    edit: (c, {seq, title, done, date, rating, review, images, updatedAt, duration}) =>
         c.copyWith(
       chapterNo: seq,
       title: title,
@@ -257,6 +277,7 @@ class ProgressConfig<T> {
       required images,
       required createdAt,
       required updatedAt,
+      duration = 0,
     }) => GameLevel(
       id: id,
       gameId: parentId,
@@ -270,7 +291,7 @@ class ProgressConfig<T> {
       createdAt: createdAt,
       updatedAt: updatedAt,
     ),
-    edit: (l, {seq, title, done, date, rating, review, images, updatedAt}) =>
+    edit: (l, {seq, title, done, date, rating, review, images, updatedAt, duration}) =>
         l.copyWith(
       levelNo: seq,
       title: title,
@@ -288,6 +309,16 @@ class ProgressConfig<T> {
 
 String _fmtDate(DateTime d) =>
     '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}';
+
+/// 分钟 → X小时X分（列表/表单共用）
+String _fmtDuration(int minutes) {
+  if (minutes <= 0) return '';
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (h > 0 && m > 0) return '{h}小时{m}分'.trf({'h': h, 'm': m});
+  if (h > 0) return '{h}小时'.trf({'h': h});
+  return '{m}分'.trf({'m': m});
+}
 
 /// 详情页入口卡片：显示 完成数/总数 + 进度条 + 均分，点击进入列表页
 class ProgressEntryCard<T> extends StatefulWidget {
@@ -840,6 +871,7 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
     final review = _cfg.reviewOf(item);
     final images = _cfg.imagesOf(item);
     final done = _cfg.doneOf(item);
+    final duration = _cfg.durationOf?.call(item) ?? 0;
     final selected = _selectedIds.contains(_cfg.idOf(item));
 
     return InkWell(
@@ -898,7 +930,7 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                       ],
                     ],
                   ),
-                  if (date != null || rating != null || review.isNotEmpty) ...[
+                  if (date != null || rating != null || duration > 0 || review.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -908,7 +940,20 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                                   fontSize: 11,
                                   color: colors.onSurface
                                       .withValues(alpha: 0.4))),
-                        if (date != null && rating != null)
+                        if (date != null && duration > 0)
+                          const SizedBox(width: 8),
+                        if (duration > 0) ...[
+                          Icon(Icons.schedule_outlined,
+                              size: 12,
+                              color: colors.onSurface.withValues(alpha: 0.4)),
+                          const SizedBox(width: 2),
+                          Text(_fmtDuration(duration),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.onSurface
+                                      .withValues(alpha: 0.4))),
+                        ],
+                        if ((date != null || duration > 0) && rating != null)
                           const SizedBox(width: 8),
                         if (rating != null) ...[
                           const Icon(Icons.star,
@@ -999,11 +1044,13 @@ class ProgressEditPage<T> extends StatefulWidget {
 
 class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
   late int _seq;
+  late TextEditingController _seqController;
   late TextEditingController _titleController;
   late TextEditingController _reviewController;
   late bool _done;
   DateTime? _date;
   double? _rating;
+  late int _duration;
   late List<String> _images;
   String? _tempId;
 
@@ -1014,6 +1061,7 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
     super.initState();
     final e = widget.existing;
     _seq = e == null ? widget.defaultSeq : _cfg.seqOf(e);
+    _seqController = TextEditingController(text: '$_seq');
     _titleController =
         TextEditingController(text: e == null ? '' : _cfg.titleOf(e));
     _reviewController =
@@ -1021,11 +1069,13 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
     _done = e == null ? false : _cfg.doneOf(e);
     _date = e == null ? null : _cfg.dateOf(e);
     _rating = e == null ? null : _cfg.ratingOf(e);
+    _duration = e == null ? 0 : (_cfg.durationOf?.call(e) ?? 0);
     _images = e == null ? [] : List<String>.from(_cfg.imagesOf(e));
   }
 
   @override
   void dispose() {
+    _seqController.dispose();
     _titleController.dispose();
     _reviewController.dispose();
     super.dispose();
@@ -1083,6 +1133,12 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
 
   Future<void> _save() async {
     final provider = context.read<AppProvider>();
+    final parsedSeq = int.tryParse(_seqController.text.trim());
+    if (parsedSeq == null || parsedSeq <= 0) {
+      ToastUtil.show(context, '请输入有效数字'.tr);
+      return;
+    }
+    _seq = parsedSeq.clamp(1, 9999);
     try {
       final now = DateTime.now();
       if (widget.existing == null) {
@@ -1105,6 +1161,7 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
             images: images,
             createdAt: now,
             updatedAt: now,
+            duration: _duration,
           ),
         );
       } else {
@@ -1120,6 +1177,7 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
             review: _reviewController.text.trim(),
             images: _images,
             updatedAt: now,
+            duration: _duration,
           ),
         );
       }
@@ -1131,39 +1189,14 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
     }
   }
 
-  Future<void> _editSeq() async {
-    final text = await TextEditSheet.show(
+  /// 选择单集时长（时:分滚轮，值存总分钟数）
+  Future<void> _editDuration() async {
+    final result = await DurationPicker.show(
       context: context,
-      title: _cfg.seqLabel.tr,
-      initialText: '$_seq',
-      keyboardType: TextInputType.number,
+      initialMinutes: _duration,
+      title: _cfg.durationLabel,
     );
-    if (text == null) return;
-    final v = int.tryParse(text.trim());
-    if (v == null || v <= 0) {
-      if (mounted) ToastUtil.show(context, '请输入有效数字'.tr);
-      return;
-    }
-    if (mounted) setState(() => _seq = v);
-  }
-
-  Future<void> _editTitle() async {
-    final text = await TextEditSheet.show(
-      context: context,
-      title: '名称（选填）'.tr,
-      initialText: _titleController.text,
-    );
-    if (text != null && mounted) setState(() => _titleController.text = text);
-  }
-
-  Future<void> _editReview() async {
-    final text = await TextEditSheet.show(
-      context: context,
-      title: '评价（选填）'.tr,
-      initialText: _reviewController.text,
-      multiline: true,
-    );
-    if (text != null && mounted) setState(() => _reviewController.text = text);
+    if (result != null && mounted) setState(() => _duration = result);
   }
 
   @override
@@ -1184,63 +1217,29 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
                 _buildCard(
                   colors,
                   [
-                    _buildRow(
-                      icon: Icons.numbers,
-                      label: _cfg.seqLabel.tr,
-                      value: '$_seq',
-                      onTap: _editSeq,
-                      colors: colors,
-                    ),
+                    _buildSeqRow(colors),
                     _divider(colors),
-                    _buildRow(
-                      icon: Icons.title,
-                      label: '名称'.tr,
-                      value: _titleController.text.isEmpty
-                          ? '选填'.tr
-                          : _titleController.text,
-                      onTap: _editTitle,
-                      colors: colors,
-                      muted: _titleController.text.isEmpty,
-                    ),
+                    _buildTitleField(colors),
+                    if (_cfg.hasDuration) ...[
+                      _divider(colors),
+                      _buildRow(
+                        icon: Icons.schedule_outlined,
+                        label: _cfg.durationLabel.tr,
+                        value: _duration > 0 ? _fmtDuration(_duration) : '选填'.tr,
+                        onTap: _editDuration,
+                        colors: colors,
+                        muted: _duration == 0,
+                      ),
+                    ],
                   ],
                 ),
+                const SizedBox(height: 12),
+                _buildReviewCard(colors),
+                const SizedBox(height: 12),
+                _buildImagesCard(colors),
                 const SizedBox(height: 12),
                 _buildStatusCard(colors),
-                const SizedBox(height: 12),
-                _buildCard(
-                  colors,
-                  [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-                      child: _buildRating(colors),
-                    ),
-                    _divider(colors),
-                    _buildRow(
-                      icon: Icons.rate_review_outlined,
-                      label: '评价'.tr,
-                      value: _reviewController.text.isEmpty
-                          ? '选填'.tr
-                          : _reviewController.text,
-                      onTap: _editReview,
-                      colors: colors,
-                      muted: _reviewController.text.isEmpty,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.only(left: 2, bottom: 8),
-                  child: Text('截图'.tr,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface.withValues(alpha: 0.55))),
-                ),
-                ImageGridEditor(
-                  images: _images,
-                  onAdd: _pickImages,
-                  onRemove: (i) => setState(() => _images.removeAt(i)),
-                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -1320,8 +1319,8 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
                 style: TextStyle(
                     fontSize: 14,
                     color: colors.onSurface.withValues(alpha: 0.62))),
-            const Spacer(),
-            Flexible(
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(value,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1342,111 +1341,318 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
   }
 
   Widget _buildStatusCard(ColorScheme colors) {
-    final activeColor = _done ? colors.primary : colors.outline;
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: _done
-            ? colors.primaryContainer.withValues(alpha: 0.45)
-            : colors.surfaceContainerHighest.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() {
-              _done = !_done;
-              if (_done && _date == null) _date = DateTime.now();
-            }),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 5, 8, 5),
-              child: Row(
-                children: [
-                  Icon(_done ? Icons.check_circle_rounded : Icons.circle_outlined,
-                      size: 20, color: activeColor),
-                  const SizedBox(width: 9),
-                  Text(_cfg.doneLabel.tr,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _done
-                            ? colors.onSurface
-                            : colors.onSurface.withValues(alpha: 0.62),
-                      )),
-                  const Spacer(),
-                  Transform.scale(
-                    scale: 0.78,
-                    child: Switch(
-                      value: _done,
-                      onChanged: (v) => setState(() {
-                        _done = v;
-                        if (v && _date == null) _date = DateTime.now();
-                      }),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                ],
+    return _buildCard(colors, [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(14, 5, 8, 5),
+        child: Row(
+          children: [
+            Icon(
+                _done
+                    ? Icons.check_circle_rounded
+                    : Icons.circle_outlined,
+                size: 20,
+                color: _done ? colors.primary : colors.outline),
+            const SizedBox(width: 9),
+            Text(_cfg.doneLabel.tr,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _done
+                      ? colors.onSurface
+                      : colors.onSurface.withValues(alpha: 0.62),
+                )),
+            const Spacer(),
+            Transform.scale(
+              scale: 0.78,
+              child: Switch(
+                value: _done,
+                onChanged: (v) => setState(() {
+                  _done = v;
+                  if (v && _date == null) _date = DateTime.now();
+                }),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
-          ),
-          if (_done) ...[
-            _divider(colors),
-            _buildRow(
-              icon: Icons.event_outlined,
-              label: _cfg.dateLabel.tr,
-              value: _date == null ? '未选择'.tr : _fmtDate(_date!),
-              muted: _date == null,
-              onTap: () async {
-                final picked = await showDatePickerSheet(
-                  context: context,
-                  title: _cfg.dateLabel.tr,
-                  initial: _date ?? DateTime.now(),
-                );
-                if (picked != null && mounted) setState(() => _date = picked);
-              },
-              colors: colors,
-            ),
           ],
+        ),
+      ),
+      if (_done) ...[
+        _divider(colors),
+        _buildRow(
+          icon: Icons.event_outlined,
+          label: _cfg.dateLabel.tr,
+          value: _date == null ? '未选择'.tr : _fmtDate(_date!),
+          muted: _date == null,
+          onTap: () async {
+            final picked = await showDatePickerSheet(
+              context: context,
+              title: _cfg.dateLabel.tr,
+              initial: _date ?? DateTime.now(),
+            );
+            if (picked != null && mounted) setState(() => _date = picked);
+          },
+          colors: colors,
+        ),
+      ],
+    ]);
+  }
+
+  /// 序号行：减号 / 序号 / 加号，页面内直接调整
+  Widget _buildSeqRow(ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.tag,
+              size: 19, color: colors.onSurface.withValues(alpha: 0.42)),
+          const SizedBox(width: 9),
+          Text(_cfg.seqLabel.tr,
+              style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.62))),
+          const Spacer(),
+          _seqStepButton(
+            colors,
+            icon: Icons.remove_rounded,
+            enabled: _seq > 1,
+            onTap: () => _setSeq(_seq - 1),
+          ),
+          SizedBox(
+            width: 56,
+            child: TextField(
+              controller: _seqController,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onTap: () => _seqController.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: _seqController.text.length,
+              ),
+              onChanged: (v) {
+                final n = int.tryParse(v.trim());
+                if (n != null && n > 0) {
+                  setState(() => _seq = n.clamp(1, 9999));
+                }
+              },
+            ),
+          ),
+          _seqStepButton(
+            colors,
+            icon: Icons.add_rounded,
+            enabled: _seq < 9999,
+            onTap: () => _setSeq(_seq + 1),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRating(ColorScheme colors) {
-    return Row(
-      children: [
-        Text('评分'.tr,
-            style: TextStyle(
-                fontSize: 14, color: colors.onSurface.withValues(alpha: 0.62))),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(10, (i) {
-                  final v = i + 1;
-                  final filled = _rating != null && _rating! >= v;
-                  return InkWell(
-                    onTap: () => setState(() {
-                      _rating = (_rating != null && _rating == v.toDouble())
-                          ? null
-                          : v.toDouble();
-                    }),
-                    child: Icon(
-                      filled ? Icons.star_rounded : Icons.star_outline_rounded,
-                      size: 24,
-                      color: const Color(0xFFFFB800),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ),
+  void _setSeq(int v) {
+    setState(() {
+      _seq = v.clamp(1, 9999);
+      _seqController.text = '$_seq';
+    });
+  }
+
+  Widget _seqStepButton(ColorScheme colors,
+      {required IconData icon,
+      required bool enabled,
+      required VoidCallback onTap}) {
+    return Material(
+      color: enabled
+          ? colors.primaryContainer.withValues(alpha: 0.55)
+          : colors.surfaceContainerHighest,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon,
+              size: 18,
+              color: enabled
+                  ? colors.primary
+                  : colors.onSurface.withValues(alpha: 0.28)),
         ),
-      ],
+      ),
     );
   }
+
+  /// 名称：页面内直接输入
+  Widget _buildTitleField(ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('名称'.tr,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: colors.onSurface.withValues(alpha: 0.5))),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _titleController,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              hintText: '选填'.tr,
+              hintStyle:
+                  TextStyle(color: colors.onSurface.withValues(alpha: 0.32)),
+              contentPadding: EdgeInsets.zero,
+            ),
+            style: const TextStyle(fontSize: 15),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 观后感：五星（半星=10分制）+ 页面内多行输入
+  Widget _buildReviewCard(ColorScheme colors) {
+    return _buildCard(colors, [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('评价'.tr,
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: colors.onSurface.withValues(alpha: 0.62))),
+                const SizedBox(width: 4),
+                Text('选填'.tr,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurface.withValues(alpha: 0.35))),
+                const Spacer(),
+                _buildHalfStars(colors),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _reviewController,
+              minLines: 3,
+              maxLines: 6,
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: '写下你的评价…'.tr,
+                hintStyle:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.32)),
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    ]);
+  }
+
+  /// 5 颗星对应 10 分：每颗星左半=奇数分，右半=偶数分；再次点击当前值清空
+  Widget _buildHalfStars(ColorScheme colors) {
+    const starColor = Color(0xFFFFB800);
+    final score = _rating?.toInt() ?? 0; // 0..10
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (i) {
+        final leftScore = i * 2 + 1;
+        final rightScore = i * 2 + 2;
+        final fill = score >= rightScore
+            ? 1.0
+            : score >= leftScore
+                ? 0.5
+                : 0.0;
+        return GestureDetector(
+          onTapDown: (details) {
+            final box = context.findRenderObject() as RenderBox?;
+            final width = box?.size.width ?? 26;
+            final localDx =
+                box?.globalToLocal(details.globalPosition).dx ?? width / 2;
+            final v = localDx < width / 2 ? leftScore : rightScore;
+            setState(() => _rating =
+                (_rating != null && _rating == v.toDouble())
+                    ? null
+                    : v.toDouble());
+          },
+          child: _HalfStar(fill: fill, size: 26, color: starColor),
+        );
+      }),
+    );
+  }
+
+  /// 截图卡片
+  Widget _buildImagesCard(ColorScheme colors) {
+    return _buildCard(colors, [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('截图'.tr,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.62))),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ImageGridEditor(
+                images: _images,
+                alignment: WrapAlignment.start,
+                onAdd: _pickImages,
+                onRemove: (i) => setState(() => _images.removeAt(i)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ]);
+  }
+}
+
+/// 半颗星绘制：fill 为 0 / 0.5 / 1
+class _HalfStar extends StatelessWidget {
+  final double fill;
+  final double size;
+  final Color color;
+  const _HalfStar(
+      {required this.fill, required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Icon(Icons.star_outline_rounded,
+              size: size, color: color.withValues(alpha: 0.45)),
+          if (fill > 0)
+            ClipRect(
+              clipper: _StarClipper(fill),
+              child: Icon(Icons.star_rounded, size: size, color: color),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StarClipper extends CustomClipper<Rect> {
+  final double fraction;
+  _StarClipper(this.fraction);
+  @override
+  Rect getClip(Size size) =>
+      Rect.fromLTRB(0, 0, size.width * fraction, size.height);
+  @override
+  bool shouldReclip(_StarClipper old) => old.fraction != fraction;
 }

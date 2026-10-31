@@ -16,6 +16,7 @@ import '../../widgets/genre_selector_page.dart';
 import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/edit_sheets.dart';
+import '../../widgets/duration_picker.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
@@ -60,6 +61,7 @@ class _BookFormPageState extends State<BookFormPage> {
   DateTime? _startDate;
   DateTime? _finishDate;
   int _readCount = 0;
+  int _readDuration = 0;
   bool _isDownloading = false;
 
   @override
@@ -94,6 +96,7 @@ class _BookFormPageState extends State<BookFormPage> {
       _startDate = book.startDate;
       _finishDate = book.finishDate;
       _readCount = book.readCount;
+      _readDuration = book.readDuration;
     } else if (widget.initialStatus != null) {
       _status = widget.initialStatus!;
     }
@@ -261,6 +264,17 @@ class _BookFormPageState extends State<BookFormPage> {
                           )
                         : null,
                     onTap: () => _selectFinishDate(),
+                  ),
+
+                  // 第六行：阅读时长（天/时/分三列滚轮）
+                  _halfCard('阅读时长'.tr, _formatReadDuration(_readDuration), Icons.schedule_outlined,
+                    trailing: _readDuration > 0
+                        ? GestureDetector(
+                            onTap: () => setState(() => _readDuration = 0),
+                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                          )
+                        : null,
+                    onTap: () => _editReadDuration(),
                   ),
 
                   // ISBN（独占一行）
@@ -733,6 +747,30 @@ class _BookFormPageState extends State<BookFormPage> {
     if (picked != null) setState(() => _finishDate = picked);
   }
 
+  /// 选择阅读时长（天/时/分三列滚轮，值存总分钟数）
+  Future<void> _editReadDuration() async {
+    final result = await DurationPicker.show(
+      context: context,
+      initialMinutes: _readDuration,
+      title: '阅读时长',
+      showDays: true,
+    );
+    if (result != null) setState(() => _readDuration = result);
+  }
+
+  /// 阅读时长格式化：X天X小时X分
+  String _formatReadDuration(int minutes) {
+    if (minutes <= 0) return '';
+    final d = minutes ~/ 1440;
+    final h = (minutes % 1440) ~/ 60;
+    final m = minutes % 60;
+    final parts = <String>[];
+    if (d > 0) parts.add('{d}天'.trf({'d': d}));
+    if (h > 0) parts.add('{h}小时'.trf({'h': h}));
+    if (m > 0) parts.add('{m}分'.trf({'m': m}));
+    return parts.join('');
+  }
+
   /// 编辑书籍简介（底部弹层）
   Future<void> _editSummary() async {
     final result = await TextEditSheet.show(
@@ -805,7 +843,7 @@ class _BookFormPageState extends State<BookFormPage> {
           authors: _authors, translators: _translators, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status, category: _category,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, createdAt: now, updatedAt: now,
+          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, readDuration: _readDuration, createdAt: now, updatedAt: now,
         );
         if (!mounted) return;
         await context.read<AppProvider>().addBook(newBook);
@@ -817,7 +855,7 @@ class _BookFormPageState extends State<BookFormPage> {
           authors: _authors, translators: _translators, alternateTitles: _alternateTitles, publisher: _publisherController.text.trim(),
           genres: _genres, summary: _summaryController.text.trim(), rating: rating, status: _status, category: _category,
           isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, updatedAt: now,
+          publishDate: _publishDate, startDate: _startDate, finishDate: _finishDate, readCount: _readCount, readDuration: _readDuration, updatedAt: now,
         );
         await context.read<AppProvider>().updateBook(updatedBook);
         if (!mounted) return;

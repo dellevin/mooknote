@@ -394,24 +394,24 @@ class _GameDetailPageState extends State<GameDetailPage> {
         // expand：内容少时 Stack 也撑满屏幕，右下角浮动按钮位置固定
         fit: StackFit.expand,
         children: [
-          // 封面背景
+          // 兜底色：封面解码完成前也保持深色，不透明（避免转场中"先透明后磨砂"）
+          const Positioned.fill(child: ColoredBox(color: Color(0xFF121418))),
+          // 封面背景（静态模糊，转场动画期间即生效，不依赖 BackdropFilter）
           if (hasCover)
             Positioned.fill(
-              child: Image(
-                image: ResizeImage(FileImage(File(game.coverPath!)), width: 1080),
-                fit: BoxFit.cover, width: double.infinity, height: screenH,
-                repeat: ImageRepeat.repeatY,
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                child: Image(
+                  image: ResizeImage(FileImage(File(game.coverPath!)), width: 1080),
+                  fit: BoxFit.cover, width: double.infinity, height: screenH,
+                  repeat: ImageRepeat.repeatY,
+                ),
               ),
-            )
-          else
-            Container(color: colors.surfaceContainerHighest),
-
-          // 毛玻璃
-          ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-              child: Container(color: Colors.black.withValues(alpha: 0.4)),
             ),
+
+          // 深色遮罩
+          Positioned.fill(
+            child: ColoredBox(color: Colors.black.withValues(alpha: 0.4)),
           ),
 
           // 内容

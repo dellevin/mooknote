@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../note/note_detail_page.dart';
@@ -24,7 +25,15 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   final List<_StrollItem> _items = [];
   final Set<String> _seenIds = {};
   int _current = 0;
-  String _filter = 'all'; // all / movie / book / note
+  String _filter = 'all'; // all / movie / book / note / game
+
+  // 功能模块开关（观影/阅读/笔记/游戏），关闭的模块不在漫步中出现
+  late final Set<String> _enabledTypes = {
+    if (UserPrefs().showMovieTab) 'movie',
+    if (UserPrefs().showBookTab) 'book',
+    if (UserPrefs().showNoteTab) 'note',
+    if (UserPrefs().showGameTab) 'game',
+  };
 
   // 拖动手势状态
   double _dragX = 0; // 当前水平偏移（正=右滑，负=左滑）
@@ -61,7 +70,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     final bookPool = <_StrollItem>[];
     final notePool = <_StrollItem>[];
     final gamePool = <_StrollItem>[];
-    if (_filter == 'all' || _filter == 'movie') {
+    if ((_filter == 'all' || _filter == 'movie') && _enabledTypes.contains('movie')) {
       for (final m in provider.movies.where((m) => !m.isDeleted)) {
         moviePool.add(_StrollItem(
           type: 'movie', data: m, id: 'm_${m.id}',
@@ -76,7 +85,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         ));
       }
     }
-    if (_filter == 'all' || _filter == 'book') {
+    if ((_filter == 'all' || _filter == 'book') && _enabledTypes.contains('book')) {
       for (final b in provider.books.where((b) => !b.isDeleted)) {
         bookPool.add(_StrollItem(
           type: 'book', data: b, id: 'b_${b.id}',
@@ -91,7 +100,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         ));
       }
     }
-    if (_filter == 'all' || _filter == 'note') {
+    if ((_filter == 'all' || _filter == 'note') && _enabledTypes.contains('note')) {
       for (final n in provider.notes.where((n) => !n.isDeleted)) {
         notePool.add(_StrollItem(
           type: 'note', data: n, id: 'n_${n.id}',
@@ -106,7 +115,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         ));
       }
     }
-    if (_filter == 'all' || _filter == 'game') {
+    if ((_filter == 'all' || _filter == 'game') && _enabledTypes.contains('game')) {
       for (final g in provider.games.where((g) => !g.isDeleted)) {
         gamePool.add(_StrollItem(
           type: 'game', data: g, id: 'g_${g.id}',
@@ -131,10 +140,18 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     if (pools.isEmpty) return;
 
     // 全部模式下等概率选类别，单类别模式下直接选
+    final candidateIds = <String>{for (final p in pools) for (final it in p) it.id};
     final target = _items.length + count;
     int attempts = 0;
     while (_items.length < target && attempts < count * 20) {
       attempts++;
+      // 候选全部出现过（一轮刷完）：放行已飞走的卡片重新随机，
+      // 但保留栈中尚未展示（索引 >= _current）的 id，避免与即将出现的卡重复
+      if (candidateIds.every(_seenIds.contains)) {
+        _seenIds
+          ..clear()
+          ..addAll({for (int i = _current; i < _items.length; i++) _items[i].id});
+      }
       final pool = _filter == 'all'
           ? pools[_random.nextInt(pools.length)]
           : pools.first;
@@ -385,13 +402,13 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   }
 
   Widget _buildFilterBar(ColorScheme colors) {
-    final filters = [
+    final filters = <(String, String, IconData)>[
       ('all', '全部', Icons.apps_outlined),
       ('movie', '影视', Icons.movie_outlined),
       ('book', '书籍', Icons.menu_book_outlined),
       ('note', '笔记', Icons.sticky_note_2_outlined),
       ('game', '游戏', Icons.sports_esports_outlined),
-    ];
+    ].where((f) => f.$1 == 'all' || _enabledTypes.contains(f.$1)).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Stack(

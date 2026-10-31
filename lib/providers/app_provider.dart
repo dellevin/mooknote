@@ -1164,13 +1164,33 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('playlists', id, txn);
-      await _playlistDao.deletePlaylist(id);
+      await _playlistDao.deletePlaylist(id, txn: txn);
     });
     final idx = _playlists.indexWhere((p) => p.id == id);
     final name = idx != -1 ? _playlists[idx].name : '';
     if (idx != -1) _playlists.removeAt(idx);
     debugPrint('[数据] 删除片单《${_logTitle(name)}》');
     notifyListeners();
+  }
+
+  /// 获取已删除的片单（回收站）
+  Future<List<Playlist>> getDeletedPlaylists() async {
+    return await _playlistDao.getDeletedPlaylists();
+  }
+
+  /// 恢复片单
+  Future<void> restorePlaylist(String id) async {
+    await _playlistDao.restorePlaylist(id);
+    await loadPlaylists();
+  }
+
+  /// 彻底删除片单
+  Future<void> permanentDeletePlaylist(String id) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.transaction((txn) async {
+      await SyncTombstones.record('playlists', id, txn);
+      await _playlistDao.permanentDeletePlaylist(id, txn: txn);
+    });
   }
 
   Future<void> updatePlaylist(Playlist playlist) async {
@@ -1777,6 +1797,7 @@ class AppProvider extends ChangeNotifier {
     final deletedBookCharacters = await getDeletedBookCharacters();
     final deletedGameCharacters = await getDeletedGameCharacters();
     final deletedCustomModuleItems = await getDeletedCustomModuleItems();
+    final deletedPlaylists = await getDeletedPlaylists();
 
     // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
     final movieIds = deletedMovies.map((m) => m.id).toList();
@@ -1858,6 +1879,9 @@ class AppProvider extends ChangeNotifier {
       for (final item in deletedCustomModuleItems) {
         await SyncTombstones.record('custom_module_items', item.id, txn);
       }
+      for (final playlist in deletedPlaylists) {
+        await SyncTombstones.record('playlists', playlist.id, txn);
+      }
 
       for (final id in movieIds) {
         await txn.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
@@ -1919,6 +1943,9 @@ class AppProvider extends ChangeNotifier {
       }
       for (final item in deletedCustomModuleItems) {
         await txn.delete('custom_module_items', where: 'id = ?', whereArgs: [item.id]);
+      }
+      for (final playlist in deletedPlaylists) {
+        await _playlistDao.permanentDeletePlaylist(playlist.id, txn: txn);
       }
     });
 

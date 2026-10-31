@@ -18,6 +18,7 @@ const Map<String, String> enProgress = {
   '已阅读': 'Read',
   '已通关': 'Cleared',
   '观看日期': 'Watch Date',
+  '本集时长': 'Episode Duration',
   '阅读日期': 'Read Date',
   '通关日期': 'Clear Date',
   '暂无记录': 'No records',
@@ -31,6 +32,7 @@ const Map<String, String> enProgress = {
   '名称': 'Title',
   '选填': 'Optional',
   '评价': 'Review',
+  '写下你的评价…': 'Write your review…',
   '截图': 'Screenshots',
 
   // 通用
