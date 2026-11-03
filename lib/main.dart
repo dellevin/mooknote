@@ -131,17 +131,115 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Android 启动时请求存储权限（备份导出需要写入 Download 目录）
+  /// Android 启动时先弹说明框（附隐私政策），用户确认后再跳转权限设置；
+  /// 一旦用户做出选择（确定/取消），以后启动不再弹
   Future<void> _requestStoragePermissionIfNeeded() async {
     if (!Platform.isAndroid) return;
-    var status = await Permission.manageExternalStorage.status;
-    if (status.isGranted) return;
-    status = await Permission.manageExternalStorage.request();
-    if (status.isGranted) return;
+    final userPrefs = UserPrefs();
+    // Android 11+ 只认"所有文件访问"；不能用 Permission.storage 判断，
+    // 旧存储权限在 Android 13+ 可能被系统直接报 granted
+    final status = await Permission.manageExternalStorage.status;
+    if (status.isGranted) {
+      if (!userPrefs.storagePermissionDialogDecided) {
+        await userPrefs.setStoragePermissionDialogDecided(true);
+      }
+      return;
+    }
+    if (userPrefs.storagePermissionDialogDecided) return;
+
+    // 等首帧 Navigator 就绪（与 _checkUpdate 同样的时机）
+    for (var i = 0; i < 10; i++) {
+      final ctx = _navigatorKey.currentContext;
+      if (ctx != null) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    final navContext = _navigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return;
+    final confirmed = await _showStoragePermissionDialog(navContext);
+    // 无论确定还是取消都记住，下次启动不再弹
+    await userPrefs.setStoragePermissionDialogDecided(true);
+    if (confirmed != true) return;
+
+    var s = await Permission.manageExternalStorage.request();
+    if (s.isGranted) return;
     // Android 11 以下回退到 storage 权限
-    status = await Permission.storage.status;
-    if (status.isGranted) return;
-    await Permission.storage.request();
+    s = await Permission.storage.request();
+  }
+
+  Future<bool?> _showStoragePermissionDialog(BuildContext dialogContext) {
+    final colors = Theme.of(dialogContext).colorScheme;
+    return showDialog<bool>(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Icon(Icons.folder_open_outlined, size: 22, color: colors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('存储权限申请'.tr,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '为了将数据备份/导出到手机的 Download 文件夹、以及把图片保存到相册，MookNote 需要获取「所有文件访问」权限。该权限仅用于备份文件的读写，不会读取或上传你的个人文件。不开启不影响日常记录，需要时也可在「设置 - 获取系统权限」中手动开启。'
+                  .tr,
+              style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: colors.onSurface.withValues(alpha: 0.7)),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () async {
+                final uri =
+                    Uri.parse('https://mooknote.iletter.top/info/privacy_policy.html');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Text(
+                '查看《隐私政策》'.tr,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: colors.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: colors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+            ),
+            child: Text('取消'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('确定'.tr),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 启动本地自动备份定时器（仅启动定时器，不立即执行备份）

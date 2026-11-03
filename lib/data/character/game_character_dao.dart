@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
 
@@ -101,8 +102,10 @@ class GameCharacterDao {
   });
 
   /// 彻底删除角色
-  Future<void> permanentDelete(String id) => _wrap('permanentDelete', () async {
-    final db = await _dbHelper.database;
+  /// txn 可传入外部事务复用（事务内禁止用 db 句柄，会死锁）
+  Future<void> permanentDelete(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDelete', () async {
+    final db = txn ?? await _dbHelper.database;
     await db.delete('game_characters', where: 'id = ?', whereArgs: [id]);
   });
 }

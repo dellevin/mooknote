@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
 import '../playlist/playlist_dao.dart';
@@ -280,22 +281,25 @@ class MovieDao {
     });
   });
 
-  // 彻底删除影视
-  Future<int> permanentDeleteMovie(String id) => _wrap('permanentDeleteMovie', () async {
-    final db = await _dbHelper.database;
-    // 事务内清理全部子记录与片单引用，防止孤儿数据
-    return await db.transaction((txn) async {
-      await txn.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
-      await txn.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
-      await txn.delete('movie_episodes', where: 'movie_id = ?', whereArgs: [id]);
-      await txn.delete('movie_people', where: 'movie_id = ?', whereArgs: [id]);
-      await txn.delete('movie_characters', where: 'movie_id = ?', whereArgs: [id]);
-      await PlaylistDao.removeMediaFromPlaylists(txn, id, 'movie');
-      return await txn.delete(
+  // 彻底删除影视。txn 可传入外部事务复用（禁止在外层事务内再开事务，会死锁）
+  Future<int> permanentDeleteMovie(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDeleteMovie', () async {
+    Future<int> run(DatabaseExecutor db) async {
+      await db.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
+      await db.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
+      await db.delete('movie_episodes', where: 'movie_id = ?', whereArgs: [id]);
+      await db.delete('movie_people', where: 'movie_id = ?', whereArgs: [id]);
+      await db.delete('movie_characters', where: 'movie_id = ?', whereArgs: [id]);
+      await PlaylistDao.removeMediaFromPlaylists(db, id, 'movie');
+      return await db.delete(
         'movies',
         where: 'id = ?',
         whereArgs: [id],
       );
-    });
+    }
+    if (txn != null) return run(txn);
+    final db = await _dbHelper.database;
+    // 事务内清理全部子记录与片单引用，防止孤儿数据
+    return await db.transaction(run);
   });
 }

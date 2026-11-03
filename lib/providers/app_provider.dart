@@ -596,7 +596,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('custom_module_items', id, txn);
-      await _customModuleItemDao.permanentDeleteItem(id);
+      await _customModuleItemDao.permanentDeleteItem(id, txn: txn);
     });
     if (item != null) {
       await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, id);
@@ -1702,7 +1702,7 @@ class AppProvider extends ChangeNotifier {
     await db.transaction((txn) async {
       await SyncTombstones.record('movies', id, txn);
       // 分集等全部子表在 DAO 事务内与父行同删，避免中途失败产生孤儿
-      await _movieDao.permanentDeleteMovie(id);
+      await _movieDao.permanentDeleteMovie(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteMovieImages(id);
   }
@@ -1725,7 +1725,7 @@ class AppProvider extends ChangeNotifier {
     await db.transaction((txn) async {
       await SyncTombstones.record('books', id, txn);
       // 章节等全部子表在 DAO 事务内与父行同删，避免中途失败产生孤儿
-      await _bookDao.permanentDeleteBook(id);
+      await _bookDao.permanentDeleteBook(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteBookImages(id);
   }
@@ -1769,7 +1769,7 @@ class AppProvider extends ChangeNotifier {
     await db.transaction((txn) async {
       await SyncTombstones.record('games', id, txn);
       // 关卡/通关记录等全部子表在 DAO 事务内与父行同删，避免中途失败产生孤儿
-      await _gameDao.permanentDeleteGame(id);
+      await _gameDao.permanentDeleteGame(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteGameImages(id);
   }
@@ -2008,7 +2008,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('movie_reviews', id, txn);
-      await _reviewDao.permanentDeleteReview(id);
+      await _reviewDao.permanentDeleteReview(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteReviewImages(id);
   }
@@ -2025,7 +2025,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('book_reviews', id, txn);
-      await _bookReviewDao.permanentDeleteReview(id);
+      await _bookReviewDao.permanentDeleteReview(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteReviewImages(id);
   }
@@ -2044,7 +2044,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('game_reviews', id, txn);
-      await _gameReviewDao.permanentDeleteReview(id);
+      await _gameReviewDao.permanentDeleteReview(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteReviewImages(id);
   }
@@ -2063,7 +2063,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('book_excerpts', id, txn);
-      await _bookExcerptDao.permanentDeleteExcerpt(id);
+      await _bookExcerptDao.permanentDeleteExcerpt(id, txn: txn);
     });
   }
 
@@ -2242,7 +2242,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('people', id, txn);
-      await _personDao.permanentDeletePerson(id);
+      await _personDao.permanentDeletePerson(id, txn: txn);
     });
     await ImagePathHelper.instance.deletePersonImages(id);
   }
@@ -2494,7 +2494,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('movie_characters', id, txn);
-      await _movieCharacterDao.permanentDelete(id);
+      await _movieCharacterDao.permanentDelete(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteCharacterImages(id);
   }
@@ -2545,7 +2545,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('book_characters', id, txn);
-      await _bookCharacterDao.permanentDelete(id);
+      await _bookCharacterDao.permanentDelete(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteCharacterImages(id);
   }
@@ -2596,7 +2596,7 @@ class AppProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
       await SyncTombstones.record('game_characters', id, txn);
-      await _gameCharacterDao.permanentDelete(id);
+      await _gameCharacterDao.permanentDelete(id, txn: txn);
     });
     await ImagePathHelper.instance.deleteCharacterImages(id);
   }

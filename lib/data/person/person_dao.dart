@@ -139,16 +139,19 @@ class PersonDao {
     return maps.map((m) => Person.fromJson(m)).toList();
   });
 
-  // 彻底删除人物
-  Future<int> permanentDeletePerson(String id) => _wrap('permanentDeletePerson', () async {
+  // 彻底删除人物。txn 可传入外部事务复用（禁止在外层事务内再开事务，会死锁）
+  Future<int> permanentDeletePerson(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDeletePerson', () async {
+    Future<int> run(DatabaseExecutor db) async {
+      await db.delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
+      await db.delete('book_people', where: 'person_id = ?', whereArgs: [id]);
+      await db.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
+      return await db.delete('people', where: 'id = ?', whereArgs: [id]);
+    }
+    if (txn != null) return run(txn);
     final db = await _dbHelper.database;
     // 事务内清理关联记录
-    return await db.transaction((txn) async {
-      await txn.delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
-      await txn.delete('book_people', where: 'person_id = ?', whereArgs: [id]);
-      await txn.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
-      return await txn.delete('people', where: 'id = ?', whereArgs: [id]);
-    });
+    return await db.transaction(run);
   });
 
   /// 合并同名人物：每个名字组保留信息最全的一条，迁移关联并去重，删除冗余。

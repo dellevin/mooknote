@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
 
@@ -133,9 +134,10 @@ class CustomModuleItemDao {
     );
   });
 
-  /// 彻底删除
-  Future<int> permanentDeleteItem(String id) => _wrap('permanentDeleteItem', () async {
-    final db = await _dbHelper.database;
+  /// 彻底删除。txn 可传入外部事务复用（事务内禁止用 db 句柄，会死锁）
+  Future<int> permanentDeleteItem(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDeleteItem', () async {
+    final db = txn ?? await _dbHelper.database;
     return await db.delete(
       'custom_module_items',
       where: 'id = ?',

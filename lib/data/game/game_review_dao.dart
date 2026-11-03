@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../database_helper.dart';
 import '../../models/data_models.dart';
 
@@ -134,9 +135,10 @@ class GameReviewDao {
     );
   });
 
-  /// 永久删除评价
-  Future<int> permanentDeleteReview(String id) => _wrap('permanentDeleteReview', () async {
-    final db = await _dbHelper.database;
+  /// 永久删除评价。txn 可传入外部事务复用（事务内禁止用 db 句柄，会死锁）
+  Future<int> permanentDeleteReview(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDeleteReview', () async {
+    final db = txn ?? await _dbHelper.database;
     return await db.delete('game_reviews', where: 'id = ?', whereArgs: [id]);
   });
 }

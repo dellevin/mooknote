@@ -140,6 +140,10 @@ const Map<String, String> enProfile = {
   '获取系统权限': 'System Permissions',
   '前往系统设置开启存储权限':
       'Go to system settings to enable storage permission',
+  '存储权限申请': 'Storage Permission',
+  '为了将数据备份/导出到手机的 Download 文件夹、以及把图片保存到相册，MookNote 需要获取「所有文件访问」权限。该权限仅用于备份文件的读写，不会读取或上传你的个人文件。不开启不影响日常记录，需要时也可在「设置 - 获取系统权限」中手动开启。':
+      'To back up/export data to the Download folder and save images to your gallery, MookNote needs the "All files access" permission. It is used only for reading and writing backup files and will never read or upload your personal files. Daily tracking works without it, and you can grant it later under Settings - System Permissions.',
+  '查看《隐私政策》': 'View the Privacy Policy',
   '扫描系统媒体库': 'Scan Media Library',
   '图片存在但相册/图片选择器里看不到时，触发系统重新索引':
       'Re-index when images exist but are missing from the gallery or image picker',

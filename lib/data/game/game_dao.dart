@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
 import '../playlist/playlist_dao.dart';
@@ -169,23 +170,26 @@ class GameDao {
     });
   });
 
-  // 彻底删除游戏
-  Future<int> permanentDeleteGame(String id) => _wrap('permanentDeleteGame', () async {
-    final db = await _dbHelper.database;
-    // 事务内清理全部子记录与片单引用，防止孤儿数据
-    return await db.transaction((txn) async {
-      await txn.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
-      await txn.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
-      await txn.delete('game_completions', where: 'game_id = ?', whereArgs: [id]);
-      await txn.delete('game_levels', where: 'game_id = ?', whereArgs: [id]);
-      await txn.delete('game_people', where: 'game_id = ?', whereArgs: [id]);
-      await txn.delete('game_characters', where: 'game_id = ?', whereArgs: [id]);
-      await PlaylistDao.removeMediaFromPlaylists(txn, id, 'game');
-      return await txn.delete(
+  // 彻底删除游戏。txn 可传入外部事务复用（禁止在外层事务内再开事务，会死锁）
+  Future<int> permanentDeleteGame(String id, {DatabaseExecutor? txn}) =>
+      _wrap('permanentDeleteGame', () async {
+    Future<int> run(DatabaseExecutor db) async {
+      await db.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
+      await db.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
+      await db.delete('game_completions', where: 'game_id = ?', whereArgs: [id]);
+      await db.delete('game_levels', where: 'game_id = ?', whereArgs: [id]);
+      await db.delete('game_people', where: 'game_id = ?', whereArgs: [id]);
+      await db.delete('game_characters', where: 'game_id = ?', whereArgs: [id]);
+      await PlaylistDao.removeMediaFromPlaylists(db, id, 'game');
+      return await db.delete(
         'games',
         where: 'id = ?',
         whereArgs: [id],
       );
-    });
+    }
+    if (txn != null) return run(txn);
+    final db = await _dbHelper.database;
+    // 事务内清理全部子记录与片单引用，防止孤儿数据
+    return await db.transaction(run);
   });
 }

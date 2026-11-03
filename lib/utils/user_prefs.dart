@@ -96,6 +96,11 @@ class UserPrefs {
   String? get heroBackgroundPath => prefs.getString('heroBackgroundPath');
   Future<bool> setHeroBackgroundPath(String value) => prefs.setString('heroBackgroundPath', value);
   Future<bool> clearHeroBackgroundPath() => prefs.remove('heroBackgroundPath');
+
+  /// 启动时的存储权限说明弹窗：用户已选择（确定/取消）后不再弹出
+  bool get storagePermissionDialogDecided => prefs.getBool('storagePermissionDialogDecided') ?? false;
+  Future<bool> setStoragePermissionDialogDecided(bool value) =>
+      prefs.setBool('storagePermissionDialogDecided', value);
   
   // ========== 应用设置 ==========
   
