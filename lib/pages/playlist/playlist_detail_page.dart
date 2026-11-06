@@ -29,6 +29,8 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
   int _layoutStyle = UserPrefs().playlistDetailLayoutStyle; // 0:列表 1:海报墙
   final Map<String, double> _slideOffsets = {};
   static const _actionWidth = 56.0;
+  // 拖拽排序期间冻结可见条目，避免 provider 通知导致 itemCount 变化触发框架崩溃
+  List<_ResolvedItem>? _frozenVisible;
 
   void _closeAllSlides({String? exceptId}) {
     final keys = _slideOffsets.keys
@@ -518,6 +520,9 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
         ? resolved
         : resolved.where((r) => _statusFilter == 'none' ? r.status.isEmpty : r.status == _statusFilter).toList();
 
+    // 拖拽中使用冻结快照，保证 ReorderableListView 的 itemCount 不变
+    final dragItems = _frozenVisible ?? visible;
+
     final colors = Theme.of(context).colorScheme;
 
     return Column(
@@ -526,7 +531,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
         _buildHeader(context, playlist, resolved),
         if (resolved.isNotEmpty && playlist.type != 'all') _buildFilterChips(context, playlist, resolved),
         Expanded(
-          child: visible.isEmpty
+          child: dragItems.isEmpty
               ? Center(
                   child: Text('该分类下暂无条目'.tr,
                       style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
@@ -543,7 +548,11 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
               },
               child: ReorderableListView.builder(
                   padding: const EdgeInsets.only(top: 12, bottom: 24),
-                  itemCount: visible.length,
+                  itemCount: dragItems.length,
+                  onReorderStart: (_) => _frozenVisible = List.of(visible),
+                  onReorderEnd: (_) {
+                    if (mounted) setState(() => _frozenVisible = null);
+                  },
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex--;
                     final moved = visible[oldIndex].playlistItem;
@@ -580,7 +589,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
                     );
                   },
                   itemBuilder: (context, index) {
-                    return _buildItem(context, visible[index], index, provider);
+                    return _buildItem(context, dragItems[index], index, provider);
                   },
                 ),
             ),

@@ -23,6 +23,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   double _dragStartX = 0;
   double _dragStartOffset = 0;
   bool _isHorizontalDrag = false;
+  // 拖拽排序期间冻结列表，避免 provider 通知导致 itemCount 变化触发框架崩溃
+  List<Playlist>? _frozenPlaylists;
 
   @override
   void initState() {
@@ -77,7 +79,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final playlists = provider.playlists;
+        final playlists = _frozenPlaylists ?? provider.playlists;
 
         return Scaffold(
           appBar: AppBar(
@@ -142,6 +144,10 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     return ReorderableListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: playlists.length,
+      onReorderStart: (_) => _frozenPlaylists = List.of(playlists),
+      onReorderEnd: (_) {
+        if (mounted) setState(() => _frozenPlaylists = null);
+      },
       onReorder: (oldIndex, newIndex) {
         if (newIndex > oldIndex) newIndex--;
         final list = List<Playlist>.from(playlists);

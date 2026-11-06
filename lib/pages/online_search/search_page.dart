@@ -129,25 +129,36 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     return ids;
   }
 
-  /// 自定义条目：始终匹配标题；有激活设计时再匹配文本类字段
-  /// （text/longText/multiText/status），跳过图片/数字/日期/评分等。
+  /// 自定义条目：匹配标题 + 表单内全部字段值（文本、多行、状态、日期、
+  /// 数量、评分、时长、进度、日期范围等）；封面/多图字段仅存文件路径，跳过。
+  /// 直接遍历 data 而非依赖当前激活设计，避免切换/编辑设计后旧条目搜不到。
   bool _customItemMatch(CustomModuleItem item, String kw, CustomModuleDesign? design) {
     if (item.title.toLowerCase().contains(kw)) return true;
-    if (design == null) return false;
-    for (final field in design.fields) {
-      final isTextual = field.type == CustomFieldType.text ||
-          field.type == CustomFieldType.longText ||
-          field.type == CustomFieldType.multiText ||
-          field.type == CustomFieldType.status;
-      if (!isTextual) continue;
-      final value = item.data[field.key];
-      if (value is String) {
-        if (value.toLowerCase().contains(kw)) return true;
-      } else if (value is List) {
-        if (value.any((e) => e is String && e.toLowerCase().contains(kw))) return true;
+    final imageKeys = <String>{};
+    if (design != null) {
+      for (final field in design.fields) {
+        if (field.type == CustomFieldType.poster ||
+            field.type == CustomFieldType.multiImage) {
+          imageKeys.add(field.key);
+        }
       }
     }
+    for (final entry in item.data.entries) {
+      if (imageKeys.contains(entry.key)) continue;
+      if (_valueContainsKeyword(entry.value, kw)) return true;
+    }
     return false;
+  }
+
+  /// 递归匹配字段值：String 做小写包含，num 转字符串（评分/数量/时长/年份），
+  /// List/Map 逐层下钻（multiText、progress、dateRange 等）。
+  bool _valueContainsKeyword(dynamic value, String kw) {
+    if (value == null) return false;
+    if (value is String) return value.toLowerCase().contains(kw);
+    if (value is num) return value.toString().contains(kw);
+    if (value is List) return value.any((e) => _valueContainsKeyword(e, kw));
+    if (value is Map) return value.values.any((e) => _valueContainsKeyword(e, kw));
+    return value.toString().toLowerCase().contains(kw);
   }
 
   Future<CustomModuleDesign?> _designFor(String moduleId) async {
@@ -226,7 +237,7 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     _counts['game'] = provider.games.where((g) => !g.isDeleted && gameHit(g)).length;
     var customCount = 0;
     for (final item in customItems) {
-      if (_customItemMatch(item, kw, _designCache[item.moduleId])) customCount++;
+      if (_customItemMatch(item, kw, await _designFor(item.moduleId))) customCount++;
     }
     _counts['custom'] = customCount;
 

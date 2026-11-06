@@ -186,7 +186,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((_gameLayout == 0 || _gameLayout == 3) && _gameGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '$_gameGridCount'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr][_gameLayout == 3 ? 3 : _gameSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr, '通关时间'.tr][_gameLayout == 3 ? 3 : _gameSortMode]);
     return parts.join(' · ');
   }
 
