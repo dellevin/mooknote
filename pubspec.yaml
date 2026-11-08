@@ -1,12 +1,16 @@
 name: mooknote
 description: "app for tracking movies, books, and notes"
 publish_to: 'none'
-version: 0.4.4+2006
+version: 0.4.5+2007
 
 environment:
   sdk: ^3.5.0
 
 dependencies:
+  umeng_apm_sdk: ^2.2.1
+
+  umeng_common_sdk: ^1.2.6
+
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -32,7 +36,6 @@ dependencies:
   dynamic_color: ^1.8.1
   package_info_plus: ^8.0.0
   uuid: ^4.5.0
-  device_info_plus: ^11.2.0
   crypto: ^3.0.6
   flutter_svg: ^2.3.0
   font_awesome_flutter: ^10.7.0
@@ -66,3 +69,6 @@ flutter:
     - assets/icon/
     - assets/images/ticket/
     - assets/images/imp_book/
+
+dependency_overrides:
+  http: ^0.13.1

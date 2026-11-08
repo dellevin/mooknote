@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/server_config.dart';
-import '../settings/legal_page.dart';
 import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
 
@@ -440,8 +440,10 @@ class _EnhancedSearchSettingsPageState
         Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => LegalPage(slug: 'token_doc', title: '获取Token'.tr))),
+            onTap: () => launchUrl(
+                Uri.parse(
+                    'https://mooknote.iletter.top/info/token_doc.html'),
+                mode: LaunchMode.externalApplication),
             child: Text('点击获取 Token'.tr, style: TextStyle(fontSize: 12, color: colors.primary)),
           ),
         ),

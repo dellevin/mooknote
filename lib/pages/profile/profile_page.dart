@@ -14,8 +14,8 @@ import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/image_normalizer.dart';
 import '../../utils/excel_exporter.dart';
+import '../../services/sync/backup_service.dart';
 import '../../services/server_export_service.dart';
-import '../../widgets/float_badge_overlay.dart';
 import '../settings/recycle_bin_page.dart';
 import '../sync/backup_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -24,7 +24,6 @@ import '../settings/tag_management_page.dart';
 import '../explore/stroll_page.dart';
 import '../sync/cloud_sync_page.dart';
 import 'settings_page.dart';
-import 'badges_page.dart';
 import 'feedback_page.dart';
 import 'watchlist_page.dart';
 import '../quick_add/quick_add_page.dart';
@@ -148,8 +147,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
             ),
           ],
         ),
-        // 浮动徽章图标层（与主页共享位置，可拖拽换位；覆盖整页含 AppBar）
-        const FloatBadgeOverlay(page: 'profile'),
       ],
     );
   }
@@ -1035,13 +1032,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         (Icons.backup_outlined, '数据备份'.tr, () => _showBackupOptions(context)),
       if (_userPrefs.showProfileToolExport)
         (Icons.ios_share_outlined, 'EXCEL导出'.tr, () => _showExportOptions(context)),
-      if (_userPrefs.showProfileToolBadges)
-        (
-          Icons.emoji_events_outlined,
-          '成就徽章'.tr,
-          () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const BadgesPage()))
-        ),
       if (_userPrefs.showProfileToolSettings)
         (
           Icons.settings_outlined,
@@ -1575,6 +1565,14 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     if (withImages) {
       return _doOnlineExport(context, type, withReviews: withReviews);
     }
+    // 导出到公共 Download 目录，动作发生时才请求存储权限
+    final hasPermission = await BackupService.instance.requestStoragePermission();
+    if (!hasPermission) {
+      if (!context.mounted) return;
+      _showExportResult(context, false, '存储权限被拒绝'.tr);
+      return;
+    }
+    if (!context.mounted) return;
     final provider = context.read<AppProvider>();
     try {
       File file;

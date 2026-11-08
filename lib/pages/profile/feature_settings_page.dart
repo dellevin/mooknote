@@ -45,7 +45,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showToolQuickAdd = true;
   bool _showToolBackup = true;
   bool _showToolExport = true;
-  bool _showToolBadges = true;
   bool _showToolSettings = true;
   bool _showToolRecycleBin = true;
   bool _showToolFeedback = true;
@@ -80,7 +79,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showToolQuickAdd = _userPrefs.showProfileToolQuickAdd;
       _showToolBackup = _userPrefs.showProfileToolBackup;
       _showToolExport = _userPrefs.showProfileToolExport;
-      _showToolBadges = _userPrefs.showProfileToolBadges;
       _showToolSettings = _userPrefs.showProfileToolSettings;
       _showToolRecycleBin = _userPrefs.showProfileToolRecycleBin;
       _showToolFeedback = _userPrefs.showProfileToolFeedback;
@@ -430,16 +428,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               (v) async {
             await _userPrefs.setShowProfileToolExport(v);
             setState(() => _showToolExport = v);
-          }),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(Icons.emoji_events_outlined, '成就徽章'.tr, '查看已获得的徽章'.tr, _showToolBadges,
-              (v) async {
-            await _userPrefs.setShowProfileToolBadges(v);
-            setState(() => _showToolBadges = v);
           }),
           Divider(
               height: 0.5,

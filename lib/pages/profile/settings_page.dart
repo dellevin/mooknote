@@ -11,7 +11,6 @@ import '../../utils/toast_util.dart';
 import '../../services/media_scan_channel.dart';
 import '../../services/log_service.dart';
 import '../online_search/online_search_api_settings_page.dart';
-import '../settings/legal_page.dart';
 import '../settings/debug_log_page.dart';
 import '../settings/prefs_editor_page.dart';
 import '../settings/db_viewer_page.dart';
@@ -295,11 +294,10 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.description_outlined,
             title: '用户服务协议'.tr,
             subtitle: '查看用户服务协议'.tr,
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        const LegalPage(slug: 'terms', title: '用户服务协议'))),
+            onTap: () => launchUrl(
+                Uri.parse(
+                    'https://mooknote.iletter.top/info/user_agreement.html'),
+                mode: LaunchMode.externalApplication),
           ),
           Divider(
               height: 0.5,
@@ -310,11 +308,10 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.shield_outlined,
             title: '隐私政策'.tr,
             subtitle: '查看隐私政策'.tr,
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        const LegalPage(slug: 'privacy', title: '隐私政策'))),
+            onTap: () => launchUrl(
+                Uri.parse(
+                    'https://mooknote.iletter.top/info/privacy_policy.html'),
+                mode: LaunchMode.externalApplication),
           ),
           Divider(
               height: 0.5,

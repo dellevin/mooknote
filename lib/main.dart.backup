@@ -1,0 +1,606 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:media_kit/media_kit.dart';
+import 'pages/home/home_page.dart';
+import 'utils/theme/app_theme.dart';
+import 'utils/app_router.dart';
+import 'utils/user_prefs.dart';
+import 'services/changelog_service.dart';
+import 'services/badge_service.dart';
+import 'services/log_service.dart';
+import 'services/report_service.dart';
+import 'services/usage_stats_service.dart';
+import 'services/sync/backup_service.dart';
+import 'services/sync/webdav_service.dart';
+import 'services/sync/incremental/inc_sync_service.dart';
+import 'services/sync/incremental/sync_meta_store.dart';
+import 'providers/app_provider.dart';
+import 'l10n/app_strings.dart';
+import 'widgets/frosted_background.dart';
+import './widgets/app_overlay.dart';
+
+final RouteObserver<ModalRoute<void>> routeObserver = LoggingRouteObserver();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
+  await UserPrefs.init();
+  // 崩溃自动上报（匿名，与调试日志开关无关）
+  ReportService.instance.installCrashHook();
+  // 调试模式：接管全局日志输出
+  if (UserPrefs().debugMode) {
+    LogService.instance.install();
+  }
+  final appProvider = AppProvider();
+  runApp(MyApp(appProvider: appProvider));
+
+  unawaited(_bootstrap(appProvider));
+}
+
+/// 启动后台任务：先校验同步状态，再按顺序初始化数据库与主标签，
+/// 保持 UI 先渲染、数据后就绪。
+Future<void> _bootstrap(AppProvider appProvider) async {
+  // 数据库优先初始化（不被 sync 阻塞）
+  try {
+    await appProvider.initDatabase();
+    unawaited(appProvider.loadPlaylists());
+  } catch (e) {
+    debugPrint('[Startup] 数据库初始化失败: $e');
+    appProvider.markDbInitFailed();
+  }
+  appProvider.initMainTabIndex();
+
+  unawaited(_initUsageStats());
+  unawaited(_startAutoBackupAfterDbReady());
+}
+
+Future<void> _initUsageStats() async {
+  try {
+    await UsageStatsService.instance.start();
+  } catch (e) {
+    debugPrint('初始化用户统计失败: $e');
+  }
+}
+
+/// 数据库就绪后启动自动备份（延迟执行，不阻塞开屏）
+Future<void> _startAutoBackupAfterDbReady() async {
+  if (!Platform.isAndroid) return;
+  // 等 UI 渲染完成后再执行，避免开屏卡顿
+  await Future.delayed(const Duration(seconds: 3));
+  final userPrefs = UserPrefs();
+  if (!userPrefs.localAutoBackupEnabled) return;
+  // 启动时立即执行一次（后台不阻塞）
+  try {
+    final result = await BackupService.instance.performLocalAutoBackup();
+    if (result.success) {
+      debugPrint('[AutoBackup] 启动自动备份完成');
+    } else {
+      debugPrint('[AutoBackup] 启动自动备份失败: ${result.errorMessage}');
+    }
+  } catch (e) {
+    debugPrint('[AutoBackup] 启动自动备份异常: $e');
+  }
+}
+
+class MyApp extends StatefulWidget {
+  final AppProvider appProvider;
+  const MyApp({super.key, required this.appProvider});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  ThemeMode? _lastAppliedTheme;
+  bool _updateCheckDone = false;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  Timer? _autoBackupTimer;
+  Timer? _incAutoSyncTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(widget.appProvider.loadThemeMode());
+    widget.appProvider.addListener(_onThemeChanged);
+    _startAutoBackupTimer();
+    _startIncAutoSyncTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applySystemUI();
+      _requestStoragePermissionIfNeeded();
+      _checkUpdate(); // 不阻塞，完成后自行弹窗
+      _evaluateBadges(); // 记录活跃日 + 评估徽章，有新解锁自行弹窗
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoBackupTimer?.cancel();
+    _incAutoSyncTimer?.cancel();
+    widget.appProvider.removeListener(_onThemeChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Android 启动时先弹说明框（附隐私政策），用户确认后再跳转权限设置；
+  /// 一旦用户做出选择（确定/取消），以后启动不再弹
+  Future<void> _requestStoragePermissionIfNeeded() async {
+    if (!Platform.isAndroid) return;
+    final userPrefs = UserPrefs();
+    // Android 11+ 只认"所有文件访问"；不能用 Permission.storage 判断，
+    // 旧存储权限在 Android 13+ 可能被系统直接报 granted
+    final status = await Permission.manageExternalStorage.status;
+    if (status.isGranted) {
+      if (!userPrefs.storagePermissionDialogDecided) {
+        await userPrefs.setStoragePermissionDialogDecided(true);
+      }
+      return;
+    }
+    if (userPrefs.storagePermissionDialogDecided) return;
+
+    // 等首帧 Navigator 就绪（与 _checkUpdate 同样的时机）
+    for (var i = 0; i < 10; i++) {
+      final ctx = _navigatorKey.currentContext;
+      if (ctx != null) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    final navContext = _navigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return;
+    final confirmed = await _showStoragePermissionDialog(navContext);
+    // 无论确定还是取消都记住，下次启动不再弹
+    await userPrefs.setStoragePermissionDialogDecided(true);
+    if (confirmed != true) return;
+
+    var s = await Permission.manageExternalStorage.request();
+    if (s.isGranted) return;
+    // Android 11 以下回退到 storage 权限
+    s = await Permission.storage.request();
+  }
+
+  Future<bool?> _showStoragePermissionDialog(BuildContext dialogContext) {
+    final colors = Theme.of(dialogContext).colorScheme;
+    return showDialog<bool>(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Icon(Icons.folder_open_outlined, size: 22, color: colors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('存储权限申请'.tr,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '为了将数据备份/导出到手机的 Download 文件夹、以及把图片保存到相册，MookNote 需要获取「所有文件访问」权限。该权限仅用于备份文件的读写，不会读取或上传你的个人文件。不开启不影响日常记录，需要时也可在「设置 - 获取系统权限」中手动开启。'
+                  .tr,
+              style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: colors.onSurface.withValues(alpha: 0.7)),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () async {
+                final uri =
+                    Uri.parse('https://mooknote.iletter.top/info/privacy_policy.html');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Text(
+                '查看《隐私政策》'.tr,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: colors.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: colors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+              foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+            ),
+            child: Text('取消'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('确定'.tr),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 启动本地自动备份定时器（仅启动定时器，不立即执行备份）
+  void _startAutoBackupTimer() {
+    _autoBackupTimer?.cancel();
+    if (!Platform.isAndroid) return;
+    final userPrefs = UserPrefs();
+    if (!userPrefs.localAutoBackupEnabled) return;
+
+    final intervalHours = userPrefs.localAutoBackupIntervalHours;
+    // 定时器：每小时检查一次是否到了备份时间
+    _autoBackupTimer = Timer.periodic(const Duration(hours: 1), (_) {
+      _checkAndRunAutoBackup();
+    });
+    debugPrint('[AutoBackup] 定时器已启动，间隔 $intervalHours 小时');
+  }
+
+  /// 检查是否需要执行自动备份（定时器调用，走间隔判断）
+  Future<void> _checkAndRunAutoBackup() async {
+    final userPrefs = UserPrefs();
+    if (!userPrefs.localAutoBackupEnabled) {
+      _autoBackupTimer?.cancel();
+      return;
+    }
+    final intervalHours = userPrefs.localAutoBackupIntervalHours;
+    final lastTime = userPrefs.lastLocalAutoBackupTime;
+
+    bool shouldRun = false;
+    if (lastTime == null) {
+      shouldRun = true;
+    } else {
+      final last = DateTime.tryParse(lastTime)?.toLocal();
+      if (last == null) {
+        shouldRun = true;
+      } else {
+        final now = DateTime.now();
+        shouldRun = now.difference(last).inHours >= intervalHours;
+      }
+    }
+
+    if (!shouldRun) return;
+
+    try {
+      final result = await BackupService.instance.performLocalAutoBackup();
+      if (result.success) {
+        debugPrint('[AutoBackup] 定时自动备份完成');
+      } else {
+        debugPrint('[AutoBackup] 定时自动备份失败: ${result.errorMessage}');
+      }
+    } catch (e) {
+      debugPrint('[AutoBackup] 定时自动备份异常: $e');
+    }
+  }
+
+  /// 启动 WebDAV 增量自动同步定时器（每分钟检查一次是否到期）
+  void _startIncAutoSyncTimer() {
+    _incAutoSyncTimer?.cancel();
+    final userPrefs = UserPrefs();
+    if (!userPrefs.webdavIncAutoSyncEnabled) return;
+    _incAutoSyncTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _checkAndRunIncAutoSync();
+    });
+    debugPrint('[IncAutoSync] 定时器已启动，间隔 ${userPrefs.webdavIncAutoSyncIntervalMinutes} 分钟');
+  }
+
+  /// 检查是否需要执行增量自动同步（定时器调用，走间隔判断，静默执行）
+  Future<void> _checkAndRunIncAutoSync() async {
+    final userPrefs = UserPrefs();
+    if (!userPrefs.webdavIncAutoSyncEnabled) {
+      _incAutoSyncTimer?.cancel();
+      return;
+    }
+    // 仅增量备份模式下执行
+    if (userPrefs.webdavBackupMode != 'inc') return;
+    // 未配置 WebDAV 不执行
+    if (await WebDAVService.instance.getConfig() == null) return;
+
+    try {
+      final lastSync = await SyncMetaStore.get(SyncMetaStore.lastSync);
+      if (lastSync != null) {
+        final last = DateTime.tryParse(lastSync)?.toLocal();
+        if (last != null &&
+            DateTime.now().difference(last).inMinutes <
+                userPrefs.webdavIncAutoSyncIntervalMinutes) {
+          return;
+        }
+      }
+
+      final result = await IncSyncService.instance.upload();
+      if (!result.success) {
+        debugPrint('[IncAutoSync] 自动同步失败: ${result.message}');
+        return;
+      }
+      debugPrint('[IncAutoSync] 自动同步完成: 上传 ${result.uploadedRecords} 记录, 下载 ${result.downloadedRecords} 记录');
+      if (result.needReload) {
+        await widget.appProvider.loadMovies();
+        await widget.appProvider.loadBooks();
+        await widget.appProvider.loadNotes();
+        await widget.appProvider.loadGames();
+        await widget.appProvider.loadPlaylists();
+        await widget.appProvider.loadPeople();
+        await widget.appProvider.loadCustomModules();
+        widget.appProvider.bumpCustomModuleItemsVersion();
+      }
+    } catch (e) {
+      debugPrint('[IncAutoSync] 自动同步异常: $e');
+    }
+  }
+
+  /// 评估成就徽章：记录活跃日、拉取定义、本地判定解锁
+  /// 新解锁进入待庆祝队列，在徽章页打开时统一庆祝（不在主页弹窗）
+  Future<void> _evaluateBadges() async {
+    try {
+      await BadgeService.recordActiveDay();
+      final defs = await BadgeService.fetchDefs();
+      if (defs.isEmpty) return;
+      await BadgeService.evaluate(defs);
+    } catch (_) {}
+  }
+
+  /// 延迟到首页渲染后再检查版本更新，确保 context 已就绪
+  Future<void> _checkUpdate() async {    if (_updateCheckDone) return;
+    _updateCheckDone = true;
+    await Future.delayed(const Duration(milliseconds: 500));
+    var ctx = _navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    try {
+      final items = await ChangelogService.fetchChangelog();
+      if (items.isEmpty) return;
+      final latest = items.first;
+      final info = await PackageInfo.fromPlatform();
+      final localVersion = 'v${info.version}';
+      if (ChangelogService.compareVersion(latest.version, localVersion) <= 0) return;
+      // 24 小时内 snooze 不弹
+      if (DateTime.now().millisecondsSinceEpoch < UserPrefs().dismissedUpdateUntil) return;
+      ctx = _navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      _showUpdateDialog(ctx, latest.version, latest.features, localVersion);
+    } catch (_) {}
+  }
+
+  void _showUpdateDialog(BuildContext context, String version, List<String> features, String localVersion) {
+    if (!context.mounted) return;
+    final colors = Theme.of(context).colorScheme;
+    appDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Icon(Icons.system_update, size: 22, color: colors.primary),
+            const SizedBox(width: 8),
+            Text('发现新版本'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('当前版本：{v}'.trf({'v': localVersion}),
+                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+                const SizedBox(height: 4),
+                Text('最新版本：{v}'.trf({'v': version}),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.primary)),
+                if (features.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('更新内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  const SizedBox(height: 8),
+                  ...features.map((f) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            f,
+                            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7), height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              final until = DateTime.now().add(const Duration(hours: 24)).millisecondsSinceEpoch;
+              UserPrefs().setDismissedUpdateUntil(until);
+              Navigator.pop(ctx);
+            },
+            child: Text('24小时内不显示'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await launchUrl(Uri.parse('https://mooknote.iletter.top/#/'),
+                    mode: LaunchMode.externalApplication);
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('链接失效'.tr)));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text('去官网下载'.tr),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  void _onThemeChanged() {
+    final current = widget.appProvider.themeMode;
+    if (_lastAppliedTheme != current) {
+      _applySystemUI();
+    }
+  }
+
+  void _applySystemUI() {
+    final mode = widget.appProvider.themeMode;
+    final Brightness brightness;
+    switch (mode) {
+      case ThemeMode.light:  brightness = Brightness.light;
+      case ThemeMode.dark:   brightness = Brightness.dark;
+      case ThemeMode.system: brightness = PlatformDispatcher.instance.platformBrightness;
+    }
+    _lastAppliedTheme = mode;
+    final isDark = brightness == Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('[App] 生命周期: $state');
+    if (state == AppLifecycleState.resumed) {
+      _applySystemUI();
+      // 从备份页返回后可能改了自动备份设置，重新启动定时器
+      _startAutoBackupTimer();
+      _startIncAutoSyncTimer();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: widget.appProvider),
+      ],
+      child: DynamicColorBuilder(
+        builder: (lightScheme, darkScheme) {
+          final monetColor = lightScheme?.primary;
+          AppTheme.setMonetColor(monetColor);
+
+          // 只订阅影响 MaterialApp 主题/语言的字段：
+          // 媒体数据等高频变更不再触发整个 MaterialApp 重建
+          return Selector<AppProvider,
+              ({String fontFamily, bool frostedActive, int colorSchemeIndex, ThemeMode themeMode, Locale? locale, String? frostedCoverPath})>(
+            selector: (_, p) => (
+              fontFamily: p.fontFamily,
+              frostedActive: p.frostedActive,
+              colorSchemeIndex: p.colorSchemeIndex,
+              themeMode: p.themeMode,
+              locale: p.locale,
+              frostedCoverPath: p.frostedCoverPath,
+            ),
+            builder: (context, sel, _) {
+              AppTheme.setFontFamily(sel.fontFamily);
+              final isFrosted = sel.frostedActive;
+              final light = AppTheme.getLightTheme(
+                sel.colorSchemeIndex,
+                monetColor: monetColor,
+              );
+              final ThemeData dark;
+              if (isFrosted) {
+                dark = AppTheme.frostedTheme;
+              } else {
+                dark = AppTheme.getDarkTheme(
+                  sel.colorSchemeIndex,
+                  monetColor: monetColor,
+                );
+              }
+
+              final child = MaterialApp(
+                title: 'MookNote',
+                debugShowCheckedModeBanner: false,
+                theme: light,
+                darkTheme: dark,
+                themeMode: isFrosted ? ThemeMode.dark : sel.themeMode,
+                builder: (ctx, nav) {
+                  Widget shell = nav!;
+                  // 毛玻璃主题：全局背景层（模糊封面 + 深色遮罩）垫底
+                  if (isFrosted) {
+                    shell = Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        FrostedBackground(coverPath: sel.frostedCoverPath),
+                        shell,
+                      ],
+                    );
+                  }
+                  // Android: 点击空白区域收起键盘
+                  if (Platform.isAndroid) {
+                    shell = GestureDetector(
+                      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                      child: shell,
+                    );
+                  }
+                  return shell;
+                },
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale('zh', 'CN'),
+                  Locale('en', 'US'),
+                ],
+                locale: sel.locale,
+                home: const HomePage(),
+                navigatorKey: _navigatorKey,
+                navigatorObservers: [routeObserver],
+                onGenerateRoute: AppRouter.generateRoute,
+              );
+
+              return child;
+            },
+          );
+        },
+      ),
+    );
+  }
+}

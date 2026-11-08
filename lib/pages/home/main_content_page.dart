@@ -15,7 +15,6 @@ import '../../models/data_models.dart';
 import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
-import '../../widgets/float_badge_overlay.dart';
 import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
 
@@ -88,8 +87,6 @@ class _MainContentPageState extends State<MainContentPage> {
                 Expanded(child: _buildTabContent()),
               ],
             ),
-            // 浮动徽章图标层（覆盖整页含 AppBar，可拖拽换位）
-            const FloatBadgeOverlay(page: 'home'),
           ],
         );
       },

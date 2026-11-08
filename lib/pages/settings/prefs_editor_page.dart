@@ -16,7 +16,7 @@ class PrefsEditorPage extends StatefulWidget {
 /// 键名说明：精确匹配优先，其次前缀匹配，都没有返回 null
 String? _describeKey(String key) {
   const exact = <String, String>{
-    'firstUseDate': '首次使用日期（徽章"首次使用"依据）',
+    'firstUseDate': '首次使用日期（使用天数统计依据）',
     'nickname': '我的页昵称',
     'motto': '我的页座右铭',
     'avatarPath': '头像图片路径',
@@ -26,6 +26,7 @@ String? _describeKey(String key) {
     'languageMode': '语言：0=跟随系统 1=中文 2=英文',
     'showExactReleaseDate': '卡片是否显示精确上映/发布日期',
     'isFirstLaunch': '是否首次启动（引导页标记）',
+    'privacyAgreed': '是否已同意隐私政策与用户协议（首次启动弹窗，未同意前不初始化采集类 SDK）',
     'detailPageStyle': '详情页样式：0=标准 1=毛玻璃 2=浅色极简 3=豆瓣',
     'hideBottomNavOnScroll': '滚动时隐藏底部导航栏',
     'debugMode': '调试模式（记录运行日志）',
@@ -41,13 +42,7 @@ String? _describeKey(String key) {
     'bookshelfMode': '书架模式',
     'gameWallMode': '游戏墙模式',
     'appIconName': '当前应用图标资源名',
-    'deviceId': '设备哈希（上报统计/徽章解锁用，匿名）',
-    'lastActiveDate': '最近活跃日期（连续使用天数计算用）',
-    'streakDays': '连续使用天数',
-    'badgeDefsCache': '徽章定义 JSON 缓存（离线展示用）',
-    'badgeUnlocked': '已解锁徽章 JSON：{slug: 解锁时间}',
-    'badgePendingCelebrate': '待庆祝的新解锁徽章 slug 队列',
-    'badgeFloat': '我的页浮动徽章位置 JSON：{slug: {x, y}}',
+    'deviceId': '匿名随机标识（首次启动本地生成，崩溃上报/反馈/服务器导出用）',
     'searchHistory': '搜索历史',
     'enhancedSearchEnabled': '增强搜索开关',
     'lastSearchOnline': '上次搜索是否为在线搜索',

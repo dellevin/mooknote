@@ -121,22 +121,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.14"
-  device_info_plus:
-    dependency: "direct main"
-    description:
-      name: device_info_plus
-      sha256: "98f28b42168cc509abc92f88518882fd58061ea372d7999aecc424345c7bff6a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "11.5.0"
-  device_info_plus_platform_interface:
-    dependency: transitive
-    description:
-      name: device_info_plus_platform_interface
-      sha256: e1ea89119e34903dca74b883d0dd78eb762814f97fb6c76f35e9ff74d261a18f
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.0.3"
   dynamic_color:
     dependency: "direct main"
     description:
@@ -417,10 +401,10 @@ packages:
     dependency: "direct main"
     description:
       name: http
-      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
+      sha256: "5895291c13fa8a3bd82e76d5627f69e0d85ca6a30dcac95c4ea19a5d555879c2"
       url: "https://pub.dev"
     source: hosted
-    version: "1.6.0"
+    version: "0.13.6"
   http_client_helper:
     dependency: transitive
     description:
@@ -1130,6 +1114,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  umeng_apm_sdk:
+    dependency: "direct main"
+    description:
+      name: umeng_apm_sdk
+      sha256: "37f61a30ad84c06d89bedbcf00ca4f09347468a2186975c4c121aee1db3a2083"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.7"
+  umeng_common_sdk:
+    dependency: "direct main"
+    description:
+      name: umeng_common_sdk
+      sha256: "203ae013220ffd00c677a164636239a2c9722ba533b6f25e00e7a4929a91aecd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.1"
   universal_platform:
     dependency: transitive
     description:
@@ -1362,14 +1362,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.15.0"
-  win32_registry:
-    dependency: transitive
-    description:
-      name: win32_registry
-      sha256: "6f1b564492d0147b330dd794fee8f512cec4977957f310f9951b5f9d83618dae"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
   xdg_directories:
     dependency: transitive
     description:

@@ -31,3 +31,16 @@
 -dontwarn com.google.android.play.core.tasks.OnFailureListener
 -dontwarn com.google.android.play.core.tasks.OnSuccessListener
 -dontwarn com.google.android.play.core.tasks.Task
+
+# 友盟 SDK 混淆规则
+-keep class com.umeng.** {*;}
+-keep class com.uc.** {*;}
+# 友盟 U-APM（com.efs.sdk）可选引用 okhttp3，工程未引入 okhttp，忽略缺失告警
+-dontwarn okhttp3.**
+-keepclassmembers class * {
+    public <init> (org.json.JSONObject);
+}
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}

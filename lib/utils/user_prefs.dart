@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 /// 用户偏好设置管理
 class UserPrefs {
@@ -22,46 +23,12 @@ class UserPrefs {
     if (!_prefs!.containsKey('firstUseDate')) {
       await _prefs!.setString('firstUseDate', DateTime.now().toIso8601String());
     }
-    // 迁移旧版共享徽章位置到按页面分开存储
-    await _migrateBadgeFloat();
+    // 首次启动生成匿名随机标识：与任何硬件标识无关，仅用于崩溃上报/反馈/服务器导出的任务归属
+    if (!_prefs!.containsKey('deviceId')) {
+      await _prefs!.setString('deviceId', const Uuid().v4());
+    }
   }
 
-  /// 旧版 badgeFloat（共享位置）+ badgeFloatPages → badgeFloat_home / badgeFloat_profile
-  static Future<void> _migrateBadgeFloat() async {
-    final p = _prefs!;
-    if (p.containsKey('badgeFloat_home') ||
-        p.containsKey('badgeFloat_profile')) {
-      return;
-    }
-    final old = p.getString('badgeFloat') ?? '';
-    if (old.isEmpty) return;
-    try {
-      final map = jsonDecode(old) as Map;
-      Map pagesMap = {};
-      final pagesStr = p.getString('badgeFloatPages') ?? '';
-      if (pagesStr.isNotEmpty) {
-        try {
-          pagesMap = jsonDecode(pagesStr) as Map;
-        } catch (_) {}
-      }
-      final home = <String, dynamic>{};
-      final profile = <String, dynamic>{};
-      for (final e in map.entries) {
-        final slug = e.key.toString();
-        final pages = (pagesMap[slug] as List?)
-                ?.map((x) => x.toString())
-                .toSet() ??
-            {'profile', 'home'};
-        if (pages.contains('home')) home[slug] = e.value;
-        if (pages.contains('profile')) profile[slug] = e.value;
-      }
-      await p.setString('badgeFloat_home', jsonEncode(home));
-      await p.setString('badgeFloat_profile', jsonEncode(profile));
-      await p.remove('badgeFloat');
-      await p.remove('badgeFloatPages');
-    } catch (_) {}
-  }
-  
   /// 获取实例
   SharedPreferences get prefs {
     if (_prefs == null) {
@@ -127,6 +94,10 @@ class UserPrefs {
   /// 是否首次启动
   bool get isFirstLaunch => prefs.getBool('isFirstLaunch') ?? true;
   Future<bool> setFirstLaunch(bool value) => prefs.setBool('isFirstLaunch', value);
+
+  /// 是否已同意隐私政策与用户协议（上架合规：未同意前不得初始化采集类 SDK）
+  bool get privacyAgreed => prefs.getBool('privacyAgreed') ?? false;
+  Future<bool> setPrivacyAgreed(bool value) => prefs.setBool('privacyAgreed', value);
 
   // ========== 详情页样式 ==========
 
@@ -275,9 +246,6 @@ class UserPrefs {
 
   bool get showProfileToolExport => prefs.getBool('showProfileToolExport') ?? true;
   Future<bool> setShowProfileToolExport(bool value) => prefs.setBool('showProfileToolExport', value);
-
-  bool get showProfileToolBadges => prefs.getBool('showProfileToolBadges') ?? true;
-  Future<bool> setShowProfileToolBadges(bool value) => prefs.setBool('showProfileToolBadges', value);
 
   bool get showProfileToolSettings => prefs.getBool('showProfileToolSettings') ?? true;
   Future<bool> setShowProfileToolSettings(bool value) => prefs.setBool('showProfileToolSettings', value);
@@ -440,68 +408,6 @@ class UserPrefs {
 
   /// 匿名设备标识（首次启动自动生成）
   String get deviceId => prefs.getString('deviceId') ?? '';
-  Future<bool> setDeviceId(String value) => prefs.setString('deviceId', value);
-
-  // ========== 成就徽章 ==========
-
-  /// 上次活跃日期（yyyy-M-d），用于连续使用天数统计
-  String get lastActiveDate => prefs.getString('lastActiveDate') ?? '';
-  Future<bool> setLastActiveDate(String value) => prefs.setString('lastActiveDate', value);
-
-  /// 连续使用天数
-  int get streakDays => prefs.getInt('streakDays') ?? 0;
-  Future<bool> setStreakDays(int value) => prefs.setInt('streakDays', value);
-
-  /// 徽章定义缓存（服务端返回的原始 JSON，离线时使用）
-  String get badgeDefsCache => prefs.getString('badgeDefsCache') ?? '';
-  Future<bool> setBadgeDefsCache(String value) => prefs.setString('badgeDefsCache', value);
-
-  /// 已解锁徽章（JSON: {slug: 解锁时间 ISO8601}）
-  Map<String, String> get badgeUnlocked {
-    final str = prefs.getString('badgeUnlocked') ?? '';
-    if (str.isEmpty) return {};
-    try {
-      return Map<String, String>.from(jsonDecode(str) as Map);
-    } catch (_) {
-      return {};
-    }
-  }
-  Future<bool> setBadgeUnlocked(Map<String, String> value) =>
-      prefs.setString('badgeUnlocked', jsonEncode(value));
-
-  /// 待庆祝的新解锁徽章 slug 列表（进入徽章页时弹出庆祝并清空）
-  List<String> get badgePendingCelebrate =>
-      prefs.getStringList('badgePendingCelebrate') ?? [];
-  Future<bool> setBadgePendingCelebrate(List<String> value) =>
-      prefs.setStringList('badgePendingCelebrate', value);
-
-  /// 浮动徽章位置（按页面分开存储）
-  /// key: badgeFloat_home / badgeFloat_profile，JSON: {slug: {"x": 0.0~1.0, "y": 0.0~1.0}}
-  /// slug 存在于某页的 map 中 = 在该页浮动显示
-  Map<String, ({double x, double y})> badgeFloatFor(String page) {
-    final str = prefs.getString('badgeFloat_$page') ?? '';
-    if (str.isEmpty) return {};
-    try {
-      final map = jsonDecode(str) as Map;
-      return {
-        for (final e in map.entries)
-          e.key.toString(): (
-            x: ((e.value as Map)['x'] as num).toDouble(),
-            y: ((e.value as Map)['y'] as num).toDouble(),
-          ),
-      };
-    } catch (_) {
-      return {};
-    }
-  }
-  Future<bool> setBadgeFloatFor(
-          String page, Map<String, ({double x, double y})> value) =>
-      prefs.setString(
-          'badgeFloat_$page',
-          jsonEncode({
-            for (final e in value.entries)
-              e.key: {'x': e.value.x, 'y': e.value.y},
-          }));
 
   // ========== 搜索历史 ==========
 

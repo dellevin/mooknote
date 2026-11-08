@@ -63,5 +63,3 @@ coverage/
 *.tmp
 *.temp
 
-# Server
-/server/

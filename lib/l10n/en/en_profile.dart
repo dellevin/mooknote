@@ -165,6 +165,18 @@ const Map<String, String> enProfile = {
   '查看用户服务协议': 'View terms of service',
   '隐私政策': 'Privacy Policy',
   '查看隐私政策': 'View privacy policy',
+
+  // ─── 首次启动隐私合规弹窗 ─────────────────────────────
+  '隐私政策与用户协议': 'Privacy Policy & User Agreement',
+  '我们非常重视保护您的个人信息和隐私，请您认真阅读并理解':
+      'We value your personal information and privacy. Please carefully read and understand the ',
+  '《用户协议》': 'User Agreement',
+  '及': ' and ',
+  '《隐私政策》': 'Privacy Policy',
+  '，以了解我们是如何规范化地收集和使用您的个人信息。点击同意即表示您已阅读并同意前述协议。':
+      ', which explain how we collect and use your personal information in a standardized way. Tapping Agree means you have read and accepted the above agreements.',
+  '不同意': 'Disagree',
+  '同意并继续': 'Agree & Continue',
   '昵称': 'Nickname',
   '座右铭': 'Motto',
   '已保存': 'Saved',
