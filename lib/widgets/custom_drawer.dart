@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
+import '../utils/avatar_helper.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/explore/encounter_page.dart';
 import '../pages/explore/stroll_page.dart';
@@ -246,19 +247,23 @@ class _CustomDrawerState extends State<CustomDrawer> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: colors.surfaceContainerHighest,
-                      border: Border.all(color: colors.outlineVariant, width: 0.5),
+                  GestureDetector(
+                    onTap: () => AvatarHelper.showActionSheet(context,
+                        onChanged: provider.notifyUserInfoChanged),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: colors.surfaceContainerHighest,
+                        border: Border.all(color: colors.outlineVariant, width: 0.5),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: avatarPath != null && avatarPath.isNotEmpty
+                          ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
+                              errorWidget: Icon(Icons.person_outline, size: 22, color: colors.onSurface.withValues(alpha: 0.3)))
+                          : Icon(Icons.person_outline, size: 22, color: colors.onSurface.withValues(alpha: 0.3)),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: avatarPath != null && avatarPath.isNotEmpty
-                        ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
-                            errorWidget: Icon(Icons.person_outline, size: 22, color: colors.onSurface.withValues(alpha: 0.3)))
-                        : Icon(Icons.person_outline, size: 22, color: colors.onSurface.withValues(alpha: 0.3)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

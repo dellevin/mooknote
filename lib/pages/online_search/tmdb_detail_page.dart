@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../services/tmdb_service.dart';
@@ -179,16 +180,8 @@ class _TmdbDetailPageState extends State<TmdbDetailPage> {
   }
 
   String _statusLabel(String status) {
-    switch (status) {
-      case 'watched':
-        return '已看'.tr;
-      case 'watching':
-        return '在看'.tr;
-      case 'want_to_watch':
-        return '想看'.tr;
-      default:
-        return '';
-    }
+    if (!StatusLabels.defaults['movie']!.containsKey(status)) return '';
+    return StatusLabels.label('movie', status);
   }
 
   void _showAddSheet() {
@@ -217,11 +210,13 @@ class _TmdbDetailPageState extends State<TmdbDetailPage> {
                     color: colors.onSurface)),
             const SizedBox(height: 14),
             _sheetItem(
-                ctx, colors, Icons.check_circle_outline, '已看'.tr, 'watched'),
+                ctx, colors, Icons.check_circle_outline, StatusLabels.label('movie', 'watched'), 'watched'),
             _sheetItem(
-                ctx, colors, Icons.play_circle_outline, '在看'.tr, 'watching'),
+                ctx, colors, Icons.play_circle_outline, StatusLabels.label('movie', 'watching'), 'watching'),
             _sheetItem(
-                ctx, colors, Icons.bookmark_outline, '想看'.tr, 'want_to_watch'),
+                ctx, colors, Icons.bookmark_outline, StatusLabels.label('movie', 'want_to_watch'), 'want_to_watch'),
+            _sheetItem(
+                ctx, colors, Icons.cancel_outlined, StatusLabels.label('movie', 'abandoned'), 'abandoned'),
           ]),
         ),
       ),

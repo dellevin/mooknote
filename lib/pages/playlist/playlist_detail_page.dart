@@ -10,6 +10,7 @@ import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
 import 'playlist_add_item_page.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/responsive.dart';
 import '../../utils/user_prefs.dart';
@@ -139,29 +140,9 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
   }
 
   static String _statusLabel(String type, String status) {
-    if (type == 'movie') {
-      return switch (status) {
-        'watched' => '已看',
-        'watching' => '在看',
-        'want_to_watch' => '想看',
-        _ => '',
-      };
-    } else if (type == 'book') {
-      return switch (status) {
-        'read' => '已读',
-        'reading' => '在读',
-        'want_to_read' => '想读',
-        _ => '',
-      };
-    } else {
-      return switch (status) {
-        'completed' => '已完',
-        'playing' => '在玩',
-        'want_to_play' => '想玩',
-        'abandoned' => '已弃',
-        _ => '',
-      };
-    }
+    final map = StatusLabels.defaults[type];
+    if (map == null || !map.containsKey(status)) return '';
+    return StatusLabels.label(type, status);
   }
 
   static Color _statusColor(ColorScheme colors, String status) =>
@@ -357,20 +338,21 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
     switch (playlist.type) {
       case 'movie':
         addIfPresent('none', '未看');
-        addIfPresent('want_to_watch', '想看');
-        addIfPresent('watching', '在看');
-        addIfPresent('watched', '已看');
+        addIfPresent('want_to_watch', StatusLabels.label('movie', 'want_to_watch'));
+        addIfPresent('watching', StatusLabels.label('movie', 'watching'));
+        addIfPresent('watched', StatusLabels.label('movie', 'watched'));
+        addIfPresent('abandoned', StatusLabels.label('movie', 'abandoned'));
       case 'book':
         addIfPresent('none', '未读');
-        addIfPresent('want_to_read', '想读');
-        addIfPresent('reading', '在读');
-        addIfPresent('read', '已读');
+        addIfPresent('want_to_read', StatusLabels.label('book', 'want_to_read'));
+        addIfPresent('reading', StatusLabels.label('book', 'reading'));
+        addIfPresent('read', StatusLabels.label('book', 'read'));
       case 'game':
         addIfPresent('none', '未玩');
-        addIfPresent('want_to_play', '想玩');
-        addIfPresent('playing', '在玩');
-        addIfPresent('completed', '已通关');
-        addIfPresent('abandoned', '弃游');
+        addIfPresent('want_to_play', StatusLabels.label('game', 'want_to_play'));
+        addIfPresent('playing', StatusLabels.label('game', 'playing'));
+        addIfPresent('completed', StatusLabels.label('game', 'completed'));
+        addIfPresent('abandoned', StatusLabels.label('game', 'abandoned'));
       default:
         addIfPresent('none', '未标记');
         addIfPresent('want', '想看');

@@ -198,6 +198,17 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 头像 / 昵称 / 座右铭等用户信息变更后通知 UI 重建
+  /// （这些数据存于 UserPrefs，侧边栏等 Consumer 靠此信号刷新）
+  void notifyUserInfoChanged() {
+    notifyListeners();
+  }
+
+  /// 主页模块状态自定义命名变更后通知 UI 重建（命名存于 UserPrefs）
+  void notifyStatusLabelsChanged() {
+    notifyListeners();
+  }
+
   /// 重试数据库初始化（重入保护：连点重试不叠加多次全量加载）
   bool _retryingDb = false;
   Future<void> retryInitDatabase() async {
@@ -789,8 +800,9 @@ class AppProvider extends ChangeNotifier {
       case 2:
         _themeMode = ThemeMode.dark;
       case 3:
-        _frostedActive = true;
-        _themeMode = ThemeMode.dark;
+        // 毛玻璃主题已下线：旧用户存储的 3 回退为跟随系统，并覆写持久化值
+        _themeMode = ThemeMode.system;
+        UserPrefs().setThemeMode(0);
       default:
         _themeMode = ThemeMode.system;
     }

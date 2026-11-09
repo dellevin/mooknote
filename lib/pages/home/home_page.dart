@@ -24,6 +24,8 @@ import '../online_search/search_page.dart';
 import '../online_search/online_search_page.dart';
 import '../profile/profile_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/export_options_dialog.dart';
+import '../../widgets/storage_permission_dialog.dart';
 import '../../l10n/app_strings.dart';
 
 /// 主页 - 包含底部导航，可切换主页/我的
@@ -2062,9 +2064,18 @@ class _LocalBackupContentState extends State<_LocalBackupContent> {
   }
 
   Future<void> _exportData() async {
+    final includeSensitive = await ExportOptionsDialog.show(context);
+    if (includeSensitive == null) return;
+    // 未授权时先说明用途，用户确认后才跳系统设置页
+    if (!await BackupService.instance.hasStoragePermission()) {
+      if (!mounted) return;
+      final confirmed = await StoragePermissionDialog.show(context);
+      if (confirmed != true) return;
+    }
     setState(() => _isExporting = true);
     try {
-      final result = await BackupService.instance.exportDataWithImages();
+      final result = await BackupService.instance
+          .exportDataWithImages(includeSensitive: includeSensitive);
       if (!mounted) return;
       if (result.cancelled) {
         ToastUtil.show(context, '已取消导出'.tr);

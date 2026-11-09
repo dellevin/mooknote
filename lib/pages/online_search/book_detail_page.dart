@@ -15,6 +15,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 书籍详情页 - 在线版
 class BookDetailPage extends StatefulWidget {
@@ -218,16 +219,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
       .toList();
 
   String _statusLabel(String status) {
-    switch (status) {
-      case 'read':
-        return '已读'.tr;
-      case 'reading':
-        return '在读'.tr;
-      case 'want_to_read':
-        return '想读'.tr;
-      default:
-        return '';
-    }
+    if (!StatusLabels.defaults['book']!.containsKey(status)) return '';
+    return StatusLabels.label('book', status);
   }
 
   void _showAddSheet() {
@@ -255,9 +248,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     fontWeight: FontWeight.w600,
                     color: colors.onSurface)),
             const SizedBox(height: 14),
-            _sheetItem(ctx, colors, Icons.check_circle_outline, '已读'.tr, 'read'),
-            _sheetItem(ctx, colors, Icons.play_circle_outline, '在读'.tr, 'reading'),
-            _sheetItem(ctx, colors, Icons.bookmark_outline, '想读'.tr, 'want_to_read'),
+            _sheetItem(ctx, colors, Icons.check_circle_outline, StatusLabels.label('book', 'read'), 'read'),
+            _sheetItem(ctx, colors, Icons.play_circle_outline, StatusLabels.label('book', 'reading'), 'reading'),
+            _sheetItem(ctx, colors, Icons.bookmark_outline, StatusLabels.label('book', 'want_to_read'), 'want_to_read'),
           ]),
         ),
       ),

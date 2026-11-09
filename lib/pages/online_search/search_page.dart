@@ -12,6 +12,7 @@ import '../../data/custom_module/custom_module_design_dao.dart';
 import '../custom_module/custom_module_detail_page.dart';
 import '../../utils/slide_up_page_route.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 搜索页面（带 Scaffold + AppBar）
 class SearchPage extends StatelessWidget {
@@ -738,23 +739,23 @@ class _SearchPageBodyState extends State<SearchPageBody> {
 
   Widget _statusBadge(String status, ColorScheme colors, {String mediaType = 'movie'}) {
     final Map<String, String> labels = switch (mediaType) {
-      'book' => const {
-          'done': '已读',
-          'ing': '在读',
-          'want': '想读',
-          'abandoned': '弃读',
+      'book' => {
+          'done': StatusLabels.label('book', 'read'),
+          'ing': StatusLabels.label('book', 'reading'),
+          'want': StatusLabels.label('book', 'want_to_read'),
+          'abandoned': StatusLabels.label('book', 'abandoned'),
         },
-      'game' => const {
-          'done': '已通关',
-          'ing': '在玩',
-          'want': '想玩',
-          'abandoned': '弃游',
+      'game' => {
+          'done': StatusLabels.label('game', 'completed'),
+          'ing': StatusLabels.label('game', 'playing'),
+          'want': StatusLabels.label('game', 'want_to_play'),
+          'abandoned': StatusLabels.label('game', 'abandoned'),
         },
-      _ => const {
-          'done': '已看',
-          'ing': '在看',
-          'want': '想看',
-          'abandoned': '弃看',
+      _ => {
+          'done': StatusLabels.label('movie', 'watched'),
+          'ing': StatusLabels.label('movie', 'watching'),
+          'want': StatusLabels.label('movie', 'want_to_watch'),
+          'abandoned': StatusLabels.label('movie', 'abandoned'),
         },
     };
     final key = switch (status) {

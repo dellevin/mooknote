@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -710,10 +711,10 @@ class _GameFormPageState extends State<GameFormPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildStatusOption('想玩', 'want_to_play'),
-                    _buildStatusOption('在玩', 'playing'),
-                    _buildStatusOption('已通关', 'completed'),
-                    _buildStatusOption('弃游', 'abandoned'),
+                    _buildStatusOption(StatusLabels.label('game', 'want_to_play'), 'want_to_play'),
+                    _buildStatusOption(StatusLabels.label('game', 'playing'), 'playing'),
+                    _buildStatusOption(StatusLabels.label('game', 'completed'), 'completed'),
+                    _buildStatusOption(StatusLabels.label('game', 'abandoned'), 'abandoned'),
                   ],
                 ),
               ),

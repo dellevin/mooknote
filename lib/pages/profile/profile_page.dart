@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
@@ -8,11 +7,12 @@ import '../../main.dart' show routeObserver;
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
-import '../../utils/image_normalizer.dart';
+import '../../utils/avatar_helper.dart';
 import '../../utils/excel_exporter.dart';
 import '../../services/sync/backup_service.dart';
 import '../../services/server_export_service.dart';
@@ -28,7 +28,6 @@ import 'feedback_page.dart';
 import 'watchlist_page.dart';
 import '../quick_add/quick_add_page.dart';
 import '../../widgets/app_overlay.dart';
-import 'avatar_crop_page.dart';
 
 /// 个人中心页面
 class ProfilePage extends StatefulWidget {
@@ -217,7 +216,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: _pickAvatar,
+                      onTap: () => AvatarHelper.showActionSheet(context, onChanged: _onAvatarChanged),
                       child: Container(
                         width: 56,
                         height: 56,
@@ -470,11 +469,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            _buildStatusTag('已通关'.tr, completed, true, colors),
+            _buildStatusTag(StatusLabels.label('game', 'completed'), completed, true, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('在玩'.tr, playing, false, colors),
+            _buildStatusTag(StatusLabels.label('game', 'playing'), playing, false, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('想玩'.tr, wantTo, false, colors),
+            _buildStatusTag(StatusLabels.label('game', 'want_to_play'), wantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 10),
@@ -516,11 +515,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            _buildStatusTag('已看'.tr, watched, true, colors),
+            _buildStatusTag(StatusLabels.label('movie', 'watched'), watched, true, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('在看'.tr, watching, false, colors),
+            _buildStatusTag(StatusLabels.label('movie', 'watching'), watching, false, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('想看'.tr, wantTo, false, colors),
+            _buildStatusTag(StatusLabels.label('movie', 'want_to_watch'), wantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 10),
@@ -562,11 +561,11 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
-            _buildStatusTag('已读'.tr, read, true, colors),
+            _buildStatusTag(StatusLabels.label('book', 'read'), read, true, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('在读'.tr, reading, false, colors),
+            _buildStatusTag(StatusLabels.label('book', 'reading'), reading, false, colors),
             const SizedBox(width: 10),
-            _buildStatusTag('想读'.tr, wantTo, false, colors),
+            _buildStatusTag(StatusLabels.label('book', 'want_to_read'), wantTo, false, colors),
           ]),
         ),
         const SizedBox(height: 10),
@@ -1237,116 +1236,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   // ─── 头像 ────────────────────────────────────────────────────────────
 
-  Future<void> _pickAvatar() async {
-    final colors = Theme.of(context).colorScheme;
-    await appModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 16),
-              decoration: BoxDecoration(
-                  color: colors.onSurface.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2))),
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('更换头像'.tr,
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface)))),
-          const SizedBox(height: 8),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-            leading: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.folder_outlined,
-                    size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
-            title: Text('从文件管理器选择'.tr,
-                style: TextStyle(fontSize: 14, color: colors.onSurface)),
-            trailing: Icon(Icons.chevron_right,
-                color: colors.onSurface.withValues(alpha: 0.25)),
-            onTap: () async {
-              Navigator.pop(ctx);
-              await _pickAvatarFromFile();
-            },
-          ),
-          if (_avatarPath != null && _avatarPath!.isNotEmpty) ...[
-            Divider(
-                height: 0.5,
-                indent: 24,
-                endIndent: 24,
-                color: colors.outlineVariant),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-              leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.delete_outline,
-                      size: 20, color: colors.error)),
-              title: Text('移除头像'.tr,
-                  style: TextStyle(fontSize: 14, color: colors.error)),
-              trailing: Icon(Icons.chevron_right,
-                  color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _userPrefs.clearAvatarPath();
-                if (!mounted) return;
-                setState(() => _avatarPath = null);
-              },
-            ),
-          ],
-          const SizedBox(height: 8),
-        ]),
-      ),
-    );
-  }
-
-  Future<void> _pickAvatarFromFile() async {
-    try {
-      final pickedFile =
-          await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile == null) return;
-      // 先读取原图字节，归一化为 PNG（兼容 HEIC 等格式）后进入裁剪页
-      final raw = await File(pickedFile.path).readAsBytes();
-      final bytes = await normalizeToPng(raw);
-      if (bytes == null) {
-        if (mounted) ToastUtil.show(context, '无法识别该图片，请换一张 JPG/PNG 图片'.tr);
-        return;
-      }
-      if (!mounted) return;
-      final Uint8List? cropped = await Navigator.push<Uint8List>(
-        context,
-        MaterialPageRoute(
-            builder: (_) => AvatarCropPage(imageBytes: bytes)),
-      );
-      if (cropped == null) return;
-      final appDirPath = await ImagePathHelper.getAppDir();
-      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.png';
-      final savedPath = path.join(appDirPath, 'avatars', fileName);
-      final avatarDir = Directory(path.join(appDirPath, 'avatars'));
-      if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
-      await File(savedPath).writeAsBytes(cropped);
-      await _userPrefs.setAvatarPath(savedPath);
-      if (!mounted) return;
-      setState(() => _avatarPath = savedPath);
-    } catch (e) {
-      if (mounted) ToastUtil.show(context, '选择头像失败'.tr);
-    }
+  void _onAvatarChanged() {
+    setState(() => _avatarPath = _userPrefs.avatarPath);
+    context.read<AppProvider>().notifyUserInfoChanged();
   }
 
   // ─── 备份弹窗 ────────────────────────────────────────────────────────

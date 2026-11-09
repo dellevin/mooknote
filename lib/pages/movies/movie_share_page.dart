@@ -679,7 +679,16 @@ class _MovieSharePageState extends State<MovieSharePage> {
   }
 
   String _statusEN(String s) {
-    switch (s) { case 'watched': return 'ADMITTED'; case 'watching': return 'NOW PLAYING'; default: return 'RESERVED'; }
+    switch (s) {
+      case 'watched':
+        return 'ADMITTED';
+      case 'watching':
+        return 'NOW PLAYING';
+      case 'abandoned':
+        return 'WALKED OUT';
+      default:
+        return 'RESERVED';
+    }
   }
 
   // ─── 生成分享 ───

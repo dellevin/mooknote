@@ -25,10 +25,31 @@ import 'providers/app_provider.dart';
 import 'l10n/app_strings.dart';
 import 'widgets/frosted_background.dart';
 import './widgets/app_overlay.dart';
+import './widgets/storage_permission_dialog.dart';
 import 'package:umeng_common_sdk/umeng_common_sdk.dart';
 import 'package:umeng_apm_sdk/umeng_apm_sdk.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = LoggingRouteObserver();
+
+/// 顶层导航 key：供 main 顶层后台任务（启动自动备份等）在无 State 引用时弹框
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+/// 本次冷启动是否已弹过存储权限说明，避免自动备份反复打扰
+bool _storageRationaleShown = false;
+
+/// 自动备份前确保存储权限：未授权时先弹用途说明，用户确认后才跳系统设置页。
+/// 每次冷启动最多弹一次，拒绝后本次启动内静默跳过。
+Future<bool> _ensureStoragePermissionForBackup() async {
+  final backup = BackupService.instance;
+  if (await backup.hasStoragePermission()) return true;
+  if (_storageRationaleShown) return false;
+  _storageRationaleShown = true;
+  final ctx = appNavigatorKey.currentContext;
+  if (ctx == null || !ctx.mounted) return false;
+  final confirmed = await StoragePermissionDialog.show(ctx);
+  if (confirmed != true) return false;
+  return backup.requestStoragePermission();
+}
 
 void main() async {
   MyApmWidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +94,11 @@ Future<void> _startAutoBackupAfterDbReady() async {
   await Future.delayed(const Duration(seconds: 3));
   final userPrefs = UserPrefs();
   if (!userPrefs.localAutoBackupEnabled) return;
+  // 未授权时先弹用途说明，用户拒绝则跳过本次启动备份（不主动跳系统设置）
+  if (!await _ensureStoragePermissionForBackup()) {
+    debugPrint('[AutoBackup] 未获得存储权限，跳过启动自动备份');
+    return;
+  }
   // 启动时立即执行一次（后台不阻塞）
   try {
     final result = await BackupService.instance.performLocalAutoBackup();
@@ -97,7 +123,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeMode? _lastAppliedTheme;
   bool _updateCheckDone = false;
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   Timer? _autoBackupTimer;
   Timer? _incAutoSyncTimer;
 
@@ -163,6 +188,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     if (!shouldRun) return;
+
+    // 与启动备份同一套说明弹窗逻辑，每次冷启动最多打扰一次
+    if (!await _ensureStoragePermissionForBackup()) {
+      debugPrint('[AutoBackup] 未获得存储权限，跳过定时自动备份');
+      return;
+    }
 
     try {
       final result = await BackupService.instance.performLocalAutoBackup();
@@ -237,7 +268,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _checkUpdate(); // 老用户直接走更新检查
       return;
     }
-    final ctx = _navigatorKey.currentContext;
+    final ctx = appNavigatorKey.currentContext;
     if (ctx == null || !ctx.mounted) return;
     final agreed = await showDialog<bool>(
       context: ctx,
@@ -258,7 +289,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> _checkUpdate() async {    if (_updateCheckDone) return;
     _updateCheckDone = true;
     await Future.delayed(const Duration(milliseconds: 500));
-    var ctx = _navigatorKey.currentContext;
+    var ctx = appNavigatorKey.currentContext;
     if (ctx == null || !ctx.mounted) return;
     try {
       final items = await ChangelogService.fetchChangelog();
@@ -269,7 +300,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       if (ChangelogService.compareVersion(latest.version, localVersion) <= 0) return;
       // 24 小时内 snooze 不弹
       if (DateTime.now().millisecondsSinceEpoch < UserPrefs().dismissedUpdateUntil) return;
-      ctx = _navigatorKey.currentContext;
+      ctx = appNavigatorKey.currentContext;
       if (ctx == null || !ctx.mounted) return;
       _showUpdateDialog(ctx, latest.version, latest.features, localVersion);
     } catch (_) {}
@@ -485,7 +516,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ],
                 locale: sel.locale,
                 home: const HomePage(),
-                navigatorKey: _navigatorKey,
+                navigatorKey: appNavigatorKey,
                 navigatorObservers: [
         ApmNavigatorObserver.singleInstance,routeObserver],
                 onGenerateRoute: AppRouter.generateRoute,

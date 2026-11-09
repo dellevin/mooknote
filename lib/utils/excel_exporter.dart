@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../l10n/app_strings.dart';
 import '../models/data_models.dart';
+import 'status_labels.dart';
 
 /// 数据导出为 Excel 文件
 class ExcelExporter {
@@ -18,7 +19,9 @@ class ExcelExporter {
       '简介'.tr, '创建时间'.tr, '更新时间'.tr,
     ]));
 
-    final statusMap = {'watched': '已看'.tr, 'watching': '在看'.tr, 'want_to_watch': '想看'.tr};
+    final statusMap = {
+      for (final k in StatusLabels.orderedKeys('movie')) k: StatusLabels.label('movie', k),
+    };
     final categoryMap = {
       'movie': '电影'.tr, 'tv': '电视剧'.tr, 'anime': '动漫'.tr,
       'variety': '综艺'.tr, 'documentary': '纪录片'.tr, 'short': '短片'.tr, 'other': '其他'.tr,
@@ -105,7 +108,9 @@ class ExcelExporter {
       '简介'.tr, '创建时间'.tr, '更新时间'.tr,
     ]));
 
-    final statusMap = {'read': '已读'.tr, 'reading': '在读'.tr, 'want_to_read': '想读'.tr};
+    final statusMap = {
+      for (final k in StatusLabels.orderedKeys('book')) k: StatusLabels.label('book', k),
+    };
 
     for (final b in books) {
       sheet.appendRow(_row([
@@ -190,8 +195,7 @@ class ExcelExporter {
     ]));
 
     final statusMap = {
-      'completed': '已通关'.tr, 'playing': '在玩'.tr,
-      'want_to_play': '想玩'.tr, 'abandoned': '弃游'.tr,
+      for (final k in StatusLabels.orderedKeys('game')) k: StatusLabels.label('game', k),
     };
     final categoryMap = {'digital': '数字版'.tr, 'cartridge': '卡带'.tr, 'disc': '光盘'.tr};
 

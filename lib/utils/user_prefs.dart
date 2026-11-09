@@ -149,6 +149,25 @@ class UserPrefs {
     );
   }
 
+  // ========== 主页模块状态自定义命名 ==========
+
+  /// 读取某模块（movie/book/game）的状态自定义命名，key=状态英文 key，value=自定义文案。
+  /// 未自定义或解析失败返回空 map。
+  Map<String, String> customStatusLabels(String type) {
+    final raw = prefs.getString('statusLabels_$type');
+    if (raw == null) return {};
+    try {
+      return Map<String, String>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// 保存某模块的状态自定义命名（仅覆盖显示文案，底层状态 key 不变）。
+  Future<bool> setCustomStatusLabels(String type, Map<String, String> labels) {
+    return prefs.setString('statusLabels_$type', jsonEncode(labels));
+  }
+
   // ========== 封面位置 ==========
 
   /// 获取封面偏移量（-1.0 到 1.0，0 = 居中）

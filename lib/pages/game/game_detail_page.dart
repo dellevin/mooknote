@@ -8,6 +8,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/work_people_section.dart';
@@ -938,13 +939,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
   }
 
   Widget _buildOverlayStatusChip(String status) {
-    final label = switch (status) {
-      'completed' => '已通关',
-      'playing' => '在玩',
-      'want_to_play' => '想玩',
-      'abandoned' => '弃游',
-      _ => '',
-    };
+    final label = StatusLabels.defaults['game']!.containsKey(status)
+        ? StatusLabels.label('game', status)
+        : '';
     if (label.isEmpty) return const SizedBox.shrink();
     final c = AppTheme.statusOverlayColors(Theme.of(context).colorScheme, status);
     return Container(
@@ -1348,19 +1345,19 @@ class _GameDetailPageState extends State<GameDetailPage> {
     Color textColor;
     switch (game.status) {
       case 'completed':
-        label = '已通关';
+        label = StatusLabels.label('game', 'completed');
         bgColor = colors.primary;
         textColor = colors.onPrimary;
       case 'playing':
-        label = '在玩';
+        label = StatusLabels.label('game', 'playing');
         bgColor = colors.outlineVariant;
         textColor = colors.onSurface.withValues(alpha: 0.6);
       case 'want_to_play':
-        label = '想玩';
+        label = StatusLabels.label('game', 'want_to_play');
         bgColor = colors.surfaceContainerHighest;
         textColor = colors.onSurface.withValues(alpha: 0.4);
       case 'abandoned':
-        label = '弃游';
+        label = StatusLabels.label('game', 'abandoned');
         bgColor = colors.errorContainer;
         textColor = colors.onError;
       default:

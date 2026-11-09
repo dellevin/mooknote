@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../services/bangumi_service.dart';
@@ -273,21 +274,22 @@ class _BangumiDetailPageState extends State<BangumiDetailPage> {
     switch (_target) {
       case 'book':
         return [
-          ('已读'.tr, 'read', Icons.check_circle_outline),
-          ('在读'.tr, 'reading', Icons.play_circle_outline),
-          ('想读'.tr, 'want_to_read', Icons.bookmark_outline),
+          (StatusLabels.label('book', 'read'), 'read', Icons.check_circle_outline),
+          (StatusLabels.label('book', 'reading'), 'reading', Icons.play_circle_outline),
+          (StatusLabels.label('book', 'want_to_read'), 'want_to_read', Icons.bookmark_outline),
         ];
       case 'game':
         return [
-          ('玩过'.tr, 'completed', Icons.check_circle_outline),
-          ('在玩'.tr, 'playing', Icons.play_circle_outline),
-          ('想玩'.tr, 'want_to_play', Icons.bookmark_outline),
+          (StatusLabels.label('game', 'completed'), 'completed', Icons.check_circle_outline),
+          (StatusLabels.label('game', 'playing'), 'playing', Icons.play_circle_outline),
+          (StatusLabels.label('game', 'want_to_play'), 'want_to_play', Icons.bookmark_outline),
         ];
       default:
         return [
-          ('已看'.tr, 'watched', Icons.check_circle_outline),
-          ('在看'.tr, 'watching', Icons.play_circle_outline),
-          ('想看'.tr, 'want_to_watch', Icons.bookmark_outline),
+          (StatusLabels.label('movie', 'watched'), 'watched', Icons.check_circle_outline),
+          (StatusLabels.label('movie', 'watching'), 'watching', Icons.play_circle_outline),
+          (StatusLabels.label('movie', 'want_to_watch'), 'want_to_watch', Icons.bookmark_outline),
+          (StatusLabels.label('movie', 'abandoned'), 'abandoned', Icons.cancel_outlined),
         ];
     }
   }

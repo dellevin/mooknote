@@ -11,6 +11,7 @@ const Map<String, String> enMovie = {
   '想看': 'Want to Watch',
   '在看': 'Watching',
   '已看': 'Watched',
+  '弃看': 'Dropped',
   '未知': 'Unknown',
 
   // 分类

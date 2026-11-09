@@ -4,6 +4,7 @@ import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
+import 'status_rename_page.dart';
 
 class LayoutSettingsPage extends StatefulWidget {
   const LayoutSettingsPage({super.key});
@@ -93,6 +94,14 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             color: colors.primary,
             subtitle: _homeModuleSubtitle,
             onTap: _showHomeModuleSheet,
+          ),
+          _buildCategoryTile(
+            icon: Icons.drive_file_rename_outline,
+            title: '主页模块状态自定义命名'.tr,
+            color: colors.primary,
+            subtitle: '影视、阅读、游戏状态名称'.tr,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StatusRenamePage())),
           ),
           _buildCategoryTile(
             icon: Icons.movie_outlined,
@@ -264,7 +273,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
               ],
             ),
           ),
-          Switch(value: value, onChanged: onChanged, activeThumbColor: colors.primary),
+          Switch(value: value, onChanged: onChanged),
         ],
       ),
     );

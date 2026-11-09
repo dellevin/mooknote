@@ -15,6 +15,7 @@ import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/app_overlay.dart';
 import 'package:mooknote/l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 class BookAddPage extends StatefulWidget {
   final VoidCallback? onCancel;
@@ -121,8 +122,8 @@ class _BookAddPageState extends State<BookAddPage> {
                   Container(padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                     child: Wrap(spacing: 0, runSpacing: 4, children: [
-                      _statusChip('想读'.tr, 'want_to_read', colors), _statusChip('在读'.tr, 'reading', colors),
-                      _statusChip('已读'.tr, 'read', colors), _statusChip('弃读'.tr, 'abandoned', colors),
+                      _statusChip(StatusLabels.label('book', 'want_to_read'), 'want_to_read', colors), _statusChip(StatusLabels.label('book', 'reading'), 'reading', colors),
+                      _statusChip(StatusLabels.label('book', 'read'), 'read', colors), _statusChip(StatusLabels.label('book', 'abandoned'), 'abandoned', colors),
                     ])),
                   const SizedBox(height: 16),
                   _label('评分'.tr, colors), const SizedBox(height: 6),

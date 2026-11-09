@@ -15,6 +15,7 @@ import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/top_fade_scrim.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/responsive.dart';
+import '../../utils/status_labels.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'game_detail_page.dart';
@@ -687,7 +688,7 @@ class _GameTabViewState extends State<_GameTabView>
 
   Widget _buildEmptyState() {
     final colors = Theme.of(context).colorScheme;
-    final statusText = widget.mode == 1 ? '' : ['已通关', '在玩', '想玩', '弃游'][widget.index].tr;
+    final statusText = widget.mode == 1 ? '' : StatusLabels.label('game', _gameStatusMap[widget.index]!);
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),

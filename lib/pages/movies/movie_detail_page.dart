@@ -20,6 +20,7 @@ import '../character/character_list_page.dart';
 import '../progress/progress_pages.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 影视详情页 - 极简主义设计
 class MovieDetailPage extends StatefulWidget {
@@ -835,12 +836,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
 
   Widget _statusChip(String status) {
-    final label = switch (status) {
-      'watched' => '已看'.tr,
-      'watching' => '在看'.tr,
-      'want_to_watch' => '想看'.tr,
-      _ => '',
-    };
+    final label = StatusLabels.defaults['movie']!.containsKey(status)
+        ? StatusLabels.label('movie', status)
+        : '';
     if (label.isEmpty) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
     final c = AppTheme.statusOverlayColors(colors, status);
@@ -1215,19 +1213,24 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
     Color textColor;
     switch (movie.status) {
       case 'watched':
-        label = '已看'.tr;
+        label = StatusLabels.label('movie', 'watched');
         bgColor = colors.primary;
         textColor = colors.onPrimary;
         break;
       case 'watching':
-        label = '在看'.tr;
+        label = StatusLabels.label('movie', 'watching');
         bgColor = colors.outlineVariant;
         textColor = colors.onSurface.withValues(alpha: 0.6);
         break;
       case 'want_to_watch':
-        label = '想看'.tr;
+        label = StatusLabels.label('movie', 'want_to_watch');
         bgColor = colors.surfaceContainerHighest;
         textColor = colors.onSurface.withValues(alpha: 0.4);
+        break;
+      case 'abandoned':
+        label = StatusLabels.label('movie', 'abandoned');
+        bgColor = colors.error.withValues(alpha: 0.15);
+        textColor = colors.error;
         break;
       default:
         label = '未知'.tr;

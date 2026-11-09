@@ -11,6 +11,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
@@ -127,8 +128,8 @@ class _GameAddPageState extends State<GameAddPage> {
                   Container(padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
                     child: Wrap(spacing: 0, runSpacing: 4, children: [
-                      _statusChip('想玩', 'want_to_play', colors), _statusChip('在玩', 'playing', colors),
-                      _statusChip('通关', 'completed', colors), _statusChip('弃游', 'abandoned', colors),
+                      _statusChip(StatusLabels.label('game', 'want_to_play'), 'want_to_play', colors), _statusChip(StatusLabels.label('game', 'playing'), 'playing', colors),
+                      _statusChip(StatusLabels.label('game', 'completed'), 'completed', colors), _statusChip(StatusLabels.label('game', 'abandoned'), 'abandoned', colors),
                     ])),
                   const SizedBox(height: 16),
                   _label('评分', colors), const SizedBox(height: 6),

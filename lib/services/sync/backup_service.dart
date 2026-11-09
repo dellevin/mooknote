@@ -27,7 +27,17 @@ class BackupService {
     return await ImagePathHelper.getAppDir();
   }
 
-  /// 请求存储权限，返回是否已获取
+  /// 仅检查存储权限状态，不触发任何系统弹窗/设置页跳转
+  Future<bool> hasStoragePermission() async {
+    if (!Platform.isAndroid) return true;
+    var status = await Permission.manageExternalStorage.status;
+    if (status.isGranted) return true;
+    status = await Permission.storage.status;
+    return status.isGranted;
+  }
+
+  /// 请求存储权限，返回是否已获取。
+  /// Android 11+ 会跳系统"所有文件访问"设置页，调用方须先向用户说明用途。
   Future<bool> requestStoragePermission() async {
     if (!Platform.isAndroid) return true;
     var status = await Permission.manageExternalStorage.status;
@@ -68,10 +78,11 @@ class BackupService {
   }
 
   /// 收集所有表数据和图片，构建 ZIP 文件
-  Future<_ExportData> _buildExportData() => _serialized(_buildExportDataUnlocked);
+  Future<_ExportData> _buildExportData({bool includeSensitive = false}) =>
+      _serialized(() => _buildExportDataUnlocked(includeSensitive));
 
-  Future<_ExportData> _buildExportDataUnlocked() async {
-    final payload = await _collectBackupPayload();
+  Future<_ExportData> _buildExportDataUnlocked(bool includeSensitive) async {
+    final payload = await _collectBackupPayload(includeSensitive);
 
     // 后台 isolate 执行 JSON 编码 + ZIP 压缩（避免阻塞主线程动画）
     final tempDir = await getTemporaryDirectory();
@@ -91,7 +102,7 @@ class BackupService {
   }
 
   /// 收集备份所需的全部数据（DB 查询、SharedPreferences 需主线程）
-  Future<_BackupPayload> _collectBackupPayload() async {
+  Future<_BackupPayload> _collectBackupPayload(bool includeSensitive) async {
     final db = await DatabaseHelper.instance.database;
 
     final movies = await db.query('movies');
@@ -213,8 +224,10 @@ class BackupService {
       'exportTime': DateTime.now().toIso8601String(),
       'appName': 'MookNote',
       'hasImages': true,
+      // 标记本备份是否包含凭证类敏感信息，恢复端据此决定是否还原这些键
+      'containsSensitive': includeSensitive,
       'userInfo': userInfo,
-      'sharedPrefs': await _exportSharedPrefs(),
+      'sharedPrefs': await _exportSharedPrefs(includeSensitive),
       'data': {
         'movies': movies,
         'books': books,
@@ -258,8 +271,10 @@ class BackupService {
 
   // ─── 手动导出 ─────────────────────────────────────────
 
-  /// 导出所有数据和图片为 ZIP 文件，并选择保存路径
-  Future<ExportResult> exportDataWithImages() async {
+  /// 导出所有数据和图片为 ZIP 文件，并选择保存路径。
+  /// [includeSensitive] 为 true 时同时备份 WebDAV 账号密码与搜索 API Token，
+  /// 此时备份含明文凭证，调用方须已明确警告用户勿分享文件。
+  Future<ExportResult> exportDataWithImages({bool includeSensitive = false}) async {
     try {
       // Android: 先检查存储权限，没有则请求
       if (Platform.isAndroid) {
@@ -269,7 +284,7 @@ class BackupService {
         }
       }
 
-      final data = await _buildExportData();
+      final data = await _buildExportData(includeSensitive: includeSensitive);
       final zipFile = File(data.zipPath!);
       final fileName = 'mooknote_backup_${_formatDateTime(DateTime.now())}.zip';
 
@@ -337,8 +352,9 @@ class BackupService {
   /// 执行本地自动备份：导出到 /sdcard/Download/mooknote/autoBackUp/，保留最新 maxKeep 个
   Future<AutoBackupExportResult> performLocalAutoBackup({int maxKeep = 5}) async {
     try {
+      // 自动备份只检查权限、不主动跳设置页；说明弹窗与授权由调用方负责
       if (Platform.isAndroid) {
-        final hasPermission = await requestStoragePermission();
+        final hasPermission = await hasStoragePermission();
         if (!hasPermission) {
           return AutoBackupExportResult.error('需要存储权限才能自动备份'.tr);
         }
@@ -938,42 +954,54 @@ class BackupService {
 
     // 恢复完整 SharedPreferences
     if (backupData.containsKey('sharedPrefs')) {
-      await _restoreSharedPrefs(backupData['sharedPrefs'] as Map<String, dynamic>);
+      await _restoreSharedPrefs(
+        backupData['sharedPrefs'] as Map<String, dynamic>,
+        includeSensitive: backupData['containsSensitive'] == true,
+      );
     }
   }
 
-  /// 导出完整 SharedPreferences
-  Future<Map<String, dynamic>> _exportSharedPrefs() async {
+  /// 导出完整 SharedPreferences。
+  /// [includeSensitive] 为 false（默认）时排除凭证键，避免备份分享导致泄露；
+  /// 为 true 时导出凭证键，但设备身份键始终排除。
+  Future<Map<String, dynamic>> _exportSharedPrefs(bool includeSensitive) async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
     final map = <String, dynamic>{};
     for (final key in keys) {
-      // 敏感信息不随备份导出（备份文件会被用户分享）
-      if (_sensitivePrefsKeys.contains(key)) continue;
+      // 设备身份键任何情况下都不导出（跨设备复制会破坏增量同步对账）
+      if (_deviceOnlyPrefsKeys.contains(key)) continue;
+      // 凭证键仅在用户明确勾选时导出（备份文件可能被分享）
+      if (!includeSensitive && _credentialPrefsKeys.contains(key)) continue;
       map[key] = prefs.get(key);
     }
     return map;
   }
 
-  /// 含密码/令牌/设备身份的 prefs 键，导出与恢复两端都须排除
-  static const Set<String> _sensitivePrefsKeys = {
+  /// 凭证类 prefs 键：含 WebDAV 密码与在线搜索 API Token，
+  /// 默认排除，用户在导出对话框勾选"包含敏感信息"后才写入备份
+  static const Set<String> _credentialPrefsKeys = {
     'webdav_config',
     'movieSearchToken',
     'bookSearchToken',
+  };
+
+  /// 设备身份键：标识本机的增量同步客户端 ID，永不跨设备备份/恢复
+  static const Set<String> _deviceOnlyPrefsKeys = {
     'sync_client_id',
   };
 
-  /// 恢复 SharedPreferences（保留当前设备的同步和路径配置）
-  Future<void> _restoreSharedPrefs(Map<String, dynamic> data) async {
+  /// 恢复 SharedPreferences（保留当前设备的同步和路径配置）。
+  /// [includeSensitive] 取自备份包标记：仅当备份确实含凭证键时才还原它们。
+  Future<void> _restoreSharedPrefs(Map<String, dynamic> data, {required bool includeSensitive}) async {
     final prefs = await SharedPreferences.getInstance();
-    // 这些键是设备特定或敏感的，不应从备份恢复
-    const skipKeys = {
-      'avatarPath',
-      'webdav_config',
-      'webdav_last_sync',
-      'movieSearchToken',
-      'bookSearchToken',
-      'sync_client_id',
+    // 这些键是设备特定或另行处理的，不应从备份恢复
+    final skipKeys = <String>{
+      'avatarPath', // 头像单独走图片重映射恢复
+      'webdav_last_sync', // 同步时间戳，设备相关
+      ..._deviceOnlyPrefsKeys,
+      // 备份未含凭证（默认情况）时，跳过凭证键以保留本机现状
+      if (!includeSensitive) ..._credentialPrefsKeys,
     };
     for (final entry in data.entries) {
       final key = entry.key;

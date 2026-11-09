@@ -68,7 +68,7 @@ class Movie {
   final List<String> alternateTitles; // 别名
   final String? summary; // 剧情简介
   final double? rating; // 评分 1-10
-  final String status; // watched/want_to_watch/watching
+  final String status; // watched/watching/want_to_watch/abandoned
   final String category; // 影视分类: movie/tv/anime/variety/documentary/short/other
   final DateTime? watchDate; // 观看日期
   final int watchCount; // 观看次数

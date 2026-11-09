@@ -20,6 +20,7 @@ import '../character/character_list_page.dart';
 import '../progress/progress_pages.dart';
 import '../../widgets/app_overlay.dart';
 import 'package:mooknote/l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 书籍详情页 - 极简主义设计
 class BookDetailPage extends StatefulWidget {
@@ -1087,13 +1088,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Widget _statusChip(String status) {
-    final label = switch (status) {
-      'read' => '已读',
-      'reading' => '在读',
-      'want_to_read' => '想读',
-      'abandoned' => '弃读',
-      _ => '',
-    };
+    final label = StatusLabels.defaults['book']!.containsKey(status)
+        ? StatusLabels.label('book', status)
+        : '';
     if (label.isEmpty) return const SizedBox.shrink();
     final c = AppTheme.statusChipColors(Theme.of(context).colorScheme, status);
     return Container(
@@ -1175,22 +1172,22 @@ class _BookDetailPageState extends State<BookDetailPage> {
     Color textColor;
     switch (book.status) {
       case 'read':
-        label = '已读';
+        label = StatusLabels.label('book', 'read');
         bgColor = colors.primary;
         textColor = colors.onPrimary;
         break;
       case 'reading':
-        label = '在读';
+        label = StatusLabels.label('book', 'reading');
         bgColor = colors.outlineVariant;
         textColor = colors.onSurface.withValues(alpha: 0.6);
         break;
       case 'want_to_read':
-        label = '想读';
+        label = StatusLabels.label('book', 'want_to_read');
         bgColor = colors.surfaceContainerHighest;
         textColor = colors.onSurface.withValues(alpha: 0.4);
         break;
       case 'abandoned':
-        label = '弃读';
+        label = StatusLabels.label('book', 'abandoned');
         bgColor = colors.error.withValues(alpha: 0.15);
         textColor = colors.error;
         break;

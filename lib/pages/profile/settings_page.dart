@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
-import '../../utils/theme/app_theme.dart';
 import '../../utils/toast_util.dart';
 import '../../services/media_scan_channel.dart';
 import '../../services/log_service.dart';
@@ -15,14 +14,16 @@ import '../settings/debug_log_page.dart';
 import '../settings/prefs_editor_page.dart';
 import '../settings/db_viewer_page.dart';
 import 'app_icon_picker_page.dart';
+import 'appearance_settings_page.dart';
 import 'feature_settings_page.dart';
 import 'layout_settings_page.dart';
 import 'detail_module_settings_page.dart';
 import 'changelog_page.dart';
-import 'font_picker_page.dart';
 import 'cache_cleaner_page.dart';
 import 'permissions_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/fade_in_local_image.dart';
+import '../../utils/avatar_helper.dart';
 
 /// 设置页面
 class SettingsPage extends StatefulWidget {
@@ -36,16 +37,12 @@ class _SettingsPageState extends State<SettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   bool _hideBottomNavOnScroll = true;
   bool _debugMode = false;
-  int _themeMode = 0; // 0=系统, 1=浅色, 2=深色
-  String _fontFamily = '';
 
   @override
   void initState() {
     super.initState();
     _hideBottomNavOnScroll = _userPrefs.hideBottomNavOnScroll;
     _debugMode = _userPrefs.debugMode;
-    _themeMode = _userPrefs.themeMode;
-    _fontFamily = _userPrefs.fontFamily;
   }
 
   @override
@@ -57,6 +54,17 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         children: [
           _buildSectionHeader('显示设置'.tr),
+          _buildActionItem(
+            icon: Icons.person_outline,
+            title: '个人信息'.tr,
+            subtitle: '修改昵称和座右铭'.tr,
+            onTap: () => _showProfileEditDialog(context),
+          ),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           // 应用图标仅 Android 有原生实现（app_icon_channel）
           if (Platform.isAndroid)
             _buildNavigationItem(
@@ -108,19 +116,15 @@ class _SettingsPageState extends State<SettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
-          _buildThemeModeSelector(),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildColorSchemeSelector(),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildFontSelector(),
+          _buildNavigationItem(
+            icon: Icons.palette_outlined,
+            title: '界面设置'.tr,
+            subtitle: '主题、配色与字体'.tr,
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const AppearanceSettingsPage())),
+          ),
           Divider(
               height: 0.5,
               indent: 24,
@@ -128,17 +132,6 @@ class _SettingsPageState extends State<SettingsPage> {
               color: colors.outlineVariant),
           _buildLanguageSelector(),
           _buildSectionHeader('其他设置'.tr),
-          _buildActionItem(
-            icon: Icons.person_outline,
-            title: '个人信息'.tr,
-            subtitle: '修改昵称和座右铭'.tr,
-            onTap: () => _showProfileEditDialog(context),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
           _buildActionItem(
             icon: Icons.travel_explore_outlined,
             title: '在线搜索 API'.tr,
@@ -376,6 +369,59 @@ class _SettingsPageState extends State<SettingsPage> {
                         color: colors.onSurface)),
               ),
               const SizedBox(height: 16),
+              // 头像：点击更换 / 移除
+              StatefulBuilder(
+                builder: (sheetCtx, sheetSetState) {
+                  final avatar = _userPrefs.avatarPath;
+                  return Center(
+                    child: GestureDetector(
+                      onTap: () => AvatarHelper.showActionSheet(sheetCtx, onChanged: () {
+                        sheetSetState(() {});
+                        sheetCtx.read<AppProvider>().notifyUserInfoChanged();
+                      }),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colors.surfaceContainerHighest,
+                              border: Border.all(color: colors.outlineVariant, width: 0.5),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: avatar != null && avatar.isNotEmpty
+                                ? FadeInLocalImage(
+                                    path: avatar,
+                                    fit: BoxFit.cover,
+                                    errorWidget: Icon(Icons.person_outline,
+                                        size: 34,
+                                        color: colors.onSurface.withValues(alpha: 0.3)))
+                                : Icon(Icons.person_outline,
+                                    size: 34,
+                                    color: colors.onSurface.withValues(alpha: 0.3)),
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: colors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: colors.surface, width: 2),
+                              ),
+                              child: Icon(Icons.camera_alt, size: 13, color: colors.onPrimary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: TextField(
@@ -460,415 +506,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
-  }
-
-  static List<String> get _themeModeLabels => ['跟随系统'.tr, '浅色模式'.tr, '深色模式'.tr, '毛玻璃'.tr];
-  static const _themeModeIcons = [
-    Icons.brightness_auto,
-    Icons.light_mode,
-    Icons.dark_mode,
-    Icons.blur_on
-  ];
-
-  Widget _buildThemeModeSelector() {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => _showThemeModePicker(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(_themeModeIcons[_themeMode],
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('主题模式'.tr,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colors.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(_themeModeLabels[_themeMode],
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.4))),
-                  ]),
-            ),
-            Icon(Icons.chevron_right,
-                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showThemeModePicker() {
-    final colors = Theme.of(context).colorScheme;
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16))),
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 12),
-                decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('主题模式'.tr,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface))),
-            ),
-            const SizedBox(height: 8),
-            for (int i = 0; i < _themeModeLabels.length; i++)
-              InkWell(
-                onTap: () async {
-                  await _setThemeMode(i);
-                  if (!ctx.mounted) return;
-                  Navigator.pop(ctx);
-                },
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(_themeModeIcons[i],
-                          size: 18,
-                          color: colors.onSurface.withValues(alpha: 0.6)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: Text(_themeModeLabels[i],
-                              style: TextStyle(
-                                  fontSize: 13, color: colors.onSurface))),
-                      if (_themeMode == i)
-                        Icon(Icons.check, color: colors.onSurface, size: 18),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _setThemeMode(int mode) async {
-    await _userPrefs.setThemeMode(mode);
-    if (mode == 3) {
-      if (mounted) {
-        context.read<AppProvider>().enableFrosted();
-        setState(() => _themeMode = mode);
-      }
-      return;
-    }
-    final themeMode = switch (mode) {
-      1 => ThemeMode.light,
-      2 => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
-    if (mounted) {
-      context.read<AppProvider>().setThemeMode(themeMode);
-      setState(() => _themeMode = mode);
-    }
-  }
-
-  Widget _buildColorSchemeSelector() {
-    final colors = Theme.of(context).colorScheme;
-    final provider = context.watch<AppProvider>();
-    final currentIndex = provider.colorSchemeIndex;
-    final label =
-        currentIndex == -1 ? '莫奈取色'.tr : AppTheme.colorSchemeNames[currentIndex].tr;
-    return InkWell(
-      onTap: () => _showColorSchemePicker(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(
-                    currentIndex == -1
-                        ? Icons.auto_awesome
-                        : Icons.palette_outlined,
-                    color: colors.onSurface.withValues(alpha: 0.6),
-                    size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('配色方案'.tr,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colors.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(label,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.4))),
-                  ]),
-            ),
-            Icon(Icons.chevron_right,
-                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showColorSchemePicker() {
-    final colors = Theme.of(context).colorScheme;
-    final provider = context.read<AppProvider>();
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16))),
-        padding: const EdgeInsets.only(bottom: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 16),
-                decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('配色方案'.tr,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface))),
-            ),
-            const SizedBox(height: 12),
-            // 莫奈自动取色
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildMonetOption(provider, colors, ctx),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 2.2),
-                itemCount: AppTheme.seedColors.length,
-                itemBuilder: (_, i) {
-                  final selected = provider.colorSchemeIndex == i;
-                  return GestureDetector(
-                    onTap: () {
-                      provider.setColorScheme(i);
-                      Navigator.pop(ctx);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppTheme.seedColors[i].withValues(alpha: 0.12)
-                            : colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: selected
-                                ? AppTheme.seedColors[i]
-                                : Colors.transparent,
-                            width: 1.5),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                  color: AppTheme.seedColors[i],
-                                  shape: BoxShape.circle)),
-                          const SizedBox(width: 8),
-                          Text(AppTheme.colorSchemeNames[i].tr,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: selected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: colors.onSurface)),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMonetOption(
-      AppProvider provider, ColorScheme colors, BuildContext ctx) {
-    final selected = provider.colorSchemeIndex == -1;
-    final monetColor = AppTheme.monetColor;
-    final available = monetColor != null;
-    return GestureDetector(
-      onTap: available
-          ? () {
-              provider.setColorScheme(-1);
-              Navigator.pop(ctx);
-            }
-          : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? (monetColor ?? colors.primary).withValues(alpha: 0.12)
-              : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: selected
-                  ? (monetColor ?? colors.primary)
-                  : available
-                      ? colors.outlineVariant
-                      : colors.outlineVariant.withValues(alpha: 0.5),
-              width: selected ? 1.5 : 0.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: monetColor != null
-                    ? LinearGradient(
-                        colors: [monetColor, monetColor.withValues(alpha: 0.6)])
-                    : null,
-                color: available ? null : colors.outlineVariant,
-              ),
-              child: available
-                  ? null
-                  : Icon(Icons.auto_awesome,
-                      size: 12, color: colors.onSurface.withValues(alpha: 0.3)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('莫奈取色'.tr,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight:
-                                selected ? FontWeight.w600 : FontWeight.w500,
-                            color: available
-                                ? colors.onSurface
-                                : colors.onSurface.withValues(alpha: 0.35))),
-                    Text(available ? '从系统壁纸自动提取配色'.tr : '此设备不支持'.tr,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.35))),
-                  ]),
-            ),
-            if (selected)
-              Icon(Icons.check_circle,
-                  size: 18, color: monetColor ?? colors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── 字体选择器 ───
-
-  Widget _buildFontSelector() {
-    final colors = Theme.of(context).colorScheme;
-    final label = _fontFamily.isEmpty ? '系统默认'.tr : _fontFamily;
-    return InkWell(
-      onTap: () async {
-        final result = await Navigator.push<String>(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const FontPickerPage(initialFamily: '')),
-        );
-        if (result != null && mounted) {
-          _setFontFamily(result);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(children: [
-          Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                  color: colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10)),
-              child: Icon(Icons.font_download_outlined,
-                  size: 18, color: colors.onSurface.withValues(alpha: 0.6))),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text('字体'.tr,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: colors.onSurface.withValues(alpha: 0.4))),
-              ])),
-          Icon(Icons.chevron_right,
-              size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
-        ]),
-      ),
-    );
-  }
-
-  void _setFontFamily(String family) {
-    setState(() => _fontFamily = family);
-    context.read<AppProvider>().setFontFamily(family);
   }
 
   // ─── 语言选择器 ───

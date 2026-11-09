@@ -158,4 +158,16 @@ const Map<String, String> enWidgets = {
   '无法生成图片数据': 'Unable to generate image data',
   '查看更多': 'View More',
   '共 {n} 条': '{n} total',
+  // 存储权限说明 / 导出选项
+  '需要文件访问权限': 'File access permission required',
+  '备份功能需要"所有文件访问"权限，用于把备份压缩包写入手机的 Download/mooknote 目录，并在恢复备份时读取备份文件。\n\n点击"去授权"后将跳转到系统设置页，请在列表中找到 MookNote 并允许管理所有文件。':
+      'Backup needs the "All files access" permission to write backup archives into the Download/mooknote folder and to read backup files when restoring.\n\nTap "Grant" to open the system settings, find MookNote in the list, and allow management of all files.',
+  '暂不': 'Not now',
+  '去授权': 'Grant',
+  '导出备份': 'Export Backup',
+  '同时备份账号密码和 API Token': 'Include account passwords and API tokens',
+  'WebDAV 配置、在线搜索 Token': 'WebDAV config, online search tokens',
+  '勾选后备份将包含明文敏感信息，请勿通过微信、邮件等方式分享给他人':
+      'The backup will contain plaintext sensitive information. Do not share it via WeChat, email, or other channels.',
+  '开始导出': 'Start Export',
 };

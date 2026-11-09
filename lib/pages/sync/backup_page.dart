@@ -6,6 +6,8 @@ import '../../services/sync/backup_service.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/export_options_dialog.dart';
+import '../../widgets/storage_permission_dialog.dart';
 import '../../l10n/app_strings.dart';
 
 /// 本地备份页面
@@ -569,10 +571,21 @@ class _BackupPageState extends State<BackupPage> {
 
   /// 导出数据
   Future<void> _exportData() async {
+    final includeSensitive = await ExportOptionsDialog.show(context);
+    if (includeSensitive == null) return;
+
+    // 未授权时先说明用途，用户确认后才跳系统设置页
+    if (!await BackupService.instance.hasStoragePermission()) {
+      if (!mounted) return;
+      final confirmed = await StoragePermissionDialog.show(context);
+      if (confirmed != true) return;
+    }
+
     setState(() => _isExporting = true);
 
     try {
-      final result = await BackupService.instance.exportDataWithImages();
+      final result = await BackupService.instance
+          .exportDataWithImages(includeSensitive: includeSensitive);
 
       if (!mounted) return;
 

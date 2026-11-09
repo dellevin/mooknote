@@ -18,6 +18,7 @@ import '../../widgets/alternate_titles_dialog.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/edit_sheets.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -714,19 +715,25 @@ class _MovieFormPageState extends State<MovieFormPage> {
             children: [
               Text('状态'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStatusOption('想看', 'want_to_watch'),
-                    _buildStatusOption('在看', 'watching'),
-                    _buildStatusOption('已看', 'watched'),
-                  ],
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildStatusOption(StatusLabels.label('movie', 'want_to_watch'), 'want_to_watch'),
+                        _buildStatusOption(StatusLabels.label('movie', 'watching'), 'watching'),
+                        _buildStatusOption(StatusLabels.label('movie', 'watched'), 'watched'),
+                        _buildStatusOption(StatusLabels.label('movie', 'abandoned'), 'abandoned'),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],

@@ -19,9 +19,10 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'movie_detail_page.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 状态索引 → 状态值
-const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
+const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch', 3: 'abandoned'};
 
 /// 观影标签页（PageView 分页 + 触底加载），左右滑动丝滑切换
 class MovieTabPage extends StatefulWidget {
@@ -62,7 +63,7 @@ class _MovieTabPageState extends State<MovieTabPage> {
   }
 
   int _pageCountFor(AppProvider p) =>
-      p.movieWallMode ? 1 : (p.movieDisplayMode == 1 ? MovieCategoryBar.count : 3);
+      p.movieWallMode ? 1 : (p.movieDisplayMode == 1 ? MovieCategoryBar.count : 4);
 
   int _activeIndexFor(AppProvider p) =>
       p.movieWallMode ? 0 : (p.movieDisplayMode == 1 ? p.movieCategoryIndex : p.movieStatusIndex);
@@ -718,7 +719,7 @@ class _MovieTabViewState extends State<_MovieTabView>
     } else if (widget.mode == 1) {
       emptyText = '暂无 {x}'.trf({'x': MovieCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      emptyText = '暂无 {x} 的影片'.trf({'x': ['已看'.tr, '在看'.tr, '想看'.tr][widget.index]});
+      emptyText = '暂无 {x} 的影片'.trf({'x': StatusLabels.label('movie', _statusMap[widget.index]!)});
     }
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 80, height: 80,

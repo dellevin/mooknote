@@ -7,6 +7,7 @@ import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 数据统计页面 - 多维度数据分析
 class StatisticsPage extends StatefulWidget {
@@ -359,8 +360,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildStatusSection(List<Movie> movies, List<Book> books) {
     final colors = Theme.of(context).colorScheme;
     final tabs = <(String, List, String Function(dynamic), Map<String, String>)>[];
-    if (_showMovies) tabs.add(('影视', movies, (m) => m.status, {'已看': 'watched', '在看': 'watching', '想看': 'want_to_watch'}));
-    if (_showBooks) tabs.add(('书籍', books, (b) => b.status, {'已读': 'read', '在读': 'reading', '想读': 'want_to_read'}));
+    if (_showMovies) tabs.add(('影视', movies, (m) => m.status, {for (final k in ['watched', 'watching', 'want_to_watch']) StatusLabels.label('movie', k): k}));
+    if (_showBooks) tabs.add(('书籍', books, (b) => b.status, {for (final k in ['read', 'reading', 'want_to_read']) StatusLabels.label('book', k): k}));
     if (tabs.isEmpty) return const SizedBox.shrink();
     if (_statusTabIndex >= tabs.length) _statusTabIndex = 0;
 

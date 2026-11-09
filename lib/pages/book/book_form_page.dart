@@ -18,6 +18,7 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/edit_sheets.dart';
 import '../../widgets/duration_picker.dart';
 import 'package:mooknote/l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -391,10 +392,10 @@ class _BookFormPageState extends State<BookFormPage> {
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                _buildStatusOption('想读'.tr, 'want_to_read'),
-                _buildStatusOption('在读'.tr, 'reading'),
-                _buildStatusOption('已读'.tr, 'read'),
-                _buildStatusOption('弃读'.tr, 'abandoned'),
+                _buildStatusOption(StatusLabels.label('book', 'want_to_read'), 'want_to_read'),
+                _buildStatusOption(StatusLabels.label('book', 'reading'), 'reading'),
+                _buildStatusOption(StatusLabels.label('book', 'read'), 'read'),
+                _buildStatusOption(StatusLabels.label('book', 'abandoned'), 'abandoned'),
               ]),
             ),
           )),

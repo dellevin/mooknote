@@ -18,6 +18,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 
 /// 影视详情页 - 在线版
 class MovieDetailPage extends StatefulWidget {
@@ -552,16 +553,8 @@ class _MovieDetailPageState extends State<MovieDetailPage>
       .toList();
 
   String _statusLabel(String status) {
-    switch (status) {
-      case 'watched':
-        return '已看'.tr;
-      case 'watching':
-        return '在看'.tr;
-      case 'want_to_watch':
-        return '想看'.tr;
-      default:
-        return '';
-    }
+    if (!StatusLabels.defaults['movie']!.containsKey(status)) return '';
+    return StatusLabels.label('movie', status);
   }
 
   void _showAddSheet() {
@@ -590,11 +583,13 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                     color: colors.onSurface)),
             const SizedBox(height: 14),
             _sheetItem(
-                ctx, colors, Icons.check_circle_outline, '已看'.tr, 'watched'),
+                ctx, colors, Icons.check_circle_outline, StatusLabels.label('movie', 'watched'), 'watched'),
             _sheetItem(
-                ctx, colors, Icons.play_circle_outline, '在看'.tr, 'watching'),
+                ctx, colors, Icons.play_circle_outline, StatusLabels.label('movie', 'watching'), 'watching'),
             _sheetItem(
-                ctx, colors, Icons.bookmark_outline, '想看'.tr, 'want_to_watch'),
+                ctx, colors, Icons.bookmark_outline, StatusLabels.label('movie', 'want_to_watch'), 'want_to_watch'),
+            _sheetItem(
+                ctx, colors, Icons.cancel_outlined, StatusLabels.label('movie', 'abandoned'), 'abandoned'),
           ]),
         ),
       ),

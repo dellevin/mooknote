@@ -13,7 +13,7 @@ void showQuickAddSheet(BuildContext context, AppProvider provider) {
   final currentTab = provider.mainTabIndex;
   switch (currentTab) {
     case 0:
-      final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
+      final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch', 3: 'abandoned'};
       final currentStatus =
           statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
       Navigator.pushNamed(context, '/movie-form',
@@ -51,7 +51,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
       subtitle: '记录你看过的电影'.tr,
       onTap: () {
         Navigator.pop(outerContext);
-        final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch'};
+        final statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch', 3: 'abandoned'};
         final s = statusMap[provider.movieStatusIndex] ?? 'want_to_watch';
         Navigator.pushNamed(outerContext, '/movie-form',
             arguments: {'initialStatus': s});

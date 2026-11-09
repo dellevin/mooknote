@@ -16,6 +16,7 @@ import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/top_fade_scrim.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:mooknote/l10n/app_strings.dart';
+import '../../utils/status_labels.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'book_detail_page.dart';
@@ -688,7 +689,7 @@ class _BookTabViewState extends State<_BookTabView>
     } else if (widget.mode == 1) {
       emptyText = '暂无 {x}'.trf({'x': BookCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      final statusText = ['已读'.tr, '在读'.tr, '想读'.tr, '弃读'.tr][widget.index];
+      final statusText = StatusLabels.label('book', _bookStatusMap[widget.index]!);
       emptyText = '暂无{status}的书籍'.trf({'status': statusText});
     }
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
