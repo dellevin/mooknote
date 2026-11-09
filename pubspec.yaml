@@ -67,6 +67,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icon/
+    - assets/svg/
     - assets/images/ticket/
     - assets/images/imp_book/
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/app_provider.dart';
@@ -30,6 +31,14 @@ import '../../widgets/storage_permission_dialog.dart';
 import '../../l10n/app_strings.dart';
 
 /// 主页 - 包含底部导航，可切换主页/我的
+/// NavigationRail 图标：assets/svg 实心图标，按选中态着色
+Widget _railSvgIcon(String asset, Color color) => SvgPicture.asset(
+      asset,
+      width: 24,
+      height: 24,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    );
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -81,18 +90,24 @@ class _HomePageState extends State<HomePage> {
                 },
                 destinations: [
                   NavigationRailDestination(
-                    icon: const Icon(Icons.home_outlined),
-                    selectedIcon: const Icon(Icons.home_rounded),
+                    icon: _railSvgIcon(
+                        'assets/svg/rcd-home-f.svg', colors.onSurfaceVariant),
+                    selectedIcon: _railSvgIcon(
+                        'assets/svg/rcd-home-f.svg', colors.onSecondaryContainer),
                     label: Text('首页'.tr),
                   ),
                   NavigationRailDestination(
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    selectedIcon: const Icon(Icons.calendar_month_rounded),
+                    icon: _railSvgIcon(
+                        'assets/svg/calender.svg', colors.onSurfaceVariant),
+                    selectedIcon: _railSvgIcon(
+                        'assets/svg/calender.svg', colors.onSecondaryContainer),
                     label: Text('日历'.tr),
                   ),
                   NavigationRailDestination(
-                    icon: const Icon(Icons.person_outline_rounded),
-                    selectedIcon: const Icon(Icons.person_rounded),
+                    icon: _railSvgIcon(
+                        'assets/svg/rcd-user-f.svg', colors.onSurfaceVariant),
+                    selectedIcon: _railSvgIcon(
+                        'assets/svg/rcd-user-f.svg', colors.onSecondaryContainer),
                     label: Text('我的'.tr),
                   ),
                 ],

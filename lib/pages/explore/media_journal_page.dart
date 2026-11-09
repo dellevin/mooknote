@@ -440,7 +440,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
               child: Column(
                 children: [
                   _buildSwitcher(colors),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Expanded(
                     child: _viewMode == 0
                         ? (_granularity == 0 ? _buildMonthView(colors) : _buildYearView(colors))
@@ -455,7 +455,9 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   // ─── 顶部分段切换 ───
 
   Widget _buildSwitcher(ColorScheme colors) {
+    // 两组分段都靠右并排
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         if (_viewMode == 0) ...[
           _segmented(
@@ -464,9 +466,8 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
             current: _granularity,
             onChanged: (v) => setState(() => _granularity = v),
           ),
-          const Spacer(),
-        ] else
-          const Spacer(),
+          const SizedBox(width: 8),
+        ],
         _segmented(
           colors,
           options: [('日历'.tr, 0), ('时间轴'.tr, 1)],
@@ -484,10 +485,10 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     required ValueChanged<int> onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -498,15 +499,15 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 4.5),
                 decoration: BoxDecoration(
                   color: value == current ? colors.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   boxShadow: value == current
                       ? [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 6,
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),
                         ]
@@ -515,7 +516,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 12,
                     fontWeight: value == current ? FontWeight.w700 : FontWeight.w500,
                     color: value == current
                         ? colors.onSurface
@@ -537,19 +538,19 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     return Column(
       children: [
         _buildPeriodHeader(colors),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _buildWeekdayLabels(colors),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final cellWidth = (constraints.maxWidth - 36) / 7;
-              final cellHeight = (cellWidth * 1.18).clamp(56.0, 92.0);
+              final cellHeight = (cellWidth * 1.06).clamp(52.0, 84.0);
               return SingleChildScrollView(
                 child: Column(
                   children: [
                     _buildMonthGrid(colors, today, cellHeight),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _buildSelectedDayDetail(colors),
                     // 与"我的"页一致：滚动内容末尾留 120 避让悬浮 dock
                     const SizedBox(height: 120),
@@ -592,9 +593,9 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: SizedBox(
-          width: 36,
-          height: 36,
-          child: Icon(icon, color: colors.onSurface.withValues(alpha: 0.65)),
+          width: 32,
+          height: 32,
+          child: Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.65)),
         ),
       ),
     );
@@ -647,9 +648,9 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedDay = date),
                   child: Container(
-                    margin: const EdgeInsets.all(3),
+                    margin: const EdgeInsets.all(2.5),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       color: items.isEmpty
                           ? (isSelected ? colors.primary.withValues(alpha: 0.1) : null)
                           : colors.surfaceContainerHighest.withValues(alpha: 0.55),
@@ -736,7 +737,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -818,12 +819,12 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Row(
             children: [
               Text(
                 '{m}月{d}日'.trf({'m': d.month, 'd': d.day}),
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: colors.onSurface),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface),
               ),
               const SizedBox(width: 8),
               Text(
@@ -835,7 +836,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
         ),
         if (items.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Center(
               child: Text(
                 '这天还没有标记'.tr,
@@ -853,22 +854,22 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     final accent = _typeColor(item.type);
     return InkWell(
       onTap: () => _openDetail(item),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             SizedBox(
-              width: 46,
-              height: 62,
+              width: 40,
+              height: 54,
               child: _coverThumb(colors, item, radius: 8),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,9 +878,9 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                     item.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: colors.onSurface),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                     decoration: BoxDecoration(
@@ -922,16 +923,16 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     return Column(
       children: [
         _buildPeriodHeader(colors),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Expanded(
           child: GridView.builder(
             // 末尾 120 间距避让悬浮 dock（与"我的"页一致）
             padding: const EdgeInsets.only(bottom: 120),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.82,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.88,
             ),
             itemCount: 12,
             itemBuilder: (context, i) {
@@ -949,13 +950,13 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                     color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  padding: const EdgeInsets.all(7),
+                  padding: const EdgeInsets.all(6),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           child: covers.isEmpty
                               ? Container(
                                   color: colors.surface.withValues(alpha: 0.6),
@@ -972,13 +973,13 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 5),
                       Row(
                         children: [
                           Text(
                             '{m}月'.trf({'m': month}),
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13.5,
                               fontWeight: FontWeight.w700,
                               color: count > 0 ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
                             ),
@@ -1030,12 +1031,12 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 14, bottom: 8, left: 2),
+              padding: const EdgeInsets.only(top: 10, bottom: 6, left: 2),
               child: Row(
                 children: [
                   Container(
-                    width: 9,
-                    height: 9,
+                    width: 8,
+                    height: 8,
                     decoration: BoxDecoration(color: colors.primary, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 8),

@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import 'add_sheet.dart';
@@ -116,26 +117,24 @@ class CustomBottomNavBar extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // assets/svg 实心图标，选中/未选中仅靠颜色区分
               _buildNavItem(
                 colors: colors,
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
+                asset: 'assets/svg/rcd-home-f.svg',
                 isActive: provider.bottomNavIndex == 0,
                 onTap: () => provider.setBottomNavIndex(0),
               ),
               const SizedBox(width: _navItemGap),
               _buildNavItem(
                 colors: colors,
-                icon: Icons.calendar_month_outlined,
-                activeIcon: Icons.calendar_month_rounded,
+                asset: 'assets/svg/calender.svg',
                 isActive: provider.bottomNavIndex == 1,
                 onTap: () => provider.setBottomNavIndex(1),
               ),
               const SizedBox(width: _navItemGap),
               _buildNavItem(
                 colors: colors,
-                icon: Icons.person_outline_rounded,
-                activeIcon: Icons.person_rounded,
+                asset: 'assets/svg/rcd-user-f.svg',
                 isActive: provider.bottomNavIndex == 2,
                 onTap: () => provider.setBottomNavIndex(2),
               ),
@@ -148,11 +147,13 @@ class CustomBottomNavBar extends StatelessWidget {
 
   Widget _buildNavItem({
     required ColorScheme colors,
-    required IconData icon,
-    required IconData activeIcon,
+    required String asset,
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    final color = isActive
+        ? colors.onSurface
+        : colors.onSurface.withValues(alpha: 0.45);
     return SizedBox(
       width: _navItemWidth,
       height: _navItemHeight,
@@ -160,12 +161,11 @@ class CustomBottomNavBar extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Center(
-          child: Icon(
-            isActive ? activeIcon : icon,
-            color: isActive
-                ? colors.onSurface
-                : colors.onSurface.withValues(alpha: 0.4),
-            size: 26,
+          child: SvgPicture.asset(
+            asset,
+            width: 24,
+            height: 24,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
           ),
         ),
       ),
