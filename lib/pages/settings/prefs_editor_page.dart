@@ -27,7 +27,10 @@ String? _describeKey(String key) {
     'showExactReleaseDate': '卡片是否显示精确上映/发布日期',
     'isFirstLaunch': '是否首次启动（引导页标记）',
     'privacyAgreed': '是否已同意隐私政策与用户协议（首次启动弹窗，未同意前不初始化采集类 SDK）',
-    'detailPageStyle': '详情页样式：0=标准 1=毛玻璃 2=浅色极简 3=豆瓣',
+    'detailPageStyle': '详情页样式（全局旧值，作为各模块未设置时的回退）：0=标准 1=毛玻璃 2=浅色极简 3=豆瓣',
+    'detailPageStyle_movie': '影视详情页样式（独立，缺省回退 detailPageStyle）',
+    'detailPageStyle_book': '阅读详情页样式（独立，缺省回退 detailPageStyle）',
+    'detailPageStyle_game': '游戏详情页样式（独立，缺省回退 detailPageStyle）',
     'hideBottomNavOnScroll': '滚动时隐藏底部导航栏',
     'debugMode': '调试模式（记录运行日志）',
     'exportWithImages': 'Excel 导出是否附带图片（走服务器生成）',
@@ -68,6 +71,7 @@ String? _describeKey(String key) {
 
   const prefixes = <String, String>{
     'detailModules_': '详情页模块排序配置（按类型后缀区分 movie/book/game/note）',
+    'detailExtraItems_': '详情页「更多入口」子项排序显隐配置（按类型后缀区分 movie/book/game）',
     'coverOffset_': '封面图手动调整的偏移量（按条目 ID 后缀区分）',
     'showSidebar': '桌面侧边栏模块显示开关',
     'showMovieTab': '主标签"影视"显示开关',

@@ -4,6 +4,7 @@ import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
+import 'module_layout_settings_page.dart';
 import 'status_rename_page.dart';
 
 class LayoutSettingsPage extends StatefulWidget {
@@ -16,67 +17,20 @@ class LayoutSettingsPage extends StatefulWidget {
 class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   int _homeModuleSwitchMode = 0;
-  int _noteLayout = 0;
-  int _movieLayout = 0;
-  int _bookLayout = 0;
-  int _gameLayout = 0;
-  int _movieGridCount = 0;
-  int _bookGridCount = 0;
-  int _gameGridCount = 0;
-  bool _movieWallMode = false;
-  int _movieDisplayMode = 0;
-  int _movieStatusBarStyle = 0;
-  bool _bookshelfMode = false;
-  int _bookDisplayMode = 0;
-  int _bookStatusBarStyle = 0;
-  bool _gameWallMode = false;
-  int _gameStatusBarStyle = 0;
-  int _movieSortMode = 0;
-  int _bookSortMode = 0;
-  int _noteSortMode = 0;
-  int _gameSortMode = 0;
-  bool _showMovieCardDate = false;
-  bool _showBookCardDate = false;
-  bool _showGameCardDate = false;
-  bool _showMovieTitle = true;
-  bool _showMovieRating = true;
-  bool _showBookTitle = true;
-  bool _showBookRating = true;
-  bool _showGameTitle = true;
-  bool _showGameRating = true;
 
   @override
   void initState() {
     super.initState();
     _homeModuleSwitchMode = _userPrefs.homeModuleSwitchMode;
-    _noteLayout = _userPrefs.noteLayoutStyle;
-    _movieLayout = _userPrefs.movieLayoutStyle;
-    _bookLayout = _userPrefs.bookLayoutStyle;
-    _gameLayout = _userPrefs.gameLayoutStyle;
-    _movieGridCount = _userPrefs.movieGridCount;
-    _bookGridCount = _userPrefs.bookGridCount;
-    _gameGridCount = _userPrefs.gameGridCount;
-    _movieWallMode = _userPrefs.movieWallMode;
-    _movieDisplayMode = _userPrefs.movieDisplayMode;
-    _movieStatusBarStyle = _userPrefs.movieStatusBarStyle;
-    _bookshelfMode = _userPrefs.bookshelfMode;
-    _bookDisplayMode = _userPrefs.bookDisplayMode;
-    _bookStatusBarStyle = _userPrefs.bookStatusBarStyle;
-    _gameWallMode = _userPrefs.gameWallMode;
-    _gameStatusBarStyle = _userPrefs.gameStatusBarStyle;
-    _movieSortMode = _userPrefs.movieSortMode;
-    _bookSortMode = _userPrefs.bookSortMode;
-    _noteSortMode = _userPrefs.noteSortMode;
-    _gameSortMode = _userPrefs.gameSortMode;
-    _showMovieCardDate = _userPrefs.showMovieCardDate;
-    _showBookCardDate = _userPrefs.showBookCardDate;
-    _showGameCardDate = _userPrefs.showGameCardDate;
-    _showMovieTitle = _userPrefs.showMovieTitle;
-    _showMovieRating = _userPrefs.showMovieRating;
-    _showBookTitle = _userPrefs.showBookTitle;
-    _showBookRating = _userPrefs.showBookRating;
-    _showGameTitle = _userPrefs.showGameTitle;
-    _showGameRating = _userPrefs.showGameRating;
+  }
+
+  /// 打开模块布局设置页，返回后刷新副标题
+  Future<void> _openModuleSettings(String type) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ModuleLayoutSettingsPage(type: type)),
+    );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -108,28 +62,28 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
             title: '影视'.tr,
             color: colors.primary,
             subtitle: _movieSubtitle,
-            onTap: _showMovieSheet,
+            onTap: () => _openModuleSettings('movie'),
           ),
           _buildCategoryTile(
             icon: Icons.menu_book_outlined,
             title: '阅读'.tr,
             color: colors.primary,
             subtitle: _bookSubtitle,
-            onTap: _showBookSheet,
+            onTap: () => _openModuleSettings('book'),
           ),
           _buildCategoryTile(
             icon: Icons.sports_esports_outlined,
             title: '游戏'.tr,
             color: colors.primary,
             subtitle: _gameSubtitle,
-            onTap: _showGameSheet,
+            onTap: () => _openModuleSettings('game'),
           ),
           _buildCategoryTile(
             icon: Icons.sticky_note_2_outlined,
             title: '笔记'.tr,
             color: colors.primary,
             subtitle: _noteSubtitle,
-            onTap: _showNoteSheet,
+            onTap: () => _openModuleSettings('note'),
           ),
         ],
       ),
@@ -142,60 +96,63 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
 
   String get _movieSubtitle {
     final parts = <String>[];
-    if (_movieWallMode) {
+    if (_userPrefs.movieWallMode) {
       parts.add('影视墙'.tr);
     } else {
-      parts.add(_movieDisplayMode == 1 ? '分类状态'.tr : '观看状态'.tr);
-      if (_movieDisplayMode == 0) {
-        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_movieStatusBarStyle]);
+      parts.add(_userPrefs.movieDisplayMode == 1 ? '分类状态'.tr : '观看状态'.tr);
+      if (_userPrefs.movieDisplayMode == 0) {
+        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_userPrefs.movieStatusBarStyle]);
       }
     }
-    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][_movieLayout]);
-    if ((_movieLayout == 0 || _movieLayout == 3) && _movieGridCount > 0) {
-      parts.add('每行{n}个'.trf({'n': '$_movieGridCount'}));
+    final layout = _userPrefs.movieLayoutStyle;
+    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][layout]);
+    if ((layout == 0 || layout == 3) && _userPrefs.movieGridCount > 0) {
+      parts.add('每行{n}个'.trf({'n': '${_userPrefs.movieGridCount}'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][_movieLayout == 3 ? 4 : _movieSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][layout == 3 ? 4 : _userPrefs.movieSortMode]);
     return parts.join(' · ');
   }
 
   String get _bookSubtitle {
     final parts = <String>[];
-    if (_bookshelfMode) {
+    if (_userPrefs.bookshelfMode) {
       parts.add('书架'.tr);
     } else {
-      parts.add(_bookDisplayMode == 1 ? '分类状态'.tr : '阅读状态'.tr);
-      if (_bookDisplayMode == 0) {
-        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_bookStatusBarStyle]);
+      parts.add(_userPrefs.bookDisplayMode == 1 ? '分类状态'.tr : '阅读状态'.tr);
+      if (_userPrefs.bookDisplayMode == 0) {
+        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_userPrefs.bookStatusBarStyle]);
       }
     }
-    parts.add(['海报网格'.tr, '列表'.tr, '年份网格'.tr, '大图卡片'.tr][_bookLayout]);
-    if ((_bookLayout == 0 || _bookLayout == 2) && _bookGridCount > 0) {
-      parts.add('每行{n}个'.trf({'n': '$_bookGridCount'}));
+    final layout = _userPrefs.bookLayoutStyle;
+    parts.add(['海报网格'.tr, '列表'.tr, '年份网格'.tr, '大图卡片'.tr][layout]);
+    if ((layout == 0 || layout == 2) && _userPrefs.bookGridCount > 0) {
+      parts.add('每行{n}个'.trf({'n': '${_userPrefs.bookGridCount}'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][_bookLayout == 2 ? 4 : _bookSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][layout == 2 ? 4 : _userPrefs.bookSortMode]);
     return parts.join(' · ');
   }
 
   String get _noteSubtitle {
     final parts = <String>[];
-    parts.add(['列表'.tr, '瀑布流'.tr, '时间线'.tr][_noteLayout]);
-    parts.add(['更新时间'.tr, '创建时间'.tr][_noteSortMode]);
+    parts.add(['列表'.tr, '瀑布流'.tr, '时间线'.tr][_userPrefs.noteLayoutStyle]);
+    parts.add(['更新时间'.tr, '创建时间'.tr][_userPrefs.noteSortMode]);
     return parts.join(' · ');
   }
 
   String get _gameSubtitle {
     final parts = <String>[];
-    if (_gameWallMode) {
+    if (_userPrefs.gameWallMode) {
       parts.add('游戏墙'.tr);
     } else {
       parts.add('游玩状态'.tr);
-      parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_gameStatusBarStyle]);
+      parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_userPrefs.gameStatusBarStyle]);
     }
-    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][_gameLayout]);
-    if ((_gameLayout == 0 || _gameLayout == 3) && _gameGridCount > 0) {
-      parts.add('每行{n}个'.trf({'n': '$_gameGridCount'}));
+    final layout = _userPrefs.gameLayoutStyle;
+    parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][layout]);
+    if ((layout == 0 || layout == 3) && _userPrefs.gameGridCount > 0) {
+      parts.add('每行{n}个'.trf({'n': '${_userPrefs.gameGridCount}'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr, '通关时间'.tr][_gameLayout == 3 ? 3 : _gameSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr, '通关时间'.tr][layout == 3 ? 3 : _userPrefs.gameSortMode]);
     return parts.join(' · ');
   }
 
@@ -250,32 +207,61 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     );
   }
 
-  // ─── 弹窗内组件 ──────────────────────────────────────────────────
+  // ─── 主页模块显示方式弹窗（仅此入口保留弹窗） ─────────────────────
 
-  Widget _sheetSwitchRow({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    required ColorScheme colors,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
-              ],
-            ),
+  void _showHomeModuleSheet() {
+    final colors = Theme.of(context).colorScheme;
+    appModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _sheetHandle(colors),
+              _sheetTitle('主页模块显示方式'.tr, colors),
+              _sheetOptionRow(
+                label: '切换方式'.tr,
+                selected: _homeModuleSwitchMode,
+                options: [
+                  (0, Icons.tab_outlined, '模块标签'.tr),
+                  (1, Icons.arrow_drop_down_outlined, '顶部下拉'.tr),
+                ],
+                onChanged: (v) {
+                  _userPrefs.setHomeModuleSwitchMode(v);
+                  setState(() => _homeModuleSwitchMode = v);
+                  if (mounted) context.read<AppProvider>().setHomeModuleSwitchMode(v);
+                  setSheetState(() {});
+                },
+                colors: colors,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                child: Text(
+                  _homeModuleSwitchMode == 1
+                      ? 'AppBar 标题显示当前模块，点击弹出选择菜单。'.tr
+                      : '顶部显示模块标签栏，点击切换。'.tr,
+                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+                ),
+              ),
+            ]),
           ),
-          Switch(value: value, onChanged: onChanged),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _sheetHandle(ColorScheme colors) {
+    return Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 8),
+        decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)));
+  }
+
+  Widget _sheetTitle(String title, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      child: Align(alignment: Alignment.centerLeft,
+          child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
     );
   }
 
@@ -334,608 +320,5 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
         ],
       ),
     );
-  }
-
-  Widget _sheetDivider(ColorScheme colors) {
-    return Divider(height: 1, indent: 20, endIndent: 20, color: colors.outlineVariant.withValues(alpha: 0.4));
-  }
-
-  Widget _sheetSortSection({
-    required String title,
-    required int current,
-    required List<(int, String, IconData)> options,
-    required ColorScheme colors,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-          child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.6))),
-        ),
-        for (int i = 0; i < options.length; i++) ...[
-          if (i > 0) Divider(height: 0.5, indent: 20, endIndent: 20, color: colors.outlineVariant.withValues(alpha: 0.4)),
-          _sheetSortItem(options[i], current, colors, onChanged),
-        ],
-      ]),
-    );
-  }
-
-  Widget _sheetSortItem((int, String, IconData) option, int current, ColorScheme colors, ValueChanged<int> onChanged) {
-    final selected = current == option.$1;
-    return InkWell(
-      onTap: () => onChanged(option.$1),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(children: [
-          Container(
-            width: 32, height: 32,
-            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
-            child: Icon(option.$3, size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.6)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(option.$2, style: TextStyle(fontSize: 14, fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: colors.onSurface))),
-          if (selected) Icon(Icons.check, size: 18, color: colors.primary),
-        ]),
-      ),
-    );
-  }
-
-  /// 年份网格布局下排序被锁定时的提示行
-  Widget _sheetSortLocked(String text, ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(children: [
-        Icon(Icons.lock_outline, size: 15, color: colors.onSurface.withValues(alpha: 0.45)),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)))),
-      ]),
-    );
-  }
-
-  // ─── 弹窗 ────────────────────────────────────────────────────────
-
-  void _showHomeModuleSheet() {
-    final colors = Theme.of(context).colorScheme;
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              _sheetHandle(colors),
-              _sheetTitle('主页模块显示方式'.tr, colors),
-              _sheetOptionRow(
-                label: '切换方式'.tr,
-                selected: _homeModuleSwitchMode,
-                options: [
-                  (0, Icons.tab_outlined, '模块标签'.tr),
-                  (1, Icons.arrow_drop_down_outlined, '顶部下拉'.tr),
-                ],
-                onChanged: (v) {
-                  _userPrefs.setHomeModuleSwitchMode(v);
-                  setState(() => _homeModuleSwitchMode = v);
-                  if (mounted) context.read<AppProvider>().setHomeModuleSwitchMode(v);
-                  setSheetState(() {});
-                },
-                colors: colors,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                child: Text(
-                  _homeModuleSwitchMode == 1
-                      ? 'AppBar 标题显示当前模块，点击弹出选择菜单。'.tr
-                      : '顶部显示模块标签栏，点击切换。'.tr,
-                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
-                ),
-              ),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showMovieSheet() {
-    final colors = Theme.of(context).colorScheme;
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _sheetHandle(colors),
-            _sheetTitle('影视布局'.tr, colors),
-            _sheetSwitchRow(
-              title: '海报显示日期'.tr, subtitle: '海报右下角显示上映日期'.tr,
-              value: _showMovieCardDate, onChanged: (v) { _setShowMovieCardDate(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetSwitchRow(
-              title: '显示标题'.tr, subtitle: '卡片上显示影视名称'.tr,
-              value: _showMovieTitle, onChanged: (v) { _setShowMovieTitle(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetSwitchRow(
-              title: '显示评分'.tr, subtitle: '卡片上显示评分'.tr,
-              value: _showMovieRating, onChanged: (v) { _setShowMovieRating(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetDivider(colors),
-            _sheetOptionRow(
-              label: '显示模式'.tr, selected: _movieWallMode ? 2 : _movieDisplayMode,
-              options: [
-                (0, Icons.visibility_outlined, '观看状态'.tr),
-                (1, Icons.category_outlined, '分类状态'.tr),
-                (2, Icons.movie_outlined, '影视墙'.tr),
-              ],
-              onChanged: (v) {
-                if (v == 2) {
-                  _setWallMode('movie', true);
-                } else {
-                  if (_movieWallMode) _setWallMode('movie', false);
-                  _setDisplayMode('movie', v);
-                }
-                setSheetState(() {});
-              },
-              colors: colors,
-            ),
-            if (!_movieWallMode && _movieDisplayMode == 0) ...[
-              _sheetDivider(colors),
-              _sheetOptionRow(
-                label: '状态栏样式'.tr, selected: _movieStatusBarStyle,
-                options: [
-                  (0, Icons.circle, '胶囊'.tr),
-                  (1, Icons.format_underlined, '下划线'.tr),
-                  (2, Icons.square_outlined, '芯片'.tr),
-                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
-                ],
-                onChanged: (v) { _setStatusBarStyle('movie', v); setSheetState(() {}); }, colors: colors,
-              ),
-            ],
-            _sheetDivider(colors),
-            _sheetOptionRow(
-              label: '布局样式'.tr, selected: _movieLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr), (3, Icons.date_range_outlined, '年份网格'.tr)],
-              onChanged: (v) { _setLayout('movie', v); setSheetState(() {}); }, colors: colors,
-            ),
-            if (_movieLayout == 0 || _movieLayout == 3) ...[
-              _sheetDivider(colors),
-              _sheetOptionRow(
-                label: '每行数量'.tr, selected: _movieGridCount,
-                options: [
-                  (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
-                  (3, Icons.looks_3_outlined, '3'),
-                  (4, Icons.looks_4_outlined, '4'),
-                  (5, Icons.looks_5_outlined, '5'),
-                ],
-                onChanged: (v) { _setGridCount('movie', v); setSheetState(() {}); }, colors: colors,
-              ),
-            ],
-            _sheetDivider(colors),
-            if (_movieLayout == 3)
-              _sheetSortLocked('年份网格布局固定按上映时间排序'.tr, colors)
-            else
-              _sheetSortSection(
-                title: '排序方式'.tr,
-                current: _movieSortMode,
-                options: [
-                  (0, '按更新时间排序'.tr, Icons.update),
-                  (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-                  (2, '按影视评分排序'.tr, Icons.star_outline),
-                  (3, '按观看日期排序'.tr, Icons.visibility_outlined),
-                  (4, '按上映时间排序'.tr, Icons.movie_creation_outlined),
-                ],
-                colors: colors,
-                onChanged: (v) { _setSortMode('movie', v); setSheetState(() {}); },
-              ),
-            const SizedBox(height: 16),
-          ]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showBookSheet() {
-    final colors = Theme.of(context).colorScheme;
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _sheetHandle(colors),
-            _sheetTitle('阅读布局'.tr, colors),
-            _sheetSwitchRow(
-              title: '封面显示日期'.tr, subtitle: '封面右下角显示出版日期'.tr,
-              value: _showBookCardDate, onChanged: (v) { _setShowBookCardDate(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetSwitchRow(
-              title: '显示标题'.tr, subtitle: '卡片上显示书籍名称'.tr,
-              value: _showBookTitle, onChanged: (v) { _setShowBookTitle(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetSwitchRow(
-              title: '显示评分'.tr, subtitle: '卡片上显示评分'.tr,
-              value: _showBookRating, onChanged: (v) { _setShowBookRating(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetDivider(colors),
-            _sheetOptionRow(
-              label: '显示模式'.tr, selected: _bookshelfMode ? 2 : _bookDisplayMode,
-              options: [
-                (0, Icons.auto_stories_outlined, '阅读状态'.tr),
-                (1, Icons.category_outlined, '分类状态'.tr),
-                (2, Icons.menu_book_outlined, '书架'.tr),
-              ],
-              onChanged: (v) {
-                if (v == 2) {
-                  _setWallMode('book', true);
-                } else {
-                  if (_bookshelfMode) _setWallMode('book', false);
-                  _setDisplayMode('book', v);
-                }
-                setSheetState(() {});
-              },
-              colors: colors,
-            ),
-            if (!_bookshelfMode && _bookDisplayMode == 0) ...[
-              _sheetDivider(colors),
-              _sheetOptionRow(
-                label: '状态栏样式'.tr, selected: _bookStatusBarStyle,
-                options: [
-                  (0, Icons.circle, '胶囊'.tr),
-                  (1, Icons.format_underlined, '下划线'.tr),
-                  (2, Icons.square_outlined, '芯片'.tr),
-                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
-                ],
-                onChanged: (v) { _setStatusBarStyle('book', v); setSheetState(() {}); }, colors: colors,
-              ),
-            ],
-            _sheetDivider(colors),
-            _sheetOptionRow(
-              label: '布局样式'.tr, selected: _bookLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (3, Icons.crop_landscape_outlined, '大图卡片'.tr), (2, Icons.date_range_outlined, '年份网格'.tr)],
-              onChanged: (v) { _setLayout('book', v); setSheetState(() {}); }, colors: colors,
-            ),
-            if (_bookLayout == 0 || _bookLayout == 2) ...[
-              _sheetDivider(colors),
-              _sheetOptionRow(
-                label: '每行数量'.tr, selected: _bookGridCount,
-                options: [
-                  (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
-                  (3, Icons.looks_3_outlined, '3'),
-                  (4, Icons.looks_4_outlined, '4'),
-                  (5, Icons.looks_5_outlined, '5'),
-                ],
-                onChanged: (v) { _setGridCount('book', v); setSheetState(() {}); }, colors: colors,
-              ),
-            ],
-            _sheetDivider(colors),
-            if (_bookLayout == 2)
-              _sheetSortLocked('年份网格布局固定按出版时间排序'.tr, colors)
-            else
-              _sheetSortSection(
-                title: '排序方式'.tr,
-                current: _bookSortMode,
-                options: [
-                  (0, '按更新时间排序'.tr, Icons.update),
-                  (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-                  (2, '按书籍评分排序'.tr, Icons.star_outline),
-                  (3, '按开始阅读时间排序'.tr, Icons.auto_stories_outlined),
-                  (4, '按出版时间排序'.tr, Icons.auto_stories_outlined),
-                ],
-                colors: colors,
-                onChanged: (v) { _setSortMode('book', v); setSheetState(() {}); },
-              ),
-            const SizedBox(height: 16),
-          ]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showNoteSheet() {
-    final colors = Theme.of(context).colorScheme;
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _sheetHandle(colors),
-            _sheetTitle('笔记布局'.tr, colors),
-            _sheetOptionRow(
-              label: '布局样式'.tr, selected: _noteLayout,
-              options: [(0, Icons.view_list_outlined, '列表'.tr), (1, Icons.grid_view_outlined, '瀑布流'.tr), (2, Icons.timeline_outlined, '时间线'.tr)],
-              onChanged: (v) { _setLayout('note', v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetDivider(colors),
-            _sheetSortSection(
-              title: '排序方式'.tr,
-              current: _noteSortMode,
-              options: [
-                (0, '按更新时间排序'.tr, Icons.update),
-                (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-              ],
-              colors: colors,
-              onChanged: (v) { _setSortMode('note', v); setSheetState(() {}); },
-            ),
-            const SizedBox(height: 16),
-          ]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showGameSheet() {
-    final colors = Theme.of(context).colorScheme;
-    appModalBottomSheet(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _sheetHandle(colors),
-            _sheetTitle('游戏布局'.tr, colors),
-            _sheetSwitchRow(
-              title: '封面显示日期'.tr, subtitle: '封面右下角显示发售日期'.tr,
-              value: _showGameCardDate, onChanged: (v) { _setShowGameCardDate(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetSwitchRow(
-              title: '显示标题'.tr, subtitle: '卡片上显示游戏名称'.tr,
-              value: _showGameTitle, onChanged: (v) { _setShowGameTitle(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetSwitchRow(
-              title: '显示评分'.tr, subtitle: '卡片上显示评分'.tr,
-              value: _showGameRating, onChanged: (v) { _setShowGameRating(v); setSheetState(() {}); }, colors: colors,
-            ),
-            _sheetDivider(colors),
-            _sheetOptionRow(
-              label: '显示模式'.tr, selected: _gameWallMode ? 1 : 0,
-              options: [
-                (0, Icons.sports_esports_outlined, '游玩状态'.tr),
-                (1, Icons.grid_view_outlined, '游戏墙'.tr),
-              ],
-              onChanged: (v) { _setWallMode('game', v == 1); setSheetState(() {}); },
-              colors: colors,
-            ),
-            if (!_gameWallMode) ...[
-              _sheetDivider(colors),
-              _sheetOptionRow(
-                label: '状态栏样式'.tr, selected: _gameStatusBarStyle,
-                options: [
-                  (0, Icons.circle, '胶囊'.tr),
-                  (1, Icons.format_underlined, '下划线'.tr),
-                  (2, Icons.square_outlined, '芯片'.tr),
-                  (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
-                ],
-                onChanged: (v) { _setStatusBarStyle('game', v); setSheetState(() {}); }, colors: colors,
-              ),
-            ],
-            _sheetDivider(colors),
-            _sheetOptionRow(
-              label: '布局样式'.tr, selected: _gameLayout,
-              options: [(0, Icons.grid_view_outlined, '海报网格'.tr), (1, Icons.view_list_outlined, '列表'.tr), (2, Icons.crop_landscape_outlined, '大图卡片'.tr), (3, Icons.date_range_outlined, '年份网格'.tr)],
-              onChanged: (v) { _setLayout('game', v); setSheetState(() {}); }, colors: colors,
-            ),
-            if (_gameLayout == 0 || _gameLayout == 3) ...[
-              _sheetDivider(colors),
-              _sheetOptionRow(
-                label: '每行数量'.tr, selected: _gameGridCount,
-                options: [
-                  (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
-                  (3, Icons.looks_3_outlined, '3'),
-                  (4, Icons.looks_4_outlined, '4'),
-                  (5, Icons.looks_5_outlined, '5'),
-                ],
-                onChanged: (v) { _setGridCount('game', v); setSheetState(() {}); }, colors: colors,
-              ),
-            ],
-            _sheetDivider(colors),
-            if (_gameLayout == 3)
-              _sheetSortLocked('年份网格布局固定按发售时间排序'.tr, colors)
-            else
-              _sheetSortSection(
-                title: '排序方式'.tr,
-                current: _gameSortMode,
-                options: [
-                  (0, '按更新时间排序'.tr, Icons.update),
-                  (1, '按创建时间排序'.tr, Icons.calendar_today_outlined),
-                  (2, '按游戏评分排序'.tr, Icons.star_outline),
-                  (3, '按发售时间排序'.tr, Icons.event_outlined),
-                  (4, '按通关时间排序'.tr, Icons.emoji_events_outlined),
-                ],
-                colors: colors,
-                onChanged: (v) { _setSortMode('game', v); setSheetState(() {}); },
-              ),
-            const SizedBox(height: 16),
-          ]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sheetHandle(ColorScheme colors) {
-    return Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 8),
-        decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)));
-  }
-
-  Widget _sheetTitle(String title, ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-      child: Align(alignment: Alignment.centerLeft,
-          child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
-    );
-  }
-
-  // ─── 状态更新 ──────────────────────────────────────────────────
-
-  void _setShowMovieCardDate(bool value) async {
-    await _userPrefs.setShowMovieCardDate(value);
-    setState(() => _showMovieCardDate = value);
-    if (mounted) context.read<AppProvider>().setShowMovieCardDate(value);
-  }
-
-  void _setShowBookCardDate(bool value) async {
-    await _userPrefs.setShowBookCardDate(value);
-    setState(() => _showBookCardDate = value);
-    if (mounted) context.read<AppProvider>().setShowBookCardDate(value);
-  }
-
-  void _setShowGameCardDate(bool value) async {
-    await _userPrefs.setShowGameCardDate(value);
-    setState(() => _showGameCardDate = value);
-    if (mounted) context.read<AppProvider>().setShowGameCardDate(value);
-  }
-
-  void _setShowMovieTitle(bool value) async {
-    await _userPrefs.setShowMovieTitle(value);
-    setState(() => _showMovieTitle = value);
-    if (mounted) context.read<AppProvider>().setShowMovieTitle(value);
-  }
-
-  void _setShowMovieRating(bool value) async {
-    await _userPrefs.setShowMovieRating(value);
-    setState(() => _showMovieRating = value);
-    if (mounted) context.read<AppProvider>().setShowMovieRating(value);
-  }
-
-  void _setShowBookTitle(bool value) async {
-    await _userPrefs.setShowBookTitle(value);
-    setState(() => _showBookTitle = value);
-    if (mounted) context.read<AppProvider>().setShowBookTitle(value);
-  }
-
-  void _setShowBookRating(bool value) async {
-    await _userPrefs.setShowBookRating(value);
-    setState(() => _showBookRating = value);
-    if (mounted) context.read<AppProvider>().setShowBookRating(value);
-  }
-
-  void _setShowGameTitle(bool value) async {
-    await _userPrefs.setShowGameTitle(value);
-    setState(() => _showGameTitle = value);
-    if (mounted) context.read<AppProvider>().setShowGameTitle(value);
-  }
-
-  void _setShowGameRating(bool value) async {
-    await _userPrefs.setShowGameRating(value);
-    setState(() => _showGameRating = value);
-    if (mounted) context.read<AppProvider>().setShowGameRating(value);
-  }
-
-  void _setWallMode(String type, bool value) async {
-    switch (type) {
-      case 'movie':
-        await _userPrefs.setMovieWallMode(value);
-        setState(() => _movieWallMode = value);
-        if (mounted) context.read<AppProvider>().setMovieWallMode(value);
-      case 'book':
-        await _userPrefs.setBookshelfMode(value);
-        setState(() => _bookshelfMode = value);
-        if (mounted) context.read<AppProvider>().setBookshelfMode(value);
-      case 'game':
-        await _userPrefs.setGameWallMode(value);
-        setState(() => _gameWallMode = value);
-        if (mounted) context.read<AppProvider>().setGameWallMode(value);
-    }
-  }
-
-  void _setDisplayMode(String type, int value) async {
-    switch (type) {
-      case 'movie':
-        await _userPrefs.setMovieDisplayMode(value);
-        setState(() => _movieDisplayMode = value);
-        if (mounted) context.read<AppProvider>().setMovieDisplayMode(value);
-      case 'book':
-        await _userPrefs.setBookDisplayMode(value);
-        setState(() => _bookDisplayMode = value);
-        if (mounted) context.read<AppProvider>().setBookDisplayMode(value);
-    }
-  }
-
-  void _setStatusBarStyle(String type, int value) async {
-    switch (type) {
-      case 'movie':
-        await _userPrefs.setMovieStatusBarStyle(value);
-        setState(() => _movieStatusBarStyle = value);
-        if (mounted) context.read<AppProvider>().setMovieStatusBarStyle(value);
-      case 'book':
-        await _userPrefs.setBookStatusBarStyle(value);
-        setState(() => _bookStatusBarStyle = value);
-        if (mounted) context.read<AppProvider>().setBookStatusBarStyle(value);
-      case 'game':
-        await _userPrefs.setGameStatusBarStyle(value);
-        setState(() => _gameStatusBarStyle = value);
-        if (mounted) context.read<AppProvider>().setGameStatusBarStyle(value);
-    }
-  }
-
-  void _setGridCount(String type, int value) async {
-    final provider = context.read<AppProvider>();
-    switch (type) {
-      case 'movie':
-        setState(() => _movieGridCount = value);
-        provider.setMovieGridCount(value);
-      case 'book':
-        setState(() => _bookGridCount = value);
-        provider.setBookGridCount(value);
-      case 'game':
-        setState(() => _gameGridCount = value);
-        provider.setGameGridCount(value);
-    }
-  }
-
-  void _setLayout(String type, int value) async {
-    switch (type) {
-      case 'note':
-        await _userPrefs.setNoteLayoutStyle(value);
-        setState(() => _noteLayout = value);
-      case 'movie':
-        await _userPrefs.setMovieLayoutStyle(value);
-        setState(() => _movieLayout = value);
-        if (mounted) context.read<AppProvider>().setMovieLayoutStyle(value);
-      case 'book':
-        await _userPrefs.setBookLayoutStyle(value);
-        setState(() => _bookLayout = value);
-        if (mounted) context.read<AppProvider>().setBookLayoutStyle(value);
-      case 'game':
-        await _userPrefs.setGameLayoutStyle(value);
-        setState(() => _gameLayout = value);
-        if (mounted) context.read<AppProvider>().setGameLayoutStyle(value);
-    }
-  }
-
-  void _setSortMode(String type, int value) async {
-    final provider = context.read<AppProvider>();
-    switch (type) {
-      case 'movie':
-        await _userPrefs.setMovieSortMode(value);
-        setState(() => _movieSortMode = value);
-        if (mounted) provider.loadMovies();
-      case 'book':
-        await _userPrefs.setBookSortMode(value);
-        setState(() => _bookSortMode = value);
-        if (mounted) provider.loadBooks();
-      case 'note':
-        await _userPrefs.setNoteSortMode(value);
-        setState(() => _noteSortMode = value);
-        if (mounted) provider.loadNotes();
-      case 'game':
-        await _userPrefs.setGameSortMode(value);
-        setState(() => _gameSortMode = value);
-        if (mounted) provider.loadGames();
-    }
   }
 }

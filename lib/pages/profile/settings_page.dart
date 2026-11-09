@@ -17,7 +17,6 @@ import 'app_icon_picker_page.dart';
 import 'appearance_settings_page.dart';
 import 'feature_settings_page.dart';
 import 'layout_settings_page.dart';
-import 'detail_module_settings_page.dart';
 import 'changelog_page.dart';
 import 'cache_cleaner_page.dart';
 import 'permissions_page.dart';
@@ -98,18 +97,6 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: '影视、阅读、笔记的展示样式'.tr,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.view_agenda_outlined,
-            title: '详情页设置'.tr,
-            subtitle: '详情页各模块的显示与排序'.tr,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const DetailModuleSettingsPage())),
           ),
           Divider(
               height: 0.5,

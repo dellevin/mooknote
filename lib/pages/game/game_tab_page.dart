@@ -488,8 +488,8 @@ class _GameTabViewState extends State<_GameTabView>
 
   Widget _buildListCard(Game game) {
     final colors = Theme.of(context).colorScheme;
-    final showTitle = context.select<AppProvider, bool>((p) => p.showGameTitle);
-    final showRating = context.select<AppProvider, bool>((p) => p.showGameRating);
+    final showTitle = context.read<AppProvider>().showGameTitle;
+    final showRating = context.read<AppProvider>().showGameRating;
     return GestureDetector(
       onTap: () => _onGameTap(game),
       onLongPress: () => _showDeleteDialog(context, game),
@@ -553,8 +553,8 @@ class _GameTabViewState extends State<_GameTabView>
 
   Widget _buildCoverCard(Game game) {
     final colors = Theme.of(context).colorScheme;
-    final showTitle = context.select<AppProvider, bool>((p) => p.showGameTitle);
-    final showRating = context.select<AppProvider, bool>((p) => p.showGameRating);
+    final showTitle = context.read<AppProvider>().showGameTitle;
+    final showRating = context.read<AppProvider>().showGameRating;
     return GestureDetector(
       onTap: () => _onGameTap(game),
       onLongPress: () => _showDeleteDialog(context, game),

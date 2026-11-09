@@ -56,7 +56,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   void initState() {
     super.initState();
     _showExactDate = UserPrefs().showExactReleaseDate;
-    _detailStyle = UserPrefs().detailPageStyle;
+    _detailStyle = UserPrefs().detailPageStyleForType('movie');
     _posterOffset.value = UserPrefs().getCoverOffset(widget.movie.id);
     _initEditControllers();
     _loadCharacters();
@@ -163,6 +163,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             },
           ));
         case 'extra':
+          if (!UserPrefs().getDetailExtraItems('movie').any((e) => e.visible)) {
+            break;
+          }
           if (!isFirst) {
             if (layout == 1) result.add(const SizedBox(height: 12));
             if (layout == 2) result.add(const SizedBox(height: 20));
@@ -748,8 +751,76 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
   }
 
   /// 浅色极简：更多（影评/海报墙/角色）卡片标题
+  /// 子项之间插入固定间距
+  List<Widget> _withGaps(List<Widget> widgets, double gap) => [
+        for (var i = 0; i < widgets.length; i++) ...[
+          widgets[i],
+          if (i < widgets.length - 1) SizedBox(height: gap),
+        ],
+      ];
+
+  /// 「更多入口」子项，按设置页配置排序/过滤。frosted=true 用于毛玻璃叠层样式。
+  List<Widget> _extraChildren(Movie movie, {required bool frosted}) {
+    Widget item({
+      required IconData icon,
+      required String title,
+      required Future<int> subtitleFuture,
+      required String emptyText,
+      required String unit,
+      required VoidCallback onTap,
+    }) =>
+        frosted
+            ? _buildFrostedExtraItem(
+                icon: icon, title: title, subtitleFuture: subtitleFuture,
+                emptyText: emptyText, unit: unit, onTap: onTap)
+            : _buildExtraSectionItem(
+                icon: icon, title: title, subtitleFuture: subtitleFuture,
+                emptyText: emptyText, unit: unit, onTap: onTap);
+
+    return [
+      for (final e in UserPrefs().getDetailExtraItems('movie'))
+        if (e.visible)
+          switch (e.id) {
+            'progress' => ProgressEntryCard(
+                parentId: movie.id,
+                parentTitle: movie.title,
+                config: ProgressConfig.movie,
+                icon: Icons.video_library_outlined,
+                frosted: frosted,
+              ),
+            'reviews' => item(
+                icon: Icons.rate_review_outlined,
+                title: '影评',
+                subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
+                emptyText: '暂无影评',
+                unit: '条影评',
+                onTap: () => _navigateToReviews(movie),
+              ),
+            'posters' => item(
+                icon: Icons.photo_library_outlined,
+                title: '海报墙',
+                subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
+                emptyText: '暂无海报',
+                unit: '张海报',
+                onTap: () => _navigateToPosters(movie),
+              ),
+            'characters' => item(
+                icon: Icons.people_outline,
+                title: '角色',
+                subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
+                emptyText: '暂无角色',
+                unit: '个角色',
+                onTap: () => _navigateToCharacters(movie),
+              ),
+            _ => const SizedBox.shrink(),
+          },
+    ];
+  }
+
   Widget _buildLayeredExtraSections(Movie movie) {
     final colors = Theme.of(context).colorScheme;
+    final children = _extraChildren(movie, frosted: false);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
@@ -757,39 +828,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
-      ProgressEntryCard(
-        parentId: movie.id,
-        parentTitle: movie.title,
-        config: ProgressConfig.movie,
-        icon: Icons.video_library_outlined,
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.rate_review_outlined,
-        title: '影评',
-        subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
-        emptyText: '暂无影评',
-        unit: '条影评',
-        onTap: () => _navigateToReviews(movie),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.photo_library_outlined,
-        title: '海报墙',
-        subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
-        emptyText: '暂无海报',
-        unit: '张海报',
-        onTap: () => _navigateToPosters(movie),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.people_outline,
-        title: '角色',
-        subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
-        emptyText: '暂无角色',
-        unit: '个角色',
-        onTap: () => _navigateToCharacters(movie),
-      ),
+      ..._withGaps(children, 10),
     ]);
   }
 
@@ -886,7 +925,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               trailing: _detailStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyle(i); Navigator.pop(ctx); },
+              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyleForType('movie', i); Navigator.pop(ctx); },
             ),
           ],
           const SizedBox(height: 12),
@@ -1492,6 +1531,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   Widget _buildExtraSections(Movie movie) {
     final colors = Theme.of(context).colorScheme;
+    final children = _extraChildren(movie, frosted: false);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1519,39 +1560,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             ],
           ),
           const SizedBox(height: 16),
-          ProgressEntryCard(
-            parentId: movie.id,
-            parentTitle: movie.title,
-            config: ProgressConfig.movie,
-            icon: Icons.video_library_outlined,
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.rate_review_outlined,
-            title: '影评',
-            subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
-            emptyText: '暂无影评',
-            unit: '条影评',
-            onTap: () => _navigateToReviews(movie),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.photo_library_outlined,
-            title: '海报墙',
-            subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
-            emptyText: '暂无海报',
-            unit: '张海报',
-            onTap: () => _navigateToPosters(movie),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.people_outline,
-            title: '角色',
-            subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
-            emptyText: '暂无角色',
-            unit: '个角色',
-            onTap: () => _navigateToCharacters(movie),
-          ),
+          ..._withGaps(children, 12),
         ],
       ),
     );
@@ -1559,45 +1568,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   /// 叠层模式：影评、海报墙各自独立毛玻璃卡片
   Widget _buildExtraSectionsOverlay(Movie movie) {
+    final children = _extraChildren(movie, frosted: true);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
-        children: [
-          ProgressEntryCard(
-            parentId: movie.id,
-            parentTitle: movie.title,
-            config: ProgressConfig.movie,
-            icon: Icons.video_library_outlined,
-            frosted: true,
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.rate_review_outlined,
-            title: '影评',
-            subtitleFuture: context.read<AppProvider>().getMovieReviewCount(movie.id),
-            emptyText: '暂无影评',
-            unit: '条影评',
-            onTap: () => _navigateToReviews(movie),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.photo_library_outlined,
-            title: '海报墙',
-            subtitleFuture: context.read<AppProvider>().getMoviePosterCount(movie.id),
-            emptyText: '暂无海报',
-            unit: '张海报',
-            onTap: () => _navigateToPosters(movie),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.people_outline,
-            title: '角色',
-            subtitleFuture: context.read<AppProvider>().getMovieCharacterCount(movie.id),
-            emptyText: '暂无角色',
-            unit: '个角色',
-            onTap: () => _navigateToCharacters(movie),
-          ),
-        ],
+        children: _withGaps(children, 12),
       ),
     );
   }

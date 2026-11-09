@@ -70,7 +70,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   @override
   void initState() {
     super.initState();
-    _detailStyle = UserPrefs().detailPageStyle;
+    _detailStyle = UserPrefs().detailPageStyleForType('book');
     _coverOffset.value = UserPrefs().getCoverOffset(widget.book.id);
     _initEditControllers();
     _loadCharacters();
@@ -177,6 +177,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
             },
           ));
         case 'extra':
+          if (!UserPrefs().getDetailExtraItems('book').any((e) => e.visible)) {
+            break;
+          }
           if (!isFirst) {
             if (layout == 1) result.add(const SizedBox(height: 12));
             if (layout == 2) result.add(const SizedBox(height: 20));
@@ -713,8 +716,76 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   /// 浅色极简：更多（书评/摘抄/角色）
+  /// 子项之间插入固定间距
+  List<Widget> _withGaps(List<Widget> widgets, double gap) => [
+        for (var i = 0; i < widgets.length; i++) ...[
+          widgets[i],
+          if (i < widgets.length - 1) SizedBox(height: gap),
+        ],
+      ];
+
+  /// 「更多入口」子项，按设置页配置排序/过滤。frosted=true 用于毛玻璃叠层样式。
+  List<Widget> _extraChildren(Book book, {required bool frosted}) {
+    Widget item({
+      required IconData icon,
+      required String title,
+      required Future<int> subtitleFuture,
+      required String emptyText,
+      required String unit,
+      required VoidCallback onTap,
+    }) =>
+        frosted
+            ? _buildFrostedExtraItem(
+                icon: icon, title: title, subtitleFuture: subtitleFuture,
+                emptyText: emptyText, unit: unit, onTap: onTap)
+            : _buildExtraSectionItem(
+                icon: icon, title: title, subtitleFuture: subtitleFuture,
+                emptyText: emptyText, unit: unit, onTap: onTap);
+
+    return [
+      for (final e in UserPrefs().getDetailExtraItems('book'))
+        if (e.visible)
+          switch (e.id) {
+            'progress' => ProgressEntryCard(
+                parentId: book.id,
+                parentTitle: book.title,
+                config: ProgressConfig.book,
+                icon: Icons.menu_book_outlined,
+                frosted: frosted,
+              ),
+            'reviews' => item(
+                icon: Icons.rate_review_outlined,
+                title: '书评'.tr,
+                subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
+                emptyText: '暂无书评'.tr,
+                unit: '条书评'.tr,
+                onTap: () => _navigateToReviews(book),
+              ),
+            'excerpts' => item(
+                icon: Icons.format_quote_outlined,
+                title: '摘抄'.tr,
+                subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
+                emptyText: '暂无摘抄'.tr,
+                unit: '条摘抄'.tr,
+                onTap: () => _navigateToExcerpts(book),
+              ),
+            'characters' => item(
+                icon: Icons.people_outline,
+                title: '角色'.tr,
+                subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
+                emptyText: '暂无角色'.tr,
+                unit: '个角色'.tr,
+                onTap: () => _navigateToCharacters(book),
+              ),
+            _ => const SizedBox.shrink(),
+          },
+    ];
+  }
+
   Widget _buildLayeredExtraSections(Book book) {
     final colors = Theme.of(context).colorScheme;
+    final children = _extraChildren(book, frosted: false);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
@@ -722,39 +793,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
-      ProgressEntryCard(
-        parentId: book.id,
-        parentTitle: book.title,
-        config: ProgressConfig.book,
-        icon: Icons.menu_book_outlined,
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.rate_review_outlined,
-        title: '书评'.tr,
-        subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-        emptyText: '暂无书评'.tr,
-        unit: '条书评'.tr,
-        onTap: () => _navigateToReviews(book),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.format_quote_outlined,
-        title: '摘抄'.tr,
-        subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-        emptyText: '暂无摘抄'.tr,
-        unit: '条摘抄'.tr,
-        onTap: () => _navigateToExcerpts(book),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.people_outline,
-        title: '角色'.tr,
-        subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-        emptyText: '暂无角色'.tr,
-        unit: '个角色'.tr,
-        onTap: () => _navigateToCharacters(book),
-      ),
+      ..._withGaps(children, 10),
     ]);
   }
 
@@ -1078,7 +1117,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               trailing: _detailStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyle(i); Navigator.pop(ctx); },
+              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyleForType('book', i); Navigator.pop(ctx); },
             ),
           ],
           const SizedBox(height: 12),
@@ -1644,6 +1683,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Widget _buildExtraSections(Book book) {
     final colors = Theme.of(context).colorScheme;
+    final children = _extraChildren(book, frosted: false);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1671,39 +1712,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ],
           ),
           const SizedBox(height: 16),
-          ProgressEntryCard(
-            parentId: book.id,
-            parentTitle: book.title,
-            config: ProgressConfig.book,
-            icon: Icons.menu_book_outlined,
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.rate_review_outlined,
-            title: '书评'.tr,
-            subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-            emptyText: '暂无书评'.tr,
-            unit: '条书评'.tr,
-            onTap: () => _navigateToReviews(book),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.format_quote_outlined,
-            title: '摘抄'.tr,
-            subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-            emptyText: '暂无摘抄'.tr,
-            unit: '条摘抄'.tr,
-            onTap: () => _navigateToExcerpts(book),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.people_outline,
-            title: '角色'.tr,
-            subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-            emptyText: '暂无角色'.tr,
-            unit: '个角色'.tr,
-            onTap: () => _navigateToCharacters(book),
-          ),
+          ..._withGaps(children, 12),
         ],
       ),
     );
@@ -1711,45 +1720,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   /// 叠层模式：书评、摘抄各自独立毛玻璃卡片
   Widget _buildExtraSectionsOverlay(Book book) {
+    final children = _extraChildren(book, frosted: true);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
-        children: [
-          ProgressEntryCard(
-            parentId: book.id,
-            parentTitle: book.title,
-            config: ProgressConfig.book,
-            icon: Icons.menu_book_outlined,
-            frosted: true,
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.rate_review_outlined,
-            title: '书评'.tr,
-            subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-            emptyText: '暂无书评'.tr,
-            unit: '条书评'.tr,
-            onTap: () => _navigateToReviews(book),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.format_quote_outlined,
-            title: '摘抄'.tr,
-            subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
-            emptyText: '暂无摘抄'.tr,
-            unit: '条摘抄'.tr,
-            onTap: () => _navigateToExcerpts(book),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.people_outline,
-            title: '角色'.tr,
-            subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-            emptyText: '暂无角色'.tr,
-            unit: '个角色'.tr,
-            onTap: () => _navigateToCharacters(book),
-          ),
-        ],
+        children: _withGaps(children, 12),
       ),
     );
   }

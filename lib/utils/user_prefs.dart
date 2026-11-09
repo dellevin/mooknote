@@ -105,6 +105,12 @@ class UserPrefs {
   int get detailPageStyle => prefs.getInt('detailPageStyle') ?? 0;
   Future<bool> setDetailPageStyle(int value) => prefs.setInt('detailPageStyle', value);
 
+  /// 按模块（movie/book/game）独立保存的详情页样式；未设置过则回退到全局 detailPageStyle
+  int detailPageStyleForType(String type) =>
+      prefs.getInt('detailPageStyle_$type') ?? detailPageStyle;
+  Future<bool> setDetailPageStyleForType(String type, int value) =>
+      prefs.setInt('detailPageStyle_$type', value);
+
   // ========== 详情页模块配置 ==========
 
   /// 详情页可配置模块（顺序即默认显示顺序）
@@ -146,6 +152,45 @@ class UserPrefs {
     return prefs.setString(
       'detailModules_$type',
       jsonEncode([for (final m in modules) {'id': m.id, 'visible': m.visible}]),
+    );
+  }
+
+  /// 详情页「更多入口」内可配置子项（顺序即默认显示顺序）
+  static const Map<String, List<String>> detailExtraItemIds = {
+    'movie': ['progress', 'reviews', 'posters', 'characters'],
+    'book': ['progress', 'reviews', 'excerpts', 'characters'],
+    'game': ['progress', 'reviews', 'screenshots', 'characters'],
+  };
+
+  /// 获取「更多入口」子项配置（按显示顺序），type: movie / book / game。
+  /// 未保存过的新子项自动以"显示"状态追加到末尾。
+  List<({String id, bool visible})> getDetailExtraItems(String type) {
+    final defaults = detailExtraItemIds[type] ?? const <String>[];
+    final saved = <({String id, bool visible})>[];
+    final raw = prefs.getString('detailExtraItems_$type');
+    if (raw != null) {
+      try {
+        for (final e in jsonDecode(raw) as List) {
+          final id = (e as Map)['id']?.toString() ?? '';
+          if (defaults.contains(id) && !saved.any((m) => m.id == id)) {
+            saved.add((id: id, visible: e['visible'] != false));
+          }
+        }
+      } catch (_) {}
+    }
+    final savedIds = saved.map((m) => m.id).toSet();
+    return [
+      ...saved,
+      for (final id in defaults)
+        if (!savedIds.contains(id)) (id: id, visible: true),
+    ];
+  }
+
+  /// 保存「更多入口」子项配置，type: movie / book / game
+  Future<bool> setDetailExtraItems(String type, List<({String id, bool visible})> items) {
+    return prefs.setString(
+      'detailExtraItems_$type',
+      jsonEncode([for (final m in items) {'id': m.id, 'visible': m.visible}]),
     );
   }
 

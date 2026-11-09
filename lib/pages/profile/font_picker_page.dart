@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
@@ -32,7 +33,11 @@ class _FontPickerPageState extends State<FontPickerPage> {
   @override
   void initState() {
     super.initState();
-    _selectedFamily = widget.initialFamily;
+    // 进入即高亮当前应用字体（initialFamily 通常为空，实际值存在 UserPrefs）
+    _selectedFamily =
+        (widget.initialFamily != null && widget.initialFamily!.isNotEmpty)
+            ? widget.initialFamily
+            : UserPrefs().fontFamily;
     // 恢复上次选择的目录
     final savedDir = UserPrefs().lastFontDir;
     if (savedDir != null && savedDir.isNotEmpty) {
@@ -194,86 +199,97 @@ class _FontPickerPageState extends State<FontPickerPage> {
         children: [
           // 选择目录按钮区
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: colors.surface,
-              border: Border(
-                bottom: BorderSide(color: colors.outlineVariant, width: 0.5),
-              ),
+              color: colors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.5),
+                  width: 0.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '字体目录'.tr,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
-                      child: InkWell(
-                        onTap: _onSelectDirectory,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.folder_open_outlined,
-                                size: 18,
-                                color: colors.onSurface.withValues(alpha: 0.5),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _currentDirPath ?? '点击选择字体目录'.tr,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: _currentDirPath != null
-                                        ? colors.onSurface
-                                        : colors.onSurface.withValues(alpha: 0.3),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 18,
-                                color: colors.onSurface.withValues(alpha: 0.3),
-                              ),
-                            ],
-                          ),
+                      child: Text(
+                        '字体目录'.tr,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
+                    ElevatedButton.icon(
                       onPressed: _rescanDirectory,
+                      icon: Icon(Icons.refresh,
+                          size: 16, color: colors.onPrimary),
+                      label: Text('扫描'.tr,
+                          style: const TextStyle(fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
                         foregroundColor: colors.onPrimary,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
+                            horizontal: 14, vertical: 7),
+                        minimumSize: Size.zero,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Text('扫描'.tr, style: const TextStyle(fontSize: 13)),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: _onSelectDirectory,
+                  onLongPress: _currentDirPath == null
+                      ? null
+                      : () {
+                          Clipboard.setData(
+                              ClipboardData(text: _currentDirPath!));
+                          ToastUtil.show(context, '已复制'.tr);
+                        },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 1),
+                          child: Icon(Icons.folder_open_outlined,
+                              size: 18, color: colors.primary),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _currentDirPath ?? '点击选择字体目录'.tr,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.4,
+                              color: _currentDirPath != null
+                                  ? colors.onSurface
+                                  : colors.onSurface.withValues(alpha: 0.3),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.chevron_right,
+                            size: 18,
+                            color: colors.onSurface.withValues(alpha: 0.3)),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -290,19 +306,11 @@ class _FontPickerPageState extends State<FontPickerPage> {
                   )
                 : _fonts.isEmpty
                     ? _buildEmptyState(colors)
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                         itemCount: _fonts.length,
-                        separatorBuilder: (_, __) => Divider(
-                          height: 0.5,
-                          indent: 20,
-                          endIndent: 20,
-                          color: colors.outlineVariant,
-                        ),
-                        itemBuilder: (_, index) => _buildFontItem(
-                          _fonts[index],
-                          colors,
-                        ),
+                        itemBuilder: (_, index) =>
+                            _buildFontItem(_fonts[index], colors),
                       ),
           ),
         ],
@@ -315,17 +323,25 @@ class _FontPickerPageState extends State<FontPickerPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.folder_open_outlined,
-            size: 48,
-            color: colors.onSurface.withValues(alpha: 0.15),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.font_download_outlined,
+              size: 34,
+              color: colors.onSurface.withValues(alpha: 0.25),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
             '未找到字体文件'.tr,
             style: TextStyle(
               fontSize: 14,
-              color: colors.onSurface.withValues(alpha: 0.4),
+              color: colors.onSurface.withValues(alpha: 0.45),
             ),
           ),
           const SizedBox(height: 4),
@@ -343,63 +359,93 @@ class _FontPickerPageState extends State<FontPickerPage> {
 
   Widget _buildFontItem(FontFileInfo font, ColorScheme colors) {
     final isLoading = _loadingPath == font.path;
-    final isSelected = _selectedFamily != null &&
-        path.basenameWithoutExtension(font.fileName) == _selectedFamily;
+    final family = path.basenameWithoutExtension(font.fileName);
+    final isSelected = family == _selectedFamily;
+    // 已注册（当前应用或本次点过）的字体才能用自身字形做真实预览
+    final loaded = _fontManager.isFamilyLoaded(family);
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colors.primary.withValues(alpha: 0.1)
-              : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
-          border: isSelected
-              ? Border.all(color: colors.primary.withValues(alpha: 0.3), width: 1)
-              : null,
-        ),
-        child: isLoading
-            ? Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: colors.primary,
-                  ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? colors.primary.withValues(alpha: 0.08)
+            : colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isSelected
+                ? colors.primary.withValues(alpha: 0.5)
+                : colors.outlineVariant.withValues(alpha: 0.4),
+            width: isSelected ? 1 : 0.5),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: isLoading ? null : () => _loadFont(font),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              )
-            : Icon(
-                Icons.font_download_outlined,
-                size: 18,
-                color: isSelected
-                    ? colors.primary
-                    : colors.onSurface.withValues(alpha: 0.5),
+                child: isLoading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: colors.primary),
+                      )
+                    : Text('Aa',
+                        style: TextStyle(
+                          fontFamily: loaded ? family : null,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface.withValues(alpha: 0.75),
+                        )),
               ),
-      ),
-      title: Text(
-        font.displayName,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          color: colors.onSurface,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      font.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: loaded ? family : null,
+                        fontSize: 17,
+                        height: 1.2,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      font.fileName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.35),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (isSelected)
+                Icon(Icons.check_rounded, size: 20, color: colors.primary),
+            ],
+          ),
         ),
       ),
-      subtitle: Text(
-        font.fileName,
-        style: TextStyle(
-          fontSize: 11,
-          color: colors.onSurface.withValues(alpha: 0.35),
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: isSelected
-          ? Icon(Icons.check_circle, size: 18, color: colors.primary)
-          : null,
-      onTap: isLoading ? null : () => _loadFont(font),
     );
   }
 }

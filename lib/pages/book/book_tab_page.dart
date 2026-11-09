@@ -506,8 +506,8 @@ class _BookTabViewState extends State<_BookTabView>
 
   Widget _buildListCard(Book book) {
     final colors = Theme.of(context).colorScheme;
-    final showTitle = context.select<AppProvider, bool>((p) => p.showBookTitle);
-    final showRating = context.select<AppProvider, bool>((p) => p.showBookRating);
+    final showTitle = context.read<AppProvider>().showBookTitle;
+    final showRating = context.read<AppProvider>().showBookRating;
     return GestureDetector(
       onTap: () => _onBookTap(book),
       onLongPress: () => _showDeleteDialog(context, book),
@@ -565,8 +565,8 @@ class _BookTabViewState extends State<_BookTabView>
 
   Widget _buildCoverCard(Book book) {
     final colors = Theme.of(context).colorScheme;
-    final showTitle = context.select<AppProvider, bool>((p) => p.showBookTitle);
-    final showRating = context.select<AppProvider, bool>((p) => p.showBookRating);
+    final showTitle = context.read<AppProvider>().showBookTitle;
+    final showRating = context.read<AppProvider>().showBookRating;
     return GestureDetector(
       onTap: () => _onBookTap(book),
       onLongPress: () => _showDeleteDialog(context, book),

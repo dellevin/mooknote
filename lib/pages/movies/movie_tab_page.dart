@@ -508,8 +508,8 @@ class _MovieTabViewState extends State<_MovieTabView>
 
   Widget _buildListCard(Movie movie) {
     final colors = Theme.of(context).colorScheme;
-    final showTitle = context.select<AppProvider, bool>((p) => p.showMovieTitle);
-    final showRating = context.select<AppProvider, bool>((p) => p.showMovieRating);
+    final showTitle = context.read<AppProvider>().showMovieTitle;
+    final showRating = context.read<AppProvider>().showMovieRating;
     return GestureDetector(
       onTap: () => _onMovieTap(movie),
       onLongPress: () => _showDeleteDialog(context, movie),
@@ -575,8 +575,8 @@ class _MovieTabViewState extends State<_MovieTabView>
 
   Widget _buildCoverCard(Movie movie) {
     final colors = Theme.of(context).colorScheme;
-    final showTitle = context.select<AppProvider, bool>((p) => p.showMovieTitle);
-    final showRating = context.select<AppProvider, bool>((p) => p.showMovieRating);
+    final showTitle = context.read<AppProvider>().showMovieTitle;
+    final showRating = context.read<AppProvider>().showMovieRating;
     return GestureDetector(
       onTap: () => _onMovieTap(movie),
       onLongPress: () => _showDeleteDialog(context, movie),

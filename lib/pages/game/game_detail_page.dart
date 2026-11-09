@@ -61,7 +61,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
   @override
   void initState() {
     super.initState();
-    _detailStyle = UserPrefs().detailPageStyle;
+    _detailStyle = UserPrefs().detailPageStyleForType('game');
     _coverOffset.value = UserPrefs().getCoverOffset(widget.game.id);
     _initEditControllers();
     _detectCoverAspect();
@@ -188,6 +188,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
             },
           ));
         case 'extra':
+          if (!UserPrefs().getDetailExtraItems('game').any((e) => e.visible)) {
+            break;
+          }
           if (!isFirst) {
             if (layout == 1) result.add(const SizedBox(height: 12));
             if (layout == 2) result.add(const SizedBox(height: 20));
@@ -852,8 +855,76 @@ class _GameDetailPageState extends State<GameDetailPage> {
   }
 
   /// 浅色极简：更多（评价/截图/角色）
+  /// 子项之间插入固定间距
+  List<Widget> _withGaps(List<Widget> widgets, double gap) => [
+        for (var i = 0; i < widgets.length; i++) ...[
+          widgets[i],
+          if (i < widgets.length - 1) SizedBox(height: gap),
+        ],
+      ];
+
+  /// 「更多入口」子项，按设置页配置排序/过滤。frosted=true 用于毛玻璃叠层样式。
+  List<Widget> _extraChildren(Game game, {required bool frosted}) {
+    Widget item({
+      required IconData icon,
+      required String title,
+      required Future<int> subtitleFuture,
+      required String emptyText,
+      required String unit,
+      required VoidCallback onTap,
+    }) =>
+        frosted
+            ? _buildFrostedExtraItem(
+                icon: icon, title: title, subtitleFuture: subtitleFuture,
+                emptyText: emptyText, unit: unit, onTap: onTap)
+            : _buildExtraSectionItem(
+                icon: icon, title: title, subtitleFuture: subtitleFuture,
+                emptyText: emptyText, unit: unit, onTap: onTap);
+
+    return [
+      for (final e in UserPrefs().getDetailExtraItems('game'))
+        if (e.visible)
+          switch (e.id) {
+            'progress' => ProgressEntryCard(
+                parentId: game.id,
+                parentTitle: game.title,
+                config: ProgressConfig.game,
+                icon: Icons.flag_outlined,
+                frosted: frosted,
+              ),
+            'reviews' => item(
+                icon: Icons.rate_review_outlined,
+                title: '游戏评价',
+                subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
+                emptyText: '暂无评价',
+                unit: '条评价',
+                onTap: () => _navigateToReviews(game),
+              ),
+            'screenshots' => item(
+                icon: Icons.photo_library_outlined,
+                title: '游戏截图',
+                subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
+                emptyText: '暂无截图',
+                unit: '张截图',
+                onTap: () => _navigateToScreenshots(game),
+              ),
+            'characters' => item(
+                icon: Icons.people_outline,
+                title: '角色',
+                subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
+                emptyText: '暂无角色',
+                unit: '个角色',
+                onTap: () => _navigateToCharacters(game),
+              ),
+            _ => const SizedBox.shrink(),
+          },
+    ];
+  }
+
   Widget _buildLayeredExtraSections(Game game) {
     final colors = Theme.of(context).colorScheme;
+    final children = _extraChildren(game, frosted: false);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
@@ -861,39 +932,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
         Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
-      ProgressEntryCard(
-        parentId: game.id,
-        parentTitle: game.title,
-        config: ProgressConfig.game,
-        icon: Icons.flag_outlined,
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.rate_review_outlined,
-        title: '游戏评价',
-        subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
-        emptyText: '暂无评价',
-        unit: '条评价',
-        onTap: () => _navigateToReviews(game),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.photo_library_outlined,
-        title: '游戏截图',
-        subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
-        emptyText: '暂无截图',
-        unit: '张截图',
-        onTap: () => _navigateToScreenshots(game),
-      ),
-      const SizedBox(height: 10),
-      _buildExtraSectionItem(
-        icon: Icons.people_outline,
-        title: '角色',
-        subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
-        emptyText: '暂无角色',
-        unit: '个角色',
-        onTap: () => _navigateToCharacters(game),
-      ),
+      ..._withGaps(children, 10),
     ]);
   }
 
@@ -992,45 +1031,12 @@ class _GameDetailPageState extends State<GameDetailPage> {
   }
 
   Widget _buildExtraSectionsOverlay(Game game) {
+    final children = _extraChildren(game, frosted: true);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
-        children: [
-          ProgressEntryCard(
-            parentId: game.id,
-            parentTitle: game.title,
-            config: ProgressConfig.game,
-            icon: Icons.flag_outlined,
-            frosted: true,
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.rate_review_outlined,
-            title: '游戏评价',
-            subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
-            emptyText: '暂无评价',
-            unit: '条评价',
-            onTap: () => _navigateToReviews(game),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.photo_library_outlined,
-            title: '游戏截图',
-            subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
-            emptyText: '暂无截图',
-            unit: '张截图',
-            onTap: () => _navigateToScreenshots(game),
-          ),
-          const SizedBox(height: 12),
-          _buildFrostedExtraItem(
-            icon: Icons.people_outline,
-            title: '角色',
-            subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
-            emptyText: '暂无角色',
-            unit: '个角色',
-            onTap: () => _navigateToCharacters(game),
-          ),
-        ],
+        children: _withGaps(children, 12),
       ),
     );
   }
@@ -1435,6 +1441,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
 
   Widget _buildExtraSections(Game game) {
     final colors = Theme.of(context).colorScheme;
+    final children = _extraChildren(game, frosted: false);
+    if (children.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1451,39 +1459,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
             ],
           ),
           const SizedBox(height: 16),
-          ProgressEntryCard(
-            parentId: game.id,
-            parentTitle: game.title,
-            config: ProgressConfig.game,
-            icon: Icons.flag_outlined,
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.rate_review_outlined,
-            title: '游戏评价',
-            subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
-            emptyText: '暂无评价',
-            unit: '条评价',
-            onTap: () => _navigateToReviews(game),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.photo_library_outlined,
-            title: '游戏截图',
-            subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
-            emptyText: '暂无截图',
-            unit: '张截图',
-            onTap: () => _navigateToScreenshots(game),
-          ),
-          const SizedBox(height: 12),
-          _buildExtraSectionItem(
-            icon: Icons.people_outline,
-            title: '角色',
-            subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
-            emptyText: '暂无角色',
-            unit: '个角色',
-            onTap: () => _navigateToCharacters(game),
-          ),
+          ..._withGaps(children, 12),
         ],
       ),
     );
@@ -1570,7 +1546,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
 
   void _showStylePicker() {
     final colors = Theme.of(context).colorScheme;
-    final currentStyle = UserPrefs().detailPageStyle;
+    final currentStyle = UserPrefs().detailPageStyleForType('game');
     const names = ['默认样式', '毛玻璃层叠', '浅色极简', '豆瓣风格'];
     const icons = [Icons.article_outlined, Icons.blur_on_outlined, Icons.layers_outlined, Icons.art_track_outlined];
     const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片', '封面卡片 + 浅色信息卡片层叠', '封面左置 + 模糊背景信息头'];
@@ -1596,7 +1572,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
               trailing: currentStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
                   : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyle(i); Navigator.pop(ctx); },
+              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyleForType('game', i); Navigator.pop(ctx); },
             ),
           ],
           const SizedBox(height: 12),

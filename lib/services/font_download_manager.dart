@@ -18,6 +18,9 @@ class FontDownloadManager {
   /// 上次加载失败的具体原因（供 UI 提示）
   String? lastError;
 
+  /// 该 family 是否已注册到 Flutter（已注册的字体可直接用于字形预览）
+  bool isFamilyLoaded(String family) => _loadedFonts.contains(family);
+
   /// 支持的字体文件扩展名
   static const List<String> _fontExtensions = ['.ttf', '.otf', '.ttc'];
 
