@@ -81,7 +81,9 @@ class _MovieTabPageState extends State<MovieTabPage> {
         if (!isWallMode)
           provider.movieDisplayMode == 1
               ? const MovieCategoryBar()
-              : const MovieStatusBar(),
+              : (provider.movieStatusBarStyle != 4
+                  ? const MovieStatusBar()
+                  : const SizedBox.shrink()),
         Expanded(
           child: Stack(
             children: [

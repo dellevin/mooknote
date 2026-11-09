@@ -218,26 +218,6 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     });
   }
 
-  /// 浅色玻璃卡片容器（半透明 + 细边框 + 轻阴影）
-  Widget _glassCard({required Widget child, EdgeInsets padding = EdgeInsets.zero}) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.06), width: 0.7),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Padding(padding: padding, child: child),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -257,19 +237,11 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
             child: Column(
               children: [
                 _buildMonthHeader(colors),
-                const SizedBox(height: 10),
-                _glassCard(
-                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildWeekdayLabels(colors),
-                      const SizedBox(height: 6),
-                      _buildCalendarArea(colors, today, constraints.maxWidth),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
+                _buildWeekdayLabels(colors),
+                const SizedBox(height: 6),
+                _buildCalendarArea(colors, today, constraints.maxWidth),
+                const SizedBox(height: 12),
                 Expanded(child: _buildSelectedDayDetail(colors)),
               ],
             ),
@@ -277,10 +249,15 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
         },
       ),
       floatingActionButton: _selectedDay != null
-          ? FloatingActionButton(
-              onPressed: () => _showAddMenu(context),
-              backgroundColor: colors.primary,
-              child: Icon(Icons.add, color: colors.onPrimary),
+          ? Padding(
+              // 避让首页悬浮 Dock 底栏（Dock 高 68 + 外围留白 + 安全区）
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 92),
+              child: FloatingActionButton(
+                onPressed: () => _showAddMenu(context),
+                backgroundColor: colors.primary,
+                child: Icon(Icons.add, color: colors.onPrimary),
+              ),
             )
           : null,
     );
@@ -330,14 +307,23 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     return PopupMenuButton<int>(
       initialValue: _dateMode,
       tooltip: '日期类型'.tr,
-      icon: Icon(
-        _dateMode == 0 ? Icons.edit_calendar_outlined : Icons.visibility_outlined,
-        color: colors.onSurface.withValues(alpha: 0.75),
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 320),
+        transitionBuilder: (child, animation) => RotationTransition(
+          turns: Tween<double>(begin: 0.75, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+          child: FadeTransition(opacity: animation, child: child),
+        ),
+        child: Icon(
+          _dateMode == 0 ? Icons.event_note_outlined : Icons.history_rounded,
+          key: ValueKey(_dateMode),
+          color: colors.onSurface.withValues(alpha: 0.75),
+        ),
       ),
       onSelected: _setDateMode,
       itemBuilder: (_) => [
-        PopupMenuItem(value: 0, child: _modeMenuRow(colors, Icons.calendar_today_outlined, '创建日期'.tr, 0)),
-        PopupMenuItem(value: 1, child: _modeMenuRow(colors, Icons.visibility_outlined, '观看/阅读'.tr, 1)),
+        PopupMenuItem(value: 0, child: _modeMenuRow(colors, Icons.event_note_outlined, '创建日期'.tr, 0)),
+        PopupMenuItem(value: 1, child: _modeMenuRow(colors, Icons.history_rounded, '观看/阅读'.tr, 1)),
       ],
     );
   }
@@ -381,8 +367,8 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
   /// 日历区域：横滑切月 + 切月滑动淡入过渡
   Widget _buildCalendarArea(ColorScheme colors, DateTime today, double maxWidth) {
-    // 外层 padding 12*2 + 卡片内 padding 10*2 + 7 格间 6 个 3px 间距
-    final cellWidth = (maxWidth - 24 - 20 - 18) / 7;
+    // 外层 padding 12*2，7 格每格左右各 3px margin（共 42）
+    final cellWidth = (maxWidth - 42) / 7;
     // 竖向长方形格子（接近海报感），高度随屏宽浮动并上下限幅
     final cellHeight = (cellWidth * 1.24).clamp(54.0, 86.0);
 
@@ -633,47 +619,39 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     }
     final items = _dayItems[_selectedDay] ?? [];
 
-    return _glassCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-            child: Row(
-              children: [
-                Text(
-                  '{m}月{d}日'.trf({'m': _selectedDay!.month, 'd': _selectedDay!.day}),
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurface),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '{n}条记录'.trf({'n': items.length}),
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.primary),
-                  ),
-                ),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 扁平小标题：日期 + 灰色记录数，无药丸底色
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+          child: Row(
+            children: [
+              Text(
+                '{m}月{d}日'.trf({'m': _selectedDay!.month, 'd': _selectedDay!.day}),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurface),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '{n}条记录'.trf({'n': items.length}),
+                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+              ),
+            ],
           ),
-          Expanded(
-            child: items.isEmpty
-                ? _buildEmptyDetail(colors)
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => Divider(height: 1, indent: 74, color: colors.onSurface.withValues(alpha: 0.06)),
-                    itemBuilder: (_, i) {
-                      final item = items[i];
-                      final accent = _typeColor(item.type);
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
+        ),
+        Divider(height: 1, color: colors.onSurface.withValues(alpha: 0.08)),
+        Expanded(
+          child: items.isEmpty
+              ? _buildEmptyDetail(colors)
+              : ListView.separated(
+                  padding: const EdgeInsets.only(top: 4, bottom: 12),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => Divider(height: 1, indent: 74, color: colors.onSurface.withValues(alpha: 0.06)),
+                  itemBuilder: (_, i) {
+                    final item = items[i];
+                    final accent = _typeColor(item.type);
+                    return InkWell(
+                      onTap: () {
                           if (item.type == 'movie') {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));
                           } else if (item.type == 'book') {
@@ -683,7 +661,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                           }
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                           child: Row(
                             children: [
                               // 2:3 海报缩略卡
@@ -730,9 +708,8 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                       );
                     },
                   ),
-          ),
+        ),
         ],
-      ),
     );
   }
 

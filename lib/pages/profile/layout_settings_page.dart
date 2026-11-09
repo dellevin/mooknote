@@ -101,7 +101,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     } else {
       parts.add(_userPrefs.movieDisplayMode == 1 ? '分类状态'.tr : '观看状态'.tr);
       if (_userPrefs.movieDisplayMode == 0) {
-        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_userPrefs.movieStatusBarStyle]);
+        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr, '模块内点击'.tr][_userPrefs.movieStatusBarStyle]);
       }
     }
     final layout = _userPrefs.movieLayoutStyle;
@@ -120,7 +120,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     } else {
       parts.add(_userPrefs.bookDisplayMode == 1 ? '分类状态'.tr : '阅读状态'.tr);
       if (_userPrefs.bookDisplayMode == 0) {
-        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_userPrefs.bookStatusBarStyle]);
+        parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr, '模块内点击'.tr][_userPrefs.bookStatusBarStyle]);
       }
     }
     final layout = _userPrefs.bookLayoutStyle;
@@ -145,7 +145,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
       parts.add('游戏墙'.tr);
     } else {
       parts.add('游玩状态'.tr);
-      parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr][_userPrefs.gameStatusBarStyle]);
+      parts.add(['胶囊'.tr, '下划线'.tr, '芯片'.tr, '下拉'.tr, '模块内点击'.tr][_userPrefs.gameStatusBarStyle]);
     }
     final layout = _userPrefs.gameLayoutStyle;
     parts.add(['海报网格'.tr, '列表'.tr, '大图卡片'.tr, '年份网格'.tr][layout]);

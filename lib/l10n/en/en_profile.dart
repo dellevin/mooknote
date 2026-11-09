@@ -286,6 +286,7 @@ const Map<String, String> enProfile = {
   '下划线': 'Underline',
   '芯片': 'Chip',
   '下拉': 'Dropdown',
+  '模块内点击': 'Tap on Tab',
   '海报网格': 'Poster Grid',
   '年份网格': 'Year Grid',
   '列表': 'List',

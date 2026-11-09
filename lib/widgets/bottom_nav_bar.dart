@@ -14,13 +14,13 @@ class CustomBottomNavBar extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Container(
-          height: 64 + bottomPadding + 16,
+          height: 68 + bottomPadding + 12,
           color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildDock(context, provider: provider),
-              SizedBox(height: bottomPadding + 8),
+              SizedBox(height: bottomPadding + 4),
             ],
           ),
         );
@@ -35,10 +35,10 @@ class CustomBottomNavBar extends StatelessWidget {
     final isFrosted = provider.frostedActive;
 
     final dock = Container(
-      height: 56,
+      height: 64,
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
@@ -54,25 +54,21 @@ class CustomBottomNavBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(
-            colors: colors,
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home,
-            isActive: provider.bottomNavIndex == 0,
-            onTap: () => provider.setBottomNavIndex(0),
-          ),
-          _buildAddButton(context, provider),
-          _buildNavItem(
-            colors: colors,
-            icon: Icons.person_outline,
-            activeIcon: Icons.person,
-            isActive: provider.bottomNavIndex == 2,
-            onTap: () => provider.setBottomNavIndex(2),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildNavArea(colors, provider),
+            Container(
+              width: 1,
+              height: 26,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              color: colors.onSurface.withValues(alpha: 0.12),
+            ),
+            _buildAddButton(context, provider),
+          ],
+        ),
       ),
     );
 
@@ -80,16 +76,73 @@ class CustomBottomNavBar extends StatelessWidget {
     Widget result = dock;
     if (isFrosted) {
       result = ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
           filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: dock,
         ),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: result,
+    return Center(child: result);
+  }
+
+  /// 单个导航项固定宽度：水平 padding 18×2 + 图标 26；项间距 6
+  static const double _navItemWidth = 62;
+  static const double _navItemGap = 6;
+  static const double _navItemHeight = 46;
+
+  /// 三个主导航 + 共享高亮胶囊：胶囊在 Stack 底层按索引滑动
+  Widget _buildNavArea(ColorScheme colors, AppProvider provider) {
+    final activeIndex = provider.bottomNavIndex.clamp(0, 2);
+    return SizedBox(
+      height: _navItemHeight,
+      child: Stack(
+        children: [
+          // 滑动胶囊：唯一真源是 provider.bottomNavIndex，声明式驱动
+          AnimatedPositioned(
+            left: activeIndex * (_navItemWidth + _navItemGap),
+            top: 0,
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            child: Container(
+              width: _navItemWidth,
+              height: _navItemHeight,
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(22),
+              ),
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildNavItem(
+                colors: colors,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                isActive: provider.bottomNavIndex == 0,
+                onTap: () => provider.setBottomNavIndex(0),
+              ),
+              const SizedBox(width: _navItemGap),
+              _buildNavItem(
+                colors: colors,
+                icon: Icons.calendar_month_outlined,
+                activeIcon: Icons.calendar_month_rounded,
+                isActive: provider.bottomNavIndex == 1,
+                onTap: () => provider.setBottomNavIndex(1),
+              ),
+              const SizedBox(width: _navItemGap),
+              _buildNavItem(
+                colors: colors,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                isActive: provider.bottomNavIndex == 2,
+                onTap: () => provider.setBottomNavIndex(2),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -100,25 +153,19 @@ class CustomBottomNavBar extends StatelessWidget {
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: SizedBox(
-        width: 56,
-        height: 56,
+    return SizedBox(
+      width: _navItemWidth,
+      height: _navItemHeight,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
         child: Center(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, animation) => ScaleTransition(
-              scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-              child: FadeTransition(opacity: animation, child: child),
-            ),
-            child: Icon(
-              isActive ? activeIcon : icon,
-              key: ValueKey(isActive),
-              color: isActive ? colors.primary : colors.onSurface.withValues(alpha: 0.4),
-              size: 26,
-            ),
+          child: Icon(
+            isActive ? activeIcon : icon,
+            color: isActive
+                ? colors.onSurface
+                : colors.onSurface.withValues(alpha: 0.4),
+            size: 26,
           ),
         ),
       ),
@@ -190,16 +237,16 @@ class _AddButtonState extends State<_AddButton>
           child: child,
         ),
         child: Container(
-          width: 44,
-          height: 44,
+          width: 50,
+          height: 50,
           decoration: BoxDecoration(
             color: widget.colors.primary,
-            borderRadius: BorderRadius.circular(12),
+            shape: BoxShape.circle,
           ),
           child: Icon(
-            Icons.add,
+            Icons.add_rounded,
             color: widget.colors.onPrimary,
-            size: 24,
+            size: 28,
           ),
         ),
       ),

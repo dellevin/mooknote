@@ -20,6 +20,7 @@ import '../../services/sync/backup_service.dart';
 import '../../services/sync/webdav_service.dart';
 import '../../services/sync/incremental/inc_sync_service.dart';
 import 'main_content_page.dart';
+import '../explore/media_journal_page.dart';
 import '../online_search/search_page.dart';
 import '../online_search/online_search_page.dart';
 import '../profile/profile_page.dart';
@@ -37,48 +38,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final PageController _pageController = PageController();
-  bool _isSwitchingPage = false;
-  int _lastNavIndex = 0;
   bool _drawerOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _lastNavIndex = context.read<AppProvider>().bottomNavIndex;
-    });
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onNavIndexChanged(AppProvider provider) {
-    final currentPage = provider.bottomNavIndex == 0 ? 0 : 1;
-    if (currentPage == _lastNavIndex) return;
-    _lastNavIndex = currentPage;
-
-    if (!_pageController.hasClients) return;
-    if (_pageController.page?.round() == currentPage) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _isSwitchingPage = true;
-      _pageController.animateToPage(
-        currentPage,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      ).then((_) {
-        if (mounted) {
-          _isSwitchingPage = false;
-          provider.setBottomNavVisible(true);
-        }
-      });
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +54,6 @@ class _HomePageState extends State<HomePage> {
     final colors = Theme.of(context).colorScheme;
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        _onNavIndexChanged(provider);
         return Scaffold(
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -107,7 +66,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               NavigationRail(
-                selectedIndex: provider.bottomNavIndex == 0 ? 0 : 1,
+                selectedIndex: provider.bottomNavIndex,
                 backgroundColor: colors.surface,
                 labelType: NavigationRailLabelType.all,
                 leading: Padding(
@@ -118,17 +77,22 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 onDestinationSelected: (index) {
-                  provider.setBottomNavIndex(index == 0 ? 0 : 2);
+                  provider.setBottomNavIndex(index);
                 },
                 destinations: [
                   NavigationRailDestination(
                     icon: const Icon(Icons.home_outlined),
-                    selectedIcon: const Icon(Icons.home),
+                    selectedIcon: const Icon(Icons.home_rounded),
                     label: Text('首页'.tr),
                   ),
                   NavigationRailDestination(
-                    icon: const Icon(Icons.person_outline),
-                    selectedIcon: const Icon(Icons.person),
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    selectedIcon: const Icon(Icons.calendar_month_rounded),
+                    label: Text('日历'.tr),
+                  ),
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.person_outline_rounded),
+                    selectedIcon: const Icon(Icons.person_rounded),
                     label: Text('我的'.tr),
                   ),
                 ],
@@ -153,11 +117,8 @@ class _HomePageState extends State<HomePage> {
 
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
-          _onNavIndexChanged(provider);
-
           return NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              if (_isSwitchingPage) return false;
               if (notification is ScrollUpdateNotification) {
                 final delta = notification.scrollDelta;
                 if (delta != null && delta.abs() > 2) {
@@ -237,20 +198,33 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// 底部导航三页常驻 Stack，AnimatedOpacity 交叉淡化（与主标签切换同方案）：
+  /// 无控制器、无时序，provider.bottomNavIndex 是唯一真源；
+  /// 页面状态/滚动位置永久保留，目标页无需切换时才首构建，无白闪无掉帧。
   Widget _buildPageView(AppProvider provider) {
-    return PageView(
-      controller: _pageController,
-      physics: const NeverScrollableScrollPhysics(),
-      onPageChanged: (index) {
-        if (index == 0) {
-          provider.setBottomNavIndex(0);
-        } else if (index == 1) {
-          provider.setBottomNavIndex(2);
-        }
-      },
-      children: const [
-        MainContentPage(),
-        ProfilePage(),
+    const pages = <Widget>[
+      MainContentPage(),
+      MediaJournalPage(),
+      ProfilePage(),
+    ];
+    final safeIndex = provider.bottomNavIndex.clamp(0, pages.length - 1);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < pages.length; i++)
+          IgnorePointer(
+            ignoring: i != safeIndex,
+            child: AnimatedOpacity(
+              opacity: i == safeIndex ? 1.0 : 0.0,
+              duration: Duration(milliseconds: i == safeIndex ? 260 : 340),
+              curve: Curves.easeOut,
+              child: KeyedSubtree(
+                key: ValueKey('bottom-nav-page-$i'),
+                child: pages[i],
+              ),
+            ),
+          ),
       ],
     );
   }

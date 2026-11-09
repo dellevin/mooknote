@@ -81,7 +81,9 @@ class _BookTabPageState extends State<BookTabPage> {
         if (!isWallMode)
           provider.bookDisplayMode == 1
               ? const BookCategoryBar()
-              : const BookStatusBar(),
+              : (provider.bookStatusBarStyle != 4
+                  ? const BookStatusBar()
+                  : const SizedBox.shrink()),
         Expanded(
           child: Stack(
             children: [

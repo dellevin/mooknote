@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/status_labels.dart';
 import '../../services/sync/webdav_service.dart';
 import '../../services/sync/incremental/inc_sync_service.dart';
 import '../movies/movie_tab_page.dart';
@@ -17,6 +19,9 @@ import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
+
+/// 朱砂红：与 AppBar 做旧印章同源的古典配色
+const Color _stampRed = Color(0xFFB23B2E);
 
 /// 主内容页 - 影视/阅读/游戏/笔记标签页（Stack 常驻 + AnimatedOpacity 交叉淡化切换）
 class MainContentPage extends StatefulWidget {
@@ -38,12 +43,132 @@ class _MainContentPageState extends State<MainContentPage> {
   bool get _showGameTab => _userPrefs.showGameTab;
 
   /// 点击标签：内容区由 provider.mainTabIndex 声明式驱动（AnimatedOpacity 交叉淡化），
-  /// 只需更新索引，无任何时序窗口，不会回跳
+  /// 只需更新索引，无任何时序窗口，不会回跳。
+  /// 重复点击当前标签时，若该模块为「模块内点击」状态栏样式，则弹出状态选择。
   void _switchToTab(int originalIndex) {
     final provider = context.read<AppProvider>();
     final target = _mapToEnabledTabIndex(originalIndex);
-    if (target == _mapToEnabledTabIndex(provider.mainTabIndex)) return;
+    if (target == _mapToEnabledTabIndex(provider.mainTabIndex)) {
+      final type = _tabType(originalIndex);
+      if (type != null && _statusBarStyle(provider, type) == 4) {
+        _showStatusPicker(type);
+      }
+      return;
+    }
     provider.setMainTabIndex(originalIndex);
+  }
+
+  /// 模块原始索引 → 状态类型；笔记(2)与自定义模块无状态栏，返回 null
+  String? _tabType(int originalIndex) => switch (originalIndex) {
+        0 => 'movie',
+        1 => 'book',
+        3 => 'game',
+        _ => null,
+      };
+
+  /// 标签文字；「模块内点击」样式下在模块名下方补一行当前状态小字
+  Widget _buildTabLabel(_TabItem tab, bool selected, ColorScheme colors, AppProvider provider) {
+    final titleStyle = TextStyle(
+        fontSize: 13,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        color: selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.35));
+    final title = Text(tab.label.tr, textAlign: TextAlign.center, style: titleStyle);
+
+    final type = _tabType(tab.originalIndex);
+    if (type == null || _statusBarStyle(provider, type) != 4) return title;
+
+    final keys = StatusLabels.orderedKeys(type);
+    final idx = _statusIndex(provider, type).clamp(0, keys.length - 1);
+    final status = StatusLabels.label(type, keys[idx]);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        title,
+        const SizedBox(width: 4),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 1),
+          child: Text(status,
+              maxLines: 1,
+              style: TextStyle(
+                  fontSize: 9.5,
+                  height: 1,
+                  color: (selected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.35))
+                      .withValues(alpha: selected ? 0.55 : 0.3))),
+        ),
+      ],
+    );
+  }
+
+  int _statusBarStyle(AppProvider p, String type) => switch (type) {
+        'movie' => p.movieStatusBarStyle,
+        'book' => p.bookStatusBarStyle,
+        'game' => p.gameStatusBarStyle,
+        _ => 0,
+      };
+
+  int _statusIndex(AppProvider p, String type) => switch (type) {
+        'movie' => p.movieStatusIndex,
+        'book' => p.bookStatusIndex,
+        'game' => p.gameStatusIndex,
+        _ => 0,
+      };
+
+  /// 重复点击模块标签时弹出的状态选择底部弹层
+  void _showStatusPicker(String type) {
+    final colors = Theme.of(context).colorScheme;
+    final provider = context.read<AppProvider>();
+    final keys = StatusLabels.orderedKeys(type);
+    final current = _statusIndex(provider, type);
+    appModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
+          for (int i = 0; i < keys.length; i++) ...[
+            if (i > 0)
+              Divider(
+                  height: 0.5,
+                  indent: 20,
+                  endIndent: 20,
+                  color: colors.outlineVariant),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: Text(StatusLabels.label(type, keys[i]),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight:
+                          i == current ? FontWeight.w600 : FontWeight.w400,
+                      color: colors.onSurface)),
+              trailing: i == current
+                  ? Icon(Icons.check, size: 20, color: colors.primary)
+                  : null,
+              onTap: () {
+                Navigator.pop(ctx);
+                switch (type) {
+                  case 'movie':
+                    provider.setMovieStatusIndex(i);
+                  case 'book':
+                    provider.setBookStatusIndex(i);
+                  case 'game':
+                    provider.setGameStatusIndex(i);
+                }
+              },
+            ),
+          ],
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
   }
 
   List<_TabItem> get _enabledTabs {
@@ -99,12 +224,16 @@ class _MainContentPageState extends State<MainContentPage> {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final colors = Theme.of(context).colorScheme;
+        final showDateStamp = !isDropdown;
         return AppBar(
           titleSpacing: 8,
-          leadingWidth: 44,
+          leadingWidth: showDateStamp ? 126 : 44,
+          leading: showDateStamp
+              ? _buildDateStampLeading(context, provider, colors)
+              : null,
           title: isDropdown && _enabledTabs.length > 1
               ? _buildDropdownTitle(context, provider, colors)
-              : Text(_getAppBarTitle(provider)),
+              : (showDateStamp ? const SizedBox.shrink() : Text(_getAppBarTitle(provider))),
           actionsPadding: const EdgeInsets.only(right: 4),
           actions: [
             _buildCloudSyncButton(context),
@@ -115,6 +244,59 @@ class _MainContentPageState extends State<MainContentPage> {
           ],
         );
       },
+    );
+  }
+
+  /// 模块标签模式左上角：竖排月份 + 大号日期 + 红框分类印章，点击展开侧边栏
+  Widget _buildDateStampLeading(BuildContext context, AppProvider provider, ColorScheme colors) {
+    final now = DateTime.now();
+    const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+    final tabs = _enabledTabs;
+    final safeIndex = tabs.isEmpty
+        ? 0
+        : _mapToEnabledTabIndex(provider.mainTabIndex).clamp(0, tabs.length - 1);
+    final category = tabs.isEmpty ? '主页' : tabs[safeIndex].label;
+    Widget verticalText(String text, {required TextStyle style}) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final c in text.split('')) Text(c, style: style),
+          ],
+        );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Scaffold.of(context).openDrawer(),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 14),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            verticalText(
+              monthNames[now.month - 1],
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.15,
+                color: colors.onSurface.withValues(alpha: 0.45),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              now.day.toString().padLeft(2, '0'),
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                height: 1,
+                letterSpacing: -1,
+                color: colors.onSurface,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // 做旧印章：缺口边框 + 粗重竖排 + 斑驳擦除 + 轻微倾斜
+            _WeatheredStamp(text: category, color: _stampRed, bgColor: colors.surface),
+          ],
+        ),
+      ),
     );
   }
 
@@ -230,7 +412,7 @@ class _MainContentPageState extends State<MainContentPage> {
 
         return Container(
           color: colors.surface,
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 2),
           // 每个分类固定为可用宽度的 1/4：≤4 个时排满不滚动，与原来一致；
           // 以后新增分类超过 4 个时横向滚动，指示器在滚动内容内随标签移动
           child: LayoutBuilder(
@@ -311,14 +493,10 @@ class _MainContentPageState extends State<MainContentPage> {
                                                 }
                                               : null,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                padding: const EdgeInsets.symmetric(vertical: 5),
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-                                    _tabLeadingIcon(tab, size: 18, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3)),
-                                    const SizedBox(width: 5),
-                                    Text(tab.label.tr, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : colors.onSurface.withValues(alpha: 0.3))),
-                                  ]),
+                                  child: _buildTabLabel(tab, selected, colors, provider),
                                 ),
                               ),
                             ),
@@ -331,15 +509,17 @@ class _MainContentPageState extends State<MainContentPage> {
                       duration: const Duration(milliseconds: 260),
                       curve: Curves.easeOutCubic,
                       builder: (context, page, _) {
+                        // 短粗指示线：居中于当前标签，宽度约为标签的 40%
+                        final indicatorWidth = tabWidth <= 0 ? 20.0 : (tabWidth * 0.4).clamp(18.0, 36.0);
                         return SizedBox(
                           width: 48 + tabWidth * tabs.length,
-                          height: 2.5,
+                          height: 3,
                           child: Stack(children: [
                             Positioned(
-                              left: 24 + page * tabWidth,
+                              left: 24 + page * tabWidth + (tabWidth - indicatorWidth) / 2,
                               top: 0,
-                              width: tabWidth,
-                              child: Container(height: 2.5, decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(2))),
+                              width: indicatorWidth,
+                              child: Container(height: 3, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(1.5))),
                             ),
                           ]),
                         );
@@ -776,4 +956,114 @@ class _CloudSheetContentState extends State<_CloudSheetContent> {
       Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
     ]),
   );
+}
+
+/// 做旧印章：手绘缺口边框 + 竖排粗字 + 随机斑驳，轻微倾斜模拟盖印
+class _WeatheredStamp extends StatelessWidget {
+  final String text;
+  final Color color;
+  final Color bgColor;
+  const _WeatheredStamp({
+    required this.text,
+    required this.color,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final chars = text.split('');
+    const fontSize = 9.5;
+    final height = 5.0 + chars.length * (fontSize + 2.5);
+    return Transform.rotate(
+      angle: 0.045,
+      child: CustomPaint(
+        size: Size(17, height),
+        painter: _StampPainter(
+          text: text,
+          color: color,
+          bgColor: bgColor,
+          fontSize: fontSize,
+        ),
+      ),
+    );
+  }
+}
+
+class _StampPainter extends CustomPainter {
+  final String text;
+  final Color color;
+  final Color bgColor;
+  final double fontSize;
+  _StampPainter({
+    required this.text,
+    required this.color,
+    required this.bgColor,
+    required this.fontSize,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 固定种子：同一分类每次绘制的斑驳位置稳定，不闪烁
+    final rnd = Random(text.hashCode);
+    final stamp = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // 边框：沿圆角矩形路径分段绘制，随机跳过小段形成缺口，线宽抖动模拟盖印不均
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Offset.zero & size,
+        const Radius.circular(2.5),
+      ));
+    for (final metric in path.computeMetrics()) {
+      double dist = 0;
+      while (dist < metric.length) {
+        final segLen = 1.8 + rnd.nextDouble() * 3.2;
+        if (rnd.nextDouble() > 0.16) {
+          stamp.strokeWidth = 1.0 + rnd.nextDouble() * 0.8;
+          canvas.drawPath(
+            metric.extractPath(dist, (dist + segLen).clamp(0, metric.length)),
+            stamp,
+          );
+        }
+        dist += segLen;
+      }
+    }
+
+    // 竖排文字：最重字重 + 逐字微小偏移，模拟手盖印章的错位感
+    final chars = text.split('');
+    for (var i = 0; i < chars.length; i++) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: chars[i],
+          style: TextStyle(
+            color: color,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final dx = (size.width - tp.width) / 2 + (rnd.nextDouble() - 0.5) * 1.2;
+      final dy = 3.5 + i * (fontSize + 2.5) + (rnd.nextDouble() - 0.5) * 1.0;
+      tp.paint(canvas, Offset(dx, dy));
+    }
+
+    // 斑驳：以背景色随机圆点覆盖边框与笔画，形成缺角/飞白
+    final erase = Paint()..color = bgColor;
+    for (var i = 0; i < 30; i++) {
+      final r = 0.4 + rnd.nextDouble() * 1.1;
+      canvas.drawCircle(
+        Offset(rnd.nextDouble() * size.width, rnd.nextDouble() * size.height),
+        r,
+        erase,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StampPainter old) =>
+      old.text != text || old.color != color || old.bgColor != bgColor;
 }

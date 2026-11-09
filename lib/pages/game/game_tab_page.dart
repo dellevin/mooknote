@@ -74,7 +74,8 @@ class _GameTabPageState extends State<GameTabPage> {
 
     return Column(
       children: [
-        if (!isWallMode) const GameStatusBar(),
+        if (!isWallMode && provider.gameStatusBarStyle != 4)
+          const GameStatusBar(),
         Expanded(
           child: Stack(
             children: [
