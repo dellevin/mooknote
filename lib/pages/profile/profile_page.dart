@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
@@ -1005,49 +1006,50 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   Widget _buildToolsGrid(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final tools = <(IconData, String, VoidCallback)>[
+    // 与底部 dock / 抽屉同一套 assets/svg 实心图标，经 srcIn 着色
+    final tools = <(String, String, VoidCallback)>[
       if (_userPrefs.showProfileToolStroll)
         (
-          Icons.explore_outlined,
+          'assets/svg/man_bu.svg',
           '漫步'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const StrollPage()))
         ),
       if (_userPrefs.showProfileToolStats)
         (
-          Icons.analytics_outlined,
+          'assets/svg/tong_ji.svg',
           '数据统计'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
         ),
       if (_userPrefs.showProfileToolQuickAdd)
         (
-          Icons.add_circle_outline,
+          'assets/svg/tian_jia.svg',
           '快捷添加'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const QuickAddPage()))
         ),
       if (_userPrefs.showProfileToolBackup)
-        (Icons.backup_outlined, '数据备份'.tr, () => _showBackupOptions(context)),
+        ('assets/svg/bei_fen.svg', '数据备份'.tr, () => _showBackupOptions(context)),
       if (_userPrefs.showProfileToolExport)
-        (Icons.ios_share_outlined, 'EXCEL导出'.tr, () => _showExportOptions(context)),
+        ('assets/svg/excel_export.svg', 'EXCEL导出'.tr, () => _showExportOptions(context)),
       if (_userPrefs.showProfileToolSettings)
         (
-          Icons.settings_outlined,
+          'assets/svg/setting.svg',
           '设置'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const SettingsPage()))
         ),
       if (_userPrefs.showProfileToolRecycleBin)
         (
-          Icons.delete_outline,
+          'assets/svg/hui_shou.svg',
           '回收站'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
         ),
       if (_userPrefs.showProfileToolFeedback)
         (
-          Icons.feedback_outlined,
+          'assets/svg/bug-report.svg',
           'BUG反馈'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const FeedbackPage()))
@@ -1085,9 +1087,14 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Icon(e.value.$1,
-                            size: 18,
-                            color: colors.onSurface.withValues(alpha: 0.6)),
+                        SvgPicture.asset(
+                          e.value.$1,
+                          width: 18,
+                          height: 18,
+                          colorFilter: ColorFilter.mode(
+                              colors.onSurface.withValues(alpha: 0.6),
+                              BlendMode.srcIn),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                             child: Text(e.value.$2,

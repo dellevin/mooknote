@@ -8,12 +8,12 @@ import 'status_bar_shell.dart';
 class BookStatusBar extends StatelessWidget {
   const BookStatusBar({super.key});
 
-  static const _icons = [
-    Icons.check_circle_outline,
-    Icons.menu_book_outlined,
-    Icons.bookmark_outlined,
-    Icons.cancel_outlined,
-  ];
+  static const _iconMap = {
+    'read': Icons.check_circle_outline,
+    'reading': Icons.menu_book_outlined,
+    'want_to_read': Icons.bookmark_outline,
+    'abandoned': Icons.cancel_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,8 @@ class BookStatusBar extends StatelessWidget {
           tabs: [
             for (int i = 0; i < keys.length; i++)
               StatusBarTab(
-                  label: StatusLabels.label('book', keys[i]), icon: _icons[i]),
+                  label: StatusLabels.label('book', keys[i]),
+                  icon: _iconMap[keys[i]] ?? Icons.circle_outlined),
           ],
           currentIndex: provider.bookStatusIndex,
           onChanged: provider.setBookStatusIndex,

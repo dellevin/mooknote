@@ -266,10 +266,12 @@ const Map<String, String> enProfile = {
   '加载失败: {e}': 'Failed to load: {e}',
   '选择字体': 'Select Font',
   '恢复默认': 'Restore Default',
-  '主页模块状态自定义命名': 'Custom Status Names',
-  '影视、阅读、游戏状态名称': 'Movie, book and game status names',
+  '主页模块状态自定义': 'Custom Status Names & Order',
+  '影视、阅读、游戏状态命名与排序': 'Rename and reorder movie, book and game statuses',
   '留空则使用默认名称，自定义名称最多 8 个字':
       'Leave blank to use the default name. Up to 8 characters each.',
+  '拖动右侧手柄可调整状态显示顺序':
+      'Drag the handle on the right to reorder statuses.',
   '字体目录': 'Font Directory',
   '点击选择字体目录': 'Tap to select a font directory',
   '支持 .ttf / .otf / .ttc 格式':

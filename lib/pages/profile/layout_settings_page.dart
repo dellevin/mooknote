@@ -53,9 +53,9 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
           ),
           _buildCategoryTile(
             icon: Icons.drive_file_rename_outline,
-            title: '主页模块状态自定义命名'.tr,
+            title: '主页模块状态自定义'.tr,
             color: colors.primary,
-            subtitle: '影视、阅读、游戏状态名称'.tr,
+            subtitle: '影视、阅读、游戏状态命名与排序'.tr,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const StatusRenamePage())),
           ),

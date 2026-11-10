@@ -207,7 +207,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 主页模块状态自定义命名变更后通知 UI 重建（命名存于 UserPrefs）
+  /// 主页模块状态自定义（命名/顺序）变更后通知 UI 重建（数据存于 UserPrefs）
   void notifyStatusLabelsChanged() {
     notifyListeners();
   }
@@ -414,22 +414,26 @@ class AppProvider extends ChangeNotifier {
 
 
   // ─── 分页加载（供列表页触底加载使用）────────────────────────
-  static const int _pageSize = 20;
+  /// 触底加载每页条数
+  static const int pageSize = 20;
 
-  Future<List<Movie>> loadMoviesPaged({String? status, String? category, required int offset, int sortMode = 0}) async {
-    return _movieDao.getMoviesPaged(status: status, category: category, limit: _pageSize, offset: offset, sortMode: sortMode);
+  /// 首屏加载条数（一次多加载，减少首屏滚动触底次数）
+  static const int firstPageSize = 50;
+
+  Future<List<Movie>> loadMoviesPaged({String? status, String? category, required int offset, int sortMode = 0, int? limit}) async {
+    return _movieDao.getMoviesPaged(status: status, category: category, limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
   }
 
-  Future<List<Book>> loadBooksPaged({String? status, String? category, required int offset, int sortMode = 0}) async {
-    return _bookDao.getBooksPaged(status: status, category: category, limit: _pageSize, offset: offset, sortMode: sortMode);
+  Future<List<Book>> loadBooksPaged({String? status, String? category, required int offset, int sortMode = 0, int? limit}) async {
+    return _bookDao.getBooksPaged(status: status, category: category, limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
   }
 
-  Future<List<Note>> loadNotesPaged({required int offset, int sortMode = 0}) async {
-    return _noteDao.getNotesPaged(limit: _pageSize, offset: offset, sortMode: sortMode);
+  Future<List<Note>> loadNotesPaged({required int offset, int sortMode = 0, int? limit}) async {
+    return _noteDao.getNotesPaged(limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
   }
 
-  Future<List<Game>> loadGamesPaged({String? status, required int offset, int sortMode = 0}) async {
-    return _gameDao.getGamesPaged(status: status, limit: _pageSize, offset: offset, sortMode: sortMode);
+  Future<List<Game>> loadGamesPaged({String? status, required int offset, int sortMode = 0, int? limit}) async {
+    return _gameDao.getGamesPaged(status: status, limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
   }
 
   // Getters

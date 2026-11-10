@@ -42,6 +42,10 @@ class StatusBarTab {
 }
 
 // ---------- 0: 胶囊滑块 ----------
+
+/// 单个条目的固定宽度：条目不再均分整行，超出后在胶囊内横向滚动
+const double _kPillTabWidth = 72;
+
 class _PillBar extends StatelessWidget {
   const _PillBar({required this.tabs, required this.currentIndex, required this.onChanged});
   final List<StatusBarTab> tabs;
@@ -52,54 +56,54 @@ class _PillBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       color: colors.surface,
       child: Container(
         padding: const EdgeInsets.all(3),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final tabWidth = constraints.maxWidth / tabs.length;
-            return SizedBox(
-              height: 32,
-              child: Stack(
-                children: [
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    left: currentIndex * tabWidth,
-                    top: 0, bottom: 0, width: tabWidth,
-                    child: Padding(
-                      padding: const EdgeInsets.all(2.5),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colors.primary,
-                          borderRadius: BorderRadius.circular(13),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
-                          ],
-                        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: _kPillTabWidth * tabs.length,
+            height: 32,
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  left: currentIndex * _kPillTabWidth,
+                  top: 0, bottom: 0, width: _kPillTabWidth,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        borderRadius: BorderRadius.circular(13),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
+                        ],
                       ),
                     ),
                   ),
-                  Row(
-                    children: [
-                      for (int i = 0; i < tabs.length; i++)
-                        _PillItem(
-                          colors: colors,
-                          tab: tabs[i],
-                          isSelected: currentIndex == i,
-                          onTap: () => onChanged(i),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
+                ),
+                Row(
+                  children: [
+                    for (int i = 0; i < tabs.length; i++)
+                      _PillItem(
+                        colors: colors,
+                        tab: tabs[i],
+                        isSelected: currentIndex == i,
+                        onTap: () => onChanged(i),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -115,7 +119,9 @@ class _PillItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return SizedBox(
+      width: _kPillTabWidth,
+      height: double.infinity,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
@@ -123,7 +129,7 @@ class _PillItem extends StatelessWidget {
           opacity: isSelected ? 1.0 : 0.5,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          child: SizedBox.expand(
+          child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
@@ -149,6 +155,10 @@ class _PillItem extends StatelessWidget {
 }
 
 // ---------- 1: 下划线 ----------
+
+/// 下划线样式条目固定宽度，超出后横向滚动
+const double _kUnderlineTabWidth = 76;
+
 class _UnderlineBar extends StatelessWidget {
   const _UnderlineBar({required this.tabs, required this.currentIndex, required this.onChanged});
   final List<StatusBarTab> tabs;
@@ -159,20 +169,21 @@ class _UnderlineBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       color: colors.surface,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tabWidth = constraints.maxWidth / tabs.length;
-          return Stack(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: _kUnderlineTabWidth * tabs.length,
+          child: Stack(
             children: [
               // 滑动下划线指示器
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOut,
-                left: currentIndex * tabWidth,
+                left: currentIndex * _kUnderlineTabWidth,
                 bottom: 0,
-                width: tabWidth,
+                width: _kUnderlineTabWidth,
                 height: 2,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -187,7 +198,8 @@ class _UnderlineBar extends StatelessWidget {
               Row(
                 children: [
                   for (int i = 0; i < tabs.length; i++)
-                    Expanded(
+                    SizedBox(
+                      width: _kUnderlineTabWidth,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => onChanged(i),
@@ -216,8 +228,8 @@ class _UnderlineBar extends StatelessWidget {
                 ],
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -234,18 +246,20 @@ class _ChipBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       color: colors.surface,
-      child: Row(
-        children: [
-          for (int i = 0; i < tabs.length; i++) ...[
-            if (i != 0) const SizedBox(width: 6),
-            Expanded(
-              child: GestureDetector(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (int i = 0; i < tabs.length; i++) ...[
+              if (i != 0) const SizedBox(width: 6),
+              GestureDetector(
                 onTap: () => onChanged(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   height: 30,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: currentIndex == i ? colors.primary : Colors.transparent,
@@ -274,9 +288,9 @@ class _ChipBar extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -294,7 +308,7 @@ class _DropdownBar extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final current = tabs[currentIndex];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       color: colors.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,

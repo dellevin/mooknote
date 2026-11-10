@@ -8,12 +8,12 @@ import 'status_bar_shell.dart';
 class MovieStatusBar extends StatelessWidget {
   const MovieStatusBar({super.key});
 
-  static const _icons = [
-    Icons.check_circle_outline,
-    Icons.play_circle_outline,
-    Icons.bookmark_outline,
-    Icons.cancel_outlined,
-  ];
+  static const _iconMap = {
+    'watched': Icons.check_circle_outline,
+    'watching': Icons.play_circle_outline,
+    'want_to_watch': Icons.bookmark_outline,
+    'abandoned': Icons.cancel_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,8 @@ class MovieStatusBar extends StatelessWidget {
           tabs: [
             for (int i = 0; i < keys.length; i++)
               StatusBarTab(
-                  label: StatusLabels.label('movie', keys[i]), icon: _icons[i]),
+                  label: StatusLabels.label('movie', keys[i]),
+                  icon: _iconMap[keys[i]] ?? Icons.circle_outlined),
           ],
           currentIndex: provider.movieStatusIndex,
           onChanged: provider.setMovieStatusIndex,

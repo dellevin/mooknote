@@ -8,12 +8,12 @@ import 'status_bar_shell.dart';
 class GameStatusBar extends StatelessWidget {
   const GameStatusBar({super.key});
 
-  static const _icons = [
-    Icons.emoji_events_outlined,
-    Icons.sports_esports_outlined,
-    Icons.bookmark_outlined,
-    Icons.cancel_outlined,
-  ];
+  static const _iconMap = {
+    'completed': Icons.emoji_events_outlined,
+    'playing': Icons.sports_esports_outlined,
+    'want_to_play': Icons.bookmark_outlined,
+    'abandoned': Icons.cancel_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,8 @@ class GameStatusBar extends StatelessWidget {
           tabs: [
             for (int i = 0; i < keys.length; i++)
               StatusBarTab(
-                  label: StatusLabels.label('game', keys[i]), icon: _icons[i]),
+                  label: StatusLabels.label('game', keys[i]),
+                  icon: _iconMap[keys[i]] ?? Icons.circle_outlined),
           ],
           currentIndex: provider.gameStatusIndex,
           onChanged: provider.setGameStatusIndex,

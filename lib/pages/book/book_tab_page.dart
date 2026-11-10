@@ -22,8 +22,6 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'book_detail_page.dart';
 
-/// 状态索引 → 状态值
-const _bookStatusMap = {0: 'read', 1: 'reading', 2: 'want_to_read', 3: 'abandoned'};
 
 /// 阅读标签页（PageView 分页 + 触底加载），左右滑动丝滑切换
 class BookTabPage extends StatefulWidget {
@@ -146,7 +144,11 @@ class _BookTabPageState extends State<BookTabPage> {
             allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
             onPageChanged: (index) => _onPageChanged(index, provider),
             itemBuilder: (context, index) => _BookTabView(
-              key: ValueKey('$mode-$index'), // 模式切换时全部重建
+              // 模式切换时全部重建；状态模式额外带上状态 key，使自定义排序导致
+              // index 对应的状态变化时子页重建并重新加载，避免标签与数据错位
+              key: ValueKey(mode == 0
+                  ? '0-$index-${StatusLabels.orderedKeys('book')[index]}'
+                  : '$mode-$index'),
               index: index,
               mode: mode,
             ),
@@ -243,7 +245,7 @@ class _BookTabViewState extends State<_BookTabView>
   int _prevBookCount = -1;
   int _prevSortMode = -1;
 
-  String? get _status => widget.mode == 0 ? _bookStatusMap[widget.index] : null;
+  String? get _status => widget.mode == 0 ? StatusLabels.orderedKeys('book')[widget.index] : null;
   String? get _category => widget.mode == 1 ? BookCategoryBar.categoryValue(widget.index) : null;
 
   @override
@@ -348,13 +350,13 @@ class _BookTabViewState extends State<_BookTabView>
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     try {
-      final list = await provider.loadBooksPaged(status: _status, category: _category, offset: 0, sortMode: sortMode);
+      final list = await provider.loadBooksPaged(status: _status, category: _category, offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.clear();
         _items.addAll(list);
         _offset = list.length;
-        _hasMore = list.length >= 20;
+        _hasMore = list.length >= AppProvider.firstPageSize;
         _isLoading = false;
       });
       _scheduleChainLoad();
@@ -691,7 +693,7 @@ class _BookTabViewState extends State<_BookTabView>
     } else if (widget.mode == 1) {
       emptyText = '暂无 {x}'.trf({'x': BookCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      final statusText = StatusLabels.label('book', _bookStatusMap[widget.index]!);
+      final statusText = StatusLabels.label('book', StatusLabels.orderedKeys('book')[widget.index]);
       emptyText = '暂无{status}的书籍'.trf({'status': statusText});
     }
     return EmptyState(

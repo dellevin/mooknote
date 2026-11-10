@@ -50,9 +50,43 @@ class _QuickAddPageState extends State<QuickAddPage> {
   final _fanqieController = TextEditingController();
   final _steamController = TextEditingController();
   bool _parsing = false;
-  bool _doubanExpanded = false;
-  bool _fanqieExpanded = false;
-  bool _steamExpanded = false;
+
+  /// 各分类下可用的解析来源：(key, 名称, 主题色)
+  static const _sources = <String, List<(String, String, Color)>>{
+    'movie': [('douban', '豆瓣', _doubanColor)],
+    'book': [
+      ('douban', '豆瓣', _doubanColor),
+      ('fanqie', '番茄阅读', _fanqieColor),
+    ],
+    'game': [
+      ('douban', '豆瓣', _doubanColor),
+      ('steam', 'Steam', _steamColor),
+    ],
+  };
+
+  static const _sourceHints = <String, String>{
+    'douban': '粘贴豆瓣影视 / 书籍 / 游戏链接，自动解析填充',
+    'fanqie': '粘贴番茄小说链接，自动解析填充',
+    'steam': '粘贴 Steam 商店 app 链接，自动解析填充',
+  };
+
+  Widget _sourceIcon(String key, double size) => switch (key) {
+        'fanqie' => SvgPicture.string(_fanqieSvg, width: size, height: size),
+        'steam' => SvgPicture.string(_steamSvg, width: size, height: size),
+        _ => SvgPicture.string(_doubanSvg, width: size, height: size),
+      };
+
+  TextEditingController _controllerFor(String key) => switch (key) {
+        'fanqie' => _fanqieController,
+        'steam' => _steamController,
+        _ => _doubanController,
+      };
+
+  void _parseFor(String key) => switch (key) {
+        'fanqie' => _parseFanqie(),
+        'steam' => _parseSteam(),
+        _ => _parseDouban(),
+      };
 
   @override
   void dispose() {
@@ -65,212 +99,199 @@ class _QuickAddPageState extends State<QuickAddPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final sources = _sources[_category]!;
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text('快捷添加'.tr),
         backgroundColor: colors.surface,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: SegmentedButton<String>(
-                segments: _categories
-                    .map((c) => ButtonSegment(
-                          value: c.$2,
-                          icon: Icon(c.$3, size: 18),
-                        ))
-                    .toList(),
-                selected: {_category},
-                onSelectionChanged: (v) => setState(() => _category = v.first),
-                showSelectedIcon: false,
-                style: ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 10)),
-                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return colors.primary;
-                    }
-                    return colors.surfaceContainerHighest.withValues(alpha: 0.5);
-                  }),
-                  foregroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return colors.onPrimary;
-                    }
-                    return colors.onSurface.withValues(alpha: 0.6);
-                  }),
-                  side: const WidgetStatePropertyAll(BorderSide.none),
-                  shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8))),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          _buildSourceCard(
-            colors: colors,
-            icon: SizedBox(
-                width: 18,
-                height: 18,
-                child: SvgPicture.string(_doubanSvg, fit: BoxFit.contain)),
-            iconTileColor: _doubanColor,
-            title: '豆瓣'.tr,
-            subtitle: '输入豆瓣链接，自动解析并填充信息'.tr,
-            controller: _doubanController,
-            expanded: _doubanExpanded,
-            onToggle: () => setState(() => _doubanExpanded = !_doubanExpanded),
-            onParse: () => _parseDouban(),
+          SegmentedButton<String>(
+            segments: _categories
+                .map((c) => ButtonSegment(
+                      value: c.$2,
+                      icon: Icon(c.$3, size: 18),
+                      label: Text(c.$1.tr),
+                    ))
+                .toList(),
+            selected: {_category},
+            onSelectionChanged: (v) => setState(() => _category = v.first),
+            showSelectedIcon: false,
+            style: ButtonStyle(
+              side: const WidgetStatePropertyAll(BorderSide.none),
+              shape: WidgetStatePropertyAll(
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            ),
           ),
-          if (_category == 'book') ...[
-            const SizedBox(height: 10),
-            _buildSourceCard(
-              colors: colors,
-              icon: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: SvgPicture.string(_fanqieSvg, fit: BoxFit.contain)),
-              iconTileColor: _fanqieColor,
-              title: '番茄阅读'.tr,
-              subtitle: '输入番茄小说链接，自动解析并填充信息'.tr,
-              controller: _fanqieController,
-              expanded: _fanqieExpanded,
-              onToggle: () => setState(() => _fanqieExpanded = !_fanqieExpanded),
-              onParse: _parseFanqie,
-            ),
-          ],
-          if (_category == 'game') ...[
-            const SizedBox(height: 10),
-            _buildSourceCard(
-              colors: colors,
-              icon: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: SvgPicture.string(_steamSvg, fit: BoxFit.contain)),
-              iconTileColor: _steamColor,
-              title: 'Steam'.tr,
-              subtitle: '输入 Steam 商店链接，自动解析并填充信息'.tr,
-              controller: _steamController,
-              expanded: _steamExpanded,
-              onToggle: () => setState(() => _steamExpanded = !_steamExpanded),
-              onParse: _parseSteam,
-            ),
+          const SizedBox(height: 16),
+          for (var i = 0; i < sources.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _buildSourceCard(colors, sources[i]),
           ],
         ],
       ),
     );
   }
 
-  /// 添加来源卡片 — 点击标题行展开/收起链接输入区
-  Widget _buildSourceCard({
-    required ColorScheme colors,
-    required Widget icon,
-    required Color iconTileColor,
-    required String title,
-    required String subtitle,
-    required TextEditingController controller,
-    required bool expanded,
-    required VoidCallback onToggle,
-    required VoidCallback onParse,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outline),
-        boxShadow: [
-          BoxShadow(
-            color: colors.onSurface.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  /// 来源入口卡片 — 点击从底部弹出链接输入弹层
+  Widget _buildSourceCard(ColorScheme colors, (String, String, Color) source) {
+    final (key, title, color) = source;
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openSourceSheet(source),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: colors.outline.withValues(alpha: 0.6)),
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: _sourceIcon(key, key == 'douban' ? 22 : 17),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title.tr,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface)),
+                    const SizedBox(height: 2),
+                    Text(_sourceHints[key]!.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurface.withValues(alpha: 0.45))),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right,
+                  size: 20, color: colors.onSurface.withValues(alpha: 0.35)),
+            ],
+          ),
+        ),
       ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
+    );
+  }
+
+  /// 底部弹层 — 粘贴链接并解析
+  Future<void> _openSourceSheet((String, String, Color) source) async {
+    final (key, title, color) = source;
+    final colors = Theme.of(context).colorScheme;
+    final controller = _controllerFor(key);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        void submit() {
+          Navigator.pop(sheetContext);
+          _parseFor(key);
+        }
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
                 children: [
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 38,
+                    height: 38,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: iconTileColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(9),
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: icon,
+                    child: _sourceIcon(key, key == 'douban' ? 21 : 16),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title,
+                        Text(title.tr,
                             style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: colors.onSurface)),
                         const SizedBox(height: 1),
-                        Text(subtitle,
+                        Text(_sourceHints[key]!.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 11,
-                                color: colors.onSurface.withValues(alpha: 0.4))),
+                                fontSize: 12,
+                                color:
+                                    colors.onSurface.withValues(alpha: 0.45))),
                       ],
                     ),
                   ),
-                  AnimatedRotation(
-                    turns: expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(Icons.expand_more,
-                        size: 18, color: colors.onSurface.withValues(alpha: 0.4)),
-                  ),
                 ],
               ),
-            ),
-          ),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 200),
-            crossFadeState: expanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            firstChild: const SizedBox(width: double.infinity),
-            secondChild: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Row(
-                children: [
-                  Expanded(child: _buildLinkField(colors, controller, onParse)),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: _parsing ? null : onParse,
-                    icon: _parsing
-                        ? const SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.auto_fix_high_outlined, size: 13),
-                    label: Text(_parsing ? '解析中...'.tr : '解析'.tr),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      minimumSize: const Size(0, 26),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(13)),
-                      textStyle: const TextStyle(fontSize: 11.5),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 16),
+              _buildLinkField(colors, controller, submit),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: _parsing ? null : submit,
+                icon: _parsing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.4))
+                    : const Icon(Icons.auto_fix_high_outlined, size: 19),
+                label: Text(_parsing ? '解析中...'.tr : '开始解析'.tr),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  textStyle:
+                      const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -279,20 +300,17 @@ class _QuickAddPageState extends State<QuickAddPage> {
   Widget _buildLinkField(
       ColorScheme colors, TextEditingController controller, VoidCallback onParse) {
     return Container(
-      height: 26,
+      height: 46,
       decoration: BoxDecoration(
         color: colors.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(
-            child: Icon(Icons.link,
-                size: 12, color: colors.onSurface.withValues(alpha: 0.3)),
-          ),
-          const SizedBox(width: 4),
+          Icon(Icons.link,
+              size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+          const SizedBox(width: 10),
           Expanded(
             child: ValueListenableBuilder<TextEditingValue>(
               valueListenable: controller,
@@ -303,16 +321,17 @@ class _QuickAddPageState extends State<QuickAddPage> {
                     IgnorePointer(
                       child: Text('https://...',
                           style: TextStyle(
-                              fontSize: 11.5,
-                              color: colors.onSurface.withValues(alpha: 0.25))),
+                              fontSize: 14,
+                              color: colors.onSurface.withValues(alpha: 0.3))),
                     ),
                   TextField(
                     controller: controller,
                     keyboardType: TextInputType.url,
-                    style: TextStyle(fontSize: 11.5, color: colors.onSurface),
+                    autofocus: true,
+                    style: TextStyle(fontSize: 14, color: colors.onSurface),
                     decoration: null,
                     textAlignVertical: TextAlignVertical.center,
-                    cursorHeight: 13,
+                    cursorHeight: 18,
                     onSubmitted: _parsing ? null : (_) => onParse(),
                   ),
                 ],
@@ -326,13 +345,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
                   ? () => _pasteInto(controller)
                   : controller.clear,
               child: Padding(
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(4),
                 child: Icon(
                   value.text.isEmpty
                       ? Icons.content_paste_outlined
                       : Icons.close,
-                  size: 13,
-                  color: colors.onSurface.withValues(alpha: 0.4),
+                  size: 18,
+                  color: colors.onSurface.withValues(alpha: 0.45),
                 ),
               ),
             ),

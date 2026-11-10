@@ -43,9 +43,10 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   // "随机一张"按钮的飞出方向（-1 左 / 1 右），每次点击交替
   int _tapDir = -1;
 
-  // 飞出/弹回/回退动画（顶卡位偏由动画驱动时使用）
-  late final AnimationController _swipeCtrl =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
+  // 飞出/弹回/回退动画（顶卡位偏由动画驱动时使用）。
+  // 必须在 initState 中提前创建：空数据时不会构建卡片栈，懒加载会导致
+  // dispose 阶段才首次创建控制器，在已 deactivated 的 element 上查找 TickerMode 而崩溃
+  late final AnimationController _swipeCtrl;
   Animation<Offset>? _flyAnim;
 
   @override
@@ -57,6 +58,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _swipeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
     _loadBatch(5);
   }
 

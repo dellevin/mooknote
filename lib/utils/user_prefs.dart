@@ -203,7 +203,7 @@ class UserPrefs {
     );
   }
 
-  // ========== 主页模块状态自定义命名 ==========
+  // ========== 主页模块状态自定义（命名 + 显示顺序） ==========
 
   /// 读取某模块（movie/book/game）的状态自定义命名，key=状态英文 key，value=自定义文案。
   /// 未自定义或解析失败返回空 map。
@@ -220,6 +220,22 @@ class UserPrefs {
   /// 保存某模块的状态自定义命名（仅覆盖显示文案，底层状态 key 不变）。
   Future<bool> setCustomStatusLabels(String type, Map<String, String> labels) {
     return prefs.setString('statusLabels_$type', jsonEncode(labels));
+  }
+
+  /// 读取某模块状态的自定义显示顺序（状态 key 列表）；未设置或解析失败返回 null。
+  List<String>? customStatusOrder(String type) {
+    final raw = prefs.getString('statusOrder_$type');
+    if (raw == null) return null;
+    try {
+      return List<String>.from(jsonDecode(raw) as List);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 保存某模块状态显示顺序。
+  Future<bool> setCustomStatusOrder(String type, List<String> order) {
+    return prefs.setString('statusOrder_$type', jsonEncode(order));
   }
 
   // ========== 封面位置 ==========

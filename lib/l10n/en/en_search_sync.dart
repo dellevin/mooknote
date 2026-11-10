@@ -255,6 +255,13 @@ const Map<String, String> enSearchSync = {
       'Enter a Fanqie Novel link to auto-parse and fill in info',
   '解析中...': 'Parsing...',
   '解析': 'Parse',
+  '开始解析': 'Parse Link',
+  '粘贴豆瓣影视 / 书籍 / 游戏链接，自动解析填充':
+      'Paste a Douban movie / book / game link to auto-parse and fill in info',
+  '粘贴番茄小说链接，自动解析填充':
+      'Paste a Fanqie Novel link to auto-parse and fill in info',
+  '粘贴 Steam 商店 app 链接，自动解析填充':
+      'Paste a Steam store app link to auto-parse and fill in info',
   '请输入豆瓣链接': 'Please enter a Douban link',
   '请输入番茄小说链接': 'Please enter a Fanqie Novel link',
 

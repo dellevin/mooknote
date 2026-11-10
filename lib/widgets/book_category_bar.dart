@@ -21,73 +21,76 @@ class BookCategoryBar extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final currentIndex = provider.bookCategoryIndex;
+        final count = _categories.length;
+        // 条目固定宽度、整条收窄，超出后在胶囊内横向滚动
+        const tabWidth = 64.0;
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           decoration: BoxDecoration(color: colors.surface),
           child: Container(
             padding: const EdgeInsets.all(3),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: colors.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final count = _categories.length;
-                final tabWidth = constraints.maxWidth / count;
-                return SizedBox(
-                  height: 30,
-                  child: Stack(
-                    children: [
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                        left: currentIndex * tabWidth,
-                        top: 0, bottom: 0, width: tabWidth,
-                        child: Padding(
-                          padding: const EdgeInsets.all(2.5),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: colors.primary,
-                              borderRadius: BorderRadius.circular(13),
-                              boxShadow: [
-                                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
-                              ],
-                            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: tabWidth * count,
+                height: 30,
+                child: Stack(
+                  children: [
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      left: currentIndex * tabWidth,
+                      top: 0, bottom: 0, width: tabWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.all(2.5),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
+                            ],
                           ),
                         ),
                       ),
-                      Row(
-                        children: List.generate(count, (i) {
-                          final isSelected = currentIndex == i;
-                          return Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => provider.setBookCategoryIndex(i),
-                              child: AnimatedOpacity(
-                                opacity: isSelected ? 1.0 : 0.5,
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeInOut,
-                                child: Center(
-                                  child: FittedBox(
-                                    child: Text(
-                                      _categories[i].$1.tr,
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                        color: isSelected ? colors.onPrimary : colors.onSurface,
-                                      ),
+                    ),
+                    Row(
+                      children: List.generate(count, (i) {
+                        final isSelected = currentIndex == i;
+                        return SizedBox(
+                          width: tabWidth,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => provider.setBookCategoryIndex(i),
+                            child: AnimatedOpacity(
+                              opacity: isSelected ? 1.0 : 0.5,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              child: Center(
+                                child: FittedBox(
+                                  child: Text(
+                                    _categories[i].$1.tr,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      color: isSelected ? colors.onPrimary : colors.onSurface,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         );

@@ -110,9 +110,9 @@ class _NoteTabPageState extends State<NoteTabPage> {
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     final sortMode = UserPrefs().noteSortMode;
     try {
-      final list = await context.read<AppProvider>().loadNotesPaged(offset: 0, sortMode: sortMode);
+      final list = await context.read<AppProvider>().loadNotesPaged(offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= 20; _isLoading = false; });
+      setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= AppProvider.firstPageSize; _isLoading = false; });
     } catch (e) {
       debugPrint('[NoteTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;

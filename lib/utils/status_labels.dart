@@ -29,8 +29,20 @@ class StatusLabels {
   };
 
   /// 某模块按展示顺序排列的状态 key。
-  static List<String> orderedKeys(String type) =>
-      defaults[type]?.keys.toList() ?? const [];
+  /// 优先采用用户自定义顺序，并校验补全，保证与默认集合完全一致。
+  static List<String> orderedKeys(String type) {
+    final defaultKeys = defaults[type]?.keys.toList() ?? const <String>[];
+    final saved = UserPrefs().customStatusOrder(type);
+    if (saved == null || saved.isEmpty) return defaultKeys;
+    final result = <String>[];
+    for (final k in saved) {
+      if (defaultKeys.contains(k) && !result.contains(k)) result.add(k);
+    }
+    for (final k in defaultKeys) {
+      if (!result.contains(k)) result.add(k);
+    }
+    return result;
+  }
 
   /// 取状态显示名：优先用户自定义（原文展示，不多语言转换），否则默认文案走 .tr。
   static String label(String type, String key) {

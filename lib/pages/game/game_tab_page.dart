@@ -21,9 +21,6 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'game_detail_page.dart';
 
-/// 状态索引 → 状态值
-const _gameStatusMap = {0: 'completed', 1: 'playing', 2: 'want_to_play', 3: 'abandoned'};
-
 /// 游戏标签页（PageView 分页 + 触底加载），左右滑动丝滑切换
 class GameTabPage extends StatefulWidget {
   const GameTabPage({super.key});
@@ -133,7 +130,11 @@ class _GameTabPageState extends State<GameTabPage> {
             allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
             onPageChanged: (index) => _onPageChanged(index, provider),
             itemBuilder: (context, index) => _GameTabView(
-              key: ValueKey('$mode-$index'), // 模式切换时全部重建
+              // 模式切换时全部重建；状态模式额外带上状态 key，使自定义排序导致
+              // index 对应的状态变化时子页重建并重新加载，避免标签与数据错位
+              key: ValueKey(mode == 0
+                  ? '0-$index-${StatusLabels.orderedKeys('game')[index]}'
+                  : '$mode-$index'),
               index: index,
               mode: mode,
             ),
@@ -225,7 +226,7 @@ class _GameTabViewState extends State<_GameTabView>
   int _prevGameCount = -1;
   int _prevSortMode = -1;
 
-  String? get _status => widget.mode == 0 ? _gameStatusMap[widget.index] : null;
+  String? get _status => widget.mode == 0 ? StatusLabels.orderedKeys('game')[widget.index] : null;
 
   @override
   bool get wantKeepAlive => true;
@@ -328,13 +329,13 @@ class _GameTabViewState extends State<_GameTabView>
     _initialized = true;
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     try {
-      final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode);
+      final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.clear();
         _items.addAll(list);
         _offset = list.length;
-        _hasMore = list.length >= 20;
+        _hasMore = list.length >= AppProvider.firstPageSize;
         _isLoading = false;
       });
       _scheduleChainLoad();
@@ -689,7 +690,7 @@ class _GameTabViewState extends State<_GameTabView>
   }
 
   Widget _buildEmptyState() {
-    final statusText = widget.mode == 1 ? '' : StatusLabels.label('game', _gameStatusMap[widget.index]!);
+    final statusText = widget.mode == 1 ? '' : StatusLabels.label('game', StatusLabels.orderedKeys('game')[widget.index]);
     return EmptyState(
       image: 'assets/png_notion/game_empty.png',
       message: widget.mode == 1 ? '暂无游戏'.tr : '暂无{status}的游戏'.trf({'status': statusText}),

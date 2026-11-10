@@ -22,9 +22,6 @@ import 'movie_detail_page.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 
-/// 状态索引 → 状态值
-const _statusMap = {0: 'watched', 1: 'watching', 2: 'want_to_watch', 3: 'abandoned'};
-
 /// 观影标签页（PageView 分页 + 触底加载），左右滑动丝滑切换
 class MovieTabPage extends StatefulWidget {
   const MovieTabPage({super.key});
@@ -146,7 +143,11 @@ class _MovieTabPageState extends State<MovieTabPage> {
             allowImplicitScrolling: true, // 拖动时预构建相邻页 → 无白色空隙
             onPageChanged: (index) => _onPageChanged(index, provider),
             itemBuilder: (context, index) => _MovieTabView(
-              key: ValueKey('$mode-$index'), // 模式切换时全部重建
+              // 模式切换时全部重建；状态模式额外带上状态 key，使自定义排序导致
+              // index 对应的状态变化时子页重建并重新加载，避免标签与数据错位
+              key: ValueKey(mode == 0
+                  ? '0-$index-${StatusLabels.orderedKeys('movie')[index]}'
+                  : '$mode-$index'),
               index: index,
               mode: mode,
             ),
@@ -243,7 +244,7 @@ class _MovieTabViewState extends State<_MovieTabView>
   int _prevSortMode = -1;
   AppProvider? _provider;
 
-  String? get _status => widget.mode == 0 ? _statusMap[widget.index] : null;
+  String? get _status => widget.mode == 0 ? StatusLabels.orderedKeys('movie')[widget.index] : null;
   String? get _category => widget.mode == 1 ? MovieCategoryBar.categoryValue(widget.index) : null;
 
   @override
@@ -348,13 +349,14 @@ class _MovieTabViewState extends State<_MovieTabView>
     setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
     try {
       final list = await provider.loadMoviesPaged(
-          status: _status, category: _category, offset: 0, sortMode: sortMode);
+          status: _status, category: _category, offset: 0, sortMode: sortMode,
+          limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.clear();
         _items.addAll(list);
         _offset = list.length;
-        _hasMore = list.length >= 20;
+        _hasMore = list.length >= AppProvider.firstPageSize;
         _isLoading = false;
       });
       _scheduleChainLoad();
@@ -721,7 +723,7 @@ class _MovieTabViewState extends State<_MovieTabView>
     } else if (widget.mode == 1) {
       emptyText = '暂无 {x}'.trf({'x': MovieCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      emptyText = '暂无 {x} 的影片'.trf({'x': StatusLabels.label('movie', _statusMap[widget.index]!)});
+      emptyText = '暂无 {x} 的影片'.trf({'x': StatusLabels.label('movie', StatusLabels.orderedKeys('movie')[widget.index])});
     }
     return EmptyState(
       image: 'assets/png_notion/movie_empty.png',
