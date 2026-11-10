@@ -15,6 +15,7 @@ import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
+import 'services/http_proxy_overrides.dart';
 import 'services/log_service.dart';
 import 'services/report_service.dart';
 import 'services/sync/backup_service.dart';
@@ -55,6 +56,11 @@ void main() async {
   MyApmWidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await UserPrefs.init();
+  // 安装全局代理 override：让 Image.network 等内部 HttpClient 也按 host 走代理
+  installHttpProxyOverrides(
+    bangumiProxy: UserPrefs().bangumiProxy,
+    tmdbProxy: UserPrefs().tmdbProxy,
+  );
   // 调试模式：接管全局日志输出
   if (UserPrefs().debugMode) {
     LogService.instance.install();

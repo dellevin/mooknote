@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/http_proxy_overrides.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
@@ -94,6 +95,10 @@ class _TmdbSettingsPageState extends State<TmdbSettingsPage> {
     await _userPrefs.setTmdbAuthType(_authType);
     await _userPrefs.setTmdbProxy(proxy);
     TmdbService.instance.configure(token, _authType, proxy: proxy);
+    installHttpProxyOverrides(
+      bangumiProxy: _userPrefs.bangumiProxy,
+      tmdbProxy: proxy,
+    );
     if (!mounted) return;
     setState(() {
       _saved = true;

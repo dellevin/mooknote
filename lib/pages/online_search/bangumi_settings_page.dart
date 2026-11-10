@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/bangumi_service.dart';
+import '../../services/http_proxy_overrides.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
@@ -90,6 +91,10 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
     await _userPrefs.setBangumiAccessToken(token);
     await _userPrefs.setBangumiProxy(proxy);
     BangumiService.instance.configure(token, proxy: proxy);
+    installHttpProxyOverrides(
+      bangumiProxy: proxy,
+      tmdbProxy: _userPrefs.tmdbProxy,
+    );
     if (!mounted) return;
     setState(() {
       _saved = true;
