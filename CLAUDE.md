@@ -69,9 +69,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-MookNote is a Flutter media-tracking app centered on **影视 / 阅读 / 游戏 / 笔记** four media types, with additional people/characters, playlists (片单), custom modules (自定义分类), image galleries, online search, and cloud/WebDAV sync. Language: Dart/Flutter with Chinese UI. AGPL-3.0 licensed.
+MookNote is a Flutter media-tracking app centered on **影视 / 阅读 / 游戏 / 笔记** four media types, with people/characters, playlists (片单), custom modules (自定义分类), image galleries, online search with multiple data sources (豆瓣 / TMDB / Bangumi / Steam / 自建资源服务), explore features (统计 / 日历 / 碎阅 / 已阅 / 漫步 / 相遇), and cloud/WebDAV sync. Language: Dart/Flutter, Chinese UI with English localization. AGPL-3.0 licensed. Current app version: 0.4.x (see pubspec.yaml).
 
-**Platforms:** Android is primary. Windows desktop is fully supported (hidden title bar, FFI sqflite, wide-screen master-detail layout). `ios/`, `linux/`, `macos/`, `web/` directories exist but are secondary.
+**Platforms:** Android is primary (phone + tablet adaptive NavigationRail / master-detail). Windows desktop is fully supported (hidden title bar, FFI sqflite, wide-screen master-detail; separate Electron port lives in the `mooknote_windows` repo). `ios/`, `linux/`, `macos/`, `web/` directories exist but are secondary.
 
 ## Common Commands
 
@@ -103,24 +103,32 @@ $env:FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
 
 ### App Structure (lib/)
 
-- **main.dart** — App entry; initializes `UserPrefs`, `AppProvider`, auto-backup, usage stats, and sync validation on startup. Applies dynamic_color (Monet), frosted-glass theme, window_manager, media_kit
-- **models/data_models.dart** — All data models in one file (24 classes): `Movie`, `Book`, `Note`, `Game`, `Playlist`, `PlaylistItem`, `Person`, `MoviePerson`/`BookPerson`/`GamePerson`, `MovieCharacter`/`BookCharacter`/`GameCharacter`, `GalleryItem`, `MovieReview`, `BookReview`, `GameReview`, `MoviePoster`, `BookExcerpt`, `GameScreenshot`, `CustomFieldDef`/`CustomModule`/`CustomModuleDesign`/`CustomModuleItem`. Each has `fromJson`/`toJson`/`copyWith`
-- **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) has all app state (~260 members). Manages the four media type lists (movies, books, games, notes, playlists, people), theme mode, tab indices, drawer state, per-type UI preferences. Uses DAO pattern; `_useRemote` flag switches between local SQLite and remote server
+- **main.dart** — App entry; initializes `UserPrefs`, installs global HTTP proxy overrides, `AppProvider`, auto-backup, usage stats, and sync validation on startup. Applies dynamic_color (Monet), frosted-glass theme, window_manager, media_kit
+- **models/data_models.dart** — All data models in one file (28 classes): `Movie`, `Book`, `Note`, `Game`, reviews (`MovieReview`/`BookReview`/`GameReview`), `MoviePoster`, `MovieEpisode`, `BookChapter`, `BookExcerpt`, `GameScreenshot`, `GameCompletion`, `GameLevel`, `Playlist`/`PlaylistItem`, `Person` + `MoviePerson`/`BookPerson`/`GamePerson`, `MovieCharacter`/`BookCharacter`/`GameCharacter`, `GalleryItem`, `CustomFieldDef`/`CustomModule`/`CustomModuleDesign`/`CustomModuleItem`. Each has `fromJson`/`toJson`/`copyWith`
+- **providers/app_provider.dart** — Single `AppProvider` (ChangeNotifier) holds all app state. Manages the four media type lists (movies, books, games, notes, playlists, people), theme mode, tab indices, drawer state, per-type UI preferences. Uses DAO pattern; `_useRemote` flag switches between local SQLite and remote server
 - **data/** — DAO layer + database:
-  - `database_helper.dart` — SQLite (sqflite), **version 49**, migration chain in `_onUpgrade`
+  - `database_helper.dart` — SQLite (sqflite), **version 55**, migration chain in `_onUpgrade`
   - Per-entity DAOs: `movie/`, `book/`, `game/`, `note/`, `person/`, `character/`, `tag/`, `gallery/` (含 `image_asset_dao` 图片自定义名), `playlist/`, `custom_module/` (CRUD operations)
-- **pages/** — UI by feature domain. Large subsystems:
+- **pages/** — UI by feature domain:
   - `movies/`, `book/`, `game/`, `note/` — detail/form/list pages per media type; detail pages each have 4 style builders (标准/毛玻璃/浅色极简/豆瓣) dispatched by global `UserPrefs.detailPageStyle`, modules ordered by `getDetailModules(type)`
   - `custom_module/` — 自定义分类 (module manage, form designer, entry form/detail, tab page)
-  - `people/`, `character/`, `playlist/`, `explore/` (stats, gallery, calendar), `online_search/`, `quick_add/`, `profile/`, `settings/`, `sync/`, `home/`
-- **services/** — Non-UI logic: `sync/` (server sync, webdav, backup service, cache_cleaner, incremental/), `server_export_service.dart`, `usage_stats_service.dart`, `changelog_service.dart`, `font_download_manager.dart`, `app_icon_channel.dart`, `media_scan_channel.dart`
-- **utils/** — `image_path_helper.dart`, `responsive.dart`, `toast_util.dart`, `slide_up_page_route.dart`, `theme/app_theme.dart`, `user_prefs.dart`, `server_config.dart`, `excel_exporter.dart`, `image_saver.dart`, `douban_parser.dart`, `image_picker_helper.dart`
-- **widgets/** — Shared widgets (list items, star rating, drawer, bottom nav, app shell, frosted background, shimmer skeleton, master-detail scaffold)
+  - `online_search/` — `search_hub_page` 统一入口 + `online_search_page` (自建影视/书籍资源)、`tmdb_*`、`bangumi_*` (含人物收藏/关联 sheet)、`enhanced_search_settings_page`、各数据源 settings 页
+  - `explore/` — `statistics_page`、`media_calendar_page`、`media_journal_page` + `journal_poster_page` (碎阅/海报)、`reviewed_page` (已阅)、`stroll_page` (漫步)、`encounter_page` (相遇)、`gallery_*`、`person_list_page`
+  - `people/`, `character/`, `playlist/`, `progress/`, `quick_add/`, `profile/`, `settings/`, `sync/`, `home/`
+- **services/** — Non-UI logic:
+  - `sync/` — server sync, webdav, backup service, cache_cleaner, `incremental/` (LWW delta sync)
+  - `bangumi_service.dart` / `tmdb_service.dart` — 在线数据源 API 客户端
+  - `api_proxy_client.dart` — 按用户配置构造带 `findProxy` 的 http.Client（仅 API 请求）
+  - `http_proxy_overrides.dart` — 全局 `HttpOverrides`，按 host 分流代理，让 `Image.network` 等内部 HttpClient 也走代理
+  - `server_export_service.dart`, `changelog_service.dart`, `font_download_manager.dart`, `log_service.dart`, `report_service.dart`, `app_icon_channel.dart`, `media_scan_channel.dart`, `system_settings_channel.dart`
+- **utils/** — `image_path_helper.dart`, `responsive.dart`, `toast_util.dart`, `slide_up_page_route.dart`, `theme/app_theme.dart`, `user_prefs.dart`, `server_config.dart`, `excel_exporter.dart`, `image_saver.dart`, `douban_parser.dart`, `steam_parser.dart`, `image_picker_helper.dart`
+- **l10n/** — 轻量自建 i18n：`app_strings.dart` 聚合 `en/en_*.dart` 各域英文 Map
+- **widgets/** — Shared widgets (list items, star rating, `custom_drawer`, `bottom_nav_bar` dock, app shell, frosted background, shimmer skeleton, master-detail scaffold, `add_sheet`)
 - **utils/app_router.dart** — Named route generator using `onGenerateRoute` with `SlideUpPageRoute` transitions
 
 ### UI / Tabs
 
-Main tabs (mobile `home/main_content_page.dart` / desktop `home_page.dart`) switch by **影视 → 阅读 → 游戏 → 笔记** via a swipeable `PageView`. Tab visibility is user-configurable (`UserPrefs.showMovieTab` / `showBookTab` / `showGameTab` / `showNoteTab`). Custom modules can also be enabled as additional tabs.
+Main tabs cover **影视 → 阅读 → 游戏 → 笔记**. On mobile (`home/main_content_page.dart`) all four pages stay alive in a persistent `Stack` and cross-fade via `AnimatedOpacity`, declaratively driven by `AppProvider.mainTabIndex` (no PageController timing logic); horizontal swipe still flips pages through a `PageView`. The bottom nav (home/calendar/profile) uses the same Stack + cross-fade pattern. Tab visibility is user-configurable (`UserPrefs.showMovieTab` / `showBookTab` / `showGameTab` / `showNoteTab`). Custom modules can also be enabled as additional tabs. Desktop uses a master-detail scaffold in `home/home_page.dart`.
 
 ### State Management
 
@@ -143,9 +151,12 @@ Python Flask backend (auth, admin API, sync API, web UI) for user stats and sync
 
 ## Key Conventions
 
-- All Chinese UI strings are hardcoded (no i18n framework beyond Flutter's built-in localization delegates)
+- **i18n**: Chinese literal is the key. Wrap UI text with `.tr` (or `.trf({'n': x})` for placeholders) from `l10n/app_strings.dart`; add the English mapping to the matching `l10n/en/en_*.dart` domain file. Missing English falls back to Chinese automatically. New user-facing strings should always get an English entry in the same change.
+- **HTTP decoding**: never use `Response.body` for JSON/HTML text — `package:http` falls back to latin1 when the response lacks `charset=utf-8`, causing Chinese mojibake. Always `utf8.decode(resp.bodyBytes)` (dart:convert). Binary/image downloads use `bodyBytes` directly.
+- **Proxies**: data-source API clients go through `buildProxyClient()` (per-service proxy setting); image/global traffic is covered by `installHttpProxyOverrides()` host-based `HttpOverrides` (bgm.tv / tmdb.org only, everything else DIRECT). SOCKS5 is not supported — HTTP proxy only.
 - UUID-based IDs for all entities (generated at creation time)
 - List fields (directors, actors, genres, tags) stored as JSON-encoded strings in SQLite, parsed via `Movie.parseStringList()`
 - `copyWith` uses a `_CopyWithNullSentinel` pattern to distinguish "not passed" from "passed null" for nullable fields
 - Route transitions use custom `SlideUpPageRoute` (bottom-to-top slide)
-- DB migrations in `DatabaseHelper._onUpgrade` — always add new migration blocks with version checks (`if (oldVersion < N)`), and bump the version constant
+- **SQL compatibility**: user devices may run old SQLite. Avoid 3.30+ syntax (e.g. `NULLS LAST` froze sorting on device); use `col IS NULL, col DESC` for null ordering instead.
+- DB migrations in `DatabaseHelper._onUpgrade` — always add new migration blocks with version checks (`if (oldVersion < N)`), and bump the version constant (currently 55)
