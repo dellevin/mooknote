@@ -9,6 +9,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/game_status_bar.dart';
 import '../../widgets/game_list_item.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/year_grid_view.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
@@ -688,15 +689,12 @@ class _GameTabViewState extends State<_GameTabView>
   }
 
   Widget _buildEmptyState() {
-    final colors = Theme.of(context).colorScheme;
     final statusText = widget.mode == 1 ? '' : StatusLabels.label('game', _gameStatusMap[widget.index]!);
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(width: 80, height: 80,
-          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-          child: Icon(Icons.sports_esports_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
-      const SizedBox(height: 20),
-      Text(widget.mode == 1 ? '暂无游戏'.tr : '暂无{status}的游戏'.trf({'status': statusText}),
-          style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
-    ]));
+    return EmptyState(
+      image: 'assets/png_notion/game_empty.png',
+      message: widget.mode == 1 ? '暂无游戏'.tr : '暂无{status}的游戏'.trf({'status': statusText}),
+      actionLabel: '添加游戏',
+      onAction: () => Navigator.pushNamed(context, '/game-form'),
+    );
   }
 }

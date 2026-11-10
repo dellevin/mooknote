@@ -22,20 +22,20 @@ class BookCategoryBar extends StatelessWidget {
       builder: (context, provider, child) {
         final currentIndex = provider.bookCategoryIndex;
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(color: colors.surface),
           child: Container(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final count = _categories.length;
                 final tabWidth = constraints.maxWidth / count;
                 return SizedBox(
-                  height: 36,
+                  height: 30,
                   child: Stack(
                     children: [
                       AnimatedPositioned(
@@ -44,13 +44,13 @@ class BookCategoryBar extends StatelessWidget {
                         left: currentIndex * tabWidth,
                         top: 0, bottom: 0, width: tabWidth,
                         child: Padding(
-                          padding: const EdgeInsets.all(3),
+                          padding: const EdgeInsets.all(2.5),
                           child: Container(
                             decoration: BoxDecoration(
                               color: colors.primary,
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(13),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2)),
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
                               ],
                             ),
                           ),
@@ -72,7 +72,7 @@ class BookCategoryBar extends StatelessWidget {
                                     child: Text(
                                       _categories[i].$1.tr,
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 11.5,
                                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                                         color: isSelected ? colors.onPrimary : colors.onSurface,
                                       ),

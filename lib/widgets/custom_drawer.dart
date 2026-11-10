@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import '../providers/app_provider.dart';
 import '../utils/user_prefs.dart';
 import '../utils/avatar_helper.dart';
+import '../utils/image_path_helper.dart';
+import '../utils/toast_util.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/explore/encounter_page.dart';
 import '../pages/explore/stroll_page.dart';
@@ -37,6 +42,15 @@ Widget _assetSvgIcon(String asset, double size, Color color) => SvgPicture.asset
       height: size,
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
+
+/// 个人信息卡片预设渐变背景
+const List<List<Color>> _profileBgGradients = [
+  [Color(0xFF667EEA), Color(0xFF764BA2)], // 紫霞
+  [Color(0xFFF97368), Color(0xFFE94057)], // 日落
+  [Color(0xFF0BA360), Color(0xFF0C7B93)], // 青墨
+  [Color(0xFF232526), Color(0xFF414345)], // 暗夜
+  [Color(0xFFB06A2C), Color(0xFF7A3E14)], // 鎏金
+];
 
 /// 自定义侧边栏
 class CustomDrawer extends StatefulWidget {
@@ -236,6 +250,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final noteCount = provider.notes.length;
         final gameCount = provider.games.where((g) => !g.isDeleted).length;
 
+        final bgImagePath = userPrefs.profileBgImagePath;
+        final gradientIdx = userPrefs.profileBgGradient;
+        final hasBgImage = bgImagePath != null && bgImagePath.isNotEmpty;
+        final hasBgGradient = !hasBgImage &&
+            gradientIdx >= 0 &&
+            gradientIdx < _profileBgGradients.length;
+        final hasBg = hasBgImage || hasBgGradient;
+
+        final primaryText = hasBg ? Colors.white : colors.onSurface;
+        final subText = hasBg
+            ? Colors.white.withValues(alpha: 0.72)
+            : colors.onSurface.withValues(alpha: 0.35);
+        final statSub = hasBg
+            ? Colors.white.withValues(alpha: 0.7)
+            : colors.onSurface.withValues(alpha: 0.4);
+
         // 根据功能开关过滤显示的统计项
         final statItems = <(IconData, int, String, Color)>[];
         if (userPrefs.showMovieTab) statItems.add((Icons.movie_outlined, movieCount, '观影', const Color(0xFF2563EB)));
@@ -245,80 +275,299 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
         return Container(
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          padding: const EdgeInsets.all(16),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: colors.surface,
+            color: hasBg ? null : colors.surface,
             borderRadius: BorderRadius.circular(16),
+            gradient: hasBgGradient
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _profileBgGradients[gradientIdx],
+                  )
+                : null,
+            image: hasBgImage
+                ? DecorationImage(image: FileImage(File(bgImagePath)), fit: BoxFit.cover)
+                : null,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => AvatarHelper.showActionSheet(context,
-                        onChanged: provider.notifyUserInfoChanged),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: colors.surfaceContainerHighest,
-                        border: Border.all(color: colors.outlineVariant, width: 0.5),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: avatarPath != null && avatarPath.isNotEmpty
-                          ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
-                              errorWidget: _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)))
-                          : _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(nickname, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                        const SizedBox(height: 2),
-                        Text(motto.tr, maxLines: 2, overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (statItems.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: statItems.map((item) {
-                    final (icon, count, label, color) = item;
-                    return Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_formatCount(count), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-                          const SizedBox(height: 2),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(icon, size: 11, color: colors.onSurface.withValues(alpha: 0.4)),
-                              const SizedBox(width: 3),
-                              Text(label.tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
-                            ],
-                          ),
+              // 图片背景上的暗色遮罩，保证文字可读
+              if (hasBgImage)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.32),
+                          Colors.black.withValues(alpha: 0.55),
                         ],
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
                 ),
-              ],
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => AvatarHelper.showActionSheet(context,
+                              onChanged: provider.notifyUserInfoChanged),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colors.surfaceContainerHighest,
+                              border: Border.all(color: colors.outlineVariant, width: 0.5),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: avatarPath != null && avatarPath.isNotEmpty
+                                ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
+                                    errorWidget: _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)))
+                                : _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(nickname, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: primaryText)),
+                              const SizedBox(height: 2),
+                              Text(motto.tr, maxLines: 2, overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 12, color: subText)),
+                            ],
+                          ),
+                        ),
+                        // 给右上角背景编辑按钮留出空间，避免昵称压到图标
+                        const SizedBox(width: 26),
+                      ],
+                    ),
+                    if (statItems.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Row(
+                        children: statItems.map((item) {
+                          final (icon, count, label, color) = item;
+                          return Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_formatCount(count), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: hasBg ? Colors.white : color)),
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(icon, size: 11, color: statSub),
+                                    const SizedBox(width: 3),
+                                    Text(label.tr, style: TextStyle(fontSize: 10, color: statSub)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showProfileBgSheet(context, provider),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.wallpaper_outlined,
+                      size: 18,
+                      color: hasBg
+                          ? Colors.white.withValues(alpha: 0.8)
+                          : colors.onSurface.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         );
       },
     );
+  }
+
+  /// 个人信息卡片背景选择：预设渐变 + 自定义图片 + 恢复默认
+  void _showProfileBgSheet(BuildContext context, AppProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+    final userPrefs = UserPrefs();
+    final bgImagePath = userPrefs.profileBgImagePath;
+    final hasImage = bgImagePath != null && bgImagePath.isNotEmpty;
+    final currentGradient = userPrefs.profileBgGradient;
+
+    void applyAndRefresh(VoidCallback action) {
+      action();
+      provider.notifyUserInfoChanged();
+      if (mounted) setState(() {});
+    }
+
+    appModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('卡片背景'.tr,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface))),
+          ),
+          const SizedBox(height: 16),
+          // 预设渐变（第一个为「默认」无背景）
+          SizedBox(
+            height: 56,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              itemCount: _profileBgGradients.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (ctx, i) {
+                final isDefault = i == 0;
+                final gradientIdx = i - 1;
+                final selected = isDefault
+                    ? !hasImage && currentGradient < 0
+                    : !hasImage && currentGradient == gradientIdx;
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    applyAndRefresh(() {
+                      userPrefs.clearProfileBgImagePath();
+                      userPrefs.setProfileBgGradient(isDefault ? -1 : gradientIdx);
+                    });
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: isDefault ? colors.surfaceContainerHighest : null,
+                      gradient: isDefault
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: _profileBgGradients[gradientIdx],
+                            ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected ? colors.primary : colors.outlineVariant,
+                        width: selected ? 2 : 0.5,
+                      ),
+                    ),
+                    child: isDefault
+                        ? Icon(Icons.block_outlined,
+                            size: 20, color: colors.onSurface.withValues(alpha: 0.4))
+                        : (selected
+                            ? const Icon(Icons.check, size: 20, color: Colors.white)
+                            : null),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(Icons.folder_outlined,
+                    size: 20, color: colors.onSurface.withValues(alpha: 0.6))),
+            title: Text('从文件管理器选择'.tr,
+                style: TextStyle(fontSize: 14, color: colors.onSurface)),
+            trailing: Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25)),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await _pickProfileBgFromFile(provider);
+            },
+          ),
+          if (hasImage || currentGradient >= 0) ...[
+            Divider(
+                height: 0.5,
+                indent: 24,
+                endIndent: 24,
+                color: colors.outlineVariant),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.restart_alt_outlined,
+                      size: 20, color: colors.error)),
+              title: Text('恢复默认背景'.tr,
+                  style: TextStyle(fontSize: 14, color: colors.error)),
+              trailing: Icon(Icons.chevron_right,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () {
+                Navigator.pop(ctx);
+                applyAndRefresh(() {
+                  userPrefs.clearProfileBgImagePath();
+                  userPrefs.setProfileBgGradient(-1);
+                });
+              },
+            ),
+          ],
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pickProfileBgFromFile(AppProvider provider) async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (pickedFile == null) return;
+      final appDirPath = await ImagePathHelper.getAppDir();
+      final bgDir = Directory(path.join(appDirPath, 'profile_bg'));
+      if (!await bgDir.exists()) await bgDir.create(recursive: true);
+      final ext = path.extension(pickedFile.path);
+      final fileName =
+          'profile_${DateTime.now().millisecondsSinceEpoch}${ext.isNotEmpty ? ext : '.jpg'}';
+      final savedPath = path.join(bgDir.path, fileName);
+      await File(pickedFile.path).copy(savedPath);
+      await UserPrefs().setProfileBgImagePath(savedPath);
+      provider.notifyUserInfoChanged();
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) ToastUtil.show(context, '选择图片失败'.tr);
+    }
   }
 
   String _formatCount(int count) {

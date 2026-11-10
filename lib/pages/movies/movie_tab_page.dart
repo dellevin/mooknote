@@ -14,6 +14,7 @@ import '../../widgets/animated_star_rating.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/top_fade_scrim.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/empty_state.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
@@ -714,7 +715,6 @@ class _MovieTabViewState extends State<_MovieTabView>
   }
 
   Widget _buildEmptyState() {
-    final colors = Theme.of(context).colorScheme;
     final String emptyText;
     if (widget.mode == 2) {
       emptyText = '暂无影片'.tr;
@@ -723,12 +723,11 @@ class _MovieTabViewState extends State<_MovieTabView>
     } else {
       emptyText = '暂无 {x} 的影片'.trf({'x': StatusLabels.label('movie', _statusMap[widget.index]!)});
     }
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(width: 80, height: 80,
-          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-          child: Icon(Icons.movie_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
-      const SizedBox(height: 20),
-      Text(emptyText, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
-    ]));
+    return EmptyState(
+      image: 'assets/png_notion/movie_empty.png',
+      message: emptyText,
+      actionLabel: '添加影视',
+      onAction: () => Navigator.pushNamed(context, '/movie-form'),
+    );
   }
 }

@@ -52,19 +52,19 @@ class _PillBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       color: colors.surface,
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final tabWidth = constraints.maxWidth / tabs.length;
             return SizedBox(
-              height: 40,
+              height: 32,
               child: Stack(
                 children: [
                   AnimatedPositioned(
@@ -73,13 +73,13 @@ class _PillBar extends StatelessWidget {
                     left: currentIndex * tabWidth,
                     top: 0, bottom: 0, width: tabWidth,
                     child: Padding(
-                      padding: const EdgeInsets.all(3),
+                      padding: const EdgeInsets.all(2.5),
                       child: Container(
                         decoration: BoxDecoration(
                           color: colors.primary,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(13),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 1)),
                           ],
                         ),
                       ),
@@ -130,11 +130,11 @@ class _PillItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(tab.icon, size: 16, color: isSelected ? colors.onPrimary : colors.onSurface),
-                  const SizedBox(width: 6),
+                  Icon(tab.icon, size: 14, color: isSelected ? colors.onPrimary : colors.onSurface),
+                  const SizedBox(width: 4),
                   Text(tab.label.tr,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                         color: isSelected ? colors.onPrimary : colors.onSurface,
                       )),
@@ -159,7 +159,7 @@ class _UnderlineBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       color: colors.surface,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -192,18 +192,18 @@ class _UnderlineBar extends StatelessWidget {
                         behavior: HitTestBehavior.opaque,
                         onTap: () => onChanged(i),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(tabs[i].icon, size: 16,
+                                Icon(tabs[i].icon, size: 14,
                                     color: currentIndex == i ? colors.primary : colors.onSurfaceVariant),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 4),
                                 Text(tabs[i].label.tr,
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 12,
                                       fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
                                       color: currentIndex == i ? colors.primary : colors.onSurfaceVariant,
                                     )),
@@ -234,25 +234,25 @@ class _ChipBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       color: colors.surface,
       child: Row(
         children: [
           for (int i = 0; i < tabs.length; i++) ...[
-            if (i != 0) const SizedBox(width: 8),
+            if (i != 0) const SizedBox(width: 6),
             Expanded(
               child: GestureDetector(
                 onTap: () => onChanged(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  height: 36,
+                  height: 30,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: currentIndex == i ? colors.primary : Colors.transparent,
                     border: Border.all(
                       color: currentIndex == i ? colors.primary : colors.outlineVariant,
                     ),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(15),
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
@@ -260,12 +260,12 @@ class _ChipBar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(tabs[i].icon, size: 15,
+                        Icon(tabs[i].icon, size: 13,
                             color: currentIndex == i ? colors.onPrimary : colors.onSurfaceVariant),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         Text(tabs[i].label.tr,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: currentIndex == i ? FontWeight.w600 : FontWeight.w500,
                               color: currentIndex == i ? colors.onPrimary : colors.onSurfaceVariant,
                             )),
@@ -294,7 +294,7 @@ class _DropdownBar extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final current = tabs[currentIndex];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       color: colors.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -320,24 +320,24 @@ class _DropdownBar extends StatelessWidget {
                 ),
             ],
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: colors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(current.icon, size: 16, color: colors.primary),
-                  const SizedBox(width: 6),
+                  Icon(current.icon, size: 14, color: colors.primary),
+                  const SizedBox(width: 4),
                   Text(current.label.tr,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: colors.primary,
                       )),
-                  const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, size: 18, color: colors.onSurfaceVariant),
+                  const SizedBox(width: 3),
+                  Icon(Icons.keyboard_arrow_down, size: 16, color: colors.onSurfaceVariant),
                 ],
               ),
             ),

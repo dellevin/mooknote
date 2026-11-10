@@ -314,6 +314,11 @@ const Map<String, String> enProfile = {
       'The app bar title shows the current module; tap it for the selection menu.',
   '顶部显示模块标签栏，点击切换。':
       'A module tab bar at the top; tap to switch.',
+  '左上角显示': 'Top-left',
+  '日期印章': 'Date stamp',
+  '菜单+分类': 'Menu + category',
+  '左上角显示菜单图标与当前分类名，点击图标展开侧边栏。':
+      'Shows a menu icon and the current category at top-left; tap the icon to open the drawer.',
   '影视布局': 'Movie layout',
   '海报显示日期': 'Show date on posters',
   '海报右下角显示上映日期':
@@ -431,7 +436,9 @@ const Map<String, String> enProfile = {
   '从文件管理器选择': 'Select from Files',
   '移除头像': 'Remove avatar',
   '编辑背景': 'Edit Background',
+  '卡片背景': 'Card Background',
   '恢复默认背景': 'Restore Default Background',
+  '选择图片失败': 'Failed to select image',
   '选择备份方式': 'Choose backup method',
   '本地备份': 'Local backup',
   '备份到本地文件夹，支持恢复':

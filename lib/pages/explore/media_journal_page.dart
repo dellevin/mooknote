@@ -12,7 +12,7 @@ import '../game/game_detail_page.dart';
 import '../note/note_detail_page.dart';
 import 'journal_poster_page.dart';
 
-/// 岁阅：四类（影视/书籍/游戏/笔记）混合的月度/年度标记回顾
+/// 碎阅：四类（影视/书籍/游戏/笔记）混合的月度/年度标记回顾
 /// 视图：日历（月/年）+ 时间轴；月度海报分享
 class MediaJournalPage extends StatefulWidget {
   const MediaJournalPage({super.key});
@@ -372,7 +372,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('岁阅'.tr),
+            Text('碎阅'.tr),
             const SizedBox(height: 1),
             Text(
               '春生夏长，秋收冬藏'.tr,

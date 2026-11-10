@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/note_list_item.dart';
 import '../../widgets/shimmer_skeleton.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/app_overlay.dart';
@@ -431,13 +432,11 @@ class _NoteTabPageState extends State<NoteTabPage> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(width: 80, height: 80,
-          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-          child: Icon(Icons.sticky_note_2_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
-      const SizedBox(height: 20),
-      Text('暂无笔记'.tr, style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
-    ]));
+    return EmptyState(
+      image: 'assets/png_notion/note_empty.png',
+      message: '暂无笔记'.tr,
+      actionLabel: '添加笔记',
+      onAction: () => Navigator.pushNamed(context, '/note-form'),
+    );
   }
 }

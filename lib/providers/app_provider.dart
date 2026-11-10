@@ -79,6 +79,9 @@ class AppProvider extends ChangeNotifier {
   // 主页模块显示方式 (0=底部tab切换, 1=顶部下拉切换)
   int _homeModuleSwitchMode = 0;
 
+  // 模块标签模式下 AppBar 左上角显示 (0=日期印章, 1=菜单图标+分类名)
+  int _homeLeadingStyle = 0;
+
   // 当前底部导航选中的索引 (0: 主页，1: 新增，2: 我的)
   int _bottomNavIndex = 0;
 
@@ -300,6 +303,7 @@ class AppProvider extends ChangeNotifier {
     _gameWallMode = userPrefs.gameWallMode;
     _gameStatusBarStyle = userPrefs.gameStatusBarStyle;
     _homeModuleSwitchMode = userPrefs.homeModuleSwitchMode;
+    _homeLeadingStyle = userPrefs.homeLeadingStyle;
     _showMovieCardDate = userPrefs.showMovieCardDate;
     _showBookCardDate = userPrefs.showBookCardDate;
     _showGameCardDate = userPrefs.showGameCardDate;
@@ -431,6 +435,7 @@ class AppProvider extends ChangeNotifier {
   // Getters
   int get mainTabIndex => _mainTabIndex;
   int get homeModuleSwitchMode => _homeModuleSwitchMode;
+  int get homeLeadingStyle => _homeLeadingStyle;
   int get bottomNavIndex => _bottomNavIndex;
   Movie? get selectedMovie => _selectedMovie;
   Book? get selectedBook => _selectedBook;
@@ -662,6 +667,12 @@ class AppProvider extends ChangeNotifier {
   void setHomeModuleSwitchMode(int mode) {
     _homeModuleSwitchMode = mode;
     UserPrefs().setHomeModuleSwitchMode(mode);
+    notifyListeners();
+  }
+
+  void setHomeLeadingStyle(int style) {
+    _homeLeadingStyle = style;
+    UserPrefs().setHomeLeadingStyle(style);
     notifyListeners();
   }
 

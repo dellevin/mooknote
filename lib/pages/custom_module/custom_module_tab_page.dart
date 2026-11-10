@@ -11,6 +11,7 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/pressable_scale.dart';
+import '../../widgets/empty_state.dart';
 import '../../l10n/app_strings.dart';
 import 'custom_module_design_list_page.dart';
 import 'custom_module_detail_page.dart';
@@ -117,17 +118,9 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
   }
 
   Widget _buildEmpty(ColorScheme colors) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.inbox_outlined, size: 56, color: colors.onSurface.withValues(alpha: 0.2)),
-          const SizedBox(height: 16),
-          Text('还没有条目'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.5))),
-          const SizedBox(height: 6),
-          Text('点击底部 + 新增'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
-        ],
-      ),
+    return EmptyState(
+      image: 'assets/png_notion/empty.png',
+      message: '还没有条目'.tr,
     );
   }
 

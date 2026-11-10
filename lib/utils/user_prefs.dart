@@ -64,6 +64,15 @@ class UserPrefs {
   Future<bool> setHeroBackgroundPath(String value) => prefs.setString('heroBackgroundPath', value);
   Future<bool> clearHeroBackgroundPath() => prefs.remove('heroBackgroundPath');
 
+  /// 侧边栏个人信息卡片背景：自定义图片路径（优先级高于渐变）
+  String? get profileBgImagePath => prefs.getString('profileBgImagePath');
+  Future<bool> setProfileBgImagePath(String value) => prefs.setString('profileBgImagePath', value);
+  Future<bool> clearProfileBgImagePath() => prefs.remove('profileBgImagePath');
+
+  /// 侧边栏个人信息卡片背景：预设渐变序号（-1=不使用）
+  int get profileBgGradient => prefs.getInt('profileBgGradient') ?? -1;
+  Future<bool> setProfileBgGradient(int value) => prefs.setInt('profileBgGradient', value);
+
   /// 启动时的存储权限说明弹窗：用户已选择（确定/取消）后不再弹出
   bool get storagePermissionDialogDecided => prefs.getBool('storagePermissionDialogDecided') ?? false;
   Future<bool> setStoragePermissionDialogDecided(bool value) =>
@@ -252,6 +261,10 @@ class UserPrefs {
   /// 主页模块显示方式 (0=底部tab切换, 1=顶部下拉切换)
   int get homeModuleSwitchMode => prefs.getInt('homeModuleSwitchMode') ?? 0;
   Future<bool> setHomeModuleSwitchMode(int value) => prefs.setInt('homeModuleSwitchMode', value);
+
+  /// 模块标签模式下 AppBar 左上角显示 (0=日期印章, 1=菜单图标+分类名)
+  int get homeLeadingStyle => prefs.getInt('homeLeadingStyle') ?? 0;
+  Future<bool> setHomeLeadingStyle(int value) => prefs.setInt('homeLeadingStyle', value);
 
   /// 默认启动标签 (-1: 主页, 0: 影视, 1: 阅读, 2: 笔记, 3: 游戏)
   int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? -1;

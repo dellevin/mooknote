@@ -9,6 +9,7 @@ import '../../utils/responsive.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/book_status_bar.dart';
 import '../../widgets/book_category_bar.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/book_list_item.dart';
 import '../../widgets/year_grid_view.dart';
 import '../../widgets/animated_star_rating.dart';
@@ -684,7 +685,6 @@ class _BookTabViewState extends State<_BookTabView>
   }
 
   Widget _buildEmptyState() {
-    final colors = Theme.of(context).colorScheme;
     final String emptyText;
     if (widget.mode == 2) {
       emptyText = '暂无书籍'.tr;
@@ -694,13 +694,11 @@ class _BookTabViewState extends State<_BookTabView>
       final statusText = StatusLabels.label('book', _bookStatusMap[widget.index]!);
       emptyText = '暂无{status}的书籍'.trf({'status': statusText});
     }
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(width: 80, height: 80,
-          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-          child: Icon(Icons.menu_book_outlined, size: 40, color: colors.onSurface.withValues(alpha: 0.25))),
-      const SizedBox(height: 20),
-      Text(emptyText,
-          style: TextStyle(fontSize: 16, color: colors.onSurface.withValues(alpha: 0.4))),
-    ]));
+    return EmptyState(
+      image: 'assets/png_notion/book_empty.png',
+      message: emptyText,
+      actionLabel: '添加书籍',
+      onAction: () => Navigator.pushNamed(context, '/book-form'),
+    );
   }
 }

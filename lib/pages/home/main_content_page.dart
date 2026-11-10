@@ -50,7 +50,7 @@ class _MainContentPageState extends State<MainContentPage> {
     final target = _mapToEnabledTabIndex(originalIndex);
     if (target == _mapToEnabledTabIndex(provider.mainTabIndex)) {
       final type = _tabType(originalIndex);
-      if (type != null && _statusBarStyle(provider, type) == 4) {
+      if (type != null && _isStatusMode(provider, type) && _statusBarStyle(provider, type) == 4) {
         _showStatusPicker(type);
       }
       return;
@@ -75,7 +75,9 @@ class _MainContentPageState extends State<MainContentPage> {
     final title = Text(tab.label.tr, textAlign: TextAlign.center, style: titleStyle);
 
     final type = _tabType(tab.originalIndex);
-    if (type == null || _statusBarStyle(provider, type) != 4) return title;
+    if (type == null || !_isStatusMode(provider, type) || _statusBarStyle(provider, type) != 4) {
+      return title;
+    }
 
     final keys = StatusLabels.orderedKeys(type);
     final idx = _statusIndex(provider, type).clamp(0, keys.length - 1);
@@ -99,6 +101,15 @@ class _MainContentPageState extends State<MainContentPage> {
       ],
     );
   }
+
+  /// 该模块当前是否为「观看/阅读/游玩状态」显示模式；
+  /// 影视墙/书架/游戏墙/分类状态模式下不再保留状态标签与状态选择
+  bool _isStatusMode(AppProvider p, String type) => switch (type) {
+        'movie' => !p.movieWallMode && p.movieDisplayMode == 0,
+        'book' => !p.bookshelfMode && p.bookDisplayMode == 0,
+        'game' => !p.gameWallMode,
+        _ => false,
+      };
 
   int _statusBarStyle(AppProvider p, String type) => switch (type) {
         'movie' => p.movieStatusBarStyle,
@@ -224,16 +235,19 @@ class _MainContentPageState extends State<MainContentPage> {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final colors = Theme.of(context).colorScheme;
-        final showDateStamp = !isDropdown;
+        final showLeading = !isDropdown;
+        final useMenuLeading = showLeading && provider.homeLeadingStyle == 1;
         return AppBar(
           titleSpacing: 8,
-          leadingWidth: showDateStamp ? 126 : 44,
-          leading: showDateStamp
-              ? _buildDateStampLeading(context, provider, colors)
-              : null,
+          leadingWidth: !showLeading ? 44 : (useMenuLeading ? 132 : 126),
+          leading: !showLeading
+              ? null
+              : useMenuLeading
+                  ? _buildMenuLeading(context, provider, colors)
+                  : _buildDateStampLeading(context, provider, colors),
           title: isDropdown && _enabledTabs.length > 1
               ? _buildDropdownTitle(context, provider, colors)
-              : (showDateStamp ? const SizedBox.shrink() : Text(_getAppBarTitle(provider))),
+              : (showLeading ? const SizedBox.shrink() : Text(_getAppBarTitle(provider))),
           actionsPadding: const EdgeInsets.only(right: 4),
           actions: [
             _buildCloudSyncButton(context),
@@ -294,6 +308,41 @@ class _MainContentPageState extends State<MainContentPage> {
             const SizedBox(width: 8),
             // 做旧印章：缺口边框 + 粗重竖排 + 斑驳擦除 + 轻微倾斜
             _WeatheredStamp(text: category, color: _stampRed, bgColor: colors.surface),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 模块标签模式左上角（通用样式）：菜单图标 + 当前分类名，点击图标展开侧边栏
+  Widget _buildMenuLeading(BuildContext context, AppProvider provider, ColorScheme colors) {
+    final tabs = _enabledTabs;
+    final safeIndex = tabs.isEmpty
+        ? 0
+        : _mapToEnabledTabIndex(provider.mainTabIndex).clamp(0, tabs.length - 1);
+    final category = tabs.isEmpty ? '主页' : tabs[safeIndex].label;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Scaffold.of(context).openDrawer(),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.menu, size: 24, color: colors.onSurface),
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  category.tr,
+                  maxLines: 1,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -17,11 +17,13 @@ class LayoutSettingsPage extends StatefulWidget {
 class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   int _homeModuleSwitchMode = 0;
+  int _homeLeadingStyle = 0;
 
   @override
   void initState() {
     super.initState();
     _homeModuleSwitchMode = _userPrefs.homeModuleSwitchMode;
+    _homeLeadingStyle = _userPrefs.homeLeadingStyle;
   }
 
   /// 打开模块布局设置页，返回后刷新副标题
@@ -236,12 +238,30 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
                 },
                 colors: colors,
               ),
+              if (_homeModuleSwitchMode == 0)
+                _sheetOptionRow(
+                  label: '左上角显示'.tr,
+                  selected: _homeLeadingStyle,
+                  options: [
+                    (0, Icons.calendar_today_outlined, '日期印章'.tr),
+                    (1, Icons.menu_outlined, '菜单+分类'.tr),
+                  ],
+                  onChanged: (v) {
+                    _userPrefs.setHomeLeadingStyle(v);
+                    setState(() => _homeLeadingStyle = v);
+                    if (mounted) context.read<AppProvider>().setHomeLeadingStyle(v);
+                    setSheetState(() {});
+                  },
+                  colors: colors,
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                 child: Text(
                   _homeModuleSwitchMode == 1
                       ? 'AppBar 标题显示当前模块，点击弹出选择菜单。'.tr
-                      : '顶部显示模块标签栏，点击切换。'.tr,
+                      : _homeLeadingStyle == 1
+                          ? '左上角显示菜单图标与当前分类名，点击图标展开侧边栏。'.tr
+                          : '顶部显示模块标签栏，点击切换。'.tr,
                   style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
                 ),
               ),

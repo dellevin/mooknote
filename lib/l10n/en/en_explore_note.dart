@@ -114,7 +114,7 @@ const Map<String, String> enExploreNote = {
   '观看/阅读': 'Watched/Read',
   '日期类型': 'Date Type',
   '书影日历': 'Media Calendar',
-  '岁阅': 'Journal',
+  '碎阅': 'Journal',
   '春生夏长，秋收冬藏': 'Spring sows, summer grows, autumn harvests, winter stores',
   '{y}年{m}': '{y} {m}',
   '{m}月{d}日  暂无记录': '{m}/{d}  No records',
