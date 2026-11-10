@@ -191,6 +191,43 @@ const Map<String, String> enSearchSync = {
   '卷': 'vol',
   '信息': 'Info',
 
+  // ── Bangumi 角色/人物 ──
+  '角色介绍': 'Characters',
+  '制作人员': 'Staff',
+  '更多角色': 'More',
+  '共 {n} 个': '{n} in total',
+  '角色': 'Character',
+  '配音': 'Voice Actor',
+  '保存角色到作品': 'Save character to work',
+  '角色已保存': 'Character saved',
+  '角色已存在': 'Character already exists',
+  '加入人物收藏': 'Add to People',
+  '已收藏，点击关联': 'Saved. Tap to link',
+  '已收藏并关联': 'Saved & linked',
+  '已关联「{name}」': 'Linked "{name}"',
+  '收藏 CV {name}': 'Save CV {name}',
+  '{cv} 饰 {name}': '{cv} as {name}',
+  '更多': 'More',
+  '批量添加': 'Batch Add',
+  '全选': 'Select All',
+  '已选 {n} 个': '{n} selected',
+  '同时收藏 CV 人物': 'Also save CV to People',
+  '已保存 {n} 个角色': 'Saved {n} characters',
+  '正在获取中文名称 {n}/{N}': 'Fetching Chinese names {n}/{N}',
+  '添加后打开编辑页': 'Open editor after adding',
+  '点击想看/在看/看过后，直接弹出自动填好的编辑表单':
+      'Tap Want/Watching/Watched to open the pre-filled edit form directly',
+
+  // ── 人物收藏覆盖选择 ──
+  '更新': 'Update',
+  '头像': 'Avatar',
+  '生日': 'Birthday',
+  '更新「{name}」': 'Update "{name}"',
+  '本地已有信息，勾选要用 Bangumi 覆盖的字段':
+      'Local info found. Tick the fields to overwrite with Bangumi',
+  '替换为 Bangumi 头像': 'Replace with Bangumi avatar',
+  '本地 {a} 字 → Bangumi {b} 字': 'Local {a} chars → Bangumi {b} chars',
+
   // ── 在线影视详情 ──
   '加载失败': 'Load failed',
   '网络错误': 'Network error',
