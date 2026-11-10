@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import 'media_journal_page.dart';
 
@@ -34,6 +35,11 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   final _posterKey = GlobalKey();
   bool _generating = false;
   bool _capturing = false; // 截图期间隐藏编辑角标
+  // true=截图态：临时挂回全量海报树（供 RepaintBoundary 完整光栅化）；
+  // false=预览态：Sliver 懒加载，仅构建可见区，大数据量也不卡
+  bool _renderForCapture = false;
+  // 切换布局时的过渡加载态：先画 loading，下一帧再挂重内容，避免同帧卡顿
+  bool _layoutLoading = false;
 
   // 0=海报网格 1=列表 2=海报墙(斜) 3=海报墙(小)
   int _layout = 0;
@@ -49,6 +55,13 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
     _anchor = DateTime(widget.anchorMonth.year, widget.anchorMonth.month);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 预缓存品牌图标，避免截图帧资源未解码出现黑块
+    precacheImage(AssetImage(_brandIconAsset), context);
+  }
+
   void _shiftPeriod(int delta) {
     setState(() {
       _anchor = _scope == 0
@@ -57,6 +70,20 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
       _excluded.clear();
       _slotPicks.clear();
     });
+  }
+
+  /// 切换布局：先显示 loading，预解码目标布局的全部封面，
+  /// 等图片真正就绪后再挂内容，loading 才消失（期间转圈持续动画）。
+  Future<void> _switchLayout(int layout) async {
+    if (layout == _layout || _layoutLoading) return;
+    final filtered = _filtered;
+    setState(() {
+      _layout = layout;
+      _layoutLoading = true;
+    });
+    await _warmImages(filtered);
+    if (!mounted) return;
+    setState(() => _layoutLoading = false);
   }
 
   /// 当前范围（月/年）内的记录
@@ -68,7 +95,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
     }).toList();
   }
 
-  final Set<String> _activeTypes = {'movie', 'book', 'game', 'note'};
+  final Set<String> _activeTypes = {'movie', 'book', 'game'};
   final Set<int> _excluded = <int>{}; // 被手动移除的原始下标
   // 各布局下每个格位手动选中的 _filtered 下标；未设置时按 slot % count 循环
   final Map<int, List<int?>> _slotPicks = {};
@@ -78,6 +105,12 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   bool _showRating = false;
   bool _showCalendar = false;
   bool _showBrand = true;
+
+  /// 品牌图标跟随用户在设置中选择的应用图标
+  String get _brandIconAsset {
+    final name = UserPrefs().appIconName;
+    return 'assets/icon/$name${name == 'app_icon_m' ? '.png' : '.webp'}';
+  }
 
   static const _bg = Color(0xFFFBF7EF);
   static const _ink = Color(0xFF2B2620);
@@ -101,15 +134,33 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
       appBar: AppBar(title: Text('海报'.tr)),
       body: Column(
         children: [
-          _buildScopeBar(colors),
+          // 截图生成期间锁定所有外部操作，避免重建全量树导致截图错位
+          IgnorePointer(
+            ignoring: _renderForCapture,
+            child: _buildScopeBar(colors),
+          ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: RepaintBoundary(key: _posterKey, child: _buildPoster()),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: _renderForCapture
+                      ? _buildCaptureView()
+                      : _buildLazyPreview(),
+                ),
+                if (_renderForCapture) _buildCaptureOverlay(colors),
+              ],
             ),
           ),
-          if (_excluded.isNotEmpty) _buildRestoreBar(colors),
-          _buildBottomPanel(colors),
+          IgnorePointer(
+            ignoring: _renderForCapture,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_excluded.isNotEmpty) _buildRestoreBar(colors),
+                _buildBottomPanel(colors),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -194,82 +245,247 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
 
   // ─── 海报预览 ───
 
-  Widget _buildPoster() {
-    final filtered = _filtered;
-    return Container(
-      decoration:
-          BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(20)),
-      padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_showTitle)
-            Text(
-              '$_periodText${'海报墙'.tr}',
-              style: const TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w800, color: _ink),
-            ),
-          if (_showTitle) const SizedBox(height: 14),
-          if (_showStats) _buildStats(filtered),
-          if (_showStats) const SizedBox(height: 20),
-          if (_showCalendar && _scope == 0) ...[
-            _buildMiniCalendar(filtered),
-            const SizedBox(height: 20)
+  /// 海报顶部元素（标题/统计/迷你日历），预览与截图共用，保证视觉一致
+  List<Widget> _posterHeader(List<JournalItem> filtered) {
+    return [
+      if (_showTitle)
+        Text(
+          '$_periodText${'海报墙'.tr}',
+          style: const TextStyle(
+              fontSize: 24, fontWeight: FontWeight.w800, color: _ink),
+        ),
+      if (_showTitle) const SizedBox(height: 14),
+      if (_showStats) _buildStats(filtered),
+      if (_showStats) const SizedBox(height: 20),
+      if (_showCalendar && _scope == 0) ...[
+        _buildMiniCalendar(filtered),
+        const SizedBox(height: 20)
+      ],
+    ];
+  }
+
+  Widget _posterBrand() {
+    return Row(
+      children: [
+        Image.asset(
+          _brandIconAsset,
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('MookNote',
+                style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: _ink)),
+            Text('简洁的书影管理工具'.tr,
+                style: TextStyle(
+                    fontSize: 10.5, color: _ink.withValues(alpha: 0.45))),
           ],
-          filtered.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: Text(
-                      '当前筛选下没有标记'.tr,
-                      style: TextStyle(
-                          fontSize: 13, color: _ink.withValues(alpha: 0.4)),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyHint() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Text(
+          '当前筛选下没有标记'.tr,
+          style: TextStyle(fontSize: 13, color: _ink.withValues(alpha: 0.4)),
+        ),
+      ),
+    );
+  }
+
+  /// 全量海报主体（截图态使用）：一次性构建全部条目供 RepaintBoundary 完整光栅化
+  Widget _fullBody(List<JournalItem> filtered) {
+    if (filtered.isEmpty) return _emptyHint();
+    return switch (_layout) {
+      1 => _buildListBody(filtered),
+      2 => _buildWall(filtered, 104),
+      3 => _buildWall(filtered, 72),
+      _ => _buildGridBody(filtered),
+    };
+  }
+
+  /// 截图态视图：保持与历史一致的可完整离屏光栅化结构
+  Widget _buildCaptureView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 紧宽度放进 RepaintBoundary 内部：保证截图边界宽度与
+            // 海报内容宽度严格一致，避免松约束下内容撑出边界被裁
+            final w = math.min(constraints.maxWidth, 420.0);
+            return RepaintBoundary(
+              key: _posterKey,
+              child: SizedBox(
+                width: w,
+                child: Container(
+                  decoration: const BoxDecoration(color: _bg),
+                  padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ..._posterHeader(_filtered),
+                      _fullBody(_filtered),
+                      if (_showBrand) ...[
+                        const SizedBox(height: 22),
+                        _posterBrand(),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// 预览态视图：Sliver 懒加载，仅构建可见区，数据量大也不卡
+  Widget _buildLazyPreview() {
+    final filtered = _filtered;
+    const hPad = EdgeInsets.symmetric(horizontal: 22);
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Container(
+            decoration: const BoxDecoration(color: _bg),
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(22, 28, 22, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: _posterHeader(filtered),
                     ),
                   ),
-                )
-              : _DeferredBody(
-                  // 布局/数据量变化时重建：先画加载动画，下一帧再构建重内容，
-                  // 避免大量海报同帧构建导致切换卡死
-                  key: ValueKey('body-$_layout-${filtered.length}'),
-                  child: switch (_layout) {
-                    1 => _buildListBody(filtered),
-                    2 => _buildWall(filtered, 104),
-                    3 => _buildWall(filtered, 72),
-                    _ => _buildGridBody(filtered),
-                  },
                 ),
-          if (_showBrand) ...[
-            const SizedBox(height: 22),
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'assets/icon/app_icon.webp',
-                    width: 32,
-                    height: 32,
-                    fit: BoxFit.cover,
+                if (filtered.isEmpty)
+                  SliverPadding(
+                    padding: hPad,
+                    sliver: SliverToBoxAdapter(child: _emptyHint()),
+                  )
+                else ...[
+                  if (_layoutLoading)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            ),
+                            const SizedBox(height: 14),
+                            Text('加载中...'.tr,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: _ink.withValues(alpha: 0.5))),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_layout == 2 || _layout == 3)
+                    SliverPadding(
+                      padding: hPad,
+                      sliver: SliverToBoxAdapter(
+                        child: _buildWall(filtered, _layout == 3 ? 72 : 104),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: hPad,
+                      sliver: _layout == 1
+                          ? _lazyList(filtered)
+                          : _lazyGrid(filtered),
+                    ),
+                ],
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
+                  sliver: SliverToBoxAdapter(
+                    child: _showBrand ? _posterBrand() : const SizedBox.shrink(),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('MookNote',
-                        style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: _ink)),
-                    Text('简洁的书影管理工具'.tr,
-                        style: TextStyle(
-                            fontSize: 10.5,
-                            color: _ink.withValues(alpha: 0.45))),
-                  ],
                 ),
               ],
             ),
-          ],
-        ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _lazyGrid(List<JournalItem> filtered) {
+    const layoutKey = 0;
+    final slotCount = math.max(_minGridSlots, filtered.length);
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 6,
+        crossAxisSpacing: 6,
+        childAspectRatio: 0.72,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, slot) => LayoutBuilder(
+          builder: (context, constraints) => _gridTile(
+            filtered,
+            layoutKey,
+            slot,
+            constraints.maxWidth,
+          ),
+        ),
+        childCount: slotCount,
+      ),
+    );
+  }
+
+  Widget _lazyList(List<JournalItem> filtered) {
+    const layoutKey = 1;
+    final slotCount = math.max(_minListSlots, filtered.length);
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, slot) => _listRow(filtered, layoutKey, slot),
+        childCount: slotCount,
+      ),
+    );
+  }
+
+  Widget _buildCaptureOverlay(ColorScheme colors) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: colors.surface.withValues(alpha: 0.85),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              const SizedBox(height: 14),
+              Text('正在生成海报...'.tr,
+                  style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface.withValues(alpha: 0.7))),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -279,7 +495,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
     for (final i in filtered) {
       counts[i.type] = (counts[i.type] ?? 0) + 1;
     }
-    const units = {'movie': '部影视', 'book': '本书', 'game': '款游戏', 'note': '条笔记'};
+    const units = {'movie': '部影视', 'book': '本书', 'game': '款游戏'};
     final spans = <InlineSpan>[
       TextSpan(text: (_scope == 0 ? '这个月你标记了' : '这一年你标记了').tr),
     ];
@@ -311,159 +527,153 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   static const _minGridSlots = 12;
   static const _minListSlots = 6;
 
+  /// 单个卡片格位（全量截图与懒加载预览共用）
+  Widget _gridTile(List<JournalItem> filtered, int layoutKey, int slot, double tileW) {
+    final item = _slotItem(filtered, layoutKey, slot);
+    return Stack(fit: StackFit.expand, children: [
+      _posterImage(item, tileW),
+      if (_ratingBadge(item) != null) _ratingBadge(item)!,
+      if (!_capturing) ...[
+        _replaceBadge(() => _pickSlotCover(filtered, layoutKey, slot)),
+        _editBadge(() => _removeItem(item)),
+      ],
+    ]);
+  }
+
+  /// 单个列表行（全量截图与懒加载预览共用）
+  Widget _listRow(List<JournalItem> filtered, int layoutKey, int slot) {
+    final item = _slotItem(filtered, layoutKey, slot);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.55),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            height: 54,
+            child: _posterImage(item, 40),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _ink),
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: widget
+                            .typeColor(item.type)
+                            .withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        widget.typeLabel(item.type),
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: widget.typeColor(item.type)),
+                      ),
+                    ),
+                    if (_showRating &&
+                        (item.data as dynamic).rating != null) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.star_rounded,
+                          size: 13, color: Color(0xFFE8A33D)),
+                      const SizedBox(width: 2),
+                      Text(
+                        _ratingText(item),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: _ink.withValues(alpha: 0.55)),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (!_capturing) ...[
+            GestureDetector(
+              onTap: () => _pickSlotCover(filtered, layoutKey, slot),
+              child: Tooltip(
+                message: '选择封面'.tr,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.swap_horiz_rounded,
+                      size: 14, color: Colors.white),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _removeItem(item),
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                    color: Color(0xFFE53935), shape: BoxShape.circle),
+                child: const Icon(Icons.close,
+                    size: 15, color: Colors.white),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 全量卡片网格（截图态）：shrinkWrap 一次性布局全部格位
   Widget _buildGridBody(List<JournalItem> filtered) {
-    const cols = 3;
     const layoutKey = 0;
     final slotCount = math.max(_minGridSlots, filtered.length);
-    final slotItems = [
-      for (var slot = 0; slot < slotCount; slot++)
-        _slotItem(filtered, layoutKey, slot),
-    ];
     return LayoutBuilder(
       builder: (context, constraints) {
         final tileW = (constraints.maxWidth - 12) / 3;
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: cols,
+          crossAxisCount: 3,
           mainAxisSpacing: 6,
           crossAxisSpacing: 6,
           childAspectRatio: 0.72,
           children: [
-            for (var slot = 0; slot < slotItems.length; slot++)
-              Stack(fit: StackFit.expand, children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: _posterImage(slotItems[slot], tileW),
-                ),
-                if (_ratingBadge(slotItems[slot]) != null)
-                  _ratingBadge(slotItems[slot])!,
-                if (!_capturing) ...[
-                  _replaceBadge(
-                      () => _pickSlotCover(filtered, layoutKey, slot)),
-                  _editBadge(() => _removeItem(slotItems[slot])),
-                ],
-              ]),
+            for (var slot = 0; slot < slotCount; slot++)
+              _gridTile(filtered, layoutKey, slot, tileW),
           ],
         );
       },
     );
   }
 
+  /// 全量列表（截图态）：一次性布局全部行
   Widget _buildListBody(List<JournalItem> filtered) {
     const layoutKey = 1;
     final slotCount = math.max(_minListSlots, filtered.length);
-    final slots = [
-      for (var i = 0; i < slotCount; i++) _slotItem(filtered, layoutKey, i),
-    ];
     return Column(
       children: [
-        for (var slot = 0; slot < slots.length; slot++)
-          Builder(builder: (context) {
-            final item = slots[slot];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 40,
-                    height: 54,
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(7),
-                        child: _posterImage(item, 40)),
-                  ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: _ink),
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: widget
-                                    .typeColor(item.type)
-                                    .withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Text(
-                                widget.typeLabel(item.type),
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: widget.typeColor(item.type)),
-                              ),
-                            ),
-                            if (_showRating &&
-                                item.type != 'note' &&
-                                (item.data as dynamic).rating != null) ...[
-                              const SizedBox(width: 8),
-                              const Icon(Icons.star_rounded,
-                                  size: 13, color: Color(0xFFE8A33D)),
-                              const SizedBox(width: 2),
-                              Text(
-                                _ratingText(item),
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: _ink.withValues(alpha: 0.55)),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!_capturing) ...[
-                    GestureDetector(
-                      onTap: () => _pickSlotCover(filtered, layoutKey, slot),
-                      child: Tooltip(
-                        message: '选择封面'.tr,
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.swap_horiz_rounded,
-                              size: 14, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _removeItem(item),
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                            color: Color(0xFFE53935), shape: BoxShape.circle),
-                        child: const Icon(Icons.close,
-                            size: 15, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }),
+        for (var slot = 0; slot < slotCount; slot++)
+          _listRow(filtered, layoutKey, slot),
       ],
     );
   }
@@ -474,7 +684,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   /// 网格旋转外接框高出框的部分由 ClipRRect 裁掉（与片单海报墙一致）。
   /// 瓦片数动态上限 = max(100, 各候选角度容纳自然框高所需网格的最大值)：
   /// 保证每条有封面的数据至少上墙一次且框内零留白；
-  /// 配合 _DeferredBody 避免同帧卡顿。
+  /// 瓦片数有上限，预览态作为单块构建，量级可控。
   static const _minWallTiles = 100;
 
   /// 海报墙左右安全边距：框边不再腰斩瓦片，露出细窄底色呼吸条
@@ -486,7 +696,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
     if (filtered.isEmpty) return const SizedBox.shrink();
     const spacing = 10.0;
     final tileH = tileW * 1.38;
-    // 海报墙只循环有封面的条目：无封面（如纯文字笔记）在墙上只能画占位块，
+    // 海报墙只循环有封面的条目：无封面条目在墙上只能画占位块，
     // 数据量大时会出现大片空白；它们仍计入统计文案和卡片/列表。
     // 全部条目都没封面时回退全量，避免整面空墙。
     final withCover = filtered.where((e) => e.path != null).toList();
@@ -588,10 +798,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(9),
-                  child: _posterImage(item, tileW),
-                ),
+                _posterImage(item, tileW),
                 if (_ratingBadge(item) != null) _ratingBadge(item)!,
                 // 循环副本同样可移除：移除的是同一条数据，其所有副本一起消失
                 if (!_capturing) _editBadge(() => _removeItem(item)),
@@ -600,8 +807,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
           );
         }
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+        return ClipRect(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _wallSidePadding),
             // OverflowBox 允许子节点画到自身边界外，必须在此处再裁一道，
@@ -658,8 +864,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
               width: 24,
               height: 24,
               decoration: isMarked
-                  ? BoxDecoration(
-                      color: _ink, borderRadius: BorderRadius.circular(7))
+                  ? const BoxDecoration(color: _ink)
                   : null,
               child: Center(
                 child: Text(
@@ -685,7 +890,6 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(children: rows),
     );
@@ -744,9 +948,9 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
     );
   }
 
-  /// 封面底部评分角标（网格/海报墙共用）；无评分或笔记类型返回 null
+  /// 封面底部评分角标（网格/海报墙共用）；无评分返回 null
   Widget? _ratingBadge(JournalItem item) {
-    if (!_showRating || item.type == 'note') return null;
+    if (!_showRating) return null;
     final r = (item.data as dynamic).rating as double?;
     if (r == null) return null;
     return Positioned(
@@ -1061,7 +1265,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: GestureDetector(
-              onTap: () => setState(() => _layout = i),
+              onTap: () => _switchLayout(i),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1102,7 +1306,6 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
       ('movie', Icons.movie_outlined),
       ('book', Icons.menu_book_outlined),
       ('game', Icons.sports_esports_outlined),
-      ('note', Icons.sticky_note_2_outlined),
     ];
     return ListView(
       scrollDirection: Axis.horizontal,
@@ -1190,21 +1393,67 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
 
   // ─── 截图分享 ───
 
+  /// 截图前预解码全部封面，避免全量树刚挂载时图片未就绪导致截图出现黑块。
+  /// 按路径去重（海报墙存在循环副本），每处理一批让出一帧，保持遮罩可动画。
+  Future<void> _warmImages(List<JournalItem> filtered) async {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final screenW = MediaQuery.sizeOf(context).width;
+    final posterW = math.min(screenW - 32, 420.0);
+    final contentW = posterW - 44; // 海报左右内边距各 22
+    final tileW = switch (_layout) {
+      1 => 40.0,
+      2 => 104.0,
+      3 => 72.0,
+      _ => (contentW - 12) / 3,
+    };
+    final cacheW = (tileW * dpr).round();
+    final paths = <String>{};
+    var processed = 0;
+    for (final item in filtered) {
+      final path = item.path;
+      if (path == null || !paths.add(path)) continue;
+      final ImageProvider provider = path.startsWith('http')
+          ? NetworkImage(path)
+          : FileImage(File(path));
+      if (!mounted) return;
+      try {
+        await precacheImage(ResizeImage(provider, width: cacheW), context);
+      } catch (_) {
+        // 单图解码失败不阻断整体截图，渲染时走 errorBuilder
+      }
+      if (++processed % 12 == 0) {
+        await WidgetsBinding.instance.endOfFrame;
+      }
+    }
+  }
+
   Future<void> _share() async {
     if (_filtered.isEmpty) {
       ToastUtil.show(context, '当前筛选下没有标记，无法生成海报'.tr);
       return;
     }
+    final filtered = _filtered;
     setState(() {
       _generating = true;
       _capturing = true; // 隐藏红色移除角标
+      // 切到全量树：预览态的懒加载 sliver 不会离屏绘制，无法直接长截图
+      _renderForCapture = true;
     });
-    await WidgetsBinding.instance.endOfFrame;
     try {
+      // 等全量树完成首帧布局，再预解码图片，最后多等两帧确保纹理上屏
+      await WidgetsBinding.instance.endOfFrame;
+      await _warmImages(filtered);
+      await WidgetsBinding.instance.endOfFrame;
+      await WidgetsBinding.instance.endOfFrame;
       final boundary = _posterKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
       if (boundary == null) throw Exception('无法获取海报边界'.tr);
-      final image = await boundary.toImage(pixelRatio: 3.0);
+      // 长海报（如全年列表/网格）逻辑高度可达上万像素，固定 3.0 倍率会超出
+      // GPU 纹理边长上限导致截图被截断；按实际尺寸自适应，限制输出最长边
+      const maxTextureSide = 12000.0;
+      final longestSide = math.max(boundary.size.width, boundary.size.height);
+      final ratio = math.min(3.0, maxTextureSide / longestSide);
+      final image = await boundary.toImage(pixelRatio: ratio);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) throw Exception('无法生成图片数据'.tr);
       final tempDir = await getTemporaryDirectory();
@@ -1222,48 +1471,9 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
         setState(() {
           _generating = false;
           _capturing = false;
+          _renderForCapture = false; // 回到懒加载预览
         });
       }
     }
-  }
-}
-
-/// 延迟一帧构建重内容：首帧只画加载动画，让切换交互先响应，
-/// 下一帧再挂载大量海报组件，避免同帧构建造成的卡顿/ANR。
-class _DeferredBody extends StatefulWidget {
-  final Widget child;
-
-  const _DeferredBody({super.key, required this.child});
-
-  @override
-  State<_DeferredBody> createState() => _DeferredBodyState();
-}
-
-class _DeferredBodyState extends State<_DeferredBody> {
-  bool _ready = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _ready = true);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_ready) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(
-          child: SizedBox(
-            width: 26,
-            height: 26,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
-        ),
-      );
-    }
-    return widget.child;
   }
 }

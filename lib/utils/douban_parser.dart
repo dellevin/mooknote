@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 /// 豆瓣网页版 subject 页直接抓取：GET HTML 后正则解析（对齐参考 Python 实现）。
@@ -32,7 +33,7 @@ Future<String?> _fetchHtml(String? subjectUrl) async {
         .get(Uri.parse(subjectUrl), headers: _headers)
         .timeout(const Duration(seconds: 15));
     if (resp.statusCode != 200) return null;
-    return resp.body;
+    return utf8.decode(resp.bodyBytes);
   } catch (_) {
     return null;
   }

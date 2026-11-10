@@ -112,9 +112,12 @@ const Map<String, String> enExploreNote = {
   // ── 日历 ──
   '创建日期': 'Date Created',
   '观看/阅读': 'Watched/Read',
+  '按影视、书籍、游戏的录入时间归格': 'Grouped by when movies, books, and games were added',
+  '按观看、读完、通关的实际日期归格': 'Grouped by the actual watch, finish, or completion date',
   '日期类型': 'Date Type',
   '书影日历': 'Media Calendar',
   '碎阅': 'Journal',
+  '回到今天': 'Back to Today',
   '春生夏长，秋收冬藏': 'Spring sows, summer grows, autumn harvests, winter stores',
   '{y}年{m}': '{y} {m}',
   '{m}月{d}日  暂无记录': '{m}/{d}  No records',
@@ -224,6 +227,8 @@ const Map<String, String> enExploreNote = {
   '{n} 图': '{n} images',
   '分享笔记：{title}': 'Share note: {title}',
   '生成海报失败：{e}': 'Failed to generate poster: {e}',
+  '正在生成...': 'Generating...',
+  '正在生成海报...': 'Generating poster...',
 
   // ── 已阅页 / 补充 ──
   '已阅': 'Reviewed',

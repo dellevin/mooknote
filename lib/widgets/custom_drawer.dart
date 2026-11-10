@@ -43,13 +43,16 @@ Widget _assetSvgIcon(String asset, double size, Color color) => SvgPicture.asset
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
     );
 
-/// 个人信息卡片预设渐变背景
-const List<List<Color>> _profileBgGradients = [
-  [Color(0xFF667EEA), Color(0xFF764BA2)], // 紫霞
-  [Color(0xFFF97368), Color(0xFFE94057)], // 日落
-  [Color(0xFF0BA360), Color(0xFF0C7B93)], // 青墨
-  [Color(0xFF232526), Color(0xFF414345)], // 暗夜
-  [Color(0xFFB06A2C), Color(0xFF7A3E14)], // 鎏金
+/// 个人信息卡片预设背景：8 种淡雅中国传统纯色（低饱和高明度，配深色文字）
+const List<Color> _profileBgColors = [
+  Color(0xFFF0F4EE), // 月白
+  Color(0xFFF7F1E0), // 牙白
+  Color(0xFFEDE3F1), // 藕荷
+  Color(0xFFDEECF3), // 天青
+  Color(0xFFD6E7D2), // 竹青
+  Color(0xFFF3E5BC), // 缃色
+  Color(0xFFF2DAD6), // 檀唇
+  Color(0xFFD5DEEA), // 黛蓝
 ];
 
 /// 自定义侧边栏
@@ -251,18 +254,20 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final gameCount = provider.games.where((g) => !g.isDeleted).length;
 
         final bgImagePath = userPrefs.profileBgImagePath;
-        final gradientIdx = userPrefs.profileBgGradient;
+        final bgColorIdx = userPrefs.profileBgGradient;
         final hasBgImage = bgImagePath != null && bgImagePath.isNotEmpty;
-        final hasBgGradient = !hasBgImage &&
-            gradientIdx >= 0 &&
-            gradientIdx < _profileBgGradients.length;
-        final hasBg = hasBgImage || hasBgGradient;
+        final hasBgColor = !hasBgImage &&
+            bgColorIdx >= 0 &&
+            bgColorIdx < _profileBgColors.length;
+        final hasBg = hasBgImage || hasBgColor;
 
-        final primaryText = hasBg ? Colors.white : colors.onSurface;
-        final subText = hasBg
+        // 仅照片背景用白字（配合暗色遮罩）；淡雅纯色与默认卡片统一走深色文字
+        final useLightText = hasBgImage;
+        final primaryText = useLightText ? Colors.white : colors.onSurface;
+        final subText = useLightText
             ? Colors.white.withValues(alpha: 0.72)
             : colors.onSurface.withValues(alpha: 0.35);
-        final statSub = hasBg
+        final statSub = useLightText
             ? Colors.white.withValues(alpha: 0.7)
             : colors.onSurface.withValues(alpha: 0.4);
 
@@ -277,15 +282,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: hasBg ? null : colors.surface,
+            color: hasBgColor
+                ? _profileBgColors[bgColorIdx]
+                : (hasBg ? null : colors.surface),
             borderRadius: BorderRadius.circular(16),
-            gradient: hasBgGradient
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: _profileBgGradients[gradientIdx],
-                  )
-                : null,
             image: hasBgImage
                 ? DecorationImage(image: FileImage(File(bgImagePath)), fit: BoxFit.cover)
                 : null,
@@ -359,7 +359,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(_formatCount(count), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: hasBg ? Colors.white : color)),
+                                Text(_formatCount(count), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: hasBgImage ? Colors.white : color)),
                                 const SizedBox(height: 2),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -390,7 +390,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     child: Icon(
                       Icons.wallpaper_outlined,
                       size: 18,
-                      color: hasBg
+                      color: hasBgImage
                           ? Colors.white.withValues(alpha: 0.8)
                           : colors.onSurface.withValues(alpha: 0.35),
                     ),
@@ -404,7 +404,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     );
   }
 
-  /// 个人信息卡片背景选择：预设渐变 + 自定义图片 + 恢复默认
+  /// 个人信息卡片背景选择：预设纯色 + 自定义图片 + 恢复默认
   void _showProfileBgSheet(BuildContext context, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
     final userPrefs = UserPrefs();
@@ -443,40 +443,35 @@ class _CustomDrawerState extends State<CustomDrawer> {
                         color: colors.onSurface))),
           ),
           const SizedBox(height: 16),
-          // 预设渐变（第一个为「默认」无背景）
+          // 预设纯色（第一个为「默认」无背景）
           SizedBox(
             height: 56,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: _profileBgGradients.length + 1,
+              itemCount: _profileBgColors.length + 1,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (ctx, i) {
                 final isDefault = i == 0;
-                final gradientIdx = i - 1;
+                final colorIdx = i - 1;
                 final selected = isDefault
                     ? !hasImage && currentGradient < 0
-                    : !hasImage && currentGradient == gradientIdx;
+                    : !hasImage && currentGradient == colorIdx;
                 return GestureDetector(
                   onTap: () {
                     Navigator.pop(ctx);
                     applyAndRefresh(() {
                       userPrefs.clearProfileBgImagePath();
-                      userPrefs.setProfileBgGradient(isDefault ? -1 : gradientIdx);
+                      userPrefs.setProfileBgGradient(isDefault ? -1 : colorIdx);
                     });
                   },
                   child: Container(
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: isDefault ? colors.surfaceContainerHighest : null,
-                      gradient: isDefault
-                          ? null
-                          : LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: _profileBgGradients[gradientIdx],
-                            ),
+                      color: isDefault
+                          ? colors.surfaceContainerHighest
+                          : _profileBgColors[colorIdx],
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: selected ? colors.primary : colors.outlineVariant,
@@ -487,7 +482,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
                         ? Icon(Icons.block_outlined,
                             size: 20, color: colors.onSurface.withValues(alpha: 0.4))
                         : (selected
-                            ? const Icon(Icons.check, size: 20, color: Colors.white)
+                            ? Icon(Icons.check,
+                                size: 20,
+                                color: colors.onSurface.withValues(alpha: 0.8))
                             : null),
                   ),
                 );

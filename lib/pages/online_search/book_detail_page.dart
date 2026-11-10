@@ -53,7 +53,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (resp.statusCode == 200) {
-        final json_ = json.decode(resp.body);
+        final json_ = json.decode(utf8.decode(resp.bodyBytes));
         if (json_['code'] == 0 && json_['data'] != null) {
           setState(() {
             _data = json_['data'];

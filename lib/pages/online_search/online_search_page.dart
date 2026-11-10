@@ -140,7 +140,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (resp.statusCode == 200) {
-        final json_ = json.decode(resp.body);
+        final json_ = json.decode(utf8.decode(resp.bodyBytes));
         if (json_['code'] == 0 && json_['data'] == query) {
           await UserPrefs().setPlaybackUnlockTime(DateTime.now().toIso8601String());
           if (!mounted) return;
@@ -224,7 +224,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
       if (!mounted || callSeq != _movieCallSeq) return;
 
       if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
+        final data = json.decode(utf8.decode(resp.bodyBytes));
         if (data['code'] == 0 && data['data'] != null) {
           final list = (data['data']['list'] as List<dynamic>?)
                   ?.map((e) => e as Map<String, dynamic>)
@@ -296,7 +296,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
       if (!mounted || callSeq != _bookCallSeq) return;
 
       if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
+        final data = json.decode(utf8.decode(resp.bodyBytes));
         if (data['code'] == 0 && data['data'] != null) {
           final list = (data['data']['list'] as List<dynamic>?)
                   ?.map((e) => e as Map<String, dynamic>)

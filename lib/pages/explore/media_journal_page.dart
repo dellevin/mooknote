@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/lunar_calendar.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../l10n/app_strings.dart';
@@ -48,6 +49,215 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
 
   bool _loading = true;
   final Map<DateTime, List<JournalItem>> _dayItems = {};
+
+  // PageView 基准页：该页对应当前真实月份/年份，向前后无限翻页
+  static const int _kBasePage = 10000;
+  PageController? _monthController;
+  PageController? _yearController;
+  int _monthPage = _kBasePage;
+  int _yearPage = _kBasePage;
+
+  int _monthPageOf(DateTime m) {
+    final now = DateTime.now();
+    return _kBasePage + (m.year - now.year) * 12 + (m.month - now.month);
+  }
+
+  /// 重建指定粒度的 controller，使其下次挂载时定位到当前周期页
+  void _resetController(int granularity) {
+    if (granularity == 0) {
+      _monthController?.dispose();
+      _monthController = PageController(initialPage: _monthPage);
+    } else {
+      _yearController?.dispose();
+      _yearController = PageController(initialPage: _yearPage);
+    }
+  }
+
+  /// 回到当前真实日期：重置选中日，并把日历平滑滑回基准页
+  void _backToToday() {
+    final now = DateTime.now();
+    setState(() {
+      _currentMonth = DateTime(now.year, now.month);
+      _currentYear = now.year;
+      _selectedDay = DateTime(now.year, now.month, now.day);
+      _monthPage = _kBasePage;
+      _yearPage = _kBasePage;
+    });
+    final controller = _granularity == 0 ? _monthController : _yearController;
+    if (controller != null && controller.hasClients) {
+      controller.animateToPage(
+        _kBasePage,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  /// 底部功能面板：日期类型切换 + 生成海报
+  Future<void> _openActionsSheet() async {
+    final colors = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        Widget optionTile({
+          required IconData icon,
+          required String title,
+          required String subtitle,
+          required bool selected,
+          required VoidCallback onTap,
+        }) {
+          return Material(
+            color: selected
+                ? colors.primary.withValues(alpha: 0.1)
+                : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: selected
+                        ? colors.primary.withValues(alpha: 0.45)
+                        : Colors.transparent,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? colors.primary.withValues(alpha: 0.15)
+                            : colors.onSurface.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon,
+                          size: 20,
+                          color: selected
+                              ? colors.primary
+                              : colors.onSurface.withValues(alpha: 0.65)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(title,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: selected ? colors.primary : colors.onSurface,
+                              )),
+                          const SizedBox(height: 2),
+                          Text(subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: colors.onSurface.withValues(alpha: 0.45),
+                              )),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                      size: 21,
+                      color: selected
+                          ? colors.primary
+                          : colors.onSurface.withValues(alpha: 0.3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text('日期类型'.tr,
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface.withValues(alpha: 0.45))),
+                ),
+                const SizedBox(height: 10),
+                optionTile(
+                  icon: Icons.event_note_outlined,
+                  title: '创建日期'.tr,
+                  subtitle: '按影视、书籍、游戏的录入时间归格'.tr,
+                  selected: _dateMode == 0,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _setDateMode(0);
+                  },
+                ),
+                const SizedBox(height: 8),
+                optionTile(
+                  icon: Icons.history_rounded,
+                  title: '观看/阅读'.tr,
+                  subtitle: '按观看、读完、通关的实际日期归格'.tr,
+                  selected: _dateMode == 1,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _setDateMode(1);
+                  },
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () {
+                      Navigator.pop(sheetContext);
+                      _openPoster();
+                    },
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                    ),
+                    icon: const Icon(Icons.ios_share_outlined, size: 19),
+                    label: Text('生成海报'.tr,
+                        style: const TextStyle(
+                            fontSize: 14.5, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   List<MovieEpisode> _episodes = [];
   List<BookChapter> _chapters = [];
@@ -95,6 +305,8 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     _currentMonth = DateTime(now.year, now.month);
     _currentYear = now.year;
     _selectedDay = DateTime(now.year, now.month, now.day);
+    _monthController = PageController(initialPage: _kBasePage);
+    _yearController = PageController(initialPage: _kBasePage);
   }
 
   void _setDateMode(int mode) {
@@ -127,6 +339,8 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   @override
   void dispose() {
     _provider?.removeListener(_scheduleReload);
+    _monthController?.dispose();
+    _yearController?.dispose();
     super.dispose();
   }
 
@@ -263,19 +477,6 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
         }
       }
     }
-    // 笔记没有观看/阅读日期，两种模式都按创建时间
-    for (final n in provider.notes) {
-      if (n.isDeleted) continue;
-      addRecord(
-        date: n.createdAt,
-        path: null,
-        title: n.title.isEmpty ? n.content.split('\n').first : n.title,
-        type: 'note',
-        data: n,
-        parentId: n.id,
-      );
-    }
-
     final movieById = {for (final m in provider.movies) m.id: m};
     final bookById = {for (final b in provider.books) b.id: b};
     final gameById = {for (final g in provider.games) g.id: g};
@@ -323,26 +524,6 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
 
   // ─── 导航 ───
 
-  void _prevPeriod() {
-    setState(() {
-      if (_granularity == 0) {
-        _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
-      } else {
-        _currentYear -= 1;
-      }
-    });
-  }
-
-  void _nextPeriod() {
-    setState(() {
-      if (_granularity == 0) {
-        _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
-      } else {
-        _currentYear += 1;
-      }
-    });
-  }
-
   String get _periodTitle {
     if (_granularity == 0) {
       return '{y}年{m}月'.trf({'y': _currentMonth.year, 'm': _currentMonth.month});
@@ -368,6 +549,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        titleSpacing: 12,
         title: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,48 +567,16 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           ],
         ),
         actions: [
-          PopupMenuButton<int>(
-            tooltip: '日期类型'.tr,
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 320),
-              transitionBuilder: (child, animation) => RotationTransition(
-                turns: Tween<double>(begin: 0.75, end: 1.0)
-                    .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                child: FadeTransition(opacity: animation, child: child),
-              ),
-              child: Icon(
-                _dateMode == 0 ? Icons.event_note_outlined : Icons.history_rounded,
-                key: ValueKey(_dateMode),
-                color: colors.onSurface.withValues(alpha: 0.75),
-              ),
+          if (_viewMode == 0)
+            IconButton(
+              tooltip: '回到今天'.tr,
+              icon: const Icon(Icons.today_outlined),
+              onPressed: _backToToday,
             ),
-            initialValue: _dateMode,
-            onSelected: _setDateMode,
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                  value: 0,
-                  child: Row(children: [
-                    Icon(Icons.event_note_outlined,
-                        size: 18,
-                        color: _dateMode == 0 ? colors.primary : colors.onSurface.withValues(alpha: 0.55)),
-                    const SizedBox(width: 10),
-                    Text('创建日期'.tr),
-                  ])),
-              PopupMenuItem(
-                  value: 1,
-                  child: Row(children: [
-                    Icon(Icons.history_rounded,
-                        size: 18,
-                        color: _dateMode == 1 ? colors.primary : colors.onSurface.withValues(alpha: 0.55)),
-                    const SizedBox(width: 10),
-                    Text('观看/阅读'.tr),
-                  ])),
-            ],
-          ),
           IconButton(
-            tooltip: '生成海报'.tr,
-            icon: const Icon(Icons.ios_share_outlined),
-            onPressed: _openPoster,
+            tooltip: '更多'.tr,
+            icon: const Icon(Icons.more_horiz),
+            onPressed: _openActionsSheet,
           ),
           const SizedBox(width: 4),
         ],
@@ -443,7 +593,9 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                   const SizedBox(height: 6),
                   Expanded(
                     child: _viewMode == 0
-                        ? (_granularity == 0 ? _buildMonthView(colors) : _buildYearView(colors))
+                        ? (_granularity == 0
+                            ? _buildMonthPager(colors)
+                            : _buildYearPager(colors))
                         : _buildTimelineView(colors),
                   ),
                 ],
@@ -455,10 +607,25 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   // ─── 顶部分段切换 ───
 
   Widget _buildSwitcher(ColorScheme colors) {
-    // 两组分段都靠右并排
+    // 左侧年月标题（仅日历视图），右侧月/年 + 日历/时间轴分段
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment:
+          _viewMode == 0 ? MainAxisAlignment.start : MainAxisAlignment.end,
       children: [
+        if (_viewMode == 0)
+          Expanded(
+            child: Text(
+              _periodTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
         if (_viewMode == 0) ...[
           _segmented(
             colors,
@@ -532,26 +699,47 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
 
   // ─── 月视图 ───
 
-  Widget _buildMonthView(ColorScheme colors) {
+  /// 月历翻页：跟手 PageView，每页一个月，基准页对应当前真实月份
+  Widget _buildMonthPager(ColorScheme colors) {
+    final now = DateTime.now();
+    return PageView.builder(
+      controller: _monthController,
+      onPageChanged: (page) {
+        _monthPage = page;
+        setState(() {
+          _currentMonth = DateTime(now.year, now.month + (page - _kBasePage));
+        });
+      },
+      itemBuilder: (context, page) {
+        final month = DateTime(now.year, now.month + (page - _kBasePage));
+        return _buildMonthView(colors, month);
+      },
+    );
+  }
+
+  Widget _buildMonthView(ColorScheme colors, DateTime month) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return Column(
       children: [
-        _buildPeriodHeader(colors),
-        const SizedBox(height: 8),
         _buildWeekdayLabels(colors),
         const SizedBox(height: 4),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final cellWidth = (constraints.maxWidth - 36) / 7;
-              final cellHeight = (cellWidth * 1.06).clamp(52.0, 84.0);
+              final cellHeight = (cellWidth * 1.22).clamp(56.0, 92.0);
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildMonthGrid(colors, today, cellHeight),
-                    const SizedBox(height: 8),
-                    _buildSelectedDayDetail(colors),
+                    _buildMonthGrid(colors, today, cellHeight, month),
+                    // 选中日详情只在其所属月份页展示，避免相邻预构建页重复
+                    if (_selectedDay != null &&
+                        _selectedDay!.year == month.year &&
+                        _selectedDay!.month == month.month) ...[
+                      const SizedBox(height: 8),
+                      _buildSelectedDayDetail(colors),
+                    ],
                     // 与"我的"页一致：滚动内容末尾留 120 避让悬浮 dock
                     const SizedBox(height: 120),
                   ],
@@ -561,43 +749,6 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPeriodHeader(ColorScheme colors) {
-    return Row(
-      children: [
-        _circleNavButton(colors, Icons.chevron_left, _prevPeriod),
-        Expanded(
-          child: Text(
-            _periodTitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w700,
-              color: colors.onSurface,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-        _circleNavButton(colors, Icons.chevron_right, _nextPeriod),
-      ],
-    );
-  }
-
-  Widget _circleNavButton(ColorScheme colors, IconData icon, VoidCallback onTap) {
-    return Material(
-      color: colors.surfaceContainerHighest.withValues(alpha: 0.7),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 32,
-          height: 32,
-          child: Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.65)),
-        ),
-      ),
     );
   }
 
@@ -621,13 +772,13 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     );
   }
 
-  Widget _buildMonthGrid(ColorScheme colors, DateTime today, double cellHeight) {
-    final firstDay = DateTime(_currentMonth.year, _currentMonth.month, 1);
-    final lastDay = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+  Widget _buildMonthGrid(ColorScheme colors, DateTime today, double cellHeight, DateTime month) {
+    final firstDay = DateTime(month.year, month.month, 1);
+    final lastDay = DateTime(month.year, month.month + 1, 0);
     final startOffset = firstDay.weekday - 1;
     final totalDays = lastDay.day;
     final rows = ((startOffset + totalDays) / 7).ceil();
-    final monthItems = _itemsOfMonth(_currentMonth.year, _currentMonth.month);
+    final monthItems = _itemsOfMonth(month.year, month.month);
 
     return Column(
       children: List.generate(rows, (row) {
@@ -640,7 +791,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                 return const Expanded(child: SizedBox());
               }
               final day = index - startOffset + 1;
-              final date = DateTime(_currentMonth.year, _currentMonth.month, day);
+              final date = DateTime(month.year, month.month, day);
               final isToday = date == today;
               final isSelected = _selectedDay == date;
               final items = monthItems[day] ?? [];
@@ -648,32 +799,66 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedDay = date),
                   child: Container(
-                    margin: const EdgeInsets.all(2.5),
+                    margin: const EdgeInsets.all(1.8),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       color: items.isEmpty
-                          ? (isSelected ? colors.primary.withValues(alpha: 0.1) : null)
+                          ? (isSelected
+                              ? colors.primary.withValues(alpha: 0.1)
+                              : isToday
+                                  ? colors.primary.withValues(alpha: 0.07)
+                                  : null)
                           : colors.surfaceContainerHighest.withValues(alpha: 0.55),
                       border: isSelected
                           ? Border.all(color: colors.primary.withValues(alpha: 0.55), width: 1.4)
-                          : null,
+                          : isToday
+                              ? Border.all(color: colors.primary.withValues(alpha: 0.8), width: 1.2)
+                              : null,
                     ),
                     child: items.isEmpty
-                        ? Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 5),
-                              child: Text(
-                                '$day',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
-                                  color: isToday
-                                      ? colors.primary
-                                      : colors.onSurface.withValues(alpha: 0.42),
+                        ? Stack(
+                            children: [
+                              if (isToday)
+                                Positioned(
+                                  right: 4,
+                                  top: 3,
+                                  child: Icon(Icons.star,
+                                      size: 11, color: colors.primary),
+                                ),
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 3),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$day',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                                          color: isToday
+                                              ? colors.primary
+                                              : colors.onSurface.withValues(alpha: 0.55),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 0.5),
+                                      Text(
+                                        LunarCalendar.dayLabel(date),
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: 8.5,
+                                          fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
+                                          color: isToday
+                                              ? colors.primary.withValues(alpha: 0.85)
+                                              : colors.onSurface.withValues(alpha: 0.32),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           )
                         : _buildMosaicCell(colors, day, items, isToday),
                   ),
@@ -737,11 +922,19 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(4),
       child: Stack(
         fit: StackFit.expand,
         children: [
           mosaic,
+          // 今日星标
+          if (isToday)
+            const Positioned(
+              left: 4,
+              top: 3,
+              child: Icon(Icons.star, size: 13, color: Color(0xFFFFD54F),
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 3)]),
+            ),
           // 超出 4 条的 +N 遮罩
           if (items.length > 4)
             Positioned(
@@ -759,23 +952,34 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                 ),
               ),
             ),
-          // 日期药丸
+          // 日期药丸（今日：金色底 + 星标）
           Positioned(
             left: 5,
             bottom: 5,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: EdgeInsets.symmetric(horizontal: isToday ? 5 : 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.45),
+                color: isToday
+                    ? const Color(0xFFFFD54F)
+                    : Colors.black.withValues(alpha: 0.45),
                 borderRadius: BorderRadius.circular(7),
               ),
-              child: Text(
-                '$day',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isToday ? const Color(0xFFFFD54F) : Colors.white,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isToday) ...[
+                    const Icon(Icons.star, size: 9, color: Color(0xFF5D4037)),
+                    const SizedBox(width: 2),
+                  ],
+                  Text(
+                    '$day',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isToday ? const Color(0xFF5D4037) : Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -785,7 +989,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   }
 
   /// 封面缩略；无封面（笔记）用类型色 + 图标占位
-  Widget _coverThumb(ColorScheme colors, JournalItem item, {double radius = 8}) {
+  Widget _coverThumb(ColorScheme colors, JournalItem item, {double radius = 4}) {
     final content = item.path == null
         ? Container(
             color: _typeColor(item.type).withValues(alpha: 0.16),
@@ -850,53 +1054,95 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     );
   }
 
+  /// 记录卡次要信息：(评分, 导演/作者/开发者文本)
+  (double?, String) _recordMeta(JournalItem item) {
+    final dynamic data = item.data;
+    return switch (item.type) {
+      'movie' => (data.rating as double?, (data.directors as List).cast<String>().take(2).join(' / ')),
+      'book' => (data.rating as double?, (data.authors as List).cast<String>().take(2).join(' / ')),
+      'game' => (data.rating as double?, (data.developer as List).cast<String>().take(2).join(' / ')),
+      _ => (null, ''),
+    };
+  }
+
   Widget _buildRecordCard(ColorScheme colors, JournalItem item) {
     final accent = _typeColor(item.type);
+    final (rating, creators) = _recordMeta(item);
+    final isWhole = rating == rating?.truncateToDouble();
+    final ratingText = rating?.toStringAsFixed(isWhole ? 0 : 1);
     return InkWell(
       onTap: () => _openDetail(item),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(6),
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
-        padding: const EdgeInsets.all(8),
+        margin: const EdgeInsets.symmetric(vertical: 2.5, horizontal: 2),
+        padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           children: [
             SizedBox(
               width: 40,
-              height: 54,
-              child: _coverThumb(colors, item, radius: 8),
+              height: 52,
+              child: _coverThumb(colors, item, radius: 4),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     item.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface),
+                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: colors.onSurface),
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      _typeLabel(item.type),
-                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: accent),
-                    ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _typeLabel(item.type),
+                          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: accent),
+                        ),
+                      ),
+                      if (ratingText != null) ...[
+                        const SizedBox(width: 7),
+                        const Icon(Icons.star_rounded, size: 12.5, color: Color(0xFFE8A33D)),
+                        const SizedBox(width: 2),
+                        Text(ratingText,
+                            style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface.withValues(alpha: 0.65))),
+                      ],
+                      if (creators.isNotEmpty) ...[
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            creators,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 11.5,
+                                color: colors.onSurface.withValues(alpha: 0.45)),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
             Icon(Icons.chevron_right,
-                size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
+                size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
           ],
         ),
       ),
@@ -919,11 +1165,27 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
 
   // ─── 年视图：12 个月卡片 ───
 
-  Widget _buildYearView(ColorScheme colors) {
+  /// 年历翻页：跟手 PageView，每页一年，基准页对应当前真实年份
+  Widget _buildYearPager(ColorScheme colors) {
+    final now = DateTime.now();
+    return PageView.builder(
+      controller: _yearController,
+      onPageChanged: (page) {
+        _yearPage = page;
+        setState(() {
+          _currentYear = now.year + (page - _kBasePage);
+        });
+      },
+      itemBuilder: (context, page) {
+        final year = now.year + (page - _kBasePage);
+        return _buildYearView(colors, year);
+      },
+    );
+  }
+
+  Widget _buildYearView(ColorScheme colors, int year) {
     return Column(
       children: [
-        _buildPeriodHeader(colors),
-        const SizedBox(height: 8),
         Expanded(
           child: GridView.builder(
             // 末尾 120 间距避让悬浮 dock（与"我的"页一致）
@@ -937,18 +1199,21 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
             itemCount: 12,
             itemBuilder: (context, i) {
               final month = i + 1;
-              final monthItems = _itemsOfMonth(_currentYear, month);
+              final monthItems = _itemsOfMonth(year, month);
               final covers = monthItems.values.expand((e) => e).take(4).toList();
-              final count = _monthCount(_currentYear, month);
+              final count = _monthCount(year, month);
               return GestureDetector(
                 onTap: () => setState(() {
-                  _currentMonth = DateTime(_currentYear, month);
+                  _currentMonth = DateTime(year, month);
+                  _monthPage = _monthPageOf(_currentMonth);
+                  // 月历下次挂载时直接定位到所选月份
+                  _resetController(0);
                   _granularity = 0;
                 }),
                 child: Container(
                   decoration: BoxDecoration(
                     color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   padding: const EdgeInsets.all(6),
                   child: Column(
@@ -956,7 +1221,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
                     children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(4),
                           child: covers.isEmpty
                               ? Container(
                                   color: colors.surface.withValues(alpha: 0.6),

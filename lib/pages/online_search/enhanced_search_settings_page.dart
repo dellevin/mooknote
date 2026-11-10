@@ -118,7 +118,7 @@ class _EnhancedSearchSettingsPageState
       final resp =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
       if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
+        final data = json.decode(utf8.decode(resp.bodyBytes));
         if (data['code'] == 0 && data['data'] != null) {
           return data['data'] as Map<String, dynamic>;
         }

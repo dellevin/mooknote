@@ -114,7 +114,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (resp.statusCode == 200) {
-        final json_ = json.decode(resp.body);
+        final json_ = json.decode(utf8.decode(resp.bodyBytes));
         if (json_['code'] == 0 && json_['data'] != null) {
           setState(() {
             _data = json_['data'];
@@ -155,7 +155,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           }).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (resp.statusCode == 200) {
-        final json_ = json.decode(resp.body);
+        final json_ = json.decode(utf8.decode(resp.bodyBytes));
         if (json_['code'] == 0 && json_['data'] != null) {
           setState(() {
             _staffList = (json_['data'] as List)
@@ -188,7 +188,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (resp.statusCode == 200) {
-        final json_ = json.decode(resp.body);
+        final json_ = json.decode(utf8.decode(resp.bodyBytes));
         if (json_['code'] == 0 && json_['data'] != null) {
           final data = json_['data'] as Map<String, dynamic>;
           final sources = (data['vod_play_from'] ?? '')

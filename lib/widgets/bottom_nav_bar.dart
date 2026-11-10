@@ -237,8 +237,8 @@ class _AddButtonState extends State<_AddButton>
           child: child,
         ),
         child: Container(
-          width: 50,
-          height: 50,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: widget.colors.primary,
             shape: BoxShape.circle,
@@ -246,7 +246,7 @@ class _AddButtonState extends State<_AddButton>
           child: Icon(
             Icons.add_rounded,
             color: widget.colors.onPrimary,
-            size: 28,
+            size: 24,
           ),
         ),
       ),
