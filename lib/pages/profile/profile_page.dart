@@ -846,13 +846,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const StrollPage()))
         ),
-      if (_userPrefs.showProfileToolStats)
-        (
-          'assets/svg/tong_ji.svg',
-          '数据统计'.tr,
-          () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
-        ),
       if (_userPrefs.showProfileToolQuickAdd)
         (
           'assets/svg/tian_jia.svg',
@@ -860,23 +853,30 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const QuickAddPage()))
         ),
+      if (_userPrefs.showProfileToolStats)
+        (
+          'assets/svg/tong_ji.svg',
+          '数据统计'.tr,
+          () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const StatisticsPage()))
+        ),
       if (_userPrefs.showProfileToolBackup)
         ('assets/svg/bei_fen.svg', '数据备份'.tr, () => _showBackupOptions(context)),
       if (_userPrefs.showProfileToolExport)
         ('assets/svg/excel_export.svg', 'EXCEL导出'.tr, () => _showExportOptions(context)),
-      if (_userPrefs.showProfileToolSettings)
-        (
-          'assets/svg/setting.svg',
-          '设置'.tr,
-          () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const SettingsPage()))
-        ),
       if (_userPrefs.showProfileToolRecycleBin)
         (
           'assets/svg/hui_shou.svg',
           '回收站'.tr,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const RecycleBinPage()))
+        ),
+      if (_userPrefs.showProfileToolSettings)
+        (
+          'assets/svg/setting.svg',
+          '设置'.tr,
+          () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const SettingsPage()))
         ),
       if (_userPrefs.showProfileToolFeedback)
         (
