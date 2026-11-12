@@ -26,7 +26,6 @@ import '../explore/stroll_page.dart';
 import '../sync/cloud_sync_page.dart';
 import 'settings_page.dart';
 import 'feedback_page.dart';
-import 'watchlist_page.dart';
 import '../quick_add/quick_add_page.dart';
 import '../../widgets/app_overlay.dart';
 
@@ -132,8 +131,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         _buildHero(movies, books, notes, games),
                         const SizedBox(height: 20),
                         _buildMyModule(movies, books, notes, games),
-                        const SizedBox(height: 20),
-                        _buildWatchlist(movies, books, games),
                         const SizedBox(height: 20),
                         _buildTagsSection(movies, books, notes),
                         const SizedBox(height: 20),
@@ -737,172 +734,6 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
     );
   }
 
-  // ─── 想看清单 ──────────────────────────────────────────────────────
-
-  Widget _buildWatchlist(List<Movie> movies, List<Book> books, List<Game> games) {
-    final colors = Theme.of(context).colorScheme;
-
-    final movieWantTo = _userPrefs.showMovieTab
-        ? movies.where((m) => m.status == 'want_to_watch').length
-        : 0;
-    final bookWantTo = _userPrefs.showBookTab
-        ? books.where((b) => b.status == 'want_to_read').length
-        : 0;
-    final gameWantTo = _userPrefs.showGameTab
-        ? games.where((g) => g.status == 'want_to_play').length
-        : 0;
-
-    final items = <_WatchlistItem>[];
-    if (_userPrefs.showMovieTab) {
-      for (final m in movies.where((m) => m.status == 'want_to_watch')) {
-        items.add(_WatchlistItem(
-          title: m.title,
-          imagePath: m.posterPath,
-          type: 'movie',
-          createdAt: m.createdAt,
-          onTap: () => Navigator.pushNamed(context, '/movie-detail', arguments: m),
-        ));
-      }
-    }
-    if (_userPrefs.showBookTab) {
-      for (final b in books.where((b) => b.status == 'want_to_read')) {
-        items.add(_WatchlistItem(
-          title: b.title,
-          imagePath: b.coverPath,
-          type: 'book',
-          createdAt: b.createdAt,
-          onTap: () => Navigator.pushNamed(context, '/book-detail', arguments: b),
-        ));
-      }
-    }
-    if (_userPrefs.showGameTab) {
-      for (final g in games.where((g) => g.status == 'want_to_play')) {
-        items.add(_WatchlistItem(
-          title: g.title,
-          imagePath: g.coverPath,
-          type: 'game',
-          createdAt: g.createdAt,
-          onTap: () => Navigator.pushNamed(context, '/game-detail', arguments: g),
-        ));
-      }
-    }
-    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              Text('想看清单'.tr,
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface)),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const WatchlistPage())),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('全部'.tr,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: colors.onSurface.withValues(alpha: 0.4))),
-                    Icon(Icons.chevron_right,
-                        size: 16,
-                        color: colors.onSurface.withValues(alpha: 0.3)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(children: [
-            if (_userPrefs.showMovieTab) ...[
-              _buildStatusTag('影视'.tr, movieWantTo, true, colors),
-              const SizedBox(width: 10),
-            ],
-            if (_userPrefs.showBookTab) ...[
-              _buildStatusTag('书籍'.tr, bookWantTo, false, colors),
-              const SizedBox(width: 10),
-            ],
-            if (_userPrefs.showGameTab)
-              _buildStatusTag('游戏'.tr, gameWantTo, false, colors),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Center(
-                child: Text('暂无想看记录'.tr,
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: colors.onSurface.withValues(alpha: 0.3)))),
-          )
-        else
-          SizedBox(
-            height: 120,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: items.take(20).length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final item = items[i];
-                return GestureDetector(
-                  onTap: item.onTap,
-                  child: SizedBox(
-                    width: 78,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            width: 78,
-                            decoration: BoxDecoration(
-                              color: colors.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: item.imagePath != null && item.imagePath!.isNotEmpty
-                                ? FadeInLocalImage(
-                                    path: item.imagePath,
-                                    fit: BoxFit.cover,
-                                    errorWidget: Icon(Icons.image_outlined,
-                                        size: 20,
-                                        color: colors.onSurface.withValues(alpha: 0.2)))
-                                : Icon(Icons.image_outlined,
-                                    size: 20,
-                                    color: colors.onSurface.withValues(alpha: 0.2)),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: colors.onSurface.withValues(alpha: 0.6))),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _buildEmptyHint(String text) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
@@ -1252,85 +1083,119 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   void _showBackupOptions(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final options = <(IconData, String, String, Widget)>[
+      (
+        Icons.folder_outlined,
+        '本地备份'.tr,
+        '备份到本地文件夹，支持恢复'.tr,
+        const BackupPage(),
+      ),
+      (
+        Icons.cloud_outlined,
+        '云备份'.tr,
+        '通过 WebDAV 同步到云端'.tr,
+        const CloudSyncPage(),
+      ),
+    ];
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Container(
+                  width: 28,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Text('选择备份方式'.tr,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
+            ),
             Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Align(
-                alignment: Alignment.centerLeft,
-                child: Text('选择备份方式'.tr,
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface))),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.folder_outlined,
-                      color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('本地备份'.tr,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: colors.onSurface)),
-              subtitle: Text('备份到本地文件夹，支持恢复'.tr,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: colors.onSurface.withValues(alpha: 0.4))),
-              trailing: Icon(Icons.chevron_right,
-                  color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _push(context, const BackupPage());
-              },
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  for (var i = 0; i < options.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        height: 0.5,
+                        thickness: 0.5,
+                        indent: 56,
+                        color: colors.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    InkWell(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _push(context, options[i].$4);
+                      },
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child:
+                                  Icon(options[i].$1, size: 17, color: colors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(options[i].$2,
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: colors.onSurface)),
+                                  const SizedBox(height: 2),
+                                  Text(options[i].$3,
+                                      style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.4))),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                size: 18,
+                                color: colors.onSurface.withValues(alpha: 0.25)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            Divider(height: 0.5, color: colors.outlineVariant),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.cloud_outlined,
-                      color: colors.onSurface.withValues(alpha: 0.6))),
-              title: Text('云备份'.tr,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: colors.onSurface)),
-              subtitle: Text('通过 WebDAV 同步到云端'.tr,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: colors.onSurface.withValues(alpha: 0.4))),
-              trailing: Icon(Icons.chevron_right,
-                  color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _push(context, const CloudSyncPage());
-              },
-            ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -1513,61 +1378,236 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   /// 导出前询问是否连同评论一起导出（影视/阅读/游戏）；返回 null 表示取消
   Future<bool?> _askExportWithReviews(BuildContext context, String entityLabel, String reviewLabel) async {
     final colors = Theme.of(context).colorScheme;
-    return appDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('是否连同{reviewLabel}一起导出？'.trf({'reviewLabel': reviewLabel.tr}),
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text(
-          '选择"是"时，Excel 中会额外附带一个{reviewLabel}工作表'
-              .trf({'reviewLabel': reviewLabel.tr}),
-          style: TextStyle(fontSize: 13, height: 1.6, color: colors.onSurface),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('仅导出{entity}'.trf({'entity': entityLabel.tr})),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('是'.tr),
-          ),
-        ],
+    final options = <(IconData, String, String, bool)>[
+      (
+        Icons.table_chart_outlined,
+        '仅导出{entity}'.trf({'entity': entityLabel.tr}),
+        '不附带{reviewLabel}工作表'.trf({'reviewLabel': reviewLabel.tr}),
+        false,
       ),
+      (
+        Icons.rate_review_outlined,
+        '连同{reviewLabel}一起导出'.trf({'reviewLabel': reviewLabel.tr}),
+        '额外附带{reviewLabel}工作表'.trf({'reviewLabel': reviewLabel.tr}),
+        true,
+      ),
+    ];
+    return appModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 4),
+                  child: Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text(
+                  '是否连同{reviewLabel}一起导出？'.trf({'reviewLabel': reviewLabel.tr}),
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    for (var i = 0; i < options.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: 0.5,
+                          thickness: 0.5,
+                          indent: 56,
+                          color: colors.outlineVariant.withValues(alpha: 0.3),
+                        ),
+                      InkWell(
+                        onTap: () => Navigator.pop(sheetContext, options[i].$4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(options[i].$1, size: 17, color: colors.primary),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      options[i].$2,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: colors.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      options[i].$3,
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: colors.onSurface.withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.chevron_right,
+                                  size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   /// 打开"附带封面图片"开关前的告知确认（涉及数据上传云端）
   Future<bool> _confirmEnableOnlineExport(BuildContext context) async {
     final colors = Theme.of(context).colorScheme;
-    final ok = await appDialog<bool>(
+    final ok = await appModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('在线带图导出'.tr,
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text(
-          '开启后，导出时会将本地数据库与图片打包上传至服务器，由服务器生成附带封面图片的 Excel 后回传下载。请知悉：\n'
-                  '· 需增强搜索的影视与书籍 Token 均有效\n'
-                  '· 涉及本地数据上传云端，请酌情使用\n'
-                  '· 数据仅用于生成文件，下载完成后服务器将立即删除'
-              .tr,
-          style: TextStyle(fontSize: 13, height: 1.6, color: colors.onSurface),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消'.tr),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('开启'.tr),
-          ),
-        ],
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 4),
+                  child: Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: colors.onSurface.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text(
+                  '在线带图导出'.tr,
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 17, color: colors.primary.withValues(alpha: 0.8)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '开启后，导出时会将本地数据库与图片打包上传至服务器，由服务器生成附带封面图片的 Excel 后回传下载。请知悉：\n'
+                                '· 需增强搜索的影视与书籍 Token 均有效\n'
+                                '· 涉及本地数据上传云端，请酌情使用\n'
+                                '· 数据仅用于生成文件，下载完成后服务器将立即删除'
+                            .tr,
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.7,
+                            color: colors.onSurface.withValues(alpha: 0.65)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton.tonal(
+                          onPressed: () => Navigator.pop(sheetContext, false),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                          ),
+                          child: Text('取消'.tr,
+                              style: const TextStyle(
+                                  fontSize: 14.5, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(sheetContext, true),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                          ),
+                          child: Text('开启'.tr,
+                              style: const TextStyle(
+                                  fontSize: 14.5, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
     return ok ?? false;
   }
@@ -1679,43 +1719,83 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
   void _showExportResult(BuildContext context, bool success, String message) {
     final colors = Theme.of(context).colorScheme;
-    appDialog(
+    final accent = success ? colors.primary : colors.error;
+    appDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        icon: Icon(
-          success ? Icons.check_circle_outline : Icons.error_outline,
-          color: success ? colors.primary : colors.error,
-          size: 32,
-        ),
-        content: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: colors.onSurface),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('确定'.tr),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: colors.surface,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      success ? Icons.check_circle_outline : Icons.error_outline,
+                      color: accent,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    (success ? '导出成功' : '导出失败').tr,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: colors.onSurface),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest
+                          .withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SelectableText(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.6,
+                          color: colors.onSurface.withValues(alpha: 0.6)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                      ),
+                      child: Text('确定'.tr,
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
-}
-
-class _WatchlistItem {
-  final String title;
-  final String? imagePath;
-  final String type; // movie / book / game
-  final DateTime createdAt;
-  final VoidCallback onTap;
-
-  const _WatchlistItem({
-    required this.title,
-    this.imagePath,
-    required this.type,
-    required this.createdAt,
-    required this.onTap,
-  });
 }

@@ -61,11 +61,11 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined, size: 20),
-            tooltip: '导入设计'.tr,
+          TextButton(
             onPressed: _importDesign,
+            child: Text('导入'.tr),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _loading
@@ -73,13 +73,16 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
           : _designs.isEmpty
               ? _buildEmptyState(colors)
               : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                   itemCount: _designs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, i) => _buildDesignCard(_designs[i], colors),
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showNewDesignDialog,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 2,
         icon: const Icon(Icons.add, size: 20),
         label: Text('新建设计'.tr),
       ),
@@ -102,60 +105,172 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
   }
 
   Widget _buildDesignCard(CustomModuleDesign design, ColorScheme colors) {
-    return Container(
-      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(14)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Container(
-          width: 42, height: 42,
-          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-          alignment: Alignment.center,
-          child: Icon(Icons.article_outlined, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
-        ),
-        title: Text(design.name,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        subtitle: Text(
-          '{n} 个字段'.trf({'n': design.fields.length}) + (design.isActive ? ' · ${'使用中'.tr}' : ''),
-          style: TextStyle(
-            fontSize: 12,
-            color: design.isActive ? colors.primary : colors.onSurface.withValues(alpha: 0.45),
+    return Material(
+      color: colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _openEditor(design),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: design.isActive
+                ? Border.all(color: colors.primary.withValues(alpha: 0.4), width: 1)
+                : null,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10)),
+                alignment: Alignment.center,
+                child: Icon(Icons.article_outlined, size: 18, color: colors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(design.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        _buildMiniPill(
+                          '{n} 个字段'.trf({'n': design.fields.length}),
+                          bg: colors.surface,
+                          fg: colors.onSurface.withValues(alpha: 0.55),
+                        ),
+                        if (design.isActive) ...[
+                          const SizedBox(width: 6),
+                          _buildMiniPill('使用中'.tr,
+                              bg: colors.primary.withValues(alpha: 0.12), fg: colors.primary),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.more_vert,
+                    size: 20, color: colors.onSurface.withValues(alpha: 0.5)),
+                visualDensity: VisualDensity.compact,
+                tooltip: '更多操作'.tr,
+                onPressed: () => _showDesignActions(design),
+              ),
+            ],
           ),
         ),
-        trailing: Row(
+      ),
+    );
+  }
+
+  Widget _buildMiniPill(String text, {required Color bg, required Color fg}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(7)),
+      child: Text(text, style: TextStyle(fontSize: 10, color: fg)),
+    );
+  }
+
+  /// 设计操作底部弹窗：设为使用中 / 编辑 / 导出 / 删除
+  void _showDesignActions(CustomModuleDesign design) {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (design.isActive)
-              Icon(Icons.check_circle, size: 18, color: colors.primary),
-            PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert, size: 20, color: colors.onSurface.withValues(alpha: 0.5)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              onSelected: (v) {
-                switch (v) {
-                  case 'activate':
-                    _activateDesign(design);
-                    break;
-                  case 'rename':
-                    _showRenameDialog(design);
-                    break;
-                  case 'export':
-                    _exportDesign(design);
-                    break;
-                  case 'delete':
-                    _confirmDelete(design);
-                    break;
-                }
-              },
-              itemBuilder: (ctx) => [
-                if (!design.isActive)
-                  PopupMenuItem(value: 'activate', child: Text('设为使用中'.tr)),
-                PopupMenuItem(value: 'rename', child: Text('编辑'.tr)),
-                PopupMenuItem(value: 'export', child: Text('导出'.tr)),
-                PopupMenuItem(value: 'delete', child: Text('删除'.tr, style: TextStyle(color: colors.error))),
-              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(design.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurface)),
+                  ),
+                  if (design.isActive)
+                    Text('使用中'.tr,
+                        style: TextStyle(fontSize: 11, color: colors.primary)),
+                ],
+              ),
             ),
+            if (!design.isActive)
+              _buildActionRow(
+                icon: Icons.check_circle_outline,
+                label: '设为使用中'.tr,
+                colors: colors,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _activateDesign(design);
+                },
+              ),
+            _buildActionRow(
+              icon: Icons.edit_note,
+              label: '编辑'.tr,
+              colors: colors,
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showRenameDialog(design);
+              },
+            ),
+            _buildActionRow(
+              icon: Icons.ios_share,
+              label: '导出'.tr,
+              colors: colors,
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _exportDesign(design);
+              },
+            ),
+            _buildActionRow(
+              icon: Icons.delete_forever,
+              label: '删除'.tr,
+              colors: colors,
+              danger: true,
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _confirmDelete(design);
+              },
+            ),
+            const SizedBox(height: 6),
           ],
         ),
-        onTap: () => _openEditor(design),
+      ),
+    );
+  }
+
+  Widget _buildActionRow({
+    required IconData icon,
+    required String label,
+    required ColorScheme colors,
+    required VoidCallback onTap,
+    bool danger = false,
+  }) {
+    final color = danger ? colors.error : colors.onSurface.withValues(alpha: 0.75);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 19, color: color),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: color))),
+          ],
+        ),
       ),
     );
   }

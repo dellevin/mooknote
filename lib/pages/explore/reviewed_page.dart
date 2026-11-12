@@ -6,6 +6,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
+import '../../widgets/app_overlay.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
@@ -66,10 +67,15 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   final UserPrefs _userPrefs = UserPrefs();
   // 排序：读取持久化偏好（默认创建时间降序，与原年份分组行为一致）
-  late _SortKey _sortKey = _SortKey.values[_userPrefs.reviewedSortKey.clamp(0, _SortKey.values.length - 1)];
+  late _SortKey _sortKey = _SortKey
+      .values[_userPrefs.reviewedSortKey.clamp(0, _SortKey.values.length - 1)];
   late bool _sortAscending = _userPrefs.reviewedSortAscending;
   // 游戏最近通关日期（gameId -> 最近一条通关记录日期），异步加载
   Map<String, DateTime?> _gameCompletionDate = {};
+
+  bool _isSearching = false;
+  String _keyword = '';
+  final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -77,13 +83,35 @@ class _ReviewedPageState extends State<ReviewedPage> {
     _loadGameCompletionDates();
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<_ReviewedItem> _searchItems(List<_ReviewedItem> items) {
+    if (_keyword.isEmpty) return items;
+    final kw = _keyword.toLowerCase();
+    return items
+        .where((i) =>
+            i.title.toLowerCase().contains(kw) ||
+            i.subtitle.toLowerCase().contains(kw) ||
+            i.genres.any((g) => g.toLowerCase().contains(kw)))
+        .toList();
+  }
+
   Future<void> _loadGameCompletionDates() async {
     final map = await context.read<AppProvider>().getGameCompletionsMap();
     if (!mounted) return;
     setState(() {
       _gameCompletionDate = map.map((gameId, list) {
-        final dates = list.where((c) => !c.isDeleted).map((c) => c.completionDate);
-        return MapEntry(gameId, dates.isEmpty ? null : dates.reduce((a, b) => a.isAfter(b) ? a : b));
+        final dates =
+            list.where((c) => !c.isDeleted).map((c) => c.completionDate);
+        return MapEntry(
+            gameId,
+            dates.isEmpty
+                ? null
+                : dates.reduce((a, b) => a.isAfter(b) ? a : b));
       });
     });
   }
@@ -94,24 +122,100 @@ class _ReviewedPageState extends State<ReviewedPage> {
       builder: (context, provider, _) {
         final allItems = _buildAllItems(provider);
         final years = _buildYearList(allItems);
-        final filtered = _sortItems(_filterItems(allItems));
+        final filtered = _sortItems(_filterItems(_searchItems(allItems)));
+        final colors = Theme.of(context).colorScheme;
+        // 展开后的搜索框宽度：为返回键、按钮和边距预留空间
+        final searchWidth =
+            (MediaQuery.of(context).size.width - 132).clamp(180.0, 320.0);
 
         return Scaffold(
           appBar: AppBar(
             title: Text('已阅'.tr),
             actions: [
               if (allItems.isNotEmpty) ...[
-                _buildSortButton(context),
-                _buildFilterButton(years, allItems, context),
-                IconButton(
-                  icon: Icon(UserPrefs().reviewedLayoutStyle == 1 ? Icons.view_list_outlined : Icons.grid_view_outlined, size: 20),
-                  onPressed: () {
-                    final newStyle = UserPrefs().reviewedLayoutStyle == 1 ? 0 : 1;
-                    UserPrefs().setReviewedLayoutStyle(newStyle);
-                    setState(() {});
-                  },
+                // 搜索按钮向左展开为药丸输入框（AnimatedSize 右对齐生长）
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerRight,
+                  child: _isSearching
+                      ? Container(
+                          width: searchWidth,
+                          height: 40,
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.search,
+                                  size: 19,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.4)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchCtrl,
+                                  autofocus: true,
+                                  cursorColor: colors.primary,
+                                  style: TextStyle(
+                                      color: colors.onSurface, fontSize: 14),
+                                  decoration: InputDecoration(
+                                    hintText: '搜索标题、作者、标签...'.tr,
+                                    hintStyle: TextStyle(
+                                        fontSize: 13,
+                                        color: colors.onSurface
+                                            .withValues(alpha: 0.35)),
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    filled: false,
+                                  ),
+                                  onChanged: (v) =>
+                                      setState(() => _keyword = v),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  _searchCtrl.clear();
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  setState(() {
+                                    _keyword = '';
+                                    _isSearching = false;
+                                  });
+                                },
+                                child: Icon(Icons.close,
+                                    size: 17,
+                                    color: colors.onSurface
+                                        .withValues(alpha: 0.45)),
+                              ),
+                            ],
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.search),
+                          tooltip: '搜索'.tr,
+                          onPressed: () => setState(() => _isSearching = true),
+                        ),
                 ),
-                const SizedBox(width: 4),
+                // 搜索展开时隐藏筛选与显示方式按钮，避免窄屏溢出
+                if (!_isSearching) ...[
+                  _buildFilterButton(years, allItems, context),
+                  IconButton(
+                    tooltip: '显示方式'.tr,
+                    icon: const Icon(Icons.more_vert, size: 22),
+                    onPressed: _showMoreSheet,
+                  ),
+                  const SizedBox(width: 4),
+                ],
               ],
             ],
           ),
@@ -125,7 +229,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
               Expanded(
                 child: filtered.isEmpty
                     ? Center(
-                        child: Text('暂无已阅记录'.tr,
+                        child: Text(
+                            _keyword.isNotEmpty ? '未找到匹配的内容'.tr : '暂无已阅记录'.tr,
                             style: TextStyle(
                                 fontSize: 14,
                                 color: Theme.of(context)
@@ -166,18 +271,28 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
     final children = <Widget>[];
     for (final y in years) {
-      final label = y == nowYear ? '今年'.tr : (y == nowYear - 1 ? '去年'.tr : '$y年');
+      final label =
+          y == nowYear ? '今年'.tr : (y == nowYear - 1 ? '去年'.tr : '$y年');
       children.add(Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(width: 8),
             Text(
               '{n}部'.trf({'n': groups[y]!.length}),
-              style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35)),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.35)),
             ),
           ],
         ),
@@ -197,7 +312,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
   Widget _buildGridView(BuildContext context, List<_ReviewedItem> filtered) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
+        final crossAxisCount =
+            responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
         return GridView.builder(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -207,7 +323,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
             mainAxisSpacing: 16,
           ),
           itemCount: filtered.length,
-          itemBuilder: (context, index) => _buildGridItem(context, filtered[index]),
+          itemBuilder: (context, index) =>
+              _buildGridItem(context, filtered[index]),
         );
       },
     );
@@ -260,12 +377,16 @@ class _ReviewedPageState extends State<ReviewedPage> {
           Text(item.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: colors.onSurface)),
           const SizedBox(height: 3),
           Row(
             children: [
               if (item.rating != null)
-                AnimatedStarRating(rating: item.rating!, starSize: 10, showNumber: true)
+                AnimatedStarRating(
+                    rating: item.rating!, starSize: 10, showNumber: true)
               else
                 const SizedBox(height: 14),
               const Spacer(),
@@ -276,7 +397,10 @@ class _ReviewedPageState extends State<ReviewedPage> {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: Text(typeLabel.tr,
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: typeColor)),
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w500,
+                        color: typeColor)),
               ),
             ],
           ),
@@ -287,12 +411,14 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   // ─── 统计概览 ─────────────────────────────────────────────────────
 
-  Widget _buildStatsHeader(List<_ReviewedItem> all, List<_ReviewedItem> filtered, BuildContext context) {
+  Widget _buildStatsHeader(List<_ReviewedItem> all,
+      List<_ReviewedItem> filtered, BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final movieCount = all.where((i) => i.type == _ItemType.movie).length;
     final bookCount = all.where((i) => i.type == _ItemType.book).length;
     final gameCount = all.where((i) => i.type == _ItemType.game).length;
-    final ratings = filtered.where((i) => i.rating != null).map((i) => i.rating!).toList();
+    final ratings =
+        filtered.where((i) => i.rating != null).map((i) => i.rating!).toList();
     final avg = ratings.isEmpty
         ? '--'
         : (ratings.reduce((a, b) => a + b) / ratings.length).toStringAsFixed(1);
@@ -303,7 +429,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.06), width: 0.7),
+        border: Border.all(
+            color: colors.onSurface.withValues(alpha: 0.06), width: 0.7),
       ),
       child: Row(
         children: [
@@ -319,11 +446,14 @@ class _ReviewedPageState extends State<ReviewedPage> {
           const Spacer(),
           Row(
             children: [
-              _buildMiniType('影视'.tr, movieCount, Colors.blue, _ItemType.movie, colors),
+              _buildMiniType(
+                  '影视'.tr, movieCount, Colors.blue, _ItemType.movie, colors),
               const SizedBox(width: 14),
-              _buildMiniType('书籍'.tr, bookCount, Colors.teal, _ItemType.book, colors),
+              _buildMiniType(
+                  '书籍'.tr, bookCount, Colors.teal, _ItemType.book, colors),
               const SizedBox(width: 14),
-              _buildMiniType('游戏'.tr, gameCount, Colors.orange, _ItemType.game, colors),
+              _buildMiniType(
+                  '游戏'.tr, gameCount, Colors.orange, _ItemType.game, colors),
             ],
           ),
         ],
@@ -331,20 +461,30 @@ class _ReviewedPageState extends State<ReviewedPage> {
     );
   }
 
-  Widget _buildBigStat(String value, String label, Color accent, ColorScheme colors) {
+  Widget _buildBigStat(
+      String value, String label, Color accent, ColorScheme colors) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.0, color: accent)),
+        Text(value,
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                height: 1.0,
+                color: accent)),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 10.5, color: colors.onSurface.withValues(alpha: 0.42))),
+        Text(label,
+            style: TextStyle(
+                fontSize: 10.5,
+                color: colors.onSurface.withValues(alpha: 0.42))),
       ],
     );
   }
 
   /// 统计条右侧：点击即按类型筛选
-  Widget _buildMiniType(String label, int count, Color color, _ItemType type, ColorScheme colors) {
+  Widget _buildMiniType(String label, int count, Color color, _ItemType type,
+      ColorScheme colors) {
     final selected = _selectedType == type;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -362,7 +502,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
               fontSize: 16,
               height: 1.0,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              color: selected ? color : colors.onSurface.withValues(alpha: 0.55),
+              color:
+                  selected ? color : colors.onSurface.withValues(alpha: 0.55),
             ),
           ),
           const SizedBox(height: 4),
@@ -380,7 +521,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
               label,
               style: TextStyle(
                 fontSize: 10.5,
-                color: selected ? color : colors.onSurface.withValues(alpha: 0.4),
+                color:
+                    selected ? color : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ]),
@@ -393,7 +535,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   // ─── 筛选弹窗 ───────────────────────────────────────────────────────
 
-  bool get _hasActiveFilter => _selectedYear != null || _selectedType != null || _selectedGenre != null;
+  bool get _hasActiveFilter =>
+      _selectedYear != null || _selectedType != null || _selectedGenre != null;
 
   String? get _activeFilterLabel {
     if (!_hasActiveFilter) return null;
@@ -410,14 +553,17 @@ class _ReviewedPageState extends State<ReviewedPage> {
     return parts.join(' · ');
   }
 
-  Widget _buildFilterButton(List<int> years, List<_ReviewedItem> allItems, BuildContext context) {
+  Widget _buildFilterButton(
+      List<int> years, List<_ReviewedItem> allItems, BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return IconButton(
       tooltip: '筛选'.tr,
       icon: Icon(
         _hasActiveFilter ? Icons.tune_rounded : Icons.tune_outlined,
         size: 20,
-        color: _hasActiveFilter ? colors.primary : colors.onSurface.withValues(alpha: 0.7),
+        color: _hasActiveFilter
+            ? colors.primary
+            : colors.onSurface.withValues(alpha: 0.7),
       ),
       onPressed: () => _showFilterSheet(years, allItems),
     );
@@ -446,7 +592,11 @@ class _ReviewedPageState extends State<ReviewedPage> {
               children: [
                 Icon(Icons.filter_alt_rounded, size: 12, color: colors.primary),
                 const SizedBox(width: 5),
-                Text(_activeFilterLabel!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colors.primary)),
+                Text(_activeFilterLabel!,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colors.primary)),
                 const SizedBox(width: 4),
                 Icon(Icons.close_rounded, size: 13, color: colors.primary),
               ],
@@ -486,7 +636,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
       context: context,
       backgroundColor: colors.surface,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, sheetSetState) {
@@ -506,74 +657,83 @@ class _ReviewedPageState extends State<ReviewedPage> {
               child: SizedBox(
                 height: MediaQuery.of(sheetContext).size.height * 0.62,
                 child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                    child: Row(
-                      children: [
-                        Text('筛选'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface)),
-                        const Spacer(),
-                        if (_hasActiveFilter)
-                          GestureDetector(
-                            onTap: () => choose(() {
-                              _selectedYear = null;
-                              _selectedType = null;
-                              _selectedGenre = null;
-                            }),
-                            child: Text('清除'.tr, style: TextStyle(fontSize: 13, color: colors.primary)),
-                          ),
-                      ],
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: Row(
+                        children: [
+                          Text('筛选'.tr,
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.onSurface)),
+                          const Spacer(),
+                          if (_hasActiveFilter)
+                            GestureDetector(
+                              onTap: () => choose(() {
+                                _selectedYear = null;
+                                _selectedType = null;
+                                _selectedGenre = null;
+                              }),
+                              child: Text('清除'.tr,
+                                  style: TextStyle(
+                                      fontSize: 13, color: colors.primary)),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  // 顶部模块切换
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        for (var i = 0; i < tabs.length; i++)
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(right: i == tabs.length - 1 ? 0 : 8),
-                              child: _buildSheetTab(
-                                label: tabs[i].$1,
-                                icon: tabs[i].$2,
-                                active: _filterTab == i,
-                                colors: colors,
-                                onTap: () => sheetSetState(() => _filterTab = i),
+                    const SizedBox(height: 12),
+                    // 顶部模块切换
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < tabs.length; i++)
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                    right: i == tabs.length - 1 ? 0 : 8),
+                                child: _buildSheetTab(
+                                  label: tabs[i].$1,
+                                  icon: tabs[i].$2,
+                                  active: _filterTab == i,
+                                  colors: colors,
+                                  onTap: () =>
+                                      sheetSetState(() => _filterTab = i),
+                                ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  // 当前模块内容：药丸自动换行，区域固定高度、超出纵滚
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: SingleChildScrollView(
-                        child: _buildSheetPillWrap(
-                          colors: colors,
-                          tab: _filterTab,
-                          years: years,
-                          group: _genreGroupFor(genreGroups, typeOfTab[_filterTab]),
-                          onChoose: choose,
+                    const SizedBox(height: 16),
+                    // 当前模块内容：药丸自动换行，区域固定高度、超出纵滚
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: SingleChildScrollView(
+                          child: _buildSheetPillWrap(
+                            colors: colors,
+                            tab: _filterTab,
+                            years: years,
+                            group: _genreGroupFor(
+                                genreGroups, typeOfTab[_filterTab]),
+                            onChoose: choose,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        child: Text('完成'.tr),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: Text('完成'.tr),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
                 ),
               ),
             );
@@ -604,20 +764,28 @@ class _ReviewedPageState extends State<ReviewedPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          color: active ? colors.primary : colors.surfaceContainerHighest.withValues(alpha: 0.7),
+          color: active
+              ? colors.primary
+              : colors.surfaceContainerHighest.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 15, color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5)),
+            Icon(icon,
+                size: 15,
+                color: active
+                    ? colors.onPrimary
+                    : colors.onSurface.withValues(alpha: 0.5)),
             const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: active ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+                color: active
+                    ? colors.onPrimary
+                    : colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -640,7 +808,8 @@ class _ReviewedPageState extends State<ReviewedPage> {
       for (final year in years) {
         pills.add(_buildFilterChip(year, '$year', colors,
             isSelected: _selectedYear == year,
-            onTap: () => onChoose(() => _selectedYear = _selectedYear == year ? null : year)));
+            onTap: () => onChoose(
+                () => _selectedYear = _selectedYear == year ? null : year)));
       }
     } else if (group != null) {
       // 该类型的「全部」药丸：只按类型筛选，不限标签
@@ -673,7 +842,10 @@ class _ReviewedPageState extends State<ReviewedPage> {
       return Padding(
         padding: const EdgeInsets.only(top: 40),
         child: Center(
-          child: Text('暂无选项'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
+          child: Text('暂无选项'.tr,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: colors.onSurface.withValues(alpha: 0.35))),
         ),
       );
     }
@@ -700,13 +872,17 @@ class _ReviewedPageState extends State<ReviewedPage> {
       }
     }
     final groups = <_GenreGroup>[];
-    groups.add(_GenreGroup(_ItemType.movie, movieGenres.toList()..sort(), Colors.blue));
-    groups.add(_GenreGroup(_ItemType.book, bookGenres.toList()..sort(), Colors.teal));
-    groups.add(_GenreGroup(_ItemType.game, gameGenres.toList()..sort(), Colors.orange));
+    groups.add(_GenreGroup(
+        _ItemType.movie, movieGenres.toList()..sort(), Colors.blue));
+    groups.add(
+        _GenreGroup(_ItemType.book, bookGenres.toList()..sort(), Colors.teal));
+    groups.add(_GenreGroup(
+        _ItemType.game, gameGenres.toList()..sort(), Colors.orange));
     return groups;
   }
 
-  Widget _buildFilterChip(dynamic key, String label, ColorScheme colors, {Color? color, required bool isSelected, required VoidCallback onTap}) {
+  Widget _buildFilterChip(dynamic key, String label, ColorScheme colors,
+      {Color? color, required bool isSelected, required VoidCallback onTap}) {
     final chipColor = color ?? colors.primary;
     return GestureDetector(
       onTap: onTap,
@@ -722,7 +898,9 @@ class _ReviewedPageState extends State<ReviewedPage> {
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.55))),
+                color: isSelected
+                    ? colors.onPrimary
+                    : colors.onSurface.withValues(alpha: 0.55))),
       ),
     );
   }
@@ -775,7 +953,9 @@ class _ReviewedPageState extends State<ReviewedPage> {
         items.add(_ReviewedItem(
           id: g.id,
           title: g.title,
-          subtitle: g.developer.isNotEmpty ? g.developer.join(' / ') : (g.platforms.isNotEmpty ? g.platforms.join(' / ') : ''),
+          subtitle: g.developer.isNotEmpty
+              ? g.developer.join(' / ')
+              : (g.platforms.isNotEmpty ? g.platforms.join(' / ') : ''),
           coverPath: g.coverPath,
           rating: g.rating,
           createdAt: g.createdAt,
@@ -803,11 +983,11 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   List<_ReviewedItem> _sortItems(List<_ReviewedItem> items) {
     Comparable? keyOf(_ReviewedItem i) => switch (_sortKey) {
-      _SortKey.created => i.createdAt,
-      _SortKey.actionDate => i.actionDate,
-      _SortKey.count => i.count,
-      _SortKey.rating => i.rating,
-    };
+          _SortKey.created => i.createdAt,
+          _SortKey.actionDate => i.actionDate,
+          _SortKey.count => i.count,
+          _SortKey.rating => i.rating,
+        };
     items.sort((a, b) {
       final ka = keyOf(a);
       final kb = keyOf(b);
@@ -823,91 +1003,157 @@ class _ReviewedPageState extends State<ReviewedPage> {
     return items;
   }
 
-  Widget _buildSortButton(BuildContext context) {
+  /// 竖向三点弹层：排序（含升降序）+ 显示方式切换，样式对齐片单页显示方式弹层
+  void _showMoreSheet() {
     final colors = Theme.of(context).colorScheme;
-    final active = _sortKey != _SortKey.created || _sortAscending;
-    return IconButton(
-      tooltip: '排序'.tr,
-      icon: Icon(
-        _sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-        size: 20,
-        color: active ? colors.primary : colors.onSurface.withValues(alpha: 0.7),
-      ),
-      onPressed: _showSortSheet,
-    );
-  }
-
-  void _showSortSheet() {
-    final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    final sortOptions = <(_SortKey, IconData)>[
+      (_SortKey.created, Icons.event_note_outlined),
+      (_SortKey.actionDate, Icons.task_alt_outlined),
+      (_SortKey.count, Icons.repeat_rounded),
+      (_SortKey.rating, Icons.star_outline_rounded),
+    ];
+    appModalBottomSheet<void>(
       context: context,
       backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, sheetSetState) {
-            void choose(_SortKey key) {
-              _userPrefs.setReviewedSortKey(key.index);
-              setState(() => _sortKey = key);
+            void refresh(VoidCallback action) {
+              setState(action);
               sheetSetState(() {});
             }
 
             return SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 10, bottom: 4),
+                      child: Container(
+                        width: 28,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: colors.onSurface.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 排序标题 + 升降序切换
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
                     child: Row(
                       children: [
-                        Text('排序'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface)),
+                        Text(
+                          '排序'.tr,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: colors.onSurface),
+                        ),
                         const Spacer(),
-                        // 升降序切换
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () {
+                          onTap: () async {
                             final next = !_sortAscending;
-                            _userPrefs.setReviewedSortAscending(next);
-                            setState(() => _sortAscending = next);
-                            sheetSetState(() {});
+                            await _userPrefs.setReviewedSortAscending(next);
+                            if (!mounted) return;
+                            refresh(() => _sortAscending = next);
                           },
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(
-                              _sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                              size: 16, color: colors.primary,
+                              _sortAscending
+                                  ? Icons.arrow_upward_rounded
+                                  : Icons.arrow_downward_rounded,
+                              size: 16,
+                              color: colors.primary,
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _sortAscending ? '升序'.tr : '降序'.tr,
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.primary),
+                              (_sortAscending ? '升序' : '降序').tr,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.primary),
                             ),
                           ]),
                         ),
                       ],
                     ),
                   ),
-                  for (final key in _SortKey.values)
-                    InkWell(
-                      onTap: () => choose(key),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        child: Row(
-                          children: [
-                            Text(
-                              _sortLabels[key]!.tr,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: _sortKey == key ? FontWeight.w700 : FontWeight.w500,
-                                color: _sortKey == key ? colors.primary : colors.onSurface.withValues(alpha: 0.75),
-                              ),
-                            ),
-                            const Spacer(),
-                            if (_sortKey == key) Icon(Icons.check_rounded, size: 20, color: colors.primary),
-                          ],
+                  _buildSheetGroup(
+                    colors,
+                    children: [
+                      for (var i = 0; i < sortOptions.length; i++) ...[
+                        if (i > 0)
+                          Divider(
+                              height: 0.5,
+                              thickness: 0.5,
+                              indent: 56,
+                              color:
+                                  colors.outlineVariant.withValues(alpha: 0.3)),
+                        _buildSheetOption(
+                          icon: sortOptions[i].$2,
+                          label: _sortLabels[sortOptions[i].$1]!.tr,
+                          selected: _sortKey == sortOptions[i].$1,
+                          colors: colors,
+                          onTap: () async {
+                            final key = sortOptions[i].$1;
+                            await _userPrefs.setReviewedSortKey(key.index);
+                            if (!mounted) return;
+                            refresh(() => _sortKey = key);
+                          },
                         ),
-                      ),
+                      ],
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                    child: Text(
+                      '显示方式'.tr,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface),
                     ),
-                  const SizedBox(height: 8),
+                  ),
+                  _buildSheetGroup(
+                    colors,
+                    children: [
+                      _buildSheetOption(
+                        icon: Icons.view_list_rounded,
+                        label: '列表视图'.tr,
+                        selected: UserPrefs().reviewedLayoutStyle == 0,
+                        colors: colors,
+                        onTap: () async {
+                          await UserPrefs().setReviewedLayoutStyle(0);
+                          if (!mounted) return;
+                          refresh(() {});
+                        },
+                      ),
+                      Divider(
+                          height: 0.5,
+                          thickness: 0.5,
+                          indent: 56,
+                          color: colors.outlineVariant.withValues(alpha: 0.3)),
+                      _buildSheetOption(
+                        icon: Icons.grid_view_rounded,
+                        label: '网格视图'.tr,
+                        selected: UserPrefs().reviewedLayoutStyle == 1,
+                        colors: colors,
+                        onTap: () async {
+                          await UserPrefs().setReviewedLayoutStyle(1);
+                          if (!mounted) return;
+                          refresh(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                 ],
               ),
             );
@@ -917,8 +1163,64 @@ class _ReviewedPageState extends State<ReviewedPage> {
     );
   }
 
+  Widget _buildSheetGroup(ColorScheme colors,
+      {required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildSheetOption({
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required ColorScheme colors,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 17, color: colors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: colors.onSurface,
+                ),
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_rounded, size: 19, color: colors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<int> _buildYearList(List<_ReviewedItem> items) {
-    final years = items.map((i) => i.year).whereType<int>().toSet().toList()..sort((a, b) => b.compareTo(a));
+    final years = items.map((i) => i.year).whereType<int>().toSet().toList()
+      ..sort((a, b) => b.compareTo(a));
     return years;
   }
 
@@ -926,7 +1228,9 @@ class _ReviewedPageState extends State<ReviewedPage> {
     return items.where((i) {
       if (_selectedYear != null && i.year != _selectedYear) return false;
       if (_selectedType != null && i.type != _selectedType) return false;
-      if (_selectedGenre != null && !i.genres.contains(_selectedGenre)) return false;
+      if (_selectedGenre != null && !i.genres.contains(_selectedGenre)) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -935,11 +1239,6 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   Widget _buildListItem(BuildContext context, _ReviewedItem item) {
     final colors = Theme.of(context).colorScheme;
-    final typeColor = switch (item.type) {
-      _ItemType.movie => Colors.blue,
-      _ItemType.book => Colors.teal,
-      _ItemType.game => Colors.orange,
-    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -959,18 +1258,12 @@ class _ReviewedPageState extends State<ReviewedPage> {
             decoration: BoxDecoration(
               color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: colors.onSurface.withValues(alpha: 0.06), width: 0.7),
+              border: Border.all(
+                  color: colors.onSurface.withValues(alpha: 0.06), width: 0.7),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 类型色条
-                Container(
-                  width: 3,
-                  height: 90,
-                  margin: const EdgeInsets.only(right: 10),
-                  decoration: BoxDecoration(color: typeColor, borderRadius: BorderRadius.circular(2)),
-                ),
                 // 封面
                 Container(
                   width: 64,
@@ -978,7 +1271,10 @@ class _ReviewedPageState extends State<ReviewedPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 6, offset: const Offset(0, 2)),
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2)),
                     ],
                   ),
                   child: ClipRRect(
@@ -1004,24 +1300,40 @@ class _ReviewedPageState extends State<ReviewedPage> {
                         Text(item.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface)),
                         const SizedBox(height: 4),
                         if (item.subtitle.isNotEmpty)
                           Text(item.subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: colors.onSurface
+                                      .withValues(alpha: 0.45))),
                         const Spacer(),
                         Row(
                           children: [
                             if (item.rating != null)
-                              AnimatedStarRating(rating: item.rating!, starSize: 11, showNumber: true)
+                              AnimatedStarRating(
+                                  rating: item.rating!,
+                                  starSize: 11,
+                                  showNumber: true)
                             else
-                              Text('未评分'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25))),
+                              Text('未评分'.tr,
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: colors.onSurface
+                                          .withValues(alpha: 0.25))),
                             const Spacer(),
                             if (item.year != null)
                               Text('${item.year}',
-                                  style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: colors.onSurface
+                                          .withValues(alpha: 0.35))),
                           ],
                         ),
                       ],

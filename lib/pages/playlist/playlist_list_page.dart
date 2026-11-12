@@ -43,7 +43,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     }
   }
 
-  List<String?> _getCoverPaths(Playlist playlist, AppProvider provider, {int limit = 4}) {
+  List<String?> _getCoverPaths(Playlist playlist, AppProvider provider,
+      {int limit = 4}) {
     final ids = _playlistItemIds[playlist.id] ?? [];
     final covers = <String?>[];
     for (final id in ids.take(limit)) {
@@ -86,25 +87,23 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
             title: Text('书影片单'.tr),
             actions: [
               IconButton(
-                icon: Icon(_layoutStyle == 0 ? Icons.grid_view : Icons.view_list, size: 20),
-                onPressed: () {
-                  final newStyle = _layoutStyle == 0 ? 1 : 0;
-                  setState(() => _layoutStyle = newStyle);
-                  UserPrefs().setPlaylistLayoutStyle(newStyle);
-                },
-              ),
-              IconButton(
                 icon: const Icon(Icons.add, size: 22),
                 onPressed: () async {
                   final result = await Navigator.push<bool>(
                     context,
-                    MaterialPageRoute(builder: (_) => const PlaylistCreatePage()),
+                    MaterialPageRoute(
+                        builder: (_) => const PlaylistCreatePage()),
                   );
                   if (result == true && mounted) {
                     provider.loadPlaylists();
                     _loadAllItemIds();
                   }
                 },
+              ),
+              IconButton(
+                icon: const Icon(Icons.more_vert, size: 22),
+                tooltip: '显示方式'.tr,
+                onPressed: _showLayoutSheet,
               ),
             ],
           ),
@@ -125,14 +124,24 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 72, height: 72,
-            decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(18)),
-            child: Icon(Icons.playlist_play, size: 36, color: colors.onSurface.withValues(alpha: 0.25)),
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(18)),
+            child: Icon(Icons.playlist_play,
+                size: 36, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(height: 16),
-          Text('还没有片单'.tr, style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('还没有片单'.tr,
+              style: TextStyle(
+                  fontSize: 15,
+                  color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
-          Text('点击右上角 + 创建一个片单吧'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
+          Text('点击右上角 + 创建一个片单吧'.tr,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -140,7 +149,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   // ─── 列表视图（长按1秒拖动排序 + 左滑操作）──────────────────────────
 
-  Widget _buildListView(BuildContext context, List<Playlist> playlists, AppProvider provider) {
+  Widget _buildListView(
+      BuildContext context, List<Playlist> playlists, AppProvider provider) {
     return ReorderableListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: playlists.length,
@@ -184,7 +194,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40, height: 40,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
@@ -201,7 +212,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     );
   }
 
-  Widget _buildSlidableCard(BuildContext context, Playlist playlist, int index, AppProvider provider) {
+  Widget _buildSlidableCard(BuildContext context, Playlist playlist, int index,
+      AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
     final typeColor = _typeColor(playlist.type, colors);
     final covers = _getCoverPaths(playlist, provider);
@@ -232,7 +244,9 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                         setState(() => _slideOffsets[playlist.id] = 0.0);
                         final result = await Navigator.push<bool>(
                           context,
-                          MaterialPageRoute(builder: (_) => PlaylistCreatePage(playlist: playlist)),
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  PlaylistCreatePage(playlist: playlist)),
                         );
                         if (result == true && mounted) {
                           provider.loadPlaylists();
@@ -259,7 +273,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             curve: Curves.easeOut,
-            transform: Matrix4.translationValues(_slideOffsets[playlist.id] ?? 0, 0, 0),
+            transform: Matrix4.translationValues(
+                _slideOffsets[playlist.id] ?? 0, 0, 0),
             child: Listener(
               behavior: HitTestBehavior.translucent,
               onPointerDown: (event) {
@@ -276,7 +291,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                 }
                 if (_isHorizontalDrag) {
                   setState(() {
-                    _slideOffsets[playlist.id] = (_dragStartOffset + dx).clamp(-actionWidth * 2, 0.0);
+                    _slideOffsets[playlist.id] =
+                        (_dragStartOffset + dx).clamp(-actionWidth * 2, 0.0);
                   });
                 }
               },
@@ -296,7 +312,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                   }
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => PlaylistDetailPage(playlist: playlist)),
+                    MaterialPageRoute(
+                        builder: (_) => PlaylistDetailPage(playlist: playlist)),
                   );
                   if (mounted) {
                     provider.loadPlaylists();
@@ -323,7 +340,10 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                                     child: Text(playlist.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: colors.onSurface)),
                                   ),
                                   const SizedBox(width: 8),
                                   _buildTypeTag(playlist.typeLabel, typeColor),
@@ -334,18 +354,30 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                                 Text(playlist.description,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: colors.onSurface
+                                            .withValues(alpha: 0.4))),
                               ],
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  Icon(Icons.collections_outlined, size: 13, color: colors.onSurface.withValues(alpha: 0.3)),
+                                  Icon(Icons.collections_outlined,
+                                      size: 13,
+                                      color: colors.onSurface
+                                          .withValues(alpha: 0.3)),
                                   const SizedBox(width: 4),
                                   Text('{n} 个条目'.trf({'n': playlist.itemCount}),
-                                      style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.3))),
                                   const Spacer(),
                                   Text(_formatDate(playlist.updatedAt),
-                                      style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.25))),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: colors.onSurface
+                                              .withValues(alpha: 0.25))),
                                 ],
                               ),
                             ],
@@ -365,7 +397,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   // ─── 网格视图 ──────────────────────────────────────────────────────
 
-  Widget _buildGridView(BuildContext context, List<Playlist> playlists, AppProvider provider) {
+  Widget _buildGridView(
+      BuildContext context, List<Playlist> playlists, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -385,7 +418,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
           onTap: () async {
             await Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => PlaylistDetailPage(playlist: playlist)),
+              MaterialPageRoute(
+                  builder: (_) => PlaylistDetailPage(playlist: playlist)),
             );
             if (mounted) {
               provider.loadPlaylists();
@@ -400,7 +434,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _buildGridCoverWall(context, playlist, covers, typeColor),
+                  child:
+                      _buildGridCoverWall(context, playlist, covers, typeColor),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
@@ -410,16 +445,25 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                       Text(playlist.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: colors.onSurface)),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          _buildTypeTag(playlist.typeLabel, typeColor, compact: true),
+                          _buildTypeTag(playlist.typeLabel, typeColor,
+                              compact: true),
                           const Spacer(),
-                          Icon(Icons.collections_outlined, size: 10, color: colors.onSurface.withValues(alpha: 0.3)),
+                          Icon(Icons.collections_outlined,
+                              size: 10,
+                              color: colors.onSurface.withValues(alpha: 0.3)),
                           const SizedBox(width: 2),
                           Text('${playlist.itemCount}',
-                              style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.35))),
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: colors.onSurface
+                                      .withValues(alpha: 0.35))),
                         ],
                       ),
                     ],
@@ -453,7 +497,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   Widget _buildTypeTag(String label, Color color, {bool compact = false}) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6, vertical: compact ? 1 : 2),
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 4 : 6, vertical: compact ? 1 : 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(compact ? 3 : 4),
@@ -486,7 +531,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     return '${dt.month}/${dt.day}';
   }
 
-  Widget _buildGridCoverWall(BuildContext context, Playlist playlist, List<String?> covers, Color typeColor) {
+  Widget _buildGridCoverWall(BuildContext context, Playlist playlist,
+      List<String?> covers, Color typeColor) {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final typeIcon = switch (playlist.type) {
@@ -496,7 +542,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       'all' => Icons.all_inclusive,
       _ => Icons.list_outlined,
     };
-    final valid = covers.whereType<String>().where((p) => p.isNotEmpty).toList();
+    final valid =
+        covers.whereType<String>().where((p) => p.isNotEmpty).toList();
 
     // 空片单：类型色渐变 + 大图标（与新增页预览卡回退样式一致）
     if (valid.isEmpty) {
@@ -511,7 +558,10 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
             ],
           ),
         ),
-        child: Center(child: Icon(typeIcon, size: 36, color: typeColor.withValues(alpha: isDark ? 0.7 : 0.5))),
+        child: Center(
+            child: Icon(typeIcon,
+                size: 36,
+                color: typeColor.withValues(alpha: isDark ? 0.7 : 0.5))),
       );
     }
 
@@ -520,19 +570,26 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     const hGap = SizedBox(width: 2);
     const vGap = SizedBox(height: 2);
 
+    // 显式 ClipRRect 硬裁剪：横图也严格切在各自格子内，不依赖父级隐式裁剪
     Widget cell(String path) => Expanded(
-          child: FadeInLocalImage(
-            path: path,
-            fit: BoxFit.cover,
-            errorWidget: Container(
-              color: colors.surfaceContainerHighest,
-              child: Icon(typeIcon,
-                  size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: FadeInLocalImage(
+              path: path,
+              fit: BoxFit.cover,
+              errorWidget: Container(
+                color: colors.surfaceContainerHighest,
+                child: Icon(typeIcon,
+                    size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
+              ),
             ),
           ),
         );
 
+    // stretch：让单元格拿到紧高度约束，横图才能填满格子后由 cover 裁切，
+    // 否则 Image 在松高度下按自身比例收缩，横图上下会留大片白
     Widget row2(List<String> paths) => Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             cell(paths[0]),
             hGap,
@@ -541,10 +598,16 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
         );
 
     if (count == 1) {
-      return FadeInLocalImage(path: valid.first, fit: BoxFit.cover);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: FadeInLocalImage(path: valid.first, fit: BoxFit.cover),
+      );
     }
     if (count == 2) {
-      return Row(children: [cell(valid[0]), hGap, cell(valid[1])]);
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [cell(valid[0]), hGap, cell(valid[1])],
+      );
     }
     if (count == 3) {
       return Column(
@@ -553,6 +616,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
           vGap,
           Expanded(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 cell(valid[2]),
                 hGap,
@@ -572,7 +636,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     );
   }
 
-  Widget _buildCoverWall(BuildContext context, Playlist playlist, List<String?> covers, Color typeColor) {
+  Widget _buildCoverWall(BuildContext context, Playlist playlist,
+      List<String?> covers, Color typeColor) {
     final typeIcon = switch (playlist.type) {
       'movie' => Icons.movie_outlined,
       'book' => Icons.menu_book_outlined,
@@ -583,7 +648,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
     if (covers.isEmpty) {
       return Container(
-        width: 64, height: 64,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
           color: typeColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
@@ -592,10 +658,12 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       );
     }
 
-    final valid = covers.whereType<String>().where((p) => p.isNotEmpty).toList();
+    final valid =
+        covers.whereType<String>().where((p) => p.isNotEmpty).toList();
     if (valid.isEmpty) {
       return Container(
-        width: 64, height: 64,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
           color: typeColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
@@ -608,18 +676,28 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     const gap = 2.0;
 
     Widget cell(String path) => Expanded(
-          child: FadeInLocalImage(
-            path: path,
-            fit: BoxFit.cover,
-            errorWidget: Container(
-              color: typeColor.withValues(alpha: 0.08),
-              child: Icon(typeIcon, size: 14, color: typeColor.withValues(alpha: 0.3)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: FadeInLocalImage(
+              path: path,
+              fit: BoxFit.cover,
+              errorWidget: Container(
+                color: typeColor.withValues(alpha: 0.08),
+                child: Icon(typeIcon,
+                    size: 14, color: typeColor.withValues(alpha: 0.3)),
+              ),
             ),
           ),
         );
 
+    // stretch：横图单元格也拿紧高度，填满后由 cover 裁切，避免上下留白
     Widget row2(List<String> paths) => Row(
-          children: [cell(paths[0]), const SizedBox(width: gap), cell(paths[1])],
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            cell(paths[0]),
+            const SizedBox(width: gap),
+            cell(paths[1])
+          ],
         );
 
     Widget wall;
@@ -627,7 +705,10 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     if (count == 1) {
       wall = FadeInLocalImage(path: valid.first, fit: BoxFit.cover);
     } else if (count == 2) {
-      wall = Row(children: [cell(valid[0]), const SizedBox(width: gap), cell(valid[1])]);
+      wall = Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [cell(valid[0]), const SizedBox(width: gap), cell(valid[1])],
+      );
     } else if (count == 3) {
       wall = Column(
         children: [
@@ -635,6 +716,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
           const SizedBox(height: gap),
           Expanded(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 cell(valid[2]),
                 const SizedBox(width: gap),
@@ -662,13 +744,14 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   // ─── 操作菜单 ──────────────────────────────────────────────────────
 
-  void _showActionSheet(BuildContext context, Playlist playlist, AppProvider provider) {
+  /// 显示方式选择弹层：列表视图 / 网格视图
+  void _showLayoutSheet() {
     final colors = Theme.of(context).colorScheme;
-    final typeColor = _typeColor(playlist.type, colors);
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -678,7 +761,130 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 10, bottom: 4),
                 child: Container(
-                  width: 28, height: 3,
+                  width: 28,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Text(
+                '显示方式'.tr,
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _buildLayoutOption(
+                    ctx,
+                    icon: Icons.view_list_rounded,
+                    label: '列表视图'.tr,
+                    value: 0,
+                    colors: colors,
+                  ),
+                  Divider(
+                      height: 0.5,
+                      thickness: 0.5,
+                      indent: 56,
+                      color: colors.outlineVariant.withValues(alpha: 0.3)),
+                  _buildLayoutOption(
+                    ctx,
+                    icon: Icons.grid_view_rounded,
+                    label: '网格视图'.tr,
+                    value: 1,
+                    colors: colors,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayoutOption(
+    BuildContext ctx, {
+    required IconData icon,
+    required String label,
+    required int value,
+    required ColorScheme colors,
+  }) {
+    final selected = _layoutStyle == value;
+    return InkWell(
+      onTap: () {
+        Navigator.pop(ctx);
+        if (_layoutStyle == value) return;
+        setState(() => _layoutStyle = value);
+        UserPrefs().setPlaylistLayoutStyle(value);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 17, color: colors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: colors.onSurface,
+                ),
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_rounded, size: 19, color: colors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showActionSheet(
+      BuildContext context, Playlist playlist, AppProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+    final typeColor = _typeColor(playlist.type, colors);
+    appModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Container(
+                  width: 28,
+                  height: 3,
                   decoration: BoxDecoration(
                     color: colors.onSurface.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(1.5),
@@ -695,16 +901,24 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                   Text(playlist.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildTypeTag(playlist.typeLabel, typeColor, compact: true),
+                      _buildTypeTag(playlist.typeLabel, typeColor,
+                          compact: true),
                       const SizedBox(width: 8),
-                      Icon(Icons.collections_outlined, size: 11, color: colors.onSurface.withValues(alpha: 0.3)),
+                      Icon(Icons.collections_outlined,
+                          size: 11,
+                          color: colors.onSurface.withValues(alpha: 0.3)),
                       const SizedBox(width: 3),
                       Text('{n} 个条目'.trf({'n': playlist.itemCount}),
-                          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35))),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: colors.onSurface.withValues(alpha: 0.35))),
                     ],
                   ),
                 ],
@@ -728,7 +942,9 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                       Navigator.pop(ctx);
                       final result = await Navigator.push<bool>(
                         context,
-                        MaterialPageRoute(builder: (_) => PlaylistCreatePage(playlist: playlist)),
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                PlaylistCreatePage(playlist: playlist)),
                       );
                       if (result == true && mounted) {
                         provider.loadPlaylists();
@@ -736,14 +952,19 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
                       }
                     },
                   ),
-                  Divider(height: 0.5, thickness: 0.5, indent: 56, color: colors.outlineVariant.withValues(alpha: 0.3)),
+                  Divider(
+                      height: 0.5,
+                      thickness: 0.5,
+                      indent: 56,
+                      color: colors.outlineVariant.withValues(alpha: 0.3)),
                   _buildSheetAction(
                     icon: Icons.delete_outline,
                     label: '删除片单'.tr,
                     color: colors.error,
                     onTap: () async {
                       Navigator.pop(ctx);
-                      final confirmed = await _showDeleteDialog(context, playlist, provider);
+                      final confirmed =
+                          await _showDeleteDialog(context, playlist, provider);
                       if (confirmed == true && mounted) {
                         provider.loadPlaylists();
                         _loadAllItemIds();
@@ -773,7 +994,8 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
         child: Row(
           children: [
             Container(
-              width: 30, height: 30,
+              width: 30,
+              height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
@@ -782,14 +1004,17 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
               child: Icon(icon, size: 16, color: color),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: color))),
+            Expanded(
+                child:
+                    Text(label, style: TextStyle(fontSize: 14, color: color))),
           ],
         ),
       ),
     );
   }
 
-  Future<bool?> _showDeleteDialog(BuildContext context, Playlist playlist, AppProvider provider) {
+  Future<bool?> _showDeleteDialog(
+      BuildContext context, Playlist playlist, AppProvider provider) {
     final colors = Theme.of(context).colorScheme;
     return appDialog<bool>(
       context: context,
@@ -797,13 +1022,22 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('确认删除'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('确定要删除片单「{name}」吗？'.trf({'name': playlist.name}),
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr,
+                style:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -815,13 +1049,15 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
               backgroundColor: colors.error,
               foregroundColor: colors.onError,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

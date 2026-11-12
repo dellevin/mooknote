@@ -116,6 +116,9 @@ const Map<String, String> enPeople = {
 
   // 片单列表
   '书影片单': 'Playlists',
+  '显示方式': 'Display',
+  '列表视图': 'List view',
+  '网格视图': 'Grid view',
   '还没有片单': 'No playlists yet',
   '点击右上角 + 创建一个片单吧': 'Tap + in the top right to create a playlist',
   '{n} 个条目': '{n} items',
@@ -143,6 +146,7 @@ const Map<String, String> enPeople = {
   '描述一下这个片单（选填）': 'Describe this playlist (optional)',
 
   // 片单详情
+  '搜索片名、导演或作者': 'Search title, director or author',
   '还没有添加条目': 'No items added yet',
   '该分类下暂无条目': 'No items in this category',
   '点击右上角 + 添加': 'Tap + in the top right to add',
@@ -172,4 +176,13 @@ const Map<String, String> enPeople = {
   '添加{type}': 'Add {type}',
   '搜索{type}名称': 'Search {type} by name',
   '没有找到{type}': 'No {type} found',
+
+  // 出版社（只读聚合视图，无独立编辑）
+  '出版社': 'Publisher',
+  '搜索出版社名称': 'Search publisher name',
+  '暂无出版社': 'No publishers yet',
+  '未找到匹配的出版社': 'No matching publishers found',
+  '暂无相关书籍': 'No related books',
+  '管理书籍等媒体的出版社信息': 'Manage publishers of books and other media',
+  '{type}已恢复': '{type} restored',
 };

@@ -1341,6 +1341,11 @@ class AppProvider extends ChangeNotifier {
     return await _gameReviewDao.getAllReviews();
   }
 
+  /// 获取全部书摘（书摘浏览页用）
+  Future<List<BookExcerpt>> getAllBookExcerpts() async {
+    return await _bookExcerptDao.getAllExcerpts();
+  }
+
   // ========== 海报墙相关方法 ==========
 
   /// 获取影视的所有海报

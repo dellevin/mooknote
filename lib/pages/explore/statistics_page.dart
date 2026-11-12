@@ -7,7 +7,6 @@ import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../l10n/app_strings.dart';
-import '../../utils/status_labels.dart';
 
 /// 数据统计页面 - 多维度数据分析
 class StatisticsPage extends StatefulWidget {
@@ -18,7 +17,6 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  int _statusTabIndex = 0;   // 0: 影视, 1: 书籍
   int _top5TabIndex = 0;     // 0: 导演, 1: 作者
   int _topRatedTabIndex = 0; // 0: 影视, 1: 书籍, 2: 游戏
   int _cloudTabIndex = 0;    // 标签词云 tab
@@ -143,50 +141,35 @@ class _StatisticsPageState extends State<StatisticsPage> {
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        // 各分区无数据时自行返回空组件，这里统一插入 16 间距，
+        // 避免手工维护每段后的 SizedBox
         children: [
-          // 1. 总览
-          _buildOverview(rfm, rfb, rfn),
-          const SizedBox(height: 16),
-          // 2. 状态分布
-          if (_showMovies || _showBooks) ...[
-            _buildStatusSection(rfm, rfb),
-            const SizedBox(height: 16),
+          for (final (i, section) in _buildSections(rfm, rfb, rfn, rfg).indexed) ...[
+            if (i > 0) const SizedBox(height: 16),
+            section,
           ],
-          // 3. 习惯洞察
-          _buildHabitsInsight(rfm, rfb, rfn),
-          const SizedBox(height: 16),
-          // 4. 类型偏好雷达图
-          _buildGenreRadar(rfm, rfb),
-          const SizedBox(height: 16),
-          // 5. 导演/作者 TOP 5
-          if (_showMovies || _showBooks) ...[
-            _buildTop5Section(rfm, rfb),
-            const SizedBox(height: 16),
-          ],
-          // 6. 高分之最
-          _buildTopRated(rfm, rfb, rfg),
-          const SizedBox(height: 16),
-          // 7. 评分分布
-          _buildRatingDistribution(rfm, rfb),
-          const SizedBox(height: 16),
-          // 8. 趋势图
-          _buildTrendChart(rfm, rfb, rfn),
-          const SizedBox(height: 16),
-          // 9. 星期分布
-          _buildWeekdayDistribution(rfm, rfb, rfn),
-          const SizedBox(height: 16),
-          // 10. 累计增长
-          _buildCumulativeGrowth(rfm, rfb, rfn),
-          const SizedBox(height: 16),
-          // 11. 标签词云
-          _buildTagCloud(rfm, rfb, rfn, rfg),
-          const SizedBox(height: 16),
-          // 12. 趣味统计
-          _buildFunStats(rfm, rfb, rfn),
           const SizedBox(height: 80),
         ],
       ),
     );
+  }
+
+  /// 统计分区顺序：概览 → 分布/洞察 → 榜单 → 图表 → 词云
+  /// 各 builder 在数据不足时返回空组件，由调用方统一控制间距
+  List<Widget> _buildSections(
+      List<Movie> rfm, List<Book> rfb, List<Note> rfn, List<Game> rfg) {
+    return [
+      _buildOverview(rfm, rfb, rfn),
+      _buildHabitsInsight(rfm, rfb, rfn),
+      _buildGenreRadar(rfm, rfb),
+      if (_showMovies || _showBooks) _buildTop5Section(rfm, rfb),
+      _buildTopRated(rfm, rfb, rfg),
+      _buildRatingDistribution(rfm, rfb),
+      _buildTrendChart(rfm, rfb, rfn),
+      _buildWeekdayDistribution(rfm, rfb, rfn),
+      _buildCumulativeGrowth(rfm, rfb, rfn),
+      _buildTagCloud(rfm, rfb, rfn, rfg),
+    ];
   }
 
   // ─── 时间范围选择器 ──────────────────────────────────────────────
@@ -355,54 +338,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  // ─── 2. 状态分布 ──────────────────────────────────────────────────
-
-  Widget _buildStatusSection(List<Movie> movies, List<Book> books) {
-    final colors = Theme.of(context).colorScheme;
-    final tabs = <(String, List, String Function(dynamic), Map<String, String>)>[];
-    if (_showMovies) tabs.add(('影视', movies, (m) => m.status, {for (final k in ['watched', 'watching', 'want_to_watch']) StatusLabels.label('movie', k): k}));
-    if (_showBooks) tabs.add(('书籍', books, (b) => b.status, {for (final k in ['read', 'reading', 'want_to_read']) StatusLabels.label('book', k): k}));
-    if (tabs.isEmpty) return const SizedBox.shrink();
-    if (_statusTabIndex >= tabs.length) _statusTabIndex = 0;
-
-    final tab = tabs[_statusTabIndex];
-    final total = tab.$2.length;
-
-    return _buildCard(
-      title: '状态分布'.tr,
-      action: tabs.length > 1 ? _buildTabChips(tabs.map((e) => e.$1).toList(), _statusTabIndex, (i) => setState(() => _statusTabIndex = i), colors) : null,
-      child: Column(
-        children: tab.$4.entries.map((e) {
-          final count = tab.$2.where((i) => tab.$3(i) == e.value).length;
-          final pct = total > 0 ? count / total : 0.0;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(e.key.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-                    const Spacer(),
-                    Text('$count', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
-                    const SizedBox(width: 4),
-                    Text('${(pct * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(value: pct, backgroundColor: colors.outlineVariant, color: colors.primary, minHeight: 6),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // ─── 3. 习惯洞察 ──────────────────────────────────────────────────
+  // ─── 习惯洞察 ──────────────────────────────────────────────────
 
   Widget _buildHabitsInsight(List<Movie> movies, List<Book> books, List<Note> notes) {
     final colors = Theme.of(context).colorScheme;
@@ -1157,73 +1093,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 );
               }).toList(),
             ),
-    );
-  }
-
-  // ─── 12. 趣味统计 ──────────────────────────────────────────────────
-
-  Widget _buildFunStats(List<Movie> movies, List<Book> books, List<Note> notes) {
-    final colors = Theme.of(context).colorScheme;
-    final allDates = [
-      ...movies.map(_movieDate),
-      ...books.map(_bookDate),
-      ...notes.map(_noteDate),
-    ];
-    if (allDates.isEmpty) return const SizedBox.shrink();
-
-    // 连续记录
-    final sortedDates = allDates.map((d) => DateTime(d.year, d.month, d.day)).toSet().toList()..sort();
-    int maxStreak = 1, currentStreak = 1;
-    for (int i = 1; i < sortedDates.length; i++) {
-      if (sortedDates[i].difference(sortedDates[i - 1]).inDays == 1) {
-        currentStreak++;
-        maxStreak = math.max(maxStreak, currentStreak);
-      } else {
-        currentStreak = 1;
-      }
-    }
-
-    // 最常用标签
-    final tagCounts = <String, int>{};
-    for (final m in movies) { for (final g in m.genres) { tagCounts[g] = (tagCounts[g] ?? 0) + 1; } }
-    for (final b in books) { for (final g in b.genres) { tagCounts[g] = (tagCounts[g] ?? 0) + 1; } }
-    for (final n in notes) { for (final t in n.tags) { tagCounts[t] = (tagCounts[t] ?? 0) + 1; } }
-    final topTag = tagCounts.entries.isEmpty ? null : tagCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
-
-    return Row(
-      children: [
-        Expanded(
-          child: _buildFunCard(Icons.local_fire_department_outlined, '连续记录'.tr, maxStreak > 1 ? '{n} 天'.trf({'n': maxStreak}) : '-', '最长连续记录天数'.tr, const Color(0xFFFF8F00), colors),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildFunCard(Icons.label_outlined, '最常用标签'.tr, topTag != null ? topTag.key : '-', topTag != null ? '使用 {n} 次'.trf({'n': topTag.value}) : '', const Color(0xFF26A69A), colors),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFunCard(IconData icon, String label, String value, String sub, Color color, ColorScheme colors) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 22, color: color),
-          const SizedBox(height: 10),
-          _CountUpText(value, TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
-          if (sub.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(sub, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.3))),
-          ],
-        ],
-      ),
     );
   }
 

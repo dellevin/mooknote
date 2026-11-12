@@ -98,6 +98,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     final colors = Theme.of(context).colorScheme;
     await showModalBottomSheet<void>(
       context: context,
+      showDragHandle: false,
       backgroundColor: colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -883,18 +884,19 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
       case 1:
         mosaic = thumb(show[0]);
       case 2:
-        mosaic = Row(children: [
+        // stretch：交叉轴给紧约束，图片 cover 才能铺满半格而非按原比例留白
+        mosaic = Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(child: thumb(show[0])),
           const SizedBox(width: gap),
           Expanded(child: thumb(show[1])),
         ]);
       case 3:
         // 左列 1 张大图，右列上下 2 张
-        mosaic = Row(children: [
+        mosaic = Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(child: thumb(show[0])),
           const SizedBox(width: gap),
           Expanded(
-            child: Column(children: [
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Expanded(child: thumb(show[1])),
               const SizedBox(height: gap),
               Expanded(child: thumb(show[2])),
@@ -902,9 +904,9 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           ),
         ]);
       default: // 4：2×2
-        mosaic = Column(children: [
+        mosaic = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(
-            child: Row(children: [
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Expanded(child: thumb(show[0])),
               const SizedBox(width: gap),
               Expanded(child: thumb(show[1])),
@@ -912,7 +914,7 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           ),
           const SizedBox(height: gap),
           Expanded(
-            child: Row(children: [
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Expanded(child: thumb(show[2])),
               const SizedBox(width: gap),
               Expanded(child: thumb(show[3])),

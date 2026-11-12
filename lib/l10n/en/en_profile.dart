@@ -30,6 +30,16 @@ const Map<String, String> enProfile = {
   '书评': 'Book Review',
   '摘抄': 'Excerpt',
   '书摘': 'Book Excerpt',
+  '暂无书摘': 'No excerpts yet',
+  '未找到匹配的内容': 'No matching content found',
+  '搜索内容、作品或评论人': 'Search content, work or reviewer',
+  '关联作品已删除': 'The linked work has been deleted',
+  '浏览全部影评，支持瀑布流与列表切换':
+      'Browse all movie reviews in masonry or list view',
+  '浏览全部书评，支持瀑布流与列表切换':
+      'Browse all book reviews in masonry or list view',
+  '浏览全部书摘，支持瀑布流与列表切换':
+      'Browse all book excerpts in masonry or list view',
   '游戏评价': 'Game Review',
   '影视角色': 'Movie Character',
   '书籍角色': 'Book Character',
@@ -99,6 +109,7 @@ const Map<String, String> enProfile = {
   '暂无阅读记录': 'No books yet',
   '暂无笔记记录': 'No notes yet',
   '暂无想看记录': 'Nothing on your watchlist',
+  '搜索想看的影视、书籍或游戏': 'Search movies, books or games on your watchlist',
   '暂无更新日志': 'No changelog available',
   '暂无内容': 'No content',
   '暂无标签': 'No tags',
@@ -225,6 +236,8 @@ const Map<String, String> enProfile = {
       'Days with the app and data overview',
   '侧边栏 · 快捷功能': 'Sidebar · Quick Features',
   '随机发现内容': 'Discover content at random',
+  '查看想看/想读/想玩的记录':
+      'View want-to-watch/read/play records',
   '查看已看/已读/已通关记录':
       'View watched/read/completed records',
   '创建和管理自定义片单': 'Create and manage custom playlists',
@@ -480,8 +493,9 @@ const Map<String, String> enProfile = {
   '评论日期': 'Review Date',
   '仅导出{entity}': 'Export {entity} only',
   '是否连同{reviewLabel}一起导出？': 'Include {reviewLabel} in the export?',
-  '选择"是"时，Excel 中会额外附带一个{reviewLabel}工作表':
-      'If you choose "Yes", the Excel file will include an extra {reviewLabel} sheet.',
+  '连同{reviewLabel}一起导出': 'Export together with {reviewLabel}',
+  '不附带{reviewLabel}工作表': 'Without the {reviewLabel} sheet',
+  '额外附带{reviewLabel}工作表': 'Includes an extra {reviewLabel} sheet',
 
   // ─── 应用图标选择页 ───────────────────────────────────
   '图标已切换，请返回桌面查看':

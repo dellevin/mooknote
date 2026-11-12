@@ -156,7 +156,8 @@ class _PersonListPageState extends State<PersonListPage> {
           final maxH = constraints.maxHeight;
           const barPadding = 4.0;
           final available = maxH - barPadding * 2;
-          final itemH = (available / _allLetters.length).clamp(12.0, 24.0);
+          // 触摸格严格均分整条高度，保证触点换算与视觉位置一致；字体单独限幅
+          final itemH = available / _allLetters.length;
 
           String letterAtY(double y) {
             final localY = (y - barPadding).clamp(0.0, available);
@@ -188,7 +189,7 @@ class _PersonListPageState extends State<PersonListPage> {
                   onVerticalDragUpdate: (d) => handleAt(d.globalPosition),
                   onTapDown: (d) => handleAt(d.globalPosition),
                   child: Container(
-                    width: itemH + 12,
+                    width: 22,
                     color: Colors.transparent,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -197,12 +198,13 @@ class _PersonListPageState extends State<PersonListPage> {
                         for (final letter in _allLetters)
                           SizedBox(
                             height: itemH,
-                            width: itemH + 12,
+                            width: 22,
                             child: AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 150),
                               curve: Curves.easeOut,
                               style: TextStyle(
-                                fontSize: activeLetter == letter ? itemH * 0.95 : itemH * 0.7,
+                                fontSize: (activeLetter == letter ? itemH * 0.95 : itemH * 0.7)
+                                    .clamp(8.0, 15.0),
                                 fontWeight: activeLetter == letter ? FontWeight.w800 : FontWeight.w500,
                                 color: present.contains(letter)
                                     ? (activeLetter == letter ? colors.primary : colors.onSurface.withValues(alpha: 0.7))
@@ -284,13 +286,13 @@ class _PersonListPageState extends State<PersonListPage> {
                           final item = _flatItems[i];
                           if (item.isHeader) {
                             return Container(
-                              height: 32,
+                              height: 26,
                               alignment: Alignment.centerLeft,
-                              padding: const EdgeInsets.only(top: 10, bottom: 4),
+                              padding: const EdgeInsets.only(top: 8, bottom: 2),
                               child: Text(
                                 item.letter!,
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: colors.onSurface.withValues(alpha: 0.4),
                                 ),
@@ -433,61 +435,65 @@ class _PersonListPageState extends State<PersonListPage> {
   }
 
   Widget _buildPersonItem(Person person, ColorScheme colors) {
-    return InkWell(
-      onTap: () => _navigateToDetail(person),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            PersonAvatar(
-              photoPath: person.photoPath,
-              name: person.name,
-              size: 48,
-              fontSize: 20,
-            ),
-            const SizedBox(width: 12),
-            // 信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    person.name,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: colors.onSurface),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+    // 职业与别名合并为单行副标题，超出省略，保持与出版社列表一致的紧凑行高
+    final subtitleParts = <String>[
+      if (person.occupation.isNotEmpty) person.occupation.map((o) => o.tr).join(' / '),
+      if (person.alternateNames.isNotEmpty)
+        '又名：{names}'.trf({'names': person.alternateNames.join('、')}),
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => _navigateToDetail(person),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                PersonAvatar(
+                  photoPath: person.photoPath,
+                  name: person.name,
+                  size: 34,
+                  fontSize: 15,
+                ),
+                const SizedBox(width: 10),
+                // 信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        person.name,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (subtitleParts.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          subtitleParts.join(' · '),
+                          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
-                  if (person.occupation.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      person.occupation.map((o) => o.tr).join(' / '),
-                      style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  if (person.alternateNames.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '又名：{names}'.trf({'names': person.alternateNames.join('、')}),
-                      style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
+                ),
+                Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
+              ],
             ),
-            Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.2)),
-          ],
+          ),
         ),
-      ),
+        Divider(
+          height: 0.5,
+          thickness: 0.5,
+          indent: 44,
+          endIndent: 0,
+          color: colors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ],
     );
   }
 

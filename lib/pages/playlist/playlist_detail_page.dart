@@ -33,6 +33,15 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
   // 拖拽排序期间冻结可见条目，避免 provider 通知导致 itemCount 变化触发框架崩溃
   List<_ResolvedItem>? _frozenVisible;
 
+  // 整页滚动控制器：滚过海报墙后把透明 AppBar 切换为实色，避免白图标落在浅背景上
+  final ScrollController _scrollCtrl = ScrollController();
+  bool _collapsed = false;
+  static const double _collapseOffset = 200;
+
+  bool _isSearching = false;
+  String _keyword = '';
+  final TextEditingController _searchCtrl = TextEditingController();
+
   void _closeAllSlides({String? exceptId}) {
     final keys = _slideOffsets.keys
         .where((id) => id != exceptId && (_slideOffsets[id] ?? 0) != 0)
@@ -54,13 +63,29 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
       vsync: this,
       duration: const Duration(seconds: 80),
     );
+    _scrollCtrl.addListener(() {
+      final collapsed = _scrollCtrl.hasClients && _scrollCtrl.offset > _collapseOffset;
+      if (collapsed != _collapsed) setState(() => _collapsed = collapsed);
+    });
     _loadItems();
   }
 
   @override
   void dispose() {
     _wallCtrl.dispose();
+    _scrollCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
+  }
+
+  List<_ResolvedItem> _searchItems(List<_ResolvedItem> items) {
+    if (_keyword.isEmpty) return items;
+    final kw = _keyword.toLowerCase();
+    return items
+        .where((r) =>
+            r.title.toLowerCase().contains(kw) ||
+            r.subtitle.toLowerCase().contains(kw))
+        .toList();
   }
 
   Future<void> _loadItems() async {
@@ -425,6 +450,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
     );
 
     final showWall = !_loading && _items.isNotEmpty;
+    final colors = Theme.of(context).colorScheme;
     final addAction = IconButton(
       icon: const Icon(Icons.add, size: 24),
       onPressed: () async {
@@ -447,20 +473,87 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
         UserPrefs().setPlaylistDetailLayoutStyle(next);
       },
     );
-    final actions = [layoutToggle, addAction];
+    // 搜索按钮向左展开为药丸输入框（与已阅页同款交互）
+    final searchWidth = (MediaQuery.of(context).size.width - 132).clamp(180.0, 320.0);
+    final searchAction = AnimatedSize(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.centerRight,
+      child: _isSearching
+          ? Container(
+              width: searchWidth,
+              height: 40,
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search, size: 19, color: colors.onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      cursorColor: colors.primary,
+                      style: TextStyle(color: colors.onSurface, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: '搜索片名、导演或作者'.tr,
+                        hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                      ),
+                      onChanged: (v) => setState(() => _keyword = v),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _searchCtrl.clear();
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      setState(() {
+                        _keyword = '';
+                        _isSearching = false;
+                      });
+                    },
+                    child: Icon(Icons.close, size: 17, color: colors.onSurface.withValues(alpha: 0.45)),
+                  ),
+                ],
+              ),
+            )
+          : IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: '搜索'.tr,
+              onPressed: () => setState(() => _isSearching = true),
+            ),
+    );
+    // 搜索展开时隐藏布局切换与添加按钮，避免窄屏溢出
+    final actions = _isSearching
+        ? <Widget>[searchAction]
+        : <Widget>[searchAction, layoutToggle, addAction];
+
+    // 海报墙未滚出视野时用透明 AppBar + 白色图标；滚出后或搜索中切回实色
+    final transparentBar = showWall && !_collapsed && !_isSearching;
 
     return Scaffold(
       extendBodyBehindAppBar: showWall,
-      appBar: showWall
-          ? AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              foregroundColor: Colors.white,
-              iconTheme: const IconThemeData(color: Colors.white),
-              actions: actions,
-            )
-          : AppBar(title: Text(playlist.name), actions: actions),
+      appBar: AppBar(
+        backgroundColor: transparentBar ? Colors.transparent : null,
+        elevation: transparentBar ? 0 : null,
+        scrolledUnderElevation: 0,
+        foregroundColor: transparentBar ? Colors.white : null,
+        iconTheme: transparentBar ? const IconThemeData(color: Colors.white) : null,
+        title: transparentBar ? null : Text(playlist.name),
+        actions: actions,
+      ),
       body: _loading
           ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
           : _items.isEmpty
@@ -498,38 +591,47 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
         .whereType<_ResolvedItem>()
         .toList();
 
-    final visible = _statusFilter == 'all'
+    final statusVisible = _statusFilter == 'all'
         ? resolved
         : resolved.where((r) => _statusFilter == 'none' ? r.status.isEmpty : r.status == _statusFilter).toList();
+    final visible = _searchItems(statusVisible);
 
-    // 拖拽中使用冻结快照，保证 ReorderableListView 的 itemCount 不变
+    // 拖拽中使用冻结快照，保证 SliverReorderableList 的 itemCount 不变
     final dragItems = _frozenVisible ?? visible;
 
     final colors = Theme.of(context).colorScheme;
 
-    return Column(
-      children: [
-        // 固定的海报墙 Header，不随列表滚动
-        _buildHeader(context, playlist, resolved),
-        if (resolved.isNotEmpty && playlist.type != 'all') _buildFilterChips(context, playlist, resolved),
-        Expanded(
-          child: dragItems.isEmpty
-              ? Center(
-                  child: Text('该分类下暂无条目'.tr,
-                      style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))),
-                )
-              : _layoutStyle == 1
-                  ? _buildGridView(context, visible, provider)
-                  : GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: _closeAllSlides,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (_) {
-                _closeAllSlides();
-                return false;
-              },
-              child: ReorderableListView.builder(
-                  padding: const EdgeInsets.only(top: 12, bottom: 24),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _closeAllSlides,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (_) {
+          _closeAllSlides();
+          return false;
+        },
+        child: CustomScrollView(
+          controller: _scrollCtrl,
+          slivers: [
+            // 海报墙 Header，随整页一起滚走
+            SliverToBoxAdapter(child: _buildHeader(context, playlist, resolved)),
+            if (resolved.isNotEmpty && playlist.type != 'all')
+              SliverToBoxAdapter(child: _buildFilterChips(context, playlist, resolved)),
+            if (dragItems.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    _keyword.isNotEmpty ? '未找到匹配的内容'.tr : '该分类下暂无条目'.tr,
+                    style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
+                  ),
+                ),
+              )
+            else if (_layoutStyle == 1)
+              _buildGridSliver(context, visible, provider)
+            else
+              SliverPadding(
+                padding: const EdgeInsets.only(top: 12, bottom: 24),
+                sliver: SliverReorderableList(
                   itemCount: dragItems.length,
                   onReorderStart: (_) => _frozenVisible = List.of(visible),
                   onReorderEnd: (_) {
@@ -574,28 +676,32 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
                     return _buildItem(context, dragItems[index], index, provider);
                   },
                 ),
-            ),
-          ),
+              ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  /// 海报墙视图：封面卡片网格（点击进详情，长按从片单移除）
-  Widget _buildGridView(BuildContext context, List<_ResolvedItem> visible, AppProvider provider) {
-    return LayoutBuilder(
+  /// 海报墙视图 Sliver：封面卡片网格（点击进详情，长按从片单移除）
+  Widget _buildGridSliver(BuildContext context, List<_ResolvedItem> visible, AppProvider provider) {
+    return SliverLayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
-        return GridView.builder(
+        final crossAxisCount = responsiveCrossAxisCount(constraints.crossAxisExtent, minItemWidth: 110);
+        return SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.55,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 16,
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: 0.55,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _buildGridCard(context, visible[index], provider),
+              childCount: visible.length,
+            ),
           ),
-          itemCount: visible.length,
-          itemBuilder: (context, index) => _buildGridCard(context, visible[index], provider),
         );
       },
     );

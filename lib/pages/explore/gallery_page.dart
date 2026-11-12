@@ -108,47 +108,80 @@ class _GalleryPageState extends State<GalleryPage> {
     ).then((_) => _loadImages()); // 预览页可能重命名图片，返回后刷新
   }
 
+  /// 搜索按钮向左展开为药丸输入框（与影评浏览页同款交互）
+  Widget _buildSearchAction(ColorScheme colors) {
+    final searchWidth = (MediaQuery.of(context).size.width - 132).clamp(180.0, 320.0);
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.centerRight,
+      child: _searching
+          ? Container(
+              width: searchWidth,
+              height: 40,
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search, size: 19, color: colors.onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      cursorColor: colors.primary,
+                      style: TextStyle(color: colors.onSurface, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: '搜索图片标题...'.tr,
+                        hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                      ),
+                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      setState(() {
+                        _searchQuery = '';
+                        _searching = false;
+                      });
+                    },
+                    child: Icon(Icons.close, size: 17, color: colors.onSurface.withValues(alpha: 0.45)),
+                  ),
+                ],
+              ),
+            )
+          : IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: '搜索'.tr,
+              onPressed: () => setState(() => _searching = true),
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: _searching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: TextStyle(fontSize: 15, color: colors.onSurface),
-                cursorColor: colors.primary,
-                decoration: InputDecoration(
-                  hintText: '搜索图片标题...'.tr,
-                  hintStyle: TextStyle(
-                      fontSize: 14,
-                      color: colors.onSurface.withValues(alpha: 0.3)),
-                  isDense: true,
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                ),
-                onChanged: (v) => setState(() => _searchQuery = v.trim()),
-              )
-            : Text('图库'.tr),
+        title: Text('图库'.tr),
         actions: [
-          if (!_loading && _allItems.isNotEmpty)
-            IconButton(
-              icon: Icon(_searching ? Icons.close : Icons.search, size: 20),
-              tooltip: _searching ? '取消'.tr : '搜索'.tr,
-              onPressed: () => setState(() {
-                if (_searching) {
-                  _searching = false;
-                  _searchQuery = '';
-                  _searchController.clear();
-                } else {
-                  _searching = true;
-                }
-              }),
-            ),
+          if (!_loading && _allItems.isNotEmpty) _buildSearchAction(colors),
         ],
       ),
       body: _loading
@@ -217,14 +250,14 @@ class _GalleryPageState extends State<GalleryPage> {
                                   ),
                                 ),
                               ),
-                            // 瀑布流网格
+                            // 瀑布流网格（小红书式宽松留白）
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
+                                  horizontal: 12, vertical: 8),
                               sliver: SliverMasonryGrid.count(
                                 crossAxisCount: 2,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 18,
+                                crossAxisSpacing: 14,
                                 childCount: _filteredItems.length,
                                 itemBuilder: (context, index) {
                                   final item = _filteredItems[index];
@@ -434,7 +467,7 @@ class _GalleryImageCardState extends State<_GalleryImageCard> {
     return AspectRatio(
       aspectRatio: ratio,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: FadeInLocalImage(
           path: widget.path,
           fit: BoxFit.cover,

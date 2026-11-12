@@ -38,7 +38,7 @@ class ReviewImageThumb extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.photo_library_outlined,
+                  const Icon(Icons.photo_library,
                       size: 10, color: Colors.white),
                   const SizedBox(width: 3),
                   Text('${images.length}',

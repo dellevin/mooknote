@@ -29,6 +29,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
   Map<String, int> _usageCounts = {};
   String? _newlyAddedTagId;
   String _searchQuery = '';
+  bool _isSearching = false;
   final _searchController = TextEditingController();
   bool _showTypePicker = false;
   final Set<String> _collapsedIds = {}; // 已折叠的标签ID（默认展开）
@@ -245,15 +246,18 @@ class _TagManagementPageState extends State<TagManagementPage> {
               onPressed: _toggleSelectAll,
             )
           else ...[
-            IconButton(
-              icon: const Icon(Icons.checklist, size: 20),
-              tooltip: '多选'.tr,
-              onPressed: () => setState(() => _selectionMode = true),
-            ),
-            _isSyncing
-                ? Padding(padding: const EdgeInsets.all(16),
-                    child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
-                : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签'.tr, onPressed: _syncTags),
+            _buildSearchAction(colors),
+            if (!_isSearching) ...[
+              IconButton(
+                icon: const Icon(Icons.checklist, size: 20),
+                tooltip: '多选'.tr,
+                onPressed: () => setState(() => _selectionMode = true),
+              ),
+              _isSyncing
+                  ? Padding(padding: const EdgeInsets.all(16),
+                      child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)))
+                  : IconButton(icon: const Icon(Icons.sync, size: 20), tooltip: '从数据中同步标签'.tr, onPressed: _syncTags),
+            ],
           ],
         ],
       ),
@@ -347,14 +351,9 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final isSearching = _searchQuery.isNotEmpty;
 
     if (tags.isEmpty && !isSearching) {
-      return SingleChildScrollView(
+      return KeyedSubtree(
         key: ValueKey('empty_$type'),
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _buildSearchBar(colors),
-          const SizedBox(height: 40),
-          _buildEmptyState(type),
-        ]),
+        child: _buildEmptyState(type),
       );
     }
 
@@ -364,10 +363,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
         ..sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
       return SingleChildScrollView(
         key: ValueKey('search_$type'),
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _buildSearchBar(colors),
-          const SizedBox(height: 12),
           if (filtered.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
@@ -394,12 +391,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
     if (roots.isEmpty) {
       return SingleChildScrollView(
         key: ValueKey(type),
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSearchBar(colors),
-            const SizedBox(height: 8),
             _buildEmptyGroup('暂无标签'.tr, colors),
           ],
         ),
@@ -410,16 +405,10 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final items = _flattenTree(roots, childrenByParent);
     return ListView.builder(
       key: ValueKey(type),
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
-      itemCount: items.length + 1,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 80),
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return Column(children: [
-            _buildSearchBar(colors),
-            const SizedBox(height: 8),
-          ]);
-        }
-        final item = items[index - 1];
+        final item = items[index];
         return item.isGap
             ? _buildDropGap(item.siblings!, item.parentId!, item.insertIndex, item.depth)
             : _buildTagRow(item.tag!, item.children!, item.depth);
@@ -472,7 +461,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         final active = candidates.isNotEmpty;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          height: active ? 16 : 6,
+          height: active ? 12 : 4,
           margin: EdgeInsets.only(left: depth * 20.0 + 28),
           child: Center(
             child: Container(
@@ -543,7 +532,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         // 展开/收起箭头
         SizedBox(
           width: 28,
-          height: 44,
+          height: 34,
           child: Center(
             child: hasChildren
                 ? GestureDetector(
@@ -572,7 +561,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
             child: Opacity(
               opacity: isHidden ? 0.4 : 1.0,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 7),
                 child: isNew
                     ? _NewTagHighlight(child: _rowContent(name, count, colors, isHidden: isHidden))
                     : _rowContent(name, count, colors, isHidden: isHidden),
@@ -703,51 +692,68 @@ class _TagManagementPageState extends State<TagManagementPage> {
     );
   }
 
-  Widget _buildSearchBar(ColorScheme colors) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 12),
-          Icon(Icons.search_rounded, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(fontSize: 14, color: colors.onSurface),
-              cursorColor: colors.primary,
-              decoration: InputDecoration(
-                hintText: '搜索标签...'.tr,
-                hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
+  /// 搜索按钮向左展开为药丸输入框（与影评浏览页同款交互）
+  Widget _buildSearchAction(ColorScheme colors) {
+    final searchWidth = (MediaQuery.of(context).size.width - 132).clamp(180.0, 320.0);
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.centerRight,
+      child: _isSearching
+          ? Container(
+              width: searchWidth,
+              height: 40,
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(20),
               ),
-              onChanged: (v) => setState(() => _searchQuery = v.trim()),
-            ),
-          ),
-          if (_searchQuery.isNotEmpty)
-            GestureDetector(
-              onTap: () { _searchController.clear(); setState(() => _searchQuery = ''); FocusManager.instance.primaryFocus?.unfocus(); },
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: colors.surfaceContainerHighest, shape: BoxShape.circle),
-                child: Icon(Icons.close_rounded, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              child: Row(
+                children: [
+                  Icon(Icons.search, size: 19, color: colors.onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      cursorColor: colors.primary,
+                      style: TextStyle(color: colors.onSurface, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: '搜索标签...'.tr,
+                        hintStyle: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                      ),
+                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      setState(() {
+                        _searchQuery = '';
+                        _isSearching = false;
+                      });
+                    },
+                    child: Icon(Icons.close, size: 17, color: colors.onSurface.withValues(alpha: 0.45)),
+                  ),
+                ],
               ),
             )
-          else
-            const SizedBox(width: 12),
-        ],
-      ),
+          : IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: '搜索'.tr,
+              onPressed: () => setState(() => _isSearching = true),
+            ),
     );
   }
 

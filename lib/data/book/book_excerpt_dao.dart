@@ -28,6 +28,17 @@ class BookExcerptDao {
     return maps.map((map) => BookExcerpt.fromJson(map)).toList();
   });
 
+  /// 获取全部未删除摘抄（书摘浏览页用）
+  Future<List<BookExcerpt>> getAllExcerpts() => _wrap('getAllExcerpts', () async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'book_excerpts',
+      where: 'is_deleted = 0',
+      orderBy: 'created_at DESC',
+    );
+    return maps.map((map) => BookExcerpt.fromJson(map)).toList();
+  });
+
   /// 根据ID获取摘抄
   Future<BookExcerpt?> getExcerptById(String id) => _wrap('getExcerptById', () async {
     final db = await _dbHelper.database;

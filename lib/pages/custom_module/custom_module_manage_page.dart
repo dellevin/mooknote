@@ -4,6 +4,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../data/custom_module/custom_module_item_dao.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/custom_module_icon.dart';
 import '../../l10n/app_strings.dart';
@@ -20,10 +21,12 @@ class CustomModuleManagePage extends StatefulWidget {
 class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
   final CustomModuleItemDao _itemDao = CustomModuleItemDao();
   final Map<String, int> _itemCounts = {};
+  late int _layoutStyle; // 0 列表，1 网格
 
   @override
   void initState() {
     super.initState();
+    _layoutStyle = UserPrefs().customModuleLayoutStyle;
     _loadItemCounts();
   }
 
@@ -45,21 +48,33 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
       appBar: AppBar(
         title: Text('自定义分类'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.view_module_outlined, size: 22),
+            tooltip: '切换方式'.tr,
+            onPressed: _showLayoutSheet,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           final modules = provider.customModules;
           if (modules.isEmpty) return _buildEmptyState(colors);
+          if (_layoutStyle == 1) return _buildGrid(context, modules, colors);
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             itemCount: modules.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, i) => _buildModuleCard(context, modules[i], colors),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showModuleDialog(context),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 2,
         icon: const Icon(Icons.add, size: 20),
         label: Text('新建模块'.tr),
       ),
@@ -83,50 +98,268 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
 
   Widget _buildModuleCard(BuildContext context, CustomModule module, ColorScheme colors) {
     final count = _itemCounts[module.id] ?? 0;
-    return Container(
-      decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(14)),
+    return Material(
+      color: colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         leading: Container(
-          width: 42, height: 42,
-          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+          width: 38, height: 38,
+          decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           alignment: Alignment.center,
-          child: buildCustomModuleIcon(module.icon, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+          child: buildCustomModuleIcon(module.icon, size: 18, color: colors.primary),
         ),
-        title: Text(module.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text(module.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
         subtitle: Text(
           '{n} 个条目'.trf({'n': count}) + (module.isEnabled ? '' : ' · ${'已停用'.tr}'),
-          style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.45)),
         ),
-        trailing: PopupMenuButton<String>(
+        trailing: IconButton(
           icon: Icon(Icons.more_vert, size: 20, color: colors.onSurface.withValues(alpha: 0.5)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          onSelected: (v) {
-            switch (v) {
-              case 'design':
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => CustomModuleDesignListPage(moduleId: module.id),
-                ));
-                break;
-              case 'rename':
-                _showModuleDialog(context, existing: module);
-                break;
-              case 'delete':
-                _confirmDelete(context, module);
-                break;
-            }
-          },
-          itemBuilder: (ctx) => [
-            PopupMenuItem(value: 'design', child: Text('设计表单'.tr)),
-            PopupMenuItem(value: 'rename', child: Text('编辑'.tr)),
-            PopupMenuItem(value: 'delete', child: Text('删除'.tr, style: TextStyle(color: colors.error))),
-          ],
+          visualDensity: VisualDensity.compact,
+          tooltip: '更多操作'.tr,
+          onPressed: () => _showModuleActions(context, module),
         ),
         onTap: () {
           Navigator.push(context, MaterialPageRoute(
             builder: (_) => CustomModuleDesignListPage(moduleId: module.id),
           ));
         },
+      ),
+    );
+  }
+
+  /// 网格视图：一行三个，长按或点击进入设计页，长按弹出操作菜单
+  Widget _buildGrid(BuildContext context, List<CustomModule> modules, ColorScheme colors) {
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.82,
+      ),
+      itemCount: modules.length,
+      itemBuilder: (context, i) => _buildGridCell(context, modules[i], colors),
+    );
+  }
+
+  Widget _buildGridCell(BuildContext context, CustomModule module, ColorScheme colors) {
+    final count = _itemCounts[module.id] ?? 0;
+    return Opacity(
+      opacity: module.isEnabled ? 1 : 0.4,
+      child: Material(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => CustomModuleDesignListPage(moduleId: module.id),
+          )),
+          onLongPress: () => _showModuleActions(context, module),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colors.outlineVariant, width: 0.6),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  alignment: Alignment.center,
+                  child: buildCustomModuleIcon(module.icon, size: 24, color: colors.primary),
+                ),
+                const SizedBox(height: 10),
+                Text(module.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('{n} 个条目'.trf({'n': count}),
+                      style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.5))),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 布局切换底部弹窗：列表 / 网格
+  Future<void> _showLayoutSheet() async {
+    final colors = Theme.of(context).colorScheme;
+    final options = <(int, IconData, String)>[
+      (0, Icons.view_agenda_outlined, '列表'.tr),
+      (1, Icons.grid_view_outlined, '网格'.tr),
+    ];
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('切换方式'.tr,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colors.onSurface)),
+              ),
+            ),
+            for (final opt in options)
+              InkWell(
+                onTap: () async {
+                  final navigator = Navigator.of(sheetContext);
+                  await UserPrefs().setCustomModuleLayoutStyle(opt.$1);
+                  if (!mounted) return;
+                  setState(() => _layoutStyle = opt.$1);
+                  navigator.pop();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  child: Row(
+                    children: [
+                      Icon(opt.$2, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(opt.$3, style: TextStyle(fontSize: 15, color: colors.onSurface)),
+                      ),
+                      if (_layoutStyle == opt.$1)
+                        Icon(Icons.check_circle, size: 20, color: colors.primary),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 模块操作底部弹窗：设计表单 / 编辑 / 启用·停用 / 删除
+  void _showModuleActions(BuildContext context, CustomModule module) {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) {
+        // 状态始终以 provider 中的实时数据为准，避免本地缓存导致开关显示错误
+        final current =
+            sheetContext.watch<AppProvider>().getCustomModuleById(module.id) ?? module;
+        final enabled = current.isEnabled;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(module.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colors.onSurface)),
+                    ),
+                    if (!enabled)
+                      Text('已停用'.tr,
+                          style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+                  ],
+                ),
+              ),
+              _buildActionRow(
+                icon: Icons.dashboard_customize_outlined,
+                label: '设计表单'.tr,
+                colors: colors,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => CustomModuleDesignListPage(moduleId: module.id),
+                  ));
+                },
+              ),
+              _buildActionRow(
+                icon: Icons.edit_note,
+                label: '编辑'.tr,
+                colors: colors,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showModuleDialog(context, existing: module);
+                },
+              ),
+              _buildActionRow(
+                icon: Icons.power_settings_new,
+                label: '停用'.tr,
+                colors: colors,
+                trailing: Switch(
+                  // 打开=停用，关闭=启用（正常）
+                  value: !enabled,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onChanged: (v) =>
+                      context.read<AppProvider>().setCustomModuleEnabled(module.id, !v),
+                ),
+                onTap: () =>
+                    context.read<AppProvider>().setCustomModuleEnabled(module.id, !enabled),
+              ),
+              _buildActionRow(
+                icon: Icons.delete_forever,
+                label: '删除'.tr,
+                colors: colors,
+                danger: true,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _confirmDelete(context, module);
+                },
+              ),
+              const SizedBox(height: 6),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActionRow({
+    required IconData icon,
+    required String label,
+    required ColorScheme colors,
+    required VoidCallback onTap,
+    bool danger = false,
+    Widget? trailing,
+  }) {
+    final color = danger ? colors.error : colors.onSurface.withValues(alpha: 0.75);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 19, color: color),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: color))),
+            if (trailing != null) trailing,
+          ],
+        ),
       ),
     );
   }

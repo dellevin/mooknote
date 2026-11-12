@@ -15,10 +15,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/explore/encounter_page.dart';
 import '../pages/explore/stroll_page.dart';
 import '../pages/explore/reviewed_page.dart';
+import '../pages/profile/watchlist_page.dart';
 import '../pages/explore/gallery_page.dart';
 import '../pages/playlist/playlist_list_page.dart';
 import '../pages/explore/media_calendar_page.dart';
 import '../pages/people/person_list_page.dart';
+import '../pages/publisher/publisher_list_page.dart';
+import '../pages/reviews/review_browse_page.dart';
 import '../pages/settings/tag_management_page.dart';
 import '../pages/custom_module/custom_module_manage_page.dart';
 import '../pages/movies/movie_detail_page.dart';
@@ -159,10 +162,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final showQuickActions = userPrefs.showSidebarQuickActions;
     final showTools = userPrefs.showSidebarEncounter ||
         userPrefs.showSidebarStroll ||
+        userPrefs.showSidebarWatchlist ||
         userPrefs.showSidebarReviewed ||
         userPrefs.showSidebarPlaylist ||
         userPrefs.showSidebarCalendar ||
         userPrefs.showSidebarPerson ||
+        userPrefs.showSidebarPublisher ||
+        userPrefs.showSidebarMovieReview ||
+        userPrefs.showSidebarBookReview ||
+        userPrefs.showSidebarExcerpt ||
         userPrefs.showSidebarTags;
 
     final content = SafeArea(
@@ -667,16 +675,34 @@ class _CustomDrawerState extends State<CustomDrawer> {
     final exploreItems = <(Widget, String, Widget)>[];
     if (userPrefs.showSidebarEncounter) exploreItems.add((SvgPicture.string('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M518.217143 432.64V73.142857A73.142857 73.142857 0 0 1 603.428571 1.097143 512 512 0 0 1 1022.902857 420.571429 73.142857 73.142857 0 0 1 950.857143 505.782857H591.36a73.142857 73.142857 0 0 1-73.142857-73.142857z" fill="currentColor"/><path d="M493.714286 566.857143h340.297143a73.142857 73.142857 0 0 1 73.142857 85.577143A457.142857 457.142857 0 1 1 371.565714 117.76a73.142857 73.142857 0 0 1 85.577143 73.142857V530.285714a36.571429 36.571429 0 0 0 36.571429 36.571429z" fill="currentColor"/></svg>', colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn)), '统计', const EncounterPage()));
     if (userPrefs.showSidebarStroll) exploreItems.add((SvgPicture.string('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M261.156045 240.64C117.796045 240.64 0.036045 358.4 0.036045 505.856a219.648 219.648 0 0 0 16.8448 88.4224C37.924045 657.408 113.700045 771.072 244.208845 922.624l4.1984 4.1984c8.3968 8.448 21.0432 8.448 29.44-4.1984 130.5088-155.7504 202.0864-265.216 227.328-328.3456 8.448-29.4912 16.8448-58.9312 16.8448-88.4224 0-147.3024-117.76-265.216-261.12-265.216z m0 349.44A88.9344 88.9344 0 0 1 172.631245 501.76 86.272 86.272 0 0 1 261.156045 413.3888a88.4224 88.4224 0 0 1 0 176.7936zM724.106445 47.104c-96.8192 0-172.5952 80.0256-172.5952 176.8448a249.1392 249.1392 0 0 0 8.3968 58.9312c16.8448 42.0864 67.3792 117.76 151.552 223.0784a18.944 18.944 0 0 0 21.0432 0c88.4224-105.216 138.9568-176.7936 151.552-223.0784 8.448-16.8448 8.448-37.888 8.448-58.9312A168.2944 168.2944 0 0 0 724.106445 47.104z m0 235.776a57.5488 57.5488 0 0 1-58.9312-58.9312 58.9312 58.9312 0 0 1 117.76 0 60.2624 60.2624 0 0 1-58.9312 58.9312z m-8.448 698.7776c-155.7504 0-311.5008-54.7328-324.1472-58.9312a19.968 19.968 0 0 1 12.6464-37.888c4.1984 0 416.768 143.36 555.6736-37.888 12.6464-16.8448 21.0432-42.0864 16.8448-63.1296s-12.6464-37.888-29.4912-50.5344c-33.6384-25.2416-79.9744-42.0864-143.36-50.4832-46.08-8.448-84.1728-37.888-96.8192-75.776a93.1328 93.1328 0 0 1-4.1984-33.6896 21.0432 21.0432 0 0 1 42.0864 0 38.0928 38.0928 0 0 0 4.1984 21.0432 79.36 79.36 0 0 0 63.3856 50.7392c67.3792 12.5952 122.112 29.44 160 58.9312 25.2416 16.8448 42.0864 46.08 50.4832 79.9744a120.4224 120.4224 0 0 1-25.2416 92.6208c-67.328 79.9744-172.5952 105.216-282.0608 105.216z m0 0" fill="currentColor"/></svg>', colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn)), '漫步', const StrollPage()));
+    if (userPrefs.showSidebarWatchlist) exploreItems.add((_assetSvgIcon('assets/svg/xiang_kan.svg', 20, colors.onSurface), '想看', const WatchlistPage()));
     if (userPrefs.showSidebarReviewed) exploreItems.add((_assetSvgIcon('assets/svg/yi_yue.svg', 20, colors.onSurface), '已阅', const ReviewedPage()));
+    if (userPrefs.showSidebarMovieReview) exploreItems.add((_assetSvgIcon('assets/svg/ying_ping.svg', 20, colors.onSurface), '影评', const ReviewBrowsePage(kind: ReviewBrowseKind.movieReview)));
+    if (userPrefs.showSidebarBookReview) exploreItems.add((_assetSvgIcon('assets/svg/shu_ping.svg', 20, colors.onSurface), '书评', const ReviewBrowsePage(kind: ReviewBrowseKind.bookReview)));
+    if (userPrefs.showSidebarExcerpt) exploreItems.add((_assetSvgIcon('assets/svg/shu_zhai.svg', 20, colors.onSurface), '书摘', const ReviewBrowsePage(kind: ReviewBrowseKind.bookExcerpt)));
     if (userPrefs.showSidebarPlaylist) exploreItems.add((_assetSvgIcon('assets/svg/shu_ying_pian_dan.svg', 20, colors.onSurface), '书影片单', const PlaylistListPage()));
     if (userPrefs.showSidebarCalendar) exploreItems.add((_assetSvgIcon('assets/svg/ri_li.svg', 20, colors.onSurface), '书影日历', const MediaCalendarPage()));
 
     final toolItems = <(Widget, String, Widget)>[];
     if (userPrefs.showSidebarTags) toolItems.add((_assetSvgIcon('assets/svg/biao_qian.svg', 20, colors.onSurface), '标签', const TagManagementPage()));
     if (userPrefs.showSidebarPerson) toolItems.add((_assetSvgIcon('assets/svg/ren_wu.svg', 20, colors.onSurface), '人物', const PersonListPage()));
-    if (userPrefs.showSidebarGallery) toolItems.add((SvgPicture.string('<svg viewBox="0 0 1064 1024" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M71.68 348.16A296.96 296.96 0 0 1 368.64 51.2h327.68a296.96 296.96 0 0 1 296.96 296.96v327.68A296.96 296.96 0 0 1 696.32 972.8H368.64a296.96 296.96 0 0 1-296.96-296.96v-327.68zM368.64 153.6A194.56 194.56 0 0 0 174.08 348.16v327.68A194.56 194.56 0 0 0 368.64 870.4h327.68a194.56 194.56 0 0 0 194.56-194.56v-327.68A194.56 194.56 0 0 0 696.32 153.6H368.64z" fill="currentColor"/><path d="M947.69152 606.08512a317.80864 317.80864 0 0 0-264.02816 209.7152l-96.54272-34.16064a420.20864 420.20864 0 0 1 349.34784-277.2992l11.22304 101.74464z" fill="currentColor"/><path d="M798.72 327.68a81.92 81.92 0 1 1-163.84 0 81.92 81.92 0 0 1 163.84 0z" fill="currentColor"/><path d="M163.84 542.72c-12.4928 0-24.86272 0.49152-37.0688 1.39264l-7.7824-102.11328c14.82752-1.10592 29.77792-1.67936 44.8512-1.67936 284.01664 0 520.6016 202.79296 572.90752 471.49056l-100.51584 19.57888C593.1008 709.87776 397.9264 542.72 163.84 542.72z" fill="currentColor"/></svg>', colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn)), '图库', const GalleryPage()));
+    if (userPrefs.showSidebarGallery) toolItems.add((_assetSvgIcon('assets/svg/tu_ku.svg', 20, colors.onSurface), '图库', const GalleryPage()));
+    if (userPrefs.showSidebarPublisher) toolItems.add((_assetSvgIcon('assets/svg/chu_ban_she.svg', 20, colors.onSurface), '出版社', const PublisherListPage()));
 
-    if (userPrefs.showSidebarCustomModule) toolItems.add((_assetSvgIcon('assets/svg/zi_ding_yi_fen_lei.svg', 20, colors.onSurface), '自定义分类', const CustomModuleManagePage()));
+    if (userPrefs.showSidebarCustomModule) {
+      toolItems.add((
+        SizedBox(
+          width: 20,
+          height: 20,
+          child: Transform.scale(
+            scale: 1.25,
+            child: _assetSvgIcon('assets/svg/zi_ding_yi_fen_lei.svg', 20, colors.onSurface),
+          ),
+        ),
+        '自定义分类',
+        const CustomModuleManagePage(),
+      ));
+    }
 
     if (exploreItems.isEmpty && toolItems.isEmpty) return const SizedBox.shrink();
 

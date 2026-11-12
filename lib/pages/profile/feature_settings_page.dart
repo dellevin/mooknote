@@ -30,10 +30,15 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _showRecent = true;
   bool _showEncounter = true;
   bool _showStroll = true;
+  bool _showWatchlist = true;
   bool _showReviewed = true;
   bool _showPlaylist = true;
   bool _showCalendar = true;
   bool _showPerson = true;
+  bool _showPublisher = true;
+  bool _showMovieReview = true;
+  bool _showBookReview = true;
+  bool _showExcerpt = true;
   bool _showGallery = true;
   bool _showTags = true;
   bool _showCustomModule = true;
@@ -66,10 +71,15 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       _showRecent = _userPrefs.showSidebarRecent;
       _showEncounter = _userPrefs.showSidebarEncounter;
       _showStroll = _userPrefs.showSidebarStroll;
+      _showWatchlist = _userPrefs.showSidebarWatchlist;
       _showReviewed = _userPrefs.showSidebarReviewed;
       _showPlaylist = _userPrefs.showSidebarPlaylist;
       _showCalendar = _userPrefs.showSidebarCalendar;
       _showPerson = _userPrefs.showSidebarPerson;
+      _showPublisher = _userPrefs.showSidebarPublisher;
+      _showMovieReview = _userPrefs.showSidebarMovieReview;
+      _showBookReview = _userPrefs.showSidebarBookReview;
+      _showExcerpt = _userPrefs.showSidebarExcerpt;
       _showGallery = _userPrefs.showSidebarGallery;
       _showTags = _userPrefs.showSidebarTags;
       _showCustomModule = _userPrefs.showSidebarCustomModule;
@@ -313,6 +323,16 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               indent: 24,
               endIndent: 24,
               color: colors.outlineVariant),
+          _buildSwitchItem(Icons.bookmark_border, '想看'.tr, '查看想看/想读/想玩的记录'.tr, _showWatchlist,
+              (v) async {
+            await _userPrefs.setShowSidebarWatchlist(v);
+            setState(() => _showWatchlist = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
           _buildSwitchItem(Icons.done_all, '已阅'.tr, '查看已看/已读/已通关记录'.tr, _showReviewed,
               (v) async {
             await _userPrefs.setShowSidebarReviewed(v);
@@ -349,6 +369,50 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
               (v) async {
             await _userPrefs.setShowSidebarPerson(v);
             setState(() => _showPerson = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.local_library_outlined, '出版社'.tr, '管理书籍等媒体的出版社信息'.tr, _showPublisher,
+              (v) async {
+            await _userPrefs.setShowSidebarPublisher(v);
+            setState(() => _showPublisher = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.rate_review_outlined, '影评'.tr, '浏览全部影评，支持瀑布流与列表切换'.tr, _showMovieReview,
+              (v) async {
+            await _userPrefs.setShowSidebarMovieReview(v);
+            setState(() => _showMovieReview = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.menu_book_outlined, '书评'.tr, '浏览全部书评，支持瀑布流与列表切换'.tr, _showBookReview,
+              (v) async {
+            await _userPrefs.setShowSidebarBookReview(v);
+            setState(() => _showBookReview = v);
+          }),
+          Divider(
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+              color: colors.outlineVariant),
+          _buildSwitchItem(
+              Icons.format_quote_outlined, '书摘'.tr, '浏览全部书摘，支持瀑布流与列表切换'.tr, _showExcerpt,
+              (v) async {
+            await _userPrefs.setShowSidebarExcerpt(v);
+            setState(() => _showExcerpt = v);
           }),
           Divider(
               height: 0.5,

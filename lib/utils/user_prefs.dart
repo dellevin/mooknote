@@ -300,6 +300,9 @@ class UserPrefs {
   bool get showSidebarStroll => prefs.getBool('showSidebarStroll') ?? true;
   Future<bool> setShowSidebarStroll(bool value) => prefs.setBool('showSidebarStroll', value);
 
+  bool get showSidebarWatchlist => prefs.getBool('showSidebarWatchlist') ?? true;
+  Future<bool> setShowSidebarWatchlist(bool value) => prefs.setBool('showSidebarWatchlist', value);
+
   bool get showSidebarReviewed => prefs.getBool('showSidebarReviewed') ?? true;
   Future<bool> setShowSidebarReviewed(bool value) => prefs.setBool('showSidebarReviewed', value);
 
@@ -311,6 +314,18 @@ class UserPrefs {
 
   bool get showSidebarPerson => prefs.getBool('showSidebarPerson') ?? true;
   Future<bool> setShowSidebarPerson(bool value) => prefs.setBool('showSidebarPerson', value);
+
+  bool get showSidebarPublisher => prefs.getBool('showSidebarPublisher') ?? true;
+  Future<bool> setShowSidebarPublisher(bool value) => prefs.setBool('showSidebarPublisher', value);
+
+  bool get showSidebarMovieReview => prefs.getBool('showSidebarMovieReview') ?? true;
+  Future<bool> setShowSidebarMovieReview(bool value) => prefs.setBool('showSidebarMovieReview', value);
+
+  bool get showSidebarBookReview => prefs.getBool('showSidebarBookReview') ?? true;
+  Future<bool> setShowSidebarBookReview(bool value) => prefs.setBool('showSidebarBookReview', value);
+
+  bool get showSidebarExcerpt => prefs.getBool('showSidebarExcerpt') ?? true;
+  Future<bool> setShowSidebarExcerpt(bool value) => prefs.setBool('showSidebarExcerpt', value);
 
   bool get showSidebarGallery => prefs.getBool('showSidebarGallery') ?? true;
   Future<bool> setShowSidebarGallery(bool value) => prefs.setBool('showSidebarGallery', value);
@@ -352,6 +367,18 @@ class UserPrefs {
   /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
   Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);
+
+  /// 影评/书评/书摘浏览页布局：0 瀑布流，1 列表
+  int get reviewBrowseLayoutStyle => prefs.getInt('reviewBrowseLayoutStyle') ?? 0;
+  Future<bool> setReviewBrowseLayoutStyle(int value) => prefs.setInt('reviewBrowseLayoutStyle', value);
+
+  /// 想看清单页布局：0 卡片网格，1 列表
+  int get watchlistLayoutStyle => prefs.getInt('watchlistLayoutStyle') ?? 0;
+  Future<bool> setWatchlistLayoutStyle(int value) => prefs.setInt('watchlistLayoutStyle', value);
+
+  /// 自定义分类模块管理页布局：0 列表，1 网格（一行三个）
+  int get customModuleLayoutStyle => prefs.getInt('customModuleLayoutStyle') ?? 0;
+  Future<bool> setCustomModuleLayoutStyle(int value) => prefs.setInt('customModuleLayoutStyle', value);
 
   /// 笔记排序方式 (0: 更新时间, 1: 创建时间)
   int get noteSortMode => prefs.getInt('noteSortMode') ?? 0;

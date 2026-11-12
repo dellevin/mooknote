@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 55,
+      version: 57,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -539,6 +539,11 @@ class DatabaseHelper {
       if (!cols.any((col) => col['name'] == 'duration')) {
         await db.execute('ALTER TABLE movie_episodes ADD COLUMN duration INTEGER DEFAULT 0');
       }
+    }
+    if (oldVersion < 57) {
+      // 出版社改为从书籍 publisher 文本实时聚合，不再独立建表；
+      // 清理早期 v56 短暂引入的表（新装设备无此表，IF EXISTS 兜底）
+      await db.execute('DROP TABLE IF EXISTS publishers');
     }
   }
 

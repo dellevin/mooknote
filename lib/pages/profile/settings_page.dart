@@ -51,253 +51,165 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(title: Text('设置'.tr)),
       body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          _buildSectionHeader('显示设置'.tr),
-          _buildActionItem(
-            icon: Icons.person_outline,
-            title: '个人信息'.tr,
-            subtitle: '修改昵称和座右铭'.tr,
-            onTap: () => _showProfileEditDialog(context),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          // 应用图标仅 Android 有原生实现（app_icon_channel）
-          if (Platform.isAndroid)
-            _buildNavigationItem(
-              icon: Icons.apps_outlined,
-              title: '应用图标'.tr,
-              subtitle: '更换桌面应用图标'.tr,
+          _buildGroup('显示设置'.tr, [
+            _buildRow(
+              icon: Icons.person_outline,
+              title: '个人信息'.tr,
+              subtitle: '修改昵称和座右铭'.tr,
+              onTap: () => _showProfileEditDialog(context),
+            ),
+            // 应用图标仅 Android 有原生实现（app_icon_channel）
+            if (Platform.isAndroid)
+              _buildRow(
+                icon: Icons.apps_outlined,
+                title: '应用图标'.tr,
+                subtitle: '更换桌面应用图标'.tr,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
+              ),
+            _buildRow(
+              icon: Icons.tune_outlined,
+              title: '功能设置'.tr,
+              subtitle: '启动标签、模块开关、侧边栏功能'.tr,
               onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const AppIconPickerPage())),
+                  MaterialPageRoute(builder: (_) => const FeatureSettingsPage())),
             ),
-          if (Platform.isAndroid)
-            Divider(
-                height: 0.5,
-                indent: 24,
-                endIndent: 24,
-                color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.tune_outlined,
-            title: '功能设置'.tr,
-            subtitle: '启动标签、模块开关、侧边栏功能'.tr,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const FeatureSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.dashboard_outlined,
-            title: '布局设置'.tr,
-            subtitle: '影视、阅读、笔记的展示样式'.tr,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildNavigationItem(
-            icon: Icons.palette_outlined,
-            title: '界面设置'.tr,
-            subtitle: '主题、配色与字体'.tr,
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const AppearanceSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildLanguageSelector(),
-          _buildSectionHeader('其他设置'.tr),
-          _buildActionItem(
-            icon: Icons.travel_explore_outlined,
-            title: '在线搜索 API'.tr,
-            subtitle: '增强搜索、TMDB、Bangumi 数据源配置'.tr,
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        const OnlineSearchApiSettingsPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(
-            icon: Icons.swipe_vertical_outlined,
-            title: '底部导航栏滚动隐藏'.tr,
-            subtitle: '下滑时自动隐藏底部导航栏'.tr,
-            value: _hideBottomNavOnScroll,
-            onChanged: _toggleHideBottomNavOnScroll,
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildSwitchItem(
-            icon: Icons.bug_report_outlined,
-            title: '调试模式'.tr,
-            subtitle: '记录应用运行日志'.tr,
-            value: _debugMode,
-            onChanged: _toggleDebugMode,
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          if (_debugMode) ...[
-            _buildNavigationItem(
-              icon: Icons.article_outlined,
-              title: '运行日志'.tr,
-              subtitle: '查看、按时间筛选和保存日志'.tr,
+            _buildRow(
+              icon: Icons.dashboard_outlined,
+              title: '布局设置'.tr,
+              subtitle: '影视、阅读、笔记的展示样式'.tr,
               onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const DebugLogPage())),
+                  MaterialPageRoute(builder: (_) => const LayoutSettingsPage())),
             ),
-            Divider(
-                height: 0.5,
-                indent: 24,
-                endIndent: 24,
-                color: colors.outlineVariant),
-            _buildNavigationItem(
-              icon: Icons.tune,
-              title: '偏好设置编辑器'.tr,
-              subtitle: '查看和修改 SharedPreferences 数据'.tr,
+            _buildRow(
+              icon: Icons.palette_outlined,
+              title: '界面设置'.tr,
+              subtitle: '主题、配色与字体'.tr,
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AppearanceSettingsPage())),
+            ),
+            _buildLanguageRow(),
+          ]),
+          _buildGroup('其他设置'.tr, [
+            _buildRow(
+              icon: Icons.travel_explore_outlined,
+              title: '在线搜索 API'.tr,
+              subtitle: '增强搜索、TMDB、Bangumi 数据源配置'.tr,
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          const OnlineSearchApiSettingsPage())),
+            ),
+            _buildSwitchRow(
+              icon: Icons.swipe_vertical_outlined,
+              title: '底部导航栏滚动隐藏'.tr,
+              subtitle: '下滑时自动隐藏底部导航栏'.tr,
+              value: _hideBottomNavOnScroll,
+              onChanged: _toggleHideBottomNavOnScroll,
+            ),
+            _buildSwitchRow(
+              icon: Icons.bug_report_outlined,
+              title: '调试模式'.tr,
+              subtitle: '记录应用运行日志'.tr,
+              value: _debugMode,
+              onChanged: _toggleDebugMode,
+            ),
+            if (_debugMode) ...[
+              _buildRow(
+                icon: Icons.article_outlined,
+                title: '运行日志'.tr,
+                subtitle: '查看、按时间筛选和保存日志'.tr,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const DebugLogPage())),
+              ),
+              _buildRow(
+                icon: Icons.tune,
+                title: '偏好设置编辑器'.tr,
+                subtitle: '查看和修改 SharedPreferences 数据'.tr,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const PrefsEditorPage())),
+              ),
+              _buildRow(
+                icon: Icons.storage,
+                title: '数据库查看器'.tr,
+                subtitle: '浏览表数据，执行 SELECT 查询'.tr,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const DbViewerPage())),
+              ),
+            ],
+          ]),
+          _buildGroup('数据管理'.tr, [
+            _buildRow(
+              icon: Icons.cleaning_services_outlined,
+              title: '清除缓存数据'.tr,
+              subtitle: '清理未在数据库中引用的文件'.tr,
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CacheCleanerPage())),
+            ),
+            // 存储权限仅 Android 需要（permission_handler 无桌面实现）
+            if (Platform.isAndroid)
+              _buildRow(
+                icon: Icons.folder_outlined,
+                title: '获取系统权限'.tr,
+                subtitle: '查看并开启存储、照片等媒体权限'.tr,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const PermissionsPage())),
+              ),
+            if (Platform.isAndroid)
+              _buildRow(
+                icon: Icons.image_search_outlined,
+                title: '扫描系统媒体库'.tr,
+                subtitle: '图片存在但相册/图片选择器里看不到时，触发系统重新索引'.tr,
+                onTap: _scanSystemMedia,
+              ),
+          ]),
+          _buildGroup('帮助'.tr, [
+            _buildRow(
+              icon: Icons.language_outlined,
+              title: '查看官网'.tr,
+              subtitle: '在浏览器中打开官方网站'.tr,
+              onTap: () =>
+                  launchUrl(Uri.parse('https://mooknote.iletter.top/#/')),
+            ),
+            _buildRow(
+              icon: Icons.open_in_new_outlined,
+              title: '项目源码'.tr,
+              subtitle: '查看 GitHub 项目仓库'.tr,
+              onTap: () =>
+                  launchUrl(Uri.parse('https://github.com/dellevin/mooknote')),
+            ),
+            _buildRow(
+              icon: Icons.update_outlined,
+              title: '更新日志'.tr,
+              subtitle: '查看版本更新内容'.tr,
               onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PrefsEditorPage())),
+                  MaterialPageRoute(builder: (_) => const ChangelogPage())),
             ),
-            Divider(
-                height: 0.5,
-                indent: 24,
-                endIndent: 24,
-                color: colors.outlineVariant),
-            _buildNavigationItem(
-              icon: Icons.storage,
-              title: '数据库查看器'.tr,
-              subtitle: '浏览表数据，执行 SELECT 查询'.tr,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const DbViewerPage())),
+            _buildRow(
+              icon: Icons.description_outlined,
+              title: '用户服务协议'.tr,
+              subtitle: '查看用户服务协议'.tr,
+              onTap: () => launchUrl(
+                  Uri.parse(
+                      'https://mooknote.iletter.top/info/user_agreement.html'),
+                  mode: LaunchMode.externalApplication),
             ),
-          ],
-          _buildSectionHeader('数据管理'.tr),
-          _buildActionItem(
-            icon: Icons.cleaning_services_outlined,
-            title: '清除缓存数据'.tr,
-            subtitle: '清理未在数据库中引用的文件'.tr,
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CacheCleanerPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          // 存储权限仅 Android 需要（permission_handler 无桌面实现）
-          if (Platform.isAndroid) ...[
-            _buildActionItem(
-              icon: Icons.folder_outlined,
-              title: '获取系统权限'.tr,
-              subtitle: '查看并开启存储、照片等媒体权限'.tr,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PermissionsPage())),
+            _buildRow(
+              icon: Icons.shield_outlined,
+              title: '隐私政策'.tr,
+              subtitle: '查看隐私政策'.tr,
+              onTap: () => launchUrl(
+                  Uri.parse(
+                      'https://mooknote.iletter.top/info/privacy_policy.html'),
+                  mode: LaunchMode.externalApplication),
             ),
-            Divider(
-                height: 0.5,
-                indent: 24,
-                endIndent: 24,
-                color: colors.outlineVariant),
-          ],
-          if (Platform.isAndroid) ...[
-            _buildActionItem(
-              icon: Icons.image_search_outlined,
-              title: '扫描系统媒体库'.tr,
-              subtitle: '图片存在但相册/图片选择器里看不到时，触发系统重新索引'.tr,
-              onTap: _scanSystemMedia,
-            ),
-            Divider(
-                height: 0.5,
-                indent: 24,
-                endIndent: 24,
-                color: colors.outlineVariant),
-          ],
-          _buildSectionHeader('帮助'.tr),
-          _buildActionItem(
-            icon: Icons.language_outlined,
-            title: '查看官网'.tr,
-            subtitle: '在浏览器中打开官方网站'.tr,
-            onTap: () =>
-                launchUrl(Uri.parse('https://mooknote.iletter.top/#/')),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildActionItem(
-            icon: Icons.open_in_new_outlined,
-            title: '项目源码'.tr,
-            subtitle: '查看 GitHub 项目仓库'.tr,
-            onTap: () =>
-                launchUrl(Uri.parse('https://github.com/dellevin/mooknote')),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildActionItem(
-            icon: Icons.update_outlined,
-            title: '更新日志'.tr,
-            subtitle: '查看版本更新内容'.tr,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ChangelogPage())),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildActionItem(
-            icon: Icons.description_outlined,
-            title: '用户服务协议'.tr,
-            subtitle: '查看用户服务协议'.tr,
-            onTap: () => launchUrl(
-                Uri.parse(
-                    'https://mooknote.iletter.top/info/user_agreement.html'),
-                mode: LaunchMode.externalApplication),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
-          _buildActionItem(
-            icon: Icons.shield_outlined,
-            title: '隐私政策'.tr,
-            subtitle: '查看隐私政策'.tr,
-            onTap: () => launchUrl(
-                Uri.parse(
-                    'https://mooknote.iletter.top/info/privacy_policy.html'),
-                mode: LaunchMode.externalApplication),
-          ),
-          Divider(
-              height: 0.5,
-              indent: 24,
-              endIndent: 24,
-              color: colors.outlineVariant),
+          ]),
         ],
       ),
     );
@@ -340,7 +252,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Container(
                   width: 28,
                   height: 3,
-                  margin: const EdgeInsets.only(top: 10, bottom: 14),
+                  margin: const EdgeInsets.only(top: 10, bottom: 4),
                   decoration: BoxDecoration(
                     color: colors.onSurface.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(1.5),
@@ -348,10 +260,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Text('个人信息'.tr,
                     style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: colors.onSurface)),
               ),
@@ -478,13 +390,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
                     elevation: 0,
-                    minimumSize: const Size.fromHeight(48),
+                    minimumSize: const Size.fromHeight(46),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(13)),
                   ),
                   child: Text('保存'.tr,
                       style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                          fontSize: 14.5, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -504,45 +416,126 @@ class _SettingsPageState extends State<SettingsPage> {
     Icons.abc,
   ];
 
-  Widget _buildLanguageSelector() {
+  /// 分组圆角容器：小标题 + 圆角分组，内部分隔线缩进至标题列（56）
+  Widget _buildGroup(String title, List<Widget> rows) {
     final colors = Theme.of(context).colorScheme;
-    final languageMode = context.watch<AppProvider>().languageMode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+          child: Text(title,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface)),
+        ),
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 0.5,
+                    thickness: 0.5,
+                    indent: 56,
+                    color: colors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                rows[i],
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 分组内通用行：30×30 主色图标块 + 标题/副标题 + 右侧尾控件
+  Widget _buildRow(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      Widget? trailing,
+      VoidCallback? onTap}) {
+    final colors = Theme.of(context).colorScheme;
     return InkWell(
-      onTap: () => _showLanguagePicker(languageMode),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Row(
           children: [
             Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.language_outlined,
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 17, color: colors.primary),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('语言'.tr,
+                    Text(title,
                         style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: colors.onSurface)),
                     const SizedBox(height: 2),
-                    Text(_languageLabels[languageMode],
+                    Text(subtitle,
                         style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 11.5,
                             color: colors.onSurface.withValues(alpha: 0.4))),
                   ]),
             ),
-            Icon(Icons.chevron_right,
-                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+            if (trailing != null) trailing,
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSwitchRow(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required bool value,
+      required ValueChanged<bool> onChanged}) {
+    final colors = Theme.of(context).colorScheme;
+    return _buildRow(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: () => onChanged(!value),
+      trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: colors.primary,
+          activeTrackColor: colors.primary.withValues(alpha: 0.3),
+          inactiveThumbColor: colors.surface,
+          inactiveTrackColor: colors.outline),
+    );
+  }
+
+  Widget _buildLanguageRow() {
+    final colors = Theme.of(context).colorScheme;
+    final languageMode = context.watch<AppProvider>().languageMode;
+    return _buildRow(
+      icon: Icons.language_outlined,
+      title: '语言'.tr,
+      subtitle: _languageLabels[languageMode],
+      onTap: () => _showLanguagePicker(languageMode),
+      trailing: Icon(Icons.chevron_right,
+          color: colors.onSurface.withValues(alpha: 0.25), size: 20),
     );
   }
 
@@ -550,209 +543,91 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     appModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16))),
-        padding: const EdgeInsets.only(bottom: 12),
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 12),
+            Center(
+              child: Container(
+                width: 28,
+                height: 3,
+                margin: const EdgeInsets.only(top: 10, bottom: 4),
                 decoration: BoxDecoration(
-                    color: colors.onSurface.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('语言'.tr,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface))),
-            ),
-            const SizedBox(height: 8),
-            for (int i = 0; i < _languageLabels.length; i++)
-              InkWell(
-                onTap: () {
-                  context.read<AppProvider>().setLanguageMode(i);
-                  Navigator.pop(ctx);
-                },
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(_languageIcons[i],
-                          size: 18,
-                          color: colors.onSurface.withValues(alpha: 0.6)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: Text(_languageLabels[i],
-                              style: TextStyle(
-                                  fontSize: 13, color: colors.onSurface))),
-                      if (current == i)
-                        Icon(Icons.check, color: colors.onSurface, size: 18),
-                    ],
-                  ),
+                  color: colors.onSurface.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(1.5),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchItem(
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required bool value,
-      required ValueChanged<bool> onChanged}) {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => onChanged(!value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon,
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colors.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.4))),
-                  ]),
             ),
-            Switch(
-                value: value,
-                onChanged: onChanged,
-                activeThumbColor: colors.primary,
-                activeTrackColor: colors.primary.withValues(alpha: 0.3),
-                inactiveThumbColor: colors.surface,
-                inactiveTrackColor: colors.outline),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-      child: Text(title,
-          style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface)),
-    );
-  }
-
-  Widget _buildNavigationItem(
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap}) {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon,
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colors.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.4))),
-                  ]),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('语言'.tr,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
+              ),
             ),
-            Icon(Icons.chevron_right,
-                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionItem(
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap}) {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Row(
-          children: [
             Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon,
-                    color: colors.onSurface.withValues(alpha: 0.6), size: 18)),
-            const SizedBox(width: 12),
-            Expanded(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colors.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: colors.onSurface.withValues(alpha: 0.4))),
-                  ]),
+                children: [
+                  for (int i = 0; i < _languageLabels.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        height: 0.5,
+                        thickness: 0.5,
+                        indent: 56,
+                        color: colors.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    InkWell(
+                      onTap: () {
+                        context.read<AppProvider>().setLanguageMode(i);
+                        Navigator.pop(ctx);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 13),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(_languageIcons[i],
+                                  size: 17, color: colors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                                child: Text(_languageLabels[i],
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: colors.onSurface))),
+                            if (current == i)
+                              Icon(Icons.check,
+                                  color: colors.primary, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
         ),
