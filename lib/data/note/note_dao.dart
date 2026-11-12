@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../like_util.dart';
 
 /// 笔记数据访问对象
 class NoteDao {
@@ -138,8 +139,8 @@ class NoteDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
-      where: '(title LIKE ? OR content LIKE ? OR tags LIKE ?) AND is_deleted = ?',
-      whereArgs: ['%$query%', '%$query%', '%$query%', 0],
+      where: "(title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\') AND is_deleted = ?",
+      whereArgs: [likePattern(query), likePattern(query), likePattern(query), 0],
       orderBy: 'created_at DESC',
     );
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));
@@ -150,8 +151,8 @@ class NoteDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'notes',
-      where: 'tags LIKE ? AND is_deleted = ?',
-      whereArgs: ['%$tag%', 0],
+      where: "tags LIKE ? ESCAPE '\\' AND is_deleted = ?",
+      whereArgs: [likePattern(tag), 0],
       orderBy: 'created_at DESC',
     );
     return List.generate(maps.length, (i) => Note.fromJson(maps[i]));

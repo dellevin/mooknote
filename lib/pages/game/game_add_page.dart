@@ -363,7 +363,7 @@ class _GameAddPageState extends State<GameAddPage> {
     try {
       final res = await http.get(Uri.parse(url), headers: {
         'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*,*/*;q=0.8', 'Referer': Uri.parse(url).replace(path: '/').toString(),
-      });
+      }).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final targetPath = await ImagePathHelper.instance.getGameCoverPath(_tempId!, fileName);

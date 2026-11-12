@@ -559,27 +559,47 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> deleteCustomModule(String id) async {
+    // 记录当前 tab 对应的模块，删除后按模块 id 重新定位，避免误伤其他模块 tab
+    String? currentModuleId;
+    if (_mainTabIndex >= customModuleTabBase) {
+      final i = _mainTabIndex - customModuleTabBase;
+      final mods = enabledCustomModules;
+      if (i >= 0 && i < mods.length) currentModuleId = mods[i].id;
+    }
     await _customModuleDao.deleteModule(id);
     _customModules.removeWhere((m) => m.id == id);
-    // 当前 tab 正停在被删模块上时回退到第一个固定 tab
-    if (_mainTabIndex >= customModuleTabBase) {
-      final idx = _mainTabIndex - customModuleTabBase;
-      if (idx >= enabledCustomModules.length) {
+    if (currentModuleId != null) {
+      if (currentModuleId == id) {
+        // 当前 tab 正停在被删模块上，回退到第一个固定 tab
         _mainTabIndex = 0;
+      } else {
+        final newIdx = enabledCustomModules.indexWhere((m) => m.id == currentModuleId);
+        _mainTabIndex = newIdx != -1 ? customModuleTabBase + newIdx : 0;
       }
     }
     notifyListeners();
   }
 
   Future<void> setCustomModuleEnabled(String id, bool enabled) async {
+    // 记录当前 tab 对应的模块，仅当被停用的正是当前模块时才回退
+    String? currentModuleId;
+    if (_mainTabIndex >= customModuleTabBase) {
+      final i = _mainTabIndex - customModuleTabBase;
+      final mods = enabledCustomModules;
+      if (i >= 0 && i < mods.length) currentModuleId = mods[i].id;
+    }
     await _customModuleDao.setEnabled(id, enabled);
     final idx = _customModules.indexWhere((m) => m.id == id);
     if (idx != -1) {
       _customModules[idx] = _customModules[idx].copyWith(isEnabled: enabled, updatedAt: DateTime.now());
     }
-    // 当前 tab 是被停用的模块时回退
-    if (!enabled && _mainTabIndex >= customModuleTabBase) {
-      _mainTabIndex = 0;
+    if (currentModuleId != null) {
+      if (!enabled && currentModuleId == id) {
+        _mainTabIndex = 0;
+      } else {
+        final newIdx = enabledCustomModules.indexWhere((m) => m.id == currentModuleId);
+        _mainTabIndex = newIdx != -1 ? customModuleTabBase + newIdx : 0;
+      }
     }
     notifyListeners();
   }
@@ -621,6 +641,8 @@ class AppProvider extends ChangeNotifier {
     if (item != null) {
       await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, id);
     }
+    // 失效全局搜索缓存并通知刷新，否则已彻底删除的条目仍残留在搜索结果中
+    bumpCustomModuleItemsVersion();
   }
 
   // 根据状态获取影视列表

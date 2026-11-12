@@ -111,7 +111,7 @@ class TmdbService {
     }
     if (resp.statusCode == 401) throw TmdbAuthException();
     if (resp.statusCode != 200) throw TmdbNetworkException();
-    return json.decode(resp.body) as Map<String, dynamic>;
+    return json.decode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
   }
 
   // ── 类型表 ──────────────────────────────────────────────

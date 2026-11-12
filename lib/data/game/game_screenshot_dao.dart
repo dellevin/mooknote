@@ -48,12 +48,32 @@ class GameScreenshotDao {
   /// 软删除截图
   Future<int> deleteScreenshot(String id) => _wrap('deleteScreenshot', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'game_screenshots',
-      {'is_deleted': 1},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final rows = await txn.query(
+        'game_screenshots',
+        columns: ['game_id'],
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      final now = DateTime.now().toUtc().toIso8601String();
+      final count = await txn.update(
+        'game_screenshots',
+        {'is_deleted': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      // 截图表无 updated_at 且软删行不进同步管道，
+      // 须 bump 父游戏时间戳触发整组重推，他端才会移除该截图
+      if (rows.isNotEmpty) {
+        await txn.update(
+          'games',
+          {'updated_at': now},
+          where: 'id = ?',
+          whereArgs: [rows.first['game_id']],
+        );
+      }
+      return count;
+    });
   });
 
   /// 获取游戏截图数量

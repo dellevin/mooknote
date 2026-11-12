@@ -319,7 +319,7 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
           'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
-      );
+      ).timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
       final contentType = response.headers['content-type'];
       if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片');

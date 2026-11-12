@@ -181,7 +181,7 @@ class ReportService {
               '${ServerConfig.apiBase}/feedback?device_hash=$deviceId'))
           .timeout(const Duration(seconds: 8));
       if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body);
+        final data = jsonDecode(utf8.decode(resp.bodyBytes));
         return (data['items'] as List? ?? [])
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))

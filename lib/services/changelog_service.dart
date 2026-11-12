@@ -39,7 +39,7 @@ class ChangelogService {
           .get(Uri.parse(_apiUrl))
           .timeout(const Duration(seconds: 5));
       if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body);
+        final data = jsonDecode(utf8.decode(resp.bodyBytes));
         final items = (data['items'] as List<dynamic>?)
                 ?.map((e) => ChangelogItem.fromJson(e as Map<String, dynamic>))
                 .toList() ??
@@ -58,24 +58,25 @@ class ChangelogService {
   }
 
   /// 比较两版本号，a > b 则返回 1，a < b 返回 -1，相等返回 0
-  /// v0.1.9 → 当成数字 "0.19" = 0.19，0.1.88 → "0.188" = 0.188，所以 0.19 > 0.188
-  /// 实现方式：去掉 v，把第一个点后的数字拼接再转 double 比较
+  /// 去掉 v 前缀后按 '.' 拆段，逐段按整数比较（如 0.1.100 > 0.1.99）
   static int compareVersion(String a, String b) {
-    double toNum(String v) {
-      final s = v.replaceFirst('v', '');
-      final dot = s.indexOf('.');
-      if (dot == -1) return double.tryParse(s) ?? 0;
-      // "0.1.9" → "0." + "19" = "0.19"；"0.1.88" → "0." + "188" = "0.188"
-      final major = s.substring(0, dot + 1); // "0."
-      final rest = s.substring(dot + 1).replaceAll('.', ''); // "19" 或 "188"
-      return double.tryParse('$major$rest') ?? 0;
-    }
+    List<int> toSegments(String v) => v
+        .replaceFirst('v', '')
+        .split('.')
+        .map((s) => int.tryParse(s.trim()) ?? 0)
+        .toList();
 
-    final aVal = toNum(a);
-    final bVal = toNum(b);
-    debugPrint('[Update] compare: "$a"→$aVal vs "$b"→$bVal');
-    if (aVal > bVal) return 1;
-    if (aVal < bVal) return -1;
+    final aSeg = toSegments(a);
+    final bSeg = toSegments(b);
+    final len = aSeg.length > bSeg.length ? aSeg.length : bSeg.length;
+    for (var i = 0; i < len; i++) {
+      final x = i < aSeg.length ? aSeg[i] : 0;
+      final y = i < bSeg.length ? bSeg[i] : 0;
+      if (x != y) {
+        debugPrint('[Update] compare: "$a" vs "$b" → 段$i $x vs $y');
+        return x > y ? 1 : -1;
+      }
+    }
     return 0;
   }
 

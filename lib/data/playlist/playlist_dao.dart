@@ -124,6 +124,14 @@ class PlaylistDao {
   Future<int> addItem(PlaylistItem item) => _wrap('addItem', () async {
     final db = await _dbHelper.database;
     return await db.transaction((txn) async {
+      // 防御重复条目（UI 层另有 _busyItemIds 防重，这里兜底导入/同步等入口）
+      final existing = await txn.query(
+        'playlist_items',
+        columns: ['id'],
+        where: 'playlist_id = ? AND item_id = ?',
+        whereArgs: [item.playlistId, item.itemId],
+      );
+      if (existing.isNotEmpty) return 0;
       final result = await txn.insert('playlist_items', item.toJson());
       await _refreshItemCount(txn, item.playlistId);
       return result;

@@ -192,7 +192,7 @@ class ServerExportService {
       responseTimer?.cancel();
     }
     final body = await http.Response.fromStream(response);
-    final json = _parseJson(body.body);
+    final json = _parseJson(utf8.decode(body.bodyBytes));
     if (json['code'] == 0 && json['data'] is Map) {
       final taskId = (json['data']['task_id'] ?? '').toString();
       if (taskId.isNotEmpty) return taskId;
@@ -216,7 +216,7 @@ class ServerExportService {
       await Future.delayed(_pollInterval);
       try {
         final resp = await client.get(uri).timeout(const Duration(seconds: 15));
-        final json = _parseJson(resp.body);
+        final json = _parseJson(utf8.decode(resp.bodyBytes));
         if (json['code'] == 0 && json['data'] is Map) {
           final data = json['data'];
           final status = (data['status'] ?? '').toString();
@@ -255,7 +255,7 @@ class ServerExportService {
     if (resp.statusCode != 200) {
       String message = '下载失败（HTTP ${resp.statusCode}）';
       try {
-        final json = jsonDecode(resp.body);
+        final json = jsonDecode(utf8.decode(resp.bodyBytes));
         if (json is Map && json['message'] != null) message = json['message'].toString();
       } catch (_) {}
       throw ServerExportException(message);

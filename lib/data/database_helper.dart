@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 57,
+      version: 58,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -544,6 +544,19 @@ class DatabaseHelper {
       // 出版社改为从书籍 publisher 文本实时聚合，不再独立建表；
       // 清理早期 v56 短暂引入的表（新装设备无此表，IF EXISTS 兜底）
       await db.execute('DROP TABLE IF EXISTS publishers');
+    }
+    if (oldVersion < 58) {
+      // playlist_items 增加 (playlist_id, item_id) 唯一约束：
+      // 先清理历史重复行（每组保留 id 最小的一条），再建唯一索引
+      await db.execute('''
+        DELETE FROM playlist_items WHERE id NOT IN (
+          SELECT MIN(id) FROM playlist_items GROUP BY playlist_id, item_id
+        )
+      ''');
+      await db.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_playlist_items_unique '
+        'ON playlist_items(playlist_id, item_id)',
+      );
     }
   }
 
@@ -1298,6 +1311,9 @@ class DatabaseHelper {
     ''');
     await db.execute(
       'CREATE INDEX idx_playlist_items_playlist ON playlist_items(playlist_id)',
+    );
+    await db.execute(
+      'CREATE UNIQUE INDEX idx_playlist_items_unique ON playlist_items(playlist_id, item_id)',
     );
 
     // 阅读器书籍表（v14 引入、v24 增加 book_id，新装用户直接建最终结构）

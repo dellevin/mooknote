@@ -569,7 +569,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
-      );
+      ).timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) return null;
       final contentType = response.headers['content-type'];
       if (contentType != null && !contentType.startsWith('image/')) return null;

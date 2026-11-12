@@ -48,6 +48,18 @@ class ImagePathHelper {
     return _appDirPath!;
   }
 
+  /// 回收头像/背景等单值图片的旧文件。
+  /// 仅当文件位于 [dirName]（如 avatars/hero_bg/profile_bg）目录内才删除，
+  /// 避免误删外部路径；清理失败静默（只影响空间占用，不影响功能）。
+  static Future<void> deleteOwnedImage(String? filePath, String dirName) async {
+    if (filePath == null || filePath.isEmpty) return;
+    if (p.basename(p.dirname(filePath)) != dirName) return;
+    try {
+      final f = File(filePath);
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+  }
+
   /// 获取图片根目录
   Future<String> get imagesRoot async {
     final appDir = await getAppDir();

@@ -225,7 +225,7 @@ class TagDao {
 
   Future<void> _cascadeRenameInMovies(Transaction txn, String oldName, String newName) async {
     final movies = await txn.query('movies',
-        where: "genres LIKE ?", whereArgs: ['%$oldName%']);
+        where: "is_deleted = 0 AND genres LIKE ?", whereArgs: ['%$oldName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in movies) {
       final genres = _parseList(row['genres']);
@@ -240,7 +240,7 @@ class TagDao {
 
   Future<void> _cascadeRenameInBooks(Transaction txn, String oldName, String newName) async {
     final books = await txn.query('books',
-        where: "genres LIKE ?", whereArgs: ['%$oldName%']);
+        where: "is_deleted = 0 AND genres LIKE ?", whereArgs: ['%$oldName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in books) {
       final genres = _parseList(row['genres']);
@@ -255,7 +255,7 @@ class TagDao {
 
   Future<void> _cascadeRenameInNotes(Transaction txn, String oldName, String newName) async {
     final notes = await txn.query('notes',
-        where: "tags LIKE ?", whereArgs: ['%$oldName%']);
+        where: "is_deleted = 0 AND tags LIKE ?", whereArgs: ['%$oldName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in notes) {
       final tags = _parseList(row['tags']);
@@ -270,7 +270,7 @@ class TagDao {
 
   Future<void> _cascadeRenameInGames(Transaction txn, String oldName, String newName) async {
     final games = await txn.query('games',
-        where: "genres LIKE ?", whereArgs: ['%$oldName%']);
+        where: "is_deleted = 0 AND genres LIKE ?", whereArgs: ['%$oldName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in games) {
       final genres = _parseList(row['genres']);
@@ -297,7 +297,7 @@ class TagDao {
 
   Future<void> _cascadeDeleteFromMovies(Transaction txn, String tagName) async {
     final movies = await txn.query('movies',
-        where: "genres LIKE ?", whereArgs: ['%$tagName%']);
+        where: "is_deleted = 0 AND genres LIKE ?", whereArgs: ['%$tagName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in movies) {
       final genres = _parseList(row['genres']);
@@ -312,7 +312,7 @@ class TagDao {
 
   Future<void> _cascadeDeleteFromBooks(Transaction txn, String tagName) async {
     final books = await txn.query('books',
-        where: "genres LIKE ?", whereArgs: ['%$tagName%']);
+        where: "is_deleted = 0 AND genres LIKE ?", whereArgs: ['%$tagName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in books) {
       final genres = _parseList(row['genres']);
@@ -327,7 +327,7 @@ class TagDao {
 
   Future<void> _cascadeDeleteFromNotes(Transaction txn, String tagName) async {
     final notes = await txn.query('notes',
-        where: "tags LIKE ?", whereArgs: ['%$tagName%']);
+        where: "is_deleted = 0 AND tags LIKE ?", whereArgs: ['%$tagName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in notes) {
       final tags = _parseList(row['tags']);
@@ -342,7 +342,7 @@ class TagDao {
 
   Future<void> _cascadeDeleteFromGames(Transaction txn, String tagName) async {
     final games = await txn.query('games',
-        where: "genres LIKE ?", whereArgs: ['%$tagName%']);
+        where: "is_deleted = 0 AND genres LIKE ?", whereArgs: ['%$tagName%']);
     final now = DateTime.now().toUtc().toIso8601String();
     for (final row in games) {
       final genres = _parseList(row['genres']);

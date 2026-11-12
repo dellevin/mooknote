@@ -204,7 +204,11 @@ class _NoteTabPageState extends State<NoteTabPage> {
         itemCount: _items.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _items.length) return _buildLoadMore();
-          return NoteListItem(note: _items[index], onTap: () => _onNoteTap(_items[index]));
+          return NoteListItem(
+            note: _items[index],
+            onTap: () => _onNoteTap(_items[index]),
+            onChanged: _loadFirst,
+          );
         },
       ),
     );

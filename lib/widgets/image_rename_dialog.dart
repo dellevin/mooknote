@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/gallery/image_asset_dao.dart';
 import '../l10n/app_strings.dart';
+import '../utils/toast_util.dart';
 import 'app_overlay.dart';
 
 /// 图片重命名对话框 —— 图库查看页 / 海报画廊等长按菜单共用
@@ -53,7 +54,12 @@ class ImageRenameDialog {
       },
     ).then((saved) async {
       if (saved == null) return null;
-      await ImageAssetDao().rename(logicalPath, saved);
+      try {
+        await ImageAssetDao().rename(logicalPath, saved);
+      } catch (_) {
+        if (context.mounted) ToastUtil.show(context, '重命名失败，请稍后重试'.tr);
+        return null;
+      }
       return saved;
     });
   }

@@ -45,7 +45,9 @@ class AvatarHelper {
       final avatarDir = Directory(path.join(appDirPath, 'avatars'));
       if (!await avatarDir.exists()) await avatarDir.create(recursive: true);
       await File(savedPath).writeAsBytes(cropped);
+      final oldPath = UserPrefs().avatarPath;
       await UserPrefs().setAvatarPath(savedPath);
+      await ImagePathHelper.deleteOwnedImage(oldPath, 'avatars');
       return savedPath;
     } catch (e) {
       if (context.mounted) ToastUtil.show(context, '选择头像失败'.tr);
@@ -127,7 +129,9 @@ class AvatarHelper {
                   color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () async {
                 Navigator.pop(ctx);
+                final oldPath = UserPrefs().avatarPath;
                 await UserPrefs().clearAvatarPath();
+                await ImagePathHelper.deleteOwnedImage(oldPath, 'avatars');
                 onChanged();
               },
             ),

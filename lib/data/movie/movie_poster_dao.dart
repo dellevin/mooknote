@@ -48,12 +48,32 @@ class MoviePosterDao {
   /// 软删除海报
   Future<int> deletePoster(String id) => _wrap('deletePoster', () async {
     final db = await _dbHelper.database;
-    return await db.update(
-      'movie_posters',
-      {'is_deleted': 1},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.transaction((txn) async {
+      final rows = await txn.query(
+        'movie_posters',
+        columns: ['movie_id'],
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      final now = DateTime.now().toUtc().toIso8601String();
+      final count = await txn.update(
+        'movie_posters',
+        {'is_deleted': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      // 海报表无 updated_at 且软删行不进同步管道，
+      // 须 bump 父影视时间戳触发整组重推，他端才会移除该海报
+      if (rows.isNotEmpty) {
+        await txn.update(
+          'movies',
+          {'updated_at': now},
+          where: 'id = ?',
+          whereArgs: [rows.first['movie_id']],
+        );
+      }
+      return count;
+    });
   });
 
   /// 获取影视的海报数量

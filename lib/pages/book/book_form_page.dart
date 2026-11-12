@@ -623,7 +623,7 @@ class _BookFormPageState extends State<BookFormPage> {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Referer': Uri.parse(imageUrl).replace(path: '/').toString(),
-      });
+      }).timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
       final ct = response.headers['content-type'];
       if (ct != null && !ct.startsWith('image/')) throw Exception('链接返回的不是图片');

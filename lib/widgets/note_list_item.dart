@@ -12,13 +12,14 @@ class NoteListItem extends StatelessWidget {
   final Note note;
   final bool selected;
   final VoidCallback? onTap;
+  final VoidCallback? onChanged;
 
-  const NoteListItem({super.key, required this.note, this.selected = false, this.onTap});
+  const NoteListItem({super.key, required this.note, this.selected = false, this.onTap, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: _NoteListItemContent(note: note, selected: selected, onTap: onTap),
+      child: _NoteListItemContent(note: note, selected: selected, onTap: onTap, onChanged: onChanged),
     );
   }
 }
@@ -27,8 +28,9 @@ class _NoteListItemContent extends StatelessWidget {
   final Note note;
   final bool selected;
   final VoidCallback? onTap;
+  final VoidCallback? onChanged;
 
-  const _NoteListItemContent({required this.note, this.selected = false, this.onTap});
+  const _NoteListItemContent({required this.note, this.selected = false, this.onTap, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +239,8 @@ class _NoteListItemContent extends StatelessWidget {
               Navigator.pop(ctx);
               context
                   .read<AppProvider>()
-                  .toggleNotePin(note.id, !note.isPinned);
+                  .toggleNotePin(note.id, !note.isPinned)
+                  .then((_) => onChanged?.call());
             },
           ),
           Divider(height: 0.5, color: colors.outlineVariant),

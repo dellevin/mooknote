@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../like_util.dart';
 
 /// 自定义模块条目数据访问对象
 class CustomModuleItemDao {
@@ -66,8 +67,8 @@ class CustomModuleItemDao {
     final db = await _dbHelper.database;
     final maps = await db.query(
       'custom_module_items',
-      where: 'module_id = ? AND title LIKE ? AND is_deleted = ?',
-      whereArgs: [moduleId, '%$keyword%', 0],
+      where: "module_id = ? AND title LIKE ? ESCAPE '\\' AND is_deleted = ?",
+      whereArgs: [moduleId, likePattern(keyword), 0],
       orderBy: 'updated_at DESC',
     );
     return maps.map((m) => CustomModuleItem.fromJson(m)).toList();

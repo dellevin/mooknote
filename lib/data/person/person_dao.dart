@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../like_util.dart';
 
 /// 人物数据访问对象
 class PersonDao {
@@ -33,10 +34,10 @@ class PersonDao {
   // 搜索人物（名称或别名）
   Future<List<Person>> searchPeople(String keyword) => _wrap('searchPeople', () async {
     final db = await _dbHelper.database;
-    final like = '%$keyword%';
+    final like = likePattern(keyword);
     final maps = await db.query(
       'people',
-      where: '(name LIKE ? OR alternate_names LIKE ?) AND is_deleted = ?',
+      where: "(name LIKE ? ESCAPE '\\' OR alternate_names LIKE ? ESCAPE '\\') AND is_deleted = ?",
       whereArgs: [like, like, 0],
       orderBy: 'updated_at DESC',
     );

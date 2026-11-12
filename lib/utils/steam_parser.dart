@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 /// Steam 商店页抓取：GET 中文商店页 HTML 后正则解析。
@@ -30,7 +32,7 @@ class SteamGameParser {
               headers: _headers)
           .timeout(const Duration(seconds: 15));
       if (resp.statusCode != 200) return null;
-      html = resp.body;
+      html = utf8.decode(resp.bodyBytes);
     } catch (_) {
       return null;
     }

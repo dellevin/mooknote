@@ -49,23 +49,24 @@ class ImageAssetDao {
   }
 
   /// 重命名（upsert）。传入空名称则删除记录，恢复默认显示。
+  /// 失败时抛出异常，由调用方提示用户，避免 UI 显示成功但未持久化。
   Future<void> rename(String logicalPath, String title) async {
-    try {
-      final db = await _dbHelper.database;
-      final trimmed = title.trim();
-      final now = DateTime.now().toUtc().toIso8601String();
-      final existing = await db.query('image_assets',
+    final db = await _dbHelper.database;
+    final trimmed = title.trim();
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.transaction((txn) async {
+      final existing = await txn.query('image_assets',
           columns: ['id'], where: 'path = ?', whereArgs: [logicalPath]);
       if (trimmed.isEmpty) {
         // 清除名称：删除记录并留同步墓碑，保证其他设备同步删除
-        await db.delete('image_assets', where: 'path = ?', whereArgs: [logicalPath]);
+        await txn.delete('image_assets', where: 'path = ?', whereArgs: [logicalPath]);
         if (existing.isNotEmpty) {
-          await SyncTombstones.record('image_assets', existing.first['id'] as String);
+          await SyncTombstones.record('image_assets', existing.first['id'] as String, txn);
         }
         return;
       }
       if (existing.isEmpty) {
-        await db.insert('image_assets', {
+        await txn.insert('image_assets', {
           'id': const Uuid().v4(),
           'path': logicalPath,
           'title': trimmed,
@@ -73,55 +74,52 @@ class ImageAssetDao {
           'updated_at': now,
         });
       } else {
-        await db.update(
+        await txn.update(
           'image_assets',
           {'title': trimmed, 'updated_at': now},
           where: 'path = ?',
           whereArgs: [logicalPath],
         );
       }
-    } catch (e) {
-      debugPrint('[ImageAssetDao] rename error: $e');
-    }
+    });
   }
 
-  /// 文件迁移目录时同步更新记录的路径（如未保存实体的临时目录 → 正式目录）
+  /// 文件迁移目录时同步更新记录的路径（如未保存实体的临时目录 → 正式目录）。
+  /// 事务内执行：旧路径记录不存在时不动目标记录，避免先删后改中途失败丢数据。
   Future<void> onFileMoved(String oldAbsPath, String newAbsPath) async {
     final oldLogical = toLogicalPath(oldAbsPath);
     final newLogical = toLogicalPath(newAbsPath);
     if (oldLogical == newLogical) return;
-    try {
-      final db = await _dbHelper.database;
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      final oldRows = await txn.query('image_assets',
+          columns: ['id'], where: 'path = ?', whereArgs: [oldLogical]);
+      if (oldRows.isEmpty) return;
       // 目标路径已有记录时先删除，避免 UNIQUE 冲突导致旧记录更新失败
-      await db.delete('image_assets', where: 'path = ?', whereArgs: [newLogical]);
-      await db.update(
+      await txn.delete('image_assets', where: 'path = ?', whereArgs: [newLogical]);
+      await txn.update(
         'image_assets',
         {'path': newLogical, 'updated_at': DateTime.now().toUtc().toIso8601String()},
         where: 'path = ?',
         whereArgs: [oldLogical],
       );
-    } catch (e) {
-      debugPrint('[ImageAssetDao] onFileMoved error: $e');
-    }
+    });
   }
 
   /// 清理孤儿记录：图片已不存在于任何实体时的残留改名（缓存清理时调用）
   Future<int> deleteOrphans(Set<String> validLogicalPaths) async {
-    try {
-      final db = await _dbHelper.database;
-      final rows = await db.query('image_assets', columns: ['path']);
-      var removed = 0;
+    final db = await _dbHelper.database;
+    var removed = 0;
+    await db.transaction((txn) async {
+      final rows = await txn.query('image_assets', columns: ['path']);
       for (final r in rows) {
         final p = r['path'] as String;
         if (!validLogicalPaths.contains(p)) {
-          await db.delete('image_assets', where: 'path = ?', whereArgs: [p]);
+          await txn.delete('image_assets', where: 'path = ?', whereArgs: [p]);
           removed++;
         }
       }
-      return removed;
-    } catch (e) {
-      debugPrint('[ImageAssetDao] deleteOrphans error: $e');
-      return 0;
-    }
+    });
+    return removed;
   }
 }

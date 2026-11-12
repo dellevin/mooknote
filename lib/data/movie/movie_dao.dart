@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../like_util.dart';
 import '../playlist/playlist_dao.dart';
 
 /// 影视数据访问对象
@@ -142,10 +143,10 @@ class MovieDao {
   // 搜索影视（标题或别名）
   Future<List<Movie>> searchMovies(String keyword) => _wrap('searchMovies', () async {
     final db = await _dbHelper.database;
-    final likeKeyword = '%$keyword%';
+    final likeKeyword = likePattern(keyword);
     final List<Map<String, dynamic>> maps = await db.query(
       'movies',
-      where: '(title LIKE ? OR alternate_titles LIKE ?) AND is_deleted = ?',
+      where: "(title LIKE ? ESCAPE '\\' OR alternate_titles LIKE ? ESCAPE '\\') AND is_deleted = ?",
       whereArgs: [likeKeyword, likeKeyword, 0],
       orderBy: 'created_at DESC',
     );

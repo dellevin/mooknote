@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../models/data_models.dart';
 import '../database_helper.dart';
+import '../like_util.dart';
 import '../playlist/playlist_dao.dart';
 
 /// 书籍数据访问对象
@@ -129,8 +130,8 @@ class BookDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
-      where: '(title LIKE ? OR alternate_titles LIKE ?) AND is_deleted = ?',
-      whereArgs: ['%$query%', '%$query%', 0],
+      where: "(title LIKE ? ESCAPE '\\' OR alternate_titles LIKE ? ESCAPE '\\') AND is_deleted = ?",
+      whereArgs: [likePattern(query), likePattern(query), 0],
       orderBy: 'created_at DESC',
     );
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -141,8 +142,8 @@ class BookDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
-      where: 'authors LIKE ? AND is_deleted = ?',
-      whereArgs: ['%$author%', 0],
+      where: "authors LIKE ? ESCAPE '\\' AND is_deleted = ?",
+      whereArgs: [likePattern(author), 0],
       orderBy: 'created_at DESC',
     );
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));
@@ -153,8 +154,8 @@ class BookDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'books',
-      where: 'genres LIKE ? AND is_deleted = ?',
-      whereArgs: ['%$genre%', 0],
+      where: "genres LIKE ? ESCAPE '\\' AND is_deleted = ?",
+      whereArgs: [likePattern(genre), 0],
       orderBy: 'created_at DESC',
     );
     return List.generate(maps.length, (i) => Book.fromJson(maps[i]));

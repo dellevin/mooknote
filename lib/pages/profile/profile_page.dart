@@ -1039,7 +1039,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                   color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () async {
                 Navigator.pop(ctx);
+                final oldPath = _userPrefs.heroBackgroundPath;
                 await _userPrefs.clearHeroBackgroundPath();
+                await ImagePathHelper.deleteOwnedImage(oldPath, 'hero_bg');
                 if (!mounted) return;
                 setState(() => _heroBgPath = null);
               },
@@ -1064,7 +1066,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           'hero_${DateTime.now().millisecondsSinceEpoch}${ext.isNotEmpty ? ext : '.jpg'}';
       final savedPath = path.join(bgDir.path, fileName);
       await File(pickedFile.path).copy(savedPath);
+      final oldPath = _userPrefs.heroBackgroundPath;
       await _userPrefs.setHeroBackgroundPath(savedPath);
+      await ImagePathHelper.deleteOwnedImage(oldPath, 'hero_bg');
       if (!mounted) return;
       setState(() => _heroBgPath = savedPath);
     } catch (e) {

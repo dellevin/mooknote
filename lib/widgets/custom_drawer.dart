@@ -468,9 +468,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 return GestureDetector(
                   onTap: () {
                     Navigator.pop(ctx);
-                    applyAndRefresh(() {
-                      userPrefs.clearProfileBgImagePath();
+                    applyAndRefresh(() async {
+                      final oldPath = userPrefs.profileBgImagePath;
+                      await userPrefs.clearProfileBgImagePath();
                       userPrefs.setProfileBgGradient(isDefault ? -1 : colorIdx);
+                      await ImagePathHelper.deleteOwnedImage(oldPath, 'profile_bg');
                     });
                   },
                   child: Container(
@@ -541,9 +543,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   color: colors.onSurface.withValues(alpha: 0.25)),
               onTap: () {
                 Navigator.pop(ctx);
-                applyAndRefresh(() {
-                  userPrefs.clearProfileBgImagePath();
+                applyAndRefresh(() async {
+                  final oldPath = userPrefs.profileBgImagePath;
+                  await userPrefs.clearProfileBgImagePath();
                   userPrefs.setProfileBgGradient(-1);
+                  await ImagePathHelper.deleteOwnedImage(oldPath, 'profile_bg');
                 });
               },
             ),
@@ -567,7 +571,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
           'profile_${DateTime.now().millisecondsSinceEpoch}${ext.isNotEmpty ? ext : '.jpg'}';
       final savedPath = path.join(bgDir.path, fileName);
       await File(pickedFile.path).copy(savedPath);
+      final oldPath = UserPrefs().profileBgImagePath;
       await UserPrefs().setProfileBgImagePath(savedPath);
+      await ImagePathHelper.deleteOwnedImage(oldPath, 'profile_bg');
       provider.notifyUserInfoChanged();
       if (mounted) setState(() {});
     } catch (e) {
