@@ -79,7 +79,8 @@ class CustomBottomNavBar extends StatelessWidget {
       result = ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          // sigma 过大会让滚动时每帧实时模糊采样成为掉帧源，15 观感接近、开销约减半
+          filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: dock,
         ),
       );

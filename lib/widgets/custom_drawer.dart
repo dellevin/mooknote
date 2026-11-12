@@ -234,7 +234,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
         backgroundColor: Colors.transparent,
         child: ClipRect(
           child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+            filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: Container(color: colors.surfaceContainerHigh, child: content),
           ),
         ),

@@ -653,9 +653,13 @@ class _MainContentPageState extends State<MainContentPage> {
                   opacity: i == safeIndex ? 1.0 : 0.0,
                   duration: Duration(milliseconds: i == safeIndex ? 260 : 340),
                   curve: Curves.easeOut,
-                  child: KeyedSubtree(
-                    key: ValueKey('main-tab-${tabs[i].originalIndex}'),
-                    child: pages[i],
+                  // RepaintBoundary：交叉淡化期间各页光栅化独立，
+                  // 隐藏页滚动/重绘不会带着其他页一起重绘
+                  child: RepaintBoundary(
+                    child: KeyedSubtree(
+                      key: ValueKey('main-tab-${tabs[i].originalIndex}'),
+                      child: pages[i],
+                    ),
                   ),
                 ),
               ),
