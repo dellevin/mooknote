@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../data/database_helper.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 数据库查看器（调试模式）：浏览表结构/行数/数据，执行 SELECT 查询
 class DbViewerPage extends StatefulWidget {
@@ -46,6 +47,7 @@ class _DbViewerPageState extends State<DbViewerPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('数据库查看器'.tr),
         actions: [
           IconButton(
@@ -389,6 +391,7 @@ class _DbTablePageState extends State<DbTablePage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: _selectMode
             ? Text('已选 ${_selected.length} 行'.tr,
                 style: const TextStyle(fontSize: 15))
@@ -756,7 +759,10 @@ class _DbQueryPageState extends State<DbQueryPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('SELECT 查询'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('SELECT 查询'.tr),
+      ),
       body: Column(
         children: [
           Padding(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 偏好设置编辑器（调试模式）：查看/编辑/删除 SharedPreferences 数据
 class PrefsEditorPage extends StatefulWidget {
@@ -257,6 +258,7 @@ class _PrefsEditorPageState extends State<PrefsEditorPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('偏好设置编辑器'.tr),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),

@@ -9,6 +9,7 @@ import 'game_review_form_page.dart';
 import 'game_review_detail_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/image_grid_editor.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 游戏评价列表页面
 class GameReviewsPage extends StatefulWidget {
@@ -81,6 +82,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: _isSearching
             ? TextField(
                 controller: _searchController,

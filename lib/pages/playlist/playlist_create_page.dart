@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/pressable_scale.dart';
 import '../../widgets/fade_in_local_image.dart';
 
@@ -163,6 +164,7 @@ class _PlaylistCreatePageState extends State<PlaylistCreatePage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(_isEdit ? '编辑片单'.tr : '创建片单'.tr),
       ),
       bottomNavigationBar: SafeArea(

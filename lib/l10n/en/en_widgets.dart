@@ -107,6 +107,8 @@ const Map<String, String> enWidgets = {
   '同步未完成，未传输任何数据': 'Sync incomplete: no data transferred',
   '同步正在进行中，请稍后再试': 'Sync already in progress, please try again later',
   '重命名失败，请稍后重试': 'Rename failed, please try again later',
+  '拖动排序': 'Drag to reorder',
+  '排序已保存': 'Order saved',
   '服务器上没有备份文件，请先从其他设备上传': 'No backup file on server. Please upload from another device first',
   '服务器返回错误: {code}': 'Server error: {code}',
   '未配置 WebDAV': 'WebDAV not configured',

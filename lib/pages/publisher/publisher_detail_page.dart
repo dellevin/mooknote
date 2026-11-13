@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/publisher_avatar.dart';
+import '../../widgets/app_back_button.dart';
 import '../book/book_detail_page.dart';
 
 /// 出版社详情页（只读：按社名精确匹配书籍 publisher 文本）
@@ -25,6 +26,7 @@ class PublisherDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(publisherName),
       ),
       body: SingleChildScrollView(

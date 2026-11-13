@@ -7,6 +7,7 @@ import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'book_excerpt_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书籍摘抄列表页面
@@ -53,6 +54,7 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('摘抄'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         actions: [
           IconButton(

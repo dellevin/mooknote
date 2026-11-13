@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/sync/cache_cleaner.dart';
 import '../../utils/toast_util.dart';
@@ -57,7 +58,10 @@ class _CacheCleanerPageState extends State<CacheCleanerPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('缓存分析'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('缓存分析'.tr),
+      ),
       body: _scanning
           ? const Center(child: CircularProgressIndicator())
           : scan == null

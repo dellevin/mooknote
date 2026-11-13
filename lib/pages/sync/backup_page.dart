@@ -9,6 +9,7 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/export_options_dialog.dart';
 import '../../widgets/storage_permission_dialog.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 本地备份页面
 class BackupPage extends StatefulWidget {
@@ -44,6 +45,7 @@ class _BackupPageState extends State<BackupPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('本地备份'.tr),
       ),
       body: ListView(

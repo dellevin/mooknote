@@ -13,6 +13,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 import '../../widgets/edit_sheets.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 添加/编辑书评页面
 class BookReviewFormPage extends StatefulWidget {
@@ -67,6 +68,7 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(isEdit ? '编辑书评'.tr : '写书评'.tr),
       ),
       body: Form(

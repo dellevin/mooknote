@@ -13,6 +13,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/slide_up_page_route.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 
 /// TMDB 影视详情页（电影/剧集）
@@ -255,6 +256,7 @@ class _TmdbDetailPageState extends State<TmdbDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(_isMovie ? '电影详情'.tr : '剧集详情'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,

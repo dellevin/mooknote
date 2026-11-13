@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/bangumi_service.dart';
 import '../../utils/toast_util.dart';
@@ -131,7 +132,7 @@ class _BangumiCharactersPageState extends State<BangumiCharactersPage> {
                   _selected.clear();
                 }),
               )
-            : null,
+            : const AppBackButton(),
         actions: _selecting
             ? [
                 TextButton(
@@ -320,6 +321,7 @@ class _BangumiStaffPageState extends State<BangumiStaffPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('制作人员'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,

@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 import 'media_journal_page.dart';
 
 /// 月度海报工作台：布局/筛选/元素可编辑，截图后系统分享
@@ -131,7 +132,10 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text('海报'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('海报'.tr),
+      ),
       body: Column(
         children: [
           // 截图生成期间锁定所有外部操作，避免重建全量树导致截图错位

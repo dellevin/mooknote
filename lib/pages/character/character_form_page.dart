@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
@@ -84,6 +85,7 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
+          leading: const AppBackButton(),
           title: Text(isEdit ? '编辑角色'.tr : '添加角色'.tr),
           actions: [
             Padding(

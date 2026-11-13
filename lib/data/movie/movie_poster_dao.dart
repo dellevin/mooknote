@@ -22,7 +22,7 @@ class MoviePosterDao {
       'movie_posters',
       where: 'movie_id = ? AND is_deleted = 0',
       whereArgs: [movieId],
-      orderBy: 'created_at DESC',
+      orderBy: 'sort_order ASC, created_at DESC',
     );
     return List.generate(maps.length, (i) => MoviePoster.fromJson(maps[i]));
   });
@@ -39,10 +39,35 @@ class MoviePosterDao {
     return MoviePoster.fromJson(maps.first);
   });
 
-  /// 添加海报
+  /// 添加海报（自动排到当前影片海报末尾）
   Future<int> insertPoster(MoviePoster poster) => _wrap('insertPoster', () async {
     final db = await _dbHelper.database;
-    return await db.insert('movie_posters', poster.toJson());
+    return await db.transaction((txn) async {
+      final row = await txn.rawQuery(
+        'SELECT MAX(sort_order) AS m FROM movie_posters WHERE movie_id = ?',
+        [poster.movieId],
+      );
+      final next = ((row.first['m'] as int?) ?? -1) + 1;
+      return await txn.insert('movie_posters', {
+        ...poster.toJson(),
+        'sort_order': next,
+      });
+    });
+  });
+
+  /// 按给定 id 顺序重排（列表索引即新的 sort_order）
+  Future<void> reorderPosters(List<String> orderedIds) => _wrap('reorderPosters', () async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await txn.update(
+          'movie_posters',
+          {'sort_order': i},
+          where: 'id = ?',
+          whereArgs: [orderedIds[i]],
+        );
+      }
+    });
   });
 
   /// 软删除海报

@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/edit_sheets.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 添加/编辑游戏评价页面
 class GameReviewFormPage extends StatefulWidget {
@@ -66,7 +67,10 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text((isEdit ? '编辑评价' : '写评价').tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text((isEdit ? '编辑评价' : '写评价').tr),
+      ),
       body: Form(
         key: _formKey,
         child: Column(

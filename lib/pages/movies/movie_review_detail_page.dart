@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_grid_editor.dart';
 import 'movie_review_form_page.dart';
@@ -102,6 +103,7 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('影评详情'.tr),
         actions: [
           IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _navigateToEdit(context), tooltip: '编辑'.tr),

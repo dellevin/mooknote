@@ -5,6 +5,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/publisher_avatar.dart';
+import '../../widgets/app_back_button.dart';
 import 'publisher_detail_page.dart';
 
 /// 出版社列表页（只读：从书籍 publisher 文本实时聚合，无独立数据表）
@@ -245,6 +246,7 @@ class _PublisherListPageState extends State<PublisherListPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('出版社'.tr),
       ),
       body: Column(

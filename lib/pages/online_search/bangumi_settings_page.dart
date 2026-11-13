@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../services/bangumi_service.dart';
 import '../../services/http_proxy_overrides.dart';
 import '../../utils/user_prefs.dart';
@@ -123,7 +124,10 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('Bangumi 搜索'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('Bangumi 搜索'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

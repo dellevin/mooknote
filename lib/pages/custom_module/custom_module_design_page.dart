@@ -10,6 +10,7 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/custom_module_field.dart';
 import '../../widgets/custom_module_icon.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 自定义模块单个表单设计的编辑页：字段增删改排
 /// （从表单设计列表页进入；返回或点右上角保存均可保存，无字段的设计不允许保存）
@@ -98,6 +99,7 @@ class _CustomModuleDesignPageState extends State<CustomModuleDesignPage> {
       child: Scaffold(
       backgroundColor: colors.surfaceContainerLowest,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(
           design != null
               ? (module != null ? '${module.name} · ${design.name}' : design.name)

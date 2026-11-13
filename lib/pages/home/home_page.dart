@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/app_provider.dart';
@@ -1075,11 +1076,9 @@ class _PersonListDialogState extends State<_PersonListDialog> {
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
           child: Row(children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back, size: 20),
+            AppBackButton(
+              size: 20,
               onPressed: () => setState(() => _selectedPerson = null),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
             ),
             const SizedBox(width: 8),
             Text(person.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),

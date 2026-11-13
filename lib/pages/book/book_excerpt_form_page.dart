@@ -6,6 +6,7 @@ import '../../utils/toast_util.dart';
 import 'book_excerpt_share_page.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mooknote/l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 摘抄表单页面 - 新增/编辑摘抄
 class BookExcerptFormPage extends StatefulWidget {
@@ -73,6 +74,7 @@ class _BookExcerptFormPageState extends State<BookExcerptFormPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(_isEditing ? '编辑摘抄'.tr : '添加摘抄'.tr),
         actions: [
           if (_isLoading)
@@ -423,6 +425,7 @@ class _FullTextEditPageState extends State<_FullTextEditPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(widget.title),
         actions: [
           TextButton(

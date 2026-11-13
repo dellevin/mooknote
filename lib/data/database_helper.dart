@@ -81,7 +81,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 58,
+      version: 59,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -340,6 +340,7 @@ class DatabaseHelper {
           game_id TEXT NOT NULL,
           screenshot_path TEXT NOT NULL,
           is_deleted INTEGER DEFAULT 0,
+          sort_order INTEGER DEFAULT 0,
           created_at TEXT NOT NULL,
           FOREIGN KEY (game_id) REFERENCES games (id)
         )
@@ -557,6 +558,15 @@ class DatabaseHelper {
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_playlist_items_unique '
         'ON playlist_items(playlist_id, item_id)',
       );
+    }
+    if (oldVersion < 59) {
+      // 海报墙/游戏截图支持手动拖动排序
+      for (final t in ['movie_posters', 'game_screenshots']) {
+        final cols = await db.rawQuery('PRAGMA table_info($t)');
+        if (!cols.any((c) => c['name'] == 'sort_order')) {
+          await db.execute('ALTER TABLE $t ADD COLUMN sort_order INTEGER DEFAULT 0');
+        }
+      }
     }
   }
 
@@ -867,6 +877,7 @@ class DatabaseHelper {
         movie_id TEXT NOT NULL,
         poster_path TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (movie_id) REFERENCES movies (id)
       )
@@ -1164,6 +1175,7 @@ class DatabaseHelper {
         movie_id TEXT NOT NULL,
         poster_path TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (movie_id) REFERENCES movies (id)
       )
@@ -1269,6 +1281,7 @@ class DatabaseHelper {
         game_id TEXT NOT NULL,
         screenshot_path TEXT NOT NULL,
         is_deleted INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (game_id) REFERENCES games (id)
       )

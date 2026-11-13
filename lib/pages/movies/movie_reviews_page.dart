@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import 'movie_review_form_page.dart';
 import 'movie_review_detail_page.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/image_grid_editor.dart';
 import '../../l10n/app_strings.dart';
@@ -81,6 +82,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: _isSearching
             ? TextField(
                 controller: _searchController,

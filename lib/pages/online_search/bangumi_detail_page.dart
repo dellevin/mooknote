@@ -13,6 +13,7 @@ import '../../utils/image_path_helper.dart';
 import '../../utils/slide_up_page_route.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 import 'bangumi_characters_page.dart';
 import 'bangumi_person_sheet.dart';
@@ -814,6 +815,7 @@ class _BangumiDetailPageState extends State<BangumiDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('条目详情'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,

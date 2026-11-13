@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 import 'webdav_sync_page.dart';
 
 /// 云备份主页面 - 选择备份方式
@@ -11,7 +12,10 @@ class CloudSyncPage extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
-      appBar: AppBar(title: Text('云备份'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('云备份'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

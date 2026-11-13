@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -217,6 +218,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
+          leading: const AppBackButton(),
           title: Text(isEdit ? '编辑影视'.tr : '添加影视'.tr),
         actions: [
           // 保存按钮

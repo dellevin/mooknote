@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/toast_util.dart';
@@ -712,7 +713,7 @@ class _WebDAVSyncPageState extends State<WebDAVSyncPage> {
         backgroundColor: colors.surface,
         appBar: AppBar(
           title: Text('WebDAV 备份'.tr),
-          leading: _isLoading ? const SizedBox.shrink() : null,
+          leading: _isLoading ? const SizedBox.shrink() : const AppBackButton(),
         ),
       body: Stack(
         children: [

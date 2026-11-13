@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
@@ -217,7 +218,7 @@ class _CharacterListScaffold extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(leading: const AppBackButton(), title: Text(title)),
       floatingActionButton: FloatingActionButton(
         onPressed: onAdd,
         child: const Icon(Icons.add),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
@@ -57,6 +58,7 @@ class _AppIconPickerPageState extends State<AppIconPickerPage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('应用图标'.tr),
       ),
       body: ListView.builder(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../widgets/app_back_button.dart';
 import '../../data/movie/movie_dao.dart';
 import '../../data/book/book_dao.dart';
 import '../../data/note/note_dao.dart';
@@ -179,10 +180,7 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
                   ),
                   child: Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      ),
+                      const AppBackButton(color: Colors.white),
                       const Spacer(),
                       Text(
                         '${_currentIndex + 1} / ${_items.length}',

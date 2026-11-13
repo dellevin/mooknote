@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 想看清单总览页面 - 汇总影视/书籍/游戏的想看记录
 class WatchlistPage extends StatefulWidget {
@@ -363,6 +364,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('想看清单'.tr),
         actions: [
           if (items.isNotEmpty) ...[

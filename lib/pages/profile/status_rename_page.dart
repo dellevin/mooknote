@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/status_labels.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 主页模块状态自定义：影视 / 阅读 / 游戏各 4 个状态。
 /// 支持自定义显示文案（留空用默认名）与拖拽调整显示顺序；底层状态 key 不变。
@@ -93,6 +94,7 @@ class _StatusRenamePageState extends State<StatusRenamePage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('主页模块状态自定义'.tr),
         actions: [
           TextButton(onPressed: _resetAll, child: Text('恢复默认'.tr)),

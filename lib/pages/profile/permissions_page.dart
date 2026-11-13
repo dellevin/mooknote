@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/system_settings_channel.dart';
@@ -112,7 +113,7 @@ class _PermissionsPageState extends State<PermissionsPage>
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('获取系统权限'.tr)),
+      appBar: AppBar(leading: const AppBackButton(), title: Text('获取系统权限'.tr)),
       body: ListView.separated(
         itemCount: items.length,
         separatorBuilder: (_, __) => Divider(

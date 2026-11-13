@@ -8,6 +8,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/image_grid_editor.dart';
+import '../../widgets/app_back_button.dart';
 import '../book/book_detail_page.dart';
 import '../movies/movie_detail_page.dart';
 
@@ -300,6 +301,7 @@ class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(_title),
         actions: [
           // 搜索按钮向左展开为药丸输入框（AnimatedSize 右对齐生长）

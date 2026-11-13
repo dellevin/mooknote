@@ -17,6 +17,7 @@ import '../../utils/image_path_helper.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/edit_sheets.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
@@ -188,6 +189,7 @@ class _GameFormPageState extends State<GameFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
+          leading: const AppBackButton(),
           title: Text(isEdit ? '编辑游戏'.tr : '添加游戏'.tr),
           actions: [
             _buildActionButton(

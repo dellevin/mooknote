@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/report_service.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 意见反馈页：提交反馈给开发者；历史反馈与回复在底部弹窗中查看
@@ -97,7 +98,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('意见反馈'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('意见反馈'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [

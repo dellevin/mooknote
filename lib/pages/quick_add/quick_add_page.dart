@@ -10,6 +10,7 @@ import '../../utils/toast_util.dart';
 import '../../utils/douban_parser.dart';
 import '../../utils/steam_parser.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 豆瓣官方 logo（绿色）
 const _doubanSvg = '''
@@ -103,6 +104,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('快捷添加'.tr),
         backgroundColor: colors.surface,
       ),

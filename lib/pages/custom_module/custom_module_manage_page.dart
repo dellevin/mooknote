@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
@@ -46,6 +47,7 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerLowest,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('自定义分类'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
         actions: [

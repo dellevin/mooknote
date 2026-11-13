@@ -6,6 +6,7 @@ import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
 import 'module_layout_settings_page.dart';
 import 'status_rename_page.dart';
+import '../../widgets/app_back_button.dart';
 
 class LayoutSettingsPage extends StatefulWidget {
   const LayoutSettingsPage({super.key});
@@ -40,7 +41,10 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('布局设置'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('布局设置'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [

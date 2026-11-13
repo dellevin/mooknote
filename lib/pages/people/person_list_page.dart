@@ -7,6 +7,7 @@ import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/person_avatar.dart';
+import '../../widgets/app_back_button.dart';
 import 'person_detail_page.dart';
 import 'person_form_page.dart';
 import '../../widgets/app_overlay.dart';
@@ -251,6 +252,7 @@ class _PersonListPageState extends State<PersonListPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('人物'.tr),
         actions: [
           IconButton(

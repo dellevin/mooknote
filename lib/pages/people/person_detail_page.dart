@@ -11,6 +11,7 @@ import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
 import 'person_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 人物档案详情页
 class PersonDetailPage extends StatefulWidget {
@@ -61,6 +62,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(person.name),
       ),
       body: Stack(

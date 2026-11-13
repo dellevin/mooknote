@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
@@ -100,6 +101,7 @@ class _PersonListPageState extends State<PersonListPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('角色信息'.tr),
         actions: [
           IconButton(
@@ -296,7 +298,7 @@ class _PersonDetailPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text(person.name)),
+      appBar: AppBar(leading: const AppBackButton(), title: Text(person.name)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
         children: [

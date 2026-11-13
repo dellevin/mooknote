@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_back_button.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../movies/movie_detail_page.dart';
@@ -369,9 +370,9 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: Row(
           children: [
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
+            AppBackButton(
+              size: 20,
+              color: colors.onSurface.withValues(alpha: 0.7),
             ),
             const Spacer(),
             Text('漫步'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../l10n/app_strings.dart';
 import 'enhanced_search_settings_page.dart';
 import 'tmdb_settings_page.dart';
@@ -12,7 +13,10 @@ class OnlineSearchApiSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text('在线搜索 API'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('在线搜索 API'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 12),
         children: [

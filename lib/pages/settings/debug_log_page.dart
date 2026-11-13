@@ -8,6 +8,7 @@ import '../../l10n/app_strings.dart';
 import '../../services/log_service.dart';
 import '../../services/report_service.dart';
 import '../../utils/toast_util.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 调试日志页：查看运行日志，支持按时间段筛选、导出保存、清空
 class DebugLogPage extends StatefulWidget {
@@ -320,6 +321,7 @@ class _DebugLogPageState extends State<DebugLogPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('运行日志'.tr),
         actions: [
           IconButton(

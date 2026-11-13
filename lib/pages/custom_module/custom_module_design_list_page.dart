@@ -13,6 +13,7 @@ import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
 import 'custom_module_design_page.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 自定义模块的表单设计列表页：展示该模块下所有表单设计
 /// 支持新增/重命名/删除/切换使用中，点击进入单个设计的编辑页
@@ -57,6 +58,7 @@ class _CustomModuleDesignListPageState extends State<CustomModuleDesignListPage>
     return Scaffold(
       backgroundColor: colors.surfaceContainerLowest,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(module != null ? '{name} · 表单设计'.trf({'name': module.name}) : '表单设计'.tr,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,

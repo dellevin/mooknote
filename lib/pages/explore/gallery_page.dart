@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/gallery/gallery_dao.dart';
 import '../../models/data_models.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'gallery_viewer_page.dart';
 import '../../l10n/app_strings.dart';
@@ -179,6 +180,7 @@ class _GalleryPageState extends State<GalleryPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('图库'.tr),
         actions: [
           if (!_loading && _allItems.isNotEmpty) _buildSearchAction(colors),

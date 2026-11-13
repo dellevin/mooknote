@@ -4,6 +4,7 @@ import '../../data/custom_module/custom_module_design_dao.dart';
 import '../../data/custom_module/custom_module_item_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/custom_module_field.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/slide_up_page_route.dart';
@@ -286,8 +287,9 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
               height: 48,
               child: Row(children: [
                 const SizedBox(width: 4),
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
+                AppBackButton(
+                  color: colors.onSurface,
+                  size: 18,
                   onPressed: () => Navigator.pop(context, _changed),
                 ),
                 const SizedBox(width: 4),

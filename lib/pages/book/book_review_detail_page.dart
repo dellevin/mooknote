@@ -6,6 +6,7 @@ import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/image_grid_editor.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书评详情页
@@ -58,6 +59,7 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('书评详情'.tr),
         actions: [
           IconButton(

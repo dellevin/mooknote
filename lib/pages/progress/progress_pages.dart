@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -744,6 +745,7 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
               ],
             )
           : AppBar(
+              leading: const AppBackButton(),
               title: Text(_cfg.listTitle.tr),
               actions: [
                 IconButton(
@@ -1204,6 +1206,7 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(widget.existing == null
             ? '添加{n}'.trf({'n': _cfg.itemName(_seq)})
             : '编辑{n}'.trf({'n': _cfg.itemName(_seq)})),

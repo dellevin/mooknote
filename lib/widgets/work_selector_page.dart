@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
+import 'app_back_button.dart';
 import 'fade_in_local_image.dart';
 import '../widgets/app_overlay.dart';
 import '../l10n/app_strings.dart';
@@ -273,6 +274,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('关联作品'.tr),
         actions: [
           TextButton(

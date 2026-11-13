@@ -8,6 +8,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_grid_editor.dart';
 import 'game_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 游戏评价详情页
 class GameReviewDetailPage extends StatefulWidget {
@@ -97,6 +98,7 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('评价详情'.tr),
         actions: [
           IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _navigateToEdit(context), tooltip: '编辑'.tr),

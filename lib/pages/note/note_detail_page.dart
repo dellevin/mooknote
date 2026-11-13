@@ -4,6 +4,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_back_button.dart';
 import '../../models/data_models.dart';
 import '../../utils/image_saver.dart';
 import '../../widgets/image_rename_dialog.dart';
@@ -58,12 +59,7 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        leading: widget.embedded
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
+        leading: widget.embedded ? const AppBackButton() : null,
         titleSpacing: 0,
         title: note.title.isNotEmpty
             ? Text(note.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))

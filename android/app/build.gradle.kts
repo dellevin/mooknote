@@ -64,6 +64,12 @@ android {
     }
 }
 
+dependencies {
+    // umeng_apm_sdk 2.3.7 仍传递依赖 apm:2.0.1（.so 仅 4KB 对齐），
+    // 强制升级到 2.1.0 以支持 16KB 页大小内核（Android 15 / Flyme 12.6）
+    implementation("com.umeng.umsdk:apm:2.1.0")
+}
+
 flutter {
     source = "../.."
 }

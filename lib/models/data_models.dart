@@ -568,6 +568,7 @@ class MoviePoster {
   final String movieId;
   final String posterPath;
   final bool isDeleted;
+  final int sortOrder;
   final DateTime createdAt;
 
   MoviePoster({
@@ -575,6 +576,7 @@ class MoviePoster {
     required this.movieId,
     required this.posterPath,
     this.isDeleted = false,
+    this.sortOrder = 0,
     required this.createdAt,
   });
 
@@ -584,6 +586,7 @@ class MoviePoster {
       movieId: json['movie_id']?.toString() ?? '',
       posterPath: json['poster_path'] ?? '',
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      sortOrder: _safeParseInt(json['sort_order']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
     );
   }
@@ -594,6 +597,7 @@ class MoviePoster {
       'movie_id': movieId,
       'poster_path': posterPath,
       'is_deleted': isDeleted ? 1 : 0,
+      'sort_order': sortOrder,
       'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
@@ -964,6 +968,7 @@ class GameScreenshot {
   final String gameId;
   final String screenshotPath;
   final bool isDeleted;
+  final int sortOrder;
   final DateTime createdAt;
 
   GameScreenshot({
@@ -971,6 +976,7 @@ class GameScreenshot {
     required this.gameId,
     required this.screenshotPath,
     this.isDeleted = false,
+    this.sortOrder = 0,
     required this.createdAt,
   });
 
@@ -980,6 +986,7 @@ class GameScreenshot {
       gameId: json['game_id']?.toString() ?? '',
       screenshotPath: json['screenshot_path'] ?? '',
       isDeleted: json['is_deleted'] == 1 || json['is_deleted'] == true,
+      sortOrder: _safeParseInt(json['sort_order']),
       createdAt: _safeParseDate(json['created_at'], fallback: DateTime.now())!,
     );
   }
@@ -990,6 +997,7 @@ class GameScreenshot {
       'game_id': gameId,
       'screenshot_path': screenshotPath,
       'is_deleted': isDeleted ? 1 : 0,
+      'sort_order': sortOrder,
       'created_at': createdAt.toUtc().toIso8601String(),
     };
   }

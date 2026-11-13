@@ -22,7 +22,7 @@ class GameScreenshotDao {
       'game_screenshots',
       where: 'game_id = ? AND is_deleted = 0',
       whereArgs: [gameId],
-      orderBy: 'created_at DESC',
+      orderBy: 'sort_order ASC, created_at DESC',
     );
     return List.generate(maps.length, (i) => GameScreenshot.fromJson(maps[i]));
   });
@@ -39,10 +39,35 @@ class GameScreenshotDao {
     return GameScreenshot.fromJson(maps.first);
   });
 
-  /// 添加截图
+  /// 添加截图（自动排到当前游戏截图末尾）
   Future<int> insertScreenshot(GameScreenshot screenshot) => _wrap('insertScreenshot', () async {
     final db = await _dbHelper.database;
-    return await db.insert('game_screenshots', screenshot.toJson());
+    return await db.transaction((txn) async {
+      final row = await txn.rawQuery(
+        'SELECT MAX(sort_order) AS m FROM game_screenshots WHERE game_id = ?',
+        [screenshot.gameId],
+      );
+      final next = ((row.first['m'] as int?) ?? -1) + 1;
+      return await txn.insert('game_screenshots', {
+        ...screenshot.toJson(),
+        'sort_order': next,
+      });
+    });
+  });
+
+  /// 按给定 id 顺序重排（列表索引即新的 sort_order）
+  Future<void> reorderScreenshots(List<String> orderedIds) => _wrap('reorderScreenshots', () async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await txn.update(
+          'game_screenshots',
+          {'sort_order': i},
+          where: 'id = ?',
+          whereArgs: [orderedIds[i]],
+        );
+      }
+    });
   });
 
   /// 软删除截图

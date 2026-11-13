@@ -8,6 +8,7 @@ import '../../l10n/app_strings.dart';
 import '../../services/font_download_manager.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 字体选择页面
@@ -179,6 +180,7 @@ class _FontPickerPageState extends State<FontPickerPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('选择字体'.tr),
         actions: [
           // 默认字体按钮

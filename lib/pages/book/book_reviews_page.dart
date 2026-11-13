@@ -8,6 +8,7 @@ import 'book_review_form_page.dart';
 import 'book_review_detail_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/image_grid_editor.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:mooknote/l10n/app_strings.dart';
 
 /// 书籍书评列表页面
@@ -81,6 +82,7 @@ class _BookReviewsPageState extends State<BookReviewsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: _isSearching
             ? TextField(
                 controller: _searchController,

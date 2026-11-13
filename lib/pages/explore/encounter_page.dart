@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 相遇统计页
 class EncounterPage extends StatelessWidget {
@@ -21,7 +22,10 @@ class EncounterPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('统计'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('统计'.tr),
+      ),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           final movies = provider.movies.where((m) => !m.isDeleted).toList();

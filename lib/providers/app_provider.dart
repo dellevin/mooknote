@@ -1412,6 +1412,13 @@ class AppProvider extends ChangeNotifier {
     return await _posterDao.getPosterCount(movieId);
   }
 
+  /// 拖动排序海报：持久化新顺序并触碰父行，让增量同步整组推送
+  Future<void> reorderMoviePosters(String movieId, List<String> orderedIds) async {
+    await _posterDao.reorderPosters(orderedIds);
+    await _touchParentUpdatedAt('movies', movieId);
+    notifyListeners();
+  }
+
   // ========== 游戏评价相关方法 ==========
 
   /// 获取游戏的所有评价
@@ -1479,6 +1486,13 @@ class AppProvider extends ChangeNotifier {
   /// 获取游戏的截图数量
   Future<int> getGameScreenshotCount(String gameId) async {
     return await _gameScreenshotDao.getScreenshotCount(gameId);
+  }
+
+  /// 拖动排序截图：持久化新顺序并触碰父行，让增量同步整组推送
+  Future<void> reorderGameScreenshots(String gameId, List<String> orderedIds) async {
+    await _gameScreenshotDao.reorderScreenshots(orderedIds);
+    await _touchParentUpdatedAt('games', gameId);
+    notifyListeners();
   }
 
   // ========== 游戏通关记录相关方法 ==========

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
@@ -21,7 +22,10 @@ class AppearanceSettingsPage extends StatelessWidget {
     final provider = context.watch<AppProvider>();
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('界面设置'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('界面设置'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

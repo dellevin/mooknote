@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 回收站页面
 class RecycleBinPage extends StatefulWidget {
@@ -203,6 +204,7 @@ class _RecycleBinPageState extends State<RecycleBinPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('回收站'.tr),
         actions: [
           if (_allItems.isNotEmpty)

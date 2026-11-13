@@ -12,6 +12,7 @@ import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import 'poster_gallery_page.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
 
@@ -28,6 +29,9 @@ class MoviePostersPage extends StatefulWidget {
 class _MoviePostersPageState extends State<MoviePostersPage> {
   List<MoviePoster> _posters = [];
   bool _isLoading = true;
+  bool _reorderMode = false;
+  bool _saving = false;
+  final List<MoviePoster> _editing = [];
 
   @override
   void initState() {
@@ -51,18 +55,152 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: Text('海报墙'.tr),
+        title: Text(_reorderMode ? '拖动排序'.tr : '海报墙'.tr),
+        leading: _reorderMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: '取消'.tr,
+                onPressed: _cancelReorder,
+              )
+            : const AppBackButton(),
+        actions: [
+          if (!_reorderMode && _posters.length > 1)
+            IconButton(
+              icon: const Icon(Icons.drag_indicator),
+              tooltip: '拖动排序'.tr,
+              onPressed: _enterReorder,
+            ),
+          if (_reorderMode)
+            TextButton(
+              onPressed: _saving ? null : _saveReorder,
+              child: Text('保存'.tr),
+            ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _pickPoster,
-        icon: const Icon(Icons.add_photo_alternate, size: 20),
-        label: Text('添加海报'.tr),
-      ),
+      floatingActionButton: _reorderMode
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _pickPoster,
+              icon: const Icon(Icons.add_photo_alternate, size: 20),
+              label: Text('添加海报'.tr),
+            ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _posters.isEmpty
               ? _buildEmptyState()
-              : _buildPosterGrid(),
+              : _reorderMode
+                  ? _buildReorderList()
+                  : _buildPosterGrid(),
+    );
+  }
+
+  void _enterReorder() {
+    setState(() {
+      _editing
+        ..clear()
+        ..addAll(_posters);
+      _reorderMode = true;
+    });
+  }
+
+  void _cancelReorder() {
+    setState(() {
+      _reorderMode = false;
+      _editing.clear();
+    });
+  }
+
+  Future<void> _saveReorder() async {
+    setState(() => _saving = true);
+    try {
+      await context.read<AppProvider>().reorderMoviePosters(
+            widget.movie.id,
+            _editing.map((p) => p.id).toList(),
+          );
+      if (!mounted) return;
+      setState(() {
+        _reorderMode = false;
+        _saving = false;
+        _editing.clear();
+      });
+      await _loadPosters();
+      if (mounted) ToastUtil.show(context, '排序已保存'.tr);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));
+    }
+  }
+
+  Widget _buildReorderList() {
+    return ReorderableListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: _editing.length,
+      buildDefaultDragHandles: false,
+      onReorder: _onReorder,
+      itemBuilder: (context, index) => _buildReorderRow(index),
+    );
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+      final item = _editing.removeAt(oldIndex);
+      _editing.insert(newIndex, item);
+    });
+  }
+
+  Widget _buildReorderRow(int index) {
+    final poster = _editing[index];
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      key: ValueKey(poster.id),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Material(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        child: ReorderableDragStartListener(
+          index: index,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 56,
+                    height: 80,
+                    child: FadeInLocalImage(path: poster.posterPath, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.drag_indicator,
+                  color: colors.onSurface.withValues(alpha: 0.4),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -7,9 +7,9 @@ environment:
   sdk: ^3.5.0
 
 dependencies:
-  umeng_apm_sdk: ^2.2.1
+  umeng_apm_sdk: ^2.3.7
 
-  umeng_common_sdk: ^1.2.6
+  umeng_common_sdk: ^1.3.1
 
   flutter:
     sdk: flutter
@@ -33,7 +33,7 @@ dependencies:
   http: ^1.2.0
   url_launcher: ^6.2.5
   flutter_inappwebview: ^6.1.5
-  dynamic_color: ^1.8.1
+  dynamic_color: 1.8.1 # 1.9.0 的 Gradle kotlin DSL 与当前 KGP 不兼容，pin 住
   package_info_plus: ^8.0.0
   uuid: ^4.5.0
   crypto: ^3.0.6

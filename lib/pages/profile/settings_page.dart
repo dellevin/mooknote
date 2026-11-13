@@ -23,6 +23,7 @@ import 'permissions_page.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/avatar_helper.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 设置页面
 class SettingsPage extends StatefulWidget {
@@ -49,7 +50,10 @@ class _SettingsPageState extends State<SettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('设置'.tr)),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('设置'.tr),
+      ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [

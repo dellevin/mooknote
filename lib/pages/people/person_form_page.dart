@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
@@ -94,6 +95,7 @@ class _PersonFormPageState extends State<PersonFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
+          leading: const AppBackButton(),
           title: Text(isEdit ? '编辑人物'.tr : '添加人物'.tr),
         ),
         bottomNavigationBar: SafeArea(

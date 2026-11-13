@@ -6,6 +6,7 @@ import '../../data/gallery/image_asset_dao.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../utils/image_path_helper.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_grid_editor.dart';
 import 'package:uuid/uuid.dart';
@@ -69,6 +70,7 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(isEdit ? '编辑影评'.tr : '写影评'.tr),
       ),
       body: Form(

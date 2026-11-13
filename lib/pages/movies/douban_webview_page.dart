@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/douban_parser.dart';
 import '../../utils/steam_parser.dart';
@@ -154,7 +155,12 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.all(8),
-            child: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
+            child: SvgPicture.asset(
+              'assets/svg/fan_hui.svg',
+              width: 22,
+              height: 22,
+              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            ),
           ),
         ),
       ),

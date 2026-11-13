@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -636,8 +637,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                 height: 36,
                 decoration: BoxDecoration(
                     color: colors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: Icon(Icons.arrow_back,
-                    size: 20, color: colors.onSurface),
+                child: SvgPicture.asset(
+                  'assets/svg/fan_hui.svg',
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
+                ),
               ),
             ),
             const Spacer(),
@@ -767,10 +772,14 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                   if (fullscreen)
                     GestureDetector(
                       onTap: _exitFullscreen,
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.arrow_back,
-                            color: Colors.white, size: 22),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: SvgPicture.asset(
+                          'assets/svg/fan_hui.svg',
+                          width: 22,
+                          height: 22,
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        ),
                       ),
                     ),
                   if (epName.isNotEmpty) ...[
@@ -1054,8 +1063,11 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                             decoration: BoxDecoration(
                                 color: colors.surfaceContainerHigh,
                                 shape: BoxShape.circle),
-                            child: Icon(Icons.arrow_back,
-                                size: 20, color: colors.onSurface)),
+                            child: SvgPicture.asset(
+                                'assets/svg/fan_hui.svg',
+                                width: 20,
+                                height: 20,
+                                colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn))),
                       ),
                       const Spacer(),
                       GestureDetector(
@@ -1221,7 +1233,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                         child: Container(
                             width: 36, height: 36,
                             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
-                            child: const Icon(Icons.arrow_back, size: 20, color: Colors.white)),
+                            child: SvgPicture.asset(
+                              'assets/svg/fan_hui.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                            )),
                       ),
                       const Spacer(),
                       GestureDetector(

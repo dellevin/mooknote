@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
@@ -207,7 +208,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(title: Text('功能设置'.tr)),
+      appBar: AppBar(leading: const AppBackButton(), title: Text('功能设置'.tr)),
       body: ListView(
         children: [
           // ── 启动设置 ──

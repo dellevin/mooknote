@@ -19,6 +19,7 @@ import '../../widgets/edit_sheets.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 自定义模块条目 新增/编辑 表单页：按激活设计的 fields_json 动态渲染
 /// （字段控件渲染与设计页共用 custom_module_field.dart，保证两处 UI 一致）
@@ -118,6 +119,7 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
     return Scaffold(
       backgroundColor: colors.surfaceContainerLowest,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(_isEdit ? '编辑'.tr : '新增'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: colors.surface,
         actions: [

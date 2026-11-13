@@ -5,6 +5,7 @@ import '../../utils/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_back_button.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
@@ -223,14 +224,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 height: 48,
                 child: Row(children: [
                   const SizedBox(width: 4),
-                  IconButton(
-                    icon: widget.embedded
-                        ? Icon(Icons.arrow_back, color: colors.onSurface, size: 18)
-                        : Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
-                    onPressed: widget.embedded
-                        ? () => Navigator.pop(context)
-                        : () => Navigator.pop(context),
-                  ),
+                  AppBackButton(color: colors.onSurface, size: 18),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(movie.title,
@@ -296,14 +290,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 height: 48,
                 child: Row(children: [
                   const SizedBox(width: 4),
-                  IconButton(
-                    icon: widget.embedded
-                        ? const Icon(Icons.arrow_back, color: Colors.white, size: 18)
-                        : const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-                    onPressed: widget.embedded
-                        ? () => Navigator.pop(context)
-                        : () => Navigator.pop(context),
-                  ),
+                  const AppBackButton(color: Colors.white, size: 18),
                   ValueListenableBuilder<bool>(
                     valueListenable: _showTitle,
                     builder: (_, show, __) => AnimatedOpacity(
@@ -380,14 +367,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 height: 48,
                 child: Row(children: [
                   const SizedBox(width: 4),
-                  IconButton(
-                    icon: widget.embedded
-                        ? Icon(Icons.arrow_back, color: colors.onSurface, size: 18)
-                        : Icon(Icons.arrow_back_ios_new, color: colors.onSurface, size: 18),
-                    onPressed: widget.embedded
-                        ? () => Navigator.pop(context)
-                        : () => Navigator.pop(context),
-                  ),
+                  AppBackButton(color: colors.onSurface, size: 18),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(movie.title,
@@ -482,16 +462,9 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                   height: 48,
                   child: Row(children: [
                     const SizedBox(width: 4),
-                    IconButton(
-                      icon: Icon(
-                        widget.embedded
-                            ? Icons.arrow_back
-                            : Icons.arrow_back_ios_new,
-                        color: show ? colors.onSurface : Colors.white,
-                        size: 18),
-                      onPressed: widget.embedded
-                          ? () => Navigator.pop(context)
-                          : () => Navigator.pop(context),
+                    AppBackButton(
+                      color: show ? colors.onSurface : Colors.white,
+                      size: 18,
                     ),
                     const SizedBox(width: 4),
                     Expanded(

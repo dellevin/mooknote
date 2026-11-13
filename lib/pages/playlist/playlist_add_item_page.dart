@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/animated_star_rating.dart';
 
@@ -100,6 +101,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(type == 'all' ? '添加条目'.tr : '添加{type}'.trf({'type': widget.playlist.typeLabel.tr})),
       ),
       body: Column(

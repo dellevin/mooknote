@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import 'search_page.dart';
@@ -51,6 +52,7 @@ class _SearchHubPageState extends State<SearchHubPage> {
     ];
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('搜索'.tr),
         elevation: 0,
         scrolledUnderElevation: 0,

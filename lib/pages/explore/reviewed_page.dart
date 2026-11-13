@@ -6,6 +6,7 @@ import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/animated_star_rating.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
@@ -130,6 +131,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
         return Scaffold(
           appBar: AppBar(
+            leading: const AppBackButton(),
             title: Text('已阅'.tr),
             actions: [
               if (allItems.isNotEmpty) ...[

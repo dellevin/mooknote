@@ -11,6 +11,7 @@ import '../game/game_detail_page.dart';
 import 'playlist_add_item_page.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 import '../../utils/responsive.dart';
 import '../../utils/user_prefs.dart';
@@ -546,6 +547,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
     return Scaffold(
       extendBodyBehindAppBar: showWall,
       appBar: AppBar(
+        leading: const AppBackButton(),
         backgroundColor: transparentBar ? Colors.transparent : null,
         elevation: transparentBar ? 0 : null,
         scrolledUnderElevation: 0,

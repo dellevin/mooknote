@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
@@ -234,7 +235,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
                 tooltip: '退出多选'.tr,
                 onPressed: () => setState(_exitSelection),
               )
-            : null,
+            : const AppBackButton(),
         title: Text(_selectionMode
             ? '已选 {n} 项'.trf({'n': _selectedIds.length})
             : '标签'.tr),

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import '../../l10n/app_strings.dart';
 
 /// 头像裁剪页：圆形裁剪框，双指缩放 + 拖动调整位置
@@ -24,6 +25,7 @@ class _AvatarCropPageState extends State<AvatarCropPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        leading: const AppBackButton(),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: Text('调整头像'.tr),

@@ -4,6 +4,7 @@ import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
+import '../../widgets/app_back_button.dart';
 
 /// 单个模块（影视 / 阅读 / 游戏 / 笔记）的布局设置页
 ///
@@ -103,6 +104,7 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text((_titles[widget.type] ?? '').tr),
       ),
       body: ListView(

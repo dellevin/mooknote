@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../utils/image_picker_helper.dart';
 import 'package:path/path.dart' as p;
@@ -250,7 +251,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
               final shouldPop = await _confirmLeave();
               if (shouldPop && mounted) Navigator.pop(context);
             },
-            icon: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.onSurface.withValues(alpha: 0.7)),
+            icon: SvgPicture.asset(
+              'assets/svg/fan_hui.svg',
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(
+                colors.onSurface.withValues(alpha: 0.7),
+                BlendMode.srcIn,
+              ),
+            ),
           ),
           Expanded(
             child: Text(

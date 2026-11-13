@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/app_back_button.dart';
 import '../../utils/image_saver.dart';
 import '../../widgets/image_rename_dialog.dart';
 
@@ -97,10 +98,7 @@ class _PosterGalleryPageState extends State<PosterGalleryPage> {
                 child: Row(
                   children: [
                     // 返回按钮
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                    const AppBackButton(color: Colors.white),
                     const Spacer(),
                     // 页码指示器
                     Text(

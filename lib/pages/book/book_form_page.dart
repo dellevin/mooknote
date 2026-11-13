@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -164,6 +165,7 @@ class _BookFormPageState extends State<BookFormPage> {
       child: Scaffold(
         backgroundColor: colors.surface,
         appBar: AppBar(
+          leading: const AppBackButton(),
           title: Text(isEdit ? '编辑书籍'.tr : '添加书籍'.tr),
           actions: [
             _buildActionButton(icon: Icons.save_outlined, onPressed: _saveBook, tooltip: '保存'.tr),

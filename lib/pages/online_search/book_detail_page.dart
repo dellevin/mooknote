@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
@@ -351,7 +352,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       decoration: BoxDecoration(
                           color: colors.surfaceContainerHigh,
                           shape: BoxShape.circle),
-                      child: Icon(Icons.arrow_back, size: 20, color: colors.onSurface)),
+                      child: SvgPicture.asset(
+                        'assets/svg/fan_hui.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
+                      )),
                 ),
               ]),
             ),

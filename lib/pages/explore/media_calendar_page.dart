@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
@@ -266,6 +267,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('书影日历'.tr),
         actions: [
           IconButton(
@@ -1011,6 +1013,7 @@ class _CalendarSearchPageState extends State<_CalendarSearchPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: TextField(
           controller: _ctrl,
           autofocus: true,

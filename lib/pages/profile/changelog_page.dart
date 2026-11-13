@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/changelog_service.dart';
+import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
 
 /// 更新日志页面
@@ -130,6 +131,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('更新日志'.tr),
         actions: [
           _checking

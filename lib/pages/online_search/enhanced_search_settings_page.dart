@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/app_back_button.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/server_config.dart';
 import '../../utils/toast_util.dart';
@@ -152,6 +153,7 @@ class _EnhancedSearchSettingsPageState
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text('增强搜索'.tr),
       ),
       body: ListView(
