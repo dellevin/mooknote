@@ -2,19 +2,83 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_explore_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/app_back_button.dart';
-import '../../widgets/cloud_unsupported_view.dart';
 
 /// 相遇统计页
-class EncounterPage extends StatelessWidget {
+class EncounterPage extends StatefulWidget {
   const EncounterPage({super.key});
 
   @override
+  State<EncounterPage> createState() => _EncounterPageState();
+}
+
+class _EncounterPageState extends State<EncounterPage> {
+  bool get _anyCloud => UserPrefs().cloudMovieMode ||
+      UserPrefs().cloudBookMode ||
+      UserPrefs().cloudNoteMode;
+
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+  Map<String, int> _cloud = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    if (_anyCloud) _loadCloud();
+  }
+
+  Future<void> _loadCloud() async {
+    setState(() {
+      _cloudLoading = true;
+      _cloudError = false;
+    });
+    try {
+      final data = await CloudExploreService.instance.fetchEncounter();
+      setState(() {
+        _cloud = data;
+        _cloudLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _cloudLoading = false;
+        _cloudError = true;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudNoteMode) return const CloudUnsupportedView(title: '统计');
     final colors = Theme.of(context).colorScheme;
+    if (_anyCloud && _cloudLoading) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('统计'.tr)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_anyCloud && _cloudError) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('统计'.tr)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 44, color: colors.onSurface.withValues(alpha: 0.3)),
+              const SizedBox(height: 12),
+              Text('云端记录加载失败'.tr,
+                  style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _loadCloud, child: Text('重试'.tr)),
+            ],
+          ),
+        ),
+      );
+    }
+
     final userPrefs = UserPrefs();
     final firstUse = userPrefs.firstUseDate;
     final now = DateTime.now();
@@ -28,27 +92,53 @@ class EncounterPage extends StatelessWidget {
         leading: const AppBackButton(),
         title: Text('统计'.tr),
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, child) {
-          final movies = provider.movies.where((m) => !m.isDeleted).toList();
-          final books = provider.books.where((b) => !b.isDeleted).toList();
-          final notes = provider.notes.where((n) => !n.isDeleted).toList();
+      body: _anyCloud
+          ? _buildBody(
+              colors,
+              days,
+              firstUse,
+              now,
+              (_cloud['movieCount'] ?? 0) +
+                  (_cloud['bookCount'] ?? 0) +
+                  (_cloud['noteCount'] ?? 0),
+              _cloud['noteWords'] ?? 0,
+              _cloud['imageCount'] ?? 0,
+            )
+          : Consumer<AppProvider>(
+              builder: (context, provider, child) {
+                final movies = provider.movies.where((m) => !m.isDeleted).toList();
+                final books = provider.books.where((b) => !b.isDeleted).toList();
+                final notes = provider.notes.where((n) => !n.isDeleted).toList();
 
-          final noteWords = notes.fold<int>(0, (sum, n) => sum + n.content.length);
-          int imageCount = 0;
-          for (final m in movies) {
-            if (m.posterPath != null && m.posterPath!.isNotEmpty) imageCount++;
-          }
-          for (final b in books) {
-            if (b.coverPath != null && b.coverPath!.isNotEmpty) imageCount++;
-          }
-          for (final n in notes) {
-            imageCount += n.images.length;
-          }
+                final noteWords = notes.fold<int>(0, (sum, n) => sum + n.content.length);
+                int imageCount = 0;
+                for (final m in movies) {
+                  if (m.posterPath != null && m.posterPath!.isNotEmpty) imageCount++;
+                }
+                for (final b in books) {
+                  if (b.coverPath != null && b.coverPath!.isNotEmpty) imageCount++;
+                }
+                for (final n in notes) {
+                  imageCount += n.images.length;
+                }
 
-          final totalRecords = movies.length + books.length + notes.length;
+                return _buildBody(
+                  colors,
+                  days,
+                  firstUse,
+                  now,
+                  movies.length + books.length + notes.length,
+                  noteWords,
+                  imageCount,
+                );
+              },
+            ),
+    );
+  }
 
-          return CustomScrollView(
+  Widget _buildBody(ColorScheme colors, int days, DateTime firstUse, DateTime now,
+      int totalRecords, int noteWords, int imageCount) {
+    return CustomScrollView(
             slivers: [
               // 上半部分：与你 + 天数
               SliverToBoxAdapter(
@@ -148,9 +238,6 @@ class EncounterPage extends StatelessWidget {
                 ),
               ),
             ],
-          );
-        },
-      ),
     );
   }
 

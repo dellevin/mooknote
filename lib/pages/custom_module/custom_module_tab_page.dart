@@ -79,14 +79,48 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
     }
   }
 
+  /// 下拉刷新：云模式先失效全量缓存强制重拉，再重载当前模块条目（静默，不切全屏 loading）
+  Future<void> _refresh() async {
+    _itemDao.invalidateCloudCache();
+    await _load();
+  }
+
+  /// 非网格态（加载/无设计/空）包成可滚动容器，使 RefreshIndicator 内容不足一屏时也能下拉
+  Widget _buildRefreshPlaceholder(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final colors = Theme.of(context).colorScheme;
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (!_hasActiveDesign) return _buildNoDesign(colors);
+    if (_loading) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: _buildRefreshPlaceholder(
+          const Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (!_hasActiveDesign) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: _buildRefreshPlaceholder(_buildNoDesign(colors)),
+      );
+    }
 
-    return _items.isEmpty ? _buildEmpty(colors) : _buildGrid(colors);
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: _items.isEmpty ? _buildRefreshPlaceholder(_buildEmpty(colors)) : _buildGrid(colors),
+    );
   }
 
   Widget _buildNoDesign(ColorScheme colors) {
@@ -130,6 +164,7 @@ class _CustomModuleTabPageState extends State<CustomModuleTabPage> with Automati
         // 与影视 tab 一致：按可用宽度自适应列数
         final crossAxisCount = responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
         return GridView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../l10n/app_strings.dart';
 import '../../utils/server_config.dart';
 import '../../utils/user_prefs.dart';
 import '../sync/incremental/sync_identity.dart';
@@ -38,14 +39,23 @@ class CloudDomainDataService {
       (request as http.Request).body = jsonEncode(body);
     }
     final streamed = await request.send().timeout(const Duration(seconds: 30));
-    final data =
-        jsonDecode(utf8.decode(await streamed.stream.toBytes())) as Map<String, dynamic>;
+    final bodyBytes = await streamed.stream.toBytes();
+    if (streamed.statusCode != 200) {
+      throw StateError(
+          '云端请求失败 (HTTP {code})'.trf({'code': streamed.statusCode}));
+    }
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(utf8.decode(bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      throw StateError('云端响应解析失败'.tr);
+    }
     if (data['code'] == 401) {
       await UserPrefs().clearCloudAccount();
-      throw StateError('登录失效，已切换成本地数据，请重新登录');
+      throw StateError('登录失效，已切换成本地数据，请重新登录'.tr);
     }
     if (data['code'] != 0) {
-      throw StateError(data['msg']?.toString() ?? '云端操作失败');
+      throw StateError(data['msg']?.toString() ?? '云端操作失败'.tr);
     }
     return data['data'];
   }
@@ -78,6 +88,7 @@ class CloudDomainDataService {
     String? status,
     String? category,
     String? keyword,
+    String? publisher,
     int sortMode = 0,
     int offset = 0,
     int limit = 20,
@@ -86,6 +97,7 @@ class CloudDomainDataService {
       if (status != null && status.isNotEmpty) 'status': status,
       if (category != null && category.isNotEmpty) 'category': category,
       if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      if (publisher != null && publisher.isNotEmpty) 'publisher': publisher,
       'sortMode': '$sortMode',
       'offset': '$offset',
       'limit': '$limit',
@@ -94,6 +106,20 @@ class CloudDomainDataService {
       _parseList(data['list'], parser),
       (data['total'] as num?)?.toInt() ?? 0,
     );
+  }
+
+  /// 出版社名录：服务端按 TRIM(publisher) 分组统计，返回社名 + 书籍数（count 倒序）。
+  /// 出版社无独立数据表，客户端内存聚合会受主表首页 50 条上限影响，故走独立聚合接口。
+  Future<List<MapEntry<String, int>>> fetchPublishers() async {
+    final data = await _get('domains/books/publishers');
+    if (data is! List) return const [];
+    return data.map((e) {
+      final row = Map<String, dynamic>.from(e as Map);
+      return MapEntry(
+        row['name']?.toString() ?? '',
+        (row['count'] as num?)?.toInt() ?? 0,
+      );
+    }).toList();
   }
 
   Future<List<T>> deletedMain<T>(
@@ -122,8 +148,8 @@ class CloudDomainDataService {
   Future<void> softDeleteMain(String domain, String id) =>
       _delete('domains/$domain/$id');
 
-  Future<void> restoreMain(String domain, String id) =>
-      _post('domains/$domain/$id/restore', {});
+  Future<void> restoreMain(String domain, String id) async =>
+      _post('domains/$domain/$id/restore', await _withClientId({}));
 
   Future<void> permanentDeleteMain(String domain, String id) =>
       _delete('domains/$domain/$id/permanent');
@@ -156,8 +182,8 @@ class CloudDomainDataService {
   Future<void> deleteChild(String resource, String rowId) =>
       _delete('domain-child/$resource/$rowId');
 
-  Future<void> restoreChild(String resource, String rowId) =>
-      _post('domain-child/$resource/$rowId/restore', {});
+  Future<void> restoreChild(String resource, String rowId) async =>
+      _post('domain-child/$resource/$rowId/restore', await _withClientId({}));
 
   Future<void> permanentDeleteChild(String resource, String rowId) =>
       _delete('domain-child/$resource/$rowId/permanent');
@@ -185,8 +211,9 @@ class CloudDomainDataService {
     }).toList();
   }
 
-  Future<void> reorderMedia(String domain, String parentId, List<String> orderedIds) =>
-      _post('domains/$domain/$parentId/media/reorder', {'ids': orderedIds});
+  Future<void> reorderMedia(String domain, String parentId, List<String> orderedIds) async =>
+      _post('domains/$domain/$parentId/media/reorder',
+          await _withClientId({'ids': orderedIds}));
 
   // ------------------------------------------------------------------
   // 独立实体（笔记 notes）
@@ -214,8 +241,8 @@ class CloudDomainDataService {
           T Function(Map<String, dynamic>) parser) async =>
       _parseList(await _get('domain-entities/$resource/deleted'), parser);
 
-  Future<void> restoreEntity(String resource, String id) =>
-      _post('domain-entities/$resource/$id/restore', {});
+  Future<void> restoreEntity(String resource, String id) async =>
+      _post('domain-entities/$resource/$id/restore', await _withClientId({}));
 
   Future<void> permanentDeleteEntity(String resource, String id) =>
       _delete('domain-entities/$resource/$id/permanent');

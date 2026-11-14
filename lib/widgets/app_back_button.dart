@@ -13,7 +13,7 @@ class AppBackButton extends StatelessWidget {
     super.key,
     this.onPressed,
     this.color,
-    this.size = 24,
+    this.size = 20,
     this.tooltip,
   });
 

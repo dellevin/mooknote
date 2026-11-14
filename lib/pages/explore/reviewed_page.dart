@@ -8,7 +8,8 @@ import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
-import '../../widgets/cloud_unsupported_view.dart';
+import '../../services/cloud/cloud_explore_service.dart';
+import '../../utils/toast_util.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
@@ -75,6 +76,18 @@ class _ReviewedPageState extends State<ReviewedPage> {
   // 游戏最近通关日期（gameId -> 最近一条通关记录日期），异步加载
   Map<String, DateTime?> _gameCompletionDate = {};
 
+  // ── 云端轻量行（仅云模式域使用；本地域仍读 AppProvider）──
+  bool get _anyCloud => UserPrefs().cloudMovieMode ||
+      UserPrefs().cloudBookMode ||
+      UserPrefs().cloudGameMode;
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
+  // 云端游戏最近通关日（reviewed 接口附带的 last_completion_date）
+  Map<String, DateTime?> _cloudGameCompletion = {};
+
   bool _isSearching = false;
   String _keyword = '';
   final TextEditingController _searchCtrl = TextEditingController();
@@ -82,7 +95,88 @@ class _ReviewedPageState extends State<ReviewedPage> {
   @override
   void initState() {
     super.initState();
-    _loadGameCompletionDates();
+    if (_anyCloud) {
+      _loadCloud();
+    }
+    // 本地游戏域仍走本地通关记录；云端游戏域用接口返回的通关日
+    if (!UserPrefs().cloudGameMode) _loadGameCompletionDates();
+  }
+
+  Future<void> _loadCloud() async {
+    final types = <String>[
+      if (UserPrefs().cloudMovieMode) 'movie',
+      if (UserPrefs().cloudBookMode) 'book',
+      if (UserPrefs().cloudGameMode) 'game',
+    ];
+    setState(() {
+      _cloudLoading = true;
+      _cloudError = false;
+    });
+    try {
+      final data = await CloudExploreService.instance.fetchReviewed(types);
+      final rawGames = ((data['games'] as List?) ?? const [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      setState(() {
+        _cloudMovies = ((data['movies'] as List?) ?? const [])
+            .map((e) => Movie.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        _cloudBooks = ((data['books'] as List?) ?? const [])
+            .map((e) => Book.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        _cloudGames = rawGames.map((e) => Game.fromJson(e)).toList();
+        _cloudGameCompletion = {
+          for (final e in rawGames)
+            e['id']?.toString() ?? '':
+                DateTime.tryParse(e['last_completion_date']?.toString() ?? '')
+        };
+        _cloudLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _cloudLoading = false;
+        _cloudError = true;
+      });
+    }
+  }
+
+  /// 点击条目：云模式轻量行先按 id 拉完整实体再进详情，本地模式直接用内存实体
+  Future<void> _openDetail(_ReviewedItem item) async {
+    final prefs = UserPrefs();
+    final isCloud = switch (item.type) {
+      _ItemType.movie => prefs.cloudMovieMode,
+      _ItemType.book => prefs.cloudBookMode,
+      _ItemType.game => prefs.cloudGameMode,
+    };
+    dynamic entity = item.original;
+    if (isCloud) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      try {
+        final provider = context.read<AppProvider>();
+        entity = await switch (item.type) {
+          _ItemType.movie => provider.cloudMovieById(item.id),
+          _ItemType.book => provider.cloudBookById(item.id),
+          _ItemType.game => provider.cloudGameById(item.id),
+        };
+      } finally {
+        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      }
+      if (entity == null) {
+        if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+        return;
+      }
+    }
+    if (!mounted) return;
+    final page = switch (item.type) {
+      _ItemType.movie => MovieDetailPage(movie: entity as Movie),
+      _ItemType.book => BookDetailPage(book: entity as Book),
+      _ItemType.game => GameDetailPage(game: entity as Game),
+    };
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   @override
@@ -120,13 +214,38 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode) return const CloudUnsupportedView(title: '已阅');
+    final colors = Theme.of(context).colorScheme;
+    if (_anyCloud && _cloudLoading) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('已阅'.tr)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_anyCloud && _cloudError) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('已阅'.tr)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 44, color: colors.onSurface.withValues(alpha: 0.3)),
+              const SizedBox(height: 12),
+              Text('云端记录加载失败'.tr,
+                  style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _loadCloud, child: Text('重试'.tr)),
+            ],
+          ),
+        ),
+      );
+    }
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final allItems = _buildAllItems(provider);
         final years = _buildYearList(allItems);
         final filtered = _sortItems(_filterItems(_searchItems(allItems)));
-        final colors = Theme.of(context).colorScheme;
         // 展开后的搜索框宽度：为返回键、按钮和边距预留空间
         final searchWidth =
             (MediaQuery.of(context).size.width - 132).clamp(180.0, 320.0);
@@ -348,14 +467,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
     };
 
     return GestureDetector(
-      onTap: () {
-        final page = switch (item.type) {
-          _ItemType.movie => MovieDetailPage(movie: item.original as Movie),
-          _ItemType.book => BookDetailPage(book: item.original as Book),
-          _ItemType.game => GameDetailPage(game: item.original as Game),
-        };
-        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-      },
+      onTap: () => _openDetail(item),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -912,9 +1024,14 @@ class _ReviewedPageState extends State<ReviewedPage> {
   // ─── 数据构建 ─────────────────────────────────────────────────────
 
   List<_ReviewedItem> _buildAllItems(AppProvider provider) {
+    final prefs = UserPrefs();
+    // 云模式域走轻量行，本地域仍读 Provider
+    final movies = prefs.cloudMovieMode ? _cloudMovies : provider.movies;
+    final books = prefs.cloudBookMode ? _cloudBooks : provider.books;
+    final games = prefs.cloudGameMode ? _cloudGames : provider.games;
     final items = <_ReviewedItem>[];
 
-    for (final m in provider.movies) {
+    for (final m in movies) {
       if (!m.isDeleted && m.status == 'watched') {
         items.add(_ReviewedItem(
           id: m.id,
@@ -933,7 +1050,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
       }
     }
 
-    for (final b in provider.books) {
+    for (final b in books) {
       if (!b.isDeleted && b.status == 'read') {
         items.add(_ReviewedItem(
           id: b.id,
@@ -952,7 +1069,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
       }
     }
 
-    for (final g in provider.games) {
+    for (final g in games) {
       if (!g.isDeleted && g.status == 'completed') {
         items.add(_ReviewedItem(
           id: g.id,
@@ -963,7 +1080,9 @@ class _ReviewedPageState extends State<ReviewedPage> {
           coverPath: g.coverPath,
           rating: g.rating,
           createdAt: g.createdAt,
-          actionDate: _gameCompletionDate[g.id],
+          actionDate: UserPrefs().cloudGameMode
+              ? _cloudGameCompletion[g.id]
+              : _gameCompletionDate[g.id],
           count: g.playCount,
           year: g.releaseDate?.year,
           genres: g.genres,
@@ -1249,14 +1368,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: () {
-            final page = switch (item.type) {
-              _ItemType.movie => MovieDetailPage(movie: item.original as Movie),
-              _ItemType.book => BookDetailPage(book: item.original as Book),
-              _ItemType.game => GameDetailPage(game: item.original as Game),
-            };
-            Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-          },
+          onTap: () => _openDetail(item),
           child: Container(
             padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
             decoration: BoxDecoration(

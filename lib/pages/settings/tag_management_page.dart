@@ -6,6 +6,7 @@ import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
 
 class TagManagementPage extends StatefulWidget {
@@ -27,6 +28,8 @@ class _TagManagementPageState extends State<TagManagementPage> {
       ['影视类型'.tr, '书籍类型'.tr, '笔记标签'.tr, '游戏类型'.tr];
 
   final Map<String, List<Map<String, dynamic>>> _tagCache = {};
+  // 云端标签类型正在拉取的集合：仅无缓存首次加载时显示加载动画
+  final Set<String> _loadingTypes = {};
   Map<String, int> _usageCounts = {};
   String? _newlyAddedTagId;
   String _searchQuery = '';
@@ -83,10 +86,27 @@ class _TagManagementPageState extends State<TagManagementPage> {
     _usageCounts = counts;
   }
 
+  /// 标签类型是否走云端（混合模式下本地域不显示加载动画）
+  bool _isCloudType(String type) => switch (type) {
+        'movie_genre' => UserPrefs().cloudMovieMode,
+        'book_genre' => UserPrefs().cloudBookMode,
+        'note_tag' => UserPrefs().cloudNoteMode,
+        'game_genre' => UserPrefs().cloudGameMode,
+        _ => false,
+      };
+
   Future<void> _loadTags(String type) async {
-    final provider = context.read<AppProvider>();
-    final tags = await provider.getTags(type);
-    if (mounted) setState(() => _tagCache[type] = tags);
+    // 已有缓存的切换不闪加载圈；本地 SQLite 很快，也不加加载态
+    if (_isCloudType(type) && _tagCache[type] == null && mounted) {
+      setState(() => _loadingTypes.add(type));
+    }
+    try {
+      final provider = context.read<AppProvider>();
+      final tags = await provider.getTags(type);
+      if (mounted) setState(() => _tagCache[type] = tags);
+    } finally {
+      if (mounted) setState(() => _loadingTypes.remove(type));
+    }
   }
 
   Future<void> _syncTags() async {
@@ -113,6 +133,18 @@ class _TagManagementPageState extends State<TagManagementPage> {
       _exitSelection();
     });
     _loadTags(_tabTypes[index]);
+  }
+
+  /// 下拉刷新：强制重拉当前类型标签并重算用量（保留旧缓存，不闪全屏加载圈）
+  Future<void> _refresh() async {
+    final provider = context.read<AppProvider>();
+    final tags = await provider.getTags(_currentType);
+    if (mounted) {
+      setState(() {
+        _tagCache[_currentType] = tags;
+        _updateUsageCounts();
+      });
+    }
   }
 
   String get _currentType => _tabTypes[_currentIndex];
@@ -262,11 +294,14 @@ class _TagManagementPageState extends State<TagManagementPage> {
           ],
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        child: _buildTagList(_currentType),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: _buildTagList(_currentType),
+        ),
       ),
       floatingActionButton: _selectionMode ? null : Column(
         mainAxisSize: MainAxisSize.min,
@@ -351,6 +386,18 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final colors = Theme.of(context).colorScheme;
     final isSearching = _searchQuery.isNotEmpty;
 
+    // 云端首次拉取中：居中加载动画（AnimatedSwitcher 自动做淡入淡出）
+    if (_loadingTypes.contains(type) && _tagCache[type] == null) {
+      return SingleChildScrollView(
+        key: ValueKey('loading_$type'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: 300,
+          child: Center(child: CircularProgressIndicator(color: colors.primary)),
+        ),
+      );
+    }
+
     if (tags.isEmpty && !isSearching) {
       return KeyedSubtree(
         key: ValueKey('empty_$type'),
@@ -364,6 +411,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
         ..sort((a, b) => (_usageCounts[b['name']] ?? 0).compareTo(_usageCounts[a['name']] ?? 0));
       return SingleChildScrollView(
         key: ValueKey('search_$type'),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (filtered.isEmpty)
@@ -392,6 +440,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     if (roots.isEmpty) {
       return SingleChildScrollView(
         key: ValueKey(type),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,6 +455,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
     final items = _flattenTree(roots, childrenByParent);
     return ListView.builder(
       key: ValueKey(type),
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 80),
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -835,22 +885,30 @@ class _TagManagementPageState extends State<TagManagementPage> {
       '同步或手动添加游戏类型'.tr,
     ];
 
-    return Center(
+    return LayoutBuilder(
       key: ValueKey('empty_$type'),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64, height: 64,
-            decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(18)),
-            child: Icon(icon, size: 28, color: colors.onSurface.withValues(alpha: 0.25)),
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64, height: 64,
+                  decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(18)),
+                  child: Icon(icon, size: 28, color: colors.onSurface.withValues(alpha: 0.25)),
+                ),
+                const SizedBox(height: 16),
+                Text('暂无{label}'.trf({'label': label}),
+                    style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3), fontWeight: FontWeight.w500)),
+                const SizedBox(height: 6),
+                Text(hints[idx], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.15))),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Text('暂无{label}'.trf({'label': label}),
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3), fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
-          Text(hints[idx], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.15))),
-        ],
+        ),
       ),
     );
   }

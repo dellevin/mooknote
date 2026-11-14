@@ -53,6 +53,15 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     if (mounted) setState(() {});
   }
 
+  /// 下拉刷新：片单、条目 id、封面兜底作品全部重拉
+  Future<void> _refresh() async {
+    final provider = context.read<AppProvider>();
+    await provider.refreshPlaylists();
+    if (!mounted) return;
+    _playlistItemIds.clear();
+    await Future.wait([_loadAllItemIds(), _loadCloudWorks()]);
+  }
+
   Future<void> _loadAllItemIds() async {
     final provider = context.read<AppProvider>();
     for (final playlist in provider.playlists) {
@@ -133,13 +142,29 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
               ),
             ],
           ),
-          body: playlists.isEmpty
-              ? _buildEmpty(context)
-              : _layoutStyle == 0
-                  ? _buildListView(context, playlists, provider)
-                  : _buildGridView(context, playlists, provider),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            child: playlists.isEmpty
+                ? _buildEmptyScrollable(context)
+                : _layoutStyle == 0
+                    ? _buildListView(context, playlists, provider)
+                    : _buildGridView(context, playlists, provider),
+          ),
         );
       },
+    );
+  }
+
+  /// 空态也要可滚动，下拉刷新才能在没有片单时触发
+  Widget _buildEmptyScrollable(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: _buildEmpty(context),
+        ),
+      ),
     );
   }
 
@@ -179,6 +204,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
       BuildContext context, List<Playlist> playlists, AppProvider provider) {
     return ReorderableListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: playlists.length,
       onReorderStart: (_) => _frozenPlaylists = List.of(playlists),
       onReorderEnd: (_) {
@@ -428,6 +454,7 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
     final colors = Theme.of(context).colorScheme;
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      physics: const AlwaysScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.62,

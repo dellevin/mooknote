@@ -187,9 +187,11 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     final kw = keyword.toLowerCase();
     final results = <_SearchResult>[];
 
-    // 云模式：影视在服务端，直接走服务器关键词搜索（标题/别名），
-    // 不参与本地内存过滤与分集命中；其余三类仍为本地数据
+    // 云模式：影视/书籍/游戏在服务端，直接走服务器关键词搜索（标题/别名），
+    // 不参与本地内存过滤与分集/章节/关卡命中；笔记为全量实体，仍走内存
     final cloudMode = provider.isCloudMovieMode;
+    final cloudBookMode = provider.isCloudBookMode;
+    final cloudGameMode = provider.isCloudGameMode;
     List<Movie> cloudMovies = const [];
     if (cloudMode) {
       try {
@@ -197,6 +199,24 @@ class _SearchPageBodyState extends State<SearchPageBody> {
       } catch (e) {
         if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
         cloudMovies = const [];
+      }
+    }
+    List<Book> cloudBooks = const [];
+    if (cloudBookMode) {
+      try {
+        cloudBooks = await provider.searchCloudBooks(keyword);
+      } catch (e) {
+        if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+        cloudBooks = const [];
+      }
+    }
+    List<Game> cloudGames = const [];
+    if (cloudGameMode) {
+      try {
+        cloudGames = await provider.searchCloudGames(keyword);
+      } catch (e) {
+        if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+        cloudGames = const [];
       }
     }
 
@@ -226,7 +246,10 @@ class _SearchPageBodyState extends State<SearchPageBody> {
       }
     }
     if (_showBooks) {
-      for (final book in provider.books.where((b) => !b.isDeleted && bookHit(b))) {
+      final bookHits = cloudBookMode
+          ? cloudBooks
+          : provider.books.where((b) => !b.isDeleted && bookHit(b));
+      for (final book in bookHits) {
         results.add(_SearchResult(type: 'book', data: book));
       }
     }
@@ -236,7 +259,10 @@ class _SearchPageBodyState extends State<SearchPageBody> {
       }
     }
     if (_showGames) {
-      for (final game in provider.games.where((g) => !g.isDeleted && gameHit(g))) {
+      final gameHits = cloudGameMode
+          ? cloudGames
+          : provider.games.where((g) => !g.isDeleted && gameHit(g));
+      for (final game in gameHits) {
         results.add(_SearchResult(type: 'game', data: game));
       }
     }
@@ -255,9 +281,13 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     _counts['movie'] = cloudMode
         ? cloudMovies.length
         : provider.movies.where((m) => !m.isDeleted && movieHit(m)).length;
-    _counts['book'] = provider.books.where((b) => !b.isDeleted && bookHit(b)).length;
+    _counts['book'] = cloudBookMode
+        ? cloudBooks.length
+        : provider.books.where((b) => !b.isDeleted && bookHit(b)).length;
     _counts['note'] = provider.notes.where((n) => !n.isDeleted && _noteMatch(n, kw)).length;
-    _counts['game'] = provider.games.where((g) => !g.isDeleted && gameHit(g)).length;
+    _counts['game'] = cloudGameMode
+        ? cloudGames.length
+        : provider.games.where((g) => !g.isDeleted && gameHit(g)).length;
     var customCount = 0;
     for (final item in customItems) {
       if (_customItemMatch(item, kw, await _designFor(item.moduleId))) customCount++;

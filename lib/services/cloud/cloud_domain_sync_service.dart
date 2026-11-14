@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -149,7 +150,8 @@ class CloudDomainSyncService {
           .timeout(const Duration(seconds: 15));
       final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       if (data['code'] != 0) return null;
-      return ((data['data'] as Map).map((k, v) => MapEntry(k as String, (v as num).toInt())));
+      return ((data['data'] as Map).map(
+          (k, v) => MapEntry(k as String, (v as num?)?.toInt() ?? 0)));
     } catch (_) {
       return null;
     }
@@ -266,33 +268,53 @@ class CloudDomainSyncService {
           i,
           dataTotal,
         );
-        final resp = await http
-            .post(
-              Uri.parse('$_base/sync/push'),
-              headers: {'Content-Type': 'application/json', 'token': _token},
-              body: jsonEncode({
-                'c': clientId,
-                'at': DateTime.now().toIso8601String(),
-                'domain': domain,
-                // 仅首批携带 replace，避免后续批次重复清库
-                if (firstBatch) 'replace': true,
-                'ops': slice,
-                'img': <String, String>{},
-              }),
-            )
-            .timeout(const Duration(seconds: 60));
-        firstBatch = false;
-        final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-        if (data['code'] == 401) {
-          await UserPrefs().clearCloudAccount();
-          return CloudDomainResult(
-              success: false, message: '登录失效，已切换成本地数据，请重新登录'.tr);
+        final payload = () => jsonEncode({
+              'c': clientId,
+              'at': DateTime.now().toIso8601String(),
+              'domain': domain,
+              // 仅首批携带 replace，避免后续批次重复清库
+              if (firstBatch) 'replace': true,
+              'ops': slice,
+              'img': <String, String>{},
+            });
+        Object? lastError;
+        var accepted = false;
+        // 单批失败重试 2 次：LWW 幂等 upsert 可安全重放，降低 replace 后半途失败造成残库的概率
+        for (var attempt = 0; attempt < 3 && !accepted; attempt++) {
+          try {
+            final resp = await http
+                .post(
+                  Uri.parse('$_base/sync/push'),
+                  headers: {'Content-Type': 'application/json', 'token': _token},
+                  body: payload(),
+                )
+                .timeout(const Duration(seconds: 120));
+            final data =
+                jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+            if (data['code'] == 401) {
+              await UserPrefs().clearCloudAccount();
+              return CloudDomainResult(
+                  success: false,
+                  message: '登录失效，已切换成本地数据，请重新登录'.tr);
+            }
+            if (data['code'] != 0) {
+              lastError = data['msg']?.toString() ?? '上传失败'.tr;
+              continue;
+            }
+            accepted = true;
+          } catch (e) {
+            lastError = e;
+          }
         }
-        if (data['code'] != 0) {
+        firstBatch = false;
+        if (!accepted) {
+          // 首批携带 replace，失败时服务端可能已清库或只写入部分，打标记待下次提示重传
+          await UserPrefs().markCloudMigrationIncomplete(domain);
           return CloudDomainResult(
-              success: false, message: data['msg']?.toString() ?? '上传失败'.tr);
+              success: false, message: lastError?.toString() ?? '上传失败'.tr);
         }
       }
+      await UserPrefs().clearCloudMigrationIncomplete(domain);
       onProgress?.call(
         '正在上传数据（{done}/{total}）'.trf({'done': dataTotal, 'total': dataTotal}),
         dataTotal,
@@ -342,7 +364,16 @@ class CloudDomainSyncService {
   Future<String?> _uploadIfLocal(String? value) async {
     if (value == null || value.isEmpty || value.startsWith('http')) return value;
     final logical = _toLogical(value);
-    return _uploaded[logical] ?? value;
+    final cached = _uploaded[logical];
+    if (cached != null) return cached;
+    // 预扫描漏网（路径布局不符等）：文件还在就补传，避免本地路径写进云端行
+    if (await File(value).exists()) {
+      final url = await _uploadOne(logical, value);
+      _uploaded[logical] = url;
+      return url;
+    }
+    debugPrint('[CloudDomain] 本地图片丢失，云端行将保留不可访问的本地路径: $value');
+    return value;
   }
 
   Future<Map<String, String>> _checkImagesExistBatch(List<String> logicalPaths) async {
@@ -443,7 +474,9 @@ class CloudDomainSyncService {
     final normalized = absPath.replaceAll('\\', '/');
     final idx = normalized.indexOf('/images/');
     if (idx >= 0) return normalized.substring(idx + 8);
-    return p.basename(absPath);
+    // 不符合标准布局时用完整路径哈希命名，避免不同目录同名文件映射到同一 OSS 对象
+    final digest = sha1.convert(utf8.encode(normalized)).toString();
+    return 'misc/$digest${p.extension(normalized)}';
   }
 }
 

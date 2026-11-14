@@ -185,8 +185,12 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
 
   /// 漫步接口轻量行 → 卡片项（行内只含部分列，fromJson 缺列由模型默认值兜底）
   _StrollItem? _itemFromCloudRow(Map<String, dynamic> row) {
+    // 后端 stroll 影视行把 poster_path 别名为 cover_path，Movie 模型只认 poster_path，需补回
+    final movieRow = row['type'] == 'movie'
+        ? <String, dynamic>{...row, 'poster_path': row['poster_path'] ?? row['cover_path']}
+        : row;
     return switch (row['type']) {
-      'movie' => _itemFromMovie(Movie.fromJson(row), cloud: true),
+      'movie' => _itemFromMovie(Movie.fromJson(movieRow), cloud: true),
       'book' => _itemFromBook(Book.fromJson(row), cloud: true),
       'note' => _itemFromNote(Note.fromJson(row), cloud: true),
       'game' => _itemFromGame(Game.fromJson(row), cloud: true),
@@ -502,7 +506,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         child: Row(
           children: [
             AppBackButton(
-              size: 20,
+              size: 16,
               color: colors.onSurface.withValues(alpha: 0.7),
             ),
             const Spacer(),

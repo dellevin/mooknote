@@ -86,7 +86,7 @@ class CloudSyncPage extends StatelessWidget {
           _buildOption(
             colors: colors,
             icon: Icons.cloud_sync_outlined,
-            title: '服务器云同步'.tr,
+            title: '云端模式'.tr,
             subtitle: '数据上云，同步更简单，操作更方便'.tr,
             onTap: () => _openCloudSync(context),
           ),

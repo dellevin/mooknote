@@ -6,9 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooknote/pages/explore/journal_poster_page.dart';
 import 'package:mooknote/pages/explore/media_journal_page.dart';
+import 'package:mooknote/utils/user_prefs.dart';
 import 'package:mooknote/widgets/fade_in_local_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await UserPrefs.init();
+  });
+
   final png = const Base64Decoder().convert(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   );
@@ -29,6 +37,9 @@ void main() {
               title: 'm $i',
               type: 'movie',
               data: null,
+              parentId: 'm$i',
+              rating: null,
+              creators: const [],
               date: DateTime(2026, 11, (i % 28) + 1),
             ),
         ];
@@ -189,6 +200,9 @@ void main() {
             title: 'm $i',
             type: 'movie',
             data: null,
+            parentId: 'm$i',
+            rating: null,
+            creators: const [],
             date: DateTime(2026, 11, (i % 28) + 1),
           ),
       ];
@@ -261,6 +275,9 @@ void main() {
             title: 'm $i',
             type: 'movie',
             data: null,
+            parentId: 'm$i',
+            rating: null,
+            creators: const [],
             date: DateTime(2026, 11, i + 1),
           ),
       ];
@@ -317,6 +334,9 @@ void main() {
           title: 'm $i',
           type: 'movie',
           data: null,
+          parentId: 'm$i',
+          rating: null,
+          creators: const [],
           date: DateTime(2026, 11, (i % 28) + 1),
         ),
     ];
@@ -360,6 +380,9 @@ void main() {
           title: 'm $i',
           type: 'movie',
           data: null,
+          parentId: 'm$i',
+          rating: null,
+          creators: const [],
           date: DateTime(2026, 11, (i % 28) + 1),
         ),
     ];

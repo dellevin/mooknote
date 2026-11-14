@@ -1077,7 +1077,7 @@ class _PersonListDialogState extends State<_PersonListDialog> {
           padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
           child: Row(children: [
             AppBackButton(
-              size: 20,
+              size: 16,
               onPressed: () => setState(() => _selectedPerson = null),
             ),
             const SizedBox(width: 8),

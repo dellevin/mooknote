@@ -744,25 +744,25 @@ class UserPrefs {
   String get cloudMotto => prefs.getString('cloudMotto') ?? '';
   Future<bool> setCloudMotto(String value) => prefs.setString('cloudMotto', value);
 
-  /// 影视分类是否处于云端浏览模式（true=数据以云端为准，图片走网络 URL）
+  /// 影视分类是否处于云端模式（true=数据以云端为准，图片走网络 URL）
   bool get cloudMovieMode => prefs.getBool(_cloudMovieModeKey) ?? false;
   Future<bool> setCloudMovieMode(bool value) =>
       prefs.setBool(_cloudMovieModeKey, value);
   static const _cloudMovieModeKey = 'cloudMovieMode';
 
-  /// 书籍分类云端浏览模式（与影视开关平级，互不影响）
+  /// 书籍分类云端模式（与影视开关平级，互不影响）
   bool get cloudBookMode => prefs.getBool(_cloudBookModeKey) ?? false;
   Future<bool> setCloudBookMode(bool value) =>
       prefs.setBool(_cloudBookModeKey, value);
   static const _cloudBookModeKey = 'cloudBookMode';
 
-  /// 游戏分类云端浏览模式
+  /// 游戏分类云端模式
   bool get cloudGameMode => prefs.getBool(_cloudGameModeKey) ?? false;
   Future<bool> setCloudGameMode(bool value) =>
       prefs.setBool(_cloudGameModeKey, value);
   static const _cloudGameModeKey = 'cloudGameMode';
 
-  /// 笔记分类云端浏览模式
+  /// 笔记分类云端模式
   bool get cloudNoteMode => prefs.getBool(_cloudNoteModeKey) ?? false;
   Future<bool> setCloudNoteMode(bool value) =>
       prefs.setBool(_cloudNoteModeKey, value);
@@ -771,6 +771,18 @@ class UserPrefs {
   /// 片单/自定义模块不绑定单一媒体域：任一媒体域走云端即整体切云端
   bool get cloudAnyMediaMode =>
       cloudMovieMode || cloudBookMode || cloudGameMode;
+
+  /// 整库迁移中断的作用域（movie/books/games/notes）：
+  /// replace 已清库但后续批次失败时记录，下次进入该域云端入口时提示重新上传
+  List<String> get cloudIncompleteScopes =>
+      prefs.getStringList(_cloudIncompleteScopesKey) ?? const [];
+  Future<void> markCloudMigrationIncomplete(String scope) =>
+      prefs.setStringList(_cloudIncompleteScopesKey,
+          {...cloudIncompleteScopes, scope}.toList());
+  Future<void> clearCloudMigrationIncomplete(String scope) =>
+      prefs.setStringList(_cloudIncompleteScopesKey,
+          cloudIncompleteScopes.where((s) => s != scope).toList());
+  static const _cloudIncompleteScopesKey = 'cloudIncompleteScopes';
 
   /// 清除云端登录态（token 失效或退出登录时调用）
   Future<void> clearCloudAccount() async {
@@ -786,5 +798,6 @@ class UserPrefs {
     await prefs.remove(_cloudBookModeKey);
     await prefs.remove(_cloudGameModeKey);
     await prefs.remove(_cloudNoteModeKey);
+    await prefs.remove(_cloudIncompleteScopesKey);
   }
 }

@@ -9,6 +9,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_rename_dialog.dart';
+import '../../services/cloud/cloud_image_upload.dart';
 import '../../utils/image_saver.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
@@ -59,36 +60,65 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
     return '来自：《{title}》'.trf({'title': item.entityTitle});
   }
 
-  /// 重命名当前图片（自定义显示名，存 image_assets，逻辑路径 key 可跨设备同步）
+  /// 重命名当前图片（本地存 image_assets；云端走专用接口，逻辑路径 key 可跨设备同步）
   Future<void> _renameCurrentItem() async {
     final item = _items[_currentIndex];
-    final saved = await ImageRenameDialog.show(context, item.path);
+    if (!mounted) return;
+    final String? saved;
+    if (CloudImageUpload.isRemoteUrl(item.path)) {
+      saved = await ImageRenameDialog.showCloud(context, item.path, item.customTitle);
+    } else {
+      saved = await ImageRenameDialog.show(context, item.path);
+    }
     if (saved == null || !mounted) return;
+    final title = saved;
     setState(() {
       _items[_currentIndex] =
-          item.copyWith(customTitle: saved.isEmpty ? null : saved);
+          item.copyWith(customTitle: title.isEmpty ? null : title);
     });
   }
 
   Future<void> _navigateToDetail(GalleryItem item) async {
+    final isCloud = CloudImageUpload.isRemoteUrl(item.path);
     dynamic target;
-    switch (item.entityType) {
-      case 'movie':
-        target = await MovieDao().getMovieById(item.entityId);
-        break;
-      case 'book':
-        target = await BookDao().getBookById(item.entityId);
-        break;
-      case 'note':
-        target = await NoteDao().getNoteById(item.entityId);
-        break;
-      case 'game':
-        target = await GameDao().getGameById(item.entityId);
-        break;
-      case 'person':
-        if (!mounted) return;
-        target = await context.read<AppProvider>().getPersonById(item.entityId);
-        break;
+    if (item.entityType == 'person') {
+      // 人物暂无云端详情接口，沿用本地 provider 查询
+      if (!mounted) return;
+      target = await context.read<AppProvider>().getPersonById(item.entityId);
+    } else if (isCloud) {
+      final provider = context.read<AppProvider>();
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+      try {
+        target = await switch (item.entityType) {
+          'movie' => provider.cloudMovieById(item.entityId),
+          'book' => provider.cloudBookById(item.entityId),
+          'note' => provider.cloudNoteById(item.entityId),
+          _ => provider.cloudGameById(item.entityId),
+        };
+      } finally {
+        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      }
+    } else {
+      switch (item.entityType) {
+        case 'movie':
+          target = await MovieDao().getMovieById(item.entityId);
+          break;
+        case 'book':
+          target = await BookDao().getBookById(item.entityId);
+          break;
+        case 'note':
+          target = await NoteDao().getNoteById(item.entityId);
+          break;
+        case 'game':
+          target = await GameDao().getGameById(item.entityId);
+          break;
+      }
     }
     if (!mounted) return;
     if (target == null) {
@@ -136,15 +166,25 @@ class _GalleryViewerPageState extends State<GalleryViewerPage> {
               final item = _items[index];
               return GestureDetector(
                 onTap: () => setState(() => _infoVisible = !_infoVisible),
-                onLongPress: () => ImageSaver.showSaveFromFileSheet(
-                  item.path,
-                  context: context,
-                  extraAction: (
-                    icon: Icons.edit_outlined,
-                    label: '重命名'.tr,
-                    onTap: _renameCurrentItem,
-                  ),
-                ),
+                onLongPress: () => CloudImageUpload.isRemoteUrl(item.path)
+                    ? ImageSaver.showSaveFromNetworkSheet(
+                        item.path,
+                        context: context,
+                        extraAction: (
+                          icon: Icons.edit_outlined,
+                          label: '重命名'.tr,
+                          onTap: _renameCurrentItem,
+                        ),
+                      )
+                    : ImageSaver.showSaveFromFileSheet(
+                        item.path,
+                        context: context,
+                        extraAction: (
+                          icon: Icons.edit_outlined,
+                          label: '重命名'.tr,
+                          onTap: _renameCurrentItem,
+                        ),
+                      ),
                 child: InteractiveViewer(
                   minScale: 0.5,
                   maxScale: 3.0,

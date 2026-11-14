@@ -289,7 +289,7 @@ class _CustomModuleDetailPageState extends State<CustomModuleDetailPage> {
                 const SizedBox(width: 4),
                 AppBackButton(
                   color: colors.onSurface,
-                  size: 18,
+                  size: 15,
                   onPressed: () => Navigator.pop(context, _changed),
                 ),
                 const SizedBox(width: 4),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/gallery/image_asset_dao.dart';
 import '../l10n/app_strings.dart';
+import '../services/cloud/cloud_explore_service.dart';
 import '../services/cloud/cloud_image_upload.dart';
 import '../utils/toast_util.dart';
 import 'app_overlay.dart';
@@ -9,15 +10,47 @@ import 'app_overlay.dart';
 class ImageRenameDialog {
   /// 弹出重命名对话框。返回保存后的名称（空串表示已清除恢复默认），取消返回 null。
   static Future<String?> show(BuildContext context, String absImagePath) async {
-    // 云模式图片是 OSS URL，自定义名称只存在本地 image_assets 表、无法跨设备同步，禁用
+    // 云模式图片是 OSS URL，本地 image_assets 表无法跨设备同步，走专用云端接口
     if (CloudImageUpload.isRemoteUrl(absImagePath)) {
-      ToastUtil.show(context, '云端图片不支持重命名'.tr);
-      return null;
+      return showCloud(context, absImagePath, null);
     }
     final logicalPath = ImageAssetDao.toLogicalPath(absImagePath);
     final current = await ImageAssetDao().getTitle(logicalPath);
     if (!context.mounted) return null;
-    final controller = TextEditingController(text: current ?? '');
+    final saved = await prompt(context, current);
+    if (saved == null) return null;
+    try {
+      await ImageAssetDao().rename(logicalPath, saved);
+    } catch (_) {
+      if (context.mounted) ToastUtil.show(context, '重命名失败，请稍后重试'.tr);
+      return null;
+    }
+    return saved;
+  }
+
+  /// 云端图片重命名：自定义名写入服务端 mn_image_assets，按逻辑路径关联，可跨设备同步。
+  /// [remoteUrl] 为 OSS lite URL；[currentTitle] 为当前自定义名（无则传 null）。
+  static Future<String?> showCloud(
+      BuildContext context, String remoteUrl, String? currentTitle) async {
+    final logicalPath = CloudExploreService.logicalPathFromUrl(remoteUrl);
+    if (logicalPath == null) {
+      ToastUtil.show(context, '重命名失败，请稍后重试'.tr);
+      return null;
+    }
+    final saved = await prompt(context, currentTitle);
+    if (saved == null) return null;
+    try {
+      await CloudExploreService.instance.saveImageAsset(logicalPath, saved);
+    } catch (_) {
+      if (context.mounted) ToastUtil.show(context, '重命名失败，请稍后重试'.tr);
+      return null;
+    }
+    return saved;
+  }
+
+  /// 仅弹出输入框并返回用户输入（空串表示清除，取消为 null），不做任何持久化
+  static Future<String?> prompt(BuildContext context, String? currentTitle) {
+    final controller = TextEditingController(text: currentTitle ?? '');
     // 注意：控制器不要手动 dispose，对话框关闭动画期间 TextField 仍在树中
     return appDialog<String>(
       context: context,
@@ -58,15 +91,6 @@ class ImageRenameDialog {
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         );
       },
-    ).then((saved) async {
-      if (saved == null) return null;
-      try {
-        await ImageAssetDao().rename(logicalPath, saved);
-      } catch (_) {
-        if (context.mounted) ToastUtil.show(context, '重命名失败，请稍后重试'.tr);
-        return null;
-      }
-      return saved;
-    });
+    );
   }
 }

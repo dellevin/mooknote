@@ -255,8 +255,8 @@ class _NoteFormPageState extends State<NoteFormPage> {
             },
             icon: SvgPicture.asset(
               'assets/svg/fan_hui.svg',
-              width: 20,
-              height: 20,
+              width: 16,
+              height: 16,
               colorFilter: ColorFilter.mode(
                 colors.onSurface.withValues(alpha: 0.7),
                 BlendMode.srcIn,

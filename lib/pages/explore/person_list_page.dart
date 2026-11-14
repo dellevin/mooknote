@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../widgets/person_avatar.dart';
-import '../../widgets/cloud_unsupported_view.dart';
+import '../../services/cloud/cloud_explore_service.dart';
+import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
@@ -23,32 +24,116 @@ class _PersonListPageState extends State<PersonListPage> {
   String _filter = 'all'; // all / 导演 / 编剧 / 主演 / 作者
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _loading = false;
+
+  // ── 云端轻量行（云模式域使用，本地域仍读 AppProvider）──
+  bool get _anyCloud =>
+      UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode;
+  bool _cloudError = false;
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+
+  // 服务端作品行分页（人物由客户端聚合，分页落在作品行上）
+  static const int _pageSize = 50;
+  int _page = 0;
+  bool _hasMore = true;
+  bool _loadingMore = false;
+
+  // 人物列表的显示窗口：本地全量数据与云端已聚合结果统一走窗口切片，触底扩窗
+  static const int _visibleWindow = 30;
+  int _visibleCount = _visibleWindow;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _refresh();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels <
+        _scrollController.position.maxScrollExtent - 300) {
+      return;
+    }
+    final total = _filteredPersons().length;
+    if (_visibleCount < total) {
+      // 已加载数据还有未展示的人物，先扩显示窗口
+      setState(() => _visibleCount += _visibleWindow);
+    } else if (_anyCloud && _hasMore && !_loadingMore && !_loading) {
+      _loadMore();
+    }
+  }
+
   Future<void> _refresh() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _cloudError = false;
+      _page = 0;
+      _hasMore = true;
+      _loadingMore = false;
+      _visibleCount = _visibleWindow;
+    });
+    final prefs = UserPrefs();
     final provider = context.read<AppProvider>();
-    await Future.wait([
-      provider.loadMovies(),
-      provider.loadBooks(),
-    ]);
+    try {
+      if (_anyCloud) {
+        final data = await CloudExploreService.instance
+            .fetchPersons(page: 0, size: _pageSize);
+        _cloudMovies = data.movies;
+        _cloudBooks = data.books;
+        _hasMore = data.hasMore;
+      }
+      // 混合模式：本地域仍加载内存首页；纯云端域跳过
+      await Future.wait([
+        if (!prefs.cloudMovieMode) provider.loadMovies(),
+        if (!prefs.cloudBookMode) provider.loadBooks(),
+      ]);
+    } catch (_) {
+      _cloudError = _anyCloud;
+    }
     if (mounted) setState(() => _loading = false);
   }
 
+  /// 触底加载云端作品下一页，追加后人物聚合在 build 时随累积数据重建
+  Future<void> _loadMore() async {
+    _loadingMore = true;
+    final nextPage = _page + 1;
+    try {
+      final data = await CloudExploreService.instance
+          .fetchPersons(page: nextPage, size: _pageSize);
+      if (!mounted) return;
+      setState(() {
+        _page = nextPage;
+        _hasMore = data.hasMore;
+        _cloudMovies = [..._cloudMovies, ...data.movies];
+        _cloudBooks = [..._cloudBooks, ...data.books];
+      });
+    } catch (_) {
+      if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   List<_PersonEntry> _buildPersons() {
+    final prefs = UserPrefs();
     final provider = context.read<AppProvider>();
+    // 云模式域走轻量行（服务端已过滤软删除），本地域读 Provider 并过滤
+    final movies = prefs.cloudMovieMode
+        ? _cloudMovies
+        : provider.movies.where((m) => !m.isDeleted).toList();
+    final books = prefs.cloudBookMode
+        ? _cloudBooks
+        : provider.books.where((b) => !b.isDeleted).toList();
     final map = <String, _PersonEntry>{};
 
     void addRole(String name, String role, {Movie? movie, Book? book}) {
@@ -64,7 +149,7 @@ class _PersonListPageState extends State<PersonListPage> {
       }
     }
 
-    for (final m in provider.movies.where((m) => !m.isDeleted)) {
+    for (final m in movies) {
       for (final d in m.directors) {
         addRole(d, '导演', movie: m);
       }
@@ -75,7 +160,7 @@ class _PersonListPageState extends State<PersonListPage> {
         addRole(a, '主演', movie: m);
       }
     }
-    for (final b in provider.books.where((b) => !b.isDeleted)) {
+    for (final b in books) {
       for (final a in b.authors) {
         addRole(a, '作者', book: b);
       }
@@ -89,19 +174,42 @@ class _PersonListPageState extends State<PersonListPage> {
     return list;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode) {
-      return const CloudUnsupportedView(title: '角色信息');
-    }
-    final colors = Theme.of(context).colorScheme;
-    final allPersons = _buildPersons();
-
-    var filtered = allPersons.where((p) {
+  /// 已加载作品行聚合出的人物，再按角色/搜索词过滤
+  List<_PersonEntry> _filteredPersons() {
+    return _buildPersons().where((p) {
       if (_filter != 'all' && !p.roles.contains(_filter)) return false;
-      if (_searchQuery.isNotEmpty && !p.name.toLowerCase().contains(_searchQuery.toLowerCase())) return false;
+      if (_searchQuery.isNotEmpty &&
+          !p.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
       return true;
     }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    if (_cloudError) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('角色信息'.tr)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 44, color: colors.onSurface.withValues(alpha: 0.3)),
+              const SizedBox(height: 12),
+              Text('云端记录加载失败'.tr,
+                  style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _refresh, child: Text('重试'.tr)),
+            ],
+          ),
+        ),
+      );
+    }
+    final filtered = _filteredPersons();
+    final visible = filtered.take(_visibleCount).toList();
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -151,7 +259,10 @@ class _PersonListPageState extends State<PersonListPage> {
                         focusedErrorBorder: InputBorder.none,
                         filled: false,
                       ),
-                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                      onChanged: (v) => setState(() {
+                        _searchQuery = v.trim();
+                        _visibleCount = _visibleWindow;
+                      }),
                     ),
                   ),
                   if (_searchQuery.isNotEmpty)
@@ -180,7 +291,10 @@ class _PersonListPageState extends State<PersonListPage> {
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: GestureDetector(
-                      onTap: () => setState(() => _filter = f),
+                      onTap: () => setState(() {
+                        _filter = f;
+                        _visibleCount = _visibleWindow;
+                      }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
@@ -208,16 +322,61 @@ class _PersonListPageState extends State<PersonListPage> {
 
           // 列表
           Expanded(
-            child: filtered.isEmpty
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
                 ? Center(child: Text('暂无数据'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3))))
-                : ListView.separated(
+                : ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => Divider(height: 0.5, color: colors.outlineVariant),
-                    itemBuilder: (_, i) => _buildPersonTile(filtered[i], colors),
+                    itemCount: visible.length + 1,
+                    itemBuilder: (context, i) {
+                      if (i == visible.length) {
+                        return _buildListFooter(colors, filtered.length);
+                      }
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
+                          _buildPersonTile(visible[i], colors),
+                        ],
+                      );
+                    },
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 列表底部：云端翻页转圈 / 手动加载更多（兜底新页无新人的情况）/ 没有更多
+  Widget _buildListFooter(ColorScheme colors, int total) {
+    if (_loadingMore) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: colors.onSurface.withValues(alpha: 0.4)),
+          ),
+        ),
+      );
+    }
+    if (_anyCloud && _hasMore && _visibleCount >= total) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Center(
+          child: TextButton(onPressed: _loadMore, child: Text('加载更多'.tr)),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: Text('没有更多了'.tr,
+            style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
       ),
     );
   }
@@ -348,13 +507,7 @@ class _PersonDetailPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () {
-          if (isMovie) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));
-          } else {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: item.data as Book)));
-          }
-        },
+        onTap: () => _openWork(context, item, isMovie),
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.all(10),
@@ -370,9 +523,7 @@ class _PersonDetailPage extends StatelessWidget {
                 child: SizedBox(
                   width: 44, height: 44,
                   child: item.path != null && item.path!.isNotEmpty
-                      ? Image(image: FileImage(File(item.path!)), fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(color: colors.surfaceContainerHighest,
-                              child: Icon(Icons.image_outlined, size: 16, color: colors.onSurface.withValues(alpha: 0.2))))
+                      ? _workImage(item.path!, colors, isMovie)
                       : Container(color: colors.surfaceContainerHighest,
                           child: Icon(isMovie ? Icons.movie_outlined : Icons.menu_book_outlined,
                               size: 16, color: colors.onSurface.withValues(alpha: 0.3))),
@@ -391,6 +542,55 @@ class _PersonDetailPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// 作品封面：云模式为 OSS 网络 URL，本地模式为文件路径
+  Widget _workImage(String path, ColorScheme colors, bool isMovie) {
+    final errorWidget = Container(
+      color: colors.surfaceContainerHighest,
+      child: Icon(Icons.image_outlined,
+          size: 16, color: colors.onSurface.withValues(alpha: 0.2)),
+    );
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover, errorBuilder: (_, __, ___) => errorWidget);
+    }
+    return Image(image: FileImage(File(path)),
+        fit: BoxFit.cover, errorBuilder: (_, __, ___) => errorWidget);
+  }
+
+  /// 点击作品：云模式轻量行先按 id 拉完整实体再进详情
+  Future<void> _openWork(BuildContext context, _WorkItem item, bool isMovie) async {
+    final prefs = UserPrefs();
+    final isCloud = isMovie ? prefs.cloudMovieMode : prefs.cloudBookMode;
+    dynamic data = item.data;
+    if (isCloud) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      try {
+        final provider = context.read<AppProvider>();
+        data = isMovie
+            ? await provider.cloudMovieById((item.data as Movie).id)
+            : await provider.cloudBookById((item.data as Book).id);
+      } finally {
+        if (context.mounted && Navigator.canPop(context)) Navigator.pop(context);
+      }
+      if (data == null) {
+        if (context.mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+        return;
+      }
+    }
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => isMovie
+            ? MovieDetailPage(movie: data as Movie)
+            : BookDetailPage(book: data as Book),
       ),
     );
   }

@@ -5,8 +5,10 @@ import 'package:uuid/uuid.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
 import '../../services/cloud/cloud_auth_service.dart';
+import '../../services/cloud/cloud_custom_module_sync_service.dart';
 import '../../services/cloud/cloud_domain_sync_service.dart';
 import '../../services/cloud/cloud_movie_sync_service.dart';
+import '../../services/cloud/cloud_playlist_sync_service.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
@@ -27,6 +29,10 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
   final _mobileCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _captchaCtrl = TextEditingController();
+  final _inviteCtrl = TextEditingController();
+
+  /// 后台参数控制：注册是否必填邀请码
+  bool _inviteRequired = false;
 
   /// true=注册 false=登录
   bool _isRegister = false;
@@ -43,10 +49,16 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
   @override
   void initState() {
     super.initState();
+    _loadInviteRequired();
     // 已登录时主动校验，覆盖运行中被后台强制下线/停用的场景（页面本身只读本地缓存）
     if (CloudAuthService.instance.isLoggedIn) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _verifyLogin());
     }
+  }
+
+  Future<void> _loadInviteRequired() async {
+    final required = await CloudAuthService.instance.fetchInviteRequired();
+    if (mounted) setState(() => _inviteRequired = required);
   }
 
   Future<void> _verifyLogin() async {
@@ -63,6 +75,7 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
     _mobileCtrl.dispose();
     _emailCtrl.dispose();
     _captchaCtrl.dispose();
+    _inviteCtrl.dispose();
     super.dispose();
   }
 
@@ -108,6 +121,10 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
         _toast('请输入正确的邮箱'.tr);
         return;
       }
+      if (_inviteRequired && _inviteCtrl.text.trim().isEmpty) {
+        _toast('请填写邀请码'.tr);
+        return;
+      }
     }
 
     setState(() => _loading = true);
@@ -120,6 +137,7 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
             uuid: _captchaUuid,
             mobile: mobile,
             email: email,
+            inviteCode: _inviteCtrl.text.trim(),
           )
         : await service.login(
             username: username,
@@ -143,6 +161,10 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
   /// 影视云端模式入口：先查云端状态，再给出迁移/切换选项
   Future<void> _openMovieCloudSheet() async {
     if (_syncing) return;
+    if (!await _warnIfIncomplete('movie')) {
+      _migrateLocalToCloud(false);
+      return;
+    }
     setState(() => _syncingKey = 'movie');
     final status = await CloudMovieSyncService.instance.fetchCloudStatus();
     if (!mounted) return;
@@ -166,6 +188,47 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
         onSwitchLocal: _switchToLocal,
       ),
     );
+  }
+
+  /// 片单/自定义模块跨域、不在任何单域迁移表清单内，每次迁移成功后尽力补推一次
+  /// （幂等，失败不阻断主流程）
+  Future<void> _ensureCloudCrossDomainData() async {
+    try {
+      final r = await CloudPlaylistSyncService.instance.uploadLocalToCloud();
+      if (r.success && r.count > 0 && mounted) {
+        await context.read<AppProvider>().loadPlaylists();
+      }
+    } catch (_) {
+      // 片单补推失败不影响已成功的主迁移，用户下次迁移会再次尝试
+    }
+    try {
+      await CloudCustomModuleSyncService.instance.uploadLocalToCloud();
+    } catch (_) {
+      // 自定义模块补推失败同理，不阻断主迁移
+    }
+  }
+
+  /// 上次整库迁移中断过（云端可能是残库）：先提示重新上传，用户也可暂不处理继续浏览
+  Future<bool> _warnIfIncomplete(String scope) async {
+    if (!UserPrefs().cloudIncompleteScopes.contains(scope)) return true;
+    final reupload = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('覆盖云端数据'.tr),
+        content: Text('上次上传中断，云端数据可能不完整，建议重新上传整库覆盖'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('稍后处理'.tr),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('重新上传'.tr),
+          ),
+        ],
+      ),
+    );
+    return reupload != true;
   }
 
   /// 本地 → 云端：云端非空时二次确认清除，整库替换上传，成功后进入云端模式
@@ -195,8 +258,10 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
     }
     await UserPrefs().setCloudMovieMode(true);
     if (!mounted) return;
+    await _ensureCloudCrossDomainData();
+    if (!mounted) return;
     setState(() {});
-    _toast('已上传 {n} 条记录，当前为云端浏览模式'.trf({'n': result.count}));
+    _toast('已上传 {n} 条记录，当前为云端模式'.trf({'n': result.count}));
   }
 
   /// 直接使用云端数据：仅切换数据来源，不下载、不清空本机数据；
@@ -208,10 +273,10 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
     await context.read<AppProvider>().loadMovies();
     if (!mounted) return;
     setState(() {});
-    _toast('已切换为云端浏览模式'.tr);
+    _toast('已切换为云端模式'.tr);
   }
 
-  /// 仅切回本地浏览模式，不移动任何数据
+  /// 仅切回本地模式，不移动任何数据
   Future<void> _switchToLocal() async {
     await UserPrefs().setCloudMovieMode(false);
     if (!mounted) return;
@@ -219,12 +284,16 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
     await context.read<AppProvider>().loadMovies();
     if (!mounted) return;
     setState(() {});
-    _toast('已切换为本地浏览模式'.tr);
+    _toast('已切换为本地模式'.tr);
   }
 
   /// 书籍/游戏/笔记云端模式入口：查域内云端状态，再给出迁移/切换选项
   Future<void> _openDomainCloudSheet(_DomainCloud d) async {
     if (_syncing) return;
+    if (!await _warnIfIncomplete(d.domain)) {
+      _migrateDomainToCloud(d, false);
+      return;
+    }
     setState(() => _syncingKey = d.domain);
     final status = await CloudDomainSyncService.instance.fetchCloudStatus(d.domain);
     if (!mounted) return;
@@ -280,8 +349,10 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
     if (!mounted) return;
     await d.reload(context.read<AppProvider>());
     if (!mounted) return;
+    await _ensureCloudCrossDomainData();
+    if (!mounted) return;
     setState(() {});
-    _toast('已上传 {n} 条记录，当前为云端浏览模式'.trf({'n': result.count}));
+    _toast('已上传 {n} 条记录，当前为云端模式'.trf({'n': result.count}));
   }
 
   /// 仅切换数据来源，不下载、不清空本机数据
@@ -291,7 +362,7 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
     await d.reload(context.read<AppProvider>());
     if (!mounted) return;
     setState(() {});
-    _toast(cloud ? '已切换为云端浏览模式'.tr : '已切换为本地浏览模式'.tr);
+    _toast(cloud ? '已切换为云端模式'.tr : '已切换为本地模式'.tr);
   }
 
   /// 不可取消的进度对话框：fraction 为 null 时走不确定进度条
@@ -376,7 +447,7 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
       backgroundColor: colors.surfaceContainerHigh,
       appBar: AppBar(
         leading: const AppBackButton(),
-        title: Text('服务器云同步'.tr),
+        title: Text('云端模式'.tr),
         actions: [
           if (loggedIn)
             TextButton(
@@ -391,7 +462,11 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
             )
           else
             TextButton(
-              onPressed: () => setState(() => _isRegister = !_isRegister),
+              onPressed: () {
+                setState(() => _isRegister = !_isRegister);
+                // 切到注册时刷新一次开关，覆盖页面停留期间后台改了配置的场景
+                if (_isRegister) _loadInviteRequired();
+              },
               child: Text(_isRegister ? '登录'.tr : '注册'.tr),
             ),
         ],
@@ -631,6 +706,15 @@ class _CloudAccountPageState extends State<CloudAccountPage> {
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
           ),
+          if (_inviteRequired) ...[
+            const SizedBox(height: 12),
+            _label(colors, '邀请码'.tr, required: true),
+            _inputField(
+              controller: _inviteCtrl,
+              hint: '请输入邀请码'.tr,
+              icon: Icons.card_giftcard_outlined,
+            ),
+          ],
         ],
         const SizedBox(height: 12),
         _label(colors, '密码'.tr, required: true),
@@ -912,7 +996,7 @@ class _DomainCloudSheet extends StatelessWidget {
               icon: Icons.cloud_upload_outlined,
               title: '本机数据上传至云端'.tr,
               subtitle: cloudEmpty
-                  ? '云端为空，直接上传并进入云端浏览模式'.tr
+                  ? '云端为空，直接上传并进入云端模式'.tr
                   : '清空云端现有数据，以本机数据整库覆盖'.tr,
               danger: !cloudEmpty,
               onTap: () {
@@ -937,7 +1021,7 @@ class _DomainCloudSheet extends StatelessWidget {
               _sheetAction(
                 colors,
                 icon: Icons.smartphone_outlined,
-                title: '切回本地浏览模式'.tr,
+                title: '切换回本地模式'.tr,
                 subtitle: '不移动数据，仅切换数据来源'.tr,
                 onTap: () {
                   Navigator.pop(context);
@@ -1052,7 +1136,7 @@ class _MovieCloudSheet extends StatelessWidget {
               icon: Icons.cloud_upload_outlined,
               title: '本机数据上传至云端'.tr,
               subtitle: cloudEmpty
-                  ? '云端为空，直接上传并进入云端浏览模式'.tr
+                  ? '云端为空，直接上传并进入云端模式'.tr
                   : '清空云端现有数据，以本机数据整库覆盖'.tr,
               danger: !cloudEmpty,
               onTap: () {
@@ -1077,7 +1161,7 @@ class _MovieCloudSheet extends StatelessWidget {
               _sheetAction(
                 colors,
                 icon: Icons.smartphone_outlined,
-                title: '切回本地浏览模式'.tr,
+                title: '切换回本地模式'.tr,
                 subtitle: '不移动数据，仅切换数据来源'.tr,
                 onTap: () {
                   Navigator.pop(context);

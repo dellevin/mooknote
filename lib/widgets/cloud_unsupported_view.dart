@@ -20,7 +20,7 @@ class CloudUnsupportedView extends StatelessWidget {
             size: 56, color: colors.onSurface.withValues(alpha: 0.25)),
         const SizedBox(height: 16),
         Text(
-          '云端数据模式下暂不支持该功能'.tr,
+          '云端模式下暂不支持该功能'.tr,
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.55)),
         ),
         const SizedBox(height: 8),

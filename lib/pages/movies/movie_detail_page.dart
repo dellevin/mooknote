@@ -224,7 +224,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 height: 48,
                 child: Row(children: [
                   const SizedBox(width: 4),
-                  AppBackButton(color: colors.onSurface, size: 18),
+                  AppBackButton(color: colors.onSurface, size: 15),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(movie.title,
@@ -290,7 +290,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 height: 48,
                 child: Row(children: [
                   const SizedBox(width: 4),
-                  const AppBackButton(color: Colors.white, size: 18),
+                  const AppBackButton(color: Colors.white, size: 15),
                   ValueListenableBuilder<bool>(
                     valueListenable: _showTitle,
                     builder: (_, show, __) => AnimatedOpacity(
@@ -367,7 +367,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                 height: 48,
                 child: Row(children: [
                   const SizedBox(width: 4),
-                  AppBackButton(color: colors.onSurface, size: 18),
+                  AppBackButton(color: colors.onSurface, size: 15),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(movie.title,
@@ -464,7 +464,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                     const SizedBox(width: 4),
                     AppBackButton(
                       color: show ? colors.onSurface : Colors.white,
-                      size: 18,
+                      size: 15,
                     ),
                     const SizedBox(width: 4),
                     Expanded(

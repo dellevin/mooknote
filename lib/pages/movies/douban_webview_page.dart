@@ -157,8 +157,8 @@ class _DoubanWebViewPageState extends State<DoubanWebViewPage> {
             padding: const EdgeInsets.all(8),
             child: SvgPicture.asset(
               'assets/svg/fan_hui.svg',
-              width: 22,
-              height: 22,
+              width: 18,
+              height: 18,
               colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
             ),
           ),

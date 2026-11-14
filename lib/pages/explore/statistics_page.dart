@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../services/cloud/cloud_explore_service.dart';
+import '../../services/cloud/cloud_stats_dto.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -28,15 +29,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
   bool get _showBooks => UserPrefs().showBookTab;
   bool get _showNotes => UserPrefs().showNoteTab;
 
-  // ── 云端轻量行（仅云模式域使用；本地域仍读 AppProvider）──
+  // ── 云端聚合结果（仅云模式使用；本地模式仍读 AppProvider 实体）──
   bool get _anyCloud => UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode ||
       UserPrefs().cloudGameMode || UserPrefs().cloudNoteMode;
   bool _cloudLoading = false;
   bool _cloudError = false;
-  List<Movie> _cloudMovies = const [];
-  List<Book> _cloudBooks = const [];
-  List<Game> _cloudGames = const [];
-  List<Note> _cloudNotes = const [];
+  String? _cloudErrorMsg;
+  CloudStatsAggregate? _aggregate;
 
   Future<void> _loadCloudStats() async {
     final types = <String>[
@@ -50,22 +49,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
       _cloudError = false;
     });
     try {
-      final data = await CloudExploreService.instance.fetchStats(types);
+      final aggregate = await CloudExploreService.instance.fetchStatsAggregate(types);
       setState(() {
-        _cloudMovies = ((data['movies'] as List?) ?? const [])
-            .map((e) => Movie.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-        _cloudBooks = ((data['books'] as List?) ?? const [])
-            .map((e) => Book.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-        _cloudGames = ((data['games'] as List?) ?? const [])
-            .map((e) => Game.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-        _cloudNotes = ((data['notes'] as List?) ?? const [])
-            .map((e) => Note.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        _aggregate = aggregate;
         _cloudLoading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[Statistics] 云端统计加载失败 types=$types: $e\n$st');
       setState(() {
         _cloudLoading = false;
         _cloudError = true;
+        _cloudErrorMsg = '${e.runtimeType}: $e';
       });
     }
   }
@@ -184,6 +178,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
               Icon(Icons.cloud_off, size: 44, color: colors.onSurface.withValues(alpha: 0.3)),
               const SizedBox(height: 12),
               Text('云端记录加载失败'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+              if (_cloudErrorMsg != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Text(
+                    _cloudErrorMsg!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: colors.error.withValues(alpha: 0.8)),
+                  ),
+                ),
               const SizedBox(height: 12),
               TextButton(onPressed: _loadCloudStats, child: Text('重试'.tr)),
             ],
@@ -191,15 +194,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ),
       );
     }
+    // 云模式：渲染服务端聚合结果，提前返回，不走下方实体计算路径
+    if (_anyCloud) {
+      return _buildCloudScaffold(colors, _aggregate!.rangeAt(_timeRange));
+    }
     final localMovies = context.select<AppProvider, List<Movie>>((p) => p.movies);
     final localBooks = context.select<AppProvider, List<Book>>((p) => p.books);
     final localNotes = context.select<AppProvider, List<Note>>((p) => p.notes);
     final localGames = context.select<AppProvider, List<Game>>((p) => p.games);
-    // 云模式域走轻量行，本地域仍读 Provider
-    final movies = UserPrefs().cloudMovieMode ? _cloudMovies : localMovies;
-    final books = UserPrefs().cloudBookMode ? _cloudBooks : localBooks;
-    final notes = UserPrefs().cloudNoteMode ? _cloudNotes : localNotes;
-    final games = UserPrefs().cloudGameMode ? _cloudGames : localGames;
+    final movies = localMovies;
+    final books = localBooks;
+    final notes = localNotes;
+    final games = localGames;
     final (fm, fb, fn) = _getFilteredLists(movies, books, notes);
     final fg = _getFilteredGames(games);
 
@@ -250,6 +256,574 @@ class _StatisticsPageState extends State<StatisticsPage> {
       _buildCumulativeGrowth(rfm, rfb, rfn),
       _buildTagCloud(rfm, rfb, rfn, rfg),
     ];
+  }
+
+  // ═══════════════════ 云模式：服务端聚合结果渲染 ═══════════════════
+  // 与本地 _buildSections 同分区顺序、同视觉，仅数据来源换成 CloudStatsRange；
+  // 时间范围切换直接取对应 range，无需重新请求。
+
+  Widget _buildCloudScaffold(ColorScheme colors, CloudStatsRange s) {
+    final sections = _buildCloudSections(s);
+    return Scaffold(
+      backgroundColor: colors.surface,
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: Text('数据统计'.tr),
+        actions: [_buildTimeRangeSelector(colors)],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadCloudStats,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          children: [
+            for (final (i, section) in sections.indexed) ...[
+              if (i > 0) const SizedBox(height: 16),
+              section,
+            ],
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildCloudSections(CloudStatsRange s) {
+    return [
+      _buildCloudOverview(s),
+      _buildCloudHabits(s),
+      _buildCloudGenreRadar(s),
+      if (_showMovies || _showBooks) _buildCloudTop5(s),
+      _buildCloudTopRated(s),
+      _buildCloudRatingDist(s),
+      _buildCloudTrend(s),
+      _buildCloudWeekday(s),
+      _buildCloudCumulative(s),
+      _buildCloudTagCloud(s),
+    ];
+  }
+
+  Widget _buildCloudOverview(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final o = s.overview;
+    final diff = o.periodCount - o.lastPeriodCount;
+    final periodLabel = _timeRange == 0 ? '本周'.tr : _timeRange == 1 ? '本月'.tr : '本年'.tr;
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildOverviewCard('完成率'.tr, o.completionRate == 0 ? '-' : '${(o.completionRate * 100).toStringAsFixed(0)}%', Icons.check_circle_outline, colors.primary, subtitle: o.completionRate > 0 ? '已看+已读'.tr : null)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildOverviewCard('{period}新增'.trf({'period': periodLabel}), '${o.periodCount}', Icons.trending_up, const Color(0xFF66BB6A), subtitle: diff >= 0 ? '↑$diff' : '↓${diff.abs()}')),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _buildOverviewCard('平均评分'.tr, o.avgRating > 0 ? o.avgRating.toStringAsFixed(1) : '-', Icons.star_outline, const Color(0xFFFFB800), subtitle: o.avgRating > 0 ? '/ 10' : null)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildOverviewCard('记录天数'.tr, o.daysTracked > 0 ? '${o.daysTracked}' : '-', Icons.calendar_today_outlined, const Color(0xFF7E57C2), subtitle: o.daysTracked > 0 ? '天'.tr : null)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCloudHabits(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final h = s.habits;
+    const monthNames = ['', '一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+    final hasData = s.overview.periodCount > 0;
+    if (!hasData) return const SizedBox.shrink();
+    return _buildCard(
+      title: '习惯洞察'.tr,
+      child: Column(
+        children: [
+          _buildInsightRow(Icons.calendar_month_outlined, '最活跃月份'.tr, monthNames[h.busiestMonth].tr),
+          Divider(height: 1, color: colors.outlineVariant),
+          _buildInsightRow(Icons.speed_outlined, '记录频率'.tr, '平均每月 {n} 条'.trf({'n': h.avgPerMonth.toStringAsFixed(1)})),
+          if (h.watchedAvgGap > 0) ...[
+            Divider(height: 1, color: colors.outlineVariant),
+            _buildInsightRow(Icons.movie_outlined, '观影节奏'.tr, '平均 {n} 天一部'.trf({'n': h.watchedAvgGap.toStringAsFixed(0)})),
+          ],
+          if (h.readAvgGap > 0) ...[
+            Divider(height: 1, color: colors.outlineVariant),
+            _buildInsightRow(Icons.menu_book_outlined, '阅读节奏'.tr, '平均 {n} 天一本'.trf({'n': h.readAvgGap.toStringAsFixed(0)})),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloudGenreRadar(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final movieGenres = s.movieGenres;
+    final bookGenres = s.bookGenres;
+    final allGenres = <String, int>{...movieGenres};
+    for (final e in bookGenres.entries) {
+      allGenres[e.key] = (allGenres[e.key] ?? 0) + e.value;
+    }
+    final top6 = allGenres.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final top = top6.take(6).toList();
+    if (top.length < 3) return const SizedBox.shrink();
+    final maxVal = top.first.value.toDouble();
+
+    return _buildCard(
+      title: '类型偏好'.tr,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 220,
+            child: RadarChart(
+              RadarChartData(
+                radarShape: RadarShape.polygon,
+                dataSets: [
+                  if (movieGenres.isNotEmpty)
+                    RadarDataSet(
+                      dataEntries: top.map((e) => RadarEntry(value: (movieGenres[e.key] ?? 0) / math.max(1, maxVal))).toList(),
+                      borderColor: const Color(0xFF4A90D9),
+                      fillColor: const Color(0xFF4A90D9).withValues(alpha: 0.15),
+                      borderWidth: 2,
+                    ),
+                  if (bookGenres.isNotEmpty)
+                    RadarDataSet(
+                      dataEntries: top.map((e) => RadarEntry(value: (bookGenres[e.key] ?? 0) / math.max(1, maxVal))).toList(),
+                      borderColor: const Color(0xFF7E57C2),
+                      fillColor: const Color(0xFF7E57C2).withValues(alpha: 0.15),
+                      borderWidth: 2,
+                    ),
+                ],
+                radarBorderData: BorderSide(color: colors.outlineVariant, width: 0.5),
+                gridBorderData: BorderSide(color: colors.outlineVariant, width: 0.5),
+                tickBorderData: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.3), width: 0.5),
+                ticksTextStyle: TextStyle(fontSize: 9, color: colors.onSurface.withValues(alpha: 0.3)),
+                titleTextStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.6)),
+                titlePositionPercentageOffset: 0.15,
+                getTitle: (index, angle) => RadarChartTitle(text: top[index].key),
+                tickCount: 3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (movieGenres.isNotEmpty) ...[
+                _buildLegend(const Color(0xFF4A90D9), '影视'.tr),
+                const SizedBox(width: 16),
+              ],
+              if (bookGenres.isNotEmpty) _buildLegend(const Color(0xFF7E57C2), '书籍'.tr),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloudTop5(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final tabs = <(String, List<CloudNameCount>, Color, String)>[];
+    if (_showMovies && s.topDirectors.isNotEmpty) {
+      tabs.add(('导演', s.topDirectors, const Color(0xFF4A90D9), '部'));
+    }
+    if (_showBooks && s.topAuthors.isNotEmpty) {
+      tabs.add(('作者', s.topAuthors, const Color(0xFF7E57C2), '本'));
+    }
+    if (tabs.isEmpty) return const SizedBox.shrink();
+    if (_top5TabIndex >= tabs.length) _top5TabIndex = 0;
+    final tab = tabs[_top5TabIndex];
+    final items = tab.$2;
+    final maxVal = items.first.count.toDouble();
+
+    return _buildCard(
+      title: '${tab.$1.tr} TOP 5',
+      action: tabs.length > 1 ? _buildTabChips(tabs.map((e) => e.$1).toList(), _top5TabIndex, (i) => setState(() => _top5TabIndex = i), colors) : null,
+      child: Column(
+        children: items.map((e) {
+          final ratio = e.count / maxVal;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(width: 60, child: Text(e.name, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.7)), overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(value: ratio, backgroundColor: colors.outlineVariant, color: tab.$3, minHeight: 4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${e.count}${tab.$4.tr}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildCloudTopRated(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final tabs = <(String, List<CloudTopRatedItem>)>[];
+    if (_showMovies && s.topRatedMovies.isNotEmpty) tabs.add(('影视', s.topRatedMovies));
+    if (_showBooks && s.topRatedBooks.isNotEmpty) tabs.add(('书籍', s.topRatedBooks));
+    if (UserPrefs().showGameTab && s.topRatedGames.isNotEmpty) tabs.add(('游戏', s.topRatedGames));
+    if (tabs.isEmpty) return const SizedBox.shrink();
+    if (_topRatedTabIndex >= tabs.length) _topRatedTabIndex = 0;
+
+    return _buildCard(
+      title: '高分之最'.tr,
+      action: _buildTabChips(tabs.map((e) => e.$1).toList(), _topRatedTabIndex, (i) => setState(() => _topRatedTabIndex = i), colors),
+      child: Column(
+        children: tabs[_topRatedTabIndex].$2
+            .map((item) => _buildTopRatedItem(item.title, item.rating, item.cover, colors))
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildCloudRatingDist(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final counts = s.ratingBuckets;
+    if (counts.length != 10 || counts.every((c) => c == 0)) return const SizedBox.shrink();
+    final maxCount = counts.reduce((a, b) => a > b ? a : b).toDouble();
+
+    const barColors = [
+      Color(0xFFBDBDBD), Color(0xFFBDBDBD), Color(0xFFFFCC80), Color(0xFFFFCC80),
+      Color(0xFFFFB74D), Color(0xFFFFB74D), Color(0xFFFFA726), Color(0xFFFFA726),
+      Color(0xFFFFB800), Color(0xFFFFB800),
+    ];
+
+    return _buildCard(
+      title: '评分分布'.tr,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text('平均评分'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+              const Spacer(),
+              Text(s.ratingAvg.toStringAsFixed(1), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface)),
+              Text(' / 10', style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3))),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 160,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxCount * 1.2,
+                minY: 0,
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => colors.inverseSurface,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem('{s}星 {n}部'.trf({'s': group.x + 1, 'n': rod.toY.toInt()}), TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600));
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) => Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text('${value.toInt() + 1}', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.5))),
+                    ),
+                    reservedSize: 24,
+                  )),
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                gridData: const FlGridData(show: false),
+                barGroups: List.generate(10, (i) => BarChartGroupData(x: i, barRods: [
+                  BarChartRodData(
+                    toY: counts[i].toDouble(),
+                    color: barColors[i],
+                    width: 20,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxCount * 1.2, color: colors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                ])),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text('星级评分'.tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+        ],
+      ),
+    );
+  }
+
+  /// 与本地趋势图一致的 X 轴标签生成（周 7 天 / 月 6 段 / 年 12 月）
+  List<String> _cloudTrendLabels() {
+    final now = DateTime.now();
+    if (_timeRange == 0) {
+      return List.generate(7, (i) {
+        final d = DateTime(now.year, now.month, now.day - (6 - i));
+        return '${d.month}/${d.day}';
+      });
+    } else if (_timeRange == 1) {
+      return List.generate(6, (i) {
+        final d = DateTime(now.year, now.month, now.day - (25 - i * 5));
+        return '${d.month}/${d.day}';
+      });
+    }
+    return List.generate(12, (i) {
+      final d = DateTime(now.year, now.month - (11 - i), 1);
+      return '{m}月'.trf({'m': d.month});
+    });
+  }
+
+  Widget _buildCloudTrend(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final movieData = s.trendMovie;
+    final bookData = s.trendBook;
+    final noteData = s.trendNote;
+    if (movieData.isEmpty) return const SizedBox.shrink();
+    final pointCount = movieData.length;
+    final xLabels = _cloudTrendLabels();
+    final allValues = [...movieData, ...bookData, ...noteData];
+    final maxVal = allValues.isEmpty ? 1 : allValues.reduce((a, b) => a > b ? a : b);
+    final safeMax = maxVal == 0 ? 1 : maxVal;
+    final title = _timeRange == 0 ? '周趋势'.tr : _timeRange == 1 ? '月趋势'.tr : '年度趋势'.tr;
+
+    return _buildCard(
+      title: title,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 180,
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: (safeMax * 1.3).toDouble(),
+                lineBarsData: [
+                  if (_showMovies) _buildLineData(movieData, const Color(0xFF4A90D9)),
+                  if (_showBooks) _buildLineData(bookData, const Color(0xFF7E57C2)),
+                  if (_showNotes) _buildLineData(noteData, const Color(0xFF66BB6A)),
+                ],
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: pointCount > 7 ? 2 : 1,
+                    getTitlesWidget: (value, meta) {
+                      final idx = value.toInt();
+                      if (idx < 0 || idx >= xLabels.length) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(xLabels[idx].tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                      );
+                    },
+                    reservedSize: 24,
+                  )),
+                  leftTitles: AxisTitles(sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.3))),
+                    reservedSize: 28,
+                  )),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: math.max(1, safeMax / 3).toDouble(),
+                  getDrawingHorizontalLine: (value) => FlLine(color: colors.outlineVariant, strokeWidth: 0.5),
+                ),
+                borderData: FlBorderData(show: false),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => colors.inverseSurface,
+                    getTooltipItems: (spots) => spots.map((sp) {
+                      final labels = <String>[];
+                      if (_showMovies) labels.add('影视');
+                      if (_showBooks) labels.add('书籍');
+                      if (_showNotes) labels.add('笔记');
+                      if (sp.barIndex >= labels.length) return null;
+                      return LineTooltipItem('${labels[sp.barIndex].tr} ${sp.y.toInt()}', TextStyle(color: colors.onInverseSurface, fontSize: 12, fontWeight: FontWeight.w600));
+                    }).whereType<LineTooltipItem>().toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_showMovies) ...[
+                _buildLegend(const Color(0xFF4A90D9), '影视'.tr),
+                const SizedBox(width: 16),
+              ],
+              if (_showBooks) ...[
+                _buildLegend(const Color(0xFF7E57C2), '书籍'.tr),
+                const SizedBox(width: 16),
+              ],
+              if (_showNotes) _buildLegend(const Color(0xFF66BB6A), '笔记'.tr),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloudWeekday(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final weekdayCounts = s.weekday;
+    if (weekdayCounts.length != 7 || weekdayCounts.every((c) => c == 0)) return const SizedBox.shrink();
+    final maxCount = weekdayCounts.reduce((a, b) => a > b ? a : b).toDouble();
+    final dayLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+    return _buildCard(
+      title: '星期分布'.tr,
+      child: SizedBox(
+        height: 140,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(7, (i) {
+            final ratio = weekdayCounts[i] / maxCount;
+            final barHeight = (ratio * 96).clamp(4.0, 96.0);
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text('${weekdayCounts[i]}', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: barHeight,
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.6 + ratio * 0.4),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(dayLabels[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.5))),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloudCumulative(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final cumulativeData = s.cumulative;
+    if (cumulativeData.isEmpty || cumulativeData.last == 0) return const SizedBox.shrink();
+    final pointCount = cumulativeData.length;
+    final xLabels = _cloudTrendLabels();
+    final maxVal = cumulativeData.last.toDouble();
+
+    return _buildCard(
+      title: '累计增长'.tr,
+      child: SizedBox(
+        height: 160,
+        child: LineChart(
+          LineChartData(
+            minY: 0,
+            maxY: maxVal * 1.2,
+            lineBarsData: [
+              LineChartBarData(
+                spots: List.generate(pointCount, (i) => FlSpot(i.toDouble(), cumulativeData[i].toDouble())),
+                isCurved: true,
+                color: colors.primary,
+                barWidth: 2.5,
+                dotData: FlDotData(show: true, getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(radius: 3, color: colors.primary, strokeWidth: 0)),
+                belowBarData: BarAreaData(show: true, color: colors.primary.withValues(alpha: 0.08)),
+              ),
+            ],
+            titlesData: FlTitlesData(
+              bottomTitles: AxisTitles(sideTitles: SideTitles(
+                showTitles: true,
+                interval: pointCount > 7 ? 2 : 1,
+                getTitlesWidget: (value, meta) {
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= xLabels.length) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(xLabels[idx].tr, style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.4))),
+                  );
+                },
+                reservedSize: 24,
+              )),
+              leftTitles: AxisTitles(sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: TextStyle(fontSize: 10, color: colors.onSurface.withValues(alpha: 0.3))),
+                reservedSize: 28,
+              )),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            ),
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: math.max(1, maxVal / 3).toDouble(),
+              getDrawingHorizontalLine: (value) => FlLine(color: colors.outlineVariant, strokeWidth: 0.5),
+            ),
+            borderData: FlBorderData(show: false),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloudTagCloud(CloudStatsRange s) {
+    final colors = Theme.of(context).colorScheme;
+    final tabs = <String>[];
+    if (_showMovies) tabs.add('影视');
+    if (_showBooks) tabs.add('书籍');
+    if (_showNotes) tabs.add('笔记');
+    if (UserPrefs().showGameTab) tabs.add('游戏');
+    if (tabs.isEmpty) return const SizedBox.shrink();
+    if (_cloudTabIndex >= tabs.length) _cloudTabIndex = 0;
+
+    final Map<String, int> tagCounts = switch (tabs[_cloudTabIndex]) {
+      '影视' => s.movieGenres,
+      '书籍' => s.bookGenres,
+      '笔记' => s.noteTags,
+      _ => s.gameGenres,
+    };
+    final sorted = tagCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+    const cloudColors = [
+      Color(0xFFE53935), Color(0xFF4A90D9), Color(0xFF7E57C2),
+      Color(0xFF66BB6A), Color(0xFFFF8F00), Color(0xFF00ACC1),
+      Color(0xFF5C6BC0), Color(0xFF26A69A), Color(0xFF8D6E63),
+    ];
+
+    return _buildCard(
+      title: '标签词云'.tr,
+      action: _buildTabChips(tabs, _cloudTabIndex, (i) => setState(() => _cloudTabIndex = i), colors),
+      child: sorted.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: Text('暂无标签'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.3)))),
+            )
+          : Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: sorted.map((e) {
+                final maxCount = sorted.first.value;
+                final minCount = sorted.last.value;
+                final range = math.max(maxCount - minCount, 1);
+                final ratio = (e.value - minCount) / range;
+                final fontSize = (12.0 + ratio * 18.0).roundToDouble();
+                final c = cloudColors[((ratio * (cloudColors.length - 1)).round()).clamp(0, cloudColors.length - 1)];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+                  child: Text(e.key, style: TextStyle(fontSize: fontSize, fontWeight: fontSize > 18 ? FontWeight.w700 : FontWeight.w500, color: c, height: 1.3)),
+                );
+              }).toList(),
+            ),
+    );
   }
 
   // ─── 时间范围选择器 ──────────────────────────────────────────────

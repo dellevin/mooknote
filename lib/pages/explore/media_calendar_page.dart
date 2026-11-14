@@ -5,7 +5,8 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/lunar_calendar.dart';
-import '../../widgets/cloud_unsupported_view.dart';
+import '../../utils/toast_util.dart';
+import '../../services/cloud/cloud_journal_service.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
@@ -29,7 +30,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
   // PageView 基准页：该页对应当前真实月份/年份，向前后无限翻页
   static const int _kBasePage = 10000;
-  late final PageController _monthController;
+  late PageController _monthController;
   late final PageController _yearController;
   int _monthPage = _kBasePage;
   int _yearPage = _kBasePage;
@@ -57,6 +58,19 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
   List<BookChapter> _chapters = [];
   List<GameLevel> _levels = [];
 
+  // 任一媒体域上云即走碎阅周期接口：按月/按年只拉当期轻量记录，本地域数据在端上按同区间拼合
+  bool get _anyCloud =>
+      UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode;
+
+  bool _loading = true;
+  bool _loadError = false;
+  // 云/混合模式的周期缓存：key 形如 m_2026_11_0 / y_2026_1
+  final Map<String, List<JournalEvent>> _periodCache = {};
+  final Set<String> _loadingKeys = {};
+
+  String _monthKey(int y, int m) => 'm_${y}_${m}_$_dateMode';
+  String _yearKey(int y) => 'y_${y}_$_dateMode';
+
   @override
   void initState() {
     super.initState();
@@ -67,7 +81,46 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     _selectedDay = DateTime(now.year, now.month, now.day);
     _monthController = PageController(initialPage: _monthPage);
     _yearController = PageController(initialPage: _yearPage);
-    _initData();
+    if (_anyCloud) {
+      _loadCloud();
+    } else {
+      _initData();
+    }
+  }
+
+  /// 云/混合模式首载：先拉本地子表，再加载当前可见周期
+  Future<void> _loadCloud() async {
+    try {
+      await _ensureLocalChildren();
+      if (!mounted) return;
+      if (_granularity == 1) {
+        await _ensureYearVisible(_currentYear);
+      } else {
+        await _ensureMonthVisible(_currentMonth.year, _currentMonth.month);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadError = true);
+    }
+  }
+
+  Future<void> _ensureLocalChildren() async {
+    final provider = context.read<AppProvider>();
+    final results = await Future.wait([
+      provider.getAllMovieEpisodes(),
+      provider.getAllBookChapters(),
+      provider.getAllGameLevels(),
+      if (_dateMode == 1)
+        provider.getGameCompletionsMap()
+      else
+        Future.value(<String, List<GameCompletion>>{}),
+    ]);
+    if (!mounted) return;
+    _episodes = results[0] as List<MovieEpisode>;
+    _chapters = results[1] as List<BookChapter>;
+    _levels = results[2] as List<GameLevel>;
+    if (_dateMode == 1) {
+      _completionMap = results[3] as Map<String, List<GameCompletion>>;
+    }
   }
 
   @override
@@ -116,6 +169,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
         title: m.title,
         type: 'movie',
         data: m,
+        parentId: m.id,
       ));
     }
 
@@ -130,6 +184,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
         title: b.title,
         type: 'book',
         data: b,
+        parentId: b.id,
       ));
     }
 
@@ -141,13 +196,13 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           final date = c.completionDate;
           final day = dayOnly(date);
           map.putIfAbsent(day, () => []);
-          map[day]!.add(_CalendarItem(path: g.coverPath!, title: g.title, type: 'game', data: g));
+          map[day]!.add(_CalendarItem(path: g.coverPath!, title: g.title, type: 'game', data: g, parentId: g.id));
         }
       } else {
         final date = g.createdAt;
         final day = dayOnly(date);
         map.putIfAbsent(day, () => []);
-        map[day]!.add(_CalendarItem(path: g.coverPath!, title: g.title, type: 'game', data: g));
+        map[day]!.add(_CalendarItem(path: g.coverPath!, title: g.title, type: 'game', data: g, parentId: g.id));
       }
     }
 
@@ -171,7 +226,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
       final key = '${day.toIso8601String()}|$type|$parentId';
       if (!seenRecordKeys.add(key)) return;
       map.putIfAbsent(day, () => []);
-      map[day]!.add(_CalendarItem(path: cover, title: title, type: type, data: parent));
+      map[day]!.add(_CalendarItem(path: cover, title: title, type: type, data: parent, parentId: parentId));
     }
 
     for (final e in _episodes) {
@@ -221,11 +276,225 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     if (_dateMode == mode) return;
     _dateMode = mode;
     UserPrefs().setCalendarDateMode(mode);
+    if (_anyCloud) {
+      // 缓存 key 含 mode：清空后强制重载可见周期
+      _periodCache.clear();
+      _loadingKeys.clear();
+      setState(() {
+        _loading = true;
+        _loadError = false;
+      });
+      await _ensureLocalChildren();
+      if (!mounted) return;
+      await _reloadVisible();
+      return;
+    }
     if (mode == 1 && _completionMap.isEmpty) {
       _completionMap = await context.read<AppProvider>().getGameCompletionsMap();
       if (!mounted) return;
     }
     setState(_buildDayMap);
+  }
+
+  Future<void> _reloadVisible() async {
+    if (_granularity == 1) {
+      await _ensureYearVisible(_currentYear);
+    } else {
+      await _ensureMonthVisible(_currentMonth.year, _currentMonth.month);
+    }
+  }
+
+  Future<void> _ensureMonthVisible(int y, int m) async {
+    final key = _monthKey(y, m);
+    if (_periodCache.containsKey(key) || _loadingKeys.contains(key)) return;
+    await _loadPeriod(key, () => CloudJournalService.instance.fetchMonth(y, m, _dateMode));
+  }
+
+  Future<void> _ensureYearVisible(int y) async {
+    final key = _yearKey(y);
+    if (_periodCache.containsKey(key) || _loadingKeys.contains(key)) return;
+    await _loadPeriod(key, () => CloudJournalService.instance.fetchYear(y, _dateMode));
+  }
+
+  Future<void> _loadPeriod(String key, Future<List<JournalEvent>> Function() fetch) async {
+    _loadingKeys.add(key);
+    try {
+      final cloud = await fetch();
+      if (!mounted) return;
+      final prefs = UserPrefs();
+      // 服务端返回该用户全部云域行，按端上各域开关过滤
+      final cloudEvents = cloud.where((e) => switch (e.type) {
+            'movie' => prefs.cloudMovieMode,
+            'book' => prefs.cloudBookMode,
+            _ => prefs.cloudGameMode,
+          });
+      _periodCache[key] = [...cloudEvents, ..._localEventsFor(key)];
+    } catch (_) {
+      if (!mounted) return;
+      // 云端失败时本地域部分仍可展示
+      _periodCache[key] = _localEventsFor(key);
+    } finally {
+      _loadingKeys.remove(key);
+      if (mounted) {
+        setState(() {
+          _rebuildCloudDayItems();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  /// 周期 key 对应的本地域区间事件（已上云的域整段跳过，避免与服务端结果重复）
+  List<JournalEvent> _localEventsFor(String key) {
+    final parts = key.split('_');
+    final DateTime start;
+    final DateTime end;
+    if (parts.first == 'm') {
+      final y = int.parse(parts[1]);
+      final m = int.parse(parts[2]);
+      start = DateTime(y, m);
+      end = DateTime(y, m + 1);
+    } else {
+      final y = int.parse(parts[1]);
+      start = DateTime(y);
+      end = DateTime(y + 1);
+    }
+    return _collectLocalEvents(start, end);
+  }
+
+  /// 收集本地域事件，日期/封面规则与 [_buildDayMap] 保持一致
+  List<JournalEvent> _collectLocalEvents(DateTime start, DateTime end) {
+    bool inRange(DateTime d) => !d.isBefore(start) && d.isBefore(end);
+    final prefs = UserPrefs();
+    final provider = context.read<AppProvider>();
+    final out = <JournalEvent>[];
+
+    void ev({
+      required DateTime? date,
+      required String type,
+      required String parentId,
+      required String title,
+      required String? cover,
+    }) {
+      if (date == null || cover == null || cover.isEmpty || !inRange(date)) return;
+      out.add(JournalEvent(
+        type: type,
+        parentId: parentId,
+        title: title,
+        coverPath: cover,
+        rating: null,
+        creators: const [],
+        date: date,
+      ));
+    }
+
+    if (!prefs.cloudMovieMode) {
+      final movieById = {for (final m in provider.movies) m.id: m};
+      for (final m in provider.movies.where((m) => !m.isDeleted)) {
+        ev(
+          date: _dateMode == 1 ? m.watchDate : m.createdAt,
+          type: 'movie',
+          parentId: m.id,
+          title: m.title,
+          cover: m.posterPath,
+        );
+      }
+      for (final e in _episodes) {
+        if (!e.watched) continue;
+        final m = movieById[e.movieId];
+        if (m == null || m.isDeleted) continue;
+        ev(
+          date: _dateMode == 1 ? e.watchDate : e.createdAt,
+          type: 'movie',
+          parentId: m.id,
+          title: m.title,
+          cover: m.posterPath,
+        );
+      }
+    }
+    if (!prefs.cloudBookMode) {
+      final bookById = {for (final b in provider.books) b.id: b};
+      for (final b in provider.books.where((b) => !b.isDeleted)) {
+        ev(
+          date: _dateMode == 1 ? b.startDate : b.createdAt,
+          type: 'book',
+          parentId: b.id,
+          title: b.title,
+          cover: b.coverPath,
+        );
+      }
+      for (final c in _chapters) {
+        if (!c.read) continue;
+        final b = bookById[c.bookId];
+        if (b == null || b.isDeleted) continue;
+        ev(
+          date: _dateMode == 1 ? c.readDate : c.createdAt,
+          type: 'book',
+          parentId: b.id,
+          title: b.title,
+          cover: b.coverPath,
+        );
+      }
+    }
+    if (!prefs.cloudGameMode) {
+      final gameById = {for (final g in provider.games) g.id: g};
+      for (final g in provider.games.where((g) => !g.isDeleted)) {
+        if (_dateMode == 1) {
+          for (final c in _completionMap[g.id] ?? const <GameCompletion>[]) {
+            ev(
+              date: c.completionDate,
+              type: 'game',
+              parentId: g.id,
+              title: g.title,
+              cover: g.coverPath,
+            );
+          }
+        } else {
+          ev(
+            date: g.createdAt,
+            type: 'game',
+            parentId: g.id,
+            title: g.title,
+            cover: g.coverPath,
+          );
+        }
+      }
+      for (final l in _levels) {
+        if (!l.cleared) continue;
+        final g = gameById[l.gameId];
+        if (g == null || g.isDeleted) continue;
+        ev(
+          date: _dateMode == 1 ? l.clearDate : l.createdAt,
+          type: 'game',
+          parentId: g.id,
+          title: g.title,
+          cover: g.coverPath,
+        );
+      }
+    }
+    return out;
+  }
+
+  /// 云模式按天归格：同天同类型同作品去重，云行 data 为 null，详情按需拉取
+  void _rebuildCloudDayItems() {
+    final map = <DateTime, List<_CalendarItem>>{};
+    final seen = <String>{};
+    for (final e in _periodCache.values.expand((l) => l)) {
+      final cover = e.coverPath;
+      if (cover == null || cover.isEmpty) continue;
+      final local = e.date.toLocal();
+      final day = DateTime(local.year, local.month, local.day);
+      final key = '${day.toIso8601String()}|${e.type}|${e.parentId}';
+      if (!seen.add(key)) continue;
+      map.putIfAbsent(day, () => []).add(_CalendarItem(
+            path: cover,
+            title: e.title,
+            type: e.type,
+            data: null,
+            parentId: e.parentId,
+          ));
+    }
+    _dayItems = map;
   }
 
   // ─── 搜索：按作品名匹配日历记录，命中后跳到对应日期 ───
@@ -257,12 +526,53 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     } else {
       _resetMonthController();
     }
+    if (_anyCloud) _ensureMonthVisible(day.year, day.month);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode) return const CloudUnsupportedView(title: '书影日历');
     final colors = Theme.of(context).colorScheme;
+    if (_anyCloud && _loading) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: Text('书影日历'.tr),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_anyCloud && _loadError) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: Text('书影日历'.tr),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+              const SizedBox(height: 16),
+              Text('加载失败，请检查网络'.tr,
+                  style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+              const SizedBox(height: 12),
+              FilledButton.tonal(
+                onPressed: () {
+                  setState(() {
+                    _loading = true;
+                    _loadError = false;
+                  });
+                  _loadCloud();
+                },
+                child: Text('重试'.tr),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -323,7 +633,15 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
           colors,
           options: [('月'.tr, 0), ('年'.tr, 1)],
           current: _granularity,
-          onChanged: (v) => setState(() => _granularity = v),
+          onChanged: (v) {
+            setState(() => _granularity = v);
+            if (!_anyCloud) return;
+            if (v == 1) {
+              _ensureYearVisible(_currentYear);
+            } else {
+              _ensureMonthVisible(_currentMonth.year, _currentMonth.month);
+            }
+          },
         ),
       ],
     );
@@ -397,6 +715,9 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
                 setState(() {
                   _currentMonth = DateTime(now.year, now.month + (page - _kBasePage));
                 });
+                if (_anyCloud) {
+                  _ensureMonthVisible(_currentMonth.year, _currentMonth.month);
+                }
               },
               itemBuilder: (context, page) {
                 final now = DateTime.now();
@@ -760,6 +1081,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
         setState(() {
           _currentYear = DateTime.now().year + (page - _kBasePage);
         });
+        if (_anyCloud) _ensureYearVisible(_currentYear);
       },
       itemBuilder: (context, page) {
         final year = DateTime.now().year + (page - _kBasePage);
@@ -797,6 +1119,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
             _monthPage = _monthPageOf(_currentMonth);
             _resetMonthController();
             _granularity = 0;
+            if (_anyCloud) _ensureMonthVisible(year, month);
           }),
           child: Container(
             decoration: BoxDecoration(
@@ -878,18 +1201,60 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
     );
   }
 
+  Future<void> _openDetail(_CalendarItem item) async {
+    final provider = context.read<AppProvider>();
+    dynamic data = item.data;
+    if (data == null) {
+      // 混合模式下本地域行先从 provider 取完整实体，取不到再走云端按需拉取
+      data = switch (item.type) {
+        'movie' => _firstOrNull(provider.movies, (m) => m.id == item.parentId && !m.isDeleted),
+        'book' => _firstOrNull(provider.books, (b) => b.id == item.parentId && !b.isDeleted),
+        _ => _firstOrNull(provider.games, (g) => g.id == item.parentId && !g.isDeleted),
+      };
+      if (data == null) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const Center(child: CircularProgressIndicator()),
+          );
+        }
+        try {
+          data = await switch (item.type) {
+            'movie' => provider.cloudMovieById(item.parentId),
+            'book' => provider.cloudBookById(item.parentId),
+            _ => provider.cloudGameById(item.parentId),
+          };
+        } finally {
+          if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+        }
+        if (data == null) {
+          if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+          return;
+        }
+      }
+    }
+    if (!mounted) return;
+    if (item.type == 'movie') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: data as Movie)));
+    } else if (item.type == 'book') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: data as Book)));
+    } else {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => GameDetailPage(game: data as Game)));
+    }
+  }
+
+  T? _firstOrNull<T>(Iterable<T> xs, bool Function(T) test) {
+    for (final x in xs) {
+      if (test(x)) return x;
+    }
+    return null;
+  }
+
   Widget _buildDetailRow(ColorScheme colors, _CalendarItem item) {
     final accent = _typeColor(item.type);
     return InkWell(
-      onTap: () {
-        if (item.type == 'movie') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));
-        } else if (item.type == 'book') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => BookDetailPage(book: item.data as Book)));
-        } else {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => GameDetailPage(game: item.data as Game)));
-        }
-      },
+      onTap: () => _openDetail(item),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Row(
@@ -957,11 +1322,15 @@ class _CalendarItem {
   final String type;
   final dynamic data;
 
+  /// 云模式 data 为 null 时，按此 id 按需拉取完整实体
+  final String parentId;
+
   _CalendarItem({
     required this.path,
     required this.title,
     required this.type,
     required this.data,
+    required this.parentId,
   });
 }
 

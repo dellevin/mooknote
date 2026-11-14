@@ -3,7 +3,10 @@ import 'package:lpinyin/lpinyin.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_domain_data_service.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/publisher_avatar.dart';
 import '../../widgets/app_back_button.dart';
 import 'publisher_detail_page.dart';
@@ -27,6 +30,11 @@ class _PublisherListPageState extends State<PublisherListPage> {
   String _searchKeyword = '';
   final TextEditingController _searchCtrl = TextEditingController();
 
+  // 云模式：出版社由服务端 GROUP BY 聚合（内存只有书籍首页 50 条，本地聚合不准）
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+  List<_PublisherEntry> _cloudEntries = const [];
+
   // 字母索引
   final _itemScrollController = ItemScrollController();
   final _itemPositionsListener = ItemPositionsListener.create();
@@ -45,6 +53,67 @@ class _PublisherListPageState extends State<PublisherListPage> {
   void initState() {
     super.initState();
     _itemPositionsListener.itemPositions.addListener(_onPositionsChanged);
+    if (UserPrefs().cloudBookMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudPublishers());
+    }
+  }
+
+  /// [showLoading] 为 false 时用于下拉刷新：保留当前列表，不切全屏加载态
+  Future<void> _loadCloudPublishers({bool showLoading = true}) async {
+    setState(() {
+      if (showLoading) _cloudLoading = true;
+      _cloudError = false;
+    });
+    try {
+      final rows = await CloudDomainDataService.instance.fetchPublishers();
+      if (!mounted) return;
+      setState(() {
+        _cloudEntries = rows
+            .where((e) => e.key.isNotEmpty)
+            .map((e) => _PublisherEntry(e.key, e.value))
+            .toList();
+        _cloudLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _cloudLoading = false;
+        // 静默刷新失败且已有数据时保留列表，仅 Toast 提示
+        if (showLoading || _cloudEntries.isEmpty) _cloudError = true;
+      });
+      if (!showLoading && _cloudEntries.isNotEmpty && mounted) {
+        ToastUtil.show(context, '加载失败，请检查网络'.tr);
+      }
+    }
+  }
+
+  /// 下拉刷新：云模式静默重拉聚合，本地模式重新全量加载书籍
+  Future<void> _refresh() async {
+    if (UserPrefs().cloudBookMode) {
+      await _loadCloudPublishers(showLoading: false);
+    } else {
+      await context.read<AppProvider>().loadBooks();
+    }
+  }
+
+  /// 把非列表态（加载/错误/空）包成可滚动容器，使 RefreshIndicator 在内容不足一屏时也能下拉
+  Widget _buildRefreshPlaceholder(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  /// 云模式搜索在服务端聚合结果上做客户端过滤（社名数量有限，无需再发请求）
+  List<_PublisherEntry> _filterCloudEntries() {
+    if (_searchKeyword.isEmpty) return _cloudEntries;
+    final kw = _searchKeyword.toLowerCase();
+    return _cloudEntries.where((e) => e.name.toLowerCase().contains(kw)).toList();
   }
 
   @override
@@ -239,8 +308,56 @@ class _PublisherListPageState extends State<PublisherListPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final books = context.watch<AppProvider>().books;
-    final entries = _aggregatePublishers(books);
+    final isCloud = UserPrefs().cloudBookMode;
+
+    if (isCloud && _cloudLoading) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: Text('出版社'.tr),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: _buildRefreshPlaceholder(
+            Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
+          ),
+        ),
+      );
+    }
+    if (isCloud && _cloudError) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: Text('出版社'.tr),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: _buildRefreshPlaceholder(
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+                  const SizedBox(height: 16),
+                  Text(
+                    '加载失败，请检查网络'.tr,
+                    style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(onPressed: _loadCloudPublishers, child: Text('重试'.tr)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final entries = isCloud
+        ? _filterCloudEntries()
+        : _aggregatePublishers(context.watch<AppProvider>().books);
     _buildFlatItems(entries);
 
     return Scaffold(
@@ -253,11 +370,14 @@ class _PublisherListPageState extends State<PublisherListPage> {
         children: [
           _buildSearchBar(colors),
           Expanded(
-            child: entries.isEmpty
-                ? _buildEmptyState(colors)
-                : Stack(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: entries.isEmpty
+                  ? _buildRefreshPlaceholder(_buildEmptyState(colors))
+                  : Stack(
                     children: [
                       ScrollablePositionedList.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         itemScrollController: _itemScrollController,
                         itemPositionsListener: _itemPositionsListener,
                         padding: const EdgeInsets.only(left: 16, right: 28, top: 8, bottom: 8),
@@ -285,6 +405,7 @@ class _PublisherListPageState extends State<PublisherListPage> {
                       _buildIndexBar(colors),
                     ],
                   ),
+            ),
           ),
         ],
       ),

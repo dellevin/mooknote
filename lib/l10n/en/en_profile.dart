@@ -459,7 +459,8 @@ const Map<String, String> enProfile = {
   '备份到本地文件夹，支持恢复':
       'Back up to a local folder; restore supported',
   '云备份': 'Cloud backup',
-  '通过 WebDAV 同步到云端': 'Sync to cloud via WebDAV',
+  '云端存储备份数据，多端同步更方便':
+      'Backups stored in the cloud for easy multi-device sync',
   '选择导出类型': 'Choose export type',
   '导出为 Excel (.xlsx) 格式': 'Export as Excel (.xlsx)',
   '{n} 条记录': '{n} records',

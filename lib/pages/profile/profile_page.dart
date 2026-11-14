@@ -17,6 +17,7 @@ import '../../utils/avatar_helper.dart';
 import '../../utils/excel_exporter.dart';
 import '../../services/sync/backup_service.dart';
 import '../../services/server_export_service.dart';
+import '../../services/cloud/cloud_auth_service.dart';
 import '../settings/recycle_bin_page.dart';
 import '../sync/backup_page.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -45,6 +46,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   String _motto = '好运不会眷顾一无所有之人。';
   String? _avatarPath;
   String? _heroBgPath;
+
+  // 云端登录态资料（与本地资料互斥展示）
+  bool _cloudLoggedIn = false;
+  String? _cloudAvatarUrl;
 
   // 我的模块切换索引 (0=影视, 1=阅读, 2=游戏, 3=笔记)
   int _myModuleIndex = 0;
@@ -85,9 +90,22 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
   Future<void> _loadUserData() async {
     try {
       setState(() {
-        _nickname = _userPrefs.nickname;
-        _motto = _userPrefs.motto;
-        _avatarPath = _userPrefs.avatarPath;
+        _cloudLoggedIn = CloudAuthService.instance.isLoggedIn;
+        if (_cloudLoggedIn) {
+          // 云端登录态：展示云端账号资料，不回退本地；昵称优先昵称，空则用户名
+          _nickname = _userPrefs.cloudNickname.isNotEmpty
+              ? _userPrefs.cloudNickname
+              : (_userPrefs.cloudUsername.isNotEmpty
+                  ? _userPrefs.cloudUsername
+                  : _userPrefs.nickname);
+          _motto = _userPrefs.cloudMotto;
+          _cloudAvatarUrl = _userPrefs.cloudAvatar.isEmpty ? null : _userPrefs.cloudAvatar;
+        } else {
+          _nickname = _userPrefs.nickname;
+          _motto = _userPrefs.motto;
+          _avatarPath = _userPrefs.avatarPath;
+          _cloudAvatarUrl = null;
+        }
         _heroBgPath = _userPrefs.heroBackgroundPath;
       });
     } catch (_) {}
@@ -227,26 +245,40 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                               width: 1.5),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: _avatarPath != null && _avatarPath!.isNotEmpty
-                            ? FadeInLocalImage(
-                                path: _avatarPath,
+                        child: _cloudAvatarUrl != null
+                            ? Image.network(
+                                _cloudAvatarUrl!,
                                 fit: BoxFit.cover,
-                                errorWidget: Icon(Icons.person_outline,
-                                    size: 28,
+                                gaplessPlayback: true,
+                                errorBuilder: (_, __, ___) => Container(
                                     color: hasData
-                                        ? Colors.white.withValues(alpha: 0.5)
-                                        : colors.onSurface
-                                            .withValues(alpha: 0.3)))
-                            : Container(
-                                color: hasData
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : colors.surfaceContainerHighest,
-                                child: Icon(Icons.person_outline,
-                                    size: 28,
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : colors.surfaceContainerHighest,
+                                    child: Icon(Icons.person_outline,
+                                        size: 28,
+                                        color: hasData
+                                            ? Colors.white.withValues(alpha: 0.5)
+                                            : colors.onSurface.withValues(alpha: 0.3))))
+                            : (_avatarPath != null && _avatarPath!.isNotEmpty
+                                ? FadeInLocalImage(
+                                    path: _avatarPath,
+                                    fit: BoxFit.cover,
+                                    errorWidget: Icon(Icons.person_outline,
+                                        size: 28,
+                                        color: hasData
+                                            ? Colors.white.withValues(alpha: 0.5)
+                                            : colors.onSurface
+                                                .withValues(alpha: 0.3)))
+                                : Container(
                                     color: hasData
-                                        ? Colors.white.withValues(alpha: 0.5)
-                                        : colors.onSurface
-                                            .withValues(alpha: 0.3))),
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : colors.surfaceContainerHighest,
+                                    child: Icon(Icons.person_outline,
+                                        size: 28,
+                                        color: hasData
+                                            ? Colors.white.withValues(alpha: 0.5)
+                                            : colors.onSurface
+                                                .withValues(alpha: 0.3)))),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -261,30 +293,36 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                                   color: hasData
                                       ? Colors.white
                                       : colors.onSurface)),
-                          const SizedBox(height: 4),
-                          Text(_motto.tr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: hasData
-                                      ? Colors.white.withValues(alpha: 0.85)
-                                      : colors.onSurface
-                                          .withValues(alpha: 0.6))),
+                          // 云端座右铭为用户输入的普通文本，不走 i18n；未设置时隐藏整行
+                          if (!_cloudLoggedIn || _motto.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(_cloudLoggedIn ? _motto : _motto.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: hasData
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : colors.onSurface
+                                            .withValues(alpha: 0.6))),
+                          ],
                         ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    if (_userPrefs.showMovieTab) _buildHeroStat(_formatCount(movies.length), '观影'.tr, hasData),
-                    if (_userPrefs.showBookTab) _buildHeroStat(_formatCount(books.length), '阅读'.tr, hasData),
-                    if (_userPrefs.showGameTab) _buildHeroStat(_formatCount(games.length), '游戏'.tr, hasData),
-                    if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记'.tr, hasData),
-                  ],
-                ),
+                Builder(builder: (context) {
+                  final p = context.read<AppProvider>();
+                  return Row(
+                    children: [
+                      if (_userPrefs.showMovieTab) _buildHeroStat(_formatCount(p.cloudMovieTotal ?? movies.length), '观影'.tr, hasData),
+                      if (_userPrefs.showBookTab) _buildHeroStat(_formatCount(p.cloudBookTotal ?? books.length), '阅读'.tr, hasData),
+                      if (_userPrefs.showGameTab) _buildHeroStat(_formatCount(p.cloudGameTotal ?? games.length), '游戏'.tr, hasData),
+                      if (_userPrefs.showNoteTab) _buildHeroStat(_formatCount(notes.length), '笔记'.tr, hasData),
+                    ],
+                  );
+                }),
               ],
             ),
           ),
@@ -466,7 +504,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(children: [
+          child: context.read<AppProvider>().isCloudGameMode
+              ? _buildCloudStatusTags('games',
+                  const ['completed', 'playing', 'want_to_play'], 'game', colors)
+              : Row(children: [
             _buildStatusTag(StatusLabels.label('game', 'completed'), completed, true, colors),
             const SizedBox(width: 10),
             _buildStatusTag(StatusLabels.label('game', 'playing'), playing, false, colors),
@@ -512,7 +553,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(children: [
+          child: context.read<AppProvider>().isCloudMovieMode
+              ? _buildCloudStatusTags('movies',
+                  const ['watched', 'watching', 'want_to_watch'], 'movie', colors)
+              : Row(children: [
             _buildStatusTag(StatusLabels.label('movie', 'watched'), watched, true, colors),
             const SizedBox(width: 10),
             _buildStatusTag(StatusLabels.label('movie', 'watching'), watching, false, colors),
@@ -558,7 +602,10 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(children: [
+          child: context.read<AppProvider>().isCloudBookMode
+              ? _buildCloudStatusTags('books',
+                  const ['read', 'reading', 'want_to_read'], 'book', colors)
+              : Row(children: [
             _buildStatusTag(StatusLabels.label('book', 'read'), read, true, colors),
             const SizedBox(width: 10),
             _buildStatusTag(StatusLabels.label('book', 'reading'), reading, false, colors),
@@ -660,6 +707,24 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           ],
         ),
       ),
+    );
+  }
+
+  /// 云端模式状态分布：三个状态各走一次 page(status, limit:1).total（provider 内有缓存）
+  Widget _buildCloudStatusTags(String domain, List<String> statuses,
+      String type, ColorScheme colors) {
+    return FutureBuilder<Map<String, int>>(
+      future: context.read<AppProvider>().fetchCloudStatusCounts(domain, statuses),
+      builder: (context, snap) {
+        final counts = snap.data;
+        return Row(children: [
+          for (var i = 0; i < statuses.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            _buildStatusTag(StatusLabels.label(type, statuses[i]),
+                counts?[statuses[i]] ?? 0, i == 0, colors),
+          ],
+        ]);
+      },
     );
   }
 
@@ -1097,7 +1162,7 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       (
         Icons.cloud_outlined,
         '云备份'.tr,
-        '通过 WebDAV 同步到云端'.tr,
+        '云端存储备份数据，多端同步更方便'.tr,
         const CloudSyncPage(),
       ),
     ];
@@ -1213,13 +1278,16 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
 
     final options = <(String, IconData, int)>[];
     if (userPrefs.showMovieTab) {
-      options.add(('影视', Icons.movie_outlined, provider.movies.where((m) => !m.isDeleted).length));
+      options.add(('影视', Icons.movie_outlined,
+          provider.cloudMovieTotal ?? provider.movies.where((m) => !m.isDeleted).length));
     }
     if (userPrefs.showBookTab) {
-      options.add(('阅读', Icons.menu_book_outlined, provider.books.where((b) => !b.isDeleted).length));
+      options.add(('阅读', Icons.menu_book_outlined,
+          provider.cloudBookTotal ?? provider.books.where((b) => !b.isDeleted).length));
     }
     if (userPrefs.showGameTab) {
-      options.add(('游戏', Icons.sports_esports_outlined, provider.games.where((g) => !g.isDeleted).length));
+      options.add(('游戏', Icons.sports_esports_outlined,
+          provider.cloudGameTotal ?? provider.games.where((g) => !g.isDeleted).length));
     }
     options.add(('笔记', Icons.sticky_note_2_outlined, provider.notes.where((n) => !n.isDeleted).length));
 

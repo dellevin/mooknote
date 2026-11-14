@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -87,6 +88,34 @@ class ImageSaver {
       context: context,
       preview: MemoryImage(bytes),
       onConfirm: () => saveFromBytes(bytes, originalPath: originalPath, context: context),
+    );
+  }
+
+  /// 网络图片长按保存入口：先拉取字节再走统一确认框（云端图库 OSS URL 使用）
+  static Future<void> showSaveFromNetworkSheet(
+    String url, {
+    required BuildContext context,
+    ({IconData icon, String label, VoidCallback onTap})? extraAction,
+  }) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final http.Response resp;
+    try {
+      resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
+    } catch (_) {
+      _toast(messenger, '下载失败，请检查网络'.tr);
+      return;
+    }
+    if (resp.statusCode != 200 || resp.bodyBytes.isEmpty) {
+      _toast(messenger, '下载失败，请检查网络'.tr);
+      return;
+    }
+    if (!context.mounted) return;
+    final bytes = resp.bodyBytes;
+    _showSheet(
+      context: context,
+      preview: MemoryImage(bytes),
+      onConfirm: () => saveFromBytes(Uint8List.fromList(bytes), originalPath: url, context: context),
+      extraAction: extraAction,
     );
   }
 

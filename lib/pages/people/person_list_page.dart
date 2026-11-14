@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lpinyin/lpinyin.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_movie_data_service.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
@@ -35,8 +38,18 @@ class _PersonListPageState extends State<PersonListPage> {
   List<Person> _lastFiltered = const [];
 
   // 云模式人物列表走网络，单独维护加载/错误态
-  bool _cloudLoading = false;
+  bool _cloudLoading = true;
   bool _cloudError = false;
+
+  // 云模式分页（人物 Tab 不再一次性全量拉取，触底加载；A-Z 索引与职业筛选依赖全量内存，云模式下隐藏）
+  static const int _cloudPageSize = 50;
+  final ScrollController _cloudScrollController = ScrollController();
+  final List<Person> _cloudPeople = [];
+  int _cloudOffset = 0;
+  int _cloudTotal = 0;
+  bool _loadingMore = false;
+  String _cloudKeyword = '';
+  Timer? _searchDebounce;
 
   // 拼音缓存：人名 -> 首字母；人名 -> 拼音（用于组内排序）
   static final Map<String, String> _letterCache = {};
@@ -51,30 +64,116 @@ class _PersonListPageState extends State<PersonListPage> {
     super.initState();
     _itemPositionsListener.itemPositions.addListener(_onPositionsChanged);
     if (UserPrefs().cloudMovieMode) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudPeople());
+      _cloudScrollController.addListener(_onCloudScroll);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudFirstPage());
     }
   }
 
-  Future<void> _loadCloudPeople() async {
+  /// 云模式首页（或关键字/刷新变化后）重置分页。
+  /// [showLoading] 为 false 时用于下拉刷新：保留当前列表，不切全屏加载态
+  Future<void> _loadCloudFirstPage({bool showLoading = true}) async {
     setState(() {
-      _cloudLoading = true;
+      if (showLoading) _cloudLoading = true;
       _cloudError = false;
     });
     try {
-      await context.read<AppProvider>().loadPeople();
+      final page = await CloudMovieDataService.instance.pagePeople(
+        keyword: _cloudKeyword.isEmpty ? null : _cloudKeyword,
+        offset: 0,
+        limit: _cloudPageSize,
+      );
       if (!mounted) return;
-      setState(() => _cloudLoading = false);
+      setState(() {
+        _cloudPeople
+          ..clear()
+          ..addAll(page.list);
+        _cloudOffset = page.list.length;
+        _cloudTotal = page.total;
+        _cloudLoading = false;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _cloudLoading = false;
-        _cloudError = true;
+        // 静默刷新失败且已有数据时保留列表，仅 Toast 提示
+        if (showLoading || _cloudPeople.isEmpty) _cloudError = true;
       });
+      if (!showLoading && _cloudPeople.isNotEmpty && mounted) {
+        ToastUtil.show(context, '加载失败，请检查网络'.tr);
+      }
     }
+  }
+
+  /// 下拉刷新：云模式静默重拉第一页，本地模式重新全量加载
+  Future<void> _refresh() async {
+    if (UserPrefs().cloudMovieMode) {
+      await _loadCloudFirstPage(showLoading: false);
+    } else {
+      await context.read<AppProvider>().loadPeople();
+    }
+  }
+
+  /// 把非列表态（加载/错误/空）包成可滚动容器，使 RefreshIndicator 在内容不足一屏时也能下拉
+  Widget _buildRefreshPlaceholder(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  /// 云模式触底加载下一页
+  Future<void> _loadCloudMore() async {
+    if (_loadingMore || _cloudOffset >= _cloudTotal) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await CloudMovieDataService.instance.pagePeople(
+        keyword: _cloudKeyword.isEmpty ? null : _cloudKeyword,
+        offset: _cloudOffset,
+        limit: _cloudPageSize,
+      );
+      if (!mounted) return;
+      setState(() {
+        _cloudPeople.addAll(page.list);
+        _cloudOffset += page.list.length;
+        _cloudTotal = page.total;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ToastUtil.show(context, '加载失败，请检查网络'.tr);
+    }
+  }
+
+  void _onCloudScroll() {
+    if (!_cloudScrollController.hasClients) return;
+    final pos = _cloudScrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
+      _loadCloudMore();
+    }
+  }
+
+  /// 云模式搜索走服务端，防抖后重置回第一页
+  void _onCloudSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      final kw = value.trim();
+      if (kw == _cloudKeyword) return;
+      _cloudKeyword = kw;
+      _loadCloudFirstPage();
+    });
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _cloudScrollController.removeListener(_onCloudScroll);
+    _cloudScrollController.dispose();
     _itemPositionsListener.itemPositions.removeListener(_onPositionsChanged);
     _activeLetterNotifier.dispose();
     _searchCtrl.dispose();
@@ -271,9 +370,7 @@ class _PersonListPageState extends State<PersonListPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final people = context.watch<AppProvider>().people;
-    final filtered = _filterPeople(people);
-    _buildFlatItems(filtered);
+    final isCloud = UserPrefs().cloudMovieMode;
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -282,7 +379,7 @@ class _PersonListPageState extends State<PersonListPage> {
         title: Text('人物'.tr),
         actions: [
           // 扫描关联是本地库维护操作，云模式数据源在服务端，不提供
-          if (!UserPrefs().cloudMovieMode)
+          if (!isCloud)
             IconButton(
               icon: const Icon(Icons.refresh),
               tooltip: '扫描作品自动关联'.tr,
@@ -295,53 +392,119 @@ class _PersonListPageState extends State<PersonListPage> {
           ),
         ],
       ),
-      body: UserPrefs().cloudMovieMode && _cloudLoading
-          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-          : UserPrefs().cloudMovieMode && _cloudError
-              ? _buildCloudError(colors)
-              : Column(
-        children: [
-          // 搜索栏
-          _buildSearchBar(colors),
-          // 职业筛选
-          _buildOccupationFilter(colors, people),
-          // 列表
-          Expanded(
-            child: filtered.isEmpty
-                ? _buildEmptyState(colors)
-                : Stack(
-                    children: [
-                      ScrollablePositionedList.builder(
-                        itemScrollController: _itemScrollController,
-                        itemPositionsListener: _itemPositionsListener,
-                        padding: const EdgeInsets.only(left: 16, right: 28, top: 8, bottom: 8),
-                        itemCount: _flatItems.length,
-                        itemBuilder: (context, i) {
-                          final item = _flatItems[i];
-                          if (item.isHeader) {
-                            return Container(
-                              height: 26,
-                              alignment: Alignment.centerLeft,
-                              padding: const EdgeInsets.only(top: 8, bottom: 2),
-                              child: Text(
-                                item.letter!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: colors.onSurface.withValues(alpha: 0.4),
-                                ),
-                              ),
-                            );
-                          }
-                          return _buildPersonItem(item.person!, colors);
-                        },
-                      ),
-                      _buildIndexBar(colors),
-                    ],
+      body: isCloud ? _buildCloudBody(colors) : _buildLocalBody(colors),
+    );
+  }
+
+  /// 云模式：服务端分页 + 关键字检索，触底加载；不提供依赖全量数据的 A-Z 索引与职业筛选
+  Widget _buildCloudBody(ColorScheme colors) {
+    if (_cloudLoading) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: _buildRefreshPlaceholder(
+          Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
+        ),
+      );
+    }
+    if (_cloudError) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: _buildRefreshPlaceholder(_buildCloudError(colors)),
+      );
+    }
+    return Column(
+      children: [
+        _buildSearchBar(colors),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: _cloudPeople.isEmpty
+                ? _buildRefreshPlaceholder(_buildEmptyState(colors))
+                : ListView.builder(
+                    controller: _cloudScrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    itemCount: _cloudPeople.length + 1,
+                    itemBuilder: (context, i) {
+                      if (i == _cloudPeople.length) return _buildCloudFooter(colors);
+                      return _buildPersonItem(_cloudPeople[i], colors);
+                    },
                   ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCloudFooter(ColorScheme colors) {
+    if (_loadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: Text(
+          _cloudOffset >= _cloudTotal ? '没有更多了'.tr : '加载更多'.tr,
+          style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35)),
+        ),
       ),
+    );
+  }
+
+  /// 本地模式：全量内存 + A-Z 拼音索引 + 职业筛选
+  Widget _buildLocalBody(ColorScheme colors) {
+    final people = context.watch<AppProvider>().people;
+    final filtered = _filterPeople(people);
+    _buildFlatItems(filtered);
+    return Column(
+      children: [
+        // 搜索栏
+        _buildSearchBar(colors),
+        // 职业筛选
+        _buildOccupationFilter(colors, people),
+        // 列表
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: filtered.isEmpty
+                ? _buildRefreshPlaceholder(_buildEmptyState(colors))
+                : Stack(
+                  children: [
+                    ScrollablePositionedList.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemScrollController: _itemScrollController,
+                      itemPositionsListener: _itemPositionsListener,
+                      padding: const EdgeInsets.only(left: 16, right: 28, top: 8, bottom: 8),
+                      itemCount: _flatItems.length,
+                      itemBuilder: (context, i) {
+                        final item = _flatItems[i];
+                        if (item.isHeader) {
+                          return Container(
+                            height: 26,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(top: 8, bottom: 2),
+                            child: Text(
+                              item.letter!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface.withValues(alpha: 0.4),
+                              ),
+                            ),
+                          );
+                        }
+                        return _buildPersonItem(item.person!, colors);
+                      },
+                    ),
+                    _buildIndexBar(colors),
+                  ],
+                ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -377,14 +540,29 @@ class _PersonListPageState extends State<PersonListPage> {
                   focusedErrorBorder: InputBorder.none,
                   filled: false,
                 ),
-                onChanged: (v) => setState(() => _searchKeyword = v),
+                onChanged: (v) {
+                  if (UserPrefs().cloudMovieMode) {
+                    _onCloudSearchChanged(v);
+                    setState(() {}); // 刷新清除按钮显隐
+                  } else {
+                    setState(() => _searchKeyword = v);
+                  }
+                },
               ),
             ),
-            if (_searchKeyword.isNotEmpty)
+            if (_searchCtrl.text.isNotEmpty)
               GestureDetector(
                 onTap: () {
                   _searchCtrl.clear();
-                  setState(() => _searchKeyword = '');
+                  if (UserPrefs().cloudMovieMode) {
+                    _searchDebounce?.cancel();
+                    if (_cloudKeyword.isNotEmpty) {
+                      _cloudKeyword = '';
+                      _loadCloudFirstPage();
+                    }
+                  } else {
+                    setState(() => _searchKeyword = '');
+                  }
                   FocusManager.instance.primaryFocus?.unfocus();
                 },
                 child: Container(
@@ -543,7 +721,7 @@ class _PersonListPageState extends State<PersonListPage> {
             style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
           ),
           const SizedBox(height: 16),
-          OutlinedButton(onPressed: _loadCloudPeople, child: Text('重试'.tr)),
+          OutlinedButton(onPressed: _loadCloudFirstPage, child: Text('重试'.tr)),
         ],
       ),
     );
@@ -557,10 +735,10 @@ class _PersonListPageState extends State<PersonListPage> {
           Icon(Icons.people_outline, size: 64, color: colors.onSurface.withValues(alpha: 0.15)),
           const SizedBox(height: 16),
           Text(
-            _searchKeyword.isNotEmpty ? '未找到匹配的人物'.tr : '暂无人物'.tr,
+            _searchCtrl.text.trim().isNotEmpty ? '未找到匹配的人物'.tr : '暂无人物'.tr,
             style: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.3)),
           ),
-          if (_searchKeyword.isEmpty) ...[
+          if (_searchCtrl.text.trim().isEmpty) ...[
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => _navigateToForm(),
@@ -632,7 +810,12 @@ class _PersonListPageState extends State<PersonListPage> {
         builder: (context) => PersonFormPage(person: person),
       ),
     ).then((_) {
-      if (mounted) context.read<AppProvider>().loadPeople();
+      if (!mounted) return;
+      if (UserPrefs().cloudMovieMode) {
+        _loadCloudFirstPage();
+      } else {
+        context.read<AppProvider>().loadPeople();
+      }
     });
   }
 }

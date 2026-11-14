@@ -42,6 +42,7 @@ class CloudAuthService {
     required String uuid,
     required String mobile,
     required String email,
+    String? inviteCode,
   }) {
     return _authenticate('register', {
       'username': username,
@@ -50,8 +51,23 @@ class CloudAuthService {
       'uuid': uuid,
       'mobile': mobile,
       'email': email,
+      'inviteCode': inviteCode ?? '',
       'deviceHash': UserPrefs().deviceId,
     });
+  }
+
+  /// 注册是否必填邀请码（后台参数控制，公开接口）。
+  /// 网络异常按非必填处理，服务端仍会做兜底校验。
+  Future<bool> fetchInviteRequired() async {
+    try {
+      final resp = await http
+          .get(Uri.parse('$_base/invite-required'))
+          .timeout(const Duration(seconds: 10));
+      final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      return data['code'] == 0 && data['data'] == true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// 登录
@@ -211,6 +227,16 @@ class CloudAuthService {
       return const CloudAuthResult(success: true);
     } catch (_) {
       return CloudAuthResult(success: false, message: '网络连接失败，请稍后再试'.tr);
+    }
+  }
+
+  /// 会话失效统一处理：清除本地登录态（含云端模式开关）并全局提示，本地数据不受影响。
+  /// 供不经过本类接口的云端通道（explore/journal 等）在收到 401 时调用。
+  Future<void> handleSessionExpired() async {
+    await UserPrefs().clearCloudAccount();
+    final ctx = appNavigatorKey.currentContext;
+    if (ctx != null && ctx.mounted) {
+      ToastUtil.show(ctx, '登录失效，已切换成本地数据，请重新登录'.tr);
     }
   }
 

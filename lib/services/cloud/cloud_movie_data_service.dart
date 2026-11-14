@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../l10n/app_strings.dart';
 import '../../models/data_models.dart';
 import '../../utils/server_config.dart';
 import '../../utils/user_prefs.dart';
@@ -82,14 +83,23 @@ class CloudMovieDataService {
       (request as http.Request).body = jsonEncode(body);
     }
     final streamed = await request.send().timeout(const Duration(seconds: 30));
-    final data =
-        jsonDecode(utf8.decode(await streamed.stream.toBytes())) as Map<String, dynamic>;
+    final bodyBytes = await streamed.stream.toBytes();
+    if (streamed.statusCode != 200) {
+      throw StateError(
+          '云端请求失败 (HTTP {code})'.trf({'code': streamed.statusCode}));
+    }
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(utf8.decode(bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      throw StateError('云端响应解析失败'.tr);
+    }
     if (data['code'] == 401) {
       await UserPrefs().clearCloudAccount();
-      throw StateError('登录失效，已切换成本地数据，请重新登录');
+      throw StateError('登录失效，已切换成本地数据，请重新登录'.tr);
     }
     if (data['code'] != 0) {
-      throw StateError(data['msg']?.toString() ?? '云端操作失败');
+      throw StateError(data['msg']?.toString() ?? '云端操作失败'.tr);
     }
     return data['data'];
   }
@@ -162,7 +172,8 @@ class CloudMovieDataService {
 
   Future<void> softDeleteMovie(String id) => _delete('movies/$id');
 
-  Future<void> restoreMovie(String id) => _post('movies/$id/restore', {});
+  Future<void> restoreMovie(String id) async =>
+      _post('movies/$id/restore', await _withClientId({}));
 
   Future<void> permanentDeleteMovie(String id) => _delete('movies/$id/permanent');
 
@@ -208,8 +219,8 @@ class CloudMovieDataService {
   Future<void> deleteChild(String resource, String rowId) =>
       _delete('movie-child/$resource/$rowId');
 
-  Future<void> restoreChild(String resource, String rowId) =>
-      _post('movie-child/$resource/$rowId/restore', {});
+  Future<void> restoreChild(String resource, String rowId) async =>
+      _post('movie-child/$resource/$rowId/restore', await _withClientId({}));
 
   Future<void> permanentDeleteChild(String resource, String rowId) =>
       _delete('movie-child/$resource/$rowId/permanent');
@@ -232,9 +243,9 @@ class CloudMovieDataService {
   }
 
   /// 海报重排
-  Future<void> reorderPosters(String movieId, List<String> orderedIds) async {
-    await _post('movies/$movieId/posters/reorder', {'ids': orderedIds});
-  }
+  Future<void> reorderPosters(String movieId, List<String> orderedIds) async =>
+      _post('movies/$movieId/posters/reorder',
+          await _withClientId({'ids': orderedIds}));
 
   // ------------------------------------------------------------------
   // 独立实体 people / tags
@@ -248,6 +259,23 @@ class CloudMovieDataService {
     return (data ?? const [])
         .map((e) => parser(Map<String, dynamic>.from(e as Map)))
         .toList();
+  }
+
+  /// 人物分页：服务端关键字检索（姓名/别名），返回 total + 当前页，供人物 Tab 触底加载
+  Future<CloudPage<Person>> pagePeople({
+    String? keyword,
+    int offset = 0,
+    int limit = 50,
+  }) async {
+    final data = await _get('people/page', query: {
+      if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      'offset': '$offset',
+      'limit': '$limit',
+    }) as Map<String, dynamic>;
+    final list = ((data['list'] as List?) ?? const [])
+        .map((e) => Person.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    return CloudPage(list, (data['total'] as num?)?.toInt() ?? 0);
   }
 
   Future<Map<String, dynamic>?> getEntity(String resource, String id) async {
@@ -276,8 +304,8 @@ class CloudMovieDataService {
         .toList();
   }
 
-  Future<void> restoreEntity(String resource, String id) =>
-      _post('entities/$resource/$id/restore', {});
+  Future<void> restoreEntity(String resource, String id) async =>
+      _post('entities/$resource/$id/restore', await _withClientId({}));
 
   Future<void> permanentDeleteEntity(String resource, String id) =>
       _delete('entities/$resource/$id/permanent');
@@ -307,14 +335,23 @@ class CloudMovieDataService {
       ..fields['path'] = logicalPath
       ..files.add(await http.MultipartFile.fromPath('file', localAbsPath));
     final streamed = await request.send().timeout(const Duration(seconds: 60));
-    final data =
-        jsonDecode(utf8.decode(await streamed.stream.toBytes())) as Map<String, dynamic>;
+    final bodyBytes = await streamed.stream.toBytes();
+    if (streamed.statusCode != 200) {
+      throw StateError(
+          '云端请求失败 (HTTP {code})'.trf({'code': streamed.statusCode}));
+    }
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(utf8.decode(bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      throw StateError('云端响应解析失败'.tr);
+    }
     if (data['code'] == 401) {
       await UserPrefs().clearCloudAccount();
-      throw StateError('登录失效，已切换成本地数据，请重新登录');
+      throw StateError('登录失效，已切换成本地数据，请重新登录'.tr);
     }
     if (data['code'] != 0) {
-      throw StateError(data['msg']?.toString() ?? '图片上传失败');
+      throw StateError(data['msg']?.toString() ?? '图片上传失败'.tr);
     }
     return data['data'].toString();
   }

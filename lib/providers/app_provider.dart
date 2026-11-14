@@ -380,6 +380,8 @@ class AppProvider extends ChangeNotifier {
       final page = await _cloudMovie.pageMovies(
         sortMode: UserPrefs().effectiveMovieSortMode, offset: 0, limit: firstPageSize);
       _movies = page.list;
+      _invalidateCloudMainCounts('movies');
+      _cloudMainCountCache['movies'] = page.total;
       debugPrint('[AppProvider] 云端影视加载完成: ${_movies.length} 条, ${sw.elapsedMilliseconds}ms');
       if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
       notifyListeners();
@@ -400,6 +402,8 @@ class AppProvider extends ChangeNotifier {
         sortMode: UserPrefs().effectiveBookSortMode, offset: 0, limit: firstPageSize,
       );
       _books = page.list;
+      _invalidateCloudMainCounts('books');
+      _cloudMainCountCache['books'] = page.total;
       debugPrint('[AppProvider] 云端书籍加载完成: ${_books.length} 条, ${sw.elapsedMilliseconds}ms');
       if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
       notifyListeners();
@@ -434,6 +438,8 @@ class AppProvider extends ChangeNotifier {
         sortMode: UserPrefs().effectiveGameSortMode, offset: 0, limit: firstPageSize,
       );
       _games = page.list;
+      _invalidateCloudMainCounts('games');
+      _cloudMainCountCache['games'] = page.total;
       debugPrint('[AppProvider] 云端游戏加载完成: ${_games.length} 条, ${sw.elapsedMilliseconds}ms');
       if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
       notifyListeners();
@@ -472,6 +478,64 @@ class AppProvider extends ChangeNotifier {
     debugPrint('[AppProvider] 人物加载完成: ${_people.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
+
+  // ─── 云端主表计数（服务端独立 COUNT(*)，禁止用首屏 50 条分片的 length）────
+  /// key：domain（总数）或 domain|status（状态分类数）
+  final Map<String, int> _cloudMainCountCache = {};
+
+  String _countCacheKey(String domain, String? status) =>
+      status == null ? domain : '$domain|$status';
+
+  void _invalidateCloudMainCounts(String domain) {
+    _cloudMainCountCache.removeWhere((k, _) => k == domain || k.startsWith('$domain|'));
+  }
+
+  /// 同步读计数缓存，未命中返回 null（调用方回退本地 length 或调 fetch 后重建）
+  int? cachedCloudMainCount(String domain, {String? status}) =>
+      _cloudMainCountCache[_countCacheKey(domain, status)];
+
+  /// 拉取云端主表计数：page 接口 limit=1，仅取服务端 total（COUNT(*)，与分页无关）
+  Future<int> fetchCloudMainCount(String domain, {String? status}) async {
+    final key = _countCacheKey(domain, status);
+    final cached = _cloudMainCountCache[key];
+    if (cached != null) return cached;
+    final int total;
+    if (domain == 'movies') {
+      total = (await _cloudMovie.pageMovies(status: status, offset: 0, limit: 1)).total;
+    } else if (domain == 'books') {
+      total = (await _cloudDomain.pageMain('books', Book.fromJson,
+              status: status, offset: 0, limit: 1))
+          .total;
+    } else {
+      total = (await _cloudDomain.pageMain('games', Game.fromJson,
+              status: status, offset: 0, limit: 1))
+          .total;
+    }
+    _cloudMainCountCache[key] = total;
+    return total;
+  }
+
+  /// 某域三个状态分类的计数（并发 limit=1 请求），供"我的"页状态分布使用
+  Future<Map<String, int>> fetchCloudStatusCounts(
+      String domain, List<String> statuses) async {
+    final pairs = await Future.wait(statuses
+        .map((s) async => MapEntry(s, await fetchCloudMainCount(domain, status: s))));
+    return Map<String, int>.fromEntries(pairs);
+  }
+
+  /// 片单页下拉刷新：云端先丢弃 playlist_items 全量缓存，再重拉片单，避免拿到旧条目
+  Future<void> refreshPlaylists() async {
+    _invalidateCloudPlaylistItems();
+    await loadPlaylists();
+  }
+
+  /// 侧边栏/我的页 Hero 同步读总数；本地模式或缓存未命中时返回 null
+  int? get cloudMovieTotal =>
+      _cloudMovieMode ? cachedCloudMainCount('movies') : null;
+  int? get cloudBookTotal =>
+      _cloudBookMode ? cachedCloudMainCount('books') : null;
+  int? get cloudGameTotal =>
+      _cloudGameMode ? cachedCloudMainCount('games') : null;
 
   /// 编辑返回后触发列表页重载
   /// [itemId] 被编辑条目的 ID，用于就地更新而非重置分页
@@ -514,6 +578,20 @@ class AppProvider extends ChangeNotifier {
   /// 云模式全局搜索：直接走服务端关键词分页（标题/别名 LIKE），一次取较多条供搜索页展示
   Future<List<Movie>> searchCloudMovies(String keyword) async {
     final page = await _cloudMovie.pageMovies(keyword: keyword, offset: 0, limit: 100);
+    return page.list;
+  }
+
+  /// 云模式全局搜索：服务端关键词分页（书名/别名 LIKE），避免只搜内存 50 条分片
+  Future<List<Book>> searchCloudBooks(String keyword) async {
+    final page = await _cloudDomain.pageMain('books', Book.fromJson,
+        keyword: keyword, offset: 0, limit: 100);
+    return page.list;
+  }
+
+  /// 云模式全局搜索：服务端关键词分页（游戏名/别名 LIKE）
+  Future<List<Game>> searchCloudGames(String keyword) async {
+    final page = await _cloudDomain.pageMain('games', Game.fromJson,
+        keyword: keyword, offset: 0, limit: 100);
     return page.list;
   }
 
@@ -1282,6 +1360,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> addMovie(Movie movie) async {
     if (_cloudMovieMode) {
       await _cloudMovie.createMovie(movie);
+      _invalidateCloudMainCounts('movies');
       _movies.add(movie);
       debugPrint('[云端] 新增影视《${_logTitle(movie.title)}》');
       notifyListeners();
@@ -1296,6 +1375,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> updateMovie(Movie movie) async {
     if (_cloudMovieMode) {
       await _cloudMovie.updateMovie(movie);
+      _invalidateCloudMainCounts('movies');
       final idx = _movies.indexWhere((m) => m.id == movie.id);
       if (idx != -1) _movies[idx] = movie;
       debugPrint('[云端] 更新影视《${_logTitle(movie.title)}》');
@@ -1350,6 +1430,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> removeMovie(String id) async {
     if (_cloudMovieMode) {
       await _cloudMovie.softDeleteMovie(id);
+      _invalidateCloudMainCounts('movies');
       final idx = _movies.indexWhere((m) => m.id == id);
       final title = idx != -1 ? _movies[idx].title : '';
       if (idx != -1) _movies.removeAt(idx);
@@ -1368,6 +1449,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> addBook(Book book) async {
     if (_cloudBookMode) {
       await _cloudDomain.createMain('books', book.toJson());
+      _invalidateCloudMainCounts('books');
       _books.add(book);
       debugPrint('[云端] 新增书籍《${_logTitle(book.title)}》');
       notifyListeners();
@@ -1382,6 +1464,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> updateBook(Book book) async {
     if (_cloudBookMode) {
       await _cloudDomain.updateMain('books', book.id, book.toJson());
+      _invalidateCloudMainCounts('books');
       final idx = _books.indexWhere((b) => b.id == book.id);
       if (idx != -1) _books[idx] = book;
       debugPrint('[云端] 更新书籍《${_logTitle(book.title)}》');
@@ -1398,6 +1481,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> removeBook(String id) async {
     if (_cloudBookMode) {
       await _cloudDomain.softDeleteMain('books', id);
+      _invalidateCloudMainCounts('books');
       final idx = _books.indexWhere((b) => b.id == id);
       final title = idx != -1 ? _books[idx].title : '';
       if (idx != -1) _books.removeAt(idx);
@@ -1464,6 +1548,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> addGame(Game game) async {
     if (_cloudGameMode) {
       await _cloudDomain.createMain('games', game.toJson());
+      _invalidateCloudMainCounts('games');
       _games.add(game);
       debugPrint('[云端] 新增游戏《${_logTitle(game.title)}》');
       notifyListeners();
@@ -1478,6 +1563,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> updateGame(Game game) async {
     if (_cloudGameMode) {
       await _cloudDomain.updateMain('games', game.id, game.toJson());
+      _invalidateCloudMainCounts('games');
       final idx = _games.indexWhere((g) => g.id == game.id);
       if (idx != -1) _games[idx] = game;
       debugPrint('[云端] 更新游戏《${_logTitle(game.title)}》');
@@ -1494,6 +1580,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> removeGame(String id) async {
     if (_cloudGameMode) {
       await _cloudDomain.softDeleteMain('games', id);
+      _invalidateCloudMainCounts('games');
       final idx = _games.indexWhere((g) => g.id == id);
       final title = idx != -1 ? _games[idx].title : '';
       if (idx != -1) _games.removeAt(idx);
@@ -1511,9 +1598,15 @@ class AppProvider extends ChangeNotifier {
 
   // ─── 片单操作 ─────────────────────────────────────────────────
 
+  /// playlist_items 云端全量缓存：条目为独立实体，服务端无按片单过滤接口，
+  /// 一次拉全量后复用，条目写操作（增/删/重排/硬删片单）时失效
+  List<PlaylistItem>? _cloudPlaylistItemsCache;
+  void _invalidateCloudPlaylistItems() => _cloudPlaylistItemsCache = null;
+
   /// 云端拉取某片单的全部条目（playlist_items 为独立实体，客户端按 playlist_id 过滤）
   Future<List<PlaylistItem>> _cloudPlaylistItems(String playlistId) async {
-    final all = await _cloudDomain.listEntities('playlist_items', PlaylistItem.fromJson);
+    final all = _cloudPlaylistItemsCache ??=
+        await _cloudDomain.listEntities('playlist_items', PlaylistItem.fromJson);
     final rows = all.where((i) => i.playlistId == playlistId).toList();
     rows.sort((a, b) {
       if (a.sortOrder != b.sortOrder) return a.sortOrder.compareTo(b.sortOrder);
@@ -1595,6 +1688,7 @@ class AppProvider extends ChangeNotifier {
       for (final item in await _cloudPlaylistItems(id)) {
         await _cloudDomain.deleteEntity('playlist_items', item.id);
       }
+      _invalidateCloudPlaylistItems();
       await _cloudDomain.permanentDeleteEntity('playlists', id);
       return;
     }
@@ -1631,6 +1725,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> addPlaylistItem(PlaylistItem item) async {
     if (_cloudPlaylistMode) {
       await _cloudDomain.createEntity('playlist_items', item.toJson());
+      _invalidateCloudPlaylistItems();
       await _syncCloudPlaylistCount(item.playlistId);
       notifyListeners();
       return;
@@ -1644,6 +1739,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> removePlaylistItem(String itemId, String playlistId) async {
     if (_cloudPlaylistMode) {
       await _cloudDomain.deleteEntity('playlist_items', itemId);
+      _invalidateCloudPlaylistItems();
       await _syncCloudPlaylistCount(playlistId);
       notifyListeners();
       return;
@@ -1671,9 +1767,12 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> reorderPlaylists(List<String> playlistIds) async {
     if (_cloudPlaylistMode) {
-      for (var i = 0; i < playlistIds.length; i++) {
-        await _cloudDomain.updateEntity('playlists', playlistIds[i], {'sort_order': i});
-      }
+      // 并发提交，缩短多条目重排的耗时窗口；任一失败抛出让 UI 感知
+      await Future.wait(List.generate(
+        playlistIds.length,
+        (i) => _cloudDomain.updateEntity(
+            'playlists', playlistIds[i], {'sort_order': i}),
+      ));
       // 更新内存中的排序
       final orderMap = {for (int i = 0; i < playlistIds.length; i++) playlistIds[i]: i};
       _playlists.sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
@@ -1689,9 +1788,12 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> reorderPlaylistItems(String playlistId, List<String> itemIds) async {
     if (_cloudPlaylistMode) {
-      for (var i = 0; i < itemIds.length; i++) {
-        await _cloudDomain.updateEntity('playlist_items', itemIds[i], {'sort_order': i});
-      }
+      await Future.wait(List.generate(
+        itemIds.length,
+        (i) => _cloudDomain.updateEntity(
+            'playlist_items', itemIds[i], {'sort_order': i}),
+      ));
+      _invalidateCloudPlaylistItems();
       return;
     }
     await _playlistDao.updatePlaylistItemOrder(playlistId, itemIds);
@@ -2473,6 +2575,7 @@ class AppProvider extends ChangeNotifier {
     if (_cloudMovieMode) {
       // 服务端级联清理子表；云端图片为网络 URL，无本地文件
       await _cloudMovie.permanentDeleteMovie(id);
+      _invalidateCloudMainCounts('movies');
       return;
     }
     final db = await DatabaseHelper.instance.database;
@@ -2508,6 +2611,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> permanentDeleteBook(String id) async {
     if (_cloudBookMode) {
       await _cloudDomain.permanentDeleteMain('books', id);
+      _invalidateCloudMainCounts('books');
       return;
     }
     final db = await DatabaseHelper.instance.database;
@@ -2576,6 +2680,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> permanentDeleteGame(String id) async {
     if (_cloudGameMode) {
       await _cloudDomain.permanentDeleteMain('games', id);
+      _invalidateCloudMainCounts('games');
       return;
     }
     final db = await DatabaseHelper.instance.database;

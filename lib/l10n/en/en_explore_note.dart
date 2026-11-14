@@ -1,7 +1,7 @@
 /// 英文翻译 - 探索/笔记域
 const Map<String, String> enExploreNote = {
   // ── 通用 / 统计 ──
-  '云端数据模式下暂不支持该功能': 'This feature is not available in cloud data mode',
+  '云端模式下暂不支持该功能': 'This feature is not available in cloud mode',
   '云端影视数据的聚合统计将在后续版本支持':
       'Aggregated stats for cloud movie data will be supported in a later version',
   '数据统计': 'Statistics',
@@ -249,4 +249,7 @@ const Map<String, String> enExploreNote = {
 
   // 补齐：图表月份轴
   '{m}月': '{m}',
+
+  // 人物名录分页
+  '加载更多': 'Load more',
 };

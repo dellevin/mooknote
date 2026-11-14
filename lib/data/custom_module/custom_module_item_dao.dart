@@ -16,6 +16,16 @@ class CustomModuleItemDao {
 
   bool get _cloudMode => UserPrefs().cloudAnyMediaMode;
 
+  /// 云端全量条目缓存：服务端无按模块过滤接口，一次拉全量复用，任何写操作后失效
+  List<CustomModuleItem>? _cloudCache;
+  void _invalidateCloudCache() => _cloudCache = null;
+
+  /// 下拉刷新等手动重载场景：强制下次读取重新拉取云端全量
+  void invalidateCloudCache() => _invalidateCloudCache();
+
+  Future<List<CustomModuleItem>> _cloudAllItems() async =>
+      _cloudCache ??= await _cloud.listEntities('custom_module_items', CustomModuleItem.fromJson);
+
   Future<T> _wrap<T>(String op, Future<T> Function() fn) async {
     try {
       return await fn();
@@ -28,7 +38,7 @@ class CustomModuleItemDao {
   /// 某模块的全部条目（未删除，按创建时间倒序）
   Future<List<CustomModuleItem>> getItemsForModule(String moduleId) => _wrap('getItemsForModule', () async {
     if (_cloudMode) {
-      final rows = await _cloud.listEntities('custom_module_items', CustomModuleItem.fromJson);
+      final rows = await _cloudAllItems();
       final list = rows.where((i) => i.moduleId == moduleId).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
@@ -46,7 +56,7 @@ class CustomModuleItemDao {
   /// 全部模块的未删除条目（本地搜索一次性载入用，按更新时间倒序）
   Future<List<CustomModuleItem>> getAllActiveItems() => _wrap('getAllActiveItems', () async {
     if (_cloudMode) {
-      final rows = await _cloud.listEntities('custom_module_items', CustomModuleItem.fromJson);
+      final rows = List<CustomModuleItem>.from(await _cloudAllItems());
       rows.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return rows;
     }
@@ -80,7 +90,7 @@ class CustomModuleItemDao {
   /// 某模块条目数（管理页展示用）
   Future<int> getItemCount(String moduleId) => _wrap('getItemCount', () async {
     if (_cloudMode) {
-      final rows = await _cloud.listEntities('custom_module_items', CustomModuleItem.fromJson);
+      final rows = await _cloudAllItems();
       return rows.where((i) => i.moduleId == moduleId).length;
     }
     final db = await _dbHelper.database;
@@ -94,7 +104,7 @@ class CustomModuleItemDao {
   /// 按标题搜索
   Future<List<CustomModuleItem>> searchItems(String moduleId, String keyword) => _wrap('searchItems', () async {
     if (_cloudMode) {
-      final rows = await _cloud.listEntities('custom_module_items', CustomModuleItem.fromJson);
+      final rows = await _cloudAllItems();
       final kw = keyword.toLowerCase();
       final list = rows
           .where((i) => i.moduleId == moduleId && i.title.toLowerCase().contains(kw))
@@ -115,6 +125,7 @@ class CustomModuleItemDao {
   Future<int> insertItem(CustomModuleItem item) => _wrap('insertItem', () async {
     if (_cloudMode) {
       await _cloud.createEntity('custom_module_items', item.toJson());
+      _invalidateCloudCache();
       return 1;
     }
     final db = await _dbHelper.database;
@@ -124,6 +135,7 @@ class CustomModuleItemDao {
   Future<int> updateItem(CustomModuleItem item) => _wrap('updateItem', () async {
     if (_cloudMode) {
       await _cloud.updateEntity('custom_module_items', item.id, item.toJson());
+      _invalidateCloudCache();
       return 1;
     }
     final db = await _dbHelper.database;
@@ -139,6 +151,7 @@ class CustomModuleItemDao {
   Future<int> deleteItem(String id) => _wrap('deleteItem', () async {
     if (_cloudMode) {
       await _cloud.deleteEntity('custom_module_items', id);
+      _invalidateCloudCache();
       return 1;
     }
     final db = await _dbHelper.database;
@@ -187,6 +200,7 @@ class CustomModuleItemDao {
   Future<int> restoreItem(String id) => _wrap('restoreItem', () async {
     if (_cloudMode) {
       await _cloud.restoreEntity('custom_module_items', id);
+      _invalidateCloudCache();
       return 1;
     }
     final db = await _dbHelper.database;
@@ -204,6 +218,7 @@ class CustomModuleItemDao {
       _wrap('permanentDeleteItem', () async {
     if (_cloudMode) {
       await _cloud.permanentDeleteEntity('custom_module_items', id);
+      _invalidateCloudCache();
       return 1;
     }
     final db = txn ?? await _dbHelper.database;

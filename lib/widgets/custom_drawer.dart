@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import '../providers/app_provider.dart';
+import '../services/cloud/cloud_auth_service.dart';
 import '../utils/user_prefs.dart';
 import '../utils/avatar_helper.dart';
 import '../utils/image_path_helper.dart';
@@ -253,13 +254,30 @@ class _CustomDrawerState extends State<CustomDrawer> {
       builder: (context, provider, child) {
         final colors = Theme.of(context).colorScheme;
         final userPrefs = UserPrefs();
-        final nickname = userPrefs.nickname;
-        final motto = userPrefs.motto;
+        // 云端登录态下展示云端账号资料（昵称/座右铭/网络头像），不回退本地资料
+        final cloudLoggedIn = CloudAuthService.instance.isLoggedIn;
+        final String nickname;
+        final String? motto;
+        final String? cloudAvatarUrl;
+        if (cloudLoggedIn) {
+          nickname = userPrefs.cloudNickname.isNotEmpty
+              ? userPrefs.cloudNickname
+              : (userPrefs.cloudUsername.isNotEmpty ? userPrefs.cloudUsername : userPrefs.nickname);
+          motto = userPrefs.cloudMotto.isEmpty ? null : userPrefs.cloudMotto;
+          cloudAvatarUrl = userPrefs.cloudAvatar.isEmpty ? null : userPrefs.cloudAvatar;
+        } else {
+          nickname = userPrefs.nickname;
+          motto = userPrefs.motto;
+          cloudAvatarUrl = null;
+        }
         final avatarPath = userPrefs.avatarPath;
-        final movieCount = provider.movies.where((m) => !m.isDeleted).length;
-        final bookCount = provider.books.length;
+        // 云端模式首屏只加载 50 条分片，总数必须取服务端 COUNT(*) 缓存，不能用 length
+        final movieCount =
+            provider.cloudMovieTotal ?? provider.movies.where((m) => !m.isDeleted).length;
+        final bookCount = provider.cloudBookTotal ?? provider.books.length;
         final noteCount = provider.notes.length;
-        final gameCount = provider.games.where((g) => !g.isDeleted).length;
+        final gameCount =
+            provider.cloudGameTotal ?? provider.games.where((g) => !g.isDeleted).length;
 
         final bgImagePath = userPrefs.profileBgImagePath;
         final bgColorIdx = userPrefs.profileBgGradient;
@@ -335,10 +353,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
                               border: Border.all(color: colors.outlineVariant, width: 0.5),
                             ),
                             clipBehavior: Clip.antiAlias,
-                            child: avatarPath != null && avatarPath.isNotEmpty
-                                ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
-                                    errorWidget: _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)))
-                                : _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)),
+                            child: cloudAvatarUrl != null
+                                ? Image.network(cloudAvatarUrl, fit: BoxFit.cover, gaplessPlayback: true,
+                                    errorBuilder: (_, __, ___) => _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)))
+                                : (avatarPath != null && avatarPath.isNotEmpty
+                                    ? FadeInLocalImage(path: avatarPath, fit: BoxFit.cover,
+                                        errorWidget: _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3)))
+                                    : _assetSvgIcon('assets/svg/rcd-user-f.svg', 22, colors.onSurface.withValues(alpha: 0.3))),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -348,9 +369,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(nickname, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: primaryText)),
-                              const SizedBox(height: 2),
-                              Text(motto.tr, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 12, color: subText)),
+                              // 云端座右铭为用户输入的普通文本，不走 i18n；未设置时隐藏整行
+                              if (motto != null) ...[
+                                const SizedBox(height: 2),
+                                Text(cloudLoggedIn ? motto : motto.tr, maxLines: 2, overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 12, color: subText)),
+                              ],
                             ],
                           ),
                         ),

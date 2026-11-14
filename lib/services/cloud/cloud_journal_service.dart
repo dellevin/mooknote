@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../../l10n/app_strings.dart';
 import '../../utils/server_config.dart';
 import 'cloud_auth_service.dart';
 
@@ -47,7 +49,7 @@ class JournalEvent {
       coverPath: json['cover_path']?.toString(),
       rating: (json['rating'] as num?)?.toDouble(),
       creators: creators,
-      date: DateTime.tryParse(json['event_date']?.toString() ?? '') ?? DateTime.now(),
+      date: DateTime.parse(json['event_date'] as String),
     );
   }
 }
@@ -65,17 +67,34 @@ class CloudJournalService {
     final resp = await http
         .get(uri, headers: {'token': _token})
         .timeout(const Duration(seconds: 30));
-    final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw StateError(
+          '云端请求失败 (HTTP {code})'.trf({'code': resp.statusCode}));
+    }
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      throw StateError('云端响应解析失败'.tr);
+    }
     if (data['code'] == 401) {
-      throw StateError('登录失效，已切换成本地数据，请重新登录');
+      await CloudAuthService.instance.handleSessionExpired();
+      throw StateError('登录失效，已切换成本地数据，请重新登录'.tr);
     }
     if (data['code'] != 0) {
-      throw StateError(data['msg']?.toString() ?? '云端操作失败');
+      throw StateError(data['msg']?.toString() ?? '云端操作失败'.tr);
     }
     final rows = (data['data'] as List?) ?? const [];
-    return rows
-        .map((e) => JournalEvent.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final result = <JournalEvent>[];
+    for (final e in rows) {
+      try {
+        result.add(JournalEvent.fromJson(Map<String, dynamic>.from(e as Map)));
+      } catch (_) {
+        // event_date 缺失/非法的脏数据无法定位日历日期，丢弃而非伪装成今天
+        debugPrint('[CloudJournal] 跳过无法解析的记录: $e');
+      }
+    }
+    return result;
   }
 
   /// 当月记录。mode：0=创建日期，1=观看/阅读日期

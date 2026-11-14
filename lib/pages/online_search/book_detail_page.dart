@@ -347,15 +347,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
-                      width: 36,
-                      height: 36,
+                      width: 32,
+                      height: 32,
                       decoration: BoxDecoration(
                           color: colors.surfaceContainerHigh,
                           shape: BoxShape.circle),
                       child: SvgPicture.asset(
                         'assets/svg/fan_hui.svg',
-                        width: 20,
-                        height: 20,
+                        width: 16,
+                        height: 16,
                         colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
                       )),
                 ),

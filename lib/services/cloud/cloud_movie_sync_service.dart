@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -109,7 +110,8 @@ class CloudMovieSyncService {
           .timeout(const Duration(seconds: 15));
       final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       if (data['code'] != 0) return null;
-      return ((data['data'] as Map).map((k, v) => MapEntry(k as String, (v as num).toInt())));
+      return ((data['data'] as Map).map(
+          (k, v) => MapEntry(k as String, (v as num?)?.toInt() ?? 0)));
     } catch (_) {
       return null;
     }
@@ -230,32 +232,54 @@ class CloudMovieSyncService {
           i,
           dataTotal,
         );
-        final resp = await http
-            .post(
-              Uri.parse('$_base/sync/push'),
-              headers: {'Content-Type': 'application/json', 'token': _token},
-              body: jsonEncode({
-                'c': clientId,
-                'at': DateTime.now().toIso8601String(),
-                // 仅首批携带 replace，避免后续批次重复清库
-                if (firstBatch) 'replace': true,
-                'ops': slice,
-                'img': <String, String>{},
-              }),
-            )
-            .timeout(const Duration(seconds: 60));
-        firstBatch = false;
-        final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-        if (data['code'] == 401) {
-          await UserPrefs().clearCloudAccount();
-          return CloudMovieResult(
-              success: false, message: '登录失效，已切换成本地数据，请重新登录'.tr);
+        final payload = () => jsonEncode({
+              'c': clientId,
+              'at': DateTime.now().toIso8601String(),
+              // 仅首批携带 replace，避免后续批次重复清库
+              if (firstBatch) 'replace': true,
+              'ops': slice,
+              'img': <String, String>{},
+            });
+        Object? lastError;
+        var accepted = false;
+        // 单批失败重试 2 次：服务端为 LWW 幂等 upsert，重放安全，
+        // 尽量避免首批已清库、后续批次失败导致云端只剩半截数据
+        for (var attempt = 0; attempt < 3 && !accepted; attempt++) {
+          try {
+            final resp = await http
+                .post(
+                  Uri.parse('$_base/sync/push'),
+                  headers: {'Content-Type': 'application/json', 'token': _token},
+                  body: payload(),
+                )
+                .timeout(const Duration(seconds: 120));
+            final data =
+                jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+            if (data['code'] == 401) {
+              await UserPrefs().clearCloudAccount();
+              return CloudMovieResult(
+                  success: false,
+                  message: '登录失效，已切换成本地数据，请重新登录'.tr);
+            }
+            if (data['code'] != 0) {
+              lastError = data['msg']?.toString() ?? '上传失败'.tr;
+              continue;
+            }
+            accepted = true;
+          } catch (e) {
+            lastError = e;
+          }
         }
-        if (data['code'] != 0) {
+        firstBatch = false;
+        if (!accepted) {
+          // 首批携带 replace，失败时服务端可能已清库或只写入部分，统一打标记，
+          // 下次进入云端入口时提示重新上传
+          await UserPrefs().markCloudMigrationIncomplete('movie');
           return CloudMovieResult(
-              success: false, message: data['msg']?.toString() ?? '上传失败'.tr);
+              success: false, message: lastError?.toString() ?? '上传失败'.tr);
         }
       }
+      await UserPrefs().clearCloudMigrationIncomplete('movie');
       onProgress?.call(
         '正在上传数据（{done}/{total}）'.trf({'done': dataTotal, 'total': dataTotal}),
         dataTotal,
@@ -285,7 +309,7 @@ class CloudMovieSyncService {
             headers: {'Content-Type': 'application/json', 'token': _token},
             body: jsonEncode({'since': '', 'clientId': clientId}),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 120));
       final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       if (data['code'] == 401) {
         await UserPrefs().clearCloudAccount();
@@ -367,12 +391,20 @@ class CloudMovieSyncService {
   }
 
   /// 构行阶段取图片 URL：正常图片已在任务开始时批量探测/并发上传完成，命中缓存直接返回；
-  /// 仅边缘情况（路径布局不符等）会走到这里，不上传、计入进度、原样返回
+  /// 边缘情况（路径布局不符等）走到这里时，本地文件仍在则补传，
+  /// 文件丢失才原样返回（无法补救，仅记录日志便于排查云端裂图）
   Future<String?> _uploadIfLocal(String? value) async {
     if (value == null || value.isEmpty || value.startsWith('http')) return value;
     final logical = _toLogical(value);
     final cached = _uploaded[logical];
     if (cached != null) return cached;
+    if (await File(value).exists()) {
+      final url = await _uploadOne(logical, value);
+      _uploaded[logical] = url;
+      _onImageUploaded?.call();
+      return url;
+    }
+    debugPrint('[CloudMovie] 本地图片丢失，云端行将保留不可访问的本地路径: $value');
     _onImageUploaded?.call();
     return value;
   }
@@ -484,7 +516,9 @@ class CloudMovieSyncService {
     final normalized = absPath.replaceAll('\\', '/');
     final idx = normalized.indexOf('/images/');
     if (idx >= 0) return normalized.substring(idx + 8);
-    return p.basename(absPath);
+    // 不符合标准布局时用完整路径哈希命名，避免不同目录同名文件映射到同一 OSS 对象
+    final digest = sha1.convert(utf8.encode(normalized)).toString();
+    return 'misc/$digest${p.extension(normalized)}';
   }
 
   Map<String, dynamic> _toLocalRow(String table, String id, Map<String, dynamic> cloudRow) {
