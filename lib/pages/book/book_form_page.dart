@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -596,6 +598,16 @@ class _BookFormPageState extends State<BookFormPage> {
       if (picked != null) {
         final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final bookId = widget.book?.id ?? const Uuid().v4();
+        if (UserPrefs().cloudBookMode) {
+          final url = await CloudImageUpload.persist(
+            logicalPath: 'books/$bookId/$fileName',
+            localAbsPath: picked.path,
+            cloudMode: true,
+          );
+          if (!mounted) return;
+          setState(() => _coverPath = url);
+          return;
+        }
         final targetPath = await ImagePathHelper.instance.getBookCoverPath(bookId, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         await File(picked.path).copy(targetPath);
@@ -633,6 +645,18 @@ class _BookFormPageState extends State<BookFormPage> {
 
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final bookId = widget.book?.id ?? const Uuid().v4();
+      if (UserPrefs().cloudBookMode) {
+        final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+        await tmpFile.writeAsBytes(response.bodyBytes);
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'books/$bookId/$fileName',
+          localAbsPath: tmpFile.path,
+          cloudMode: true,
+        );
+        if (!mounted) return;
+        setState(() => _coverPath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getBookCoverPath(bookId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
@@ -877,6 +901,7 @@ class _BookFormPageState extends State<BookFormPage> {
   }
 
   Future<String?> _moveCoverToNewId(String currentPath, String newBookId) async {
+    if (CloudImageUpload.isRemoteUrl(currentPath)) return currentPath;
     final normalizedPath = currentPath.replaceAll('\\', '/');
     if (normalizedPath.contains('/books/$newBookId/')) return currentPath;
     final fileName = p.basename(currentPath);

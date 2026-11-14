@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -190,6 +192,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
       final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final movieId = widget.movie?.id ?? const Uuid().v4();
+      if (UserPrefs().cloudMovieMode) {
+        // 云模式：字节先落临时文件再传 OSS，表单只保留网络 URL
+        final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+        await tmpFile.writeAsBytes(response.bodyBytes);
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'movies/$movieId/$fileName', localAbsPath: tmpFile.path);
+        setState(() => _posterPath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getMoviePosterPath(movieId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
@@ -1111,6 +1122,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
         // 如果是编辑模式，使用现有影视ID；如果是新建模式，使用临时ID（保存时会替换）
         final movieId = widget.movie?.id ?? const Uuid().v4();
 
+        // 云模式：选图后立即上传 OSS，_posterPath 直接保存网络 URL（新建态临时 ID 无需改名）
+        if (UserPrefs().cloudMovieMode) {
+          final url = await CloudImageUpload.persist(
+            logicalPath: 'movies/$movieId/$fileName', localAbsPath: pickedFile.path);
+          if (!mounted) return;
+          setState(() => _posterPath = url);
+          return;
+        }
+
         // 保存到新的路径结构: images/movies/{movieId}/{fileName}
         final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
           movieId,
@@ -1317,6 +1337,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
   /// 将海报从临时ID目录移动到新的影视ID目录
   Future<String?> _movePosterToNewId(String currentPath, String newMovieId) async {
+    // 云模式存的是 OSS 网络 URL，不存在本地改名
+    if (CloudImageUpload.isRemoteUrl(currentPath)) return currentPath;
     // 检查是否已经在正确的目录中（兼容 Windows 路径分隔符）
     final normalizedPath = currentPath.replaceAll('\\', '/');
     if (normalizedPath.contains('/movies/$newMovieId/')) {

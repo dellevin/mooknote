@@ -18,3 +18,16 @@ Future<List<File>> pickLocalImages(BuildContext context) async {
   }
   return files;
 }
+
+/// 单选本地图片：头像等只需一张图的场景，maxAssets=1 选一张即自动确认；取消返回 null
+Future<File?> pickSingleLocalImage(BuildContext context) async {
+  final List<AssetEntity>? assets = await AssetPicker.pickAssets(
+    context,
+    pickerConfig: const AssetPickerConfig(
+      requestType: RequestType.image,
+      maxAssets: 1,
+    ),
+  );
+  if (assets == null || assets.isEmpty) return null;
+  return assets.first.file;
+}

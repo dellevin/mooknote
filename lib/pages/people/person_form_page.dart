@@ -10,8 +10,10 @@ import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../services/cloud/cloud_image_upload.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/image_normalizer.dart';
+import '../../utils/user_prefs.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
@@ -326,6 +328,15 @@ class _PersonFormPageState extends State<PersonFormPage> {
       if (cropped == null) return;
       final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.png';
       final personId = widget.person?.id ?? const Uuid().v4();
+      if (UserPrefs().cloudMovieMode) {
+        // 云模式：裁剪结果先落临时文件，再传 OSS，行里只存网络 URL
+        final tempFile = File('${Directory.systemTemp.path}/$fileName');
+        await tempFile.writeAsBytes(cropped);
+        final url = await CloudImageUpload.persist(
+            logicalPath: 'people/$personId/$fileName', localAbsPath: tempFile.path);
+        if (mounted) setState(() => _photoPath = url);
+        return;
+      }
       final targetPath =
           await ImagePathHelper.instance.getPersonPhotoPath(personId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
@@ -400,6 +411,15 @@ class _PersonFormPageState extends State<PersonFormPage> {
 
       final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final personId = widget.person?.id ?? const Uuid().v4();
+      if (UserPrefs().cloudMovieMode) {
+        final tempFile = File('${Directory.systemTemp.path}/$fileName');
+        await tempFile.writeAsBytes(response.bodyBytes);
+        final url = await CloudImageUpload.persist(
+            logicalPath: 'people/$personId/$fileName', localAbsPath: tempFile.path);
+        if (!mounted) return;
+        setState(() => _photoPath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getPersonPhotoPath(personId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
@@ -609,6 +629,8 @@ class _PersonFormPageState extends State<PersonFormPage> {
   }
 
   Future<String?> _movePhotoToNewId(String currentPath, String newPersonId) async {
+    // 云模式头像是 OSS 网络 URL，无需随实体 id 改名
+    if (CloudImageUpload.isRemoteUrl(currentPath)) return currentPath;
     final normalizedPath = currentPath.replaceAll('\\', '/');
     if (normalizedPath.contains('/people/$newPersonId/')) return currentPath;
 

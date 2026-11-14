@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:path/path.dart' as p;
 import '../../data/gallery/image_asset_dao.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../utils/image_path_helper.dart';
@@ -35,6 +37,8 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   late DateTime _reviewDate;
   late List<String> _images;
   String? _tempReviewId; // 新建评价时选图用的临时ID（保存时移到正式ID目录）
+  // 云模式内存分片不含该游戏时，按 id 兜底拉取
+  Game? _cloudGame;
 
   @override
   void initState() {
@@ -45,6 +49,15 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
     _reviewType = widget.review?.reviewType ?? 1;
     _reviewDate = widget.review?.reviewDate ?? DateTime.now();
     _images = List<String>.from(widget.review?.images ?? []);
+    if (UserPrefs().cloudGameMode && _getGame() == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudGame());
+    }
+  }
+
+  Future<void> _loadCloudGame() async {
+    final game = await context.read<AppProvider>().cloudGameById(widget.gameId);
+    if (!mounted || game == null) return;
+    setState(() => _cloudGame = game);
   }
 
   @override
@@ -63,7 +76,7 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isEdit = widget.review != null;
-    final game = _getGame();
+    final game = _getGame() ?? _cloudGame;
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -303,17 +316,28 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
         _tempReviewId = reviewId;
       }
 
-      // 复制图片到应用目录: images/reviews/{reviewId}/{fileName}
-      final targetDir = await ImagePathHelper.instance.getReviewImagesDir(reviewId);
-      await ImagePathHelper.instance.ensureDirExists(targetDir);
-
+      // 云模式：立即上传 OSS，_images 保存网络 URL；本地模式复制到 images/reviews/{reviewId}/
       final newPaths = <String>[];
-      for (final file in files) {
-        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
-        final targetPath = p.join(targetDir, fileName);
-        await file.copy(targetPath);
-        newPaths.add(targetPath);
+      if (UserPrefs().cloudGameMode) {
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          newPaths.add(await CloudImageUpload.persist(
+            logicalPath: 'reviews/$reviewId/$fileName',
+            localAbsPath: file.path,
+            cloudMode: true,
+          ));
+        }
+      } else {
+        final targetDir = await ImagePathHelper.instance.getReviewImagesDir(reviewId);
+        await ImagePathHelper.instance.ensureDirExists(targetDir);
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final targetPath = p.join(targetDir, fileName);
+          await file.copy(targetPath);
+          newPaths.add(targetPath);
+        }
       }
 
       if (newPaths.isNotEmpty && mounted) {
@@ -330,6 +354,11 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
     final newDir = await ImagePathHelper.instance.getReviewImagesDir(newId);
 
     for (final imagePath in _images) {
+      // 云模式图片已是 OSS URL，无需改名，原样保留
+      if (CloudImageUpload.isRemoteUrl(imagePath)) {
+        newPaths.add(imagePath);
+        continue;
+      }
       final normalizedPath = imagePath.replaceAll('\\', '/');
       if (normalizedPath.contains('/reviews/$oldId/')) {
         final fileName = p.basename(imagePath);

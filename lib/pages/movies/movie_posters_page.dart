@@ -6,6 +6,8 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
 import '../../utils/image_picker_helper.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -416,18 +418,26 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
         final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
         final fileName = 'posterimg_${DateTime.now().millisecondsSinceEpoch}_$added$ext';
 
-        // 保存到 posterimgs 子目录: images/movies/{movieId}/posterimgs/{fileName}
-        final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
-          widget.movie.id,
-          fileName,
-        );
-        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-        await file.copy(targetPath);
+        // 云模式直接传 OSS 取网络 URL；本地模式复制到 posterimgs 子目录
+        final posterPath = UserPrefs().cloudMovieMode
+            ? await CloudImageUpload.persist(
+                logicalPath: 'movies/${widget.movie.id}/posterimgs/$fileName',
+                localAbsPath: file.path,
+              )
+            : await () async {
+                final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
+                  widget.movie.id,
+                  fileName,
+                );
+                await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+                await file.copy(targetPath);
+                return targetPath;
+              }();
 
         final newPoster = MoviePoster(
           id: const Uuid().v4(),
           movieId: widget.movie.id,
-          posterPath: targetPath,
+          posterPath: posterPath,
           createdAt: DateTime.now(),
         );
 
@@ -561,20 +571,30 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       // 生成文件名
       final fileName = 'posterimg_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // 保存到 posterimgs 子目录
-      final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
-        widget.movie.id,
-        fileName
-      );
-      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-
-      // 写入文件
-      await File(targetPath).writeAsBytes(response.bodyBytes);
+      // 云模式：字节落临时文件后传 OSS；本地模式写入 posterimgs 子目录
+      final posterPath = UserPrefs().cloudMovieMode
+          ? await () async {
+              final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+              await tmpFile.writeAsBytes(response.bodyBytes);
+              return CloudImageUpload.persist(
+                logicalPath: 'movies/${widget.movie.id}/posterimgs/$fileName',
+                localAbsPath: tmpFile.path,
+              );
+            }()
+          : await () async {
+              final targetPath = await ImagePathHelper.instance.getMoviePosterImgPath(
+                widget.movie.id,
+                fileName
+              );
+              await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+              await File(targetPath).writeAsBytes(response.bodyBytes);
+              return targetPath;
+            }();
 
       final newPoster = MoviePoster(
         id: const Uuid().v4(),
         movieId: widget.movie.id,
-        posterPath: targetPath,
+        posterPath: posterPath,
         createdAt: DateTime.now(),
       );
 

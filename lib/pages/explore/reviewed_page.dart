@@ -8,6 +8,7 @@ import '../../utils/user_prefs.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/cloud_unsupported_view.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
@@ -119,6 +120,7 @@ class _ReviewedPageState extends State<ReviewedPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode) return const CloudUnsupportedView(title: '已阅');
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final allItems = _buildAllItems(provider);

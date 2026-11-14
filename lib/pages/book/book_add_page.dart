@@ -9,6 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -295,6 +297,15 @@ class _BookAddPageState extends State<BookAddPage> {
       final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 1200, imageQuality: 85);
       if (picked == null) return;
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      if (UserPrefs().cloudBookMode) {
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'books/$_tempId/$fileName',
+          localAbsPath: picked.path,
+          cloudMode: true,
+        );
+        if (mounted) setState(() => _coverPath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getBookCoverPath(_tempId!, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(picked.path).copy(targetPath);
@@ -330,6 +341,17 @@ class _BookAddPageState extends State<BookAddPage> {
       }).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      if (UserPrefs().cloudBookMode) {
+        final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+        await tmpFile.writeAsBytes(res.bodyBytes);
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'books/$_tempId/$fileName',
+          localAbsPath: tmpFile.path,
+          cloudMode: true,
+        );
+        if (mounted) setState(() => _coverPath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getBookCoverPath(_tempId!, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(res.bodyBytes);
@@ -345,6 +367,10 @@ class _BookAddPageState extends State<BookAddPage> {
       // 移动封面到正式目录
       String? finalCoverPath;
       if (_coverPath != null) {
+        // 云模式封面已是 OSS URL，无需本地改名
+        if (CloudImageUpload.isRemoteUrl(_coverPath)) {
+          finalCoverPath = _coverPath;
+        } else {
         final normalized = _coverPath!.replaceAll('\\', '/');
         if (!normalized.contains('/books/$bookId/')) {
           final fileName = p.basename(_coverPath!);
@@ -356,6 +382,7 @@ class _BookAddPageState extends State<BookAddPage> {
           final tempDir = Directory(p.dirname(_coverPath!));
           if (await tempDir.exists()) { try { await tempDir.delete(recursive: true); } catch (_) {} }
         } else { finalCoverPath = _coverPath; }
+        }
       }
       final rating = _ratingCtrl.text.isNotEmpty ? double.tryParse(_ratingCtrl.text) : null;
       final publisher = _publisherCtrl.text.trim().isEmpty ? null : _publisherCtrl.text.trim();

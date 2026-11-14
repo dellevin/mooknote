@@ -9,6 +9,7 @@ import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/responsive.dart';
+import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'note_detail_page.dart';
@@ -26,6 +27,7 @@ class _NoteTabPageState extends State<NoteTabPage> {
   final List<Note> _items = [];
   bool _hasMore = true;
   bool _isLoading = false;
+  bool _loadError = false; // 首屏请求失败（云模式网络/鉴权异常），展示错误+重试
   int _offset = 0;
   late ScrollController _scrollController;
   AppProvider? _provider;
@@ -107,16 +109,16 @@ class _NoteTabPageState extends State<NoteTabPage> {
   Future<void> _loadFirst() async {
     final seq = ++_loadSeq;
     _initialized = true;
-    setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
+    setState(() { _isLoading = true; _loadError = false; _offset = 0; _hasMore = true; });
     final sortMode = UserPrefs().noteSortMode;
     try {
       final list = await context.read<AppProvider>().loadNotesPaged(offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= AppProvider.firstPageSize; _isLoading = false; });
+      setState(() { _items.clear(); _items.addAll(list); _offset = list.length; _hasMore = list.length >= AppProvider.firstPageSize; _isLoading = false; _loadError = false; });
     } catch (e) {
       debugPrint('[NoteTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _isLoading = false; _hasMore = false; });
+      setState(() { _isLoading = false; _hasMore = false; _loadError = true; });
     }
   }
 
@@ -132,6 +134,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
     } catch (e) {
       debugPrint('[NoteTab] 分页加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
+      // 保留 _hasMore，滚动可再次触发；云模式下给出可见提示
+      if (context.read<AppProvider>().isCloudNoteMode) {
+        ToastUtil.show(context, '加载失败，请检查网络'.tr);
+      }
       setState(() => _isLoading = false);
     }
   }
@@ -154,6 +160,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
     final colors = Theme.of(context).colorScheme;
     return Consumer<AppProvider>(builder: (context, provider, _) {
       if (_items.isEmpty && _isLoading) return _buildSkeleton();
+      if (_items.isEmpty && _loadError) {
+        return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
+            child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildErrorState()]));
+      }
       if (_items.isEmpty) {
         return RefreshIndicator(onRefresh: _refresh, color: colors.primary, backgroundColor: colors.surface,
             child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_buildEmptyState(context)]));
@@ -431,6 +441,26 @@ class _NoteTabPageState extends State<NoteTabPage> {
           ),
         ],
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 120),
+      child: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          const SizedBox(height: 16),
+          Text('加载失败，请检查网络'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: _loadFirst,
+            child: Text('重试'.tr),
+          ),
+        ]),
       ),
     );
   }

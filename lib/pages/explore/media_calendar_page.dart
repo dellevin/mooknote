@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/lunar_calendar.dart';
+import '../../widgets/cloud_unsupported_view.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
@@ -260,6 +261,7 @@ class _MediaCalendarPageState extends State<MediaCalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode) return const CloudUnsupportedView(title: '书影日历');
     final colors = Theme.of(context).colorScheme;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

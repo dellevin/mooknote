@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_overlay.dart';
@@ -24,6 +25,56 @@ class _WatchlistPageState extends State<WatchlistPage> {
   bool _isSearching = false;
   String _keyword = '';
   final TextEditingController _searchCtrl = TextEditingController();
+
+  // 云模式下想看影视/书籍/游戏走服务端全量拉取，不依赖内存首页分片
+  List<Movie> _cloudWantMovies = const [];
+  List<Book> _cloudWantBooks = const [];
+  List<Game> _cloudWantGames = const [];
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+
+  bool get _anyCloudMode =>
+      UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_anyCloudMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudWant());
+    }
+  }
+
+  Future<void> _loadCloudWant() async {
+    setState(() {
+      _cloudLoading = true;
+      _cloudError = false;
+    });
+    try {
+      final provider = context.read<AppProvider>();
+      final movies = UserPrefs().cloudMovieMode
+          ? await provider.cloudAllMovies(status: 'want_to_watch')
+          : <Movie>[];
+      final books = UserPrefs().cloudBookMode
+          ? await provider.cloudAllBooks(status: 'want_to_read')
+          : <Book>[];
+      final games = UserPrefs().cloudGameMode
+          ? await provider.cloudAllGames(status: 'want_to_play')
+          : <Game>[];
+      if (!mounted) return;
+      setState(() {
+        _cloudWantMovies = movies;
+        _cloudWantBooks = books;
+        _cloudWantGames = games;
+        _cloudLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _cloudLoading = false;
+        _cloudError = true;
+      });
+    }
+  }
 
   static const _filterDefs = <(String, String)>[
     ('全部', ''),
@@ -55,9 +106,12 @@ class _WatchlistPageState extends State<WatchlistPage> {
   }
 
   List<_WatchlistEntry> _buildItems(AppProvider provider, UserPrefs userPrefs) {
-    final movies = provider.movies.where((m) => !m.isDeleted);
-    final books = provider.books.where((b) => !b.isDeleted);
-    final games = provider.games.where((g) => !g.isDeleted);
+    final movies = (provider.isCloudMovieMode ? _cloudWantMovies : provider.movies)
+        .where((m) => !m.isDeleted);
+    final books = (provider.isCloudBookMode ? _cloudWantBooks : provider.books)
+        .where((b) => !b.isDeleted);
+    final games = (provider.isCloudGameMode ? _cloudWantGames : provider.games)
+        .where((g) => !g.isDeleted);
 
     final items = <_WatchlistEntry>[];
     if (userPrefs.showMovieTab) {
@@ -456,13 +510,52 @@ class _WatchlistPageState extends State<WatchlistPage> {
           ],
         ],
       ),
-      body: items.isEmpty
-          ? _buildEmpty(colors, searching: false)
-          : filtered.isEmpty
-              ? _buildEmpty(colors, searching: true)
-              : _layoutStyle == 0
-                  ? _buildGrid(colors, filtered)
-                  : _buildList(colors, filtered),
+      body: _buildBody(colors, items, filtered),
+    );
+  }
+
+  Widget _buildBody(ColorScheme colors, List<_WatchlistEntry> items, List<_WatchlistEntry> filtered) {
+    if (_anyCloudMode && _cloudLoading) {
+      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
+    }
+    if (_anyCloudMode && _cloudError) {
+      return _buildCloudError(colors);
+    }
+    final emptyState = items.isEmpty
+        ? _buildEmpty(colors, searching: false)
+        : filtered.isEmpty
+            ? _buildEmpty(colors, searching: true)
+            : null;
+    final content = emptyState ??
+        (_layoutStyle == 0 ? _buildGrid(colors, filtered) : _buildList(colors, filtered));
+    if (_anyCloudMode) {
+      // 空态本身不可滚动，包一层可滚动 ListView 才能下拉刷新
+      final refreshChild = emptyState != null
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [SizedBox(height: 400, child: emptyState)],
+            )
+          : content;
+      return RefreshIndicator(onRefresh: _loadCloudWant, child: refreshChild);
+    }
+    return content;
+  }
+
+  Widget _buildCloudError(ColorScheme colors) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          const SizedBox(height: 16),
+          Text(
+            '加载失败，请检查网络'.tr,
+            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(onPressed: _loadCloudWant, child: Text('重试'.tr)),
+        ],
+      ),
     );
   }
 

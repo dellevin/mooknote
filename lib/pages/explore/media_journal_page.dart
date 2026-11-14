@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_journal_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../utils/lunar_calendar.dart';
 import '../../utils/toast_util.dart';
@@ -26,13 +27,20 @@ class JournalItem {
   final String? path;
   final String title;
   final String type; // movie / book / game / note
+  /// 本地模式为完整实体；云模式为 null，详情按需单独拉取
   final dynamic data;
+  final String parentId;
+  final double? rating;
+  final List<String> creators;
   final DateTime date;
   JournalItem({
     required this.path,
     required this.title,
     required this.type,
     required this.data,
+    required this.parentId,
+    required this.rating,
+    required this.creators,
     required this.date,
   });
 }
@@ -48,7 +56,25 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   DateTime? _selectedDay;
 
   bool _loading = true;
+  bool _loadError = false;
   final Map<DateTime, List<JournalItem>> _dayItems = {};
+
+  // 任一媒体域上云即走周期接口：按月/按年只拉当期轻量记录，本地域数据在端上按同区间拼合
+  bool get _anyCloud =>
+      UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode;
+
+  // 云/混合模式的周期缓存：key 形如 m_2026_11_0 / y_2026_1
+  final Map<String, List<JournalEvent>> _periodCache = {};
+  final Set<String> _loadingKeys = {};
+  final Set<String> _failedKeys = {};
+
+  // 本地模式（含混合模式的本地域）子表缓存
+  List<MovieEpisode> _episodes = [];
+  List<BookChapter> _chapters = [];
+  List<GameLevel> _levels = [];
+  Map<String, List<GameCompletion>> _completionMap = {};
+  // 纯本地模式的一次性全量事件（无需周期缓存）
+  List<JournalEvent> _localAll = const [];
 
   // PageView 基准页：该页对应当前真实月份/年份，向前后无限翻页
   static const int _kBasePage = 10000;
@@ -260,12 +286,6 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     );
   }
 
-  List<MovieEpisode> _episodes = [];
-  List<BookChapter> _chapters = [];
-  List<GameLevel> _levels = [];
-  // 游戏通关记录（按游戏 id 分组），观看/阅读模式下使用
-  Map<String, List<GameCompletion>> _completionMap = {};
-
   // 0=创建日期，1=观看/阅读日期；与书影日历共享同一份偏好
   int _dateMode = 0;
 
@@ -314,16 +334,8 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     if (_dateMode == mode) return;
     setState(() => _dateMode = mode);
     UserPrefs().setCalendarDateMode(mode);
-    final provider = context.read<AppProvider>();
-    if (mode == 1 && _completionMap.isEmpty) {
-      provider.getGameCompletionsMap().then((map) {
-        if (!mounted) return;
-        _completionMap = map;
-        setState(() => _buildDayMap(provider));
-      });
-    } else {
-      setState(() => _buildDayMap(provider));
-    }
+    // 缓存 key 含 mode，强制重载当前可见周期
+    _loadData(force: true);
   }
 
   @override
@@ -372,8 +384,58 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     });
   }
 
-  Future<void> _loadData() async {
+  // ── 周期缓存 key（含日期模式，切模式后旧 key 自然失效） ──
+  String _monthKey(int y, int m) => 'm_${y}_${m}_$_dateMode';
+  String _yearKey(int y) => 'y_${y}_$_dateMode';
+
+  /// 统一刷新入口（首载 / provider 变更节流 / 下拉刷新 / 切日期模式）
+  Future<void> _loadData({bool force = false}) async {
     _lastLoadedAt = DateTime.now();
+    if (force) {
+      _periodCache.clear();
+      _loadingKeys.clear();
+      _failedKeys.clear();
+      _dayItems.clear();
+    }
+    if (!_anyCloud) {
+      await _loadLocalAll();
+      return;
+    }
+    try {
+      await _ensureLocalChildren();
+      if (!mounted) return;
+      // 非强制刷新：只失效当前可见周期（其他页面可能刚增删过标记），其余月份缓存保留
+      if (!force) {
+        final key = _viewMode == 1 || _granularity == 1
+            ? _yearKey(_currentYear)
+            : _monthKey(_currentMonth.year, _currentMonth.month);
+        _periodCache.remove(key);
+        _failedKeys.remove(key);
+      }
+      final visibleKey = _viewMode == 1 || _granularity == 1
+          ? _yearKey(_currentYear)
+          : _monthKey(_currentMonth.year, _currentMonth.month);
+      // 强制刷新（下拉/切日期模式）保留当前内容，由 RefreshIndicator 反馈；
+      // 只有首次无缓存才显示全屏转圈
+      final showSpinner = !force && !_periodCache.containsKey(visibleKey);
+      setState(() {
+        _loading = showSpinner;
+        _loadError = false;
+      });
+      // 等待真实请求结束，下拉刷新的转圈才会在数据到位后收起
+      await _reloadVisible();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadError = true;
+        });
+      }
+    }
+  }
+
+  /// 本地子表（getter 内部已按域分流，云域行在 _collectLocalEvents 里会被域开关过滤）
+  Future<void> _ensureLocalChildren() async {
     final provider = context.read<AppProvider>();
     final results = await Future.wait([
       provider.getAllMovieEpisodes(),
@@ -391,135 +453,273 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     if (_dateMode == 1) {
       _completionMap = results[3] as Map<String, List<GameCompletion>>;
     }
-    setState(() {
-      _buildDayMap(provider);
-      _loading = false;
-    });
   }
 
-  /// 按当前 _dateMode 归格：0=创建日期，1=观看/阅读日期（本地日）
-  /// key 为去时分的 DateTime
-  void _buildDayMap(AppProvider provider) {
-    _dayItems.clear();
-    DateTime dayOnly(DateTime d) {
-      final local = d.toLocal();
-      return DateTime(local.year, local.month, local.day);
+  /// 纯本地模式：一次性全量收集
+  Future<void> _loadLocalAll() async {
+    try {
+      await _ensureLocalChildren();
+      if (!mounted) return;
+      _localAll = _collectLocalEvents(null, null);
+      setState(() {
+        _rebuildDayItems();
+        _loading = false;
+        _loadError = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadError = true;
+        });
+      }
+    }
+  }
+
+  /// 收集「本地域」的碎阅事件；[start,end) 为 null 时不限区间。
+  /// 已上云的域整段跳过，避免与服务端聚合结果重复。
+  List<JournalEvent> _collectLocalEvents(DateTime? start, DateTime? end) {
+    bool inRange(DateTime d) {
+      if (start != null && d.isBefore(start)) return false;
+      if (end != null && !d.isBefore(end)) return false;
+      return true;
     }
 
-    final seen = <String>{};
-    void addRecord({
+    final prefs = UserPrefs();
+    final provider = context.read<AppProvider>();
+    final byCreate = _dateMode == 0;
+    final out = <JournalEvent>[];
+
+    void ev({
       required DateTime? date,
-      required String? path,
-      required String title,
       required String type,
-      required dynamic data,
       required String parentId,
+      required String title,
+      required String? cover,
+      required double? rating,
+      required List<String> creators,
     }) {
-      if (date == null) return;
-      final DateTime day = dayOnly(date);
-      final key = '${day.toString()}|$type|$parentId';
-      if (!seen.add(key)) return;
-      _dayItems.putIfAbsent(day, () => []);
-      _dayItems[day]!.add(JournalItem(
-        path: path,
-        title: title,
+      if (date == null || !inRange(date)) return;
+      out.add(JournalEvent(
         type: type,
-        data: data,
+        parentId: parentId,
+        title: title,
+        coverPath: (cover?.isNotEmpty ?? false) ? cover : null,
+        rating: rating,
+        creators: creators,
         date: date,
       ));
     }
 
-    final byCreate = _dateMode == 0;
-
-    for (final m in provider.movies) {
-      if (m.isDeleted) continue;
-      addRecord(
-        date: byCreate ? m.createdAt : m.watchDate,
-        path: (m.posterPath?.isNotEmpty ?? false) ? m.posterPath : null,
-        title: m.title,
-        type: 'movie',
-        data: m,
-        parentId: m.id,
-      );
-    }
-    for (final b in provider.books) {
-      if (b.isDeleted) continue;
-      addRecord(
-        date: byCreate ? b.createdAt : (b.finishDate ?? b.startDate),
-        path: (b.coverPath?.isNotEmpty ?? false) ? b.coverPath : null,
-        title: b.title,
-        type: 'book',
-        data: b,
-        parentId: b.id,
-      );
-    }
-    for (final g in provider.games) {
-      if (g.isDeleted) continue;
-      if (byCreate) {
-        addRecord(
-          date: g.createdAt,
-          path: (g.coverPath?.isNotEmpty ?? false) ? g.coverPath : null,
-          title: g.title,
-          type: 'game',
-          data: g,
-          parentId: g.id,
+    if (!prefs.cloudMovieMode) {
+      final movieById = {for (final m in provider.movies) m.id: m};
+      for (final m in provider.movies) {
+        if (m.isDeleted) continue;
+        ev(
+          date: byCreate ? m.createdAt : m.watchDate,
+          type: 'movie',
+          parentId: m.id,
+          title: m.title,
+          cover: m.posterPath,
+          rating: m.rating,
+          creators: m.directors,
         );
-      } else {
-        // 观看模式：每条通关记录各占一格
-        for (final c in _completionMap[g.id] ?? const <GameCompletion>[]) {
-          addRecord(
-            date: c.completionDate,
-            path: (g.coverPath?.isNotEmpty ?? false) ? g.coverPath : null,
-            title: g.title,
+      }
+      for (final e in _episodes) {
+        if (!e.watched) continue;
+        final m = movieById[e.movieId];
+        if (m == null || m.isDeleted) continue;
+        ev(
+          date: byCreate ? e.createdAt : e.watchDate,
+          type: 'movie',
+          parentId: m.id,
+          title: m.title,
+          cover: m.posterPath,
+          rating: m.rating,
+          creators: m.directors,
+        );
+      }
+    }
+    if (!prefs.cloudBookMode) {
+      final bookById = {for (final b in provider.books) b.id: b};
+      for (final b in provider.books) {
+        if (b.isDeleted) continue;
+        ev(
+          date: byCreate ? b.createdAt : (b.finishDate ?? b.startDate),
+          type: 'book',
+          parentId: b.id,
+          title: b.title,
+          cover: b.coverPath,
+          rating: b.rating,
+          creators: b.authors,
+        );
+      }
+      for (final c in _chapters) {
+        if (!c.read) continue;
+        final b = bookById[c.bookId];
+        if (b == null || b.isDeleted) continue;
+        ev(
+          date: byCreate ? c.createdAt : c.readDate,
+          type: 'book',
+          parentId: b.id,
+          title: b.title,
+          cover: b.coverPath,
+          rating: b.rating,
+          creators: b.authors,
+        );
+      }
+    }
+    if (!prefs.cloudGameMode) {
+      final gameById = {for (final g in provider.games) g.id: g};
+      for (final g in provider.games) {
+        if (g.isDeleted) continue;
+        if (byCreate) {
+          ev(
+            date: g.createdAt,
             type: 'game',
-            data: g,
             parentId: g.id,
+            title: g.title,
+            cover: g.coverPath,
+            rating: g.rating,
+            creators: g.developer,
           );
         }
       }
+      if (!byCreate) {
+        // 观看模式：每条通关记录各占一格
+        for (final entry in _completionMap.entries) {
+          final g = gameById[entry.key];
+          if (g == null || g.isDeleted) continue;
+          for (final c in entry.value) {
+            ev(
+              date: c.completionDate,
+              type: 'game',
+              parentId: g.id,
+              title: g.title,
+              cover: g.coverPath,
+              rating: g.rating,
+              creators: g.developer,
+            );
+          }
+        }
+      }
+      for (final l in _levels) {
+        if (!l.cleared) continue;
+        final g = gameById[l.gameId];
+        if (g == null || g.isDeleted) continue;
+        ev(
+          date: byCreate ? l.createdAt : l.clearDate,
+          type: 'game',
+          parentId: g.id,
+          title: g.title,
+          cover: g.coverPath,
+          rating: g.rating,
+          creators: g.developer,
+        );
+      }
     }
-    final movieById = {for (final m in provider.movies) m.id: m};
-    final bookById = {for (final b in provider.books) b.id: b};
-    final gameById = {for (final g in provider.games) g.id: g};
+    return out;
+  }
 
-    for (final e in _episodes) {
-      if (!e.watched) continue;
-      final m = movieById[e.movieId];
-      if (m == null || m.isDeleted) continue;
-      addRecord(
-        date: byCreate ? e.createdAt : e.watchDate,
-        path: (m.posterPath?.isNotEmpty ?? false) ? m.posterPath : null,
-        title: m.title,
-        type: 'movie',
-        data: m,
-        parentId: m.id,
-      );
+  /// 周期 key 对应的本地区间事件
+  List<JournalEvent> _localEventsFor(String key) {
+    final parts = key.split('_');
+    if (parts.first == 'm') {
+      final y = int.parse(parts[1]);
+      final m = int.parse(parts[2]);
+      return _collectLocalEvents(DateTime(y, m), DateTime(y, m + 1));
     }
-    for (final c in _chapters) {
-      if (!c.read) continue;
-      final b = bookById[c.bookId];
-      if (b == null || b.isDeleted) continue;
-      addRecord(
-        date: byCreate ? c.createdAt : c.readDate,
-        path: (b.coverPath?.isNotEmpty ?? false) ? b.coverPath : null,
-        title: b.title,
-        type: 'book',
-        data: b,
-        parentId: b.id,
-      );
+    final y = int.parse(parts[1]);
+    return _collectLocalEvents(DateTime(y), DateTime(y + 1));
+  }
+
+  Future<void> _reloadVisible() async {
+    if (!_anyCloud) return;
+    if (_viewMode == 1 || _granularity == 1) {
+      await _ensureYearVisible(_currentYear);
+    } else {
+      await _ensureMonthVisible(_currentMonth.year, _currentMonth.month);
     }
-    for (final l in _levels) {
-      if (!l.cleared) continue;
-      final g = gameById[l.gameId];
-      if (g == null || g.isDeleted) continue;
-      addRecord(
-        date: byCreate ? l.createdAt : l.clearDate,
-        path: (g.coverPath?.isNotEmpty ?? false) ? g.coverPath : null,
-        title: g.title,
-        type: 'game',
-        data: g,
-        parentId: g.id,
-      );
+  }
+
+  Future<void> _ensureMonthVisible(int y, int m) async {
+    if (!_anyCloud) return;
+    final key = _monthKey(y, m);
+    if (_periodCache.containsKey(key) || _loadingKeys.contains(key)) return;
+    await _loadPeriod(key, () => CloudJournalService.instance.fetchMonth(y, m, _dateMode));
+  }
+
+  Future<void> _ensureYearVisible(int y) async {
+    if (!_anyCloud) return;
+    final key = _yearKey(y);
+    if (_periodCache.containsKey(key) || _loadingKeys.contains(key)) return;
+    await _loadPeriod(key, () => CloudJournalService.instance.fetchYear(y, _dateMode));
+  }
+
+  Future<void> _loadPeriod(
+      String key, Future<List<JournalEvent>> Function() fetch) async {
+    _loadingKeys.add(key);
+    try {
+      final cloud = await fetch();
+      if (!mounted) return;
+      final prefs = UserPrefs();
+      // 服务端返回该用户全部云域行，按端上各域开关过滤
+      final cloudEvents = cloud.where((e) => switch (e.type) {
+            'movie' => prefs.cloudMovieMode,
+            'book' => prefs.cloudBookMode,
+            _ => prefs.cloudGameMode,
+          });
+      _periodCache[key] = [...cloudEvents, ..._localEventsFor(key)];
+      _failedKeys.remove(key);
+    } catch (_) {
+      if (!mounted) return;
+      _failedKeys.add(key);
+      // 云端失败时本地域部分仍可展示
+      _periodCache[key] = _localEventsFor(key);
+    } finally {
+      _loadingKeys.remove(key);
+      if (mounted) {
+        setState(() {
+          _rebuildDayItems();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  /// 重试失败周期（月/年视图内联按钮调用）
+  void _retryPeriod(String key) {
+    _failedKeys.remove(key);
+    _periodCache.remove(key);
+    final parts = key.split('_');
+    if (parts.first == 'm') {
+      _ensureMonthVisible(int.parse(parts[1]), int.parse(parts[2]));
+    } else {
+      _ensureYearVisible(int.parse(parts[1]));
+    }
+  }
+
+  /// 按天归格：同天同类型同作品去重（与旧版 seen 规则一致）
+  void _rebuildDayItems() {
+    _dayItems.clear();
+    final seen = <String>{};
+    final events =
+        _anyCloud ? _periodCache.values.expand((e) => e) : _localAll;
+    for (final e in events) {
+      final local = e.date.toLocal();
+      final day = DateTime(local.year, local.month, local.day);
+      final key = '${day.toString()}|${e.type}|${e.parentId}';
+      if (!seen.add(key)) continue;
+      _dayItems.putIfAbsent(day, () => []).add(JournalItem(
+            path: e.coverPath,
+            title: e.title,
+            type: e.type,
+            data: null,
+            parentId: e.parentId,
+            rating: e.rating,
+            creators: e.creators,
+            date: e.date,
+          ));
     }
   }
 
@@ -584,24 +784,45 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              // 仅左右安全边距；dock 避让由各滚动视图末尾的 120 间距承担
-              // （与“我的”页一致）
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                children: [
-                  _buildSwitcher(colors),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: _viewMode == 0
-                        ? (_granularity == 0
-                            ? _buildMonthPager(colors)
-                            : _buildYearPager(colors))
-                        : _buildTimelineView(colors),
+          : _loadError
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cloud_off_rounded,
+                          size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+                      const SizedBox(height: 16),
+                      Text(
+                        '加载失败，请检查网络'.tr,
+                        style: TextStyle(
+                            fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton(onPressed: _loadData, child: Text('重试'.tr)),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _loadData(force: true),
+                  child: Padding(
+                    // 仅左右安全边距；dock 避让由各滚动视图末尾的 120 间距承担
+                    // （与“我的”页一致）
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      children: [
+                        _buildSwitcher(colors),
+                        const SizedBox(height: 6),
+                        Expanded(
+                          child: _viewMode == 0
+                              ? (_granularity == 0
+                                  ? _buildMonthPager(colors)
+                                  : _buildYearPager(colors))
+                              : _buildTimelineView(colors),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
     );
   }
 
@@ -721,6 +942,10 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   Widget _buildMonthView(ColorScheme colors, DateTime month) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
+    // 翻到该月才触发当月接口，结果进周期缓存，重复构建不重复请求
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _ensureMonthVisible(month.year, month.month));
+    final failedKey = _monthKey(month.year, month.month);
     return Column(
       children: [
         _buildWeekdayLabels(colors),
@@ -731,9 +956,13 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
               final cellWidth = (constraints.maxWidth - 36) / 7;
               final cellHeight = (cellWidth * 1.22).clamp(56.0, 92.0);
               return SingleChildScrollView(
+                // 内容不足一屏时也要能触发顶部下拉刷新
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
                     _buildMonthGrid(colors, today, cellHeight, month),
+                    if (_anyCloud && _failedKeys.contains(failedKey))
+                      _buildRetryBanner(colors, failedKey),
                     // 选中日详情只在其所属月份页展示，避免相邻预构建页重复
                     if (_selectedDay != null &&
                         _selectedDay!.year == month.year &&
@@ -750,6 +979,32 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 周期接口失败时的内联重试条（本地域数据仍正常展示）
+  Widget _buildRetryBanner(ColorScheme colors, String key) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_off_rounded,
+              size: 17, color: colors.onSurface.withValues(alpha: 0.4)),
+          const SizedBox(width: 6),
+          Text('云端记录加载失败'.tr,
+              style: TextStyle(
+                  fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
+          TextButton(
+            onPressed: () => _retryPeriod(key),
+            style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: Text('重试'.tr),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1057,15 +1312,8 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   }
 
   /// 记录卡次要信息：(评分, 导演/作者/开发者文本)
-  (double?, String) _recordMeta(JournalItem item) {
-    final dynamic data = item.data;
-    return switch (item.type) {
-      'movie' => (data.rating as double?, (data.directors as List).cast<String>().take(2).join(' / ')),
-      'book' => (data.rating as double?, (data.authors as List).cast<String>().take(2).join(' / ')),
-      'game' => (data.rating as double?, (data.developer as List).cast<String>().take(2).join(' / ')),
-      _ => (null, ''),
-    };
-  }
+  (double?, String) _recordMeta(JournalItem item) =>
+      (item.rating, item.creators.take(2).join(' / '));
 
   Widget _buildRecordCard(ColorScheme colors, JournalItem item) {
     final accent = _typeColor(item.type);
@@ -1151,15 +1399,59 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
     );
   }
 
-  void _openDetail(JournalItem item) {
+  T? _firstOrNull<T>(Iterable<T> xs, bool Function(T) test) {
+    for (final x in xs) {
+      if (test(x)) return x;
+    }
+    return null;
+  }
+
+  Future<void> _openDetail(JournalItem item) async {
+    final provider = context.read<AppProvider>();
+    dynamic data = item.data;
+    if (data == null) {
+      if (!_anyCloud) {
+        // 纯本地模式：provider 持有全量本地行，按 id 取回完整实体
+        data = switch (item.type) {
+          'movie' => _firstOrNull(provider.movies, (m) => m.id == item.parentId),
+          'book' => _firstOrNull(provider.books, (b) => b.id == item.parentId),
+          'game' => _firstOrNull(provider.games, (g) => g.id == item.parentId),
+          _ => null,
+        };
+      } else {
+        // 云模式：按需拉完整实体，避免日历传输整行数据
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const Center(child: CircularProgressIndicator()),
+          );
+        }
+        try {
+          data = await switch (item.type) {
+            'movie' => provider.cloudMovieById(item.parentId),
+            'book' => provider.cloudBookById(item.parentId),
+            'game' => provider.cloudGameById(item.parentId),
+            _ => Future.value(),
+          };
+        } finally {
+          if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+        }
+        if (data == null) {
+          if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+          return;
+        }
+      }
+    }
+    if (data == null || !mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => switch (item.type) {
-          'movie' => MovieDetailPage(movie: item.data as Movie),
-          'book' => BookDetailPage(book: item.data as Book),
-          'game' => GameDetailPage(game: item.data as Game),
-          _ => NoteDetailPage(note: item.data as Note),
+          'movie' => MovieDetailPage(movie: data as Movie),
+          'book' => BookDetailPage(book: data as Book),
+          'game' => GameDetailPage(game: data as Game),
+          _ => NoteDetailPage(note: data as Note),
         },
       ),
     );
@@ -1186,11 +1478,16 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   }
 
   Widget _buildYearView(ColorScheme colors, int year) {
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _ensureYearVisible(year));
     return Column(
       children: [
+        if (_anyCloud && _failedKeys.contains(_yearKey(year)))
+          _buildRetryBanner(colors, _yearKey(year)),
         Expanded(
           child: GridView.builder(
             // 末尾 120 间距避让悬浮 dock（与"我的"页一致）
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 120),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
@@ -1277,18 +1574,36 @@ class _MediaJournalPageState extends State<MediaJournalPage> {
   // ─── 时间轴视图 ───
 
   Widget _buildTimelineView(ColorScheme colors) {
-    final days = _dayItems.keys.toList()..sort((a, b) => b.compareTo(a));
+    if (_anyCloud) {
+      // 时间轴按当前年份的年接口数据展示
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _ensureYearVisible(_currentYear));
+    }
+    final days = _dayItems.keys
+        .where((d) => !_anyCloud || d.year == _currentYear)
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
     if (days.isEmpty) {
-      return Center(
-        child: Text(
-          '还没有任何标记'.tr,
-          style: TextStyle(fontSize: 13.5, color: colors.onSurface.withValues(alpha: 0.35)),
+      // 空态也要可下拉刷新
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: constraints.maxHeight,
+            child: Center(
+              child: Text(
+                '还没有任何标记'.tr,
+                style: TextStyle(fontSize: 13.5, color: colors.onSurface.withValues(alpha: 0.35)),
+              ),
+            ),
+          ),
         ),
       );
     }
     const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     return ListView.builder(
       // 末尾 120 间距避让悬浮 dock（与"我的"页一致）
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 4, bottom: 120),
       itemCount: days.length,
       itemBuilder: (context, i) {

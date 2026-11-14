@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -936,6 +938,16 @@ class _GameFormPageState extends State<GameFormPage> {
       if (pickedFile != null) {
         final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final gameId = widget.game?.id ?? const Uuid().v4();
+        if (UserPrefs().cloudGameMode) {
+          final url = await CloudImageUpload.persist(
+            logicalPath: 'games/$gameId/$fileName',
+            localAbsPath: pickedFile.path,
+            cloudMode: true,
+          );
+          if (!mounted) return;
+          setState(() => _coverPath = url);
+          return;
+        }
         final targetPath = await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         await File(pickedFile.path).copy(targetPath);
@@ -1056,6 +1068,18 @@ class _GameFormPageState extends State<GameFormPage> {
 
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final gameId = widget.game?.id ?? const Uuid().v4();
+      if (UserPrefs().cloudGameMode) {
+        final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+        await tmpFile.writeAsBytes(response.bodyBytes);
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'games/$gameId/$fileName',
+          localAbsPath: tmpFile.path,
+          cloudMode: true,
+        );
+        if (!mounted) return;
+        setState(() => _coverPath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
@@ -1317,6 +1341,7 @@ class _GameFormPageState extends State<GameFormPage> {
   }
 
   Future<String?> _moveCoverToNewId(String currentPath, String newGameId) async {
+    if (CloudImageUpload.isRemoteUrl(currentPath)) return currentPath;
     final normalizedPath = currentPath.replaceAll('\\', '/');
     if (normalizedPath.contains('/games/$newGameId/')) {
       return currentPath;

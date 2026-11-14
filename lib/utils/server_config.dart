@@ -14,4 +14,9 @@ class ServerConfig {
       ? 'http://vipapi.mooknote.iletter.top'
       // ? 'http://192.168.31.48:8081'
       : 'http://vipapi.mooknote.iletter.top';
+
+  /// 服务器云同步（my_sys api 模块，context-path 为 /api）
+  static const String cloudApiBase = kDebugMode
+      ? 'http://192.168.31.48:8082/api'
+      : 'http://vipapi.mooknote.iletter.top/api';
 }

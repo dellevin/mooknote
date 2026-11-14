@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../services/cloud/cloud_explore_service.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/app_back_button.dart';
 import '../../utils/toast_util.dart';
@@ -44,6 +45,18 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
   // "随机一张"按钮的飞出方向（-1 左 / 1 右），每次点击交替
   int _tapDir = -1;
 
+  // 云端抽卡状态（云模式域走服务端漫步接口，本地域仍读内存池）
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+
+  bool _isCloudType(String type) => switch (type) {
+        'movie' => UserPrefs().cloudMovieMode,
+        'book' => UserPrefs().cloudBookMode,
+        'note' => UserPrefs().cloudNoteMode,
+        'game' => UserPrefs().cloudGameMode,
+        _ => false,
+      };
+
   // 飞出/弹回/回退动画（顶卡位偏由动画驱动时使用）。
   // 必须在 initState 中提前创建：空数据时不会构建卡片栈，懒加载会导致
   // dispose 阶段才首次创建控制器，在已 deactivated 的 element 上查找 TickerMode 而崩溃
@@ -65,7 +78,7 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
 
   // ─── 数据加载 ───
 
-  void _loadBatch(int count) {
+  Future<void> _loadBatch(int count) async {
     final provider = context.read<AppProvider>();
 
     // 按类别分池
@@ -73,64 +86,67 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     final bookPool = <_StrollItem>[];
     final notePool = <_StrollItem>[];
     final gamePool = <_StrollItem>[];
-    if ((_filter == 'all' || _filter == 'movie') && _enabledTypes.contains('movie')) {
+
+    // 云端域：服务端加权随机抽卡；本地域：内存全量池
+    final cloudTypes = <String>[
+      if ((_filter == 'all' || _filter == 'movie') && _enabledTypes.contains('movie') && _isCloudType('movie')) 'movie',
+      if ((_filter == 'all' || _filter == 'book') && _enabledTypes.contains('book') && _isCloudType('book')) 'book',
+      if ((_filter == 'all' || _filter == 'note') && _enabledTypes.contains('note') && _isCloudType('note')) 'note',
+      if ((_filter == 'all' || _filter == 'game') && _enabledTypes.contains('game') && _isCloudType('game')) 'game',
+    ];
+    if (cloudTypes.isNotEmpty) {
+      final showSpinner = _items.isEmpty;
+      if (showSpinner) setState(() => _cloudLoading = true);
+      try {
+        var exclude = _seenIds.map((e) => e.substring(2)).toList();
+        var rows = await CloudExploreService.instance
+            .fetchStroll(types: cloudTypes, limit: count, exclude: exclude);
+        // 一轮刷完：放行已飞走的卡重抽，仅保留栈中尚未展示的 id 防重复
+        if (rows.isEmpty && exclude.isNotEmpty) {
+          _seenIds
+            ..clear()
+            ..addAll({for (int i = _current; i < _items.length; i++) _items[i].id});
+          rows = await CloudExploreService.instance.fetchStroll(
+              types: cloudTypes,
+              limit: count,
+              exclude: _seenIds.map((e) => e.substring(2)).toList());
+        }
+        for (final row in rows) {
+          final item = _itemFromCloudRow(row);
+          if (item == null || _seenIds.contains(item.id)) continue;
+          switch (item.type) {
+            case 'movie': moviePool.add(item);
+            case 'book': bookPool.add(item);
+            case 'note': notePool.add(item);
+            case 'game': gamePool.add(item);
+          }
+        }
+        _cloudError = false;
+      } catch (_) {
+        _cloudError = true;
+      } finally {
+        if (showSpinner && mounted) setState(() => _cloudLoading = false);
+      }
+    }
+
+    if ((_filter == 'all' || _filter == 'movie') && _enabledTypes.contains('movie') && !_isCloudType('movie')) {
       for (final m in provider.movies.where((m) => !m.isDeleted)) {
-        moviePool.add(_StrollItem(
-          type: 'movie', data: m, id: 'm_${m.id}',
-          title: m.title,
-          subtitle: m.alternateTitles.take(2).join(' / '),
-          detail: _movieDetail(m),
-          imagePath: m.posterPath,
-          icon: Icons.movie_outlined, label: '影视',
-          rating: m.rating, createdAt: m.createdAt,
-          tags: m.genres.take(3).toList(),
-          color: const Color(0xFF4A90D9),
-        ));
+        moviePool.add(_itemFromMovie(m));
       }
     }
-    if ((_filter == 'all' || _filter == 'book') && _enabledTypes.contains('book')) {
+    if ((_filter == 'all' || _filter == 'book') && _enabledTypes.contains('book') && !_isCloudType('book')) {
       for (final b in provider.books.where((b) => !b.isDeleted)) {
-        bookPool.add(_StrollItem(
-          type: 'book', data: b, id: 'b_${b.id}',
-          title: b.title,
-          subtitle: b.authors.take(2).join(' / '),
-          detail: _bookDetail(b),
-          imagePath: b.coverPath,
-          icon: Icons.menu_book_outlined, label: '书籍',
-          rating: b.rating, createdAt: b.createdAt,
-          tags: b.genres.take(3).toList(),
-          color: const Color(0xFF7E57C2),
-        ));
+        bookPool.add(_itemFromBook(b));
       }
     }
-    if ((_filter == 'all' || _filter == 'note') && _enabledTypes.contains('note')) {
+    if ((_filter == 'all' || _filter == 'note') && _enabledTypes.contains('note') && !_isCloudType('note')) {
       for (final n in provider.notes.where((n) => !n.isDeleted)) {
-        notePool.add(_StrollItem(
-          type: 'note', data: n, id: 'n_${n.id}',
-          title: n.title.isNotEmpty ? n.title : '随手记'.tr,
-          subtitle: n.tags.take(3).join(' · '),
-          detail: n.content,
-          imagePath: n.images.isNotEmpty ? n.images.first : null,
-          icon: Icons.sticky_note_2_outlined, label: '笔记',
-          createdAt: n.createdAt,
-          tags: n.tags.take(3).toList(),
-          color: const Color(0xFF66BB6A),
-        ));
+        notePool.add(_itemFromNote(n));
       }
     }
-    if ((_filter == 'all' || _filter == 'game') && _enabledTypes.contains('game')) {
+    if ((_filter == 'all' || _filter == 'game') && _enabledTypes.contains('game') && !_isCloudType('game')) {
       for (final g in provider.games.where((g) => !g.isDeleted)) {
-        gamePool.add(_StrollItem(
-          type: 'game', data: g, id: 'g_${g.id}',
-          title: g.title,
-          subtitle: g.developer.take(2).join(' / '),
-          detail: _gameDetail(g),
-          imagePath: g.coverPath,
-          icon: Icons.sports_esports_outlined, label: '游戏',
-          rating: g.rating, createdAt: g.createdAt,
-          tags: g.genres.take(3).toList(),
-          color: const Color(0xFFEC4899),
-        ));
+        gamePool.add(_itemFromGame(g));
       }
     }
 
@@ -164,7 +180,67 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
         _items.add(item);
       }
     }
+    if (mounted) setState(() {});
   }
+
+  /// 漫步接口轻量行 → 卡片项（行内只含部分列，fromJson 缺列由模型默认值兜底）
+  _StrollItem? _itemFromCloudRow(Map<String, dynamic> row) {
+    return switch (row['type']) {
+      'movie' => _itemFromMovie(Movie.fromJson(row), cloud: true),
+      'book' => _itemFromBook(Book.fromJson(row), cloud: true),
+      'note' => _itemFromNote(Note.fromJson(row), cloud: true),
+      'game' => _itemFromGame(Game.fromJson(row), cloud: true),
+      _ => null,
+    };
+  }
+
+  _StrollItem _itemFromMovie(Movie m, {bool cloud = false}) => _StrollItem(
+        type: 'movie', data: m, id: 'm_${m.id}', cloud: cloud,
+        title: m.title,
+        subtitle: m.alternateTitles.take(2).join(' / '),
+        detail: _movieDetail(m),
+        imagePath: m.posterPath,
+        icon: Icons.movie_outlined, label: '影视',
+        rating: m.rating, createdAt: m.createdAt,
+        tags: m.genres.take(3).toList(),
+        color: const Color(0xFF4A90D9),
+      );
+
+  _StrollItem _itemFromBook(Book b, {bool cloud = false}) => _StrollItem(
+        type: 'book', data: b, id: 'b_${b.id}', cloud: cloud,
+        title: b.title,
+        subtitle: b.authors.take(2).join(' / '),
+        detail: _bookDetail(b),
+        imagePath: b.coverPath,
+        icon: Icons.menu_book_outlined, label: '书籍',
+        rating: b.rating, createdAt: b.createdAt,
+        tags: b.genres.take(3).toList(),
+        color: const Color(0xFF7E57C2),
+      );
+
+  _StrollItem _itemFromNote(Note n, {bool cloud = false}) => _StrollItem(
+        type: 'note', data: n, id: 'n_${n.id}', cloud: cloud,
+        title: n.title.isNotEmpty ? n.title : '随手记'.tr,
+        subtitle: n.tags.take(3).join(' · '),
+        detail: n.content,
+        imagePath: n.images.isNotEmpty ? n.images.first : null,
+        icon: Icons.sticky_note_2_outlined, label: '笔记',
+        createdAt: n.createdAt,
+        tags: n.tags.take(3).toList(),
+        color: const Color(0xFF66BB6A),
+      );
+
+  _StrollItem _itemFromGame(Game g, {bool cloud = false}) => _StrollItem(
+        type: 'game', data: g, id: 'g_${g.id}', cloud: cloud,
+        title: g.title,
+        subtitle: g.developer.take(2).join(' / '),
+        detail: _gameDetail(g),
+        imagePath: g.coverPath,
+        icon: Icons.sports_esports_outlined, label: '游戏',
+        rating: g.rating, createdAt: g.createdAt,
+        tags: g.genres.take(3).toList(),
+        color: const Color(0xFFEC4899),
+      );
 
   /// 加权随机：评分越高权重越大
   _StrollItem? _weightedPick(List<_StrollItem> pool) {
@@ -319,7 +395,43 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
     }
   }
 
-  void _openDetail(_StrollItem item) {
+  Future<void> _openDetail(_StrollItem item) async {
+    // 云端卡片只持有轻量行，点详情才按需拉完整实体
+    if (item.cloud) {
+      final provider = context.read<AppProvider>();
+      final id = item.id.substring(2);
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+      dynamic data;
+      try {
+        data = await switch (item.type) {
+          'movie' => provider.cloudMovieById(id),
+          'book' => provider.cloudBookById(id),
+          'note' => provider.cloudNoteById(id),
+          'game' => provider.cloudGameById(id),
+          _ => Future.value(),
+        };
+      } finally {
+        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      }
+      if (data == null) {
+        if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+        return;
+      }
+      if (!mounted) return;
+      Navigator.push(context, MaterialPageRoute(builder: (_) => switch (item.type) {
+            'movie' => MovieDetailPage(movie: data as Movie),
+            'book' => BookDetailPage(book: data as Book),
+            'note' => NoteDetailPage(note: data as Note),
+            _ => GameDetailPage(game: data as Game),
+          }));
+      return;
+    }
     switch (item.type) {
       case 'movie':
         Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: item.data as Movie)));
@@ -349,15 +461,34 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
           _buildFilterBar(colors),
           // 内容 + 随机按钮
           Expanded(
-            child: !hasContent
-                ? _buildEmptyState(colors)
-                : Column(
-                    children: [
-                      Expanded(child: _buildCardStack(colors)),
-                      _buildNextButton(colors),
-                    ],
-                  ),
+            child: _cloudLoading && !hasContent
+                ? const Center(child: CircularProgressIndicator())
+                : !hasContent
+                    ? _cloudError
+                        ? _buildCloudErrorState(colors)
+                        : _buildEmptyState(colors)
+                    : Column(
+                        children: [
+                          Expanded(child: _buildCardStack(colors)),
+                          _buildNextButton(colors),
+                        ],
+                      ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloudErrorState(ColorScheme colors) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_off, size: 44, color: colors.onSurface.withValues(alpha: 0.3)),
+          const SizedBox(height: 12),
+          Text('云端记录加载失败'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+          const SizedBox(height: 12),
+          TextButton(onPressed: () => _loadBatch(5), child: Text('重试'.tr)),
         ],
       ),
     );
@@ -437,8 +568,9 @@ class _StrollPageState extends State<StrollPage> with SingleTickerProviderStateM
                         _dragX = 0;
                         _dragY = 0;
                         _isDragging = false;
-                        _loadBatch(5);
+                        _cloudError = false;
                       });
+                      _loadBatch(5);
                     }
                   },
                   child: Container(
@@ -826,6 +958,7 @@ class _StrollItem {
   final DateTime createdAt;
   final List<String> tags;
   final Color color;
+  final bool cloud;
 
   _StrollItem({
     required this.type,
@@ -841,5 +974,6 @@ class _StrollItem {
     required this.createdAt,
     this.tags = const [],
     required this.color,
+    this.cloud = false,
   });
 }

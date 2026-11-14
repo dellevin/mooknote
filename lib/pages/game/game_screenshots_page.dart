@@ -6,6 +6,8 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:http/http.dart' as http;
 import '../../utils/image_picker_helper.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
@@ -373,14 +375,24 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
         final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
         final fileName = 'screenshot_${DateTime.now().millisecondsSinceEpoch}_$added$ext';
 
-        final targetPath = await ImagePathHelper.instance.getGameScreenshotImgPath(widget.game.id, fileName);
-        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-        await file.copy(targetPath);
+        // 云模式直接传 OSS 取网络 URL；本地模式复制到 screenshots 子目录
+        final screenshotPath = UserPrefs().cloudGameMode
+            ? await CloudImageUpload.persist(
+                logicalPath: 'games/${widget.game.id}/screenshots/$fileName',
+                localAbsPath: file.path,
+                cloudMode: true,
+              )
+            : await () async {
+                final targetPath = await ImagePathHelper.instance.getGameScreenshotImgPath(widget.game.id, fileName);
+                await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+                await file.copy(targetPath);
+                return targetPath;
+              }();
 
         final newScreenshot = GameScreenshot(
           id: const Uuid().v4(),
           gameId: widget.game.id,
-          screenshotPath: targetPath,
+          screenshotPath: screenshotPath,
           createdAt: DateTime.now(),
         );
 
@@ -466,14 +478,29 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
       final fileName = 'screenshot_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final targetPath = await ImagePathHelper.instance.getGameScreenshotImgPath(widget.game.id, fileName);
-      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-      await File(targetPath).writeAsBytes(response.bodyBytes);
+
+      // 云模式：字节落临时文件后传 OSS；本地模式写入 screenshots 子目录
+      final screenshotPath = UserPrefs().cloudGameMode
+          ? await () async {
+              final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+              await tmpFile.writeAsBytes(response.bodyBytes);
+              return CloudImageUpload.persist(
+                logicalPath: 'games/${widget.game.id}/screenshots/$fileName',
+                localAbsPath: tmpFile.path,
+                cloudMode: true,
+              );
+            }()
+          : await () async {
+              final targetPath = await ImagePathHelper.instance.getGameScreenshotImgPath(widget.game.id, fileName);
+              await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+              await File(targetPath).writeAsBytes(response.bodyBytes);
+              return targetPath;
+            }();
 
       final newScreenshot = GameScreenshot(
         id: const Uuid().v4(),
         gameId: widget.game.id,
-        screenshotPath: targetPath,
+        screenshotPath: screenshotPath,
         createdAt: DateTime.now(),
       );
       if (!mounted) return;

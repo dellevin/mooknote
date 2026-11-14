@@ -7,8 +7,10 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/image_picker_helper.dart';
+import '../../utils/user_prefs.dart';
 import '../../utils/slide_up_page_route.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
@@ -1090,16 +1092,39 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
       final itemId = widget.existing != null
           ? _cfg.idOf(widget.existing as T)
           : (_tempId ??= const Uuid().v4());
-      final targetDir = await _cfg.imagesDir(widget.parentId, itemId);
-      await ImagePathHelper.instance.ensureDirExists(targetDir);
       final newPaths = <String>[];
-      for (final file in files) {
-        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-        final fileName =
-            '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
-        final targetPath = p.join(targetDir, fileName);
-        await file.copy(targetPath);
-        newPaths.add(targetPath);
+      // 云模式按媒体域开关决定是否走 OSS：影视分集 / 书籍章节 / 游戏关卡
+      final String? cloudPrefix = switch (T) {
+        MovieEpisode _ when UserPrefs().cloudMovieMode =>
+          'movies/${widget.parentId}/episodes/$itemId',
+        BookChapter _ when UserPrefs().cloudBookMode =>
+          'books/${widget.parentId}/chapters/$itemId',
+        GameLevel _ when UserPrefs().cloudGameMode =>
+          'games/${widget.parentId}/levels/$itemId',
+        _ => null,
+      };
+      if (cloudPrefix != null) {
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          newPaths.add(await CloudImageUpload.persist(
+            logicalPath: '$cloudPrefix/$fileName',
+            localAbsPath: file.path,
+            cloudMode: true,
+          ));
+        }
+      } else {
+        final targetDir = await _cfg.imagesDir(widget.parentId, itemId);
+        await ImagePathHelper.instance.ensureDirExists(targetDir);
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final targetPath = p.join(targetDir, fileName);
+          await file.copy(targetPath);
+          newPaths.add(targetPath);
+        }
       }
       if (mounted) setState(() => _images.addAll(newPaths));
     } catch (e) {
@@ -1112,6 +1137,11 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
     final newPaths = <String>[];
     final newDir = await _cfg.imagesDir(widget.parentId, newId);
     for (final imagePath in _images) {
+      // 云模式图片已是 OSS URL，无需改名
+      if (CloudImageUpload.isRemoteUrl(imagePath)) {
+        newPaths.add(imagePath);
+        continue;
+      }
       final normalized = imagePath.replaceAll('\\', '/');
       final marker = '/$oldId/';
       if (normalized.contains(marker)) {

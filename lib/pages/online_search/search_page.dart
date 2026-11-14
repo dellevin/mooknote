@@ -13,6 +13,7 @@ import '../custom_module/custom_module_detail_page.dart';
 import '../../utils/slide_up_page_route.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
+import '../../utils/toast_util.dart';
 
 /// 搜索页面（带 Scaffold + AppBar）
 class SearchPage extends StatelessWidget {
@@ -186,12 +187,28 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     final kw = keyword.toLowerCase();
     final results = <_SearchResult>[];
 
-    // 分集/章节/关卡命中并入父类
-    final episodes = await provider.getAllMovieEpisodes();
+    // 云模式：影视在服务端，直接走服务器关键词搜索（标题/别名），
+    // 不参与本地内存过滤与分集命中；其余三类仍为本地数据
+    final cloudMode = provider.isCloudMovieMode;
+    List<Movie> cloudMovies = const [];
+    if (cloudMode) {
+      try {
+        cloudMovies = await provider.searchCloudMovies(keyword);
+      } catch (e) {
+        if (mounted) ToastUtil.show(context, '加载失败，请检查网络'.tr);
+        cloudMovies = const [];
+      }
+    }
+
+    // 分集/章节/关卡命中并入父类（云模式影视分集不在本地，跳过）
+    final episodeParents = <String>{};
+    if (!cloudMode) {
+      final episodes = await provider.getAllMovieEpisodes();
+      episodeParents
+          .addAll(_matchingParentIds(episodes, (e) => _episodeMatch(e, kw), (e) => e.movieId));
+    }
     final chapters = await provider.getAllBookChapters();
     final levels = await provider.getAllGameLevels();
-    final episodeParents =
-        _matchingParentIds(episodes, (e) => _episodeMatch(e, kw), (e) => e.movieId);
     final chapterParents =
         _matchingParentIds(chapters, (c) => _chapterMatch(c, kw), (c) => c.bookId);
     final levelParents =
@@ -201,7 +218,10 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     bool gameHit(Game g) => _gameMatch(g, kw) || levelParents.contains(g.id);
 
     if (_showMovies) {
-      for (final movie in provider.movies.where((m) => !m.isDeleted && movieHit(m))) {
+      final movieHits = cloudMode
+          ? cloudMovies
+          : provider.movies.where((m) => !m.isDeleted && movieHit(m));
+      for (final movie in movieHits) {
         results.add(_SearchResult(type: 'movie', data: movie));
       }
     }
@@ -232,7 +252,9 @@ class _SearchPageBodyState extends State<SearchPageBody> {
 
     if (!mounted || token != _searchToken) return;
     // 计数不受筛选开关影响，始终反映该关键词下各类型的总命中数
-    _counts['movie'] = provider.movies.where((m) => !m.isDeleted && movieHit(m)).length;
+    _counts['movie'] = cloudMode
+        ? cloudMovies.length
+        : provider.movies.where((m) => !m.isDeleted && movieHit(m)).length;
     _counts['book'] = provider.books.where((b) => !b.isDeleted && bookHit(b)).length;
     _counts['note'] = provider.notes.where((n) => !n.isDeleted && _noteMatch(n, kw)).length;
     _counts['game'] = provider.games.where((g) => !g.isDeleted && gameHit(g)).length;
@@ -254,9 +276,12 @@ class _SearchPageBodyState extends State<SearchPageBody> {
   List<String> _collectMatchingTags(String lowerKeyword) {
     final provider = context.read<AppProvider>();
     final tagSet = <String>{};
-    for (final m in provider.movies.where((m) => !m.isDeleted)) {
-      for (final g in m.genres) {
-        if (g.toLowerCase().contains(lowerKeyword)) tagSet.add(g);
+    // 云模式内存里只有影视首页分片，标签不全，跳过影视只收集本地三类
+    if (!provider.isCloudMovieMode) {
+      for (final m in provider.movies.where((m) => !m.isDeleted)) {
+        for (final g in m.genres) {
+          if (g.toLowerCase().contains(lowerKeyword)) tagSet.add(g);
+        }
       }
     }
     for (final b in provider.books.where((b) => !b.isDeleted)) {
@@ -283,8 +308,11 @@ class _SearchPageBodyState extends State<SearchPageBody> {
     setState(() {
       _selectedTag = tag;
       final results = <_SearchResult>[];
-      for (final m in provider.movies.where((m) => !m.isDeleted)) {
-        if (m.genres.contains(tag)) results.add(_SearchResult(type: 'movie', data: m));
+      // 云模式影视标签无法在本地完整过滤，跳过影视结果
+      if (!provider.isCloudMovieMode) {
+        for (final m in provider.movies.where((m) => !m.isDeleted)) {
+          if (m.genres.contains(tag)) results.add(_SearchResult(type: 'movie', data: m));
+        }
       }
       for (final b in provider.books.where((b) => !b.isDeleted)) {
         if (b.genres.contains(tag)) results.add(_SearchResult(type: 'book', data: b));

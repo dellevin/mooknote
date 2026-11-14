@@ -713,4 +713,78 @@ class UserPrefs {
   /// 增量自动同步间隔（分钟），默认 30
   int get webdavIncAutoSyncIntervalMinutes => prefs.getInt('webdavIncAutoSyncIntervalMinutes') ?? 30;
   Future<bool> setWebdavIncAutoSyncIntervalMinutes(int value) => prefs.setInt('webdavIncAutoSyncIntervalMinutes', value);
+
+  // ========== 服务器云同步账号 ==========
+
+  /// 是否已确认云同步数据上传说明（记一次，不再弹说明对话框）
+  bool get cloudSyncConsented => prefs.getBool('cloudSyncConsented') ?? false;
+  Future<bool> setCloudSyncConsented(bool value) => prefs.setBool('cloudSyncConsented', value);
+
+  String get cloudToken => prefs.getString('cloudToken') ?? '';
+  Future<bool> setCloudToken(String value) => prefs.setString('cloudToken', value);
+
+  String get cloudUserId => prefs.getString('cloudUserId') ?? '';
+  Future<bool> setCloudUserId(String value) => prefs.setString('cloudUserId', value);
+
+  String get cloudUsername => prefs.getString('cloudUsername') ?? '';
+  Future<bool> setCloudUsername(String value) => prefs.setString('cloudUsername', value);
+
+  String get cloudNickname => prefs.getString('cloudNickname') ?? '';
+  Future<bool> setCloudNickname(String value) => prefs.setString('cloudNickname', value);
+
+  String get cloudMobile => prefs.getString('cloudMobile') ?? '';
+  Future<bool> setCloudMobile(String value) => prefs.setString('cloudMobile', value);
+
+  String get cloudEmail => prefs.getString('cloudEmail') ?? '';
+  Future<bool> setCloudEmail(String value) => prefs.setString('cloudEmail', value);
+
+  String get cloudAvatar => prefs.getString('cloudAvatar') ?? '';
+  Future<bool> setCloudAvatar(String value) => prefs.setString('cloudAvatar', value);
+
+  String get cloudMotto => prefs.getString('cloudMotto') ?? '';
+  Future<bool> setCloudMotto(String value) => prefs.setString('cloudMotto', value);
+
+  /// 影视分类是否处于云端浏览模式（true=数据以云端为准，图片走网络 URL）
+  bool get cloudMovieMode => prefs.getBool(_cloudMovieModeKey) ?? false;
+  Future<bool> setCloudMovieMode(bool value) =>
+      prefs.setBool(_cloudMovieModeKey, value);
+  static const _cloudMovieModeKey = 'cloudMovieMode';
+
+  /// 书籍分类云端浏览模式（与影视开关平级，互不影响）
+  bool get cloudBookMode => prefs.getBool(_cloudBookModeKey) ?? false;
+  Future<bool> setCloudBookMode(bool value) =>
+      prefs.setBool(_cloudBookModeKey, value);
+  static const _cloudBookModeKey = 'cloudBookMode';
+
+  /// 游戏分类云端浏览模式
+  bool get cloudGameMode => prefs.getBool(_cloudGameModeKey) ?? false;
+  Future<bool> setCloudGameMode(bool value) =>
+      prefs.setBool(_cloudGameModeKey, value);
+  static const _cloudGameModeKey = 'cloudGameMode';
+
+  /// 笔记分类云端浏览模式
+  bool get cloudNoteMode => prefs.getBool(_cloudNoteModeKey) ?? false;
+  Future<bool> setCloudNoteMode(bool value) =>
+      prefs.setBool(_cloudNoteModeKey, value);
+  static const _cloudNoteModeKey = 'cloudNoteMode';
+
+  /// 片单/自定义模块不绑定单一媒体域：任一媒体域走云端即整体切云端
+  bool get cloudAnyMediaMode =>
+      cloudMovieMode || cloudBookMode || cloudGameMode;
+
+  /// 清除云端登录态（token 失效或退出登录时调用）
+  Future<void> clearCloudAccount() async {
+    await prefs.remove('cloudToken');
+    await prefs.remove('cloudUserId');
+    await prefs.remove('cloudUsername');
+    await prefs.remove('cloudNickname');
+    await prefs.remove('cloudMobile');
+    await prefs.remove('cloudEmail');
+    await prefs.remove('cloudAvatar');
+    await prefs.remove('cloudMotto');
+    await prefs.remove(_cloudMovieModeKey);
+    await prefs.remove(_cloudBookModeKey);
+    await prefs.remove(_cloudGameModeKey);
+    await prefs.remove(_cloudNoteModeKey);
+  }
 }

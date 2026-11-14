@@ -1,6 +1,9 @@
 /// 英文翻译 - 探索/笔记域
 const Map<String, String> enExploreNote = {
   // ── 通用 / 统计 ──
+  '云端数据模式下暂不支持该功能': 'This feature is not available in cloud data mode',
+  '云端影视数据的聚合统计将在后续版本支持':
+      'Aggregated stats for cloud movie data will be supported in a later version',
   '数据统计': 'Statistics',
   '统计': 'Statistics',
   '周': 'Week',
@@ -113,6 +116,7 @@ const Map<String, String> enExploreNote = {
   '书影日历': 'Media Calendar',
   '搜索影视、书籍或游戏': 'Search movies, books or games',
   '碎阅': 'Journal',
+  '云端记录加载失败': 'Failed to load cloud entries',
   '回到今天': 'Back to Today',
   '春生夏长，秋收冬藏': 'Spring sows, summer grows, autumn harvests, winter stores',
   '{y}年{m}': '{y} {m}',

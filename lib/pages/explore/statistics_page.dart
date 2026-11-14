@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
+import '../../services/cloud/cloud_explore_service.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -26,6 +27,48 @@ class _StatisticsPageState extends State<StatisticsPage> {
   bool get _showMovies => UserPrefs().showMovieTab;
   bool get _showBooks => UserPrefs().showBookTab;
   bool get _showNotes => UserPrefs().showNoteTab;
+
+  // ── 云端轻量行（仅云模式域使用；本地域仍读 AppProvider）──
+  bool get _anyCloud => UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode ||
+      UserPrefs().cloudGameMode || UserPrefs().cloudNoteMode;
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
+  List<Note> _cloudNotes = const [];
+
+  Future<void> _loadCloudStats() async {
+    final types = <String>[
+      if (UserPrefs().cloudMovieMode) 'movie',
+      if (UserPrefs().cloudBookMode) 'book',
+      if (UserPrefs().cloudGameMode) 'game',
+      if (UserPrefs().cloudNoteMode) 'note',
+    ];
+    setState(() {
+      _cloudLoading = true;
+      _cloudError = false;
+    });
+    try {
+      final data = await CloudExploreService.instance.fetchStats(types);
+      setState(() {
+        _cloudMovies = ((data['movies'] as List?) ?? const [])
+            .map((e) => Movie.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        _cloudBooks = ((data['books'] as List?) ?? const [])
+            .map((e) => Book.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        _cloudGames = ((data['games'] as List?) ?? const [])
+            .map((e) => Game.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        _cloudNotes = ((data['notes'] as List?) ?? const [])
+            .map((e) => Note.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        _cloudLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _cloudLoading = false;
+        _cloudError = true;
+      });
+    }
+  }
 
   // 缓存过滤后的列表
   List<Movie>? _cachedMovies;
@@ -117,15 +160,46 @@ class _StatisticsPageState extends State<StatisticsPage> {
   void initState() {
     super.initState();
     _timeRange = UserPrefs().statsTimeRange;
+    if (_anyCloud) _loadCloudStats();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final movies = context.select<AppProvider, List<Movie>>((p) => p.movies);
-    final books = context.select<AppProvider, List<Book>>((p) => p.books);
-    final notes = context.select<AppProvider, List<Note>>((p) => p.notes);
-    final games = context.select<AppProvider, List<Game>>((p) => p.games);
+    if (_anyCloud && _cloudLoading) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('数据统计'.tr)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_anyCloud && _cloudError) {
+      return Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(leading: const AppBackButton(), title: Text('数据统计'.tr)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 44, color: colors.onSurface.withValues(alpha: 0.3)),
+              const SizedBox(height: 12),
+              Text('云端记录加载失败'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.5))),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _loadCloudStats, child: Text('重试'.tr)),
+            ],
+          ),
+        ),
+      );
+    }
+    final localMovies = context.select<AppProvider, List<Movie>>((p) => p.movies);
+    final localBooks = context.select<AppProvider, List<Book>>((p) => p.books);
+    final localNotes = context.select<AppProvider, List<Note>>((p) => p.notes);
+    final localGames = context.select<AppProvider, List<Game>>((p) => p.games);
+    // 云模式域走轻量行，本地域仍读 Provider
+    final movies = UserPrefs().cloudMovieMode ? _cloudMovies : localMovies;
+    final books = UserPrefs().cloudBookMode ? _cloudBooks : localBooks;
+    final notes = UserPrefs().cloudNoteMode ? _cloudNotes : localNotes;
+    final games = UserPrefs().cloudGameMode ? _cloudGames : localGames;
     final (fm, fb, fn) = _getFilteredLists(movies, books, notes);
     final fg = _getFilteredGames(games);
 
@@ -141,17 +215,21 @@ class _StatisticsPageState extends State<StatisticsPage> {
           _buildTimeRangeSelector(colors),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        // 各分区无数据时自行返回空组件，这里统一插入 16 间距，
-        // 避免手工维护每段后的 SizedBox
-        children: [
-          for (final (i, section) in _buildSections(rfm, rfb, rfn, rfg).indexed) ...[
-            if (i > 0) const SizedBox(height: 16),
-            section,
+      body: RefreshIndicator(
+        onRefresh: _anyCloud ? _loadCloudStats : () async {},
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          // 各分区无数据时自行返回空组件，这里统一插入 16 间距，
+          // 避免手工维护每段后的 SizedBox
+          children: [
+            for (final (i, section) in _buildSections(rfm, rfb, rfn, rfg).indexed) ...[
+              if (i > 0) const SizedBox(height: 16),
+              section,
+            ],
+            const SizedBox(height: 80),
           ],
-          const SizedBox(height: 80),
-        ],
+        ),
       ),
     );
   }

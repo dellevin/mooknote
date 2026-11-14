@@ -1346,22 +1346,39 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
       File file;
       switch (type) {
         case '影视':
+          // 云模式内存只有首页分片，导出必须走服务端全量接口
+          final cloudMode = UserPrefs().cloudMovieMode;
+          final movieRows = cloudMode
+              ? await provider.cloudAllMovies()
+              : provider.movies.where((m) => !m.isDeleted).toList();
           file = await ExcelExporter.exportMovies(
-            provider.movies.where((m) => !m.isDeleted).toList(),
-            reviews: withReviews ? await provider.getAllMovieReviews() : null,
-            episodes: await provider.getAllMovieEpisodes(),
+            movieRows,
+            reviews: withReviews
+                ? (cloudMode
+                    ? await provider.cloudAllMovieReviews()
+                    : await provider.getAllMovieReviews())
+                : null,
+            episodes:
+                cloudMode ? await provider.cloudAllMovieEpisodes() : await provider.getAllMovieEpisodes(),
           );
           break;
         case '阅读':
+          // 云模式内存只有首页分片，导出必须走服务端全量接口
+          final bookCloudMode = UserPrefs().cloudBookMode;
           file = await ExcelExporter.exportBooks(
-            provider.books.where((b) => !b.isDeleted).toList(),
+            bookCloudMode
+                ? await provider.cloudAllBooks()
+                : provider.books.where((b) => !b.isDeleted).toList(),
             reviews: withReviews ? await provider.getAllBookReviews() : null,
             chapters: await provider.getAllBookChapters(),
           );
           break;
         case '游戏':
+          final gameCloudMode = UserPrefs().cloudGameMode;
           file = await ExcelExporter.exportGames(
-            provider.games.where((g) => !g.isDeleted).toList(),
+            gameCloudMode
+                ? await provider.cloudAllGames()
+                : provider.games.where((g) => !g.isDeleted).toList(),
             reviews: withReviews ? await provider.getAllGameReviews() : null,
             completions: await provider.getGameCompletionsMap(),
             levels: await provider.getAllGameLevels(),
@@ -1369,7 +1386,9 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
           break;
         default:
           file = await ExcelExporter.exportNotes(
-              provider.notes.where((n) => !n.isDeleted).toList());
+              UserPrefs().cloudNoteMode
+                  ? await provider.cloudAllNotes()
+                  : provider.notes.where((n) => !n.isDeleted).toList());
       }
       if (!context.mounted) return;
       _showExportResult(context, true, '已导出到 {path}'.trf({'path': file.path}));

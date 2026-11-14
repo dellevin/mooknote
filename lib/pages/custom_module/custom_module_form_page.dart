@@ -12,6 +12,8 @@ import '../../data/custom_module/custom_module_item_dao.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/image_picker_helper.dart';
+import '../../utils/user_prefs.dart';
+import '../../services/cloud/cloud_image_upload.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/custom_module_field.dart';
 import '../../widgets/duration_picker.dart';
@@ -360,11 +362,22 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
       );
       if (picked == null) return;
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final targetPath = await ImagePathHelper.instance.getCustomModuleCoverPath(widget.module.id, _itemId, fileName);
-      await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
-      await File(picked.path).copy(targetPath);
+      final String savedPath;
+      if (UserPrefs().cloudAnyMediaMode) {
+        // 云模式：选图后立即上传 OSS，只保留网络 URL
+        savedPath = await CloudImageUpload.persist(
+          logicalPath: 'custom/${widget.module.id}/$_itemId/$fileName',
+          localAbsPath: picked.path,
+          cloudMode: true,
+        );
+      } else {
+        final targetPath = await ImagePathHelper.instance.getCustomModuleCoverPath(widget.module.id, _itemId, fileName);
+        await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
+        await File(picked.path).copy(targetPath);
+        savedPath = targetPath;
+      }
       if (!mounted) return;
-      setState(() => _values[fieldKey] = targetPath);
+      setState(() => _values[fieldKey] = savedPath);
     } catch (e) {
       if (mounted) ToastUtil.show(context, '选择图片失败: {e}'.trf({'e': e}));
     }
@@ -536,15 +549,28 @@ class _CustomModuleFormPageState extends State<CustomModuleFormPage> {
     try {
       final files = await pickLocalImages(context);
       if (!mounted || files.isEmpty) return;
-      final dir = await ImagePathHelper.instance.getCustomModuleImagesDir(widget.module.id, _itemId);
-      await ImagePathHelper.instance.ensureDirExists(dir);
+      final cloudMode = UserPrefs().cloudAnyMediaMode;
+      final dir = cloudMode
+          ? null
+          : await ImagePathHelper.instance.getCustomModuleImagesDir(widget.module.id, _itemId);
+      if (!cloudMode) await ImagePathHelper.instance.ensureDirExists(dir!);
       final paths = (_values[f.key] as List<String>?) ?? <String>[];
       for (final file in files) {
         final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
         final fileName = 'img_${DateTime.now().millisecondsSinceEpoch}_${paths.length}$ext';
-        final targetPath = p.join(dir, fileName);
-        await file.copy(targetPath);
-        paths.add(targetPath);
+        final String savedPath;
+        if (cloudMode) {
+          savedPath = await CloudImageUpload.persist(
+            logicalPath: 'custom/${widget.module.id}/$_itemId/$fileName',
+            localAbsPath: file.path,
+            cloudMode: true,
+          );
+        } else {
+          final targetPath = p.join(dir!, fileName);
+          await file.copy(targetPath);
+          savedPath = targetPath;
+        }
+        paths.add(savedPath);
       }
       setState(() => _values[f.key] = paths);
     } catch (e) {

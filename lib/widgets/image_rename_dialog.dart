@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/gallery/image_asset_dao.dart';
 import '../l10n/app_strings.dart';
+import '../services/cloud/cloud_image_upload.dart';
 import '../utils/toast_util.dart';
 import 'app_overlay.dart';
 
@@ -8,6 +9,11 @@ import 'app_overlay.dart';
 class ImageRenameDialog {
   /// 弹出重命名对话框。返回保存后的名称（空串表示已清除恢复默认），取消返回 null。
   static Future<String?> show(BuildContext context, String absImagePath) async {
+    // 云模式图片是 OSS URL，自定义名称只存在本地 image_assets 表、无法跨设备同步，禁用
+    if (CloudImageUpload.isRemoteUrl(absImagePath)) {
+      ToastUtil.show(context, '云端图片不支持重命名'.tr);
+      return null;
+    }
     final logicalPath = ImageAssetDao.toLogicalPath(absImagePath);
     final current = await ImageAssetDao().getTitle(logicalPath);
     if (!context.mounted) return null;

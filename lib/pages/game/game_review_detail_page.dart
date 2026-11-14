@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -23,11 +24,22 @@ class GameReviewDetailPage extends StatefulWidget {
 
 class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
   late GameReview _review;
+  // 云模式内存分片不含该游戏时，按 id 兜底拉取
+  Game? _cloudGame;
 
   @override
   void initState() {
     super.initState();
     _review = widget.review;
+    if (UserPrefs().cloudGameMode && _getGame() == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudGame());
+    }
+  }
+
+  Future<void> _loadCloudGame() async {
+    final game = await context.read<AppProvider>().cloudGameById(widget.gameId);
+    if (!mounted || game == null) return;
+    setState(() => _cloudGame = game);
   }
 
   Future<void> _refreshReviewData() async {
@@ -93,7 +105,7 @@ class _GameReviewDetailPageState extends State<GameReviewDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final game = _getGame();
+    final game = _getGame() ?? _cloudGame;
 
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,

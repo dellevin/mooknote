@@ -7,6 +7,7 @@ import '../../l10n/app_strings.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/animated_star_rating.dart';
+import '../../utils/user_prefs.dart';
 
 class PlaylistAddItemPage extends StatefulWidget {
   final Playlist playlist;
@@ -23,11 +24,32 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
   final Set<String> _busyItemIds = {};
   String _keyword = '';
   bool _loading = true;
+  // 云模式内存只有首页分片，候选列表需要全量作品
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
 
   @override
   void initState() {
     super.initState();
     _loadExisting();
+    _loadCloudWorks();
+  }
+
+  Future<void> _loadCloudWorks() async {
+    final provider = context.read<AppProvider>();
+    final prefs = UserPrefs();
+    final type = widget.playlist.type;
+    if (prefs.cloudMovieMode && (type == 'movie' || type == 'all')) {
+      _cloudMovies = await provider.cloudAllMovies();
+    }
+    if (prefs.cloudBookMode && (type == 'book' || type == 'all')) {
+      _cloudBooks = await provider.cloudAllBooks();
+    }
+    if (prefs.cloudGameMode && (type == 'game' || type == 'all')) {
+      _cloudGames = await provider.cloudAllGames();
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -52,10 +74,14 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
     final provider = context.watch<AppProvider>();
     final type = widget.playlist.type;
 
-    // 获取对应类型的条目列表
+    // 获取对应类型的条目列表（云模式用全量作品，避免首页分片漏掉条目）
+    final prefs = UserPrefs();
+    final movies = prefs.cloudMovieMode ? _cloudMovies : provider.movies;
+    final books = prefs.cloudBookMode ? _cloudBooks : provider.books;
+    final games = prefs.cloudGameMode ? _cloudGames : provider.games;
     List<_SelectableItem> items;
     if (type == 'movie' || type == 'all') {
-      items = provider.movies
+      items = movies
           .where((m) => !m.isDeleted)
           .map((m) => _SelectableItem(
                 id: m.id,
@@ -70,7 +96,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
       items = [];
     }
     if (type == 'book' || type == 'all') {
-      items.addAll(provider.books
+      items.addAll(books
           .where((b) => !b.isDeleted)
           .map((b) => _SelectableItem(
                 id: b.id,
@@ -82,7 +108,7 @@ class _PlaylistAddItemPageState extends State<PlaylistAddItemPage> {
               )));
     }
     if (type == 'game' || type == 'all') {
-      items.addAll(provider.games
+      items.addAll(games
           .where((g) => !g.isDeleted)
           .map((g) => _SelectableItem(
                 id: g.id,

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/data_models.dart';
 import '../providers/app_provider.dart';
+import '../utils/user_prefs.dart';
 import 'app_back_button.dart';
 import 'fade_in_local_image.dart';
 import '../widgets/app_overlay.dart';
@@ -95,6 +96,11 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
   Timer? _searchDebounce;
   int _searchToken = 0;
 
+  /// 云模式下内存只有首页分片，关联选择需要全量，单独拉一份
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
+
   @override
   void dispose() {
     _searchDebounce?.cancel();
@@ -118,10 +124,33 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
       _entries.add(_WorkRoleEntry(workId: gp.gameId, workType: 'game', roleType: gp.roleType));
     }
     _loadCurrentPersonWorkIds();
+    final provider = context.read<AppProvider>();
+    if (UserPrefs().cloudMovieMode) {
+      provider
+          .cloudAllMovies()
+          .then((movies) => mounted ? setState(() => _cloudMovies = movies) : null);
+    }
+    if (UserPrefs().cloudBookMode) {
+      provider
+          .cloudAllBooks()
+          .then((books) => mounted ? setState(() => _cloudBooks = books) : null);
+    }
+    if (UserPrefs().cloudGameMode) {
+      provider
+          .cloudAllGames()
+          .then((games) => mounted ? setState(() => _cloudGames = games) : null);
+    }
   }
 
-  String get _currentWorkType => switch (_tabIndex) { 0 => 'movie', 1 => 'book', 2 => 'game', _ => 'movie' };
-  List<(String, String)> get _currentRoleOptions => switch (_tabIndex) { 0 => _movieRoles, 1 => _bookRoles, 2 => _gameRoles, _ => _movieRoles };
+  static const _visibleTypes = ['movie', 'book', 'game'];
+  static const _typeLabels = {'movie': '影视', 'book': '书籍', 'game': '游戏'};
+
+  String get _currentWorkType => _visibleTypes[_tabIndex.clamp(0, _visibleTypes.length - 1)];
+  List<(String, String)> get _currentRoleOptions => switch (_currentWorkType) {
+        'book' => _bookRoles,
+        'game' => _gameRoles,
+        _ => _movieRoles,
+      };
 
   /// 加载当前人物在当前 Tab 类型下的作品 ID 集合
   Future<void> _loadCurrentPersonWorkIds() async {
@@ -328,11 +357,11 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
   }
 
   Widget _buildTabs(ColorScheme colors) {
-    const labels = ['影视', '书籍', '游戏'];
+    const types = _visibleTypes;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Row(
-        children: List.generate(labels.length, (i) {
+        children: List.generate(types.length, (i) {
           final selected = _tabIndex == i;
           return Expanded(
             child: GestureDetector(
@@ -341,7 +370,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                 _loadCurrentPersonWorkIds();
               },
               child: Container(
-                margin: EdgeInsets.only(right: i < 2 ? 8 : 0),
+                margin: EdgeInsets.only(right: i < types.length - 1 ? 8 : 0),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: selected ? colors.primary : colors.surfaceContainerHighest,
@@ -349,7 +378,7 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  labels[i].tr,
+                  (_typeLabels[types[i]] ?? '').tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -458,19 +487,22 @@ class _WorkSelectorPageState extends State<WorkSelectorPage> {
 
     switch (workType) {
       case 'movie':
-        works = provider.movies
+        final movieSource = UserPrefs().cloudMovieMode ? _cloudMovies : provider.movies;
+        works = movieSource
             .where((m) => !m.isDeleted && matchSearchOrTitle(m.id, m.title))
             .map((m) => (m.id, m.title, m.posterPath))
             .toList();
         break;
       case 'book':
-        works = provider.books
+        final bookSource = UserPrefs().cloudBookMode ? _cloudBooks : provider.books;
+        works = bookSource
             .where((b) => !b.isDeleted && matchSearchOrTitle(b.id, b.title))
             .map((b) => (b.id, b.title, b.coverPath))
             .toList();
         break;
       case 'game':
-        works = provider.games
+        final gameSource = UserPrefs().cloudGameMode ? _cloudGames : provider.games;
+        works = gameSource
             .where((g) => !g.isDeleted && matchSearchOrTitle(g.id, g.title))
             .map((g) => (g.id, g.title, g.coverPath))
             .toList();

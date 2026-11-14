@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/user_prefs.dart';
 import '../../l10n/app_strings.dart';
 import '../../widgets/app_back_button.dart';
+import '../../widgets/cloud_unsupported_view.dart';
 
 /// 相遇统计页
 class EncounterPage extends StatelessWidget {
@@ -12,6 +13,7 @@ class EncounterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudNoteMode) return const CloudUnsupportedView(title: '统计');
     final colors = Theme.of(context).colorScheme;
     final userPrefs = UserPrefs();
     final firstUse = userPrefs.firstUseDate;

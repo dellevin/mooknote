@@ -6,6 +6,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/app_back_button.dart';
 import 'person_detail_page.dart';
@@ -33,6 +34,10 @@ class _PersonListPageState extends State<PersonListPage> {
   List<_FlatItem> _flatItems = [];
   List<Person> _lastFiltered = const [];
 
+  // 云模式人物列表走网络，单独维护加载/错误态
+  bool _cloudLoading = false;
+  bool _cloudError = false;
+
   // 拼音缓存：人名 -> 首字母；人名 -> 拼音（用于组内排序）
   static final Map<String, String> _letterCache = {};
   static final Map<String, String> _pinyinCache = {};
@@ -45,6 +50,27 @@ class _PersonListPageState extends State<PersonListPage> {
   void initState() {
     super.initState();
     _itemPositionsListener.itemPositions.addListener(_onPositionsChanged);
+    if (UserPrefs().cloudMovieMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudPeople());
+    }
+  }
+
+  Future<void> _loadCloudPeople() async {
+    setState(() {
+      _cloudLoading = true;
+      _cloudError = false;
+    });
+    try {
+      await context.read<AppProvider>().loadPeople();
+      if (!mounted) return;
+      setState(() => _cloudLoading = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _cloudLoading = false;
+        _cloudError = true;
+      });
+    }
   }
 
   @override
@@ -255,11 +281,13 @@ class _PersonListPageState extends State<PersonListPage> {
         leading: const AppBackButton(),
         title: Text('人物'.tr),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: '扫描作品自动关联'.tr,
-            onPressed: () => _refreshRelations(),
-          ),
+          // 扫描关联是本地库维护操作，云模式数据源在服务端，不提供
+          if (!UserPrefs().cloudMovieMode)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: '扫描作品自动关联'.tr,
+              onPressed: () => _refreshRelations(),
+            ),
           IconButton(
             icon: const Icon(Icons.add_outlined),
             tooltip: '添加人物'.tr,
@@ -267,7 +295,11 @@ class _PersonListPageState extends State<PersonListPage> {
           ),
         ],
       ),
-      body: Column(
+      body: UserPrefs().cloudMovieMode && _cloudLoading
+          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+          : UserPrefs().cloudMovieMode && _cloudError
+              ? _buildCloudError(colors)
+              : Column(
         children: [
           // 搜索栏
           _buildSearchBar(colors),
@@ -496,6 +528,24 @@ class _PersonListPageState extends State<PersonListPage> {
           color: colors.outlineVariant.withValues(alpha: 0.5),
         ),
       ],
+    );
+  }
+
+  Widget _buildCloudError(ColorScheme colors) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          const SizedBox(height: 16),
+          Text(
+            '加载失败，请检查网络'.tr,
+            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(onPressed: _loadCloudPeople, child: Text('重试'.tr)),
+        ],
+      ),
     );
   }
 

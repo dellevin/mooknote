@@ -27,6 +27,10 @@ class PlaylistDetailPage extends StatefulWidget {
 class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTickerProviderStateMixin {
   List<PlaylistItem> _items = [];
   bool _loading = true;
+  // 云模式内存只有首页分片，条目解析需要全量作品列表兜底
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
   String _statusFilter = 'all'; // all / 具体状态 / none
   int _layoutStyle = UserPrefs().playlistDetailLayoutStyle; // 0:列表 1:海报墙
   final Map<String, double> _slideOffsets = {};
@@ -91,6 +95,17 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
 
   Future<void> _loadItems() async {
     final provider = context.read<AppProvider>();
+    final prefs = UserPrefs();
+    if (prefs.cloudMovieMode || prefs.cloudBookMode || prefs.cloudGameMode) {
+      final results = await Future.wait([
+        prefs.cloudMovieMode ? provider.cloudAllMovies() : Future.value(<Movie>[]),
+        prefs.cloudBookMode ? provider.cloudAllBooks() : Future.value(<Book>[]),
+        prefs.cloudGameMode ? provider.cloudAllGames() : Future.value(<Game>[]),
+      ]);
+      _cloudMovies = results[0] as List<Movie>;
+      _cloudBooks = results[1] as List<Book>;
+      _cloudGames = results[2] as List<Game>;
+    }
     final items = await provider.getPlaylistItems(widget.playlist.id);
     if (!mounted) return;
     setState(() {
@@ -107,6 +122,10 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
   /// 解析条目信息
   _ResolvedItem? _resolve(PlaylistItem item, AppProvider provider) {
     final type = widget.playlist.type;
+    final prefs = UserPrefs();
+    final movies = prefs.cloudMovieMode ? _cloudMovies : provider.movies;
+    final books = prefs.cloudBookMode ? _cloudBooks : provider.books;
+    final games = prefs.cloudGameMode ? _cloudGames : provider.games;
     String? status;
     String title = '';
     String? coverPath;
@@ -116,7 +135,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
     String? itemType;
 
     if (type == 'movie' || type == 'all') {
-      final movie = provider.movies.where((m) => m.id == item.itemId).firstOrNull;
+      final movie = movies.where((m) => m.id == item.itemId).firstOrNull;
       if (movie != null) {
         entity = movie;
         itemType = 'movie';
@@ -128,7 +147,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
       }
     }
     if (entity == null && (type == 'book' || type == 'all')) {
-      final book = provider.books.where((b) => b.id == item.itemId).firstOrNull;
+      final book = books.where((b) => b.id == item.itemId).firstOrNull;
       if (book != null) {
         entity = book;
         itemType = 'book';
@@ -140,7 +159,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
       }
     }
     if (entity == null && (type == 'game' || type == 'all')) {
-      final game = provider.games.where((g) => g.id == item.itemId).firstOrNull;
+      final game = games.where((g) => g.id == item.itemId).firstOrNull;
       if (game != null) {
         entity = game;
         itemType = 'game';

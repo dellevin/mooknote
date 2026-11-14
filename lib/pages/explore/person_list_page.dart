@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../widgets/person_avatar.dart';
+import '../../widgets/cloud_unsupported_view.dart';
+import '../../utils/user_prefs.dart';
 import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../../l10n/app_strings.dart';
@@ -89,6 +91,9 @@ class _PersonListPageState extends State<PersonListPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode) {
+      return const CloudUnsupportedView(title: '角色信息');
+    }
     final colors = Theme.of(context).colorScheme;
     final allPersons = _buildPersons();
 

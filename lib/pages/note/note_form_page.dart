@@ -7,6 +7,8 @@ import '../../utils/image_picker_helper.dart';
 import 'package:path/path.dart' as p;
 import '../../data/gallery/image_asset_dao.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -670,11 +672,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   /// 将图片从临时ID目录移动到新ID目录
   Future<List<String>> _moveImagesToNewId(String oldNoteId, String newNoteId) async {
+    // 云模式图片已是 OSS 网络 URL，无需本地改名
+    if (UserPrefs().cloudNoteMode) return List<String>.from(_images);
     final List<String> newPaths = [];
 
     final newDir = await ImagePathHelper.instance.getNoteImagesDir(newNoteId);
 
     for (final imagePath in _images) {
+      // 云模式图片已是 OSS URL，无需改名，原样保留
+      if (CloudImageUpload.isRemoteUrl(imagePath)) {
+        newPaths.add(imagePath);
+        continue;
+      }
       // 使用路径分隔符检查，兼容 Windows 和 Unix
       final normalizedPath = imagePath.replaceAll('\\', '/');
       if (normalizedPath.contains('/notes/$oldNoteId/')) {
@@ -723,17 +732,31 @@ class _NoteFormPageState extends State<NoteFormPage> {
         _tempNoteId = noteId;
       }
 
-      // 复制图片到应用目录: images/notes/{noteId}/{fileName}
-      final targetDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
-      await ImagePathHelper.instance.ensureDirExists(targetDir);
-
       final newPaths = <String>[];
-      for (final file in files) {
-        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
-        final targetPath = p.join(targetDir, fileName);
-        await file.copy(targetPath);
-        newPaths.add(targetPath);
+      if (UserPrefs().cloudNoteMode) {
+        // 云模式：选图后立即上传 OSS，只保留网络 URL
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final url = await CloudImageUpload.persist(
+            logicalPath: 'notes/$noteId/$fileName',
+            localAbsPath: file.path,
+            cloudMode: true,
+          );
+          newPaths.add(url);
+        }
+      } else {
+        // 复制图片到应用目录: images/notes/{noteId}/{fileName}
+        final targetDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
+        await ImagePathHelper.instance.ensureDirExists(targetDir);
+
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final targetPath = p.join(targetDir, fileName);
+          await file.copy(targetPath);
+          newPaths.add(targetPath);
+        }
       }
 
       if (newPaths.isNotEmpty && mounted) {

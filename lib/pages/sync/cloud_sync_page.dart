@@ -1,11 +1,64 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
+import 'cloud_account_page.dart';
 import 'webdav_sync_page.dart';
 
 /// 云备份主页面 - 选择备份方式
 class CloudSyncPage extends StatelessWidget {
   const CloudSyncPage({super.key});
+
+  /// 服务器云同步入口：首次进入弹数据上传说明（确认后不再提示）
+  Future<void> _openCloudSync(BuildContext context) async {
+    final prefs = UserPrefs();
+    if (!prefs.cloudSyncConsented) {
+      final agreed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Theme.of(ctx).colorScheme.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(children: [
+            Icon(Icons.cloud_sync_outlined,
+                size: 22, color: Theme.of(ctx).colorScheme.primary),
+            const SizedBox(width: 8),
+            Text('服务器云同步说明'.tr,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          ]),
+          content: Text(
+            '开启服务器云同步需注册账号，您的影视、阅读、游戏、笔记等全部数据将上传至云端服务器存储，用于多设备间数据同步，并支持未来微信小程序、Windows、macOS、iOS 端在线使用。确认开启即表示您已知晓并同意。'.tr,
+            style: TextStyle(
+                fontSize: 14,
+                height: 1.7,
+                color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.75)),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('取消'.tr,
+                  style: TextStyle(
+                      color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.6))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: Text('同意并继续'.tr),
+            ),
+          ],
+        ),
+      );
+      if (agreed != true) return;
+      await prefs.setCloudSyncConsented(true);
+    }
+
+    if (!context.mounted) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudAccountPage()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +87,8 @@ class CloudSyncPage extends StatelessWidget {
             colors: colors,
             icon: Icons.cloud_sync_outlined,
             title: '服务器云同步'.tr,
-            subtitle: '自建云同步服务器，多端同步更改'.tr,
-            onTap: () {},
-            enabled: false,
+            subtitle: '数据上云，同步更简单，操作更方便'.tr,
+            onTap: () => _openCloudSync(context),
           ),
           const SizedBox(height: 20),
           _buildInfo(colors),

@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
+import '../../utils/user_prefs.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/image_path_helper.dart';
@@ -344,16 +346,30 @@ class _NoteAddPageState extends State<NoteAddPage> {
       final files = await pickLocalImages(context);
       if (!mounted || files.isEmpty) return;
 
-      final targetDir = await ImagePathHelper.instance.getNoteImagesDir(_tempId);
-      await ImagePathHelper.instance.ensureDirExists(targetDir);
-
       final newPaths = <String>[];
-      for (final file in files) {
-        final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
-        final targetPath = p.join(targetDir, fileName);
-        await file.copy(targetPath);
-        newPaths.add(targetPath);
+      if (UserPrefs().cloudNoteMode) {
+        // 云模式：选图后立即上传 OSS，只保留网络 URL
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final url = await CloudImageUpload.persist(
+            logicalPath: 'notes/$_tempId/$fileName',
+            localAbsPath: file.path,
+            cloudMode: true,
+          );
+          newPaths.add(url);
+        }
+      } else {
+        final targetDir = await ImagePathHelper.instance.getNoteImagesDir(_tempId);
+        await ImagePathHelper.instance.ensureDirExists(targetDir);
+
+        for (final file in files) {
+          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final targetPath = p.join(targetDir, fileName);
+          await file.copy(targetPath);
+          newPaths.add(targetPath);
+        }
       }
       if (newPaths.isNotEmpty && mounted) {
         setState(() => _images.addAll(newPaths));
@@ -412,9 +428,11 @@ class _NoteAddPageState extends State<NoteAddPage> {
     }
     try {
       final noteId = const Uuid().v4();
-      // 移动图片从临时目录到正式目录
+      // 移动图片从临时目录到正式目录（云模式已是 OSS URL，直接沿用）
       List<String> finalImages = [];
-      if (_images.isNotEmpty) {
+      if (_images.isNotEmpty && UserPrefs().cloudNoteMode) {
+        finalImages = List<String>.from(_images);
+      } else if (_images.isNotEmpty) {
         final newDir = await ImagePathHelper.instance.getNoteImagesDir(noteId);
         for (final imgPath in _images) {
           final normalized = imgPath.replaceAll('\\', '/');

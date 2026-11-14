@@ -8,8 +8,10 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
+import '../../services/cloud/cloud_image_upload.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/genre_selector_page.dart';
 import '../../widgets/app_overlay.dart';
@@ -257,12 +259,29 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
     return const Uuid().v4();
   }
 
+  /// 当前角色所属媒体域是否处于云模式
+  bool get _cloudOn => switch (widget.entityType) {
+        'book' => UserPrefs().cloudBookMode,
+        'game' => UserPrefs().cloudGameMode,
+        _ => UserPrefs().cloudMovieMode,
+      };
+
   Future<void> _pickImage() async {
     try {
       final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 600, maxHeight: 600, imageQuality: 85);
       if (picked == null) return;
       final fileName = 'char_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final charId = await _characterId();
+      // 云模式：按所属媒体域开关决定是否传 OSS
+      if (_cloudOn) {
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'characters/$charId/$fileName',
+          localAbsPath: picked.path,
+          cloudMode: true,
+        );
+        if (mounted) setState(() => _imagePath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getCharacterImagePath(charId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(picked.path).copy(targetPath);
@@ -337,6 +356,18 @@ class _CharacterFormPageState extends State<CharacterFormPage> {
 
       final fileName = 'char_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final charId = await _characterId();
+      if (_cloudOn) {
+        final tmpFile = File('${Directory.systemTemp.path}/$fileName');
+        await tmpFile.writeAsBytes(response.bodyBytes);
+        final url = await CloudImageUpload.persist(
+          logicalPath: 'characters/$charId/$fileName',
+          localAbsPath: tmpFile.path,
+          cloudMode: true,
+        );
+        if (!mounted) return;
+        setState(() => _imagePath = url);
+        return;
+      }
       final targetPath = await ImagePathHelper.instance.getCharacterImagePath(charId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);

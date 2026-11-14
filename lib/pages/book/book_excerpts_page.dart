@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/toast_util.dart';
@@ -735,7 +736,8 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
     final entities = [
       for (int i = 0; i < excerpts.length; i++)
         BookExcerpt(
-          id: '${widget.book.id}_${now.millisecondsSinceEpoch}_$i',
+          // 必须用标准 UUID：云端 mn_book_excerpts.id 为 VARCHAR(64)，拼接式 ID 曾超长写入失败
+          id: const Uuid().v4(),
           bookId: widget.book.id,
           chapter: excerpts[i].chapter,
           content: excerpts[i].content,

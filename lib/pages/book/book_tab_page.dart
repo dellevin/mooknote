@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/responsive.dart';
+import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/book_status_bar.dart';
 import '../../widgets/book_category_bar.dart';
@@ -236,6 +237,7 @@ class _BookTabViewState extends State<_BookTabView>
   final List<Book> _items = [];
   bool _hasMore = true;
   bool _isLoading = false;
+  bool _loadError = false; // 首屏请求失败（云模式网络/鉴权异常），展示错误+重试
   int _offset = 0;
   bool _initialized = false;
   late ScrollController _scrollController;
@@ -348,7 +350,7 @@ class _BookTabViewState extends State<_BookTabView>
     final sortMode = UserPrefs().effectiveBookSortMode;
     if (!mounted) return; // _refresh 的 await 之后可能已被 dispose
     _initialized = true;
-    setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
+    setState(() { _isLoading = true; _loadError = false; _offset = 0; _hasMore = true; });
     try {
       final list = await provider.loadBooksPaged(status: _status, category: _category, offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
@@ -358,12 +360,13 @@ class _BookTabViewState extends State<_BookTabView>
         _offset = list.length;
         _hasMore = list.length >= AppProvider.firstPageSize;
         _isLoading = false;
+        _loadError = false;
       });
       _scheduleChainLoad();
     } catch (e) {
       debugPrint('[BookTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _isLoading = false; _hasMore = false; });
+      setState(() { _isLoading = false; _hasMore = false; _loadError = true; });
     }
   }
 
@@ -386,6 +389,10 @@ class _BookTabViewState extends State<_BookTabView>
     } catch (e) {
       debugPrint('[BookTab] 分页加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
+      // 保留 _hasMore，滚动可再次触发；云模式下给出可见提示
+      if (context.read<AppProvider>().isCloudBookMode) {
+        ToastUtil.show(context, '加载失败，请检查网络'.tr);
+      }
       setState(() => _isLoading = false);
     }
   }
@@ -413,6 +420,17 @@ class _BookTabViewState extends State<_BookTabView>
 
     final content = () {
       if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
+      if (_items.isEmpty && _loadError) {
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          color: colors.primary,
+          backgroundColor: colors.surface,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [_buildErrorState()],
+          ),
+        );
+      }
       if (_items.isEmpty) {
         return RefreshIndicator(
           onRefresh: _refresh,
@@ -684,6 +702,26 @@ class _BookTabViewState extends State<_BookTabView>
     if (layoutStyle == 1) return const MovieSkeletonGrid();
     if (layoutStyle == 3) return _buildCoverCardSkeleton();
     return const BookSkeletonGrid();
+  }
+
+  Widget _buildErrorState() {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 120),
+      child: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          const SizedBox(height: 16),
+          Text('加载失败，请检查网络'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: _loadFirst,
+            child: Text('重试'.tr),
+          ),
+        ]),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {

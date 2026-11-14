@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_grid_editor.dart';
@@ -27,11 +28,22 @@ class MovieReviewDetailPage extends StatefulWidget {
 
 class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
   late MovieReview _review;
+  // 云模式内存分片不含该影视时，按 id 兜底拉取
+  Movie? _cloudMovie;
 
   @override
   void initState() {
     super.initState();
     _review = widget.review;
+    if (UserPrefs().cloudMovieMode && _getMovie() == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadCloudMovie());
+    }
+  }
+
+  Future<void> _loadCloudMovie() async {
+    final movie = await context.read<AppProvider>().cloudMovieById(widget.movieId);
+    if (!mounted || movie == null) return;
+    setState(() => _cloudMovie = movie);
   }
 
   Future<void> _refreshReviewData() async {
@@ -98,7 +110,7 @@ class _MovieReviewDetailPageState extends State<MovieReviewDetailPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final movie = _getMovie();
+    final movie = _getMovie() ?? _cloudMovie;
 
     return Scaffold(
       backgroundColor: colors.surfaceContainerHigh,

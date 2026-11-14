@@ -21,6 +21,10 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   final Map<String, List<String>> _playlistItemIds = {};
   int _layoutStyle = UserPrefs().playlistLayoutStyle;
   final Map<String, double> _slideOffsets = {};
+  // 云模式内存只有首页分片，封面解析需要全量作品列表兜底
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
   double _dragStartX = 0;
   double _dragStartOffset = 0;
   bool _isHorizontalDrag = false;
@@ -31,6 +35,22 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
   void initState() {
     super.initState();
     _loadAllItemIds();
+    _loadCloudWorks();
+  }
+
+  Future<void> _loadCloudWorks() async {
+    final provider = context.read<AppProvider>();
+    final prefs = UserPrefs();
+    if (prefs.cloudMovieMode) {
+      _cloudMovies = await provider.cloudAllMovies();
+    }
+    if (prefs.cloudBookMode) {
+      _cloudBooks = await provider.cloudAllBooks();
+    }
+    if (prefs.cloudGameMode) {
+      _cloudGames = await provider.cloudAllGames();
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadAllItemIds() async {
@@ -46,31 +66,35 @@ class _PlaylistListPageState extends State<PlaylistListPage> {
 
   List<String?> _getCoverPaths(Playlist playlist, AppProvider provider,
       {int limit = 4}) {
+    final prefs = UserPrefs();
+    final movies = prefs.cloudMovieMode ? _cloudMovies : provider.movies;
+    final books = prefs.cloudBookMode ? _cloudBooks : provider.books;
+    final games = prefs.cloudGameMode ? _cloudGames : provider.games;
     final ids = _playlistItemIds[playlist.id] ?? [];
     final covers = <String?>[];
     for (final id in ids.take(limit)) {
       if (playlist.type == 'movie') {
-        final movie = provider.movies.where((m) => m.id == id).firstOrNull;
+        final movie = movies.where((m) => m.id == id).firstOrNull;
         covers.add(movie?.posterPath);
       } else if (playlist.type == 'book') {
-        final book = provider.books.where((b) => b.id == id).firstOrNull;
+        final book = books.where((b) => b.id == id).firstOrNull;
         covers.add(book?.coverPath);
       } else if (playlist.type == 'game') {
-        final game = provider.games.where((g) => g.id == id).firstOrNull;
+        final game = games.where((g) => g.id == id).firstOrNull;
         covers.add(game?.coverPath);
       } else {
         // 所有类型：依次在影视/书籍/游戏中查找
-        final movie = provider.movies.where((m) => m.id == id).firstOrNull;
+        final movie = movies.where((m) => m.id == id).firstOrNull;
         if (movie != null) {
           covers.add(movie.posterPath);
           continue;
         }
-        final book = provider.books.where((b) => b.id == id).firstOrNull;
+        final book = books.where((b) => b.id == id).firstOrNull;
         if (book != null) {
           covers.add(book.coverPath);
           continue;
         }
-        final game = provider.games.where((g) => g.id == id).firstOrNull;
+        final game = games.where((g) => g.id == id).firstOrNull;
         covers.add(game?.coverPath);
       }
     }

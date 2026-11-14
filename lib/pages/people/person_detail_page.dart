@@ -4,6 +4,7 @@ import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/work_selector_page.dart';
 import '../movies/movie_detail_page.dart';
@@ -27,6 +28,10 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
   List<MoviePerson> _moviePeople = [];
   List<BookPerson> _bookPeople = [];
   List<GamePerson> _gamePeople = [];
+  // 云模式下内存只有首页分片，人物参与的作品主行单独全量拉取
+  List<Movie> _cloudMovies = const [];
+  List<Book> _cloudBooks = const [];
+  List<Game> _cloudGames = const [];
   bool _loading = true;
   bool _summaryExpanded = false;
 
@@ -42,12 +47,24 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
     final movies = provider.getPersonMovies(personId);
     final books = provider.getPersonBooks(personId);
     final games = provider.getPersonGames(personId);
-    final results = await Future.wait([movies, books, games]);
+    final cloudMovies = UserPrefs().cloudMovieMode
+        ? provider.cloudPersonMovies(personId)
+        : Future.value(<Movie>[]);
+    final cloudBooks = UserPrefs().cloudBookMode
+        ? provider.cloudPersonBooks(personId)
+        : Future.value(<Book>[]);
+    final cloudGames = UserPrefs().cloudGameMode
+        ? provider.cloudPersonGames(personId)
+        : Future.value(<Game>[]);
+    final results = await Future.wait([movies, books, games, cloudMovies, cloudBooks, cloudGames]);
     if (!mounted) return;
     setState(() {
       _moviePeople = results[0] as List<MoviePerson>;
       _bookPeople = results[1] as List<BookPerson>;
       _gamePeople = results[2] as List<GamePerson>;
+      _cloudMovies = results[3] as List<Movie>;
+      _cloudBooks = results[4] as List<Book>;
+      _cloudGames = results[5] as List<Game>;
       _loading = false;
     });
   }
@@ -303,7 +320,11 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
       gameGroups.putIfAbsent(gp.gameId, () => []).add(gp);
     }
 
-    final totalWorks = movieGroups.length + bookGroups.length + gameGroups.length;
+    final bookVisible = bookGroups.isNotEmpty;
+    final gameVisible = gameGroups.isNotEmpty;
+    final totalWorks = movieGroups.length +
+        (bookVisible ? bookGroups.length : 0) +
+        (gameVisible ? gameGroups.length : 0);
 
     if (totalWorks == 0) {
       return Padding(
@@ -324,7 +345,8 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
           Text('影视 ({n})'.trf({'n': movieGroups.length}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
           ...movieGroups.entries.map((entry) {
-            final movie = provider.movies.where((m) => m.id == entry.key).firstOrNull;
+            final movieSource = UserPrefs().cloudMovieMode ? _cloudMovies : provider.movies;
+            final movie = movieSource.where((m) => m.id == entry.key).firstOrNull;
             if (movie == null) return const SizedBox.shrink();
             // 按 (roleType, characterName) 去重
             final seen = <String>{};
@@ -352,11 +374,12 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
           const SizedBox(height: 16),
         ],
         // 书籍作品
-        if (bookGroups.isNotEmpty) ...[
+        if (bookVisible) ...[
           Text('书籍 ({n})'.trf({'n': bookGroups.length}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
           ...bookGroups.entries.map((entry) {
-            final book = provider.books.where((b) => b.id == entry.key).firstOrNull;
+            final bookSource = UserPrefs().cloudBookMode ? _cloudBooks : provider.books;
+            final book = bookSource.where((b) => b.id == entry.key).firstOrNull;
             if (book == null) return const SizedBox.shrink();
             final seen = <String>{};
             final roles = <String>[];
@@ -377,11 +400,12 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
           const SizedBox(height: 16),
         ],
         // 游戏作品
-        if (gameGroups.isNotEmpty) ...[
+        if (gameVisible) ...[
           Text('游戏 ({n})'.trf({'n': gameGroups.length}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
           ...gameGroups.entries.map((entry) {
-            final game = provider.games.where((g) => g.id == entry.key).firstOrNull;
+            final gameSource = UserPrefs().cloudGameMode ? _cloudGames : provider.games;
+            final game = gameSource.where((g) => g.id == entry.key).firstOrNull;
             if (game == null) return const SizedBox.shrink();
             final seen = <String>{};
             final roles = <String>[];

@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../l10n/app_strings.dart';
+import '../../models/data_models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
@@ -54,7 +55,12 @@ class _ReviewItem {
 
 class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
   bool _isLoading = true;
+  bool _loadError = false;
   List<_ReviewItem> _items = [];
+  // 云模式下影评关联的影视全量列表（标题映射 + 点击跳转用，内存首页分片不完整）
+  List<Movie> _cloudMovies = const [];
+  // 云模式下书评/书摘关联的书籍全量列表（同上）
+  List<Book> _cloudBooks = const [];
   late int _layoutStyle; // 0 瀑布流，1 列表
 
   bool _isSearching = false;
@@ -107,26 +113,49 @@ class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
   }
 
   Future<void> _loadItems() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = false;
+    });
     final provider = context.read<AppProvider>();
-    final List<_ReviewItem> items;
-    switch (widget.kind) {
-      case ReviewBrowseKind.movieReview:
-        final movieTitle = {for (final m in provider.movies) m.id: m.title};
-        items = (await provider.getAllMovieReviews())
-            .map((r) => _ReviewItem(
-                  workId: r.movieId,
-                  workTitle: movieTitle[r.movieId] ?? '',
-                  content: r.content,
-                  date: r.reviewDate ?? r.createdAt,
-                  images: r.images,
-                  reviewType: r.reviewType,
-                  reviewer: r.reviewer,
-                  source: r.source,
-                ))
-            .toList();
+    try {
+      final List<_ReviewItem> items;
+      switch (widget.kind) {
+        case ReviewBrowseKind.movieReview:
+          final List<Movie> movies;
+          final List<MovieReview> reviews;
+          if (provider.isCloudMovieMode) {
+            // 云模式：影评与影视均走服务端全量接口，不读本地库与内存分片
+            movies = await provider.cloudAllMovies();
+            reviews = await provider.cloudAllMovieReviews();
+            _cloudMovies = movies;
+          } else {
+            movies = provider.movies;
+            reviews = await provider.getAllMovieReviews();
+          }
+          final movieTitle = {for (final m in movies) m.id: m.title};
+          items = reviews
+              .map((r) => _ReviewItem(
+                    workId: r.movieId,
+                    workTitle: movieTitle[r.movieId] ?? '',
+                    content: r.content,
+                    date: r.reviewDate ?? r.createdAt,
+                    images: r.images,
+                    reviewType: r.reviewType,
+                    reviewer: r.reviewer,
+                    source: r.source,
+                  ))
+              .toList();
       case ReviewBrowseKind.bookReview:
-        final bookTitle = {for (final b in provider.books) b.id: b.title};
+        final List<Book> books;
+        if (provider.isCloudBookMode) {
+          // 云模式：书评与书籍均走服务端全量接口，不读内存首页分片
+          books = await provider.cloudAllBooks();
+          _cloudBooks = books;
+        } else {
+          books = provider.books;
+        }
+        final bookTitle = {for (final b in books) b.id: b.title};
         items = (await provider.getAllBookReviews())
             .map((r) => _ReviewItem(
                   workId: r.bookId,
@@ -139,24 +168,38 @@ class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
                   source: r.source,
                 ))
             .toList();
-      case ReviewBrowseKind.bookExcerpt:
-        final bookTitle = {for (final b in provider.books) b.id: b.title};
-        items = (await provider.getAllBookExcerpts())
-            .map((e) => _ReviewItem(
-                  workId: e.bookId,
-                  workTitle: bookTitle[e.bookId] ?? '',
-                  content: e.content,
-                  date: e.createdAt,
-                  chapter: e.chapter,
-                  comment: e.comment,
-                ))
-            .toList();
+        case ReviewBrowseKind.bookExcerpt:
+          final List<Book> books;
+          if (provider.isCloudBookMode) {
+            books = await provider.cloudAllBooks();
+            _cloudBooks = books;
+          } else {
+            books = provider.books;
+          }
+          final bookTitle = {for (final b in books) b.id: b.title};
+          items = (await provider.getAllBookExcerpts())
+              .map((e) => _ReviewItem(
+                    workId: e.bookId,
+                    workTitle: bookTitle[e.bookId] ?? '',
+                    content: e.content,
+                    date: e.createdAt,
+                    chapter: e.chapter,
+                    comment: e.comment,
+                  ))
+              .toList();
+      }
+      if (!mounted) return;
+      setState(() {
+        _items = items;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = true;
+      });
     }
-    if (!mounted) return;
-    setState(() {
-      _items = items;
-      _isLoading = false;
-    });
   }
 
   Future<void> _showLayoutSheet() async {
@@ -276,14 +319,16 @@ class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
   void _openWork(_ReviewItem item) {
     final provider = context.read<AppProvider>();
     if (widget.kind == ReviewBrowseKind.movieReview) {
-      final movie = provider.movies.where((m) => m.id == item.workId).firstOrNull;
+      final source = provider.isCloudMovieMode ? _cloudMovies : provider.movies;
+      final movie = source.where((m) => m.id == item.workId).firstOrNull;
       if (movie == null) {
         ToastUtil.show(context, '关联作品已删除'.tr);
         return;
       }
       Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailPage(movie: movie)));
     } else {
-      final book = provider.books.where((b) => b.id == item.workId).firstOrNull;
+      final source = provider.isCloudBookMode ? _cloudBooks : provider.books;
+      final book = source.where((b) => b.id == item.workId).firstOrNull;
       if (book == null) {
         ToastUtil.show(context, '关联作品已删除'.tr);
         return;
@@ -377,14 +422,46 @@ class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-          : filtered.isEmpty
-              ? _buildEmptyState(colors)
-              : _layoutStyle == 0
-                  ? _buildMasonry(colors, filtered)
-                  : _buildList(colors, filtered),
+      body: _buildBody(colors, filtered),
     );
+  }
+
+  Widget _buildBody(ColorScheme colors, List<_ReviewItem> filtered) {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
+    }
+    if (_loadError) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded,
+                size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+            const SizedBox(height: 16),
+            Text(
+              '加载失败，请检查网络'.tr,
+              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: _loadItems, child: Text('重试'.tr)),
+          ],
+        ),
+      );
+    }
+    final emptyState = filtered.isEmpty ? _buildEmptyState(colors) : null;
+    final content = emptyState ??
+        (_layoutStyle == 0 ? _buildMasonry(colors, filtered) : _buildList(colors, filtered));
+    if (UserPrefs().cloudMovieMode && widget.kind == ReviewBrowseKind.movieReview) {
+      // 空态本身不可滚动，包一层可滚动 ListView 才能下拉刷新
+      final refreshChild = emptyState != null
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [SizedBox(height: 400, child: emptyState)],
+            )
+          : content;
+      return RefreshIndicator(onRefresh: _loadItems, child: refreshChild);
+    }
+    return content;
   }
 
   Widget _buildEmptyState(ColorScheme colors) {

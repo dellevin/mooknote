@@ -17,6 +17,7 @@ import '../../widgets/top_fade_scrim.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../utils/responsive.dart';
 import '../../utils/status_labels.dart';
+import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'game_detail_page.dart';
@@ -217,6 +218,7 @@ class _GameTabViewState extends State<_GameTabView>
   final List<Game> _items = [];
   bool _hasMore = true;
   bool _isLoading = false;
+  bool _loadError = false; // 首屏请求失败（云模式网络/鉴权异常），展示错误+重试
   int _offset = 0;
   bool _initialized = false;
   late ScrollController _scrollController;
@@ -327,7 +329,7 @@ class _GameTabViewState extends State<_GameTabView>
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveGameSortMode;
     _initialized = true;
-    setState(() { _isLoading = true; _offset = 0; _hasMore = true; });
+    setState(() { _isLoading = true; _loadError = false; _offset = 0; _hasMore = true; });
     try {
       final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
@@ -337,12 +339,13 @@ class _GameTabViewState extends State<_GameTabView>
         _offset = list.length;
         _hasMore = list.length >= AppProvider.firstPageSize;
         _isLoading = false;
+        _loadError = false;
       });
       _scheduleChainLoad();
     } catch (e) {
       debugPrint('[GameTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _isLoading = false; _hasMore = false; });
+      setState(() { _isLoading = false; _hasMore = false; _loadError = true; });
     }
   }
 
@@ -365,6 +368,10 @@ class _GameTabViewState extends State<_GameTabView>
     } catch (e) {
       debugPrint('[GameTab] 分页加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
+      // 保留 _hasMore，滚动可再次触发；云模式下给出可见提示
+      if (context.read<AppProvider>().isCloudGameMode) {
+        ToastUtil.show(context, '加载失败，请检查网络'.tr);
+      }
       setState(() => _isLoading = false);
     }
   }
@@ -393,6 +400,17 @@ class _GameTabViewState extends State<_GameTabView>
 
     final content = () {
       if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
+      if (_items.isEmpty && _loadError) {
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          color: colors.primary,
+          backgroundColor: colors.surface,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [_buildErrorState()],
+          ),
+        );
+      }
       if (_items.isEmpty) {
         return RefreshIndicator(
           onRefresh: _refresh,
@@ -684,6 +702,26 @@ class _GameTabViewState extends State<_GameTabView>
             ShimmerSkeleton(width: 70, height: 12),
           ])),
           SizedBox(width: 8), ShimmerSkeleton(width: 20, height: 20, borderRadius: 10),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 120),
+      child: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          const SizedBox(height: 16),
+          Text('加载失败，请检查网络'.tr,
+              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: _loadFirst,
+            child: Text('重试'.tr),
+          ),
         ]),
       ),
     );

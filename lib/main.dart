@@ -11,10 +11,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:media_kit/media_kit.dart';
 import 'pages/home/home_page.dart';
+import 'pages/sync/cloud_account_page.dart';
 import 'utils/theme/app_theme.dart';
 import 'utils/app_router.dart';
 import 'utils/user_prefs.dart';
 import 'services/changelog_service.dart';
+import 'services/cloud/cloud_auth_service.dart';
 import 'services/http_proxy_overrides.dart';
 import 'services/log_service.dart';
 import 'services/report_service.dart';
@@ -91,6 +93,44 @@ Future<void> _bootstrap(AppProvider appProvider) async {
   appProvider.initMainTabIndex();
 
   unawaited(_startAutoBackupAfterDbReady());
+  unawaited(_checkCloudTokenOnStartup());
+}
+
+/// 启动时校验并续期云端登录态：失效（长期未登录过期/被后台强制下线/停用）
+/// 则清除本地 token，弹强制确认对话框引导重新登录（本地数据不受影响）
+Future<void> _checkCloudTokenOnStartup() async {
+  if (!CloudAuthService.instance.isLoggedIn) return;
+  final stillValid = await CloudAuthService.instance.renewOnStartup();
+  if (stillValid) return;
+  // 等首屏渲染后再弹窗，避免与开屏/隐私弹窗争抢 overlay
+  await Future.delayed(const Duration(milliseconds: 800));
+  final ctx = appNavigatorKey.currentContext;
+  if (ctx == null || !ctx.mounted) return;
+  final reLogin = await showDialog<bool>(
+    context: ctx,
+    barrierDismissible: false,
+    builder: (dialogCtx) => AlertDialog(
+      icon: const Icon(Icons.cloud_off, size: 36),
+      title: Text('登录已失效'.tr),
+      content: Text('云同步登录已过期，请重新登录后再使用云同步功能，本地数据不受影响。'.tr),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogCtx, false),
+          child: Text('暂不'.tr),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogCtx, true),
+          child: Text('重新登录'.tr),
+        ),
+      ],
+    ),
+  );
+  if (reLogin == true && ctx.mounted) {
+    await Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (_) => const CloudAccountPage()),
+    );
+  }
 }
 
 /// 数据库就绪后启动自动备份（延迟执行，不阻塞开屏）

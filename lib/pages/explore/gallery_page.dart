@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/gallery/gallery_dao.dart';
 import '../../models/data_models.dart';
+import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
+import '../../widgets/cloud_unsupported_view.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'gallery_viewer_page.dart';
 import '../../l10n/app_strings.dart';
@@ -176,6 +178,10 @@ class _GalleryPageState extends State<GalleryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 图库扫本地库聚合全媒体图片，云模式影视图片均为网络 URL，结果会静默残缺
+    if (UserPrefs().cloudMovieMode || UserPrefs().cloudBookMode || UserPrefs().cloudGameMode || UserPrefs().cloudNoteMode) {
+      return const CloudUnsupportedView(title: '图库');
+    }
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
