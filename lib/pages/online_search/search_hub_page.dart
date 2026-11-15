@@ -6,6 +6,7 @@ import 'search_page.dart';
 import 'online_search_page.dart';
 import 'tmdb_search_page.dart';
 import 'bangumi_search_page.dart';
+import 'douban_search_page.dart';
 
 /// 统一搜索页 —— 本地 / 增强 / TMDB / Bangumi 切换
 class SearchHubPage extends StatefulWidget {
@@ -19,12 +20,21 @@ class _SearchHubPageState extends State<SearchHubPage> {
   late int _mode;
 
   bool get _enhancedOn => UserPrefs().enhancedSearchEnabled;
-  bool get _tmdbOn => UserPrefs().tmdbApiToken.isNotEmpty;
-  bool get _bgmOn => UserPrefs().bangumiAccessToken.isNotEmpty;
+  bool get _tmdbOn =>
+      UserPrefs().tmdbSearchEnabled && UserPrefs().tmdbApiToken.isNotEmpty;
+  bool get _bgmOn =>
+      UserPrefs().bangumiSearchEnabled &&
+      UserPrefs().bangumiAccessToken.isNotEmpty;
+  bool get _doubanOn => UserPrefs().doubanSearchEnabled;
 
-  /// 可用模式: 0=本地, 1=增强, 2=TMDB, 3=Bangumi
-  List<int> get _modes =>
-      [0, if (_enhancedOn) 1, if (_tmdbOn) 2, if (_bgmOn) 3];
+  /// 可用模式: 0=本地, 1=增强, 2=TMDB, 3=Bangumi, 4=豆瓣
+  List<int> get _modes => [
+        0,
+        if (_enhancedOn) 1,
+        if (_tmdbOn) 2,
+        if (_bgmOn) 3,
+        if (_doubanOn) 4,
+      ];
 
   @override
   void initState() {
@@ -49,6 +59,7 @@ class _SearchHubPageState extends State<SearchHubPage> {
       if (_enhancedOn) const OnlineSearchPageBody(),
       if (_tmdbOn) const TmdbSearchPageBody(),
       if (_bgmOn) const BangumiSearchPageBody(),
+      if (_doubanOn) const DoubanSearchPageBody(),
     ];
     return Scaffold(
       appBar: AppBar(
@@ -77,10 +88,13 @@ class _SearchHubPageState extends State<SearchHubPage> {
           return 'TMDB';
         case 3:
           return 'Bangumi';
+        case 4:
+          return '豆瓣'.tr;
         default:
           return '本地'.tr;
       }
     }
+
 
     return Container(
       margin: const EdgeInsets.only(right: 8),

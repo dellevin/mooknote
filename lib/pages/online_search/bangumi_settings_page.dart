@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../widgets/app_back_button.dart';
 import '../../services/bangumi_service.dart';
 import '../../services/http_proxy_overrides.dart';
@@ -20,6 +21,7 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
   final _proxyController = TextEditingController();
 
   bool _saved = false; // 是否已有保存的 Token
+  late bool _enabled; // 是否在搜索页显示该数据源
   bool _testing = false;
   // null=未验证, true=有效, false=无效/网络不通
   bool? _valid;
@@ -32,6 +34,12 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
     _tokenController.text = token;
     _proxyController.text = _userPrefs.bangumiProxy;
     _saved = token.isNotEmpty;
+    _enabled = _userPrefs.bangumiSearchEnabled;
+  }
+
+  Future<void> _toggle(bool value) async {
+    await _userPrefs.setBangumiSearchEnabled(value);
+    if (mounted) setState(() => _enabled = value);
   }
 
   @override
@@ -131,6 +139,8 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          _buildSwitchRow(colors),
+          const SizedBox(height: 16),
           _buildStatusBanner(colors),
           const SizedBox(height: 20),
           _buildSectionLabel(colors, 'Bangumi Access Token'.tr),
@@ -150,6 +160,61 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
           _buildEditorToggle(colors),
           const SizedBox(height: 32),
           _buildTips(colors),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwitchRow(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _enabled
+                  ? colors.primary.withValues(alpha: 0.1)
+                  : colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(7),
+              child: SvgPicture.asset('assets/svg/bangumi_search.svg'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Bangumi 搜索'.tr,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: colors.onSurface)),
+                const SizedBox(height: 1),
+                Text(_enabled ? '已开启'.tr : '未开启'.tr,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.4))),
+              ],
+            ),
+          ),
+          Switch(
+            value: _enabled,
+            onChanged: _toggle,
+            activeThumbColor: colors.primary,
+            activeTrackColor: colors.primary.withValues(alpha: 0.3),
+            inactiveThumbColor: colors.surface,
+            inactiveTrackColor: colors.outline,
+          ),
         ],
       ),
     );

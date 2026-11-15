@@ -38,6 +38,7 @@ import 'fade_in_local_image.dart';
 import 'shimmer_skeleton.dart';
 import '../widgets/app_overlay.dart';
 import '../l10n/app_strings.dart';
+import 'icp_beian_text.dart';
 
 /// assets/svg 实心图标，按给定颜色着色（与底部 dock 同一套资源）
 Widget _assetSvgIcon(String asset, double size, Color color) => SvgPicture.asset(
@@ -222,6 +223,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 ],
               ),
             ),
+            const IcpBeianText(),
             const SizedBox(height: 16),
           ],
         ),

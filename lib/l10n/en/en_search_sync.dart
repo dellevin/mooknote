@@ -559,4 +559,46 @@ const Map<String, String> enSearchSync = {
       'The previous upload was interrupted, so cloud data may be incomplete. Re-uploading the full library is recommended.',
   '重新上传': 'Re-upload',
   '稍后处理': 'Later',
+
+  // ── 豆瓣搜索 douban ──
+  '豆瓣搜索': 'Douban Search',
+  '登录豆瓣后搜索影视和书籍，支持翻页':
+      'Log in to Douban to search movies and books with pagination',
+  '豆瓣登录': 'Douban Login',
+  '我已登录': "I've logged in",
+  '豆瓣登录成功': 'Logged in to Douban',
+  '登录态有效': 'Login session is valid',
+  '登录已失效，请重新登录': 'Session expired, please log in again',
+  '保存代理': 'Save proxy',
+  '豆瓣已登录，支持书籍/影视分类翻页搜索':
+      'Logged in to Douban. Paginated book/movie category search is available',
+  '未登录仅能使用综合搜索（首屏结果），登录后可分类翻页':
+      'Without login only mixed search (first page) is available. Log in for category search with pagination',
+  '登录豆瓣': 'Log in to Douban',
+  '重新登录豆瓣': 'Re-login to Douban',
+  '测试登录态': 'Test session',
+  '清除豆瓣登录信息': 'Clear Douban login',
+  '点击「登录豆瓣」在打开的页面中手动登录，登录成功后会自动返回':
+      'Tap "Log in to Douban" and sign in manually on the opened page. It returns automatically on success',
+  '未登录可使用综合搜索；登录后支持书籍、影视分类搜索和深度翻页':
+      'Mixed search works without login. Login enables book/movie category search with deep pagination',
+  '登录凭证仅保存在本机，用于搜索公开条目信息':
+      'Credentials are stored only on this device and used solely for searching public entries',
+  '请避免高频搜索，登录态接口调用过于频繁可能触发豆瓣账号风控':
+      'Avoid high-frequency searches — excessive authenticated requests may trigger Douban account risk control',
+  '代理仅对豆瓣搜索接口生效，封面图片仍走直连（不支持 SOCKS5）':
+      'The proxy applies only to Douban search API calls; cover images are fetched directly (SOCKS5 unsupported)',
+  '综合': 'Mixed',
+  '分类翻页搜索需要先登录豆瓣': 'Category search with pagination requires Douban login',
+  '去登录': 'Go to login',
+  '豆瓣详情': 'Douban Detail',
+  '详情加载失败，请稍后重试': 'Failed to load details, please try again later',
+  '添加失败，请稍后重试': 'Failed to add, please try again later',
+  '制片国家/地区': 'Country/Region',
+  '片长': 'Runtime',
+  '集数': 'Episodes',
+  '又名': 'Aka',
+  '出版年': 'Published',
+  '页数': 'Pages',
+  '定价': 'Price',
 };

@@ -29,6 +29,7 @@ import 'settings_page.dart';
 import 'feedback_page.dart';
 import '../quick_add/quick_add_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/icp_beian_text.dart';
 
 /// 个人中心页面
 class ProfilePage extends StatefulWidget {
@@ -153,6 +154,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware {
                         _buildTagsSection(movies, books, notes),
                         const SizedBox(height: 20),
                         _buildToolsGrid(context),
+                        const SizedBox(height: 20),
+                        const IcpBeianText(),
                         const SizedBox(height: 120),
                       ],
                     ),

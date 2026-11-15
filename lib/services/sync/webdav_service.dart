@@ -76,6 +76,10 @@ class WebDAVService {
   static const Duration _httpTimeout = Duration(seconds: 120);
   static const Duration _shortTimeout = Duration(seconds: 60);
 
+  /// 远程大小校验时允许整文件 GET 回读的最大字节数（delta/manifest 等小 JSON 兜底用，
+  /// 大备份不走此路径，避免双倍流量）
+  static const int _fullReadbackMaxBytes = 1 * 1024 * 1024;
+
   /// 流式上传整次请求的总时限：按文件大小以 64KB/s 的慢速宽带下限估算，
   /// 再加 60s 固定余量，避免大备份在慢宽带上被固定 120s 强行中断。
   /// 真正的卡死防护由请求体每分块的空闲超时（[_httpTimeout]）承担。
@@ -938,7 +942,14 @@ class WebDAVService {
         break;
       }
       final len = int.tryParse(resp.headers['content-length'] ?? '');
-      if (len != null && len > 0) return len == expected;
+      if (len != null && len > 0) {
+        if (len != expected) {
+          debugPrint('[WebDAV] HEAD 大小不一致: 远程 $len / 本地 $expected: $url');
+        }
+        return len == expected;
+      }
+      debugPrint('[WebDAV] HEAD 第 ${i + 1} 次未取到有效 content-length '
+          '(原始值: ${resp.headers['content-length']})，期望 $expected: $url');
       await Future.delayed(const Duration(milliseconds: 1500)); // 等待异步落盘
     }
 
@@ -952,16 +963,32 @@ class WebDAVService {
       await ranged.stream.drain().timeout(_shortTimeout);
       if (ranged.statusCode == 206) {
         // Content-Range: bytes 0-0/12345
-        final total = int.tryParse(ranged.headers['content-range']?.split('/').last ?? '');
-        if (total != null) return total == expected;
+        final rawRange = ranged.headers['content-range'];
+        final total = int.tryParse(rawRange?.split('/').last ?? '');
+        if (total != null) {
+          if (total != expected) {
+            debugPrint('[WebDAV] Range 大小不一致: 远程 $total / 本地 $expected: $url');
+          }
+          return total == expected;
+        }
+        debugPrint('[WebDAV] 206 响应 Content-Range 无法解析 (原始值: $rawRange): $url');
       } else if (ranged.statusCode == 200) {
-        final len = int.tryParse(ranged.headers['content-length'] ?? '');
-        if (len != null) return len == expected;
+        final rawLen = ranged.headers['content-length'];
+        final len = int.tryParse(rawLen ?? '');
+        if (len != null) {
+          if (len != expected) {
+            debugPrint('[WebDAV] Range GET 大小不一致: 远程 $len / 本地 $expected: $url');
+          }
+          return len == expected;
+        }
+        debugPrint('[WebDAV] Range GET 200 但 content-length 无法解析 (原始值: $rawLen): $url');
       } else if (!headSupported) {
         // HEAD 与 Range 都被代理拦截/改写，无法独立校验大小。
         // PUT 已返回成功码，退化为信任该结果（仅警告），避免反代环境误判整轮失败。
         debugPrint('[WebDAV] 无法校验远程大小（GET ${ranged.statusCode}），信任 PUT 成功结果: $url');
         return true;
+      } else {
+        debugPrint('[WebDAV] Range GET 返回 ${ranged.statusCode}，HEAD 可用但长度始终无效: $url');
       }
     } catch (e) {
       debugPrint('[WebDAV] Range 二次校验失败: $e');
@@ -970,6 +997,34 @@ class WebDAVService {
         return true;
       }
     }
+
+    // HEAD/Range 都无法给出可信大小（常见于反代剥离/改写长度头）。
+    // 小文件（delta/manifest 等 JSON）整文件 GET 回读比对实际字节数；
+    // 大备份不回读，避免双倍流量。
+    if (expected <= _fullReadbackMaxBytes) {
+      try {
+        final full = await _sendAuthed(
+          client, 'GET', url, username, password,
+          timeout: _shortTimeout,
+        );
+        final bytes = await full.stream.toBytes().timeout(_shortTimeout);
+        if (full.statusCode == 200) {
+          if (bytes.length == expected) {
+            debugPrint('[WebDAV] 整文件回读校验通过 ($expected 字节): $url');
+            return true;
+          }
+          debugPrint('[WebDAV] 整文件回读大小不一致: 远程 ${bytes.length} / 本地 $expected: $url');
+          return false;
+        }
+        debugPrint('[WebDAV] 整文件回读 GET 返回 ${full.statusCode}: $url');
+      } catch (e) {
+        debugPrint('[WebDAV] 整文件回读失败: $e');
+      }
+    } else {
+      debugPrint('[WebDAV] 文件超过 ${_fullReadbackMaxBytes ~/ 1024}KB，跳过整文件回读: $url');
+    }
+
+    debugPrint('[WebDAV] 远程大小校验最终失败，期望 $expected: $url');
     return false;
   }
 

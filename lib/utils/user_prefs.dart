@@ -578,6 +578,11 @@ class UserPrefs {
 
   // ========== TMDB 搜索 ==========
 
+  /// TMDB 搜索是否在搜索页显示（默认开，凭证缺失时仍自动隐藏）
+  bool get tmdbSearchEnabled => prefs.getBool('tmdbSearchEnabled') ?? true;
+  Future<bool> setTmdbSearchEnabled(bool value) =>
+      prefs.setBool('tmdbSearchEnabled', value);
+
   /// TMDB API Token（v4 Read Access Token 或 v3 API Key）
   String get tmdbApiToken => prefs.getString('tmdbApiToken') ?? '';
   Future<bool> setTmdbApiToken(String value) => prefs.setString('tmdbApiToken', value);
@@ -591,6 +596,11 @@ class UserPrefs {
   Future<bool> setTmdbProxy(String value) => prefs.setString('tmdbProxy', value);
 
   // ========== Bangumi 搜索 ==========
+
+  /// Bangumi 搜索是否在搜索页显示（默认开，凭证缺失时仍自动隐藏）
+  bool get bangumiSearchEnabled => prefs.getBool('bangumiSearchEnabled') ?? true;
+  Future<bool> setBangumiSearchEnabled(bool value) =>
+      prefs.setBool('bangumiSearchEnabled', value);
 
   /// Bangumi Access Token
   String get bangumiAccessToken => prefs.getString('bangumiAccessToken') ?? '';
@@ -634,10 +644,32 @@ class UserPrefs {
     await prefs.setString('bangumiPersonPhotos', jsonEncode(m));
   }
 
-  /// 搜索页模式: 0=本地, 1=增强, 2=TMDB, 3=Bangumi（从旧版 lastSearchOnline 迁移）
+  /// 搜索页模式: 0=本地, 1=增强, 2=TMDB, 3=Bangumi, 4=豆瓣（从旧版 lastSearchOnline 迁移）
   int get lastSearchMode =>
       prefs.getInt('lastSearchMode') ?? (lastSearchOnline ? 1 : 0);
   Future<bool> setLastSearchMode(int value) => prefs.setInt('lastSearchMode', value);
+
+  // ========== 豆瓣搜索 ==========
+
+  /// 豆瓣搜索是否在搜索页显示（默认开，综合搜索匿名可用）
+  bool get doubanSearchEnabled => prefs.getBool('doubanSearchEnabled') ?? true;
+  Future<bool> setDoubanSearchEnabled(bool value) =>
+      prefs.setBool('doubanSearchEnabled', value);
+
+  /// WebView 登录收割的豆瓣 cookie（JSON 字符串，至少含 dbcl2）；空=未登录
+  String get doubanCookies => prefs.getString('doubanCookies') ?? '';
+  Future<bool> setDoubanCookies(String value) => prefs.setString('doubanCookies', value);
+
+  bool get doubanLoggedIn => doubanCookies.isNotEmpty;
+
+  /// 豆瓣专用 HTTP 代理（host:port，空=不走代理）
+  String get doubanProxy => prefs.getString('doubanProxy') ?? '';
+  Future<bool> setDoubanProxy(String value) => prefs.setString('doubanProxy', value);
+
+  /// 豆瓣搜索分段：mix=综合（匿名，仅首屏）/ book=书籍 / movie=影视（后两者登录可翻页）
+  String get doubanSearchSegment => prefs.getString('doubanSearchSegment') ?? 'mix';
+  Future<bool> setDoubanSearchSegment(String value) =>
+      prefs.setString('doubanSearchSegment', value);
 
   // ========== 播放解锁 ==========
 

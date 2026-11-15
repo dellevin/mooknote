@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../widgets/app_back_button.dart';
 import '../../l10n/app_strings.dart';
 import 'enhanced_search_settings_page.dart';
 import 'tmdb_settings_page.dart';
 import 'bangumi_settings_page.dart';
+import 'douban_settings_page.dart';
 
-/// 在线搜索 API 设置入口：聚合增强搜索 / TMDB / Bangumi 三个数据源
+/// 在线搜索 API 设置入口：聚合增强搜索 / TMDB / Bangumi / 豆瓣四个数据源
 class OnlineSearchApiSettingsPage extends StatelessWidget {
   const OnlineSearchApiSettingsPage({super.key});
 
@@ -47,6 +49,7 @@ class OnlineSearchApiSettingsPage extends StatelessWidget {
                 _buildItem(
                   context,
                   icon: Icons.movie_filter_outlined,
+                  svgAsset: 'assets/svg/tmdb_search.svg',
                   title: 'TMDB 搜索'.tr,
                   subtitle: '使用 TMDB API 搜索电影和剧集'.tr,
                   page: const TmdbSettingsPage(),
@@ -55,9 +58,19 @@ class OnlineSearchApiSettingsPage extends StatelessWidget {
                 _buildItem(
                   context,
                   icon: Icons.explore_outlined,
+                  svgAsset: 'assets/svg/bangumi_search.svg',
                   title: 'Bangumi 搜索'.tr,
                   subtitle: '使用 Bangumi API 搜索动画、书籍和游戏'.tr,
                   page: const BangumiSettingsPage(),
+                ),
+                _divider(colors),
+                _buildItem(
+                  context,
+                  icon: Icons.menu_book_outlined,
+                  svgAsset: 'assets/svg/douban_search.svg',
+                  title: '豆瓣搜索'.tr,
+                  subtitle: '登录豆瓣后搜索影视和书籍，支持翻页'.tr,
+                  page: const DoubanSettingsPage(),
                 ),
               ],
             ),
@@ -77,6 +90,7 @@ class OnlineSearchApiSettingsPage extends StatelessWidget {
   Widget _buildItem(
     BuildContext context, {
     required IconData icon,
+    String? svgAsset,
     required String title,
     required String subtitle,
     required Widget page,
@@ -95,8 +109,14 @@ class OnlineSearchApiSettingsPage extends StatelessWidget {
               decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon,
-                  color: colors.onSurface.withValues(alpha: 0.6), size: 18),
+              child: svgAsset != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: SvgPicture.asset(svgAsset),
+                    )
+                  : Icon(icon,
+                      color: colors.onSurface.withValues(alpha: 0.6),
+                      size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
