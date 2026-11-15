@@ -633,14 +633,14 @@ class _MovieDetailPageState extends State<MovieDetailPage>
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                     color: colors.surfaceContainerHigh, shape: BoxShape.circle),
                 child: SvgPicture.asset(
                   'assets/svg/fan_hui.svg',
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
                 ),
               ),
@@ -1058,15 +1058,15 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: Container(
-                            width: 36,
-                            height: 36,
+                            width: 28,
+                            height: 28,
                             decoration: BoxDecoration(
                                 color: colors.surfaceContainerHigh,
                                 shape: BoxShape.circle),
                             child: SvgPicture.asset(
                                 'assets/svg/fan_hui.svg',
-                                width: 16,
-                                height: 16,
+                                width: 14,
+                                height: 14,
                                 colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn))),
                       ),
                       const Spacer(),
@@ -1231,12 +1231,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: Container(
-                            width: 36, height: 36,
+                            width: 28, height: 28,
                             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
                             child: SvgPicture.asset(
                               'assets/svg/fan_hui.svg',
-                              width: 16,
-                              height: 16,
+                              width: 14,
+                              height: 14,
                               colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                             )),
                       ),

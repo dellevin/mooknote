@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/theme/app_theme.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
@@ -18,7 +17,7 @@ import '../../widgets/app_overlay.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 
-/// 书籍详情页 - 在线版
+/// 书籍详情页 - 在线版（对接 my_sys /book/detail 网络小说爬虫接口）
 class BookDetailPage extends StatefulWidget {
   final String bookId;
   const BookDetailPage({super.key, required this.bookId});
@@ -29,11 +28,11 @@ class BookDetailPage extends StatefulWidget {
 
 class _BookDetailPageState extends State<BookDetailPage> {
   Map<String, dynamic>? _data;
+  List<Map<String, dynamic>> _chapters = [];
   bool _loading = true;
+  bool _catalogLoading = false;
   String? _error;
   Book? _localBook;
-  String? _catalog;
-  bool _catalogLoading = false;
   int _currentTab = 0;
 
   @override
@@ -42,26 +41,23 @@ class _BookDetailPageState extends State<BookDetailPage> {
     _load();
   }
 
-  String _resolveCoverUrl(String cover) {
-    if (cover.startsWith('http')) return cover;
-    return '${ServerConfig.vipBaseUrl}/mk_book$cover';
-  }
-
   Future<void> _load() async {
     final token = UserPrefs().bookSearchToken;
     try {
-      final url = '${ServerConfig.vipBaseUrl}/api/book/detail?id=${widget.bookId}&token=$token';
-      final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      final url = '${ServerConfig.cloudApiBase}/book/detail?id=${widget.bookId}&token=$token';
+      final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
       if (!mounted) return;
       if (resp.statusCode == 200) {
         final json_ = json.decode(utf8.decode(resp.bodyBytes));
         if (json_['code'] == 0 && json_['data'] != null) {
+          final data = json_['data'] as Map<String, dynamic>;
           setState(() {
-            _data = json_['data'];
+            _data = data;
+            _chapters = _parseChapters(data['chapters']);
             _loading = false;
           });
           _checkLocal();
-          _loadCatalog();
+          if (_chapters.isEmpty) _loadCatalog();
           return;
         }
       }
@@ -72,11 +68,42 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } catch (_) {
       if (mounted) {
         setState(() {
-        _error = '网络错误'.tr;
-        _loading = false;
-      });
+          _error = '网络错误'.tr;
+          _loading = false;
+        });
       }
     }
+  }
+
+  /// 详情未带章节时，请求独立目录接口兜底
+  Future<void> _loadCatalog() async {
+    final token = UserPrefs().bookSearchToken;
+    setState(() => _catalogLoading = true);
+    try {
+      final url = '${ServerConfig.cloudApiBase}/book/catalog?id=${widget.bookId}&token=$token';
+      final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
+      if (!mounted) return;
+      if (resp.statusCode == 200) {
+        final json_ = json.decode(utf8.decode(resp.bodyBytes));
+        if (json_['code'] == 0 && json_['data'] != null) {
+          setState(() {
+            _chapters = _parseChapters(json_['data']['chapters']);
+            _catalogLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _catalogLoading = false);
+  }
+
+  /// 章节兼容两种格式：bqg 为纯标题字符串，bqglll/catalog 为 {id,title,url} 对象
+  List<Map<String, dynamic>> _parseChapters(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map((e) {
+      if (e is Map) return Map<String, dynamic>.from(e);
+      return {'title': e.toString()};
+    }).toList();
   }
 
   void _checkLocal() {
@@ -89,92 +116,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
   }
 
-  String _decodeText(List<int> bytes) {
-    if (bytes.length >= 2) {
-      // UTF-16 LE BOM: FF FE
-      if (bytes[0] == 0xFF && bytes[1] == 0xFE) {
-        final codes = <int>[];
-        for (var i = 2; i + 1 < bytes.length; i += 2) {
-          codes.add(bytes[i] | (bytes[i + 1] << 8));
-        }
-        return String.fromCharCodes(codes);
-      }
-      // UTF-16 BE BOM: FE FF
-      if (bytes[0] == 0xFE && bytes[1] == 0xFF) {
-        final codes = <int>[];
-        for (var i = 2; i + 1 < bytes.length; i += 2) {
-          codes.add((bytes[i] << 8) | bytes[i + 1]);
-        }
-        return String.fromCharCodes(codes);
-      }
-    }
-    // 无 BOM，按 UTF-16 LE 尝试（大部分中文 txt 是这种）
-    if (bytes.length >= 2 && bytes.length % 2 == 0) {
-      final codes = <int>[];
-      for (var i = 0; i + 1 < bytes.length; i += 2) {
-        codes.add(bytes[i] | (bytes[i + 1] << 8));
-      }
-      final text = String.fromCharCodes(codes);
-      // 检查解码结果是否包含大量不可打印字符（说明不是 UTF-16）
-      final printable = text.runes.where((r) => r >= 0x20 && r < 0xFFFF).length;
-      if (printable > text.length * 0.8) return text;
-    }
-    // fallback: UTF-8
-    try {
-      return utf8.decode(bytes);
-    } catch (_) {
-      return String.fromCharCodes(bytes);
-    }
-  }
-
-  Future<void> _loadCatalog() async {
-    final bookmark = _data?['bookmark'] ?? '';
-    if (bookmark.toString().isEmpty) return;
-    setState(() => _catalogLoading = true);
-    try {
-      final bookmarkStr = bookmark.toString();
-      final bookmarkUrl = bookmarkStr.startsWith('http')
-          ? bookmarkStr
-          : '${ServerConfig.vipBaseUrl}/mk_book/$bookmarkStr';
-      final resp = await http.get(
-        Uri.parse(bookmarkUrl),
-        headers: {'Accept-Encoding': 'identity'},
-      ).timeout(const Duration(seconds: 10));
-      if (!mounted) return;
-      if (resp.statusCode == 200) {
-        final bytes = resp.bodyBytes;
-        final text = _decodeText(bytes);
-        setState(() {
-          _catalog = text;
-          _catalogLoading = false;
-        });
-        return;
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _catalogLoading = false);
-  }
-
   Future<void> _addBook(String status) async {
     final m = _data!;
     final title = m['title'] ?? '';
     final author = m['author'] ?? '';
-    final press = m['press'] ?? '';
-    final isbn = m['isbn'] ?? '';
-    final yearStr = m['publishedDate'] ?? '';
+    final intro = m['intro'] ?? '';
+    final sortname = m['sortname'] ?? '';
     final cover = m['cover'] ?? '';
-
-    DateTime? publishDate;
-    if (yearStr.toString().isNotEmpty) {
-      publishDate = DateTime.tryParse('$yearStr-01-01');
-    }
 
     final bookId = const Uuid().v4();
     String? coverPath;
 
     if (cover.toString().isNotEmpty) {
       try {
-        final coverUrl = _resolveCoverUrl(cover.toString());
-        final resp = await http.get(Uri.parse(coverUrl), headers: {
+        final resp = await http.get(Uri.parse(cover.toString()), headers: {
           'User-Agent': 'Mozilla/5.0'
         }).timeout(const Duration(seconds: 15));
         if (resp.statusCode == 200 && resp.bodyBytes.length < 10 * 1024 * 1024) {
@@ -192,10 +147,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
       title: title.toString(),
       coverPath: coverPath,
       authors: _splitStr(author.toString()),
-      publisher: press.toString(),
-      isbn: isbn.toString(),
-      publishDate: publishDate,
+      genres: _splitStr(sortname.toString()),
+      summary: intro.toString().isNotEmpty ? intro.toString() : null,
       status: status,
+      category: 'novel',
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -323,16 +278,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
     ));
   }
 
+  bool get _isFinished => (_data?['full'] ?? '').toString().contains('完');
+
   Widget _buildBody(ColorScheme colors) {
     final m = _data!;
-    final cover = m['cover'] ?? '';
-    final title = m['title'] ?? '';
-    final author = m['author'] ?? '';
-    final press = m['press'] ?? '';
-    final isbn = m['isbn'] ?? '';
-    final year = m['publishedDate'] ?? '';
-    final pages = m['pagination'];
-    final coverUrl = cover.toString().isNotEmpty ? _resolveCoverUrl(cover.toString()) : '';
+    final cover = (m['cover'] ?? '').toString();
+    final title = (m['title'] ?? '').toString();
+    final author = (m['author'] ?? '').toString();
+    final source = (m['source'] ?? '').toString();
+    final lastchapter = (m['lastchapter'] ?? '').toString();
+    final lastupdate = (m['lastupdate'] ?? '').toString();
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -347,15 +302,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
-                      width: 32,
-                      height: 32,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
                           color: colors.surfaceContainerHigh,
                           shape: BoxShape.circle),
                       child: SvgPicture.asset(
                         'assets/svg/fan_hui.svg',
-                        width: 16,
-                        height: 16,
+                        width: 14,
+                        height: 14,
                         colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
                       )),
                 ),
@@ -371,8 +326,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       child: SizedBox(
                         width: 110,
                         height: 160,
-                        child: coverUrl.isNotEmpty
-                            ? Image.network(coverUrl,
+                        child: cover.isNotEmpty
+                            ? Image.network(cover,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => _coverPlaceholder(colors))
                             : _coverPlaceholder(colors),
@@ -384,25 +339,34 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: colors.onSurface)),
-                            if (author.toString().isNotEmpty) ...[
+                            if (author.isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Text(author, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
                             ],
-                            if (press.toString().isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(press, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                _buildHeaderTag(
+                                  _isFinished ? '已完结'.tr : '连载中'.tr,
+                                  _isFinished ? const Color(0xFF16A34A) : const Color(0xFFF59E0B),
+                                ),
+                                if (source.isNotEmpty)
+                                  _buildHeaderTag(source, colors.onSurface.withValues(alpha: 0.5)),
+                              ],
+                            ),
+                            if (lastchapter.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text('最新章节：{c}'.trf({'c': lastchapter}),
+                                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
                             ],
-                            if (year.toString().isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text('出版年份：{y}'.trf({'y': year}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                            ],
-                            if (isbn.toString().isNotEmpty) ...[
+                            if (lastupdate.isNotEmpty) ...[
                               const SizedBox(height: 4),
-                              Text('ISBN：{i}'.trf({'i': isbn}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-                            ],
-                            if (pages != null && pages != 0) ...[
-                              const SizedBox(height: 4),
-                              Text('页数：{p}'.trf({'p': pages}), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                              Text('更新：{t}'.trf({'t': lastupdate}),
+                                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
                             ],
                             if (_localBook != null) ...[
                               const SizedBox(height: 10),
@@ -421,23 +385,29 @@ class _BookDetailPageState extends State<BookDetailPage> {
               border: Border(
                   bottom: BorderSide(color: colors.outlineVariant, width: 0.5))),
           child: Row(children: [
-            _buildTabButton('基础信息'.tr, 0),
-            _buildTabButton('国图信息'.tr, 1),
-            _buildTabButton('网购地址'.tr, 2),
-            _buildTabButton('书籍目录'.tr, 3),
+            _buildTabButton('书籍信息'.tr, 0),
+            _buildTabButton('书籍目录'.tr, 1),
           ]),
         ),
         // Tab 内容
         Expanded(
           child: _currentTab == 0
-              ? _buildBasicInfo(colors)
-              : _currentTab == 1
-                  ? _buildOpacTab(colors)
-                  : _currentTab == 2
-                      ? _buildOnlineTab(colors)
-                      : _buildCatalogTab(colors),
+              ? _buildInfoTab(colors)
+              : _buildCatalogTab(colors),
         ),
       ]),
+    );
+  }
+
+  Widget _buildHeaderTag(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(text,
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: color)),
     );
   }
 
@@ -464,38 +434,57 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  // ── 基础信息 Tab ──────────────────────────────────────────
+  // ── 书籍信息 Tab ──────────────────────────────────────────
 
-  Widget _buildBasicInfo(ColorScheme colors) {
+  Widget _buildInfoTab(ColorScheme colors) {
     final m = _data!;
-    final tags = m['tags'] ?? '';
-    final sub1 = m['sub1'] ?? '';
-    final sub2 = m['sub2'] ?? '';
+    final intro = (m['intro'] ?? '').toString();
+    final sortname = (m['sortname'] ?? '').toString();
+    final source = (m['source'] ?? '').toString();
+    final lastchapter = (m['lastchapter'] ?? '').toString();
+    final lastupdate = (m['lastupdate'] ?? '').toString();
+
+    final meta = <List<String>>[
+      if (sortname.isNotEmpty) ['分类'.tr, sortname],
+      if (source.isNotEmpty) ['来源'.tr, source],
+      if (lastchapter.isNotEmpty) ['最新章节'.tr, lastchapter],
+      if (lastupdate.isNotEmpty) ['更新时间'.tr, lastupdate],
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
       children: [
-        // 分类
-        _buildSectionTitle(colors, '分类'.tr, Icons.category_outlined),
-        const SizedBox(height: 6),
-        if (sub1.toString().isNotEmpty)
-          _buildChipWrap(colors, sub1.toString().split(RegExp(r'[,，]')))
-        else
-          _buildEmptyHint(colors),
-        const SizedBox(height: 16),
-        // 标签
-        _buildSectionTitle(colors, '标签'.tr, Icons.sell_outlined),
-        const SizedBox(height: 6),
-        if (tags.toString().isNotEmpty)
-          _buildChipWrap(colors, tags.toString().split(RegExp(r'[,，]')))
-        else
-          _buildEmptyHint(colors),
-        const SizedBox(height: 16),
-        // 内容简介
+        if (meta.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: meta.map((pair) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 72,
+                      child: Text(pair[0], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+                    ),
+                    Expanded(
+                      child: Text(pair[1], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.75), height: 1.4)),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         _buildSectionTitle(colors, '内容简介'.tr, Icons.article_outlined),
         const SizedBox(height: 8),
-        if (sub2.toString().isNotEmpty)
-          Text(sub2.toString().replaceAll(RegExp(r'<[^>]*>'), ''),
+        if (intro.isNotEmpty)
+          Text(intro,
               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7), height: 1.7))
         else
           _buildEmptyHint(colors),
@@ -508,90 +497,41 @@ class _BookDetailPageState extends State<BookDetailPage> {
         style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3)));
   }
 
-  // ── 国图信息 Tab ──────────────────────────────────────────
-
-  Widget _buildOpacTab(ColorScheme colors) {
-    final opacStr = _data?['opacInfo'];
-    Map<String, dynamic>? opac;
-    if (opacStr != null && opacStr.toString().isNotEmpty) {
-      try { opac = json.decode(opacStr.toString()); } catch (_) {}
-    }
-    if (opac == null) {
-      return Center(
-          child: Text('暂无国图信息'.tr,
-              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))));
-    }
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
-      children: [
-        _buildOpacInfo(colors, opac),
-      ],
-    );
-  }
-
-  // ── 网购地址 Tab ──────────────────────────────────────────
-
-  Widget _buildOnlineTab(ColorScheme colors) {
-    final onlineStr = _data?['online'];
-    List<Map<String, dynamic>> links = [];
-    if (onlineStr != null && onlineStr.toString().isNotEmpty) {
-      try {
-        final list = json.decode(onlineStr.toString()) as List;
-        links = list.map((e) => e as Map<String, dynamic>).toList();
-      } catch (_) {}
-    }
-    if (links.isEmpty) {
-      return Center(
-          child: Text('暂无网购地址'.tr,
-              style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
-      itemCount: links.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _buildOnlineLink(colors, links[index]),
-    );
-  }
-
   // ── 书籍目录 Tab ──────────────────────────────────────────
 
   Widget _buildCatalogTab(ColorScheme colors) {
     if (_catalogLoading) {
       return Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)));
     }
-    if (_catalog == null || _catalog!.isEmpty) {
+    if (_chapters.isEmpty) {
       return Center(
           child: Text('暂无目录信息'.tr,
               style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.35))));
     }
-    final lines = _catalog!.split('\n').where((l) => l.trim().isNotEmpty).toList();
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
-      itemCount: lines.length,
+      itemCount: _chapters.length,
       itemBuilder: (context, index) {
-        final text = lines[index].trim();
-        final level = _detectLevel(text);
-        final indent = level * 16.0;
-        final isMain = level == 0;
+        final chapter = _chapters[index];
+        final title = (chapter['title'] ?? '').toString();
         return Padding(
-          padding: EdgeInsets.only(left: 8 + indent, top: isMain ? 10 : 4, bottom: isMain ? 2 : 1),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isMain)
-                Container(
-                  width: 3, height: 14,
-                  margin: const EdgeInsets.only(right: 8, top: 2),
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
+              Container(
+                width: 3, height: 14,
+                margin: const EdgeInsets.only(right: 8, top: 2),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(1.5),
                 ),
+              ),
               Expanded(
-                child: Text(text, style: TextStyle(
-                  fontSize: isMain ? 13.5 : 12.5,
-                  fontWeight: isMain ? FontWeight.w600 : FontWeight.w400,
-                  color: isMain ? colors.onSurface.withValues(alpha: 0.85) : colors.onSurface.withValues(alpha: 0.55),
+                child: Text(title, style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: colors.onSurface.withValues(alpha: 0.75),
                   height: 1.4,
                 )),
               ),
@@ -612,112 +552,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
         Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
       ],
     );
-  }
-
-  Widget _buildChipWrap(ColorScheme colors, List<String> items) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: items.where((t) => t.trim().isNotEmpty).map((t) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.outlineVariant, width: 0.5),
-        ),
-        child: Text(t.trim(), style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.65))),
-      )).toList(),
-    );
-  }
-
-  Widget _buildOpacInfo(ColorScheme colors, Map<String, dynamic> opac) {
-    final items = <List<String>>[];
-    if (opac['title'] != null && opac['title'].toString().isNotEmpty) items.add(['题名'.tr, opac['title'].toString()]);
-    if (opac['authors'] != null) {
-      final authors = (opac['authors'] as List).map((e) => e.toString()).join('；');
-      if (authors.isNotEmpty) items.add(['作者'.tr, authors]);
-    }
-    if (opac['publisher'] != null && opac['publisher'].toString().isNotEmpty) items.add(['出版社'.tr, opac['publisher'].toString()]);
-    if (opac['pubdate'] != null && opac['pubdate'].toString().isNotEmpty) items.add(['出版日期'.tr, opac['pubdate'].toString()]);
-    if (opac['isbn'] != null && opac['isbn'].toString().isNotEmpty) items.add(['ISBN', opac['isbn'].toString()]);
-    if (opac['clc'] != null && opac['clc'].toString().isNotEmpty) items.add(['中图分类号'.tr, opac['clc'].toString()]);
-    if (opac['tags'] != null && opac['tags'].toString().isNotEmpty) items.add(['主题词'.tr, opac['tags'].toString()]);
-
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        children: items.map((pair) => Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 72,
-                child: Text(pair[0], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
-              ),
-              Expanded(
-                child: Text(pair[1], style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.75), height: 1.4)),
-              ),
-            ],
-          ),
-        )).toList(),
-      ),
-    );
-  }
-
-  Widget _buildOnlineLink(ColorScheme colors, Map<String, dynamic> link) {
-    final source = link['source'] ?? '';
-    final url = link['url'] ?? '';
-    if (source.toString().isEmpty || url.toString().isEmpty) return const SizedBox.shrink();
-    return GestureDetector(
-      onTap: () => launchUrl(Uri.parse(url.toString()), mode: LaunchMode.externalApplication),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.link, size: 16, color: colors.primary.withValues(alpha: 0.6)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(source.toString(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface)),
-                  const SizedBox(height: 2),
-                  Text(url.toString(), style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.35)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 16, color: colors.onSurface.withValues(alpha: 0.3)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 检测目录层级：0=主章节, 1=子章节
-  int _detectLevel(String line) {
-    // 主章节：第X章、第X篇、Chapter X、数字+点开头（如 "1. "）
-    if (RegExp(r'^第[一二三四五六七八九十百千\d]+[章篇部回卷]').hasMatch(line)) return 0;
-    if (RegExp(r'^Chapter\s+\d+', caseSensitive: false).hasMatch(line)) return 0;
-    if (RegExp(r'^\d+[\.\s、]').hasMatch(line)) return 0;
-    if (RegExp(r'^[一二三四五六七八九十]+[、．.]').hasMatch(line)) return 0;
-    // 子章节：第X节、数字.数字（如 "1.1 "）
-    if (RegExp(r'^第[一二三四五六七八九十百千\d]+[节]').hasMatch(line)) return 1;
-    if (RegExp(r'^\d+\.\d+[\.\s、]').hasMatch(line)) return 1;
-    if (RegExp(r'^[（(]\d+[）)]').hasMatch(line)) return 1;
-    if (line.startsWith('  ') || line.startsWith('\t')) return 1;
-    // 默认主章节
-    return 0;
   }
 
   Widget _coverPlaceholder(ColorScheme colors) {

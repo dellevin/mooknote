@@ -40,7 +40,6 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   final _movieScrollController = ScrollController();
-  final _bookScrollController = ScrollController();
   final _userPrefs = UserPrefs();
 
   String _query = '';
@@ -55,10 +54,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   int _movieTotal = 0;
 
   List<Map<String, dynamic>> _bookList = [];
-  int _bookPage = 1;
-  int _bookPageCount = 1;
   bool _bookLoading = false;
-  bool _bookLoadingMore = false;
   int _bookTotal = 0;
 
   // 请求代次：新搜索/翻页使旧响应作废，防止旧关键词结果污染新列表
@@ -69,7 +65,6 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   void initState() {
     super.initState();
     _movieScrollController.addListener(_onMovieScroll);
-    _bookScrollController.addListener(_onBookScroll);
     _history = _userPrefs.searchHistory;
     _currentTab = _userPrefs.lastSearchTab;
   }
@@ -79,7 +74,6 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     _searchController.dispose();
     _focusNode.dispose();
     _movieScrollController.dispose();
-    _bookScrollController.dispose();
     super.dispose();
   }
 
@@ -89,15 +83,6 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
         !_movieLoadingMore &&
         _moviePage < _moviePageCount) {
       _loadMoreMovies();
-    }
-  }
-
-  void _onBookScroll() {
-    if (_bookScrollController.position.pixels >=
-            _bookScrollController.position.maxScrollExtent - 200 &&
-        !_bookLoadingMore &&
-        _bookPage < _bookPageCount) {
-      _loadMoreBooks();
     }
   }
 
@@ -114,11 +99,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
       _moviePageCount = 1;
       _movieTotal = 0;
       _bookList = [];
-      _bookPage = 1;
-      _bookPageCount = 1;
       _bookTotal = 0;
       _movieLoadingMore = false;
-      _bookLoadingMore = false;
     });
     _userPrefs.addSearchHistory(q).then((_) {
       if (!mounted) return;
@@ -129,7 +111,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     if (_currentTab == 0) {
       _searchMovies(q, 1);
     } else {
-      _searchBooks(q, 1);
+      _searchBooks(q);
     }
   }
 
@@ -275,42 +257,32 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     _searchMovies(_query, _moviePage + 1);
   }
 
-  Future<void> _searchBooks(String keyword, int page) async {
+  Future<void> _searchBooks(String keyword) async {
     final callSeq = ++_bookCallSeq;
     final token = UserPrefs().bookSearchToken;
     if (token.isEmpty) return;
 
     setState(() {
-      if (page == 1) {
-        _bookLoading = true;
-      } else {
-        _bookLoadingMore = true;
-      }
+      _bookLoading = true;
     });
 
     try {
       final url =
-          '${ServerConfig.vipBaseUrl}/api/book/list?title=${Uri.encodeComponent(keyword)}&token=$token&page=$page';
+          '${ServerConfig.cloudApiBase}/book/search?keyword=${Uri.encodeComponent(keyword)}&token=$token';
       final resp =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
       if (!mounted || callSeq != _bookCallSeq) return;
 
       if (resp.statusCode == 200) {
         final data = json.decode(utf8.decode(resp.bodyBytes));
         if (data['code'] == 0 && data['data'] != null) {
-          final list = (data['data']['list'] as List<dynamic>?)
+          final list = (data['data']['items'] as List<dynamic>?)
                   ?.map((e) => e as Map<String, dynamic>)
                   .toList() ??
               [];
           setState(() {
-            if (page == 1) {
-              _bookList = list;
-            } else {
-              _bookList.addAll(list);
-            }
-            _bookTotal = (data['data']['total'] as num?)?.toInt() ?? 0;
-            _bookPage = (data['data']['page'] as num?)?.toInt() ?? page;
-            _bookPageCount = (data['data']['pagecount'] as num?)?.toInt() ?? page;
+            _bookList = list;
+            _bookTotal = (data['data']['count'] as num?)?.toInt() ?? list.length;
           });
         } else if (data['code'] == 401 ||
             data['code'] == 403 ||
@@ -319,7 +291,6 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
           if (mounted) {
             setState(() {
               _bookLoading = false;
-              _bookLoadingMore = false;
             });
           }
           if (callSeq == _bookCallSeq) _showTokenExpiredDialog();
@@ -338,13 +309,8 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     if (mounted && callSeq == _bookCallSeq) {
       setState(() {
         _bookLoading = false;
-        _bookLoadingMore = false;
       });
     }
-  }
-
-  void _loadMoreBooks() {
-    _searchBooks(_query, _bookPage + 1);
   }
 
   int _currentTab = 0;
@@ -407,7 +373,7 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
           if (index == 0 && _movieList.isEmpty && !_movieLoading) {
             _searchMovies(_query, 1);
           } else if (index == 1 && _bookList.isEmpty && !_bookLoading) {
-            _searchBooks(_query, 1);
+            _searchBooks(_query);
           }
         }
       },
@@ -798,18 +764,10 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
       return _buildEmptyState(colors, '未找到相关书籍'.tr, Icons.search_off_outlined);
     }
 
-    final hasMore = _bookPage < _bookPageCount;
-    final itemCount = _bookList.length + 1;
-
     return ListView.builder(
-      controller: _bookScrollController,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: itemCount,
+      itemCount: _bookList.length,
       itemBuilder: (context, index) {
-        if (index == _bookList.length) {
-          return _buildBottomIndicator(colors, hasMore,
-              loadingMore: _bookLoadingMore);
-        }
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: GestureDetector(
@@ -828,10 +786,9 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
   Widget _buildBookCard(ColorScheme colors, Map<String, dynamic> b) {
     final title = b['title'] ?? '';
     final author = b['author'] ?? '';
-    final press = b['press'] ?? '';
-    final year = b['publishedDate'] ?? '';
+    final intro = b['intro'] ?? '';
     final cover = b['cover'] ?? '';
-    final isbn = b['isbn'] ?? '';
+    final source = b['source'] ?? '';
 
     return Container(
       decoration: BoxDecoration(
@@ -874,28 +831,20 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ],
-                    if (press.toString().isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(press,
+                    if (intro.toString().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(intro,
                           style: TextStyle(
                               fontSize: 11,
-                              color: colors.onSurface.withValues(alpha: 0.4)),
-                          maxLines: 1,
+                              color: colors.onSurface.withValues(alpha: 0.4),
+                              height: 1.4),
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis),
                     ],
-                    if (year.toString().isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text('出版年份 {y}'.trf({'y': year}),
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: colors.onSurface.withValues(alpha: 0.35))),
-                    ],
-                    if (isbn.toString().isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text('ISBN {i}'.trf({'i': isbn}),
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: colors.onSurface.withValues(alpha: 0.35))),
+                    if (source.toString().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      _buildSmallTag(source.toString(),
+                          colors.onSurface.withValues(alpha: 0.45)),
                     ],
                   ],
                 ),
