@@ -7,6 +7,7 @@ import '../../utils/toast_util.dart';
 import 'movie_detail_page.dart';
 import 'book_detail_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/cover_network_image.dart';
 import '../../l10n/app_strings.dart';
 
 /// 在线搜索影视/书籍（带 Scaffold + AppBar）
@@ -336,18 +337,9 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
               ],
             ),
           ),
-          // 影视/书籍 tab 栏（搜索后显示）
-          if (_hasSearched)
-            Container(
-              decoration: BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(
-                          color: colors.outlineVariant, width: 0.5))),
-              child: Row(children: [
-                _buildTabButton(colors, '影视'.tr, 0, _movieTotal),
-                _buildTabButton(colors, '书籍'.tr, 1, _bookTotal),
-              ]),
-            ),
+          // 影视/书籍分段栏（常驻，样式对齐豆瓣搜索）
+          _buildSegmentBar(colors),
+          const SizedBox(height: 8),
           Expanded(
             child: _hasSearched
                 ? (_currentTab == 0
@@ -360,64 +352,80 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
     );
   }
 
-  Widget _buildTabButton(
-      ColorScheme colors, String label, int index, int count) {
-    final selected = _currentTab == index;
-    return GestureDetector(
-      onTap: () {
-        if (_currentTab == index) return;
-        setState(() => _currentTab = index);
-        _userPrefs.setLastSearchTab(index);
-        // 切到新 tab 时，若该 tab 尚无数据则触发搜索
-        if (_hasSearched && _query.isNotEmpty) {
-          if (index == 0 && _movieList.isEmpty && !_movieLoading) {
-            _searchMovies(_query, 1);
-          } else if (index == 1 && _bookList.isEmpty && !_bookLoading) {
-            _searchBooks(_query);
-          }
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border(
-              bottom: BorderSide(
-                  color: selected ? colors.primary : Colors.transparent,
-                  width: 2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    color: selected
-                        ? colors.primary
-                        : colors.onSurface.withValues(alpha: 0.4))),
-            if (count > 0) ...[
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? colors.primary.withValues(alpha: 0.1)
-                      : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+  /// 影视/书籍分段切换栏：常驻显示，胶囊样式对齐豆瓣搜索页
+  Widget _buildSegmentBar(ColorScheme colors) {
+    final tabs = [
+      (0, '影视'.tr, _movieTotal),
+      (1, '书籍'.tr, _bookTotal),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          for (final (index, label, count) in tabs)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => _switchTab(index),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _currentTab == index
+                        ? colors.primary.withValues(alpha: 0.12)
+                        : colors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _currentTab == index
+                          ? colors.primary.withValues(alpha: 0.4)
+                          : colors.outlineVariant,
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: _currentTab == index
+                                ? colors.primary
+                                : colors.onSurface.withValues(alpha: 0.5),
+                          )),
+                      if (count > 0) ...[
+                        const SizedBox(width: 4),
+                        Text('$count',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: _currentTab == index
+                                  ? colors.primary
+                                  : colors.onSurface.withValues(alpha: 0.4),
+                            )),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Text('$count',
-                    style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: selected
-                            ? colors.primary
-                            : colors.onSurface.withValues(alpha: 0.4))),
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
+  }
+
+  void _switchTab(int index) {
+    if (_currentTab == index) return;
+    setState(() => _currentTab = index);
+    _userPrefs.setLastSearchTab(index);
+    // 切到新 tab 时，若该 tab 尚无数据则用当前关键词补搜
+    if (_hasSearched && _query.isNotEmpty) {
+      if (index == 0 && _movieList.isEmpty && !_movieLoading) {
+        _searchMovies(_query, 1);
+      } else if (index == 1 && _bookList.isEmpty && !_bookLoading) {
+        _searchBooks(_query);
+      }
+    }
   }
 
   Widget _buildSearchBar(ColorScheme colors) {
@@ -585,11 +593,9 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
             // 海报
             SizedBox(
               width: 100,
-              child: pic.toString().isNotEmpty
-                  ? Image.network(pic,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _posterPlaceholder(colors))
-                  : _posterPlaceholder(colors),
+              child: CoverNetworkImage(
+                  url: pic.toString(),
+                  placeholder: _posterPlaceholder(colors)),
             ),
             // 信息
             Expanded(
@@ -802,12 +808,9 @@ class _OnlineSearchPageBodyState extends State<OnlineSearchPageBody> {
           children: [
             SizedBox(
               width: 80,
-              child: cover.toString().isNotEmpty
-                  ? Image.network(cover,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          _bookCoverPlaceholder(colors))
-                  : _bookCoverPlaceholder(colors),
+              child: CoverNetworkImage(
+                  url: cover.toString(),
+                  placeholder: _bookCoverPlaceholder(colors)),
             ),
             Expanded(
               child: Padding(

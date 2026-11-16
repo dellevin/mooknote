@@ -18,6 +18,9 @@ import '../../providers/app_provider.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
+import '../../widgets/cover_network_image.dart';
+import '../../services/douban_service.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 
@@ -503,9 +506,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
 
     if (pic.toString().isNotEmpty) {
       try {
-        final resp = await http.get(Uri.parse(pic.toString()), headers: {
-          'User-Agent': 'Mozilla/5.0'
-        }).timeout(const Duration(seconds: 15));
+        final resp = await http.get(
+            Uri.parse(pic.toString()),
+            headers: pic.toString().contains('doubanio.com')
+                ? doubanImageHeaders
+                : {'User-Agent': 'Mozilla/5.0'}
+        ).timeout(const Duration(seconds: 15));
         if (resp.statusCode == 200 &&
             resp.bodyBytes.length < 10 * 1024 * 1024) {
           final fileName =
@@ -630,21 +636,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                    color: colors.surfaceContainerHigh, shape: BoxShape.circle),
-                child: SvgPicture.asset(
-                  'assets/svg/fan_hui.svg',
-                  width: 14,
-                  height: 14,
-                  colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
-                ),
-              ),
-            ),
+            AppBackButton(color: colors.onSurface, size: 15),
             const Spacer(),
             GestureDetector(
               onTap: _closePlayer,
@@ -1055,20 +1047,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Row(children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                                color: colors.surfaceContainerHigh,
-                                shape: BoxShape.circle),
-                            child: SvgPicture.asset(
-                                'assets/svg/fan_hui.svg',
-                                width: 14,
-                                height: 14,
-                                colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn))),
-                      ),
+                      AppBackButton(color: colors.onSurface, size: 15),
                       const Spacer(),
                       GestureDetector(
                         onTap: () => setState(() => _detailStyle = _detailStyle == 0 ? 1 : 0),
@@ -1097,12 +1076,9 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                             child: SizedBox(
                               width: 120,
                               height: 170,
-                              child: pic.toString().isNotEmpty
-                                  ? Image.network(pic,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _posterPlaceholder(colors))
-                                  : _posterPlaceholder(colors),
+                              child: CoverNetworkImage(
+                                  url: pic.toString(),
+                                  placeholder: _posterPlaceholder(colors)),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1205,11 +1181,13 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                 SizedBox(
                   width: double.infinity,
                   height: 320,
-                  child: pic.toString().isNotEmpty
-                      ? Image.network(pic, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(color: colors.surfaceContainerHighest))
-                      : Container(color: colors.surfaceContainerHighest,
-                          child: Icon(Icons.movie_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.1))),
+                  child: CoverNetworkImage(
+                      url: pic.toString(),
+                      placeholder: Container(
+                          color: colors.surfaceContainerHighest,
+                          child: Icon(Icons.movie_outlined,
+                              size: 64,
+                              color: colors.onSurface.withValues(alpha: 0.1)))),
                 ),
                 Positioned.fill(
                   child: DecoratedBox(
@@ -1228,18 +1206,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Row(children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                            width: 28, height: 28,
-                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
-                            child: SvgPicture.asset(
-                              'assets/svg/fan_hui.svg',
-                              width: 14,
-                              height: 14,
-                              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                            )),
-                      ),
+                      const AppBackButton(color: Colors.white, size: 15),
                       const Spacer(),
                       GestureDetector(
                         onTap: () => setState(() => _detailStyle = 0),
@@ -1752,12 +1719,9 @@ class _MovieDetailPageState extends State<MovieDetailPage>
         child: SizedBox(
           width: double.infinity,
           height: 100,
-          child: pic.toString().isNotEmpty
-              ? Image.network(pic,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      _avatarPlaceholder(colors, name))
-              : _avatarPlaceholder(colors, name),
+          child: CoverNetworkImage(
+              url: pic.toString(),
+              placeholder: _avatarPlaceholder(colors, name)),
         ),
       ),
       const SizedBox(height: 6),

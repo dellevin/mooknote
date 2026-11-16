@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -14,6 +13,9 @@ import '../../providers/app_provider.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/toast_util.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/app_back_button.dart';
+import '../../widgets/cover_network_image.dart';
+import '../../services/douban_service.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 
@@ -129,9 +131,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     if (cover.toString().isNotEmpty) {
       try {
-        final resp = await http.get(Uri.parse(cover.toString()), headers: {
-          'User-Agent': 'Mozilla/5.0'
-        }).timeout(const Duration(seconds: 15));
+        final resp = await http.get(
+            Uri.parse(cover.toString()),
+            headers: cover.toString().contains('doubanio.com')
+                ? doubanImageHeaders
+                : {'User-Agent': 'Mozilla/5.0'}
+        ).timeout(const Duration(seconds: 15));
         if (resp.statusCode == 200 && resp.bodyBytes.length < 10 * 1024 * 1024) {
           final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
           final targetPath = await ImagePathHelper.instance.getBookCoverPath(bookId, fileName);
@@ -299,21 +304,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                          color: colors.surfaceContainerHigh,
-                          shape: BoxShape.circle),
-                      child: SvgPicture.asset(
-                        'assets/svg/fan_hui.svg',
-                        width: 14,
-                        height: 14,
-                        colorFilter: ColorFilter.mode(colors.onSurface, BlendMode.srcIn),
-                      )),
-                ),
+                AppBackButton(color: colors.onSurface, size: 15),
               ]),
             ),
             Padding(
@@ -326,11 +317,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       child: SizedBox(
                         width: 110,
                         height: 160,
-                        child: cover.isNotEmpty
-                            ? Image.network(cover,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _coverPlaceholder(colors))
-                            : _coverPlaceholder(colors),
+                        child: CoverNetworkImage(
+                            url: cover,
+                            placeholder: _coverPlaceholder(colors)),
                       ),
                     ),
                     const SizedBox(width: 16),
