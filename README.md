@@ -87,7 +87,7 @@ flutter build appbundle --release              # Google Play App Bundle
 
 ## 影视书籍资源数据对接
 
-数据已对接 7w+ 影视基础数据，以及 300w+ 书籍基础信息（书葵网），如需对接接口或技术交流请联系作者。所有影视书籍来源皆为网络资源收集，部分数据可能会有偏差，如数据有问题，也请联系开发者及时修复。
+数据已对接 7w+o。所有影视书籍来源皆为网络资源收集，部分数据可能会有偏差，如数据有问题，也请联系开发者及时修复。
 
 ## 开源协议
 
@@ -95,5 +95,5 @@ flutter build appbundle --release              # Google Play App Bundle
 
 ## 致谢
 
-- **[lumina](https://github.com/MilkFeng/lumina)**
-- **[NLCISBNPlugin](https://github.com/DoiiarX/NLCISBNPlugin)**
+- [lumina](https://github.com/MilkFeng/lumina)
+- [anx-reader](https://github.com/anxcye/anx-reader)
