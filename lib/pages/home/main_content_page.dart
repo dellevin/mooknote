@@ -1024,7 +1024,7 @@ class _WeatheredStamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chars = text.split('');
+    final chars = text.characters.toList();
     const fontSize = 9.5;
     final height = 5.0 + chars.length * (fontSize + 2.5);
     return Transform.rotate(
@@ -1085,7 +1085,7 @@ class _StampPainter extends CustomPainter {
     }
 
     // 竖排文字：最重字重 + 逐字微小偏移，模拟手盖印章的错位感
-    final chars = text.split('');
+    final chars = text.characters.toList();
     for (var i = 0; i < chars.length; i++) {
       final tp = TextPainter(
         text: TextSpan(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import '../database_helper.dart';
 
 class TagDao {
@@ -37,7 +38,7 @@ class TagDao {
   /// 添加标签，返回新标签ID。可选指定父级分类ID（空串为顶级）
   Future<String> addTag(String name, String type, {String parentId = ''}) => _wrap('addTag', () async {
     final db = await _dbHelper.database;
-    final id = 'tag_${DateTime.now().millisecondsSinceEpoch}';
+    final id = 'tag_${const Uuid().v4()}';
     await db.insert('tags', {
       'id': id,
       'name': name,

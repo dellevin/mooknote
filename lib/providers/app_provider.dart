@@ -3216,7 +3216,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<String> addTag(String name, String type, {String parentId = ''}) async {
     if (_isCloudTagType(type)) {
-      final id = 'tag_${DateTime.now().millisecondsSinceEpoch}';
+      final id = 'tag_${const Uuid().v4()}';
       await _cloudDomain.createEntity('tags', {
         'id': id,
         'name': name,
