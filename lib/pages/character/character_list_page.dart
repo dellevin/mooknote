@@ -220,6 +220,8 @@ class _CharacterListScaffold extends StatelessWidget {
       backgroundColor: colors.surface,
       appBar: AppBar(leading: const AppBackButton(), title: Text(title)),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         onPressed: onAdd,
         child: const Icon(Icons.add),
       ),

@@ -39,8 +39,6 @@ class _PermissionsPageState extends State<PermissionsPage>
     final statuses = <String, PermissionStatus>{
       'storage': await Permission.manageExternalStorage.status,
       'photos': await Permission.photos.status,
-      'videos': await Permission.videos.status,
-      'audio': await Permission.audio.status,
     };
     if (mounted) setState(() => _statuses.addAll(statuses));
   }
@@ -69,14 +67,6 @@ class _PermissionsPageState extends State<PermissionsPage>
         final status = await Permission.photos.request();
         if (status.isPermanentlyDenied) await openAppSettings();
         break;
-      case 'videos':
-        final status = await Permission.videos.request();
-        if (status.isPermanentlyDenied) await openAppSettings();
-        break;
-      case 'audio':
-        final status = await Permission.audio.request();
-        if (status.isPermanentlyDenied) await openAppSettings();
-        break;
     }
     await _refresh();
   }
@@ -96,18 +86,6 @@ class _PermissionsPageState extends State<PermissionsPage>
         icon: Icons.image_outlined,
         title: '照片'.tr,
         subtitle: '从相册选择和保存图片'.tr,
-      ),
-      _PermissionItem(
-        key: 'videos',
-        icon: Icons.videocam_outlined,
-        title: '视频'.tr,
-        subtitle: '读取系统媒体库中的视频'.tr,
-      ),
-      _PermissionItem(
-        key: 'audio',
-        icon: Icons.music_note_outlined,
-        title: '音频'.tr,
-        subtitle: '读取系统媒体库中的音频'.tr,
       ),
     ];
 

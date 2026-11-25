@@ -5,6 +5,7 @@ import '../../utils/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/markdown_link.dart';
 import '../../widgets/app_back_button.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
@@ -14,7 +15,6 @@ import '../../widgets/work_people_section.dart';
 import '../../widgets/character_preview_section.dart';
 import '../../widgets/character_info_sheet.dart';
 import '../../widgets/review_preview_section.dart';
-import 'book_reviews_page.dart';
 import 'book_excerpts_page.dart';
 import 'book_share_page.dart';
 import '../character/character_list_page.dart';
@@ -78,7 +78,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Future<void> _loadCharacters() async {
-    final list = await context.read<AppProvider>().getBookCharacters(widget.book.id);
+    final list =
+        await context.read<AppProvider>().getBookCharacters(widget.book.id);
     if (!mounted) return;
     setState(() => _characters = list);
   }
@@ -97,8 +98,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final colors = Theme.of(context).colorScheme;
     // 只订阅当前这一条：无关的 provider 变更不再重建整个详情页
     final book = context.select<AppProvider, Book?>(
-      (p) => p.books.where((b) => b.id == widget.book.id).firstOrNull,
-    ) ?? widget.book;
+          (p) => p.books.where((b) => b.id == widget.book.id).firstOrNull,
+        ) ??
+        widget.book;
 
     return switch (_detailStyle) {
       1 => _buildOverlayStyle(book, colors),
@@ -118,29 +120,59 @@ class _BookDetailPageState extends State<BookDetailPage> {
       switch (m.id) {
         case 'credits':
           if (layout == 2) {
-            result.add(_buildLayeredInfoRow('作者'.tr, book.authors.join('，'), colors));
-            if (book.translators.isNotEmpty) result.add(_buildLayeredInfoRow('译者'.tr, book.translators.join('，'), colors));
-            if (book.isbn != null && book.isbn!.isNotEmpty) result.add(_buildLayeredInfoRow('ISBN', book.isbn!, colors));
-            if (book.publisher != null && book.publisher!.isNotEmpty) result.add(_buildLayeredInfoRow('出版社'.tr, book.publisher!, colors));
-            if (book.publishDate != null) {
-              result.add(_buildLayeredInfoRow('出版时间'.tr, '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}), colors));
+            result.add(
+                _buildLayeredInfoRow('作者'.tr, book.authors.join('，'), colors));
+            if (book.translators.isNotEmpty) {
+              result.add(_buildLayeredInfoRow(
+                  '译者'.tr, book.translators.join('，'), colors));
             }
-            if (book.startDate != null || book.finishDate != null || book.readCount > 0) {
+            if (book.isbn != null && book.isbn!.isNotEmpty) {
+              result.add(_buildLayeredInfoRow('ISBN', book.isbn!, colors));
+            }
+            if (book.publisher != null && book.publisher!.isNotEmpty) {
+              result
+                  .add(_buildLayeredInfoRow('出版社'.tr, book.publisher!, colors));
+            }
+            if (book.publishDate != null) {
+              result.add(_buildLayeredInfoRow(
+                  '出版时间'.tr,
+                  '{y}年{m}月'.trf({
+                    'y': book.publishDate!.year,
+                    'm': book.publishDate!.month.toString().padLeft(2, '0')
+                  }),
+                  colors));
+            }
+            if (book.startDate != null ||
+                book.finishDate != null ||
+                book.readCount > 0) {
               result.add(_buildLayeredReadingDates(book));
             }
             if (book.readDuration > 0) {
-              result.add(_buildLayeredInfoRow('阅读时长'.tr, _formatReadDuration(book.readDuration), colors));
+              result.add(_buildLayeredInfoRow(
+                  '阅读时长'.tr, _formatReadDuration(book.readDuration), colors));
             }
           } else {
             result.add(_buildAuthorsSection(book));
-            if (book.translators.isNotEmpty) result.add(_buildTranslatorsSection(book));
-            if (book.isbn != null && book.isbn!.isNotEmpty) result.add(_buildIsbnSection(book));
-            if (book.publisher != null && book.publisher!.isNotEmpty) result.add(_buildPublisherSection(book));
-            if (book.publishDate != null) result.add(_buildPublishDateSection(book));
-            if (book.startDate != null || book.finishDate != null || book.readCount > 0) {
+            if (book.translators.isNotEmpty) {
+              result.add(_buildTranslatorsSection(book));
+            }
+            if (book.isbn != null && book.isbn!.isNotEmpty) {
+              result.add(_buildIsbnSection(book));
+            }
+            if (book.publisher != null && book.publisher!.isNotEmpty) {
+              result.add(_buildPublisherSection(book));
+            }
+            if (book.publishDate != null) {
+              result.add(_buildPublishDateSection(book));
+            }
+            if (book.startDate != null ||
+                book.finishDate != null ||
+                book.readCount > 0) {
               result.add(_buildReadingDatesSection(book));
             }
-            if (book.readDuration > 0) result.add(_buildReadDurationSection(book));
+            if (book.readDuration > 0) {
+              result.add(_buildReadDurationSection(book));
+            }
           }
         case 'genres':
           if (book.genres.isNotEmpty) {
@@ -152,11 +184,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
         case 'characters':
           result.add(CharacterPreviewSection(
             characters: _characters,
+            workType: 'book',
             onTap: _openCharacterSheet,
+            onOpenAll: () => _navigateToCharacters(book),
             isOverlay: layout == 1,
           ));
         case 'people':
-          result.add(WorkPeopleSection(workId: book.id, workType: 'book', isOverlay: layout == 1));
+          result.add(WorkPeopleSection(
+              workId: book.id, workType: 'book', isOverlay: layout == 1));
         case 'summary':
           if (book.summary != null && book.summary!.isNotEmpty) {
             if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
@@ -184,7 +219,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
           if (!isFirst) {
             if (layout == 1) result.add(const SizedBox(height: 12));
             if (layout == 2) result.add(const SizedBox(height: 20));
-            if (layout == 0) result.add(Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            if (layout == 0) {
+              result.add(
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            }
           }
           result.add(switch (layout) {
             1 => _buildExtraSectionsOverlay(book),
@@ -229,7 +267,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ),
           ),
           _buildStandardTopBar(book.title, colors),
-          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
+          Positioned(
+              right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
         ],
       ),
     );
@@ -240,10 +279,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final screenH = MediaQuery.of(context).size.height;
     final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
 
-    _overlayScrollController ??= ScrollController()..addListener(() {
-      final show = (_overlayScrollController?.offset ?? 0) > 10;
-      if (_showTitle.value != show) _showTitle.value = show;
-    });
+    _overlayScrollController ??= ScrollController()
+      ..addListener(() {
+        final show = (_overlayScrollController?.offset ?? 0) > 10;
+        if (_showTitle.value != show) _showTitle.value = show;
+      });
 
     return Scaffold(
       body: Stack(
@@ -258,7 +298,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
               child: ImageFiltered(
                 imageFilter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                 child: Image(
-                  image: ResizeImage(FileImage(File(book.coverPath!)), width: 1080),
+                  image: ResizeImage(FileImage(File(book.coverPath!)),
+                      width: 1080),
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: screenH,
@@ -288,10 +329,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         opacity: show ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 200),
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
+                          constraints: BoxConstraints(
+                              maxWidth:
+                                  MediaQuery.of(context).size.width * 0.5),
                           child: Text(book.title,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
                       ),
                     ),
@@ -320,7 +367,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ),
           ),
 
-          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
+          Positioned(
+              right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
         ],
       ),
     );
@@ -345,7 +393,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 children: [
                   Center(child: _buildLayeredCover(book)),
                   const SizedBox(height: 20),
-                  SizedBox(width: double.infinity, child: _buildLayeredHeader(book)),
+                  SizedBox(
+                      width: double.infinity, child: _buildLayeredHeader(book)),
                   const SizedBox(height: 20),
                   // 内容模块（顺序/显隐可在设置中调整）
                   ..._orderedModules(book, colors, 2),
@@ -354,7 +403,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ),
           ),
           _buildStandardTopBar(book.title, colors),
-          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
+          Positioned(
+              right: 16, bottom: 24, child: _buildFloatingActionButtons(book)),
         ],
       ),
     );
@@ -366,10 +416,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
 
     // 复用毛玻璃样式的滚动控制器（同一时刻只会有一个样式生效）
-    _overlayScrollController ??= ScrollController()..addListener(() {
-      final show = (_overlayScrollController?.offset ?? 0) > 10;
-      if (_showTitle.value != show) _showTitle.value = show;
-    });
+    _overlayScrollController ??= ScrollController()
+      ..addListener(() {
+        final show = (_overlayScrollController?.offset ?? 0) > 10;
+        if (_showTitle.value != show) _showTitle.value = show;
+      });
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -384,7 +435,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 Positioned.fill(
                   child: hasCover
                       ? Image(
-                          image: ResizeImage(FileImage(File(book.coverPath!)), width: 1080),
+                          image: ResizeImage(FileImage(File(book.coverPath!)),
+                              width: 1080),
                           fit: BoxFit.cover)
                       : Container(color: colors.surfaceContainerHighest),
                 ),
@@ -409,8 +461,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: colors.surface,
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +478,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           // 顶部导航栏：滚动后变为 surface 底并显示标题
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: ValueListenableBuilder<bool>(
               valueListenable: _showTitle,
               builder: (_, show, __) => AnimatedContainer(
@@ -447,11 +501,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         opacity: show ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 200),
                         child: Text(book.title,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: colors.onSurface),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                       ),
                     ),
                     _buildStyleButton(
@@ -476,47 +531,70 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
     final meta = <String>[
       if (book.publishDate != null) '${book.publishDate!.year}',
-      if (book.publisher != null && book.publisher!.isNotEmpty)
-        book.publisher!,
+      if (book.publisher != null && book.publisher!.isNotEmpty) book.publisher!,
       ...book.genres,
     ].join(' · ');
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 104, height: 150,
+          width: 104,
+          height: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4))
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: hasCover
               ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
-              : Container(color: Colors.white24, child: const Icon(Icons.menu_book, color: Colors.white38, size: 32)),
+              : Container(
+                  color: Colors.white24,
+                  child: const Icon(Icons.menu_book,
+                      color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 2),
             Text(book.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, height: 1.3)),
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.3)),
             if (book.alternateTitles.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(book.alternateTitles.join(' / '),
-                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5), height: 1.4),
-                maxLines: 2, overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      height: 1.4),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
             ],
             if (book.authors.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(book.authors.join(' / '),
-                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.65)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ],
             if (meta.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(meta,
-                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
-                maxLines: 2, overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.65)),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
             ],
             const SizedBox(height: 10),
             Row(children: [
@@ -524,20 +602,26 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 const Icon(Icons.star, size: 18, color: Color(0xFFFFB800)),
                 const SizedBox(width: 4),
                 Text(book.rating!.toStringAsFixed(1),
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFFFFB800))),
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFFB800))),
                 const SizedBox(width: 12),
               ],
               _statusChip(book.status),
             ]),
             if (book.finishDate != null || book.readCount > 0) ...[
               const SizedBox(height: 8),
-              Text([
-                if (book.finishDate != null)
-                  '${'读完'.tr} ${_formatDate(book.finishDate!)}',
-                if (book.readCount > 0)
-                  '共 {n} 次'.trf({'n': book.readCount}),
-              ].join(' · '),
-                style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45))),
+              Text(
+                  [
+                    if (book.finishDate != null)
+                      '${'读完'.tr} ${_formatDate(book.finishDate!)}',
+                    if (book.readCount > 0)
+                      '共 {n} 次'.trf({'n': book.readCount}),
+                  ].join(' · '),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.45))),
             ],
           ]),
         ),
@@ -550,18 +634,26 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final colors = Theme.of(context).colorScheme;
     final hasCover = book.coverPath != null && book.coverPath!.isNotEmpty;
     return Container(
-      width: 160, height: 230,
+      width: 160,
+      height: 230,
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: hasCover
-            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 20, offset: const Offset(0, 8))]
+            ? [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8))
+              ]
             : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: hasCover
           ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
-          : Center(child: Icon(Icons.menu_book, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
+          : Center(
+              child: Icon(Icons.menu_book,
+                  size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
     );
   }
 
@@ -572,28 +664,44 @@ class _BookDetailPageState extends State<BookDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(book.title,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3)),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
+                height: 1.3)),
         if (book.alternateTitles.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(book.alternateTitles.join(' / '),
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: colors.onSurface.withValues(alpha: 0.4),
+                  height: 1.4)),
         ],
         const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          if (book.rating != null) ...[
-            Icon(Icons.star, size: 20, color: colors.onSurface),
-            const SizedBox(width: 4),
-            Text(book.rating!.toStringAsFixed(1),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          ],
-          _buildStatusTag(book),
-          _buildCategoryTag(book),
-        ]),
+        Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (book.rating != null) ...[
+                Icon(Icons.star, size: 20, color: colors.onSurface),
+                const SizedBox(width: 4),
+                Text(book.rating!.toStringAsFixed(1),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
+              ],
+              _buildStatusTag(book),
+              _buildCategoryTag(book),
+            ]),
         const SizedBox(height: 8),
         Text('添加于 {date}'.trf({'date': _formatDate(book.createdAt)}),
-          style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+            style: TextStyle(
+                fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
       ],
     );
   }
@@ -612,8 +720,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 64, child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-          Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
+          SizedBox(
+              width: 64,
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(
+              child: Text(value,
+                  style: TextStyle(
+                      fontSize: 15, color: colors.onSurface, height: 1.5))),
         ],
       ),
     );
@@ -634,16 +750,29 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 64, child: Text('阅读日期'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
+          SizedBox(
+              width: 64,
+              child: Text('阅读日期'.tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurface.withValues(alpha: 0.4)))),
           Expanded(
             child: Wrap(spacing: 12, runSpacing: 8, children: [
-              if (book.startDate != null) _buildDateChip('开始'.tr, book.startDate!, false),
-              if (book.finishDate != null) _buildDateChip('读完'.tr, book.finishDate!, false),
+              if (book.startDate != null)
+                _buildDateChip('开始'.tr, book.startDate!, false),
+              if (book.finishDate != null)
+                _buildDateChip('读完'.tr, book.finishDate!, false),
               if (book.readCount > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-                  child: Text('共 {n} 次'.trf({'n': book.readCount}), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.7))),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(6)),
+                  child: Text('共 {n} 次'.trf({'n': book.readCount}),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: colors.onSurface.withValues(alpha: 0.7))),
                 ),
             ]),
           ),
@@ -667,13 +796,29 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 64, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-          Expanded(child: Wrap(spacing: 8, runSpacing: 8,
-            children: book.genres.map((g) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
-              child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-            )).toList(),
+          SizedBox(
+              width: 64,
+              child: Text('类型'.tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(
+              child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: book.genres
+                .map((g) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Text(g,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: colors.onSurface.withValues(alpha: 0.6))),
+                    ))
+                .toList(),
           )),
         ],
       ),
@@ -694,12 +839,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 4, height: 14, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+          Container(
+              width: 4,
+              height: 14,
+              decoration: BoxDecoration(
+                  color: colors.onSurface,
+                  borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          Text('简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text('简介'.tr,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface)),
         ]),
         const SizedBox(height: 12),
-        Text(book.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+        MarkdownLinkText(
+          data: book.summary!,
+          style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8),
+        ),
       ]),
     );
   }
@@ -725,11 +882,19 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }) =>
         frosted
             ? _buildFrostedExtraItem(
-                icon: icon, title: title, subtitleFuture: subtitleFuture,
-                emptyText: emptyText, unit: unit, onTap: onTap)
+                icon: icon,
+                title: title,
+                subtitleFuture: subtitleFuture,
+                emptyText: emptyText,
+                unit: unit,
+                onTap: onTap)
             : _buildExtraSectionItem(
-                icon: icon, title: title, subtitleFuture: subtitleFuture,
-                emptyText: emptyText, unit: unit, onTap: onTap);
+                icon: icon,
+                title: title,
+                subtitleFuture: subtitleFuture,
+                emptyText: emptyText,
+                unit: unit,
+                onTap: onTap);
 
     return [
       for (final e in UserPrefs().getDetailExtraItems('book'))
@@ -742,29 +907,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 icon: Icons.menu_book_outlined,
                 frosted: frosted,
               ),
-            'reviews' => item(
-                icon: Icons.rate_review_outlined,
-                title: '书评'.tr,
-                subtitleFuture: context.read<AppProvider>().getBookReviewCount(book.id),
-                emptyText: '暂无书评'.tr,
-                unit: '条书评'.tr,
-                onTap: () => _navigateToReviews(book),
-              ),
             'excerpts' => item(
                 icon: Icons.format_quote_outlined,
                 title: '摘抄'.tr,
-                subtitleFuture: context.read<AppProvider>().getBookExcerptCount(book.id),
+                subtitleFuture:
+                    context.read<AppProvider>().getBookExcerptCount(book.id),
                 emptyText: '暂无摘抄'.tr,
                 unit: '条摘抄'.tr,
                 onTap: () => _navigateToExcerpts(book),
-              ),
-            'characters' => item(
-                icon: Icons.people_outline,
-                title: '角色'.tr,
-                subtitleFuture: context.read<AppProvider>().getBookCharacterCount(book.id),
-                emptyText: '暂无角色'.tr,
-                unit: '个角色'.tr,
-                onTap: () => _navigateToCharacters(book),
               ),
             _ => const SizedBox.shrink(),
           },
@@ -777,9 +927,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
     if (children.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        Container(
+            width: 4,
+            height: 16,
+            decoration: BoxDecoration(
+                color: colors.onSurface,
+                borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('更多'.tr,
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
       ..._withGaps(children, 10),
@@ -794,15 +953,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
       children: [
         // 封面缩略图
         Container(
-          width: 100, height: 140,
+          width: 100,
+          height: 140,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4))
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: hasCover
               ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover)
-              : Container(color: Colors.white24, child: const Icon(Icons.menu_book, color: Colors.white38, size: 32)),
+              : Container(
+                  color: Colors.white24,
+                  child: const Icon(Icons.menu_book,
+                      color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
         // 标题 + 信息
@@ -811,17 +979,28 @@ class _BookDetailPageState extends State<BookDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 4),
-              Text(book.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(book.title,
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
               if (book.authors.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(book.authors.join(' / '), style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+                Text(book.authors.join(' / '),
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.6))),
               ],
               const SizedBox(height: 12),
               Row(children: [
                 if (book.rating != null && book.rating! > 0) ...[
                   const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
                   const SizedBox(width: 4),
-                  Text(book.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
+                  Text(book.rating!.toStringAsFixed(1),
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFFFB800))),
                   const SizedBox(width: 16),
                 ],
                 _statusChip(book.status),
@@ -908,7 +1087,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildStandardTopBar(String title, ColorScheme colors) {
     final topPadding = MediaQuery.of(context).padding.top;
     return Positioned(
-      top: 0, left: 0, right: 0,
+      top: 0,
+      left: 0,
+      right: 0,
       child: Container(
         padding: EdgeInsets.only(top: topPadding),
         color: colors.surface,
@@ -920,8 +1101,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
             const SizedBox(width: 4),
             Expanded(
               child: Text(title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ),
             _buildStyleButton(color: colors.onSurface),
           ]),
@@ -937,28 +1122,38 @@ class _BookDetailPageState extends State<BookDetailPage> {
       builder: (context, constraints) {
         final containerH = constraints.maxHeight;
         return GestureDetector(
-          onLongPressStart: hasCover ? (_) {
-            HapticFeedback.mediumImpact();
-            final ctx = _coverImageKey.currentContext;
-            if (ctx != null) {
-              final box = ctx.findRenderObject() as RenderBox?;
-              if (box != null) _coverImageHeight = box.size.height;
-            }
-            _draggingCover.value = true;
-            _coverDragStartOffset = _coverOffset.value;
-          } : null,
-          onLongPressMoveUpdate: hasCover ? (d) {
-            final raw = _coverDragStartOffset + d.offsetFromOrigin.dy;
-            final imgH = _coverImageHeight > 0 ? _coverImageHeight : containerH;
-            final minOffset = -(imgH - containerH).clamp(0, double.infinity);
-            _coverOffset.value = (raw.clamp(minOffset, 0.0) as double);
-          } : null,
-          onLongPressEnd: hasCover ? (_) {
-            _draggingCover.value = false;
-            final offset = _coverOffset.value;
-            UserPrefs().setCoverOffset(widget.book.id, offset);
-            context.read<AppProvider>().updateBookCoverOffset(widget.book.id, offset);
-          } : null,
+          onLongPressStart: hasCover
+              ? (_) {
+                  HapticFeedback.mediumImpact();
+                  final ctx = _coverImageKey.currentContext;
+                  if (ctx != null) {
+                    final box = ctx.findRenderObject() as RenderBox?;
+                    if (box != null) _coverImageHeight = box.size.height;
+                  }
+                  _draggingCover.value = true;
+                  _coverDragStartOffset = _coverOffset.value;
+                }
+              : null,
+          onLongPressMoveUpdate: hasCover
+              ? (d) {
+                  final raw = _coverDragStartOffset + d.offsetFromOrigin.dy;
+                  final imgH =
+                      _coverImageHeight > 0 ? _coverImageHeight : containerH;
+                  final minOffset =
+                      -(imgH - containerH).clamp(0, double.infinity);
+                  _coverOffset.value = (raw.clamp(minOffset, 0.0) as double);
+                }
+              : null,
+          onLongPressEnd: hasCover
+              ? (_) {
+                  _draggingCover.value = false;
+                  final offset = _coverOffset.value;
+                  UserPrefs().setCoverOffset(widget.book.id, offset);
+                  context
+                      .read<AppProvider>()
+                      .updateBookCoverOffset(widget.book.id, offset);
+                }
+              : null,
           child: ValueListenableBuilder<double>(
             valueListenable: _coverOffset,
             builder: (context, offset, _) {
@@ -971,7 +1166,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         children: [
                           Positioned(
                             top: offset,
-                            left: 0, right: 0,
+                            left: 0,
+                            right: 0,
                             child: FadeInLocalImage(
                               key: _coverImageKey,
                               path: book.coverPath,
@@ -992,7 +1188,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         children: [
                           if (!dragging)
                             Positioned(
-                              left: 0, right: 0, bottom: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
                               child: IgnorePointer(
                                 child: Container(
                                   height: 60,
@@ -1011,19 +1209,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             ),
                           if (dragging) ...[
                             Positioned.fill(
-                              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+                              child: Container(
+                                  color: Colors.black.withValues(alpha: 0.3)),
                             ),
                             Positioned(
-                              left: 0, right: 0, bottom: 20,
+                              left: 0,
+                              right: 0,
+                              bottom: 20,
                               child: Center(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text('上下滑动调整图片位置'.tr,
-                                      style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                                      style: const TextStyle(
+                                          fontSize: 13, color: Colors.white70)),
                                 ),
                               ),
                             ),
@@ -1077,31 +1280,75 @@ class _BookDetailPageState extends State<BookDetailPage> {
   void _showStylePicker() {
     final colors = Theme.of(context).colorScheme;
     const names = ['默认样式', '毛玻璃层叠', '浅色极简', '豆瓣风格'];
-    const icons = [Icons.article_outlined, Icons.blur_on_outlined, Icons.layers_outlined, Icons.art_track_outlined];
-    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片', '封面卡片 + 浅色信息卡片层叠', '封面左置 + 模糊背景信息头'];
+    const icons = [
+      Icons.article_outlined,
+      Icons.blur_on_outlined,
+      Icons.layers_outlined,
+      Icons.art_track_outlined
+    ];
+    const subtitles = [
+      '标准封面顶部布局',
+      '封面背景 + 毛玻璃卡片',
+      '封面卡片 + 浅色信息卡片层叠',
+      '封面左置 + 模糊背景信息头'
+    ];
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('详情页样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(
+              alignment: Alignment.centerLeft,
+              child: Text('详情页样式'.tr,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < names.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(icons[i], size: 20, color: _detailStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(names[i].tr, style: TextStyle(fontSize: 13, fontWeight: _detailStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(icons[i],
+                      size: 20,
+                      color: _detailStyle == i
+                          ? colors.primary
+                          : colors.onSurface.withValues(alpha: 0.6))),
+              title: Text(names[i].tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          _detailStyle == i ? FontWeight.w600 : FontWeight.w500,
+                      color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: _detailStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
-                  : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyleForType('book', i); Navigator.pop(ctx); },
+                  : Icon(Icons.chevron_right,
+                      color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () {
+                setState(() => _detailStyle = i);
+                UserPrefs().setDetailPageStyleForType('book', i);
+                Navigator.pop(ctx);
+              },
             ),
           ],
           const SizedBox(height: 12),
@@ -1118,8 +1365,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final c = AppTheme.statusChipColors(Theme.of(context).colorScheme, status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: c.bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(label.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.fg)),
+      decoration:
+          BoxDecoration(color: c.bg, borderRadius: BorderRadius.circular(12)),
+      child: Text(label.tr,
+          style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w600, color: c.fg)),
     );
   }
 
@@ -1269,7 +1519,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1279,7 +1530,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '作者'.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay
+                    ? const Color(0x66FFFFFF)
+                    : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -1302,7 +1555,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1312,7 +1566,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '译者'.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay
+                    ? const Color(0x66FFFFFF)
+                    : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -1335,7 +1591,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1345,7 +1602,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
               'ISBN',
               style: TextStyle(
                 fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay
+                    ? const Color(0x66FFFFFF)
+                    : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -1368,7 +1627,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1378,7 +1638,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '出版社'.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay
+                    ? const Color(0x66FFFFFF)
+                    : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -1401,7 +1663,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1411,13 +1674,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '出版时间'.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay
+                    ? const Color(0x66FFFFFF)
+                    : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
           Expanded(
             child: Text(
-              '{y}年{m}月'.trf({'y': book.publishDate!.year, 'm': book.publishDate!.month.toString().padLeft(2, '0')}),
+              '{y}年{m}月'.trf({
+                'y': book.publishDate!.year,
+                'm': book.publishDate!.month.toString().padLeft(2, '0')
+              }),
               style: TextStyle(
                 fontSize: 15,
                 color: isOverlay ? Colors.white : colors.onSurface,
@@ -1437,7 +1705,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
       children: [
         if (book.startDate != null || book.finishDate != null)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+            padding: EdgeInsets.symmetric(
+                horizontal: 24, vertical: isOverlay ? 5 : 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1447,7 +1716,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     '阅读日期'.tr,
                     style: TextStyle(
                       fontSize: 13,
-                      color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                      color: isOverlay
+                          ? const Color(0x66FFFFFF)
+                          : colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ),
@@ -1468,7 +1739,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
         if (book.readCount > 0)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 4),
+            padding: EdgeInsets.symmetric(
+                horizontal: 24, vertical: isOverlay ? 5 : 4),
             child: Row(
               children: [
                 SizedBox(
@@ -1477,14 +1749,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     '阅读次数'.tr,
                     style: TextStyle(
                       fontSize: 13,
-                      color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                      color: isOverlay
+                          ? const Color(0x66FFFFFF)
+                          : colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     '{n} 次'.trf({'n': book.readCount}),
-                    style: TextStyle(fontSize: 13, color: isOverlay ? Colors.white70 : colors.onSurface),
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: isOverlay ? Colors.white70 : colors.onSurface),
                   ),
                 ),
               ],
@@ -1498,7 +1774,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final isOverlay = _detailStyle == 1;
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1508,7 +1785,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
               '阅读时长'.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : colors.onSurface.withValues(alpha: 0.4),
+                color: isOverlay
+                    ? const Color(0x66FFFFFF)
+                    : colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -1545,14 +1824,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isOverlay ? Colors.white.withValues(alpha: 0.12) : colors.surfaceContainerHighest,
+        color: isOverlay
+            ? Colors.white.withValues(alpha: 0.12)
+            : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         '$label ${_formatDate(date)}',
         style: TextStyle(
           fontSize: 13,
-          color: isOverlay ? Colors.white.withValues(alpha: 0.85) : colors.onSurface.withValues(alpha: 0.7),
+          color: isOverlay
+              ? Colors.white.withValues(alpha: 0.85)
+              : colors.onSurface.withValues(alpha: 0.7),
         ),
       ),
     );
@@ -1561,19 +1844,30 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildGenresSection(Book book) {
     final isOverlay = _detailStyle == 1;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
+      padding:
+          EdgeInsets.symmetric(horizontal: 24, vertical: isOverlay ? 5 : 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 48,
-            child: Text('类型'.tr, style: TextStyle(fontSize: 13,
-                color: isOverlay ? const Color(0x66FFFFFF) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))),
+            child: Text('类型'.tr,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isOverlay
+                        ? const Color(0x66FFFFFF)
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.4))),
           ),
           Expanded(
             child: Wrap(
-              spacing: 8, runSpacing: 8,
-              children: book.genres.map((g) => _buildGenreChip(g, isOverlay)).toList(),
+              spacing: 8,
+              runSpacing: 8,
+              children: book.genres
+                  .map((g) => _buildGenreChip(g, isOverlay))
+                  .toList(),
             ),
           ),
         ],
@@ -1593,7 +1887,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
               color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Text(label, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85))),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13, color: Colors.white.withValues(alpha: 0.85))),
           ),
         ),
       );
@@ -1605,7 +1901,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
         color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(label, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
     );
   }
 
@@ -1649,13 +1947,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  book.summary!,
+                child: MarkdownLinkText(
+                  data: book.summary!,
                   style: TextStyle(
                     fontSize: 15,
                     color: isOverlay ? Colors.white : colors.onSurface,
                     height: 1.8,
                   ),
+                  linkColor:
+                      isOverlay ? Colors.lightBlueAccent : colors.primary,
                 ),
               ),
             ),
@@ -1738,24 +2038,37 @@ class _BookDetailPageState extends State<BookDetailPage> {
               onTap: onTap,
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(children: [
-                  Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.7)),
+                  Icon(icon,
+                      size: 20, color: Colors.white.withValues(alpha: 0.7)),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-                      FutureBuilder<int>(
-                        future: subtitleFuture,
-                        builder: (ctx, snap) {
-                          final count = snap.data ?? 0;
-                          return Text(count > 0 ? '$count $unit' : emptyText,
-                            style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)));
-                        },
-                      ),
-                    ]),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white)),
+                          FutureBuilder<int>(
+                            future: subtitleFuture,
+                            builder: (ctx, snap) {
+                              final count = snap.data ?? 0;
+                              return Text(
+                                  count > 0 ? '$count $unit' : emptyText,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.5)));
+                            },
+                          ),
+                        ]),
                   ),
-                  Icon(Icons.chevron_right, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                  Icon(Icons.chevron_right,
+                      size: 16, color: Colors.white.withValues(alpha: 0.3)),
                 ]),
               ),
             ),
@@ -1839,15 +2152,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  void _navigateToReviews(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookReviewsPage(book: book),
-      ),
-    );
-  }
-
   void _navigateToExcerpts(Book book) {
     Navigator.push(
       context,
@@ -1882,7 +2186,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   void _navigateToEdit(BuildContext context) {
     final provider = context.read<AppProvider>();
-    Navigator.pushNamed(context, '/book-form', arguments: widget.book).then((_) {
+    Navigator.pushNamed(context, '/book-form', arguments: widget.book)
+        .then((_) {
       provider.setEditRefresh(widget.book.id);
       provider.loadBooks();
     });
@@ -1947,13 +2252,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
-
-
-
 
   void _showSharePoster(Book book) {
     Navigator.push(

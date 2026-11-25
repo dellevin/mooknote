@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/markdown_utils.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -592,7 +593,7 @@ class _ReviewBrowsePageState extends State<ReviewBrowsePage> {
             ],
             // 正文
             Text(
-              item.content,
+              markdownToPlainText(item.content),
               maxLines: contentMaxLines,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

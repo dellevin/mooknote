@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../utils/markdown_utils.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -364,7 +365,7 @@ class _MovieSharePageState extends State<MovieSharePage> {
             const SizedBox(height: 16),
             Text('简介'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 8),
-            Text(movie.summary!, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6), maxLines: 5, overflow: TextOverflow.ellipsis),
+            Text(markdownToPlainText(movie.summary!), style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6), height: 1.6), maxLines: 5, overflow: TextOverflow.ellipsis),
           ],
           const SizedBox(height: 20),
           Divider(height: 1, color: colors.outline),

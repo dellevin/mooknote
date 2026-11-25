@@ -399,51 +399,51 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
                 Text(isEdit ? '重命名模块'.tr : '新建模块'.tr,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  autofocus: !isEdit,
-                  maxLength: 10,
-                  style: TextStyle(fontSize: 15, color: colors.onSurface),
-                  decoration: InputDecoration(
-                    hintText: '模块名称（如：追剧、播客）'.tr,
-                    hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
-                    counterStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text('图标'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5))),
-                const SizedBox(height: 8),
-                // FontAwesome 图标网格，上下滑动选择；再次点击已选图标可取消
-                SizedBox(
-                  height: 200,
-                  child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 6,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemCount: kCustomModuleIcons.length,
-                    itemBuilder: (ctx, i) {
-                      final iconData = kCustomModuleIcons[i];
-                      final iconKey = iconData.codePoint.toString();
-                      final selected = selectedIcon == iconKey;
-                      return GestureDetector(
-                        onTap: () => setSheetState(() => selectedIcon = selected ? '' : iconKey),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: selected ? colors.primary : colors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            iconData,
-                            size: 17,
-                            color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Tooltip(
+                      message: '选择图标'.tr,
+                      child: Material(
+                        color: colors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            FocusScope.of(ctx).unfocus();
+                            final icon = await _showModuleIconPicker(ctx, selectedIcon);
+                            if (icon == null || !ctx.mounted) return;
+                            setSheetState(() => selectedIcon = icon);
+                          },
+                          child: SizedBox(
+                            width: 56,
+                            height: 56,
+                            child: Center(
+                              child: buildCustomModuleIcon(
+                                selectedIcon,
+                                size: 22,
+                                color: colors.primary,
+                              ),
+                            ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        autofocus: !isEdit,
+                        maxLength: 10,
+                        style: TextStyle(fontSize: 15, color: colors.onSurface),
+                        decoration: InputDecoration(
+                          hintText: '模块名称（如：追剧、播客）'.tr,
+                          hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.35)),
+                          counterStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -470,6 +470,58 @@ class _CustomModuleManagePageState extends State<CustomModuleManagePage> {
             ),
           ),
         ),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _showModuleIconPicker(BuildContext context, String selectedIcon) {
+    final colors = Theme.of(context).colorScheme;
+    return appDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          '选择图标'.tr,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        content: SizedBox(
+          width: 320,
+          height: 320,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 6,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: kCustomModuleIcons.length + 1,
+            itemBuilder: (context, index) {
+              final isDefault = index == 0;
+              final iconData = isDefault
+                  ? Icons.dashboard_customize_outlined
+                  : kCustomModuleIcons[index - 1];
+              final iconKey = isDefault ? '' : iconData.codePoint.toString();
+              final selected = selectedIcon == iconKey;
+              return InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => Navigator.pop(dialogContext, iconKey),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: selected ? colors.primary : colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    iconData,
+                    size: 17,
+                    color: selected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

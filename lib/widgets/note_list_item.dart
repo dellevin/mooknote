@@ -6,6 +6,7 @@ import 'fade_in_local_image.dart';
 import 'pressable_scale.dart';
 import '../widgets/app_overlay.dart';
 import '../l10n/app_strings.dart';
+import '../utils/markdown_utils.dart';
 
 /// 笔记列表项组件 - 卡片式设计，内容展示在卡片内
 class NoteListItem extends StatelessWidget {
@@ -189,7 +190,7 @@ class _NoteListItemContent extends StatelessWidget {
   }
 
   String _getPreviewText(Note note) {
-    return _collapseBlankLines(_cleanMarkdown(note.content).trim());
+    return markdownToPlainText(note.content);
   }
 
   void _showActions(BuildContext context) {
@@ -324,22 +325,7 @@ class _NoteListItemContent extends StatelessWidget {
     );
   }
 
-  String _cleanMarkdown(String text) {
-    return text
-        .replaceAll(RegExp(r'^#+\s+', multiLine: true), '')
-        .replaceAll(RegExp(r'\*\*(.+?)\*\*'), r'$1')
-        .replaceAll(RegExp(r'\*(.+?)\*'), r'$1')
-        .replaceAll(RegExp(r'`(.+?)`'), r'$1')
-        .replaceAll(RegExp(r'^\s*[-*+]\s', multiLine: true), '')
-        .replaceAll(RegExp(r'^\s*>\s', multiLine: true), '')
-        .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1')
-        .replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]+\)'), '')
-        .trim();
-  }
 
-  String _collapseBlankLines(String text) {
-    return text.replaceAll(RegExp(r'\n\s*\n+'), '\n');
-  }
 }
 
 String _formatDate(DateTime date) {

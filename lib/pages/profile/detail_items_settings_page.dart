@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
@@ -26,6 +27,12 @@ class DetailItemsSettingsPage extends StatefulWidget {
 class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   late List<({String id, bool visible})> _items;
+  late bool _reviewShowPreview;
+  late int _reviewPreviewCount;
+  late final TextEditingController _reviewPreviewCountController;
+  late bool _characterShowPreview;
+  late int _characterPreviewCount;
+  late final TextEditingController _characterPreviewCountController;
 
   @override
   void initState() {
@@ -33,6 +40,22 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
     _items = widget.isExtra
         ? _userPrefs.getDetailExtraItems(widget.type)
         : _userPrefs.getDetailModules(widget.type);
+    _reviewShowPreview = _userPrefs.detailReviewShowPreview(widget.type);
+    _reviewPreviewCount = _userPrefs.detailReviewPreviewCount(widget.type);
+    _reviewPreviewCountController =
+        TextEditingController(text: '$_reviewPreviewCount');
+    _characterShowPreview = _userPrefs.detailCharacterShowPreview(widget.type);
+    _characterPreviewCount =
+        _userPrefs.detailCharacterPreviewCount(widget.type);
+    _characterPreviewCountController =
+        TextEditingController(text: '$_characterPreviewCount');
+  }
+
+  @override
+  void dispose() {
+    _reviewPreviewCountController.dispose();
+    _characterPreviewCountController.dispose();
+    super.dispose();
   }
 
   @override
@@ -58,8 +81,9 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
         buildDefaultDragHandles: false,
         itemCount: _items.length,
         onReorder: _onReorder,
-        itemBuilder: (_, i) =>
-            widget.isExtra ? _buildExtraItem(i, colors) : _buildModuleItem(i, colors),
+        itemBuilder: (_, i) => widget.isExtra
+            ? _buildExtraItem(i, colors)
+            : _buildModuleItem(i, colors),
       ),
     );
   }
@@ -105,6 +129,20 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
               child: _modulePreview(m.id, colors),
             ),
           ),
+          if (m.id == 'reviews' || m.id == 'characters') ...[
+            const SizedBox(height: 14),
+            Divider(height: 0.5, color: colors.outlineVariant),
+            const SizedBox(height: 12),
+            IgnorePointer(
+              ignoring: !m.visible,
+              child: Opacity(
+                opacity: m.visible ? 1 : 0.35,
+                child: m.id == 'reviews'
+                    ? _buildReviewDisplaySettings(colors)
+                    : _buildCharacterDisplaySettings(colors),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -193,8 +231,10 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
       'genres' => Wrap(spacing: 8, runSpacing: 8, children: [
           for (final w in [56.0, 72.0, 48.0]) _bar(colors, w, height: 26),
         ]),
-      // 角色 / 关联人物：一排圆形头像 + 名字
-      'characters' || 'people' => Row(children: [
+      // 角色：按当前展示模式显示缩略预览
+      'characters' => _characterModulePreview(colors),
+      // 关联人物：一排圆形头像 + 名字
+      'people' => Row(children: [
           for (int i = 0; i < 4; i++)
             Padding(
               padding: const EdgeInsets.only(right: 20),
@@ -223,36 +263,8 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
             _bar(colors, 180),
           ],
         ),
-      // 影评/书评/评价预览：带头像与标题的卡片
-      'reviews' => Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: colors.outlineVariant, width: 0.5),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.onSurface.withValues(alpha: 0.08),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _bar(colors, 72),
-              ]),
-              const SizedBox(height: 12),
-              _bar(colors, double.infinity, height: 8),
-              const SizedBox(height: 8),
-              _bar(colors, 140, height: 8),
-            ],
-          ),
-        ),
+      // 影评/书评/游戏评价：按当前展示模式显示缩略预览
+      'reviews' => _reviewModulePreview(colors),
       // 更多入口：入口卡片
       'extra' => Row(children: [
           Container(
@@ -277,6 +289,256 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
     };
   }
 
+  Widget _characterModulePreview(ColorScheme colors) {
+    if (!_characterShowPreview) {
+      return Row(children: [
+        Icon(Icons.people_outline,
+            size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+        const SizedBox(width: 8),
+        Text(
+          '共 {n} 个'.trf({'n': _characterPreviewCount}),
+          style: TextStyle(
+              fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+        ),
+      ]);
+    }
+    final visibleCount = _characterPreviewCount.clamp(1, 4);
+    return Row(children: [
+      for (int i = 0; i < visibleCount; i++)
+        Padding(
+          padding: const EdgeInsets.only(right: 20),
+          child: Column(children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.onSurface.withValues(alpha: 0.08),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _bar(colors, 32, height: 8),
+          ]),
+        ),
+    ]);
+  }
+
+  Widget _reviewModulePreview(ColorScheme colors) {
+    if (!_reviewShowPreview) {
+      return Row(children: [
+        Icon(Icons.rate_review_outlined,
+            size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+        const SizedBox(width: 8),
+        Text(
+          '共 {n} 条'.trf({'n': _reviewPreviewCount}),
+          style: TextStyle(
+              fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)),
+        ),
+      ]);
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.onSurface.withValues(alpha: 0.08),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _bar(colors, 72),
+          ]),
+          const SizedBox(height: 12),
+          _bar(colors, double.infinity, height: 8),
+          const SizedBox(height: 8),
+          _bar(colors, 140, height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewDisplaySettings(ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('展示方式'.tr,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text('仅显示评价数量'.tr),
+              selected: !_reviewShowPreview,
+              onSelected: (_) => _setReviewShowPreview(false),
+            ),
+            ChoiceChip(
+              label: Text('显示评价预览'.tr),
+              selected: _reviewShowPreview,
+              onSelected: (_) => _setReviewShowPreview(true),
+            ),
+          ],
+        ),
+        if (_reviewShowPreview) ...[
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: Text('预览数量（1-10）'.tr,
+                  style: TextStyle(fontSize: 13, color: colors.onSurface)),
+            ),
+            SizedBox(
+              width: 64,
+              child: TextField(
+                controller: _reviewPreviewCountController,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                textAlign: TextAlign.center,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(2),
+                ],
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: _onReviewPreviewCountChanged,
+                onEditingComplete: _normalizeReviewPreviewCount,
+                onTapOutside: (_) => _normalizeReviewPreviewCount(),
+              ),
+            ),
+          ]),
+        ],
+      ],
+    );
+  }
+
+  void _setReviewShowPreview(bool value) {
+    if (_reviewShowPreview == value) return;
+    setState(() => _reviewShowPreview = value);
+    _userPrefs.setDetailReviewShowPreview(widget.type, value);
+  }
+
+  void _onReviewPreviewCountChanged(String value) {
+    final parsed = int.tryParse(value);
+    if (parsed == null || parsed < 1 || parsed > 10) return;
+    _reviewPreviewCount = parsed;
+    _userPrefs.setDetailReviewPreviewCount(widget.type, parsed);
+  }
+
+  void _normalizeReviewPreviewCount() {
+    final parsed = int.tryParse(_reviewPreviewCountController.text);
+    final normalized = (parsed ?? _reviewPreviewCount).clamp(1, 10);
+    _reviewPreviewCount = normalized;
+    _reviewPreviewCountController.value = TextEditingValue(
+      text: '$normalized',
+      selection: TextSelection.collapsed(offset: '$normalized'.length),
+    );
+    _userPrefs.setDetailReviewPreviewCount(widget.type, normalized);
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Widget _buildCharacterDisplaySettings(ColorScheme colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('展示方式'.tr,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text('仅显示角色数量'.tr),
+              selected: !_characterShowPreview,
+              onSelected: (_) => _setCharacterShowPreview(false),
+            ),
+            ChoiceChip(
+              label: Text('显示角色预览'.tr),
+              selected: _characterShowPreview,
+              onSelected: (_) => _setCharacterShowPreview(true),
+            ),
+          ],
+        ),
+        if (_characterShowPreview) ...[
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: Text('预览数量（1-10）'.tr,
+                  style: TextStyle(fontSize: 13, color: colors.onSurface)),
+            ),
+            SizedBox(
+              width: 64,
+              child: TextField(
+                controller: _characterPreviewCountController,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                textAlign: TextAlign.center,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(2),
+                ],
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: _onCharacterPreviewCountChanged,
+                onEditingComplete: _normalizeCharacterPreviewCount,
+                onTapOutside: (_) => _normalizeCharacterPreviewCount(),
+              ),
+            ),
+          ]),
+        ],
+      ],
+    );
+  }
+
+  void _setCharacterShowPreview(bool value) {
+    if (_characterShowPreview == value) return;
+    setState(() => _characterShowPreview = value);
+    _userPrefs.setDetailCharacterShowPreview(widget.type, value);
+  }
+
+  void _onCharacterPreviewCountChanged(String value) {
+    final parsed = int.tryParse(value);
+    if (parsed == null || parsed < 1 || parsed > 10) return;
+    _characterPreviewCount = parsed;
+    _userPrefs.setDetailCharacterPreviewCount(widget.type, parsed);
+  }
+
+  void _normalizeCharacterPreviewCount() {
+    final parsed = int.tryParse(_characterPreviewCountController.text);
+    final normalized = (parsed ?? _characterPreviewCount).clamp(1, 10);
+    _characterPreviewCount = normalized;
+    _characterPreviewCountController.value = TextEditingValue(
+      text: '$normalized',
+      selection: TextSelection.collapsed(offset: '$normalized'.length),
+    );
+    _userPrefs.setDetailCharacterPreviewCount(widget.type, normalized);
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   Widget _bar(ColorScheme colors, double width, {double height = 10}) {
     return Container(
       width: width,
@@ -296,10 +558,8 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
           'game' => Icons.flag_outlined,
           _ => Icons.video_library_outlined,
         },
-      'reviews' => Icons.rate_review_outlined,
       'posters' || 'screenshots' => Icons.photo_library_outlined,
       'excerpts' => Icons.format_quote_outlined,
-      'characters' => Icons.people_outline,
       _ => Icons.grid_view_outlined,
     };
   }
@@ -315,15 +575,9 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
             'game' => '游戏进度',
             _ => '观看进度',
           },
-        'reviews' => switch (widget.type) {
-            'book' => '书评',
-            'game' => '游戏评价',
-            _ => '影评',
-          },
         'posters' => '海报墙',
         'excerpts' => '摘抄',
         'screenshots' => '游戏截图',
-        'characters' => '角色',
         _ => id,
       };
     }
@@ -338,9 +592,9 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
       'people' => '关联人物',
       'summary' => '简介',
       'reviews' => switch (widget.type) {
-          'book' => '书评预览',
-          'game' => '评价预览',
-          _ => '影评预览',
+          'book' => '书评',
+          'game' => '游戏评价',
+          _ => '影评',
         },
       'extra' => '更多入口',
       _ => id,
@@ -378,8 +632,22 @@ class _DetailItemsSettingsPageState extends State<DetailItemsSettingsPage> {
             : UserPrefs.detailModuleIds)
           (id: id, visible: true)
       ];
+      if (!widget.isExtra) {
+        _reviewShowPreview = true;
+        _reviewPreviewCount = 3;
+        _reviewPreviewCountController.text = '3';
+        _characterShowPreview = true;
+        _characterPreviewCount = 4;
+        _characterPreviewCountController.text = '4';
+      }
     });
     _save();
+    if (!widget.isExtra) {
+      _userPrefs.setDetailReviewShowPreview(widget.type, true);
+      _userPrefs.setDetailReviewPreviewCount(widget.type, 3);
+      _userPrefs.setDetailCharacterShowPreview(widget.type, true);
+      _userPrefs.setDetailCharacterPreviewCount(widget.type, 4);
+    }
     ToastUtil.show(context, '已恢复默认'.tr);
   }
 }

@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../utils/toast_util.dart';
 import 'book_review_form_page.dart';
 import '../../widgets/app_overlay.dart';
+import '../../widgets/markdown_link.dart';
 import '../../widgets/image_grid_editor.dart';
 import '../../widgets/app_back_button.dart';
 import 'package:mooknote/l10n/app_strings.dart';
@@ -42,9 +43,8 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
   Future<void> _refreshReviewData() async {
     final provider = context.read<AppProvider>();
     final reviews = await provider.getBookReviews(widget.bookId);
-    final updatedReview = reviews
-        .where((r) => r.id == widget.review.id)
-        .firstOrNull;
+    final updatedReview =
+        reviews.where((r) => r.id == widget.review.id).firstOrNull;
     if (!mounted) return;
     if (updatedReview != null && updatedReview.id == _review.id) {
       setState(() {
@@ -67,7 +67,8 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
             onPressed: () => _navigateToEdit(context),
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline, size: 20, color: colors.error.withValues(alpha: 0.7)),
+            icon: Icon(Icons.delete_outline,
+                size: 20, color: colors.error.withValues(alpha: 0.7)),
             onPressed: _deleteReview,
           ),
           const SizedBox(width: 4),
@@ -79,8 +80,8 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 书评内容
-            Text(
-              _review.content,
+            MarkdownLinkText(
+              data: _review.content,
               style: TextStyle(
                 fontSize: 16,
                 color: colors.onSurface,
@@ -192,31 +193,47 @@ class _BookReviewDetailPageState extends State<BookReviewDetailPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('确认删除'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('确定要删除这条书评吗？删除后可在回收站恢复。'.tr,
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr,
+                style:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
     if (confirmed == true) {
       if (!mounted) return;
       await context.read<AppProvider>().removeBookReview(_review.id);
-      if (mounted) { ToastUtil.show(context, '已删除'.tr); Navigator.pop(context); }
+      if (mounted) {
+        ToastUtil.show(context, '已删除'.tr);
+        Navigator.pop(context);
+      }
     }
   }
 

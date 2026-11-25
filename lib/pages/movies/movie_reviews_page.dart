@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/markdown_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../providers/app_provider.dart';
@@ -106,6 +107,8 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         onPressed: () => _navigateToAddReview(),
         icon: const Icon(Icons.add, size: 20),
         label: Text('添加影评'.tr),
@@ -203,7 +206,7 @@ class _MovieReviewsPageState extends State<MovieReviewsPage> {
 
             // 评论内容
             Text(
-              review.content,
+              markdownToPlainText(review.content),
               maxLines: review.reviewType == 1 ? 4 : 8,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

@@ -80,6 +80,7 @@ const Map<String, String> enCustomModule = {
   '字段名称': 'Field Name',
   '必填': 'Required',
   '图标': 'Icon',
+  '选择图标': 'Choose Icon',
   '设为标题': 'Set as Title',
   '列表页以此字段作为条目标题（需保留一个标题，可在其他文本字段上开启来更换）':
       'Use this field as the entry title in list view (one title is required; enable it on another text field to switch)',

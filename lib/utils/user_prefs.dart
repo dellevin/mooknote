@@ -28,6 +28,74 @@ class UserPrefs {
     if (!_prefs!.containsKey('deviceId')) {
       await _prefs!.setString('deviceId', const Uuid().v4());
     }
+    await _migrateMergedDetailModule(
+      moduleId: 'reviews',
+      migrationKey: 'detailReviewsMergedV1',
+    );
+    await _migrateMergedDetailModule(
+      moduleId: 'characters',
+      migrationKey: 'detailCharactersMergedV1',
+    );
+  }
+
+  /// 将旧版独立的详情预览和更多入口合并为单一详情板块。
+  static Future<void> _migrateMergedDetailModule({
+    required String moduleId,
+    required String migrationKey,
+  }) async {
+    if (_prefs!.getBool(migrationKey) == true) return;
+
+    List<Map<String, dynamic>>? decodeItems(String? raw) {
+      if (raw == null) return null;
+      try {
+        return (jsonDecode(raw) as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    bool moduleVisible(List<Map<String, dynamic>>? items) {
+      if (items == null) return true;
+      for (final item in items) {
+        if (item['id']?.toString() == moduleId) {
+          return item['visible'] != false;
+        }
+      }
+      return true;
+    }
+
+    for (final type in ['movie', 'book', 'game']) {
+      final moduleKey = 'detailModules_$type';
+      final extraKey = 'detailExtraItems_$type';
+      final modules = decodeItems(_prefs!.getString(moduleKey));
+      final extraItems = decodeItems(_prefs!.getString(extraKey));
+      final mergedVisible = moduleVisible(modules) || moduleVisible(extraItems);
+
+      if (modules != null) {
+        var foundModule = false;
+        for (final module in modules) {
+          if (module['id']?.toString() == moduleId) {
+            module['visible'] = mergedVisible;
+            foundModule = true;
+            break;
+          }
+        }
+        if (!foundModule) {
+          modules.add({'id': moduleId, 'visible': mergedVisible});
+        }
+        await _prefs!.setString(moduleKey, jsonEncode(modules));
+      }
+
+      if (extraItems != null) {
+        extraItems.removeWhere((item) => item['id']?.toString() == moduleId);
+        await _prefs!.setString(extraKey, jsonEncode(extraItems));
+      }
+    }
+
+    await _prefs!.setBool(migrationKey, true);
   }
 
   /// 获取实例
@@ -182,11 +250,35 @@ class UserPrefs {
     );
   }
 
+  /// 评价板块是否显示内容预览；false 时只显示评价数量。
+  bool detailReviewShowPreview(String type) =>
+      prefs.getBool('detailReviewShowPreview_$type') ?? true;
+  Future<bool> setDetailReviewShowPreview(String type, bool value) =>
+      prefs.setBool('detailReviewShowPreview_$type', value);
+
+  /// 评价板块显示的预览条数，按媒体类型独立保存。
+  int detailReviewPreviewCount(String type) =>
+      (prefs.getInt('detailReviewPreviewCount_$type') ?? 3).clamp(1, 10);
+  Future<bool> setDetailReviewPreviewCount(String type, int value) =>
+      prefs.setInt('detailReviewPreviewCount_$type', value.clamp(1, 10));
+
+  /// 角色板块是否显示角色预览；false 时只显示角色数量。
+  bool detailCharacterShowPreview(String type) =>
+      prefs.getBool('detailCharacterShowPreview_$type') ?? true;
+  Future<bool> setDetailCharacterShowPreview(String type, bool value) =>
+      prefs.setBool('detailCharacterShowPreview_$type', value);
+
+  /// 角色板块显示的预览数量，按媒体类型独立保存。
+  int detailCharacterPreviewCount(String type) =>
+      (prefs.getInt('detailCharacterPreviewCount_$type') ?? 4).clamp(1, 10);
+  Future<bool> setDetailCharacterPreviewCount(String type, int value) =>
+      prefs.setInt('detailCharacterPreviewCount_$type', value.clamp(1, 10));
+
   /// 详情页「更多入口」内可配置子项（顺序即默认显示顺序）
   static const Map<String, List<String>> detailExtraItemIds = {
-    'movie': ['progress', 'reviews', 'posters', 'characters'],
-    'book': ['progress', 'reviews', 'excerpts', 'characters'],
-    'game': ['progress', 'reviews', 'screenshots', 'characters'],
+    'movie': ['progress', 'posters'],
+    'book': ['progress', 'excerpts'],
+    'game': ['progress', 'screenshots'],
   };
 
   /// 获取「更多入口」子项配置（按显示顺序），type: movie / book / game。

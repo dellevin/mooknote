@@ -122,7 +122,8 @@ class ProgressConfig<T> {
 
   String itemName(int seq) => itemNoun.trf({'n': seq});
 
-  static final ProgressConfig<MovieEpisode> movie = ProgressConfig<MovieEpisode>(
+  static final ProgressConfig<MovieEpisode> movie =
+      ProgressConfig<MovieEpisode>(
     listTitle: '分集记录',
     seqLabel: '集号',
     itemNoun: '第{n}集',
@@ -157,7 +158,8 @@ class ProgressConfig<T> {
       required createdAt,
       required updatedAt,
       duration = 0,
-    }) => MovieEpisode(
+    }) =>
+        MovieEpisode(
       id: id,
       movieId: parentId,
       episodeNo: seq,
@@ -171,7 +173,16 @@ class ProgressConfig<T> {
       createdAt: createdAt,
       updatedAt: updatedAt,
     ),
-    edit: (e, {seq, title, done, date, rating, review, images, updatedAt, duration}) =>
+    edit: (e,
+            {seq,
+            title,
+            done,
+            date,
+            rating,
+            review,
+            images,
+            updatedAt,
+            duration}) =>
         e.copyWith(
       episodeNo: seq,
       title: title,
@@ -220,7 +231,8 @@ class ProgressConfig<T> {
       required createdAt,
       required updatedAt,
       duration = 0,
-    }) => BookChapter(
+    }) =>
+        BookChapter(
       id: id,
       bookId: parentId,
       chapterNo: seq,
@@ -233,7 +245,16 @@ class ProgressConfig<T> {
       createdAt: createdAt,
       updatedAt: updatedAt,
     ),
-    edit: (c, {seq, title, done, date, rating, review, images, updatedAt, duration}) =>
+    edit: (c,
+            {seq,
+            title,
+            done,
+            date,
+            rating,
+            review,
+            images,
+            updatedAt,
+            duration}) =>
         c.copyWith(
       chapterNo: seq,
       title: title,
@@ -281,7 +302,8 @@ class ProgressConfig<T> {
       required createdAt,
       required updatedAt,
       duration = 0,
-    }) => GameLevel(
+    }) =>
+        GameLevel(
       id: id,
       gameId: parentId,
       levelNo: seq,
@@ -294,7 +316,16 @@ class ProgressConfig<T> {
       createdAt: createdAt,
       updatedAt: updatedAt,
     ),
-    edit: (l, {seq, title, done, date, rating, review, images, updatedAt, duration}) =>
+    edit: (l,
+            {seq,
+            title,
+            done,
+            date,
+            rating,
+            review,
+            images,
+            updatedAt,
+            duration}) =>
         l.copyWith(
       levelNo: seq,
       title: title,
@@ -378,8 +409,9 @@ class _ProgressEntryCardState<T> extends State<ProgressEntryCard<T>> {
     final colors = Theme.of(context).colorScheme;
     final frosted = widget.frosted;
     final titleColor = frosted ? Colors.white : colors.onSurface;
-    final subColor =
-        frosted ? Colors.white.withValues(alpha: 0.5) : colors.onSurface.withValues(alpha: 0.4);
+    final subColor = frosted
+        ? Colors.white.withValues(alpha: 0.5)
+        : colors.onSurface.withValues(alpha: 0.4);
     final iconColor = frosted
         ? Colors.white.withValues(alpha: 0.7)
         : colors.onSurface.withValues(alpha: 0.6);
@@ -410,7 +442,8 @@ class _ProgressEntryCardState<T> extends State<ProgressEntryCard<T>> {
           final items = snap.data ?? <T>[];
           final total = items.length;
           final done = items.where(widget.config.doneOf).length;
-          final rated = items.map(widget.config.ratingOf).whereType<double>().toList();
+          final rated =
+              items.map(widget.config.ratingOf).whereType<double>().toList();
           final avg = rated.isEmpty
               ? null
               : rated.reduce((a, b) => a + b) / rated.length;
@@ -436,12 +469,14 @@ class _ProgressEntryCardState<T> extends State<ProgressEntryCard<T>> {
                               style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: frosted ? Colors.white : colors.primary)),
+                                  color:
+                                      frosted ? Colors.white : colors.primary)),
                       ],
                     ),
                     const SizedBox(height: 6),
                     if (total == 0)
-                      Text('暂无记录'.tr, style: TextStyle(fontSize: 13, color: subColor))
+                      Text('暂无记录'.tr,
+                          style: TextStyle(fontSize: 13, color: subColor))
                     else
                       Row(
                         children: [
@@ -453,16 +488,19 @@ class _ProgressEntryCardState<T> extends State<ProgressEntryCard<T>> {
                                 minHeight: 5,
                                 backgroundColor: frosted
                                     ? Colors.white.withValues(alpha: 0.15)
-                                    : colors.outlineVariant.withValues(alpha: 0.4),
+                                    : colors.outlineVariant
+                                        .withValues(alpha: 0.4),
                               ),
                             ),
                           ),
                           if (avg != null) ...[
                             const SizedBox(width: 10),
-                            const Icon(Icons.star, size: 13, color: Color(0xFFFFB800)),
+                            const Icon(Icons.star,
+                                size: 13, color: Color(0xFFFFB800)),
                             const SizedBox(width: 2),
                             Text(avg.toStringAsFixed(1),
-                                style: TextStyle(fontSize: 12, color: subColor)),
+                                style:
+                                    TextStyle(fontSize: 12, color: subColor)),
                           ],
                         ],
                       ),
@@ -698,21 +736,29 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text('确认删除'.tr,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text(
-            '确定要删除选中的 {n} 条记录吗？此操作不可恢复。'.trf({'n': '$n'}),
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
+        content: Text('确定要删除选中的 {n} 条记录吗？此操作不可恢复。'.trf({'n': '$n'}),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr,
+                style:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.error,
               foregroundColor: colors.onError,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               Navigator.pop(dialogCtx);
@@ -727,7 +773,8 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -741,83 +788,86 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
         if (!didPop) _exitSelect();
       },
       child: Scaffold(
-      appBar: _selecting
-          ? AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: _exitSelect,
-              ),
-              title: Text('已选 {n} 项'.trf({'n': '${_selectedIds.length}'})),
-              actions: [
-                IconButton(
-                  tooltip: '全选'.tr,
-                  icon: Icon(_selectedIds.length == _items.length
-                      ? Icons.deselect
-                      : Icons.select_all),
-                  onPressed: () => setState(() {
-                    if (_selectedIds.length == _items.length) {
-                      _selectedIds.clear();
-                    } else {
-                      _selectedIds.addAll(_items.map(_cfg.idOf));
-                    }
-                  }),
+        appBar: _selecting
+            ? AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _exitSelect,
                 ),
-                if (identical(_cfg, ProgressConfig.movie))
+                title: Text('已选 {n} 项'.trf({'n': '${_selectedIds.length}'})),
+                actions: [
                   IconButton(
-                    tooltip: '标记已看'.tr,
-                    icon: const Icon(Icons.done_all),
-                    onPressed: _selectedIds.isEmpty
-                        ? null
-                        : _markSelectedWatched,
+                    tooltip: '全选'.tr,
+                    icon: Icon(_selectedIds.length == _items.length
+                        ? Icons.deselect
+                        : Icons.select_all),
+                    onPressed: () => setState(() {
+                      if (_selectedIds.length == _items.length) {
+                        _selectedIds.clear();
+                      } else {
+                        _selectedIds.addAll(_items.map(_cfg.idOf));
+                      }
+                    }),
                   ),
-                IconButton(
-                  tooltip: '删除'.tr,
-                  icon: const Icon(Icons.delete_outline),
-                  color: colors.error,
-                  disabledColor: colors.onSurface.withValues(alpha: 0.25),
-                  onPressed: _selectedIds.isEmpty ? null : _confirmDeleteSelected,
-                ),
-              ],
-            )
-          : AppBar(
-              leading: const AppBackButton(),
-              title: Text(_cfg.listTitle.tr),
-              actions: [
-                IconButton(
-                  tooltip: '批量生成'.tr,
-                  onPressed: _batchGenerate,
-                  icon: const Icon(Icons.playlist_add_outlined),
-                ),
-              ],
-            ),
-      floatingActionButton: _selecting
-          ? null
-          : FloatingActionButton(
-              onPressed: () => _openEdit(),
-              child: const Icon(Icons.add),
-            ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildHeader(colors),
-                Expanded(
-                  child: _items.isEmpty
-                      ? _buildEmpty(colors)
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: _items.length,
-                          separatorBuilder: (_, __) => Divider(
-                            height: 0.5,
-                            indent: 64,
-                            color: colors.outlineVariant.withValues(alpha: 0.4),
+                  if (identical(_cfg, ProgressConfig.movie))
+                    IconButton(
+                      tooltip: '标记已看'.tr,
+                      icon: const Icon(Icons.done_all),
+                      onPressed:
+                          _selectedIds.isEmpty ? null : _markSelectedWatched,
+                    ),
+                  IconButton(
+                    tooltip: '删除'.tr,
+                    icon: const Icon(Icons.delete_outline),
+                    color: colors.error,
+                    disabledColor: colors.onSurface.withValues(alpha: 0.25),
+                    onPressed:
+                        _selectedIds.isEmpty ? null : _confirmDeleteSelected,
+                  ),
+                ],
+              )
+            : AppBar(
+                leading: const AppBackButton(),
+                title: Text(_cfg.listTitle.tr),
+                actions: [
+                  IconButton(
+                    tooltip: '批量生成'.tr,
+                    onPressed: _batchGenerate,
+                    icon: const Icon(Icons.playlist_add_outlined),
+                  ),
+                ],
+              ),
+        floatingActionButton: _selecting
+            ? null
+            : FloatingActionButton(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                onPressed: () => _openEdit(),
+                child: const Icon(Icons.add),
+              ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  _buildHeader(colors),
+                  Expanded(
+                    child: _items.isEmpty
+                        ? _buildEmpty(colors)
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _items.length,
+                            separatorBuilder: (_, __) => Divider(
+                              height: 0.5,
+                              indent: 64,
+                              color:
+                                  colors.outlineVariant.withValues(alpha: 0.4),
+                            ),
+                            itemBuilder: (context, i) =>
+                                _buildTile(_items[i], colors),
                           ),
-                          itemBuilder: (context, i) =>
-                              _buildTile(_items[i], colors),
-                        ),
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -890,11 +940,13 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
           const SizedBox(height: 12),
           Text('暂无记录，点击右下角添加'.tr,
               style: TextStyle(
-                  fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
           Text('或点击右上角「批量生成」'.tr,
               style: TextStyle(
-                  fontSize: 12, color: colors.onSurface.withValues(alpha: 0.3))),
+                  fontSize: 12,
+                  color: colors.onSurface.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -912,9 +964,7 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
     final selected = _selectedIds.contains(_cfg.idOf(item));
 
     return InkWell(
-      onTap: () => _selecting
-          ? _toggleSelect(item)
-          : _openEdit(existing: item),
+      onTap: () => _selecting ? _toggleSelect(item) : _openEdit(existing: item),
       onLongPress: () => _selecting ? _toggleSelect(item) : _enterSelect(item),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -924,7 +974,9 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
               width: 44,
               child: _selecting
                   ? Icon(
-                      selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                      selected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
                       color: selected ? colors.primary : colors.outline,
                       size: 26,
                     )
@@ -967,7 +1019,10 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                       ],
                     ],
                   ),
-                  if (date != null || rating != null || duration > 0 || review.isNotEmpty) ...[
+                  if (date != null ||
+                      rating != null ||
+                      duration > 0 ||
+                      review.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -975,8 +1030,8 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                           Text(_fmtDate(date),
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: colors.onSurface
-                                      .withValues(alpha: 0.4))),
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.4))),
                         if (date != null && duration > 0)
                           const SizedBox(width: 8),
                         if (duration > 0) ...[
@@ -987,8 +1042,8 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                           Text(_fmtDuration(duration),
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: colors.onSurface
-                                      .withValues(alpha: 0.4))),
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.4))),
                         ],
                         if ((date != null || duration > 0) && rating != null)
                           const SizedBox(width: 8),
@@ -999,8 +1054,8 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                           Text(rating.toStringAsFixed(1),
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: colors.onSurface
-                                      .withValues(alpha: 0.5))),
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.5))),
                         ],
                         if (review.isNotEmpty) ...[
                           const SizedBox(width: 8),
@@ -1030,8 +1085,7 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      FadeInLocalImage(
-                          path: images.first, fit: BoxFit.cover),
+                      FadeInLocalImage(path: images.first, fit: BoxFit.cover),
                       if (images.length > 1)
                         Positioned(
                           right: 2,
@@ -1138,7 +1192,9 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
       };
       if (cloudPrefix != null) {
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
           final fileName =
               '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           newPaths.add(await CloudImageUpload.persist(
@@ -1151,7 +1207,9 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
         final targetDir = await _cfg.imagesDir(widget.parentId, itemId);
         await ImagePathHelper.instance.ensureDirExists(targetDir);
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
           final fileName =
               '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           final targetPath = p.join(targetDir, fileName);
@@ -1291,7 +1349,8 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
                       _buildRow(
                         icon: Icons.schedule_outlined,
                         label: _cfg.durationLabel.tr,
-                        value: _duration > 0 ? _fmtDuration(_duration) : '选填'.tr,
+                        value:
+                            _duration > 0 ? _fmtDuration(_duration) : '选填'.tr,
                         onTap: _editDuration,
                         colors: colors,
                         muted: _duration == 0,
@@ -1319,8 +1378,7 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
             decoration: BoxDecoration(
               color: colors.surface,
               border: Border(
-                  top: BorderSide(
-                      color: colors.outlineVariant, width: 0.5)),
+                  top: BorderSide(color: colors.outlineVariant, width: 0.5)),
             ),
             child: SizedBox(
               width: double.infinity,
@@ -1412,12 +1470,8 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
         padding: const EdgeInsets.fromLTRB(14, 5, 8, 5),
         child: Row(
           children: [
-            Icon(
-                _done
-                    ? Icons.check_circle_rounded
-                    : Icons.circle_outlined,
-                size: 20,
-                color: _done ? colors.primary : colors.outline),
+            Icon(_done ? Icons.check_circle_rounded : Icons.circle_outlined,
+                size: 20, color: _done ? colors.primary : colors.outline),
             const SizedBox(width: 9),
             Text(_cfg.doneLabel.tr,
                 style: TextStyle(
@@ -1489,8 +1543,7 @@ class _ProgressEditPageState<T> extends State<ProgressEditPage<T>> {
               controller: _seqController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               decoration: const InputDecoration(
                 isDense: true,
                 border: InputBorder.none,

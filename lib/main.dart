@@ -30,7 +30,6 @@ import 'widgets/frosted_background.dart';
 import './widgets/app_overlay.dart';
 import './widgets/storage_permission_dialog.dart';
 import 'package:umeng_common_sdk/umeng_common_sdk.dart';
-import 'package:umeng_apm_sdk/umeng_apm_sdk.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = LoggingRouteObserver();
 
@@ -55,7 +54,7 @@ Future<bool> _ensureStoragePermissionForBackup() async {
 }
 
 void main() async {
-  MyApmWidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await UserPrefs.init();
   // 安装全局代理 override：让 Image.network 等内部 HttpClient 也按 host 走代理
@@ -71,7 +70,7 @@ void main() async {
 
   runApp(MyApp(appProvider: appProvider));
 
-  // 采集类服务（友盟统计/APM、崩溃上报）必须在用户同意隐私政策后才初始化
+  // 采集类服务（友盟统计、崩溃上报）必须在用户同意隐私政策后才初始化
   if (UserPrefs().privacyAgreed) {
     startConsentGatedServices();
   }
@@ -563,8 +562,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 locale: sel.locale,
                 home: const HomePage(),
                 navigatorKey: appNavigatorKey,
-                navigatorObservers: [
-        ApmNavigatorObserver.singleInstance,routeObserver],
+                navigatorObservers: [routeObserver],
                 onGenerateRoute: AppRouter.generateRoute,
               );
 
@@ -584,17 +582,8 @@ void startConsentGatedServices() {
   _consentServicesStarted = true;
   // 崩溃自动上报（匿名，与调试日志开关无关）
   ReportService.instance.installCrashHook();
-  // 友盟 U-App 统计 + U-APM 性能监控初始化（runApp 之后调用）
+  // 友盟 U-App 统计初始化（runApp 之后调用）
   _initUmengSdk();
-  UmengApmSdk(
-    name: 'mooknote',
-    bver: '0.4.4+2006',
-    enableLog: true,
-    enableTrackingPageFps: true,
-    enableTrackingPagePerf: true,
-    // Binding 已在上方初始化，这里传空操作避免重复构造
-    initFlutterBinding: () {},
-  ).init();
 }
 
 /// 友盟 SDK 初始化函数
@@ -606,15 +595,6 @@ void _initUmengSdk() {
     'official',      // 渠道标识
   );
   UmengCommonSdk.setPageCollectionModeAuto();
-}
-
-
-/// 自定义 Binding：继承 ApmWidgetsFlutterBinding
-class MyApmWidgetsFlutterBinding extends ApmWidgetsFlutterBinding {
-  static WidgetsBinding? ensureInitialized() {
-    MyApmWidgetsFlutterBinding();
-    return WidgetsBinding.instance;
-  }
 }
 
 /// 首次启动隐私合规弹窗（不可点外部/返回关闭，必须做出选择）

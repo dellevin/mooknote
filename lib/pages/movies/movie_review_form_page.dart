@@ -9,6 +9,7 @@ import '../../utils/image_picker_helper.dart';
 import '../../utils/image_path_helper.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
+import '../../widgets/markdown_link.dart';
 import '../../widgets/fade_in_local_image.dart';
 import '../../widgets/image_grid_editor.dart';
 import 'package:uuid/uuid.dart';
@@ -43,9 +44,12 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   @override
   void initState() {
     super.initState();
-    _contentController = TextEditingController(text: widget.review?.content ?? '');
-    _reviewerController = TextEditingController(text: widget.review?.reviewer ?? '');
-    _sourceController = TextEditingController(text: widget.review?.source ?? '');
+    _contentController =
+        TextEditingController(text: widget.review?.content ?? '');
+    _reviewerController =
+        TextEditingController(text: widget.review?.reviewer ?? '');
+    _sourceController =
+        TextEditingController(text: widget.review?.source ?? '');
     _reviewType = widget.review?.reviewType ?? 1;
     _reviewDate = widget.review?.reviewDate ?? DateTime.now();
     _images = List<String>.from(widget.review?.images ?? []);
@@ -55,7 +59,8 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   }
 
   Future<void> _loadCloudMovie() async {
-    final movie = await context.read<AppProvider>().cloudMovieById(widget.movieId);
+    final movie =
+        await context.read<AppProvider>().cloudMovieById(widget.movieId);
     if (!mounted || movie == null) return;
     setState(() => _cloudMovie = movie);
   }
@@ -69,7 +74,11 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   }
 
   Movie? _getMovie() {
-    return context.read<AppProvider>().movies.where((m) => m.id == widget.movieId).firstOrNull;
+    return context
+        .read<AppProvider>()
+        .movies
+        .where((m) => m.id == widget.movieId)
+        .firstOrNull;
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -101,7 +110,11 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                     const SizedBox(height: 20),
 
                     // ── 类型选择 ──────────────────────
-                    Text('影评类型'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('影评类型'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildTypeSelector(colors),
                     const SizedBox(height: 20),
@@ -125,13 +138,21 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                     const SizedBox(height: 20),
 
                     // ── 评论内容 ──────────────────────
-                    Text('评论内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评论内容'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildContentField(colors),
                     const SizedBox(height: 20),
 
                     // ── 图片 ──────────────────────────
-                    Text('图片'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('图片'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     ImageGridEditor(
                       images: _images,
@@ -146,12 +167,15 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
             // ── 底部保存按钮 ──────────────────────
             Container(
               padding: EdgeInsets.only(
-                left: 16, right: 16, top: 12,
+                left: 16,
+                right: 16,
+                top: 12,
                 bottom: MediaQuery.of(context).padding.bottom + 12,
               ),
               decoration: BoxDecoration(
                 color: colors.surface,
-                border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+                border: Border(
+                    top: BorderSide(color: colors.outlineVariant, width: 0.5)),
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -162,10 +186,12 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(isEdit ? '更新影评'.tr : '保存影评'.tr,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -189,29 +215,45 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
       child: Row(
         children: [
           Container(
-            width: 56, height: 72,
+            width: 56,
+            height: 72,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
               color: colors.outlineVariant,
             ),
             clipBehavior: Clip.antiAlias,
             child: movie.posterPath != null
-                ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover,
-                    errorWidget: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)))
-                : Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
+                ? FadeInLocalImage(
+                    path: movie.posterPath,
+                    fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.movie_outlined,
+                        size: 24,
+                        color: colors.onSurface.withValues(alpha: 0.25)))
+                : Icon(Icons.movie_outlined,
+                    size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(movie.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(movie.title,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 if (movie.rating != null) ...[
                   const SizedBox(height: 4),
                   Row(children: [
                     const Icon(Icons.star, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
-                    Text('${movie.rating}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+                    Text('${movie.rating}',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface.withValues(alpha: 0.6))),
                   ]),
                 ],
               ],
@@ -229,8 +271,10 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
   Widget _buildTypeSelector(ColorScheme colors) {
     return SegmentedButton<int>(
       segments: [
-        ButtonSegment(value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
-        ButtonSegment(value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
+        ButtonSegment(
+            value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
+        ButtonSegment(
+            value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
       ],
       selected: {_reviewType},
       onSelectionChanged: (v) => setState(() => _reviewType = v.first),
@@ -277,7 +321,9 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -313,16 +359,24 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
         ),
         child: Row(
           children: [
-            Icon(Icons.event_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+            Icon(Icons.event_outlined,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
             const SizedBox(width: 10),
-            Text('影评日期'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+            Text('影评日期'.tr,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.4))),
             const Spacer(),
             Text(
               '${_reviewDate.year}.${_reviewDate.month.toString().padLeft(2, '0')}.${_reviewDate.day.toString().padLeft(2, '0')}',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: colors.onSurface),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+            Icon(Icons.chevron_right,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
           ],
         ),
       ),
@@ -346,10 +400,13 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
             maxLines: 10,
             minLines: 6,
             textAlignVertical: TextAlignVertical.top,
-            style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
+            style:
+                TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
             decoration: InputDecoration(
               hintText: '写下你的影评...'.tr,
-              hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
+              hintStyle: TextStyle(
+                  fontSize: 15,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -360,13 +417,22 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
               return null;
             },
           ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MarkdownLinkButton(
+              controller: _contentController,
+              onInserted: () => setState(() {}),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 14, bottom: 10),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
                 '{n} 字'.trf({'n': _contentController.text.length}),
-                style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
               ),
             ),
           ),
@@ -397,17 +463,25 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
       final newPaths = <String>[];
       if (UserPrefs().cloudMovieMode) {
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           newPaths.add(await CloudImageUpload.persist(
-            logicalPath: 'reviews/$reviewId/$fileName', localAbsPath: file.path));
+              logicalPath: 'reviews/$reviewId/$fileName',
+              localAbsPath: file.path));
         }
       } else {
-        final targetDir = await ImagePathHelper.instance.getReviewImagesDir(reviewId);
+        final targetDir =
+            await ImagePathHelper.instance.getReviewImagesDir(reviewId);
         await ImagePathHelper.instance.ensureDirExists(targetDir);
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           final targetPath = p.join(targetDir, fileName);
           await file.copy(targetPath);
           newPaths.add(targetPath);
@@ -465,43 +539,43 @@ class _MovieReviewFormPageState extends State<MovieReviewFormPage> {
 
     final provider = context.read<AppProvider>();
     try {
-    final now = DateTime.now();
+      final now = DateTime.now();
 
-    if (widget.review == null) {
-      final reviewId = const Uuid().v4();
-      List<String> finalImages = _images;
-      if (_images.isNotEmpty && _tempReviewId != null) {
-        finalImages = await _moveImagesToNewId(_tempReviewId!, reviewId);
+      if (widget.review == null) {
+        final reviewId = const Uuid().v4();
+        List<String> finalImages = _images;
+        if (_images.isNotEmpty && _tempReviewId != null) {
+          finalImages = await _moveImagesToNewId(_tempReviewId!, reviewId);
+        }
+        final newReview = MovieReview(
+          id: reviewId,
+          movieId: widget.movieId,
+          content: _contentController.text.trim(),
+          reviewer: _reviewerController.text.trim(),
+          source: _sourceController.text.trim(),
+          reviewType: _reviewType,
+          reviewDate: _reviewDate,
+          images: finalImages,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await provider.addMovieReview(newReview);
+      } else {
+        final updatedReview = widget.review!.copyWith(
+          content: _contentController.text.trim(),
+          reviewer: _reviewerController.text.trim(),
+          source: _sourceController.text.trim(),
+          reviewType: _reviewType,
+          reviewDate: _reviewDate,
+          images: _images,
+          updatedAt: now,
+        );
+        await provider.updateMovieReview(updatedReview);
       }
-      final newReview = MovieReview(
-        id: reviewId,
-        movieId: widget.movieId,
-        content: _contentController.text.trim(),
-        reviewer: _reviewerController.text.trim(),
-        source: _sourceController.text.trim(),
-        reviewType: _reviewType,
-        reviewDate: _reviewDate,
-        images: finalImages,
-        createdAt: now,
-        updatedAt: now,
-      );
-      await provider.addMovieReview(newReview);
-    } else {
-      final updatedReview = widget.review!.copyWith(
-        content: _contentController.text.trim(),
-        reviewer: _reviewerController.text.trim(),
-        source: _sourceController.text.trim(),
-        reviewType: _reviewType,
-        reviewDate: _reviewDate,
-        images: _images,
-        updatedAt: now,
-      );
-      await provider.updateMovieReview(updatedReview);
-    }
 
-    if (!mounted) return;
-    ToastUtil.show(context, widget.review == null ? '添加成功'.tr : '更新成功'.tr);
-    Navigator.pop(context);
+      if (!mounted) return;
+      ToastUtil.show(context, widget.review == null ? '添加成功'.tr : '更新成功'.tr);
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ToastUtil.show(context, '保存失败: {e}'.trf({'e': e}));

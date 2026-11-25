@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/cloud/cloud_image_upload.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/markdown_utils.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -24,7 +25,9 @@ import '../../widgets/app_back_button.dart';
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
   final s = <String>{};
-  for (final l in lists) { s.addAll(l); }
+  for (final l in lists) {
+    s.addAll(l);
+  }
   return s.toList()..sort();
 }
 
@@ -79,7 +82,8 @@ class _GameFormPageState extends State<GameFormPage> {
 
   Future<void> _loadCompletions() async {
     if (widget.game == null) return;
-    final list = await context.read<AppProvider>().getGameCompletions(widget.game!.id);
+    final list =
+        await context.read<AppProvider>().getGameCompletions(widget.game!.id);
     if (!mounted) return;
     setState(() => _completions = list);
   }
@@ -88,19 +92,22 @@ class _GameFormPageState extends State<GameFormPage> {
     Game? game = widget.game;
     if (game != null) {
       final appProvider = context.read<AppProvider>();
-      final latestGame = appProvider.games
-          .where((g) => g.id == game!.id)
-          .firstOrNull;
+      final latestGame =
+          appProvider.games.where((g) => g.id == game!.id).firstOrNull;
       if (latestGame != null) {
         game = latestGame;
       }
     }
 
     _titleController = TextEditingController(text: game?.title ?? '');
-    _ratingController = TextEditingController(text: game?.rating?.toString() ?? '');
-    _playTimeHoursController = TextEditingController(text: game?.playTimeHours.toString() ?? '0');
-    _playTimeMinutesController = TextEditingController(text: game?.playTimeMinutes.toString() ?? '0');
-    _purchasePriceController = TextEditingController(text: game?.purchasePrice ?? '');
+    _ratingController =
+        TextEditingController(text: game?.rating?.toString() ?? '');
+    _playTimeHoursController =
+        TextEditingController(text: game?.playTimeHours.toString() ?? '0');
+    _playTimeMinutesController =
+        TextEditingController(text: game?.playTimeMinutes.toString() ?? '0');
+    _purchasePriceController =
+        TextEditingController(text: game?.purchasePrice ?? '');
     _summaryController = TextEditingController(text: game?.summary ?? '');
 
     if (game != null) {
@@ -235,12 +242,16 @@ class _GameFormPageState extends State<GameFormPage> {
                       label: '平台',
                       value: _platforms.isEmpty
                           ? ''
-                          : '{n}个：{v}'.trf({'n': _platforms.length, 'v': _platforms.join('、')}),
+                          : '{n}个：{v}'.trf({
+                              'n': _platforms.length,
+                              'v': _platforms.join('、')
+                            }),
                       icon: Icons.devices_outlined,
                       scrollHorizontal: true,
                       onTap: () async {
                         final provider = context.read<AppProvider>();
-                        final data = provider.games.map((g) => g.platforms).toList();
+                        final data =
+                            provider.games.map((g) => g.platforms).toList();
                         final result = await GenreSelectorPage.show(
                           context: context,
                           title: '选择平台'.tr,
@@ -262,12 +273,16 @@ class _GameFormPageState extends State<GameFormPage> {
                       label: '版本',
                       value: _versions.isEmpty
                           ? ''
-                          : '{n}个：{v}'.trf({'n': _versions.length, 'v': _versions.join('、')}),
+                          : '{n}个：{v}'.trf({
+                              'n': _versions.length,
+                              'v': _versions.join('、')
+                            }),
                       icon: Icons.library_books_outlined,
                       scrollHorizontal: true,
                       onTap: () async {
                         final provider = context.read<AppProvider>();
-                        final data = provider.games.map((g) => g.versions).toList();
+                        final data =
+                            provider.games.map((g) => g.versions).toList();
                         final result = await GenreSelectorPage.show(
                           context: context,
                           title: '选择版本'.tr,
@@ -289,12 +304,15 @@ class _GameFormPageState extends State<GameFormPage> {
                       label: '类型',
                       value: _genres.isEmpty
                           ? ''
-                          : '{n}个：{v}'.trf({'n': _genres.length, 'v': _genres.join('、')}),
+                          : '{n}个：{v}'.trf(
+                              {'n': _genres.length, 'v': _genres.join('、')}),
                       icon: Icons.style_outlined,
                       onTap: () async {
                         final provider = context.read<AppProvider>();
-                        final tags = await provider.getTags('game_genre', excludeHidden: true);
-                        final existingNames = tags.map((t) => t['name'] as String).toList();
+                        final tags = await provider.getTags('game_genre',
+                            excludeHidden: true);
+                        final existingNames =
+                            tags.map((t) => t['name'] as String).toList();
                         // 补充已有游戏中使用过的类型
                         final gameGenres = provider.games
                             .expand((g) => g.genres)
@@ -325,12 +343,16 @@ class _GameFormPageState extends State<GameFormPage> {
                       label: '开发者',
                       value: _developer.isEmpty
                           ? ''
-                          : '{n}个：{v}'.trf({'n': _developer.length, 'v': _developer.join('、')}),
+                          : '{n}个：{v}'.trf({
+                              'n': _developer.length,
+                              'v': _developer.join('、')
+                            }),
                       icon: Icons.code_outlined,
                       scrollHorizontal: true,
                       onTap: () async {
                         final provider = context.read<AppProvider>();
-                        final data = provider.games.map((g) => g.developer).toList();
+                        final data =
+                            provider.games.map((g) => g.developer).toList();
                         final result = await GenreSelectorPage.show(
                           context: context,
                           title: '选择开发者'.tr,
@@ -357,7 +379,10 @@ class _GameFormPageState extends State<GameFormPage> {
                       trailing: _releaseDate != null
                           ? GestureDetector(
                               onTap: () => setState(() => _releaseDate = null),
-                              child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                              child: Icon(Icons.close,
+                                  size: 16,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.35)),
                             )
                           : null,
                       onTap: () => _selectReleaseDate(),
@@ -390,12 +415,17 @@ class _GameFormPageState extends State<GameFormPage> {
                       label: '购买平台',
                       value: _purchasePlatforms.isEmpty
                           ? ''
-                          : '{n}个：{v}'.trf({'n': _purchasePlatforms.length, 'v': _purchasePlatforms.join('、')}),
+                          : '{n}个：{v}'.trf({
+                              'n': _purchasePlatforms.length,
+                              'v': _purchasePlatforms.join('、')
+                            }),
                       icon: Icons.store_outlined,
                       scrollHorizontal: true,
                       onTap: () async {
                         final provider = context.read<AppProvider>();
-                        final data = provider.games.map((g) => g.purchasePlatforms).toList();
+                        final data = provider.games
+                            .map((g) => g.purchasePlatforms)
+                            .toList();
                         final result = await GenreSelectorPage.show(
                           context: context,
                           title: '选择购买平台'.tr,
@@ -405,7 +435,9 @@ class _GameFormPageState extends State<GameFormPage> {
                           asBottomSheet: true,
                         );
                         if (!mounted) return;
-                        if (result != null) setState(() => _purchasePlatforms = result);
+                        if (result != null) {
+                          setState(() => _purchasePlatforms = result);
+                        }
                       },
                     ),
                   ),
@@ -422,7 +454,10 @@ class _GameFormPageState extends State<GameFormPage> {
                       trailing: _purchaseDate != null
                           ? GestureDetector(
                               onTap: () => setState(() => _purchaseDate = null),
-                              child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
+                              child: Icon(Icons.close,
+                                  size: 16,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.35)),
                             )
                           : null,
                       onTap: () => _selectPurchaseDate(),
@@ -434,7 +469,9 @@ class _GameFormPageState extends State<GameFormPage> {
                     height: 90,
                     child: _buildInfoCard(
                       label: '购买价格',
-                      value: _purchasePriceController.text.isNotEmpty ? _purchasePriceController.text : '',
+                      value: _purchasePriceController.text.isNotEmpty
+                          ? _purchasePriceController.text
+                          : '',
                       icon: Icons.payments_outlined,
                       onTap: () async {
                         final result = await TextEditSheet.show(
@@ -444,7 +481,10 @@ class _GameFormPageState extends State<GameFormPage> {
                           hintText: '如：298元、49.99美元'.tr,
                         );
                         if (!mounted) return;
-                        if (result != null) setState(() => _purchasePriceController.text = result);
+                        if (result != null) {
+                          setState(
+                              () => _purchasePriceController.text = result);
+                        }
                       },
                     ),
                   ),
@@ -456,7 +496,7 @@ class _GameFormPageState extends State<GameFormPage> {
                 width: double.infinity,
                 child: _buildInfoCard(
                   label: '游戏简介',
-                  value: _summaryController.text,
+                  value: markdownToPlainText(_summaryController.text),
                   icon: Icons.description_outlined,
                   height: 160,
                   scrollable: true,
@@ -484,7 +524,11 @@ class _GameFormPageState extends State<GameFormPage> {
     );
   }
 
-  static const _categoryLabels = {'digital': '数字版', 'cartridge': '卡带', 'disc': '光盘'};
+  static const _categoryLabels = {
+    'digital': '数字版',
+    'cartridge': '卡带',
+    'disc': '光盘'
+  };
 
   String _buildPlayTimeText() {
     final h = int.tryParse(_playTimeHoursController.text) ?? 0;
@@ -518,11 +562,14 @@ class _GameFormPageState extends State<GameFormPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.repeat_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              Icon(Icons.repeat_outlined,
+                  size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
               const SizedBox(width: 6),
               Text(
                 '游玩次数'.tr,
-                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: colors.onSurface.withValues(alpha: 0.4)),
               ),
             ],
           ),
@@ -532,11 +579,15 @@ class _GameFormPageState extends State<GameFormPage> {
             children: [
               _buildStepButton(
                 icon: Icons.remove,
-                onTap: _playCount > 0 ? () => setState(() => _playCount--) : null,
+                onTap:
+                    _playCount > 0 ? () => setState(() => _playCount--) : null,
               ),
               Text(
                 '{n} 次'.trf({'n': _playCount}),
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface),
               ),
               _buildStepButton(
                 icon: Icons.add,
@@ -558,10 +609,16 @@ class _GameFormPageState extends State<GameFormPage> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.onSurface.withValues(alpha: 0.05),
+          color: enabled
+              ? colors.primary.withValues(alpha: 0.1)
+              : colors.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, size: 18, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.25)),
+        child: Icon(icon,
+            size: 18,
+            color: enabled
+                ? colors.primary
+                : colors.onSurface.withValues(alpha: 0.25)),
       ),
     );
   }
@@ -589,7 +646,9 @@ class _GameFormPageState extends State<GameFormPage> {
               hasValue ? value : '点击填写'.tr,
               style: TextStyle(
                 fontSize: 15,
-                color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+                color: hasValue
+                    ? colors.onSurface
+                    : colors.onSurface.withValues(alpha: 0.25),
                 fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -603,7 +662,9 @@ class _GameFormPageState extends State<GameFormPage> {
             hasValue ? value : '点击填写'.tr,
             style: TextStyle(
               fontSize: 15,
-              color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+              color: hasValue
+                  ? colors.onSurface
+                  : colors.onSurface.withValues(alpha: 0.25),
               fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -613,7 +674,9 @@ class _GameFormPageState extends State<GameFormPage> {
           hasValue ? value : '点击填写'.tr,
           style: TextStyle(
             fontSize: 15,
-            color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+            color: hasValue
+                ? colors.onSurface
+                : colors.onSurface.withValues(alpha: 0.25),
             fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
           ),
           maxLines: 1,
@@ -646,14 +709,17 @@ class _GameFormPageState extends State<GameFormPage> {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                  Icon(icon,
+                      size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 6),
                 ],
                 Text(
                   required ? '${label.tr} *' : label.tr,
                   style: TextStyle(
                     fontSize: 12,
-                    color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+                    color: required
+                        ? colors.onSurface
+                        : colors.onSurface.withValues(alpha: 0.4),
                     fontWeight: required ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
@@ -679,6 +745,7 @@ class _GameFormPageState extends State<GameFormPage> {
       initialText: _summaryController.text,
       hintText: '写下游戏简介...'.tr,
       multiline: true,
+      enableMarkdownLinks: true,
     );
     if (!mounted) return;
     if (result != null) {
@@ -704,7 +771,10 @@ class _GameFormPageState extends State<GameFormPage> {
           // 状态
           Row(
             children: [
-              Text('状态'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('状态'.tr,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.all(2),
@@ -715,10 +785,15 @@ class _GameFormPageState extends State<GameFormPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildStatusOption(StatusLabels.label('game', 'want_to_play'), 'want_to_play'),
-                    _buildStatusOption(StatusLabels.label('game', 'playing'), 'playing'),
-                    _buildStatusOption(StatusLabels.label('game', 'completed'), 'completed'),
-                    _buildStatusOption(StatusLabels.label('game', 'abandoned'), 'abandoned'),
+                    _buildStatusOption(
+                        StatusLabels.label('game', 'want_to_play'),
+                        'want_to_play'),
+                    _buildStatusOption(
+                        StatusLabels.label('game', 'playing'), 'playing'),
+                    _buildStatusOption(
+                        StatusLabels.label('game', 'completed'), 'completed'),
+                    _buildStatusOption(
+                        StatusLabels.label('game', 'abandoned'), 'abandoned'),
                   ],
                 ),
               ),
@@ -728,40 +803,57 @@ class _GameFormPageState extends State<GameFormPage> {
           // 评分
           Row(
             children: [
-              Text('评分'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('评分'.tr,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               ...List.generate(5, (index) {
                 final starValue = index + 1;
                 final isFilled = starValue <= starRating;
-                final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
+                final isHalf =
+                    starValue == starRating.ceil() && starRating % 1 != 0;
                 return GestureDetector(
-                  onTap: () => setState(() => _ratingController.text = (starValue * 2).toString()),
+                  onTap: () => setState(() =>
+                      _ratingController.text = (starValue * 2).toString()),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: Icon(
-                      isHalf ? Icons.star_half : (isFilled ? Icons.star : Icons.star_border),
+                      isHalf
+                          ? Icons.star_half
+                          : (isFilled ? Icons.star : Icons.star_border),
                       size: 22,
-                      color: (isFilled || isHalf) ? const Color(0xFFFFB800) : colors.outline,
+                      color: (isFilled || isHalf)
+                          ? const Color(0xFFFFB800)
+                          : colors.outline,
                     ),
                   ),
                 );
               }),
               const SizedBox(width: 8),
               Container(
-                width: 48, height: 28,
+                width: 48,
+                height: 28,
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: TextFormField(
                   controller: _ratingController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   textAlign: TextAlign.center,
                   inputFormatters: [GameRatingInputFormatter()],
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurface),
                   decoration: InputDecoration(
                     hintText: '0-10',
-                    hintStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25)),                    border: InputBorder.none,
+                    hintStyle: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.25)),
+                    border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 6),
                     isDense: true,
                   ),
@@ -772,7 +864,8 @@ class _GameFormPageState extends State<GameFormPage> {
                 const SizedBox(width: 6),
                 GestureDetector(
                   onTap: () => setState(() => _ratingController.clear()),
-                  child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                  child: Icon(Icons.close,
+                      size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                 ),
               ],
             ],
@@ -781,7 +874,10 @@ class _GameFormPageState extends State<GameFormPage> {
           // 类别
           Row(
             children: [
-              Text('类别'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('类别'.tr,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               Expanded(
                 child: SingleChildScrollView(
@@ -795,17 +891,24 @@ class _GameFormPageState extends State<GameFormPage> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: isSelected ? colors.primary : colors.surfaceContainerHighest,
+                            color: isSelected
+                                ? colors.primary
+                                : colors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             e.value.tr,
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-                              color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                              fontWeight: isSelected
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? colors.onPrimary
+                                  : colors.onSurface.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -848,7 +951,9 @@ class _GameFormPageState extends State<GameFormPage> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-            color: isSelected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+            color: isSelected
+                ? colors.onSurface
+                : colors.onSurface.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -882,7 +987,8 @@ class _GameFormPageState extends State<GameFormPage> {
                 if (_isDownloading)
                   Container(
                     color: Colors.black.withValues(alpha: 0.4),
-                    child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   ),
               ],
             ),
@@ -894,7 +1000,8 @@ class _GameFormPageState extends State<GameFormPage> {
             child: GestureDetector(
               onTap: () => setState(() => _coverPath = null),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
@@ -902,9 +1009,14 @@ class _GameFormPageState extends State<GameFormPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.delete_outline, size: 14, color: colors.onSurface.withValues(alpha: 0.6)),
+                    Icon(Icons.delete_outline,
+                        size: 14,
+                        color: colors.onSurface.withValues(alpha: 0.6)),
                     const SizedBox(width: 4),
-                    Text('移除封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6))),
+                    Text('移除封面'.tr,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurface.withValues(alpha: 0.6))),
                   ],
                 ),
               ),
@@ -919,9 +1031,12 @@ class _GameFormPageState extends State<GameFormPage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.image_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
+        Icon(Icons.image_outlined,
+            size: 32, color: colors.onSurface.withValues(alpha: 0.25)),
         const SizedBox(height: 8),
-        Text('封面'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
+        Text('封面'.tr,
+            style: TextStyle(
+                fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
       ],
     );
   }
@@ -948,7 +1063,8 @@ class _GameFormPageState extends State<GameFormPage> {
           setState(() => _coverPath = url);
           return;
         }
-        final targetPath = await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
+        final targetPath =
+            await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
         await File(pickedFile.path).copy(targetPath);
         if (!mounted) return;
@@ -979,27 +1095,40 @@ class _GameFormPageState extends State<GameFormPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: colors.outline, borderRadius: BorderRadius.circular(2)),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: colors.outline,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
                 const SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('添加封面'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                    child: Text('添加封面'.tr,
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 _buildCoverOption(
                   icon: Icons.photo_library_outlined,
                   title: '从相册选择',
-                  onTap: () { Navigator.pop(context); _pickCover(); },
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickCover();
+                  },
                 ),
                 _buildCoverOption(
                   icon: Icons.link_outlined,
                   title: '网络链接',
-                  onTap: () { Navigator.pop(context); _pickCoverFromUrl(); },
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickCoverFromUrl();
+                  },
                 ),
               ],
             ),
@@ -1009,7 +1138,10 @@ class _GameFormPageState extends State<GameFormPage> {
     );
   }
 
-  Widget _buildCoverOption({required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildCoverOption(
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
     final colors = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
@@ -1018,14 +1150,20 @@ class _GameFormPageState extends State<GameFormPage> {
         child: Row(
           children: [
             Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, size: 22, color: colors.onSurface.withValues(alpha: 0.6)),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon,
+                  size: 22, color: colors.onSurface.withValues(alpha: 0.6)),
             ),
             const SizedBox(width: 16),
-            Text(title.tr, style: TextStyle(fontSize: 16, color: colors.onSurface)),
+            Text(title.tr,
+                style: TextStyle(fontSize: 16, color: colors.onSurface)),
             const Spacer(),
-            Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25), size: 20),
+            Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25), size: 20),
           ],
         ),
       ),
@@ -1054,16 +1192,22 @@ class _GameFormPageState extends State<GameFormPage> {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'User-Agent':
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
+      if (response.statusCode != 200) {
+        throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
+      }
 
       final contentType = response.headers['content-type'];
-      if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片');
+      if (contentType != null && !contentType.startsWith('image/')) {
+        throw Exception('链接返回的不是图片');
+      }
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
       final fileName = 'cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -1080,7 +1224,8 @@ class _GameFormPageState extends State<GameFormPage> {
         setState(() => _coverPath = url);
         return;
       }
-      final targetPath = await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
+      final targetPath =
+          await ImagePathHelper.instance.getGameCoverPath(gameId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
@@ -1169,7 +1314,8 @@ class _GameFormPageState extends State<GameFormPage> {
         _removedCompletionIds.add(old.id);
       }
     }
-    setState(() => _completions = result..sort((a, b) => b.completionDate.compareTo(a.completionDate)));
+    setState(() => _completions = result
+      ..sort((a, b) => b.completionDate.compareTo(a.completionDate)));
   }
 
   /// 将草稿中的通关记录写库（新游戏插入后用其 id，已有游戏用原 id）
@@ -1186,7 +1332,8 @@ class _GameFormPageState extends State<GameFormPage> {
           updatedAt: now,
         ));
       } else {
-        await provider.updateGameCompletion(c.copyWith(gameId: gameId, updatedAt: now));
+        await provider
+            .updateGameCompletion(c.copyWith(gameId: gameId, updatedAt: now));
       }
     }
     for (final id in _removedCompletionIds) {
@@ -1199,13 +1346,24 @@ class _GameFormPageState extends State<GameFormPage> {
     if (_titleController.text.trim().isNotEmpty) return true;
     if (_ratingController.text.trim().isNotEmpty) return true;
     if (_coverPath != null) return true;
-    if (_platforms.isNotEmpty || _versions.isNotEmpty || _genres.isNotEmpty || _developer.isNotEmpty) return true;
+    if (_platforms.isNotEmpty ||
+        _versions.isNotEmpty ||
+        _genres.isNotEmpty ||
+        _developer.isNotEmpty) {
+      return true;
+    }
     if (_purchasePlatforms.isNotEmpty) return true;
     if (_purchaseDate != null || _releaseDate != null) return true;
     if (_purchasePriceController.text.trim().isNotEmpty) return true;
     if (_summaryController.text.trim().isNotEmpty) return true;
-    if (int.tryParse(_playTimeHoursController.text) != null && int.parse(_playTimeHoursController.text) > 0) return true;
-    if (int.tryParse(_playTimeMinutesController.text) != null && int.parse(_playTimeMinutesController.text) > 0) return true;
+    if (int.tryParse(_playTimeHoursController.text) != null &&
+        int.parse(_playTimeHoursController.text) > 0) {
+      return true;
+    }
+    if (int.tryParse(_playTimeMinutesController.text) != null &&
+        int.parse(_playTimeMinutesController.text) > 0) {
+      return true;
+    }
     return false;
   }
 
@@ -1215,27 +1373,41 @@ class _GameFormPageState extends State<GameFormPage> {
     final result = await appDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
+        backgroundColor: colors.surface,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('未保存'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('未保存'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('当前内容未保存，确定要离开吗？'.tr,
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr,
+                style:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: colors.error,
+              foregroundColor: colors.onError,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: Text('离开'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
     return result ?? false;
@@ -1253,7 +1425,8 @@ class _GameFormPageState extends State<GameFormPage> {
           ? double.tryParse(_ratingController.text)
           : null;
       final playTimeHours = int.tryParse(_playTimeHoursController.text) ?? 0;
-      final playTimeMinutes = int.tryParse(_playTimeMinutesController.text) ?? 0;
+      final playTimeMinutes =
+          int.tryParse(_playTimeMinutesController.text) ?? 0;
       final now = DateTime.now();
 
       if (widget.game == null) {
@@ -1340,7 +1513,8 @@ class _GameFormPageState extends State<GameFormPage> {
     }
   }
 
-  Future<String?> _moveCoverToNewId(String currentPath, String newGameId) async {
+  Future<String?> _moveCoverToNewId(
+      String currentPath, String newGameId) async {
     if (CloudImageUpload.isRemoteUrl(currentPath)) return currentPath;
     final normalizedPath = currentPath.replaceAll('\\', '/');
     if (normalizedPath.contains('/games/$newGameId/')) {
@@ -1348,7 +1522,8 @@ class _GameFormPageState extends State<GameFormPage> {
     }
 
     final fileName = p.basename(currentPath);
-    final newPath = await ImagePathHelper.instance.getGameCoverPath(newGameId, fileName);
+    final newPath =
+        await ImagePathHelper.instance.getGameCoverPath(newGameId, fileName);
     await ImagePathHelper.instance.ensureDirExists(p.dirname(newPath));
 
     final currentFile = File(currentPath);
@@ -1370,7 +1545,8 @@ class _GameFormPageState extends State<GameFormPage> {
 /// 评分输入格式化器：只允许 0-10，最多1位小数
 class GameRatingInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
     final text = newValue.text;
     if (text.isEmpty) return newValue;
     if (!RegExp(r'^\d{0,2}\.?\d{0,1}$').hasMatch(text)) return oldValue;
@@ -1494,7 +1670,8 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
       firstDate: DateTime(1970),
     );
     if (picked != null) {
-      setState(() => _items[index] = _items[index].copyWith(completionDate: picked));
+      setState(
+          () => _items[index] = _items[index].copyWith(completionDate: picked));
     }
   }
 
@@ -1506,7 +1683,8 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
       hintText: '难度 / 结局 / 心得（可选）'.tr,
     );
     if (result != null) {
-      setState(() => _items[index] = _items[index].copyWith(note: result.trim()));
+      setState(
+          () => _items[index] = _items[index].copyWith(note: result.trim()));
     }
   }
 
@@ -1539,10 +1717,14 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
               padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
               child: Row(
                 children: [
-                  Icon(Icons.emoji_events_outlined, size: 20, color: colors.primary),
+                  Icon(Icons.emoji_events_outlined,
+                      size: 20, color: colors.primary),
                   const SizedBox(width: 8),
                   Text('通关记录'.tr,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)),
                   const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.pop(context, _items),
@@ -1556,13 +1738,16 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Text('暂无通关记录，点击下方按钮添加'.tr,
-                          style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: colors.onSurface.withValues(alpha: 0.45))),
                     )
                   : ListView.separated(
                       shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: _items.length,
-                      separatorBuilder: (_, __) => Divider(height: 1, color: colors.outlineVariant),
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: colors.outlineVariant),
                       itemBuilder: (_, i) {
                         final c = _items[i];
                         return Row(
@@ -1574,15 +1759,20 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
                                   InkWell(
                                     onTap: () => _pickDate(i),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
                                       child: Text(_fmtDate(c.completionDate),
-                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: colors.onSurface)),
                                     ),
                                   ),
                                   InkWell(
                                     onTap: () => _editNote(i),
                                     child: Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10),
                                       child: Text(
                                         c.note.isEmpty ? '添加备注'.tr : c.note,
                                         maxLines: 2,
@@ -1590,8 +1780,10 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: c.note.isEmpty
-                                              ? colors.onSurface.withValues(alpha: 0.35)
-                                              : colors.onSurface.withValues(alpha: 0.7),
+                                              ? colors.onSurface
+                                                  .withValues(alpha: 0.35)
+                                              : colors.onSurface
+                                                  .withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ),
@@ -1600,8 +1792,10 @@ class _GameCompletionsSheetState extends State<_GameCompletionsSheet> {
                               ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.delete_outline, color: colors.error, size: 22),
-                              onPressed: () => setState(() => _items.removeAt(i)),
+                              icon: Icon(Icons.delete_outline,
+                                  color: colors.error, size: 22),
+                              onPressed: () =>
+                                  setState(() => _items.removeAt(i)),
                             ),
                           ],
                         );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/markdown_utils.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
@@ -52,7 +53,7 @@ class _DeletedItem {
   _DeletedItem.movieReview(MovieReview r)
       : type = _ItemType.movieReview,
         id = r.id,
-        title = r.content.isNotEmpty ? r.content : '影评'.tr,
+        title = r.content.isNotEmpty ? markdownToPlainText(r.content) : '影评'.tr,
         subtitle = '删除于 {date}'.trf({'date': _fmtDate(r.updatedAt)}),
         icon = Icons.rate_review_outlined,
         typeLabel = '影评'.tr;
@@ -60,7 +61,7 @@ class _DeletedItem {
   _DeletedItem.bookReview(BookReview r)
       : type = _ItemType.bookReview,
         id = r.id,
-        title = r.content.isNotEmpty ? r.content : '书评'.tr,
+        title = r.content.isNotEmpty ? markdownToPlainText(r.content) : '书评'.tr,
         subtitle = '删除于 {date}'.trf({'date': _fmtDate(r.updatedAt)}),
         icon = Icons.rate_review_outlined,
         typeLabel = '书评'.tr;
@@ -84,7 +85,7 @@ class _DeletedItem {
   _DeletedItem.gameReview(GameReview r)
       : type = _ItemType.gameReview,
         id = r.id,
-        title = r.content.isNotEmpty ? r.content : '游戏评价'.tr,
+        title = r.content.isNotEmpty ? markdownToPlainText(r.content) : '游戏评价'.tr,
         subtitle = '删除于 {date}'.trf({'date': _fmtDate(r.updatedAt)}),
         icon = Icons.rate_review_outlined,
         typeLabel = '游戏评价'.tr;

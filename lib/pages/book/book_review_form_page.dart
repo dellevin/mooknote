@@ -9,6 +9,7 @@ import '../../utils/user_prefs.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/markdown_link.dart';
 import '../../widgets/image_grid_editor.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -43,9 +44,12 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
   @override
   void initState() {
     super.initState();
-    _contentController = TextEditingController(text: widget.review?.content ?? '');
-    _reviewerController = TextEditingController(text: widget.review?.reviewer ?? '');
-    _sourceController = TextEditingController(text: widget.review?.source ?? '');
+    _contentController =
+        TextEditingController(text: widget.review?.content ?? '');
+    _reviewerController =
+        TextEditingController(text: widget.review?.reviewer ?? '');
+    _sourceController =
+        TextEditingController(text: widget.review?.source ?? '');
     _reviewType = widget.review?.reviewType ?? 1;
     _reviewDate = widget.review?.reviewDate ?? DateTime.now();
     _images = List<String>.from(widget.review?.images ?? []);
@@ -69,7 +73,11 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
   }
 
   Book? _getBook() {
-    return context.read<AppProvider>().books.where((b) => b.id == widget.bookId).firstOrNull;
+    return context
+        .read<AppProvider>()
+        .books
+        .where((b) => b.id == widget.bookId)
+        .firstOrNull;
   }
 
   @override
@@ -99,7 +107,11 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
                     const SizedBox(height: 20),
 
                     // ── 类型选择 ──────────────────────
-                    Text('书评类型'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('书评类型'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildTypeSelector(colors),
                     const SizedBox(height: 20),
@@ -123,13 +135,21 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
                     const SizedBox(height: 20),
 
                     // ── 评论内容 ──────────────────────
-                    Text('评论内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评论内容'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildContentField(colors),
                     const SizedBox(height: 20),
 
                     // ── 图片 ──────────────────────────
-                    Text('图片'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('图片'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     ImageGridEditor(
                       images: _images,
@@ -144,12 +164,15 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
             // ── 底部保存按钮 ──────────────────────
             Container(
               padding: EdgeInsets.only(
-                left: 16, right: 16, top: 12,
+                left: 16,
+                right: 16,
+                top: 12,
                 bottom: MediaQuery.of(context).padding.bottom + 12,
               ),
               decoration: BoxDecoration(
                 color: colors.surface,
-                border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+                border: Border(
+                    top: BorderSide(color: colors.outlineVariant, width: 0.5)),
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -160,10 +183,12 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(isEdit ? '更新书评'.tr : '保存书评'.tr,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -187,35 +212,56 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
       child: Row(
         children: [
           Container(
-            width: 56, height: 72,
+            width: 56,
+            height: 72,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
               color: colors.outlineVariant,
             ),
             clipBehavior: Clip.antiAlias,
-            child: book.coverPath != null && book.coverPath!.isNotEmpty && File(book.coverPath!).existsSync()
-                ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover,
-                    errorWidget: Icon(Icons.book_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)))
-                : Icon(Icons.book_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
+            child: book.coverPath != null &&
+                    book.coverPath!.isNotEmpty &&
+                    File(book.coverPath!).existsSync()
+                ? FadeInLocalImage(
+                    path: book.coverPath,
+                    fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.book_outlined,
+                        size: 24,
+                        color: colors.onSurface.withValues(alpha: 0.25)))
+                : Icon(Icons.book_outlined,
+                    size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(book.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(book.title,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 if (book.authors.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(book.authors.take(2).join(' / '),
-                      style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5)),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurface.withValues(alpha: 0.5)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                 ],
                 if (book.rating != null) ...[
                   const SizedBox(height: 4),
                   Row(children: [
                     const Icon(Icons.star, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
-                    Text('${book.rating}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+                    Text('${book.rating}',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface.withValues(alpha: 0.6))),
                   ]),
                 ],
               ],
@@ -233,8 +279,10 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
   Widget _buildTypeSelector(ColorScheme colors) {
     return SegmentedButton<int>(
       segments: [
-        ButtonSegment(value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
-        ButtonSegment(value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
+        ButtonSegment(
+            value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
+        ButtonSegment(
+            value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
       ],
       selected: {_reviewType},
       onSelectionChanged: (v) => setState(() => _reviewType = v.first),
@@ -281,7 +329,9 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -317,16 +367,24 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
         ),
         child: Row(
           children: [
-            Icon(Icons.event_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+            Icon(Icons.event_outlined,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
             const SizedBox(width: 10),
-            Text('书评日期'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+            Text('书评日期'.tr,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.4))),
             const Spacer(),
             Text(
               '${_reviewDate.year}.${_reviewDate.month.toString().padLeft(2, '0')}.${_reviewDate.day.toString().padLeft(2, '0')}',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: colors.onSurface),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+            Icon(Icons.chevron_right,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
           ],
         ),
       ),
@@ -350,10 +408,13 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
             maxLines: 10,
             minLines: 6,
             textAlignVertical: TextAlignVertical.top,
-            style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
+            style:
+                TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
             decoration: InputDecoration(
               hintText: '写下你的书评...'.tr,
-              hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
+              hintStyle: TextStyle(
+                  fontSize: 15,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -365,13 +426,22 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
             },
             onChanged: (_) => setState(() {}),
           ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MarkdownLinkButton(
+              controller: _contentController,
+              onInserted: () => setState(() {}),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 14, bottom: 10),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
                 '{n} 字'.trf({'n': _contentController.text.length}),
-                style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3)),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
               ),
             ),
           ),
@@ -402,8 +472,11 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
       final newPaths = <String>[];
       if (UserPrefs().cloudBookMode) {
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           newPaths.add(await CloudImageUpload.persist(
             logicalPath: 'reviews/$reviewId/$fileName',
             localAbsPath: file.path,
@@ -411,11 +484,15 @@ class _BookReviewFormPageState extends State<BookReviewFormPage> {
           ));
         }
       } else {
-        final targetDir = await ImagePathHelper.instance.getReviewImagesDir(reviewId);
+        final targetDir =
+            await ImagePathHelper.instance.getReviewImagesDir(reviewId);
         await ImagePathHelper.instance.ensureDirExists(targetDir);
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           final targetPath = p.join(targetDir, fileName);
           await file.copy(targetPath);
           newPaths.add(targetPath);

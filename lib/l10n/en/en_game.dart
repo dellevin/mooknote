@@ -47,7 +47,8 @@ const Map<String, String> enGame = {
   '添加备注': 'Add a note',
   '添加通关记录': 'Add completion record',
   '难度 / 结局 / 心得（可选）': 'Difficulty / ending / thoughts (optional)',
-  '暂无通关记录，点击下方按钮添加': 'No completion records yet. Tap the button below to add one.',
+  '暂无通关记录，点击下方按钮添加':
+      'No completion records yet. Tap the button below to add one.',
   '简介': 'Synopsis',
   '游戏简介': 'Synopsis',
   '更多': 'More',
@@ -122,6 +123,7 @@ const Map<String, String> enGame = {
   '游戏评价': 'Reviews',
   '游戏截图': 'Screenshots',
   '暂无评价': 'No reviews yet',
+  '暂无游戏评价': 'No game reviews yet',
   '暂无截图': 'No screenshots yet',
   '暂无角色': 'No characters yet',
   '条评价': 'reviews',

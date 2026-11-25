@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/markdown_utils.dart';
 import '../../widgets/note_list_item.dart';
 import '../../widgets/shimmer_skeleton.dart';
 import '../../widgets/empty_state.dart';
@@ -354,8 +355,10 @@ class _NoteTabPageState extends State<NoteTabPage> {
         ]),
       ),
     );
-  }  String _getPreviewText(Note note) {
-    final text = note.content.replaceAll(RegExp(r'[#*\[\]\(\)]'), '').trim();
+  }
+
+  String _getPreviewText(Note note) {
+    final text = markdownToPlainText(note.content);
     return text.isEmpty ? '(无内容)' : text;
   }
 

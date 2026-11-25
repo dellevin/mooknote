@@ -83,6 +83,8 @@ class _BookExcerptsPageState extends State<BookExcerptsPage> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         onPressed: _navigateToAddExcerpt,
         icon: const Icon(Icons.add, size: 20),
         label: Text('添加摘抄'.tr),

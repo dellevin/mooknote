@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../utils/markdown_utils.dart';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -2625,14 +2626,14 @@ class _BinItem {
         icon = Icons.sports_esports_outlined, typeLabel = '游戏';
 
   _BinItem.movieReview(MovieReview r)
-      : type = _BinItemType.movieReview, id = r.id, title = r.content.isNotEmpty ? r.content : '影评'.tr,
+      : type = _BinItemType.movieReview, id = r.id, title = r.content.isNotEmpty ? markdownToPlainText(r.content) : '影评'.tr,
         subtitle = '删除于 {y}.{m}.{d}'.trf({'y': r.updatedAt.year,
             'm': r.updatedAt.month.toString().padLeft(2, '0'),
             'd': r.updatedAt.day.toString().padLeft(2, '0')}),
         icon = Icons.rate_review_outlined, typeLabel = '影评';
 
   _BinItem.bookReview(BookReview r)
-      : type = _BinItemType.bookReview, id = r.id, title = r.content.isNotEmpty ? r.content : '书评'.tr,
+      : type = _BinItemType.bookReview, id = r.id, title = r.content.isNotEmpty ? markdownToPlainText(r.content) : '书评'.tr,
         subtitle = '删除于 {y}.{m}.{d}'.trf({'y': r.updatedAt.year,
             'm': r.updatedAt.month.toString().padLeft(2, '0'),
             'd': r.updatedAt.day.toString().padLeft(2, '0')}),
@@ -2646,7 +2647,7 @@ class _BinItem {
         icon = Icons.format_quote_outlined, typeLabel = '书摘';
 
   _BinItem.gameReview(GameReview r)
-      : type = _BinItemType.gameReview, id = r.id, title = r.content.isNotEmpty ? r.content : '游戏评价'.tr,
+      : type = _BinItemType.gameReview, id = r.id, title = r.content.isNotEmpty ? markdownToPlainText(r.content) : '游戏评价'.tr,
         subtitle = '删除于 {y}.{m}.{d}'.trf({'y': r.updatedAt.year,
             'm': r.updatedAt.month.toString().padLeft(2, '0'),
             'd': r.updatedAt.day.toString().padLeft(2, '0')}),

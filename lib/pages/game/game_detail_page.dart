@@ -5,6 +5,7 @@ import '../../utils/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/markdown_link.dart';
 import '../../widgets/app_back_button.dart';
 import '../../providers/app_provider.dart';
 import '../../models/data_models.dart';
@@ -16,7 +17,6 @@ import '../../widgets/work_people_section.dart';
 import '../../widgets/character_preview_section.dart';
 import '../../widgets/character_info_sheet.dart';
 import '../../widgets/review_preview_section.dart';
-import 'game_reviews_page.dart';
 import 'game_screenshots_page.dart';
 import 'game_share_page.dart';
 import '../character/character_list_page.dart';
@@ -71,13 +71,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
   }
 
   Future<void> _loadCharacters() async {
-    final list = await context.read<AppProvider>().getGameCharacters(widget.game.id);
+    final list =
+        await context.read<AppProvider>().getGameCharacters(widget.game.id);
     if (!mounted) return;
     setState(() => _characters = list);
   }
 
   Future<void> _loadCompletions() async {
-    final list = await context.read<AppProvider>().getGameCompletions(widget.game.id);
+    final list =
+        await context.read<AppProvider>().getGameCompletions(widget.game.id);
     if (!mounted) return;
     setState(() => _completions = list);
   }
@@ -88,8 +90,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
     _summaryCtrl = TextEditingController(text: g.summary ?? '');
     _ratingCtrl = TextEditingController(text: g.rating?.toString() ?? '');
     _purchasePriceCtrl = TextEditingController(text: g.purchasePrice ?? '');
-    _playTimeHoursCtrl = TextEditingController(text: g.playTimeHours > 0 ? g.playTimeHours.toString() : '');
-    _playTimeMinutesCtrl = TextEditingController(text: g.playTimeMinutes > 0 ? g.playTimeMinutes.toString() : '');
+    _playTimeHoursCtrl = TextEditingController(
+        text: g.playTimeHours > 0 ? g.playTimeHours.toString() : '');
+    _playTimeMinutesCtrl = TextEditingController(
+        text: g.playTimeMinutes > 0 ? g.playTimeMinutes.toString() : '');
   }
 
   Future<void> _detectCoverAspect() async {
@@ -129,8 +133,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
     final colors = Theme.of(context).colorScheme;
     // 只订阅当前这一条：无关的 provider 变更不再重建整个详情页
     final game = context.select<AppProvider, Game?>(
-      (p) => p.games.where((g) => g.id == widget.game.id).firstOrNull,
-    ) ?? widget.game;
+          (p) => p.games.where((g) => g.id == widget.game.id).firstOrNull,
+        ) ??
+        widget.game;
 
     return switch (_detailStyle) {
       1 => _buildOverlayStyle(game, colors),
@@ -162,18 +167,21 @@ class _GameDetailPageState extends State<GameDetailPage> {
         case 'characters':
           result.add(CharacterPreviewSection(
             characters: _characters,
+            workType: 'game',
             onTap: _openCharacterSheet,
+            onOpenAll: () => _navigateToCharacters(game),
             isOverlay: layout == 1,
           ));
         case 'people':
-          result.add(WorkPeopleSection(workId: game.id, workType: 'game', isOverlay: layout == 1));
+          result.add(WorkPeopleSection(
+              workId: game.id, workType: 'game', isOverlay: layout == 1));
         case 'summary':
           if (game.summary != null && game.summary!.isNotEmpty) {
             if (layout == 1 && !isFirst) result.add(const SizedBox(height: 12));
             result.add(switch (layout) {
               1 => _buildOverlaySummary(game),
               2 => _buildLayeredSummary(game),
-              _ => _buildInfoSection('游戏简介', game.summary!),
+              _ => _buildInfoSection('游戏简介', game.summary!, markdown: true),
             });
           }
         case 'reviews':
@@ -195,7 +203,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
           if (!isFirst) {
             if (layout == 1) result.add(const SizedBox(height: 12));
             if (layout == 2) result.add(const SizedBox(height: 20));
-            if (layout == 0) result.add(Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            if (layout == 0) {
+              result.add(
+                  Divider(height: 0.5, thickness: 0.5, color: colors.outline));
+            }
           }
           result.add(switch (layout) {
             1 => _buildExtraSectionsOverlay(game),
@@ -220,11 +231,17 @@ class _GameDetailPageState extends State<GameDetailPage> {
       if (game.developer.isNotEmpty) row('开发者', game.developer.join('、')),
       if (game.releaseDate != null) row('发售时间', _formatDate(game.releaseDate!)),
       if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-        row('游玩时长', '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
+        row(
+            '游玩时长',
+            '{h}小时{m}分钟'
+                .trf({'h': game.playTimeHours, 'm': game.playTimeMinutes})),
       if (game.playCount > 0) row('游玩次数', '{n} 次'.trf({'n': game.playCount})),
-      if (game.purchasePlatforms.isNotEmpty) row('购买平台', game.purchasePlatforms.join('、')),
-      if (game.purchaseDate != null) row('购买时间', _formatDate(game.purchaseDate!)),
-      if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty) row('购买价格', game.purchasePrice!),
+      if (game.purchasePlatforms.isNotEmpty)
+        row('购买平台', game.purchasePlatforms.join('、')),
+      if (game.purchaseDate != null)
+        row('购买时间', _formatDate(game.purchaseDate!)),
+      if (game.purchasePrice != null && game.purchasePrice!.isNotEmpty)
+        row('购买价格', game.purchasePrice!),
       if (_completions.isNotEmpty) _buildCompletionRow(colors, layout),
     ];
   }
@@ -259,25 +276,34 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: pad,
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 72, child: Text('通关时间'.tr, style: TextStyle(fontSize: 13, color: labelColor))),
+        SizedBox(
+            width: 72,
+            child: Text('通关时间'.tr,
+                style: TextStyle(fontSize: 13, color: labelColor))),
         Expanded(child: list),
       ]),
     );
   }
 
-  Widget _completionCardContent(GameCompletion c, Color dateColor, Color noteColor) {
+  Widget _completionCardContent(
+      GameCompletion c, Color dateColor, Color noteColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(_formatDate(c.completionDate),
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: dateColor, height: 1.3)),
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: dateColor,
+                height: 1.3)),
         if (c.note.isNotEmpty) ...[
           const SizedBox(height: 2),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 150),
             child: Text(c.note,
-                maxLines: 2, overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 12, color: noteColor, height: 1.3)),
           ),
         ],
@@ -285,14 +311,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
     );
   }
 
-  Widget _standardCompletionChip(GameCompletion c, ColorScheme colors) => Container(
+  Widget _standardCompletionChip(GameCompletion c, ColorScheme colors) =>
+      Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10),
         ),
         child: _completionCardContent(
-          c, colors.onSurface, colors.onSurface.withValues(alpha: 0.55)),
+            c, colors.onSurface, colors.onSurface.withValues(alpha: 0.55)),
       );
 
   Widget _overlayCompletionChip(GameCompletion c) => Container(
@@ -301,18 +328,19 @@ class _GameDetailPageState extends State<GameDetailPage> {
           color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: _completionCardContent(
-          c, Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0.6)),
+        child: _completionCardContent(c, Colors.white.withValues(alpha: 0.95),
+            Colors.white.withValues(alpha: 0.6)),
       );
 
-  Widget _layeredCompletionChip(GameCompletion c, ColorScheme colors) => Container(
+  Widget _layeredCompletionChip(GameCompletion c, ColorScheme colors) =>
+      Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(10),
         ),
         child: _completionCardContent(
-          c, colors.onSurface, colors.onSurface.withValues(alpha: 0.55)),
+            c, colors.onSurface, colors.onSurface.withValues(alpha: 0.55)),
       );
 
   Widget _buildStandardStyle(Game game, ColorScheme colors) {
@@ -344,7 +372,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
             ),
           ),
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: Container(
               padding: EdgeInsets.only(top: topSafe),
               color: colors.surface,
@@ -356,8 +386,12 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(game.title,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                   IconButton(
                     icon: Icon(Icons.tune, color: colors.onSurface, size: 20),
@@ -382,10 +416,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
     final screenH = MediaQuery.of(context).size.height;
     final hasCover = game.coverPath != null && game.coverPath!.isNotEmpty;
 
-    _overlayScrollController ??= ScrollController()..addListener(() {
-      final show = (_overlayScrollController?.offset ?? 0) > 10;
-      if (_showTitle.value != show) _showTitle.value = show;
-    });
+    _overlayScrollController ??= ScrollController()
+      ..addListener(() {
+        final show = (_overlayScrollController?.offset ?? 0) > 10;
+        if (_showTitle.value != show) _showTitle.value = show;
+      });
 
     return Scaffold(
       body: Stack(
@@ -400,8 +435,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
               child: ImageFiltered(
                 imageFilter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                 child: Image(
-                  image: ResizeImage(FileImage(File(game.coverPath!)), width: 1080),
-                  fit: BoxFit.cover, width: double.infinity, height: screenH,
+                  image: ResizeImage(FileImage(File(game.coverPath!)),
+                      width: 1080),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: screenH,
                   repeat: ImageRepeat.repeatY,
                 ),
               ),
@@ -427,10 +465,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       opacity: show ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
+                        constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.5),
                         child: Text(game.title,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                       ),
                     ),
                   ),
@@ -446,18 +489,21 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 child: SingleChildScrollView(
                   controller: _overlayScrollController,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _buildOverlayHeader(game),
-                    const SizedBox(height: 20),
-                    // 内容模块（顺序/显隐可在设置中调整）
-                    ..._orderedModules(game, colors, 1),
-                  ]),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildOverlayHeader(game),
+                        const SizedBox(height: 20),
+                        // 内容模块（顺序/显隐可在设置中调整）
+                        ..._orderedModules(game, colors, 1),
+                      ]),
                 ),
               ),
             ]),
           ),
 
-          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(game)),
+          Positioned(
+              right: 16, bottom: 24, child: _buildFloatingActionButtons(game)),
         ],
       ),
     );
@@ -482,7 +528,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 children: [
                   Center(child: _buildLayeredCover(game)),
                   const SizedBox(height: 20),
-                  SizedBox(width: double.infinity, child: _buildLayeredHeader(game)),
+                  SizedBox(
+                      width: double.infinity, child: _buildLayeredHeader(game)),
                   const SizedBox(height: 20),
                   // 内容模块（顺序/显隐可在设置中调整）
                   ..._orderedModules(game, colors, 2),
@@ -491,7 +538,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
             ),
           ),
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: Container(
               padding: EdgeInsets.only(top: safeTop),
               color: colors.surface,
@@ -503,8 +552,12 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(game.title,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                   IconButton(
                     icon: Icon(Icons.tune, color: colors.onSurface, size: 20),
@@ -515,7 +568,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
               ),
             ),
           ),
-          Positioned(right: 16, bottom: 24, child: _buildFloatingActionButtons(game)),
+          Positioned(
+              right: 16, bottom: 24, child: _buildFloatingActionButtons(game)),
         ],
       ),
     );
@@ -527,10 +581,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
     final hasCover = game.coverPath != null && game.coverPath!.isNotEmpty;
 
     // 复用毛玻璃样式的滚动控制器（同一时刻只会有一个样式生效）
-    _overlayScrollController ??= ScrollController()..addListener(() {
-      final show = (_overlayScrollController?.offset ?? 0) > 10;
-      if (_showTitle.value != show) _showTitle.value = show;
-    });
+    _overlayScrollController ??= ScrollController()
+      ..addListener(() {
+        final show = (_overlayScrollController?.offset ?? 0) > 10;
+        if (_showTitle.value != show) _showTitle.value = show;
+      });
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -545,7 +600,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 Positioned.fill(
                   child: hasCover
                       ? Image(
-                          image: ResizeImage(FileImage(File(game.coverPath!)), width: 1080),
+                          image: ResizeImage(FileImage(File(game.coverPath!)),
+                              width: 1080),
                           fit: BoxFit.cover)
                       : Container(color: colors.surfaceContainerHighest),
                 ),
@@ -570,8 +626,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: colors.surface,
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,7 +643,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
           ),
           // 顶部导航栏：滚动后变为 surface 底并显示标题
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: ValueListenableBuilder<bool>(
               valueListenable: _showTitle,
               builder: (_, show, __) => AnimatedContainer(
@@ -608,11 +666,12 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         opacity: show ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 200),
                         child: Text(game.title,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: colors.onSurface),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                       ),
                     ),
                     IconButton(
@@ -649,33 +708,53 @@ class _GameDetailPageState extends State<GameDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 104, height: 150,
+          width: 104,
+          height: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4))
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: hasCover
               ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
-              : Container(color: Colors.white24, child: const Icon(Icons.sports_esports_outlined, color: Colors.white38, size: 32)),
+              : Container(
+                  color: Colors.white24,
+                  child: const Icon(Icons.sports_esports_outlined,
+                      color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 2),
             Text(game.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, height: 1.3)),
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.3)),
             if (game.developer.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(game.developer.join(' / '),
-                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.65)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ],
             if (meta.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(meta,
-                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65)),
-                maxLines: 2, overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.65)),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
             ],
             const SizedBox(height: 10),
             Row(children: [
@@ -683,20 +762,28 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 const Icon(Icons.star, size: 18, color: Color(0xFFFFB800)),
                 const SizedBox(width: 4),
                 Text(game.rating!.toStringAsFixed(1),
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFFFFB800))),
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFFB800))),
                 const SizedBox(width: 12),
               ],
               _buildOverlayStatusChip(game.status),
             ]),
-            if (game.playTimeHours > 0 || game.playTimeMinutes > 0 || game.playCount > 0) ...[
+            if (game.playTimeHours > 0 ||
+                game.playTimeMinutes > 0 ||
+                game.playCount > 0) ...[
               const SizedBox(height: 8),
-              Text([
-                if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
-                  '{h}小时{m}分钟'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}),
-                if (game.playCount > 0)
-                  '{n} 次'.trf({'n': game.playCount}),
-              ].join(' · '),
-                style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45))),
+              Text(
+                  [
+                    if (game.playTimeHours > 0 || game.playTimeMinutes > 0)
+                      '{h}小时{m}分钟'.trf(
+                          {'h': game.playTimeHours, 'm': game.playTimeMinutes}),
+                    if (game.playCount > 0) '{n} 次'.trf({'n': game.playCount}),
+                  ].join(' · '),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.45))),
             ],
           ]),
         ),
@@ -709,18 +796,26 @@ class _GameDetailPageState extends State<GameDetailPage> {
     final colors = Theme.of(context).colorScheme;
     final hasCover = game.coverPath != null && game.coverPath!.isNotEmpty;
     return Container(
-      width: 160, height: 230,
+      width: 160,
+      height: 230,
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: hasCover
-            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 20, offset: const Offset(0, 8))]
+            ? [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8))
+              ]
             : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: hasCover
           ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
-          : Center(child: Icon(Icons.sports_esports_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
+          : Center(
+              child: Icon(Icons.sports_esports_outlined,
+                  size: 48, color: colors.onSurface.withValues(alpha: 0.25))),
     );
   }
 
@@ -731,25 +826,40 @@ class _GameDetailPageState extends State<GameDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(game.title,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: colors.onSurface, height: 1.3)),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
+                height: 1.3)),
         if (game.genres.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(game.genres.join(' / '),
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4), height: 1.4)),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: colors.onSurface.withValues(alpha: 0.4),
+                  height: 1.4)),
         ],
         const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          if (game.rating != null) ...[
-            const Icon(Icons.star, size: 20, color: Colors.amber),
-            const SizedBox(width: 4),
-            Text(game.rating!.toStringAsFixed(1),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-          ],
-          _buildStatusTag(game),
-          _buildCategoryTag(game),
-        ]),
+        Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (game.rating != null) ...[
+                const Icon(Icons.star, size: 20, color: Colors.amber),
+                const SizedBox(width: 4),
+                Text(game.rating!.toStringAsFixed(1),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
+              ],
+              _buildStatusTag(game),
+              _buildCategoryTag(game),
+            ]),
       ],
     );
   }
@@ -768,8 +878,16 @@ class _GameDetailPageState extends State<GameDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 72, child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-          Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5))),
+          SizedBox(
+              width: 72,
+              child: Text(label.tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(
+              child: Text(value,
+                  style: TextStyle(
+                      fontSize: 15, color: colors.onSurface, height: 1.5))),
         ],
       ),
     );
@@ -790,13 +908,29 @@ class _GameDetailPageState extends State<GameDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 72, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)))),
-          Expanded(child: Wrap(spacing: 8, runSpacing: 8,
-            children: game.genres.map((g) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(16)),
-              child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-            )).toList(),
+          SizedBox(
+              width: 72,
+              child: Text('类型'.tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurface.withValues(alpha: 0.4)))),
+          Expanded(
+              child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: game.genres
+                .map((g) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Text(g,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: colors.onSurface.withValues(alpha: 0.6))),
+                    ))
+                .toList(),
           )),
         ],
       ),
@@ -817,12 +951,24 @@ class _GameDetailPageState extends State<GameDetailPage> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 4, height: 14, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+          Container(
+              width: 4,
+              height: 14,
+              decoration: BoxDecoration(
+                  color: colors.onSurface,
+                  borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          Text('游戏简介'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+          Text('游戏简介'.tr,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface)),
         ]),
         const SizedBox(height: 12),
-        Text(game.summary!, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8)),
+        MarkdownLinkText(
+          data: game.summary!,
+          style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.8),
+        ),
       ]),
     );
   }
@@ -848,11 +994,19 @@ class _GameDetailPageState extends State<GameDetailPage> {
     }) =>
         frosted
             ? _buildFrostedExtraItem(
-                icon: icon, title: title, subtitleFuture: subtitleFuture,
-                emptyText: emptyText, unit: unit, onTap: onTap)
+                icon: icon,
+                title: title,
+                subtitleFuture: subtitleFuture,
+                emptyText: emptyText,
+                unit: unit,
+                onTap: onTap)
             : _buildExtraSectionItem(
-                icon: icon, title: title, subtitleFuture: subtitleFuture,
-                emptyText: emptyText, unit: unit, onTap: onTap);
+                icon: icon,
+                title: title,
+                subtitleFuture: subtitleFuture,
+                emptyText: emptyText,
+                unit: unit,
+                onTap: onTap);
 
     return [
       for (final e in UserPrefs().getDetailExtraItems('game'))
@@ -865,29 +1019,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 icon: Icons.flag_outlined,
                 frosted: frosted,
               ),
-            'reviews' => item(
-                icon: Icons.rate_review_outlined,
-                title: '游戏评价',
-                subtitleFuture: context.read<AppProvider>().getGameReviewCount(game.id),
-                emptyText: '暂无评价',
-                unit: '条评价',
-                onTap: () => _navigateToReviews(game),
-              ),
             'screenshots' => item(
                 icon: Icons.photo_library_outlined,
                 title: '游戏截图',
-                subtitleFuture: context.read<AppProvider>().getGameScreenshotCount(game.id),
+                subtitleFuture:
+                    context.read<AppProvider>().getGameScreenshotCount(game.id),
                 emptyText: '暂无截图',
                 unit: '张截图',
                 onTap: () => _navigateToScreenshots(game),
-              ),
-            'characters' => item(
-                icon: Icons.people_outline,
-                title: '角色',
-                subtitleFuture: context.read<AppProvider>().getGameCharacterCount(game.id),
-                emptyText: '暂无角色',
-                unit: '个角色',
-                onTap: () => _navigateToCharacters(game),
               ),
             _ => const SizedBox.shrink(),
           },
@@ -900,9 +1039,18 @@ class _GameDetailPageState extends State<GameDetailPage> {
     if (children.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Container(width: 4, height: 16, decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2))),
+        Container(
+            width: 4,
+            height: 16,
+            decoration: BoxDecoration(
+                color: colors.onSurface,
+                borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
-        Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        Text('更多'.tr,
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
       ]),
       const SizedBox(height: 12),
       ..._withGaps(children, 10),
@@ -915,31 +1063,52 @@ class _GameDetailPageState extends State<GameDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 100, height: 140,
+          width: 100,
+          height: 140,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4))
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: hasCover
               ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover)
-              : Container(color: Colors.white24, child: const Icon(Icons.sports_esports_outlined, color: Colors.white38, size: 32)),
+              : Container(
+                  color: Colors.white24,
+                  child: const Icon(Icons.sports_esports_outlined,
+                      color: Colors.white38, size: 32)),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 4),
-            Text(game.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(game.title,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
             if (game.genres.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(game.genres.join(' / '), style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+              Text(game.genres.join(' / '),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.6))),
             ],
             const SizedBox(height: 12),
             Row(children: [
               if (game.rating != null && game.rating! > 0) ...[
                 const Icon(Icons.star, size: 16, color: Color(0xFFFFB800)),
                 const SizedBox(width: 4),
-                Text(game.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFFFB800))),
+                Text(game.rating!.toStringAsFixed(1),
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFFFB800))),
                 const SizedBox(width: 16),
               ],
               _buildOverlayStatusChip(game.status),
@@ -955,11 +1124,15 @@ class _GameDetailPageState extends State<GameDetailPage> {
         ? StatusLabels.label('game', status)
         : '';
     if (label.isEmpty) return const SizedBox.shrink();
-    final c = AppTheme.statusOverlayColors(Theme.of(context).colorScheme, status);
+    final c =
+        AppTheme.statusOverlayColors(Theme.of(context).colorScheme, status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: c.bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(label.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.fg)),
+      decoration:
+          BoxDecoration(color: c.bg, borderRadius: BorderRadius.circular(12)),
+      child: Text(label.tr,
+          style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w600, color: c.fg)),
     );
   }
 
@@ -967,8 +1140,17 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 72, child: Text(label.tr, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
-        Expanded(child: Text(value, style: TextStyle(fontSize: 15, color: Colors.white.withValues(alpha: 0.9), height: 1.5))),
+        SizedBox(
+            width: 72,
+            child: Text(label.tr,
+                style: TextStyle(
+                    fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
+        Expanded(
+            child: Text(value,
+                style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    height: 1.5))),
       ]),
     );
   }
@@ -977,15 +1159,28 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 72, child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
+        SizedBox(
+            width: 72,
+            child: Text('类型'.tr,
+                style: TextStyle(
+                    fontSize: 13, color: Colors.white.withValues(alpha: 0.5)))),
         Expanded(
           child: Wrap(
-            spacing: 8, runSpacing: 8,
-            children: game.genres.map((g) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
-              child: Text(g, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8))),
-            )).toList(),
+            spacing: 8,
+            runSpacing: 8,
+            children: game.genres
+                .map((g) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Text(g,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.8))),
+                    ))
+                .toList(),
           ),
         ),
       ]),
@@ -996,9 +1191,18 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('游戏简介'.tr, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
+        Text('游戏简介'.tr,
+            style: TextStyle(
+                fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
         const SizedBox(height: 8),
-        Text(game.summary!, style: TextStyle(fontSize: 15, color: Colors.white.withValues(alpha: 0.9), height: 1.6)),
+        MarkdownLinkText(
+          data: game.summary!,
+          style: TextStyle(
+              fontSize: 15,
+              color: Colors.white.withValues(alpha: 0.9),
+              height: 1.6),
+          linkColor: Colors.lightBlueAccent,
+        ),
       ]),
     );
   }
@@ -1037,24 +1241,37 @@ class _GameDetailPageState extends State<GameDetailPage> {
               onTap: onTap,
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(children: [
-                  Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.7)),
+                  Icon(icon,
+                      size: 20, color: Colors.white.withValues(alpha: 0.7)),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-                      FutureBuilder<int>(
-                        future: subtitleFuture,
-                        builder: (ctx, snap) {
-                          final count = snap.data ?? 0;
-                          return Text(count > 0 ? '$count $unit' : emptyText,
-                            style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)));
-                        },
-                      ),
-                    ]),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white)),
+                          FutureBuilder<int>(
+                            future: subtitleFuture,
+                            builder: (ctx, snap) {
+                              final count = snap.data ?? 0;
+                              return Text(
+                                  count > 0 ? '$count $unit' : emptyText,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.5)));
+                            },
+                          ),
+                        ]),
                   ),
-                  Icon(Icons.chevron_right, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                  Icon(Icons.chevron_right,
+                      size: 16, color: Colors.white.withValues(alpha: 0.3)),
                 ]),
               ),
             ),
@@ -1146,7 +1363,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover),
           Positioned(
-            left: 0, right: 0, bottom: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: IgnorePointer(
               child: Container(
                 height: 60,
@@ -1154,7 +1373,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [colors.surface.withValues(alpha: 0), colors.surface],
+                    colors: [
+                      colors.surface.withValues(alpha: 0),
+                      colors.surface
+                    ],
                   ),
                 ),
               ),
@@ -1169,28 +1391,38 @@ class _GameDetailPageState extends State<GameDetailPage> {
       builder: (context, constraints) {
         final containerH = constraints.maxHeight;
         return GestureDetector(
-          onLongPressStart: hasCover ? (_) {
-            HapticFeedback.mediumImpact();
-            final ctx = _coverImageKey.currentContext;
-            if (ctx != null) {
-              final box = ctx.findRenderObject() as RenderBox?;
-              if (box != null) _coverImageHeight = box.size.height;
-            }
-            _draggingCover.value = true;
-            _coverDragStartOffset = _coverOffset.value;
-          } : null,
-          onLongPressMoveUpdate: hasCover ? (d) {
-            final raw = _coverDragStartOffset + d.offsetFromOrigin.dy;
-            final imgH = _coverImageHeight > 0 ? _coverImageHeight : containerH;
-            final minOffset = -(imgH - containerH).clamp(0, double.infinity);
-            _coverOffset.value = raw.clamp(minOffset, 0.0) as double;
-          } : null,
-          onLongPressEnd: hasCover ? (_) {
-            _draggingCover.value = false;
-            final offset = _coverOffset.value;
-            UserPrefs().setCoverOffset(widget.game.id, offset);
-            context.read<AppProvider>().updateGameCoverOffset(widget.game.id, offset);
-          } : null,
+          onLongPressStart: hasCover
+              ? (_) {
+                  HapticFeedback.mediumImpact();
+                  final ctx = _coverImageKey.currentContext;
+                  if (ctx != null) {
+                    final box = ctx.findRenderObject() as RenderBox?;
+                    if (box != null) _coverImageHeight = box.size.height;
+                  }
+                  _draggingCover.value = true;
+                  _coverDragStartOffset = _coverOffset.value;
+                }
+              : null,
+          onLongPressMoveUpdate: hasCover
+              ? (d) {
+                  final raw = _coverDragStartOffset + d.offsetFromOrigin.dy;
+                  final imgH =
+                      _coverImageHeight > 0 ? _coverImageHeight : containerH;
+                  final minOffset =
+                      -(imgH - containerH).clamp(0, double.infinity);
+                  _coverOffset.value = raw.clamp(minOffset, 0.0) as double;
+                }
+              : null,
+          onLongPressEnd: hasCover
+              ? (_) {
+                  _draggingCover.value = false;
+                  final offset = _coverOffset.value;
+                  UserPrefs().setCoverOffset(widget.game.id, offset);
+                  context
+                      .read<AppProvider>()
+                      .updateGameCoverOffset(widget.game.id, offset);
+                }
+              : null,
           child: ValueListenableBuilder<double>(
             valueListenable: _coverOffset,
             builder: (context, offset, _) {
@@ -1203,7 +1435,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         children: [
                           Positioned(
                             top: offset,
-                            left: 0, right: 0,
+                            left: 0,
+                            right: 0,
                             child: FadeInLocalImage(
                               key: _coverImageKey,
                               path: game.coverPath,
@@ -1223,7 +1456,9 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         children: [
                           if (!dragging)
                             Positioned(
-                              left: 0, right: 0, bottom: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
                               child: IgnorePointer(
                                 child: Container(
                                   height: 60,
@@ -1242,19 +1477,24 @@ class _GameDetailPageState extends State<GameDetailPage> {
                             ),
                           if (dragging) ...[
                             Positioned.fill(
-                              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+                              child: Container(
+                                  color: Colors.black.withValues(alpha: 0.3)),
                             ),
                             Positioned(
-                              left: 0, right: 0, bottom: 20,
+                              left: 0,
+                              right: 0,
+                              bottom: 20,
                               child: Center(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text('上下滑动调整图片位置'.tr,
-                                      style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                                      style: const TextStyle(
+                                          fontSize: 13, color: Colors.white70)),
                                 ),
                               ),
                             ),
@@ -1278,9 +1518,13 @@ class _GameDetailPageState extends State<GameDetailPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.sports_esports_outlined, size: 64, color: colors.onSurface.withValues(alpha: 0.25)),
+          Icon(Icons.sports_esports_outlined,
+              size: 64, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
-          Text('暂无封面'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+          Text('暂无封面'.tr,
+              style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.4))),
         ],
       ),
     );
@@ -1295,7 +1539,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           Text(
             game.title,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.3),
+            style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface,
+                height: 1.3),
           ),
           const SizedBox(height: 16),
           Row(
@@ -1304,7 +1552,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 const Icon(Icons.star, size: 20, color: Colors.amber),
                 const SizedBox(width: 4),
                 Text(game.rating!.toStringAsFixed(1),
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
                 const SizedBox(width: 16),
               ],
               _buildStatusTag(game),
@@ -1346,8 +1597,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
-      child: Text(label.tr, style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w600)),
+      decoration:
+          BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
+      child: Text(label.tr,
+          style: TextStyle(
+              fontSize: 12, color: textColor, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -1358,12 +1612,19 @@ class _GameDetailPageState extends State<GameDetailPage> {
     if (label == null) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(6)),
-      child: Text(label.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.5), fontWeight: FontWeight.w500)),
+      decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6)),
+      child: Text(label.tr,
+          style: TextStyle(
+              fontSize: 12,
+              color: colors.onSurface.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w500)),
     );
   }
 
-  Widget _buildInfoSection(String label, String value) {
+  Widget _buildInfoSection(String label, String value,
+      {bool markdown = false}) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1372,10 +1633,21 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           SizedBox(
             width: 72,
-            child: Text(label.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text(label.tr,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
-            child: Text(value, style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.5)),
+            child: markdown
+                ? MarkdownLinkText(
+                    data: value,
+                    style: TextStyle(
+                        fontSize: 15, color: colors.onSurface, height: 1.5),
+                  )
+                : Text(value,
+                    style: TextStyle(
+                        fontSize: 15, color: colors.onSurface, height: 1.5)),
           ),
         ],
       ),
@@ -1391,16 +1663,29 @@ class _GameDetailPageState extends State<GameDetailPage> {
         children: [
           SizedBox(
             width: 72,
-            child: Text('类型'.tr, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4))),
+            child: Text('类型'.tr,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withValues(alpha: 0.4))),
           ),
           Expanded(
             child: Wrap(
-              spacing: 8, runSpacing: 8,
-              children: game.genres.map((g) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
-                child: Text(g, style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.6))),
-              )).toList(),
+              spacing: 8,
+              runSpacing: 8,
+              children: game.genres
+                  .map((g) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                            color: colors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16)),
+                        child: Text(g,
+                            style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    colors.onSurface.withValues(alpha: 0.6))),
+                      ))
+                  .toList(),
             ),
           ),
         ],
@@ -1424,11 +1709,18 @@ class _GameDetailPageState extends State<GameDetailPage> {
           Row(
             children: [
               Container(
-                width: 4, height: 16,
-                decoration: BoxDecoration(color: colors.onSurface, borderRadius: BorderRadius.circular(2)),
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                    color: colors.onSurface,
+                    borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(width: 8),
-              Text('更多'.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+              Text('更多'.tr,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface)),
             ],
           ),
           const SizedBox(height: 16),
@@ -1459,51 +1751,60 @@ class _GameDetailPageState extends State<GameDetailPage> {
         child: Row(
           children: [
             Container(
-              width: 40, height: 40,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: colors.outlineVariant, width: 0.5),
               ),
-              child: Icon(icon, size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
+              child: Icon(icon,
+                  size: 20, color: colors.onSurface.withValues(alpha: 0.6)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                  Text(title.tr,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface)),
                   const SizedBox(height: 4),
                   FutureBuilder<int>(
                     future: subtitleFuture,
                     builder: (context, snapshot) {
                       final count = snapshot.data ?? 0;
                       return Text(
-                        count > 0 ? '{n} {unit}'.trf({'n': count, 'unit': unit.tr}) : emptyText.tr,
-                        style: TextStyle(fontSize: 13, color: colors.onSurface.withValues(alpha: 0.4)),
+                        count > 0
+                            ? '{n} {unit}'.trf({'n': count, 'unit': unit.tr})
+                            : emptyText.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: colors.onSurface.withValues(alpha: 0.4)),
                       );
                     },
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
+            Icon(Icons.chevron_right,
+                size: 20, color: colors.onSurface.withValues(alpha: 0.25)),
           ],
         ),
       ),
     );
   }
 
-  void _navigateToReviews(Game game) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => GameReviewsPage(game: game)));
-  }
-
   void _navigateToScreenshots(Game game) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreenshotsPage(game: game)));
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => GameScreenshotsPage(game: game)));
   }
 
   void _navigateToCharacters(Game game) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => GameCharactersPage(game: game)))
+    Navigator.push(context,
+            MaterialPageRoute(builder: (_) => GameCharactersPage(game: game)))
         .then((_) => _loadCharacters());
   }
 
@@ -1521,31 +1822,75 @@ class _GameDetailPageState extends State<GameDetailPage> {
     final colors = Theme.of(context).colorScheme;
     final currentStyle = UserPrefs().detailPageStyleForType('game');
     const names = ['默认样式', '毛玻璃层叠', '浅色极简', '豆瓣风格'];
-    const icons = [Icons.article_outlined, Icons.blur_on_outlined, Icons.layers_outlined, Icons.art_track_outlined];
-    const subtitles = ['标准封面顶部布局', '封面背景 + 毛玻璃卡片', '封面卡片 + 浅色信息卡片层叠', '封面左置 + 模糊背景信息头'];
+    const icons = [
+      Icons.article_outlined,
+      Icons.blur_on_outlined,
+      Icons.layers_outlined,
+      Icons.art_track_outlined
+    ];
+    const subtitles = [
+      '标准封面顶部布局',
+      '封面背景 + 毛玻璃卡片',
+      '封面卡片 + 浅色信息卡片层叠',
+      '封面左置 + 模糊背景信息头'
+    ];
     appModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 36, height: 4, decoration: BoxDecoration(color: colors.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2))),
+          Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Align(alignment: Alignment.centerLeft, child: Text('详情页样式'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface))),
+          Align(
+              alignment: Alignment.centerLeft,
+              child: Text('详情页样式'.tr,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface))),
           const SizedBox(height: 12),
           for (int i = 0; i < names.length; i++) ...[
             if (i > 0) Divider(height: 0.5, color: colors.outlineVariant),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(icons[i], size: 20, color: currentStyle == i ? colors.primary : colors.onSurface.withValues(alpha: 0.6))),
-              title: Text(names[i].tr, style: TextStyle(fontSize: 13, fontWeight: currentStyle == i ? FontWeight.w600 : FontWeight.w500, color: colors.onSurface)),
-              subtitle: Text(subtitles[i].tr, style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.4))),
+              leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(icons[i],
+                      size: 20,
+                      color: currentStyle == i
+                          ? colors.primary
+                          : colors.onSurface.withValues(alpha: 0.6))),
+              title: Text(names[i].tr,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          currentStyle == i ? FontWeight.w600 : FontWeight.w500,
+                      color: colors.onSurface)),
+              subtitle: Text(subtitles[i].tr,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               trailing: currentStyle == i
                   ? Icon(Icons.check_circle, size: 20, color: colors.primary)
-                  : Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.25)),
-              onTap: () { setState(() => _detailStyle = i); UserPrefs().setDetailPageStyleForType('game', i); Navigator.pop(ctx); },
+                  : Icon(Icons.chevron_right,
+                      color: colors.onSurface.withValues(alpha: 0.25)),
+              onTap: () {
+                setState(() => _detailStyle = i);
+                UserPrefs().setDetailPageStyleForType('game', i);
+                Navigator.pop(ctx);
+              },
             ),
           ],
           const SizedBox(height: 12),
@@ -1555,12 +1900,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
   }
 
   void _showSharePoster(Game game) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => GameSharePage(game: game)));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => GameSharePage(game: game)));
   }
 
   void _navigateToEdit(BuildContext context) {
     final provider = context.read<AppProvider>();
-    Navigator.pushNamed(context, '/game-form', arguments: widget.game).then((_) {
+    Navigator.pushNamed(context, '/game-form', arguments: widget.game)
+        .then((_) {
       provider.setEditRefresh(widget.game.id);
       provider.loadGames();
       _loadCompletions();
@@ -1572,16 +1919,27 @@ class _GameDetailPageState extends State<GameDetailPage> {
     appDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
+        backgroundColor: colors.surface,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
-        content: Text('确定要删除"{title}"吗？删除后可在回收站恢复。'.trf({'title': widget.game.title}),
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+        title: Text('确认删除'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
+        content: Text(
+            '确定要删除"{title}"吗？删除后可在回收站恢复。'.trf({'title': widget.game.title}),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(foregroundColor: colors.onSurface.withValues(alpha: 0.6),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            style: TextButton.styleFrom(
+                foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             child: Text('取消'.tr),
           ),
           ElevatedButton(
@@ -1601,13 +1959,19 @@ class _GameDetailPageState extends State<GameDetailPage> {
                 ToastUtil.show(context, '已删除'.tr);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

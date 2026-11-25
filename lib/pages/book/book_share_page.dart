@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../utils/markdown_utils.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -210,7 +211,7 @@ class _BookSharePageState extends State<BookSharePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    book.summary!,
+                    markdownToPlainText(book.summary!),
                     style: TextStyle(
                       fontSize: 13,
                       color: colors.onSurface.withValues(alpha: 0.6),

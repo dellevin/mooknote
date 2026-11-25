@@ -82,6 +82,8 @@ class _MoviePostersPageState extends State<MoviePostersPage> {
       floatingActionButton: _reorderMode
           ? null
           : FloatingActionButton.extended(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
               onPressed: _pickPoster,
               icon: const Icon(Icons.add_photo_alternate, size: 20),
               label: Text('添加海报'.tr),

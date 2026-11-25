@@ -1,8 +1,7 @@
 /// 英文翻译 - 通用组件/工具/服务域
 const Map<String, String> enWidgets = {
-  // ── add_sheet / add_type_selector ──
+  // ── add_sheet ──
   '新增记录': 'New Entry',
-  '选择添加类型': 'Select Type to Add',
   '添加观影': 'Add Movie',
   '记录你看过的电影': 'Track movies you have watched',
   '添加阅读': 'Add Reading',
@@ -63,6 +62,11 @@ const Map<String, String> enWidgets = {
 
   // ── note_editor ──
   '使用 Markdown 格式书写...': 'Write in Markdown...',
+  '插入链接': 'Insert Link',
+  '链接文字': 'Link Text',
+  '链接地址': 'Link URL',
+  '请输入链接地址': 'Please enter a link URL',
+  '插入': 'Insert',
 
   // ── image_saver ──
   '原文件不存在': 'Source file not found',

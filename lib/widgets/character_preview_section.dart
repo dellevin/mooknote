@@ -1,89 +1,135 @@
 import 'package:flutter/material.dart';
 import 'fade_in_local_image.dart';
 import '../l10n/app_strings.dart';
+import '../utils/user_prefs.dart';
 
-/// 角色卡片横向预览组件
-///
-/// 在影视/书籍/游戏详情页的角色入口上方展示。
-/// 空列表返回 SizedBox.shrink()，不占空间。
+/// 详情页统一角色板块：显示数量或指定数量的角色预览，并提供角色列表入口。
+/// 无角色时显示可点击的空状态。
 class CharacterPreviewSection extends StatelessWidget {
   final List<dynamic> characters;
+  final String workType;
   final void Function(dynamic character) onTap;
+  final VoidCallback onOpenAll;
   final bool isOverlay;
 
   const CharacterPreviewSection({
     super.key,
     required this.characters,
+    required this.workType,
     required this.onTap,
+    required this.onOpenAll,
     this.isOverlay = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (characters.isEmpty) return const SizedBox.shrink();
-
     final colors = Theme.of(context).colorScheme;
     final titleColor = isOverlay ? Colors.white : colors.onSurface;
+    final subColor = isOverlay
+        ? Colors.white.withValues(alpha: 0.6)
+        : colors.onSurface.withValues(alpha: 0.6);
+    final faintColor = isOverlay
+        ? Colors.white.withValues(alpha: 0.4)
+        : colors.onSurface.withValues(alpha: 0.4);
+    final prefs = UserPrefs();
+    final showPreview = prefs.detailCharacterShowPreview(workType);
+    final previewCount = prefs.detailCharacterPreviewCount(workType);
+    final visibleCharacters = characters.take(previewCount).toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: titleColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '角色'.tr,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: titleColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ShaderMask(
-            shaderCallback: (Rect bounds) {
-              return const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Color(0x00FFFFFF),
-                  Color(0xFFFFFFFF),
-                  Color(0xFFFFFFFF),
-                  Color(0x00FFFFFF),
+          InkWell(
+            onTap: onOpenAll,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: titleColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '角色'.tr,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: titleColor,
+                    ),
+                  ),
+                  if (characters.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '共 {n} 个'.trf({'n': characters.length}),
+                      style: TextStyle(fontSize: 12, color: faintColor),
+                    ),
+                  ],
+                  const Spacer(),
+                  Icon(Icons.chevron_right, size: 20, color: faintColor),
                 ],
-                stops: [0.0, 0.04, 0.96, 1.0],
-              ).createShader(bounds);
-            },
-            blendMode: BlendMode.dstIn,
-            child: SizedBox(
-              height: 132,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                itemCount: characters.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  return _CharacterCard(
-                    character: characters[index],
-                    onTap: () => onTap(characters[index]),
-                    isOverlay: isOverlay,
-                  );
-                },
               ),
             ),
           ),
+          if (characters.isEmpty)
+            InkWell(
+              onTap: onOpenAll,
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    '暂无角色'.tr,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: subColor),
+                  ),
+                ),
+              ),
+            )
+          else if (showPreview) ...[
+            const SizedBox(height: 20),
+            ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0x00FFFFFF),
+                    Color(0xFFFFFFFF),
+                    Color(0xFFFFFFFF),
+                    Color(0x00FFFFFF),
+                  ],
+                  stops: [0.0, 0.04, 0.96, 1.0],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.dstIn,
+              child: SizedBox(
+                height: 132,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
+                  itemCount: visibleCharacters.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final character = visibleCharacters[index];
+                    return _CharacterCard(
+                      character: character,
+                      onTap: () => onTap(character),
+                      isOverlay: isOverlay,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -189,7 +235,8 @@ class _CharacterCard extends StatelessWidget {
                             role,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 11, color: secondaryText),
+                            style:
+                                TextStyle(fontSize: 11, color: secondaryText),
                           ),
                         ),
                     ],
@@ -216,7 +263,8 @@ class _CharacterCard extends StatelessWidget {
                   description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: secondaryText, height: 1.35),
+                  style: TextStyle(
+                      fontSize: 11, color: secondaryText, height: 1.35),
                 ),
               ),
           ],

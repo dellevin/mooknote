@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/markdown_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../providers/app_provider.dart';
@@ -105,6 +106,8 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         onPressed: () => _navigateToAddReview(),
         icon: const Icon(Icons.add, size: 20),
         label: Text('添加评价'.tr),
@@ -182,7 +185,7 @@ class _GameReviewsPageState extends State<GameReviewsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              review.content,
+              markdownToPlainText(review.content),
               maxLines: review.reviewType == 1 ? 4 : 8,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 13, color: colors.onSurface, height: 1.5),

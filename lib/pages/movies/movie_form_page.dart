@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import '../../providers/app_provider.dart';
 import '../../services/cloud/cloud_image_upload.dart';
 import '../../utils/user_prefs.dart';
+import '../../utils/markdown_utils.dart';
 import '../../widgets/fade_in_local_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -26,7 +27,9 @@ import '../../utils/status_labels.dart';
 /// 从多值字段列表中提取去重排序的唯一值（供 compute 使用）
 List<String> _collectUnique(List<List<String>> lists) {
   final s = <String>{};
-  for (final l in lists) { s.addAll(l); }
+  for (final l in lists) {
+    s.addAll(l);
+  }
   return s.toList()..sort();
 }
 
@@ -38,7 +41,8 @@ class MovieFormPage extends StatefulWidget {
   /// 快捷添加预填充字段（movie 为 null 时生效，保持添加模式）
   final Map<String, dynamic>? prefill;
 
-  const MovieFormPage({super.key, this.movie, this.initialStatus, this.prefill});
+  const MovieFormPage(
+      {super.key, this.movie, this.initialStatus, this.prefill});
 
   @override
   State<MovieFormPage> createState() => _MovieFormPageState();
@@ -79,9 +83,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
     Movie? movie = widget.movie;
     if (movie != null) {
       final appProvider = context.read<AppProvider>();
-      final latestMovie = appProvider.movies
-          .where((m) => m.id == movie!.id)
-          .firstOrNull;
+      final latestMovie =
+          appProvider.movies.where((m) => m.id == movie!.id).firstOrNull;
       if (latestMovie != null) {
         movie = latestMovie;
       }
@@ -89,7 +92,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
     _titleController = TextEditingController(text: movie?.title ?? '');
     _summaryController = TextEditingController(text: movie?.summary ?? '');
-    _ratingController = TextEditingController(text: movie?.rating?.toString() ?? '');
+    _ratingController =
+        TextEditingController(text: movie?.rating?.toString() ?? '');
 
     if (movie != null) {
       _directors = List.from(movie.directors);
@@ -126,7 +130,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
     _directors = List<String>.from(prefill['directors'] ?? const []);
     _writers = List<String>.from(prefill['writers'] ?? const []);
     _actors = List<String>.from(prefill['actors'] ?? const []);
-    _alternateTitles = List<String>.from(prefill['alternateTitles'] ?? const []);
+    _alternateTitles =
+        List<String>.from(prefill['alternateTitles'] ?? const []);
   }
 
   @override
@@ -178,16 +183,22 @@ class _MovieFormPageState extends State<MovieFormPage> {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'User-Agent':
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
+      if (response.statusCode != 200) {
+        throw Exception('下载失败: HTTP {code}'.trf({'code': response.statusCode}));
+      }
 
       final contentType = response.headers['content-type'];
-      if (contentType != null && !contentType.startsWith('image/')) throw Exception('链接返回的不是图片');
+      if (contentType != null && !contentType.startsWith('image/')) {
+        throw Exception('链接返回的不是图片');
+      }
       if (response.bodyBytes.length > 10 * 1024 * 1024) throw Exception('图片太大');
 
       final fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -197,11 +208,13 @@ class _MovieFormPageState extends State<MovieFormPage> {
         final tmpFile = File('${Directory.systemTemp.path}/$fileName');
         await tmpFile.writeAsBytes(response.bodyBytes);
         final url = await CloudImageUpload.persist(
-          logicalPath: 'movies/$movieId/$fileName', localAbsPath: tmpFile.path);
+            logicalPath: 'movies/$movieId/$fileName',
+            localAbsPath: tmpFile.path);
         setState(() => _posterPath = url);
         return;
       }
-      final targetPath = await ImagePathHelper.instance.getMoviePosterPath(movieId, fileName);
+      final targetPath =
+          await ImagePathHelper.instance.getMoviePosterPath(movieId, fileName);
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);
 
@@ -231,247 +244,268 @@ class _MovieFormPageState extends State<MovieFormPage> {
         appBar: AppBar(
           leading: const AppBackButton(),
           title: Text(isEdit ? '编辑影视'.tr : '添加影视'.tr),
-        actions: [
-          // 保存按钮
-          _buildActionButton(
-            icon: Icons.save_outlined,
-            onPressed: _saveMovie,
-            tooltip: '保存'.tr,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          children: [
-            // 封面选择 - 居中显示
-            Center(child: _buildCoverPicker()),
-
-            const SizedBox(height: 20),
-
-            // 状态 + 评分（合并为一行）
-            _buildStatusRatingRow(),
-
-            const SizedBox(height: 24),
-
-            // 信息卡片网格
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                // 第一行：名称 + 别名
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '名称',
-                    value: _titleController.text,
-                    required: true,
-                    icon: Icons.movie_outlined,
-                    onTap: () => _editTitle(),
-                  ),
-                ),
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '别名',
-                    value: _alternateTitles.isEmpty
-                        ? ''
-                        : '{n}个：{x}'.trf({'n': _alternateTitles.length, 'x': _alternateTitles.join('、')}),
-                    icon: Icons.alternate_email_outlined,
-                    scrollable: true,
-                    onTap: () => _editAlternateTitles(),
-                  ),
-                ),
-
-                // 第二行：导演 + 编剧
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '导演',
-                    value: _directors.isEmpty
-                        ? ''
-                        : '{n}人：{x}'.trf({'n': _directors.length, 'x': _directors.join('、')}),
-                    icon: Icons.videocam_outlined,
-                    onTap: () async {
-                      final provider = context.read<AppProvider>();
-                      final data = provider.movies.map((m) => m.directors).toList();
-                      final result = await GenreSelectorPage.show(
-                        context: context,
-                        title: '选择导演'.tr,
-                        existingTagsFuture: compute(_collectUnique, data),
-                        initialSelected: _directors,
-                        hint: '如：张艺谋、李安'.tr,
-                        asBottomSheet: true,
-                      );
-                      if (!mounted) return;
-                      if (result != null) setState(() => _directors = result);
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '编剧',
-                    value: _writers.isEmpty
-                        ? ''
-                        : '{n}人：{x}'.trf({'n': _writers.length, 'x': _writers.join('、')}),
-                    icon: Icons.edit_note_outlined,
-                    onTap: () async {
-                      final provider = context.read<AppProvider>();
-                      final data = provider.movies.map((m) => m.writers).toList();
-                      final result = await GenreSelectorPage.show(
-                        context: context,
-                        title: '选择编剧'.tr,
-                        existingTagsFuture: compute(_collectUnique, data),
-                        initialSelected: _writers,
-                        hint: '如：刘慈欣、王家卫'.tr,
-                        asBottomSheet: true,
-                      );
-                      if (!mounted) return;
-                      if (result != null) setState(() => _writers = result);
-                    },
-                  ),
-                ),
-
-                // 第三行：主演 + 类型
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '主演',
-                    value: _actors.isEmpty
-                        ? ''
-                        : '{n}人：{x}'.trf({'n': _actors.length, 'x': _actors.join('、')}),
-                    icon: Icons.people_outline,
-                    onTap: () async {
-                      final provider = context.read<AppProvider>();
-                      final data = provider.movies.map((m) => m.actors).toList();
-                      final result = await GenreSelectorPage.show(
-                        context: context,
-                        title: '选择主演'.tr,
-                        existingTagsFuture: compute(_collectUnique, data),
-                        initialSelected: _actors,
-                        hint: '如：梁朝伟、周星驰'.tr,
-                        asBottomSheet: true,
-                      );
-                      if (!mounted) return;
-                      if (result != null) setState(() => _actors = result);
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '类型',
-                    value: _genres.isEmpty
-                        ? ''
-                        : '{n}个：{x}'.trf({'n': _genres.length, 'x': _genres.join('、')}),
-                    icon: Icons.category_outlined,
-                    onTap: () async {
-                      final provider = context.read<AppProvider>();
-                      final tags = await provider.getTags('movie_genre', excludeHidden: true);
-                      final existingNames = tags.map((t) => t['name'] as String).toList();
-                      if (!context.mounted) return;
-                      final result = await GenreSelectorPage.show(
-                        context: context,
-                        title: '选择类型'.tr,
-                        existingTags: existingNames,
-                        initialSelected: _genres,
-                        hint: '如：剧情、科幻、悬疑'.tr,
-                        asBottomSheet: true,
-                      );
-                      if (!mounted) return;
-                      if (result != null) setState(() => _genres = result);
-                    },
-                  ),
-                ),
-
-                // 第四行：上映日期 + 观看日期
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '上映日期',
-                    value: _releaseDate != null
-                        ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
-                        : '',
-                    icon: Icons.theaters_outlined,
-                    trailing: _releaseDate != null
-                        ? GestureDetector(
-                            onTap: () => setState(() => _releaseDate = null),
-                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
-                          )
-                        : null,
-                    onTap: () => _selectReleaseDate(),
-                  ),
-                ),
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '观看日期',
-                    value: _watchDate != null
-                        ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
-                        : '',
-                    icon: Icons.visibility_outlined,
-                    trailing: _watchDate != null
-                        ? GestureDetector(
-                            onTap: () => setState(() => _watchDate = null),
-                            child: Icon(Icons.close, size: 16, color: colors.onSurface.withValues(alpha: 0.35)),
-                          )
-                        : null,
-                    onTap: () => _selectWatchDate(),
-                  ),
-                ),
-
-                // 观看次数
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildWatchCountCard(),
-                ),
-
-                // 影视总时长
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 52) / 2,
-                  height: 90,
-                  child: _buildInfoCard(
-                    label: '影视总时长',
-                    value: _formatDuration(_duration),
-                    icon: Icons.schedule_outlined,
-                    onTap: () => _editDuration(),
-                  ),
-                ),
-
-                // 第五行：剧情简介（独占一行）
-                SizedBox(
-                  width: double.infinity,
-                  child: _buildInfoCard(
-                    label: '剧情简介',
-                    value: _summaryController.text,
-                    icon: Icons.description_outlined,
-                    height: 160,
-                    scrollable: true,
-                    onTap: () => _editSummary(),
-                  ),
-                ),
-              ],
+          actions: [
+            // 保存按钮
+            _buildActionButton(
+              icon: Icons.save_outlined,
+              onPressed: _saveMovie,
+              tooltip: '保存'.tr,
             ),
-
-            const SizedBox(height: 48),
+            const SizedBox(width: 8),
           ],
         ),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            children: [
+              // 封面选择 - 居中显示
+              Center(child: _buildCoverPicker()),
+
+              const SizedBox(height: 20),
+
+              // 状态 + 评分（合并为一行）
+              _buildStatusRatingRow(),
+
+              const SizedBox(height: 24),
+
+              // 信息卡片网格
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  // 第一行：名称 + 别名
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '名称',
+                      value: _titleController.text,
+                      required: true,
+                      icon: Icons.movie_outlined,
+                      onTap: () => _editTitle(),
+                    ),
+                  ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '别名',
+                      value: _alternateTitles.isEmpty
+                          ? ''
+                          : '{n}个：{x}'.trf({
+                              'n': _alternateTitles.length,
+                              'x': _alternateTitles.join('、')
+                            }),
+                      icon: Icons.alternate_email_outlined,
+                      scrollable: true,
+                      onTap: () => _editAlternateTitles(),
+                    ),
+                  ),
+
+                  // 第二行：导演 + 编剧
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '导演',
+                      value: _directors.isEmpty
+                          ? ''
+                          : '{n}人：{x}'.trf({
+                              'n': _directors.length,
+                              'x': _directors.join('、')
+                            }),
+                      icon: Icons.videocam_outlined,
+                      onTap: () async {
+                        final provider = context.read<AppProvider>();
+                        final data =
+                            provider.movies.map((m) => m.directors).toList();
+                        final result = await GenreSelectorPage.show(
+                          context: context,
+                          title: '选择导演'.tr,
+                          existingTagsFuture: compute(_collectUnique, data),
+                          initialSelected: _directors,
+                          hint: '如：张艺谋、李安'.tr,
+                          asBottomSheet: true,
+                        );
+                        if (!mounted) return;
+                        if (result != null) setState(() => _directors = result);
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '编剧',
+                      value: _writers.isEmpty
+                          ? ''
+                          : '{n}人：{x}'.trf(
+                              {'n': _writers.length, 'x': _writers.join('、')}),
+                      icon: Icons.edit_note_outlined,
+                      onTap: () async {
+                        final provider = context.read<AppProvider>();
+                        final data =
+                            provider.movies.map((m) => m.writers).toList();
+                        final result = await GenreSelectorPage.show(
+                          context: context,
+                          title: '选择编剧'.tr,
+                          existingTagsFuture: compute(_collectUnique, data),
+                          initialSelected: _writers,
+                          hint: '如：刘慈欣、王家卫'.tr,
+                          asBottomSheet: true,
+                        );
+                        if (!mounted) return;
+                        if (result != null) setState(() => _writers = result);
+                      },
+                    ),
+                  ),
+
+                  // 第三行：主演 + 类型
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '主演',
+                      value: _actors.isEmpty
+                          ? ''
+                          : '{n}人：{x}'.trf(
+                              {'n': _actors.length, 'x': _actors.join('、')}),
+                      icon: Icons.people_outline,
+                      onTap: () async {
+                        final provider = context.read<AppProvider>();
+                        final data =
+                            provider.movies.map((m) => m.actors).toList();
+                        final result = await GenreSelectorPage.show(
+                          context: context,
+                          title: '选择主演'.tr,
+                          existingTagsFuture: compute(_collectUnique, data),
+                          initialSelected: _actors,
+                          hint: '如：梁朝伟、周星驰'.tr,
+                          asBottomSheet: true,
+                        );
+                        if (!mounted) return;
+                        if (result != null) setState(() => _actors = result);
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '类型',
+                      value: _genres.isEmpty
+                          ? ''
+                          : '{n}个：{x}'.trf(
+                              {'n': _genres.length, 'x': _genres.join('、')}),
+                      icon: Icons.category_outlined,
+                      onTap: () async {
+                        final provider = context.read<AppProvider>();
+                        final tags = await provider.getTags('movie_genre',
+                            excludeHidden: true);
+                        final existingNames =
+                            tags.map((t) => t['name'] as String).toList();
+                        if (!context.mounted) return;
+                        final result = await GenreSelectorPage.show(
+                          context: context,
+                          title: '选择类型'.tr,
+                          existingTags: existingNames,
+                          initialSelected: _genres,
+                          hint: '如：剧情、科幻、悬疑'.tr,
+                          asBottomSheet: true,
+                        );
+                        if (!mounted) return;
+                        if (result != null) setState(() => _genres = result);
+                      },
+                    ),
+                  ),
+
+                  // 第四行：上映日期 + 观看日期
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '上映日期',
+                      value: _releaseDate != null
+                          ? '${_releaseDate!.year}.${_releaseDate!.month.toString().padLeft(2, '0')}.${_releaseDate!.day.toString().padLeft(2, '0')}'
+                          : '',
+                      icon: Icons.theaters_outlined,
+                      trailing: _releaseDate != null
+                          ? GestureDetector(
+                              onTap: () => setState(() => _releaseDate = null),
+                              child: Icon(Icons.close,
+                                  size: 16,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.35)),
+                            )
+                          : null,
+                      onTap: () => _selectReleaseDate(),
+                    ),
+                  ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '观看日期',
+                      value: _watchDate != null
+                          ? '${_watchDate!.year}.${_watchDate!.month.toString().padLeft(2, '0')}.${_watchDate!.day.toString().padLeft(2, '0')}'
+                          : '',
+                      icon: Icons.visibility_outlined,
+                      trailing: _watchDate != null
+                          ? GestureDetector(
+                              onTap: () => setState(() => _watchDate = null),
+                              child: Icon(Icons.close,
+                                  size: 16,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.35)),
+                            )
+                          : null,
+                      onTap: () => _selectWatchDate(),
+                    ),
+                  ),
+
+                  // 观看次数
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildWatchCountCard(),
+                  ),
+
+                  // 影视总时长
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 52) / 2,
+                    height: 90,
+                    child: _buildInfoCard(
+                      label: '影视总时长',
+                      value: _formatDuration(_duration),
+                      icon: Icons.schedule_outlined,
+                      onTap: () => _editDuration(),
+                    ),
+                  ),
+
+                  // 第五行：剧情简介（独占一行）
+                  SizedBox(
+                    width: double.infinity,
+                    child: _buildInfoCard(
+                      label: '剧情简介',
+                      value: markdownToPlainText(_summaryController.text),
+                      icon: Icons.description_outlined,
+                      height: 160,
+                      scrollable: true,
+                      onTap: () => _editSummary(),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 48),
+            ],
+          ),
+        ),
       ),
-    ),
     );
   }
+
   Widget _buildInfoCard({
     required String label,
     required String value,
@@ -497,7 +531,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
               hasValue ? value : '点击填写'.tr,
               style: TextStyle(
                 fontSize: 15,
-                color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+                color: hasValue
+                    ? colors.onSurface
+                    : colors.onSurface.withValues(alpha: 0.25),
                 fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -512,7 +548,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
             hasValue ? value : '点击填写'.tr,
             style: TextStyle(
               fontSize: 15,
-              color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+              color: hasValue
+                  ? colors.onSurface
+                  : colors.onSurface.withValues(alpha: 0.25),
               fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -523,7 +561,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
           hasValue ? value : '点击填写'.tr,
           style: TextStyle(
             fontSize: 15,
-            color: hasValue ? colors.onSurface : colors.onSurface.withValues(alpha: 0.25),
+            color: hasValue
+                ? colors.onSurface
+                : colors.onSurface.withValues(alpha: 0.25),
             fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
           ),
           maxLines: 1,
@@ -557,14 +597,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+                  Icon(icon,
+                      size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 6),
                 ],
                 Text(
                   required ? '${label.tr} *' : label.tr,
                   style: TextStyle(
                     fontSize: 12,
-                    color: required ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+                    color: required
+                        ? colors.onSurface
+                        : colors.onSurface.withValues(alpha: 0.4),
                     fontWeight: required ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
@@ -627,11 +670,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.repeat_outlined, size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
+              Icon(Icons.repeat_outlined,
+                  size: 14, color: colors.onSurface.withValues(alpha: 0.4)),
               const SizedBox(width: 6),
               Text(
                 '观看次数'.tr,
-                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: colors.onSurface.withValues(alpha: 0.4)),
               ),
             ],
           ),
@@ -641,11 +687,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
             children: [
               _buildStepButton(
                 icon: Icons.remove,
-                onTap: _watchCount > 0 ? () => setState(() => _watchCount--) : null,
+                onTap: _watchCount > 0
+                    ? () => setState(() => _watchCount--)
+                    : null,
               ),
               Text(
                 '{n} 次'.trf({'n': _watchCount}),
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.onSurface),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface),
               ),
               _buildStepButton(
                 icon: Icons.add,
@@ -667,17 +718,24 @@ class _MovieFormPageState extends State<MovieFormPage> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: enabled ? colors.primary.withValues(alpha: 0.1) : colors.onSurface.withValues(alpha: 0.05),
+          color: enabled
+              ? colors.primary.withValues(alpha: 0.1)
+              : colors.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, size: 18, color: enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.25)),
+        child: Icon(icon,
+            size: 18,
+            color: enabled
+                ? colors.primary
+                : colors.onSurface.withValues(alpha: 0.25)),
       ),
     );
   }
 
   /// 编辑影视总时长
   Future<void> _editDuration() async {
-    final result = await DurationPicker.show(context: context, initialMinutes: _duration);
+    final result =
+        await DurationPicker.show(context: context, initialMinutes: _duration);
     if (result != null) {
       setState(() => _duration = result);
     }
@@ -701,6 +759,7 @@ class _MovieFormPageState extends State<MovieFormPage> {
       initialText: _summaryController.text,
       hintText: '写下剧情简介...'.tr,
       multiline: true,
+      enableMarkdownLinks: true,
     );
     if (!mounted) return;
     if (result != null) {
@@ -726,7 +785,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 状态
           Row(
             children: [
-              Text('状态'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('状态'.tr,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               Expanded(
                 child: SingleChildScrollView(
@@ -740,10 +802,17 @@ class _MovieFormPageState extends State<MovieFormPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildStatusOption(StatusLabels.label('movie', 'want_to_watch'), 'want_to_watch'),
-                        _buildStatusOption(StatusLabels.label('movie', 'watching'), 'watching'),
-                        _buildStatusOption(StatusLabels.label('movie', 'watched'), 'watched'),
-                        _buildStatusOption(StatusLabels.label('movie', 'abandoned'), 'abandoned'),
+                        _buildStatusOption(
+                            StatusLabels.label('movie', 'want_to_watch'),
+                            'want_to_watch'),
+                        _buildStatusOption(
+                            StatusLabels.label('movie', 'watching'),
+                            'watching'),
+                        _buildStatusOption(
+                            StatusLabels.label('movie', 'watched'), 'watched'),
+                        _buildStatusOption(
+                            StatusLabels.label('movie', 'abandoned'),
+                            'abandoned'),
                       ],
                     ),
                   ),
@@ -755,21 +824,30 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 评分
           Row(
             children: [
-              Text('评分'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('评分'.tr,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               // 星星
               ...List.generate(5, (index) {
                 final starValue = index + 1;
                 final isFilled = starValue <= starRating;
-                final isHalf = starValue == starRating.ceil() && starRating % 1 != 0;
+                final isHalf =
+                    starValue == starRating.ceil() && starRating % 1 != 0;
                 return GestureDetector(
-                  onTap: () => setState(() => _ratingController.text = (starValue * 2).toString()),
+                  onTap: () => setState(() =>
+                      _ratingController.text = (starValue * 2).toString()),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: Icon(
-                      isHalf ? Icons.star_half : (isFilled ? Icons.star : Icons.star_border),
+                      isHalf
+                          ? Icons.star_half
+                          : (isFilled ? Icons.star : Icons.star_border),
                       size: 22,
-                      color: (isFilled || isHalf) ? const Color(0xFFFFB800) : colors.outline,
+                      color: (isFilled || isHalf)
+                          ? const Color(0xFFFFB800)
+                          : colors.outline,
                     ),
                   ),
                 );
@@ -777,20 +855,27 @@ class _MovieFormPageState extends State<MovieFormPage> {
               const SizedBox(width: 8),
               // 输入框
               Container(
-                width: 48, height: 28,
+                width: 48,
+                height: 28,
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: TextFormField(
                   controller: _ratingController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   textAlign: TextAlign.center,
                   inputFormatters: [_RatingInputFormatter()],
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurface),
                   decoration: InputDecoration(
                     hintText: '0-10',
-                    hintStyle: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.25)),
+                    hintStyle: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurface.withValues(alpha: 0.25)),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 6),
                     isDense: true,
@@ -802,7 +887,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 const SizedBox(width: 6),
                 GestureDetector(
                   onTap: () => setState(() => _ratingController.clear()),
-                  child: Icon(Icons.close, size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
+                  child: Icon(Icons.close,
+                      size: 14, color: colors.onSurface.withValues(alpha: 0.3)),
                 ),
               ],
             ],
@@ -811,7 +897,10 @@ class _MovieFormPageState extends State<MovieFormPage> {
           // 分类
           Row(
             children: [
-              Text('分类'.tr, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.4))),
+              Text('分类'.tr,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.4))),
               const SizedBox(width: 12),
               Expanded(
                 child: SingleChildScrollView(
@@ -824,18 +913,26 @@ class _MovieFormPageState extends State<MovieFormPage> {
                         onTap: () => setState(() => _category = c.$2),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          margin: EdgeInsets.only(right: c == _categories.last ? 0 : 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          margin: EdgeInsets.only(
+                              right: c == _categories.last ? 0 : 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: isSelected ? colors.primary : colors.surfaceContainerHighest,
+                            color: isSelected
+                                ? colors.primary
+                                : colors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             c.$1,
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-                              color: isSelected ? colors.onPrimary : colors.onSurface.withValues(alpha: 0.5),
+                              fontWeight: isSelected
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? colors.onPrimary
+                                  : colors.onSurface.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -853,14 +950,14 @@ class _MovieFormPageState extends State<MovieFormPage> {
 
   /// 影视分类选项
   List<(String, String)> get _categories => [
-    ('电影'.tr, 'movie'),
-    ('电视剧'.tr, 'tv'),
-    ('动漫'.tr, 'anime'),
-    ('综艺'.tr, 'variety'),
-    ('纪录片'.tr, 'documentary'),
-    ('微短剧'.tr, 'short'),
-    ('其他'.tr, 'other'),
-  ];
+        ('电影'.tr, 'movie'),
+        ('电视剧'.tr, 'tv'),
+        ('动漫'.tr, 'anime'),
+        ('综艺'.tr, 'variety'),
+        ('纪录片'.tr, 'documentary'),
+        ('微短剧'.tr, 'short'),
+        ('其他'.tr, 'other'),
+      ];
 
   /// 构建状态选项
   Widget _buildStatusOption(String label, String value) {
@@ -890,7 +987,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-            color: isSelected ? colors.onSurface : colors.onSurface.withValues(alpha: 0.4),
+            color: isSelected
+                ? colors.onSurface
+                : colors.onSurface.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -925,7 +1024,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
                 if (_isDownloading)
                   Container(
                     color: Colors.black.withValues(alpha: 0.4),
-                    child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   ),
               ],
             ),
@@ -938,7 +1038,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
             child: GestureDetector(
               onTap: () => setState(() => _posterPath = null),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
@@ -1125,17 +1226,16 @@ class _MovieFormPageState extends State<MovieFormPage> {
         // 云模式：选图后立即上传 OSS，_posterPath 直接保存网络 URL（新建态临时 ID 无需改名）
         if (UserPrefs().cloudMovieMode) {
           final url = await CloudImageUpload.persist(
-            logicalPath: 'movies/$movieId/$fileName', localAbsPath: pickedFile.path);
+              logicalPath: 'movies/$movieId/$fileName',
+              localAbsPath: pickedFile.path);
           if (!mounted) return;
           setState(() => _posterPath = url);
           return;
         }
 
         // 保存到新的路径结构: images/movies/{movieId}/{fileName}
-        final targetPath = await ImagePathHelper.instance.getMoviePosterPath(
-          movieId,
-          fileName
-        );
+        final targetPath = await ImagePathHelper.instance
+            .getMoviePosterPath(movieId, fileName);
         await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
 
         await File(pickedFile.path).copy(targetPath);
@@ -1203,7 +1303,9 @@ class _MovieFormPageState extends State<MovieFormPage> {
     if (_summaryController.text.trim().isNotEmpty) return true;
     if (_ratingController.text.trim().isNotEmpty) return true;
     if (_posterPath != null) return true;
-    if (_directors.isNotEmpty || _writers.isNotEmpty || _actors.isNotEmpty) return true;
+    if (_directors.isNotEmpty || _writers.isNotEmpty || _actors.isNotEmpty) {
+      return true;
+    }
     if (_genres.isNotEmpty || _alternateTitles.isNotEmpty) return true;
     if (_releaseDate != null || _watchDate != null) return true;
     return false;
@@ -1219,13 +1321,22 @@ class _MovieFormPageState extends State<MovieFormPage> {
         backgroundColor: colors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('未保存'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('未保存'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('当前内容未保存，确定要离开吗？'.tr,
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
+            child: Text('取消'.tr,
+                style:
+                    TextStyle(color: colors.onSurface.withValues(alpha: 0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1233,13 +1344,15 @@ class _MovieFormPageState extends State<MovieFormPage> {
               backgroundColor: colors.error,
               foregroundColor: colors.onError,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: Text('离开'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
     return result ?? false;
@@ -1256,78 +1369,78 @@ class _MovieFormPageState extends State<MovieFormPage> {
     _isSaving = true;
 
     try {
-    final rating = _ratingController.text.isNotEmpty
-        ? double.tryParse(_ratingController.text)
-        : null;
+      final rating = _ratingController.text.isNotEmpty
+          ? double.tryParse(_ratingController.text)
+          : null;
 
-    final now = DateTime.now();
+      final now = DateTime.now();
 
-    if (widget.movie == null) {
-      // 生成新的影视ID
-      final newMovieId = const Uuid().v4();
+      if (widget.movie == null) {
+        // 生成新的影视ID
+        final newMovieId = const Uuid().v4();
 
-      // 如果有海报，需要移动到正确的ID目录
-      String? finalPosterPath;
-      if (_posterPath != null && _posterPath!.isNotEmpty) {
-        finalPosterPath = await _movePosterToNewId(_posterPath!, newMovieId);
+        // 如果有海报，需要移动到正确的ID目录
+        String? finalPosterPath;
+        if (_posterPath != null && _posterPath!.isNotEmpty) {
+          finalPosterPath = await _movePosterToNewId(_posterPath!, newMovieId);
+        }
+
+        final newMovie = Movie(
+          id: newMovieId,
+          title: _titleController.text.trim(),
+          posterPath: finalPosterPath,
+          releaseDate: _releaseDate,
+          directors: _directors,
+          writers: _writers,
+          actors: _actors,
+          genres: _genres,
+          alternateTitles: _alternateTitles,
+          summary: _summaryController.text.trim(),
+          rating: rating,
+          status: _status,
+          category: _category,
+          watchDate: _watchDate,
+          watchCount: _watchCount,
+          duration: _duration,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        if (!mounted) return;
+        await context.read<AppProvider>().addMovie(newMovie);
+        if (!mounted) return;
+        await context.read<AppProvider>().loadMovies();
+      } else {
+        final updatedMovie = widget.movie!.copyWith(
+          title: _titleController.text.trim(),
+          posterPath: _posterPath,
+          releaseDate: _releaseDate,
+          directors: _directors,
+          writers: _writers,
+          actors: _actors,
+          genres: _genres,
+          alternateTitles: _alternateTitles,
+          summary: _summaryController.text.trim(),
+          rating: rating,
+          status: _status,
+          category: _category,
+          watchDate: _watchDate,
+          watchCount: _watchCount,
+          duration: _duration,
+          updatedAt: now,
+        );
+
+        await context.read<AppProvider>().updateMovie(updatedMovie);
+        if (!mounted) return;
+        // 通知状态页就地移除/归入（想看→已看等状态迁移不会改变总数，必须显式发信号）
+        context.read<AppProvider>().setEditRefresh(updatedMovie.id);
       }
 
-      final newMovie = Movie(
-        id: newMovieId,
-        title: _titleController.text.trim(),
-        posterPath: finalPosterPath,
-        releaseDate: _releaseDate,
-        directors: _directors,
-        writers: _writers,
-        actors: _actors,
-        genres: _genres,
-        alternateTitles: _alternateTitles,
-        summary: _summaryController.text.trim(),
-        rating: rating,
-        status: _status,
-        category: _category,
-        watchDate: _watchDate,
-        watchCount: _watchCount,
-        duration: _duration,
-        createdAt: now,
-        updatedAt: now,
-      );
-
       if (!mounted) return;
-      await context.read<AppProvider>().addMovie(newMovie);
-      if (!mounted) return;
-      await context.read<AppProvider>().loadMovies();
-    } else {
-      final updatedMovie = widget.movie!.copyWith(
-        title: _titleController.text.trim(),
-        posterPath: _posterPath,
-        releaseDate: _releaseDate,
-        directors: _directors,
-        writers: _writers,
-        actors: _actors,
-        genres: _genres,
-        alternateTitles: _alternateTitles,
-        summary: _summaryController.text.trim(),
-        rating: rating,
-        status: _status,
-        category: _category,
-        watchDate: _watchDate,
-        watchCount: _watchCount,
-        duration: _duration,
-        updatedAt: now,
-      );
 
-      await context.read<AppProvider>().updateMovie(updatedMovie);
-      if (!mounted) return;
-      // 通知状态页就地移除/归入（想看→已看等状态迁移不会改变总数，必须显式发信号）
-      context.read<AppProvider>().setEditRefresh(updatedMovie.id);
-    }
+      ToastUtil.show(context, widget.movie == null ? '添加成功'.tr : '更新成功'.tr);
 
-    if (!mounted) return;
-
-    ToastUtil.show(context, widget.movie == null ? '添加成功'.tr : '更新成功'.tr);
-
-    Navigator.pop(context);
+      Navigator.pop(context);
     } catch (e) {
       _isSaving = false;
       if (!mounted) return;
@@ -1336,7 +1449,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
   }
 
   /// 将海报从临时ID目录移动到新的影视ID目录
-  Future<String?> _movePosterToNewId(String currentPath, String newMovieId) async {
+  Future<String?> _movePosterToNewId(
+      String currentPath, String newMovieId) async {
     // 云模式存的是 OSS 网络 URL，不存在本地改名
     if (CloudImageUpload.isRemoteUrl(currentPath)) return currentPath;
     // 检查是否已经在正确的目录中（兼容 Windows 路径分隔符）
@@ -1349,10 +1463,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
     final fileName = p.basename(currentPath);
 
     // 获取新路径
-    final newPath = await ImagePathHelper.instance.getMoviePosterPath(
-      newMovieId,
-      fileName
-    );
+    final newPath =
+        await ImagePathHelper.instance.getMoviePosterPath(newMovieId, fileName);
 
     // 确保目标目录存在
     await ImagePathHelper.instance.ensureDirExists(p.dirname(newPath));
@@ -1382,7 +1494,8 @@ class _MovieFormPageState extends State<MovieFormPage> {
 /// 评分输入格式化器：只允许 0-10，最多1位小数
 class _RatingInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
     final text = newValue.text;
     if (text.isEmpty) return newValue;
     if (!RegExp(r'^\d{0,2}\.?\d{0,1}$').hasMatch(text)) return oldValue;

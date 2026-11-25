@@ -1122,14 +1122,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-  umeng_apm_sdk:
-    dependency: "direct main"
-    description:
-      name: umeng_apm_sdk
-      sha256: "37f61a30ad84c06d89bedbcf00ca4f09347468a2186975c4c121aee1db3a2083"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.7"
   umeng_common_sdk:
     dependency: "direct main"
     description:

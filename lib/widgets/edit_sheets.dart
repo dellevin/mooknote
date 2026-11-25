@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import 'app_overlay.dart';
+import 'markdown_link.dart';
 
 /// 弹层外壳：键盘避让 + 80% 高度
 Widget _sheetShell(BuildContext ctx, Widget child) {
@@ -70,7 +71,8 @@ Future<T?> showEditSheet<T>({
 }
 
 /// 弹层标题行右侧的「完成/确定」按钮
-Widget editSheetDoneButton(BuildContext ctx, String label, VoidCallback onPressed) {
+Widget editSheetDoneButton(
+    BuildContext ctx, String label, VoidCallback onPressed) {
   return TextButton(
     onPressed: onPressed,
     child: Text(label,
@@ -118,6 +120,7 @@ class TextEditSheet extends StatefulWidget {
   /// 标题下方的说明文字（如添加网络图片）
   final String? description;
   final bool multiline;
+  final bool enableMarkdownLinks;
   final TextInputType? keyboardType;
 
   const TextEditSheet({
@@ -128,6 +131,7 @@ class TextEditSheet extends StatefulWidget {
     this.hintText,
     this.description,
     this.multiline = false,
+    this.enableMarkdownLinks = false,
     this.keyboardType,
   });
 
@@ -140,6 +144,7 @@ class TextEditSheet extends StatefulWidget {
     String? hintText,
     String? description,
     bool multiline = false,
+    bool enableMarkdownLinks = false,
     TextInputType? keyboardType,
   }) {
     return appModalBottomSheet<String>(
@@ -157,6 +162,7 @@ class TextEditSheet extends StatefulWidget {
           hintText: hintText,
           description: description,
           multiline: multiline,
+          enableMarkdownLinks: enableMarkdownLinks,
           keyboardType: keyboardType,
         ),
       ),
@@ -254,7 +260,12 @@ class _TextEditSheetState extends State<TextEditSheet> {
                           color: colors.onSurface.withValues(alpha: 0.6))),
                   const SizedBox(height: 12),
                 ],
-                if (widget.multiline)
+                if (widget.multiline) ...[
+                  if (widget.enableMarkdownLinks)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: MarkdownLinkButton(controller: _controller),
+                    ),
                   Expanded(
                     child: TextField(
                       controller: _controller,
@@ -265,8 +276,8 @@ class _TextEditSheetState extends State<TextEditSheet> {
                           fontSize: 15, color: colors.onSurface, height: 1.6),
                       decoration: decoration,
                     ),
-                  )
-                else
+                  ),
+                ] else
                   TextField(
                     controller: _controller,
                     autofocus: true,

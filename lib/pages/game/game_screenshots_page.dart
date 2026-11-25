@@ -82,6 +82,8 @@ class _GameScreenshotsPageState extends State<GameScreenshotsPage> {
       floatingActionButton: _reorderMode
           ? null
           : FloatingActionButton.extended(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
               onPressed: _pickScreenshot,
               icon: const Icon(Icons.add_photo_alternate, size: 20),
               label: Text('添加截图'.tr),

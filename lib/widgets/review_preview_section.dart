@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../utils/markdown_utils.dart';
+import '../utils/user_prefs.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/data_models.dart';
@@ -11,8 +13,8 @@ import '../pages/book/book_review_detail_page.dart';
 import '../pages/game/game_reviews_page.dart';
 import '../pages/game/game_review_detail_page.dart';
 
-/// 详情页影评预览模块：列表形式展示前 3 条，超过 3 条显示"查看更多"跳转列表页。
-/// 支持影视 / 书籍 / 游戏三种类型，无影评时自动隐藏。
+/// 详情页统一评价板块：显示数量或指定条数的预览，并提供评价列表入口。
+/// 支持影视 / 书籍 / 游戏三种类型；无评价时显示可点击的空状态。
 class ReviewPreviewSection extends StatefulWidget {
   final String workId;
   final String workType; // 'movie' / 'book' / 'game'
@@ -32,8 +34,6 @@ class ReviewPreviewSection extends StatefulWidget {
 }
 
 class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
-  static const int _previewCount = 3;
-
   List<dynamic> _reviews = [];
   int _total = 0;
   bool _loaded = false;
@@ -47,7 +47,8 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
   @override
   void didUpdateWidget(covariant ReviewPreviewSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.workId != widget.workId || oldWidget.workType != widget.workType) {
+    if (oldWidget.workId != widget.workId ||
+        oldWidget.workType != widget.workType) {
       _load();
     }
   }
@@ -66,7 +67,7 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
     if (!mounted) return;
     setState(() {
       _total = all.length;
-      _reviews = all.take(_previewCount).toList();
+      _reviews = all;
       _loaded = true;
     });
   }
@@ -77,13 +78,23 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
         _ => '影评',
       };
 
+  String get _emptyText => switch (widget.workType) {
+        'book' => '暂无书评',
+        'game' => '暂无游戏评价',
+        _ => '暂无影评',
+      };
+
   void _openReviewDetail(dynamic review) {
     final Widget page = switch (widget.workType) {
-      'book' => BookReviewDetailPage(review: review as BookReview, bookId: widget.workId),
-      'game' => GameReviewDetailPage(review: review as GameReview, gameId: widget.workId),
-      _ => MovieReviewDetailPage(review: review as MovieReview, movieId: widget.workId),
+      'book' => BookReviewDetailPage(
+          review: review as BookReview, bookId: widget.workId),
+      'game' => GameReviewDetailPage(
+          review: review as GameReview, gameId: widget.workId),
+      _ => MovieReviewDetailPage(
+          review: review as MovieReview, movieId: widget.workId),
     };
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page)).then((_) => _load());
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page))
+        .then((_) => _load());
   }
 
   void _openAll() {
@@ -91,17 +102,21 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
     Widget? page;
     switch (widget.workType) {
       case 'book':
-        final book = provider.books.where((b) => b.id == widget.workId).firstOrNull;
+        final book =
+            provider.books.where((b) => b.id == widget.workId).firstOrNull;
         if (book != null) page = BookReviewsPage(book: book);
       case 'game':
-        final game = provider.games.where((g) => g.id == widget.workId).firstOrNull;
+        final game =
+            provider.games.where((g) => g.id == widget.workId).firstOrNull;
         if (game != null) page = GameReviewsPage(game: game);
       default:
-        final movie = provider.movies.where((m) => m.id == widget.workId).firstOrNull;
+        final movie =
+            provider.movies.where((m) => m.id == widget.workId).firstOrNull;
         if (movie != null) page = MovieReviewsPage(movie: movie);
     }
     if (page == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page!)).then((_) => _load());
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page!))
+        .then((_) => _load());
   }
 
   String _formatDate(DateTime date) {
@@ -110,55 +125,95 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded || _total == 0) return const SizedBox.shrink();
+    if (!_loaded) return const SizedBox.shrink();
 
     final colors = Theme.of(context).colorScheme;
     final isOverlay = widget.isOverlay;
     final textColor = isOverlay ? Colors.white : colors.onSurface;
-    final subColor = isOverlay ? Colors.white.withValues(alpha: 0.6) : colors.onSurface.withValues(alpha: 0.6);
-    final faintColor = isOverlay ? Colors.white.withValues(alpha: 0.4) : colors.onSurface.withValues(alpha: 0.4);
-    final cardColor = isOverlay ? Colors.white.withValues(alpha: 0.08) : colors.surfaceContainerHighest;
+    final subColor = isOverlay
+        ? Colors.white.withValues(alpha: 0.6)
+        : colors.onSurface.withValues(alpha: 0.6);
+    final faintColor = isOverlay
+        ? Colors.white.withValues(alpha: 0.4)
+        : colors.onSurface.withValues(alpha: 0.4);
+    final cardColor = isOverlay
+        ? Colors.white.withValues(alpha: 0.08)
+        : colors.surfaceContainerHighest;
+    final prefs = UserPrefs();
+    final showPreview = prefs.detailReviewShowPreview(widget.workType);
+    final previewCount = prefs.detailReviewPreviewCount(widget.workType);
+    final visibleReviews = _reviews.take(previewCount);
 
     return Padding(
       padding: widget.padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标题行
-          Row(children: [
-            Container(
-              width: 4,
-              height: 16,
-              decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(2)),
+          InkWell(
+            onTap: _openAll,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(children: [
+                Container(
+                  width: 4,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: textColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _title.tr,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                if (_total > 0) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '共 {n} 条'.trf({'n': _total}),
+                    style: TextStyle(fontSize: 12, color: faintColor),
+                  ),
+                ],
+                const Spacer(),
+                Icon(Icons.chevron_right, size: 20, color: faintColor),
+              ]),
             ),
-            const SizedBox(width: 8),
-            Text(_title.tr, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
-            const SizedBox(width: 8),
-            Text('共 {n} 条'.trf({'n': _total}), style: TextStyle(fontSize: 12, color: faintColor)),
-          ]),
-          const SizedBox(height: 12),
-          // 影评列表（前 3 条）
-          for (final review in _reviews) ...[
-            _buildReviewItem(review, colors, textColor, subColor, faintColor, cardColor),
-            const SizedBox(height: 10),
-          ],
-          // 查看更多
-          if (_total > _previewCount)
+          ),
+          if (_total == 0)
             InkWell(
               onTap: _openAll,
               borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('查看更多'.tr, style: TextStyle(fontSize: 13, color: subColor)),
-                    const SizedBox(width: 2),
-                    Icon(Icons.chevron_right, size: 16, color: subColor),
-                  ],
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    _emptyText.tr,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: subColor),
+                  ),
                 ),
               ),
-            ),
+            )
+          else if (showPreview) ...[
+            const SizedBox(height: 12),
+            for (final review in visibleReviews) ...[
+              _buildReviewItem(
+                review,
+                colors,
+                textColor,
+                subColor,
+                faintColor,
+                cardColor,
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
         ],
       ),
     );
@@ -175,7 +230,8 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
     final int reviewType = review.reviewType as int;
     final String reviewer = review.reviewer as String;
     final List<String> images = review.images as List<String>;
-    final DateTime date = (review.reviewDate as DateTime?) ?? review.createdAt as DateTime;
+    final DateTime date =
+        (review.reviewDate as DateTime?) ?? review.createdAt as DateTime;
     return InkWell(
       onTap: () => _openReviewDetail(review),
       borderRadius: BorderRadius.circular(8),
@@ -194,7 +250,9 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: reviewType == 1
-                    ? (widget.isOverlay ? Colors.white.withValues(alpha: 0.15) : colors.surface)
+                    ? (widget.isOverlay
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : colors.surface)
                     : colors.primary,
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -202,9 +260,7 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
                 (review.typeText as String).tr,
                 style: TextStyle(
                   fontSize: 10,
-                  color: reviewType == 1
-                      ? subColor
-                      : colors.onPrimary,
+                  color: reviewType == 1 ? subColor : colors.onPrimary,
                 ),
               ),
             ),
@@ -215,10 +271,11 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
               children: [
                 Expanded(
                   child: Text(
-                    review.content as String,
+                    markdownToPlainText(review.content as String),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: textColor, height: 1.5),
+                    style:
+                        TextStyle(fontSize: 13, color: textColor, height: 1.5),
                   ),
                 ),
                 if (images.isNotEmpty) ...[
@@ -228,7 +285,8 @@ class _ReviewPreviewSectionState extends State<ReviewPreviewSection> {
                     child: SizedBox(
                       width: 48,
                       height: 48,
-                      child: FadeInLocalImage(path: images.first, fit: BoxFit.cover),
+                      child: FadeInLocalImage(
+                          path: images.first, fit: BoxFit.cover),
                     ),
                   ),
                 ],

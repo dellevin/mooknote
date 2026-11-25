@@ -10,6 +10,7 @@ import '../../l10n/app_strings.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../utils/image_path_helper.dart';
 import '../../widgets/fade_in_local_image.dart';
+import '../../widgets/markdown_link.dart';
 import '../../widgets/image_grid_editor.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/data_models.dart';
@@ -43,9 +44,12 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   @override
   void initState() {
     super.initState();
-    _contentController = TextEditingController(text: widget.review?.content ?? '');
-    _reviewerController = TextEditingController(text: widget.review?.reviewer ?? '');
-    _sourceController = TextEditingController(text: widget.review?.source ?? '');
+    _contentController =
+        TextEditingController(text: widget.review?.content ?? '');
+    _reviewerController =
+        TextEditingController(text: widget.review?.reviewer ?? '');
+    _sourceController =
+        TextEditingController(text: widget.review?.source ?? '');
     _reviewType = widget.review?.reviewType ?? 1;
     _reviewDate = widget.review?.reviewDate ?? DateTime.now();
     _images = List<String>.from(widget.review?.images ?? []);
@@ -69,7 +73,11 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   }
 
   Game? _getGame() {
-    return context.read<AppProvider>().games.where((g) => g.id == widget.gameId).firstOrNull;
+    return context
+        .read<AppProvider>()
+        .games
+        .where((g) => g.id == widget.gameId)
+        .firstOrNull;
   }
 
   @override
@@ -96,21 +104,41 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                   children: [
                     if (game != null) _buildGameCard(game, colors),
                     if (game != null) const SizedBox(height: 20),
-                    Text('评价类型'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评价类型'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildTypeSelector(colors),
                     const SizedBox(height: 20),
-                    _buildMetaField(icon: Icons.person_outline, hint: '评论人（选填）', controller: _reviewerController, colors: colors),
+                    _buildMetaField(
+                        icon: Icons.person_outline,
+                        hint: '评论人（选填）',
+                        controller: _reviewerController,
+                        colors: colors),
                     const SizedBox(height: 12),
-                    _buildMetaField(icon: Icons.link, hint: '来源（选填）', controller: _sourceController, colors: colors),
+                    _buildMetaField(
+                        icon: Icons.link,
+                        hint: '来源（选填）',
+                        controller: _sourceController,
+                        colors: colors),
                     const SizedBox(height: 12),
                     _buildDateField(colors),
                     const SizedBox(height: 20),
-                    Text('评论内容'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('评论内容'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     _buildContentField(colors),
                     const SizedBox(height: 20),
-                    Text('图片'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.onSurface.withValues(alpha: 0.5))),
+                    Text('图片'.tr,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colors.onSurface.withValues(alpha: 0.5))),
                     const SizedBox(height: 8),
                     ImageGridEditor(
                       images: _images,
@@ -123,12 +151,15 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
             ),
             Container(
               padding: EdgeInsets.only(
-                left: 16, right: 16, top: 12,
+                left: 16,
+                right: 16,
+                top: 12,
                 bottom: MediaQuery.of(context).padding.bottom + 12,
               ),
               decoration: BoxDecoration(
                 color: colors.surface,
-                border: Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+                border: Border(
+                    top: BorderSide(color: colors.outlineVariant, width: 0.5)),
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -136,10 +167,15 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
                 child: ElevatedButton(
                   onPressed: _saveReview,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary, foregroundColor: colors.onPrimary, elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text((isEdit ? '更新评价' : '保存评价').tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text((isEdit ? '更新评价' : '保存评价').tr,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -152,30 +188,50 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   Widget _buildGameCard(Game game, ColorScheme colors) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Container(
-            width: 56, height: 72,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: colors.outlineVariant),
+            width: 56,
+            height: 72,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: colors.outlineVariant),
             clipBehavior: Clip.antiAlias,
             child: game.coverPath != null
-                ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover,
-                    errorWidget: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)))
-                : Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
+                ? FadeInLocalImage(
+                    path: game.coverPath,
+                    fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.sports_esports_outlined,
+                        size: 24,
+                        color: colors.onSurface.withValues(alpha: 0.25)))
+                : Icon(Icons.sports_esports_outlined,
+                    size: 24, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(game.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(game.title,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 if (game.rating != null) ...[
                   const SizedBox(height: 4),
                   Row(children: [
                     const Icon(Icons.star, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
-                    Text('${game.rating}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.onSurface.withValues(alpha: 0.6))),
+                    Text('${game.rating}',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface.withValues(alpha: 0.6))),
                   ]),
                 ],
               ],
@@ -189,8 +245,10 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
   Widget _buildTypeSelector(ColorScheme colors) {
     return SegmentedButton<int>(
       segments: [
-        ButtonSegment(value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
-        ButtonSegment(value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
+        ButtonSegment(
+            value: 1, label: Text('短评'.tr), icon: const Icon(Icons.short_text)),
+        ButtonSegment(
+            value: 2, label: Text('长评'.tr), icon: const Icon(Icons.menu_book)),
       ],
       selected: {_reviewType},
       onSelectionChanged: (v) => setState(() => _reviewType = v.first),
@@ -211,10 +269,16 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
     );
   }
 
-  Widget _buildMetaField({required IconData icon, required String hint, required TextEditingController controller, required ColorScheme colors}) {
+  Widget _buildMetaField(
+      {required IconData icon,
+      required String hint,
+      required TextEditingController controller,
+      required ColorScheme colors}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10)),
       child: Row(
         children: [
           Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
@@ -225,8 +289,12 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
               style: TextStyle(fontSize: 14, color: colors.onSurface),
               decoration: InputDecoration(
                 hintText: hint.tr,
-                hintStyle: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.3)),
-                border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+                hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.3)),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -249,19 +317,29 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10)),
         child: Row(
           children: [
-            Icon(Icons.event_outlined, size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
+            Icon(Icons.event_outlined,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.35)),
             const SizedBox(width: 10),
-            Text('评价日期'.tr, style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.4))),
+            Text('评价日期'.tr,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: colors.onSurface.withValues(alpha: 0.4))),
             const Spacer(),
             Text(
               '${_reviewDate.year}.${_reviewDate.month.toString().padLeft(2, '0')}.${_reviewDate.day.toString().padLeft(2, '0')}',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.onSurface),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: colors.onSurface),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+            Icon(Icons.chevron_right,
+                size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
           ],
         ),
       ),
@@ -270,18 +348,26 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
 
   Widget _buildContentField(ColorScheme colors) {
     return Container(
-      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10)),
       child: Column(
         children: [
           TextFormField(
             controller: _contentController,
-            maxLines: 10, minLines: 6,
+            maxLines: 10,
+            minLines: 6,
             textAlignVertical: TextAlignVertical.top,
-            style: TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
+            style:
+                TextStyle(fontSize: 15, color: colors.onSurface, height: 1.7),
             decoration: InputDecoration(
               hintText: '写下你的游戏评价...'.tr,
-              hintStyle: TextStyle(fontSize: 15, color: colors.onSurface.withValues(alpha: 0.25)),
-              border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+              hintStyle: TextStyle(
+                  fontSize: 15,
+                  color: colors.onSurface.withValues(alpha: 0.25)),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.all(14),
             ),
             validator: (value) {
@@ -289,12 +375,21 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
               return null;
             },
           ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MarkdownLinkButton(
+              controller: _contentController,
+              onInserted: () => setState(() {}),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 14, bottom: 10),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text('{n} 字'.trf({'n': _contentController.text.length}),
-                  style: TextStyle(fontSize: 11, color: colors.onSurface.withValues(alpha: 0.3))),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurface.withValues(alpha: 0.3))),
             ),
           ),
         ],
@@ -320,8 +415,11 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
       final newPaths = <String>[];
       if (UserPrefs().cloudGameMode) {
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           newPaths.add(await CloudImageUpload.persist(
             logicalPath: 'reviews/$reviewId/$fileName',
             localAbsPath: file.path,
@@ -329,11 +427,15 @@ class _GameReviewFormPageState extends State<GameReviewFormPage> {
           ));
         }
       } else {
-        final targetDir = await ImagePathHelper.instance.getReviewImagesDir(reviewId);
+        final targetDir =
+            await ImagePathHelper.instance.getReviewImagesDir(reviewId);
         await ImagePathHelper.instance.ensureDirExists(targetDir);
         for (final file in files) {
-          final ext = p.extension(file.path).isNotEmpty ? p.extension(file.path) : '.jpg';
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
+          final ext = p.extension(file.path).isNotEmpty
+              ? p.extension(file.path)
+              : '.jpg';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}_${newPaths.length}$ext';
           final targetPath = p.join(targetDir, fileName);
           await file.copy(targetPath);
           newPaths.add(targetPath);
