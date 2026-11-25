@@ -33,7 +33,9 @@ const _fanqieSvg = '''
 
 /// 快捷添加页 — 选择分类 + 输入豆瓣链接，解析后跳转到对应添加表单
 class QuickAddPage extends StatefulWidget {
-  const QuickAddPage({super.key});
+  final String initialCategory;
+
+  const QuickAddPage({super.key, this.initialCategory = 'movie'});
 
   @override
   State<QuickAddPage> createState() => _QuickAddPageState();
@@ -41,12 +43,12 @@ class QuickAddPage extends StatefulWidget {
 
 class _QuickAddPageState extends State<QuickAddPage> {
   static const _categories = [
-    ('影视', 'movie', Icons.movie_outlined),
-    ('书籍', 'book', Icons.menu_book_outlined),
-    ('游戏', 'game', Icons.sports_esports_outlined),
+    ('影视', 'movie', Icons.movie_outlined, Color(0xFF4F7DFF)),
+    ('书籍', 'book', Icons.menu_book_outlined, Color(0xFF2EAD6B)),
+    ('游戏', 'game', Icons.sports_esports_outlined, Color(0xFFFF8A3D)),
   ];
 
-  String _category = 'movie';
+  late String _category;
   final _doubanController = TextEditingController();
   final _fanqieController = TextEditingController();
   final _steamController = TextEditingController();
@@ -90,6 +92,12 @@ class _QuickAddPageState extends State<QuickAddPage> {
       };
 
   @override
+  void initState() {
+    super.initState();
+    _category = widget.initialCategory;
+  }
+
+  @override
   void dispose() {
     _doubanController.dispose();
     _fanqieController.dispose();
@@ -107,32 +115,59 @@ class _QuickAddPageState extends State<QuickAddPage> {
         leading: const AppBackButton(),
         title: Text('快捷添加'.tr),
         backgroundColor: colors.surface,
+        actions: [
+          _buildCategoryToggle(colors),
+          const SizedBox(width: 4),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          SegmentedButton<String>(
-            segments: _categories
-                .map((c) => ButtonSegment(
-                      value: c.$2,
-                      icon: Icon(c.$3, size: 18),
-                      label: Text(c.$1.tr),
-                    ))
-                .toList(),
-            selected: {_category},
-            onSelectionChanged: (v) => setState(() => _category = v.first),
-            showSelectedIcon: false,
-            style: ButtonStyle(
-              side: const WidgetStatePropertyAll(BorderSide.none),
-              shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            ),
-          ),
-          const SizedBox(height: 16),
           for (var i = 0; i < sources.length; i++) ...[
             if (i > 0) const SizedBox(height: 12),
             _buildSourceCard(colors, sources[i]),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryToggle(ColorScheme colors) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final category in _categories)
+            Material(
+              color:
+                  _category == category.$2 ? category.$4 : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              child: InkWell(
+                onTap: () => setState(() => _category = category.$2),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Text(
+                    category.$1.tr,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: _category == category.$2
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color:
+                          _category == category.$2 ? Colors.white : category.$4,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -287,8 +322,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
                   minimumSize: const Size.fromHeight(46),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  textStyle:
-                      const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  textStyle: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -300,8 +335,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
 
   /// 链接输入框 — 裸 TextField（decoration: null，彻底绕开主题边框），
   /// 自绘圆角底；空时显示粘贴按钮，有内容时显示清空按钮
-  Widget _buildLinkField(
-      ColorScheme colors, TextEditingController controller, VoidCallback onParse) {
+  Widget _buildLinkField(ColorScheme colors, TextEditingController controller,
+      VoidCallback onParse) {
     return Container(
       height: 46,
       decoration: BoxDecoration(
@@ -455,20 +490,27 @@ class _QuickAddPageState extends State<QuickAddPage> {
   /// Steam 结果 → 游戏表单预填充
   Future<void> _openGameFromInfo(Map<String, dynamic> info) async {
     final id = const Uuid().v4();
-    final coverPath = await _downloadCover(info['coverUrl']?.toString() ?? '', id);
+    final coverPath =
+        await _downloadCover(info['coverUrl']?.toString() ?? '', id);
 
     if (!mounted) return;
 
     final prefill = <String, dynamic>{
       'title': info['title']?.toString() ?? '',
-      'developer': (info['developer'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      'genres': (info['genres'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      'platforms': (info['platforms'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      'developer':
+          (info['developer'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      'genres': (info['genres'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
+      'platforms':
+          (info['platforms'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
       'summary': info['summary']?.toString() ?? '',
       'releaseDate': _parseDate(info['releaseDate']?.toString()),
       'coverPath': coverPath,
     };
-    Navigator.of(context).pushNamed('/game-form', arguments: {'prefill': prefill});
+    Navigator.of(context)
+        .pushNamed('/game-form', arguments: {'prefill': prefill});
   }
 
   /// 番茄结果 → 书籍表单预填充
@@ -482,7 +524,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
         .where((e) => e.isNotEmpty)
         .toList();
 
-    final coverPath = await _downloadCover(info['coverUrl']?.toString() ?? '', id);
+    final coverPath =
+        await _downloadCover(info['coverUrl']?.toString() ?? '', id);
 
     if (!mounted) return;
 
@@ -493,7 +536,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
       'summary': info['summary']?.toString().trim() ?? '',
       'coverPath': coverPath,
     };
-    Navigator.of(context).pushNamed('/book-form', arguments: {'prefill': prefill});
+    Navigator.of(context)
+        .pushNamed('/book-form', arguments: {'prefill': prefill});
   }
 
   Future<void> _openForm(Map<String, dynamic> info) async {
@@ -505,7 +549,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
     final releaseDate = _parseDate(info['releaseDate']?.toString());
 
     // 尽力下载封面，失败不阻塞
-    final coverPath = await _downloadCover(info['coverUrl']?.toString() ?? '', id);
+    final coverPath =
+        await _downloadCover(info['coverUrl']?.toString() ?? '', id);
 
     if (!mounted) return;
 
@@ -526,17 +571,27 @@ class _QuickAddPageState extends State<QuickAddPage> {
         prefill['publisher'] = info['publisher']?.toString().trim() ?? '';
         prefill['isbn'] = info['isbn']?.toString().trim() ?? '';
         prefill['publishDate'] = releaseDate;
-        Navigator.of(context).pushNamed('/book-form', arguments: {'prefill': prefill});
+        Navigator.of(context)
+            .pushNamed('/book-form', arguments: {'prefill': prefill});
       case 'game':
         prefill['developer'] = _splitList(info['developer']);
         prefill['platforms'] = _splitList(info['platforms']);
-        Navigator.of(context).pushNamed('/game-form', arguments: {'prefill': prefill});
+        Navigator.of(context)
+            .pushNamed('/game-form', arguments: {'prefill': prefill});
       default:
         prefill['directors'] = _splitList(info['director']);
-        prefill['writers'] = (info['writers'] as List?)?.map((e) => e.toString()).toList() ?? const [];
-        prefill['actors'] = (info['actors'] as List?)?.map((e) => e.toString()).toList() ?? const [];
-        prefill['alternateTitles'] = (info['alternateTitles'] as List?)?.map((e) => e.toString()).toList() ?? const [];
-        Navigator.of(context).pushNamed('/movie-form', arguments: {'prefill': prefill});
+        prefill['writers'] =
+            (info['writers'] as List?)?.map((e) => e.toString()).toList() ??
+                const [];
+        prefill['actors'] =
+            (info['actors'] as List?)?.map((e) => e.toString()).toList() ??
+                const [];
+        prefill['alternateTitles'] = (info['alternateTitles'] as List?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [];
+        Navigator.of(context)
+            .pushNamed('/movie-form', arguments: {'prefill': prefill});
     }
   }
 
@@ -544,7 +599,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
     if (value == null) return const [];
     final s = value.toString();
     if (s.trim().isEmpty) return const [];
-    return s.split(RegExp(r'[/、,，]'))
+    return s
+        .split(RegExp(r'[/、,，]'))
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
@@ -567,8 +623,10 @@ class _QuickAddPageState extends State<QuickAddPage> {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'User-Agent':
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Referer': Uri.parse(url).replace(path: '/').toString(),
         },
       ).timeout(const Duration(seconds: 15));
@@ -580,11 +638,14 @@ class _QuickAddPageState extends State<QuickAddPage> {
       final String targetPath;
       switch (_category) {
         case 'book':
-          targetPath = await ImagePathHelper.instance.getBookCoverPath(id, fileName);
+          targetPath =
+              await ImagePathHelper.instance.getBookCoverPath(id, fileName);
         case 'game':
-          targetPath = await ImagePathHelper.instance.getGameCoverPath(id, fileName);
+          targetPath =
+              await ImagePathHelper.instance.getGameCoverPath(id, fileName);
         default:
-          targetPath = await ImagePathHelper.instance.getMoviePosterPath(id, fileName);
+          targetPath =
+              await ImagePathHelper.instance.getMoviePosterPath(id, fileName);
       }
       await ImagePathHelper.instance.ensureDirExists(p.dirname(targetPath));
       await File(targetPath).writeAsBytes(response.bodyBytes);

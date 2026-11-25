@@ -99,8 +99,7 @@ class _DoubanSettingsPageState extends State<DoubanSettingsPage> {
 
   Future<void> _clear() async {
     await _userPrefs.setDoubanCookies('');
-    DoubanService.instance
-        .configure('', proxy: _userPrefs.doubanProxy);
+    DoubanService.instance.configure('', proxy: _userPrefs.doubanProxy);
     if (!mounted) return;
     setState(() {
       _valid = null;
@@ -257,9 +256,10 @@ class _DoubanSettingsPageState extends State<DoubanSettingsPage> {
             onPressed: _busy ? null : _login,
             icon: const Icon(Icons.login, size: 18),
             label: Text(_loggedIn ? '重新登录豆瓣'.tr : '登录豆瓣'.tr,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               backgroundColor: colors.primary,
               foregroundColor: colors.onPrimary,
               elevation: 0,
@@ -275,6 +275,7 @@ class _DoubanSettingsPageState extends State<DoubanSettingsPage> {
           child: OutlinedButton(
             onPressed: _busy || !_loggedIn ? null : _test,
             style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               side: BorderSide(color: colors.outlineVariant),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
@@ -300,8 +301,7 @@ class _DoubanSettingsPageState extends State<DoubanSettingsPage> {
               children: [
                 Icon(_valid! ? Icons.check_circle : Icons.cancel,
                     size: 14,
-                    color:
-                        _valid! ? const Color(0xFF16A34A) : colors.error),
+                    color: _valid! ? const Color(0xFF16A34A) : colors.error),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(_message ?? '',
@@ -373,8 +373,8 @@ class _DoubanSettingsPageState extends State<DoubanSettingsPage> {
         decoration: BoxDecoration(
           color: colors.error.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(color: colors.error.withValues(alpha: 0.3), width: 0.5),
+          border: Border.all(
+              color: colors.error.withValues(alpha: 0.3), width: 0.5),
         ),
         child: Center(
           child: Text('清除豆瓣登录信息'.tr,

@@ -49,7 +49,8 @@ class _GameTabPageState extends State<GameTabPage> {
       final p = context.read<AppProvider>();
       final initial = _activeIndexFor(p).clamp(0, _pageCountFor(p) - 1);
       _currentPage = initial;
-      if (_pageController.hasClients && initial != 0) _pageController.jumpToPage(initial);
+      if (_pageController.hasClients && initial != 0)
+        _pageController.jumpToPage(initial);
     });
   }
 
@@ -109,7 +110,10 @@ class _GameTabPageState extends State<GameTabPage> {
     }
     // (c) 外部索引变化（bar 点击等）：快照交叉淡化切换，不经过中间页
     final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
-    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && target != _pendingSwitchTarget) {
+    if (pageCount > 1 &&
+        _pageController.hasClients &&
+        target != _currentPage &&
+        target != _pendingSwitchTarget) {
       _pendingSwitchTarget = target;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) {
@@ -150,7 +154,8 @@ class _GameTabPageState extends State<GameTabPage> {
               duration: const Duration(milliseconds: 260),
               curve: Curves.easeOut,
               onEnd: _clearSnapshot,
-              builder: (context, opacity, child) => Opacity(opacity: opacity, child: child),
+              builder: (context, opacity, child) =>
+                  Opacity(opacity: opacity, child: child),
               child: RawImage(image: _switchSnapshot, fit: BoxFit.fill),
             ),
           ),
@@ -164,7 +169,8 @@ class _GameTabPageState extends State<GameTabPage> {
     final renderObject = _repaintKey.currentContext?.findRenderObject();
     if (renderObject is RenderRepaintBoundary) {
       try {
-        image = await renderObject.toImage(pixelRatio: MediaQuery.devicePixelRatioOf(context));
+        image = await renderObject.toImage(
+            pixelRatio: MediaQuery.devicePixelRatioOf(context));
       } catch (_) {
         image = null;
       }
@@ -227,8 +233,11 @@ class _GameTabViewState extends State<_GameTabView>
   int _lastEditRefreshCounter = 0;
   int _prevGameCount = -1;
   int _prevSortMode = -1;
+  // 年份网格按游玩年份分组时：每个游戏的最近通关年份（无通关记录由购买时间兜底）
+  Map<String, int> _playYearByGameId = {};
 
-  String? get _status => widget.mode == 0 ? StatusLabels.orderedKeys('game')[widget.index] : null;
+  String? get _status =>
+      widget.mode == 0 ? StatusLabels.orderedKeys('game')[widget.index] : null;
 
   @override
   bool get wantKeepAlive => true;
@@ -271,25 +280,41 @@ class _GameTabViewState extends State<_GameTabView>
     }
 
     // 就地编辑：更新本页匹配项；状态变更则移出本页，不重置分页
-    if (p.editRefreshCounter > _lastEditRefreshCounter && p.lastEditedItemId != null) {
+    if (p.editRefreshCounter > _lastEditRefreshCounter &&
+        p.lastEditedItemId != null) {
       _lastEditRefreshCounter = p.editRefreshCounter;
       _prevGameCount = p.games.length;
+      // 年份网格按游玩年份分组：通关记录在子表，就地更新主表条目不会刷新分组与排序
+      if (UserPrefs().gameLayoutStyle == 3 &&
+          UserPrefs().gameYearGridBasis == 1) {
+        _loadFirst();
+        return;
+      }
       final id = p.lastEditedItemId!;
       final idx = _items.indexWhere((g) => g.id == id);
       final updated = p.games.where((g) => g.id == id).firstOrNull;
       if (updated != null) {
         if (_status != null && updated.status != _status) {
           // 状态已变更，从当前列表移除
-          if (idx != -1) setState(() { _items.removeAt(idx); _offset = (_offset - 1).clamp(0, _offset); });
+          if (idx != -1)
+            setState(() {
+              _items.removeAt(idx);
+              _offset = (_offset - 1).clamp(0, _offset);
+            });
         } else if (idx != -1) {
-          setState(() { _items[idx] = updated; });
+          setState(() {
+            _items[idx] = updated;
+          });
         } else {
           // 编辑后归入本页：重新拉取以保证位置与分页正确
           _loadFirst();
         }
       } else if (idx != -1) {
         // 游戏已被删除，从列表移除
-        setState(() { _items.removeAt(idx); _offset = (_offset - 1).clamp(0, _offset); });
+        setState(() {
+          _items.removeAt(idx);
+          _offset = (_offset - 1).clamp(0, _offset);
+        });
       }
       return;
     }
@@ -305,7 +330,8 @@ class _GameTabViewState extends State<_GameTabView>
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
@@ -329,11 +355,36 @@ class _GameTabViewState extends State<_GameTabView>
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveGameSortMode;
     _initialized = true;
-    setState(() { _isLoading = true; _loadError = false; _offset = 0; _hasMore = true; });
+    setState(() {
+      _isLoading = true;
+      _loadError = false;
+      _offset = 0;
+      _hasMore = true;
+    });
     try {
-      final list = await provider.loadGamesPaged(status: _status, offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
+      final list = await provider.loadGamesPaged(
+          status: _status,
+          offset: 0,
+          sortMode: sortMode,
+          limit: AppProvider.firstPageSize);
+      var playYears = <String, int>{};
+      if (UserPrefs().gameLayoutStyle == 3 &&
+          UserPrefs().gameYearGridBasis == 1) {
+        final completions = await provider.getGameCompletionsMap();
+        for (final e in completions.entries) {
+          DateTime? latest;
+          for (final c in e.value) {
+            if (c.isDeleted) continue;
+            if (latest == null || c.completionDate.isAfter(latest)) {
+              latest = c.completionDate;
+            }
+          }
+          if (latest != null) playYears[e.key] = latest.year;
+        }
+      }
       if (!mounted || seq != _loadSeq) return;
       setState(() {
+        _playYearByGameId = playYears;
         _items.clear();
         _items.addAll(list);
         _offset = list.length;
@@ -345,7 +396,11 @@ class _GameTabViewState extends State<_GameTabView>
     } catch (e) {
       debugPrint('[GameTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _isLoading = false; _hasMore = false; _loadError = true; });
+      setState(() {
+        _isLoading = false;
+        _hasMore = false;
+        _loadError = true;
+      });
     }
   }
 
@@ -356,7 +411,8 @@ class _GameTabViewState extends State<_GameTabView>
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveGameSortMode;
     try {
-      final list = await provider.loadGamesPaged(status: _status, offset: _offset, sortMode: sortMode);
+      final list = await provider.loadGamesPaged(
+          status: _status, offset: _offset, sortMode: sortMode);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.addAll(list);
@@ -394,9 +450,12 @@ class _GameTabViewState extends State<_GameTabView>
   Widget build(BuildContext context) {
     super.build(context);
     final colors = Theme.of(context).colorScheme;
-    final layoutStyle = context.select<AppProvider, int>((p) => p.gameLayoutStyle);
+    final layoutStyle =
+        context.select<AppProvider, int>((p) => p.gameLayoutStyle);
     context.select<AppProvider, bool>((p) => p.showGameTitle);
     context.select<AppProvider, bool>((p) => p.showGameRating);
+    context.select<AppProvider, int>((p) => p.gameCardTitleAlign);
+    context.select<AppProvider, int>((p) => p.gameCardRatingAlign);
 
     final content = () {
       if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
@@ -441,7 +500,8 @@ class _GameTabViewState extends State<_GameTabView>
   Widget _buildGridView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final fixedCount = context.select<AppProvider, int>((p) => p.gameGridCount);
+        final fixedCount =
+            context.select<AppProvider, int>((p) => p.gameGridCount);
         final crossAxisCount = fixedCount > 0
             ? fixedCount
             : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
@@ -450,7 +510,10 @@ class _GameTabViewState extends State<_GameTabView>
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
           ),
           itemCount: _items.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, index) {
@@ -479,12 +542,15 @@ class _GameTabViewState extends State<_GameTabView>
     );
   }
 
-  /// 年份网格：按发售年份倒序分段，无年份归入"其他"
+  /// 年份网格：按所选年份依据（发售/游玩）倒序分段，无年份归入"其他"
   Widget _buildYearGridView() {
     final fixedCount = context.select<AppProvider, int>((p) => p.gameGridCount);
+    final byPlayYear = UserPrefs().gameYearGridBasis == 1;
     return YearGridView<Game>(
       items: _items,
-      yearOf: (g) => g.releaseDate?.year,
+      yearOf: (g) => byPlayYear
+          ? (_playYearByGameId[g.id] ?? g.purchaseDate?.year)
+          : g.releaseDate?.year,
       controller: _scrollController,
       fixedCrossAxisCount: fixedCount > 0 ? fixedCount : null,
       hasMore: _hasMore,
@@ -501,8 +567,19 @@ class _GameTabViewState extends State<_GameTabView>
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(
         child: _isLoading
-            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary))
-            : Text('没有更多了'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.primary))
+            : Text('没有更多了'.tr,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.3))),
       ),
     );
   }
@@ -511,39 +588,86 @@ class _GameTabViewState extends State<_GameTabView>
     final colors = Theme.of(context).colorScheme;
     final showTitle = context.read<AppProvider>().showGameTitle;
     final showRating = context.read<AppProvider>().showGameRating;
+    final titleAlign = context.read<AppProvider>().gameCardTitleAlign;
+    final ratingAlign = context.read<AppProvider>().gameCardRatingAlign;
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return GestureDetector(
       onTap: () => _onGameTap(game),
       onLongPress: () => _showDeleteDialog(context, game),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           Container(
-            width: 48, height: 64,
-            decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
+            width: 48,
+            height: 64,
+            decoration: BoxDecoration(
+                color: colors.outlineVariant,
+                borderRadius: BorderRadius.circular(6)),
             clipBehavior: Clip.antiAlias,
             child: game.coverPath != null && game.coverPath!.isNotEmpty
-                ? FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover,
-                    errorWidget: Icon(Icons.sports_esports_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)))
-                : Icon(Icons.sports_esports_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
+                ? FadeInLocalImage(
+                    path: game.coverPath,
+                    fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.sports_esports_outlined,
+                        size: 22,
+                        color: colors.onSurface.withValues(alpha: 0.25)))
+                : Icon(Icons.sports_esports_outlined,
+                    size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (showTitle)
-              Text(game.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            SizedBox(height: showTitle ? 3 : 0),
-            Text(_buildSubtitle(game), maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
-            if (showRating) ...[
-              const SizedBox(height: 6),
-              if (game.rating != null) AnimatedStarRating(rating: game.rating!, starSize: 12, showNumber: true)
-              else const SizedBox(height: 14),
-            ],
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                if (showTitle)
+                  Align(
+                    alignment: titleAlignment,
+                    child: Text(game.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface)),
+                  ),
+                SizedBox(height: showTitle ? 3 : 0),
+                Text(_buildSubtitle(game),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurface.withValues(alpha: 0.35))),
+                if (showRating) ...[
+                  const SizedBox(height: 6),
+                  if (game.rating != null)
+                    Align(
+                      alignment: ratingAlignment,
+                      child: AnimatedStarRating(
+                          rating: game.rating!,
+                          starSize: 12,
+                          showNumber: true,
+                          alignment: ratingAlignment),
+                    )
+                  else
+                    const SizedBox(height: 14),
+                ],
+              ])),
           const SizedBox(width: 8),
-          Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
+          Icon(Icons.chevron_right,
+              color: colors.onSurface.withValues(alpha: 0.2), size: 20),
         ]),
       ),
     );
@@ -554,7 +678,8 @@ class _GameTabViewState extends State<_GameTabView>
     if (game.platforms.isNotEmpty) parts.add(game.platforms.take(2).join('、'));
     if (game.genres.isNotEmpty) parts.add(game.genres.take(2).join('、'));
     if (game.playTimeHours > 0 || game.playTimeMinutes > 0) {
-      parts.add('{h}时{m}分'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}));
+      parts.add(
+          '{h}时{m}分'.trf({'h': game.playTimeHours, 'm': game.playTimeMinutes}));
     }
     return parts.join(' · ');
   }
@@ -576,6 +701,18 @@ class _GameTabViewState extends State<_GameTabView>
     final colors = Theme.of(context).colorScheme;
     final showTitle = context.read<AppProvider>().showGameTitle;
     final showRating = context.read<AppProvider>().showGameRating;
+    final titleAlign = context.read<AppProvider>().gameCardTitleAlign;
+    final ratingAlign = context.read<AppProvider>().gameCardRatingAlign;
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return GestureDetector(
       onTap: () => _onGameTap(game),
       onLongPress: () => _showDeleteDialog(context, game),
@@ -589,45 +726,74 @@ class _GameTabViewState extends State<_GameTabView>
         clipBehavior: Clip.antiAlias,
         child: Stack(fit: StackFit.expand, children: [
           if (game.coverPath != null && game.coverPath!.isNotEmpty)
-            FadeInLocalImage(path: game.coverPath, fit: BoxFit.cover,
+            FadeInLocalImage(
+                path: game.coverPath,
+                fit: BoxFit.cover,
                 errorWidget: Container(color: colors.surfaceContainerHighest))
           else
-            Container(color: colors.surfaceContainerHighest,
-                child: Icon(Icons.sports_esports_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
+            Container(
+                color: colors.surfaceContainerHighest,
+                child: Icon(Icons.sports_esports_outlined,
+                    size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.75)
+                  ],
                   stops: const [0.4, 1.0],
                 ),
               ),
             ),
           ),
           Positioned(
-            left: 14, right: 14, bottom: 14,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              if (showTitle) ...[
-                Text(game.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 4),
-              ],
-              Row(children: [
-                Expanded(
-                  child: Text(_buildSubtitle(game), maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
-                ),
-                if (showRating && game.rating != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade400),
-                  const SizedBox(width: 2),
-                  Text(game.rating!.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                ],
-              ]),
-            ]),
+            left: 14,
+            right: 14,
+            bottom: 14,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showTitle) ...[
+                    Align(
+                      alignment: titleAlignment,
+                      child: Text(game.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white)),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  Text(_buildSubtitle(game),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.7))),
+                  if (showRating && game.rating != null) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: ratingAlignment,
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.star_rounded,
+                            size: 16, color: Colors.amber.shade400),
+                        const SizedBox(width: 2),
+                        Text(game.rating!.toStringAsFixed(1),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white)),
+                      ]),
+                    ),
+                  ],
+                ]),
           ),
         ]),
       ),
@@ -655,14 +821,25 @@ class _GameTabViewState extends State<_GameTabView>
     appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
+        backgroundColor: colors.surface,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('确认删除'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': game.title}),
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('取消'.tr,
+                  style: TextStyle(
+                      color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeGame(game.id);
@@ -670,13 +847,19 @@ class _GameTabViewState extends State<_GameTabView>
               Navigator.pop(ctx);
               if (mounted) _loadFirst();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -690,18 +873,29 @@ class _GameTabViewState extends State<_GameTabView>
   Widget _buildListSkeleton() {
     final colors = Theme.of(context).colorScheme;
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100), itemCount: 6,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+      itemCount: 6,
       itemBuilder: (_, __) => Container(
-        margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12)),
         child: const Row(children: [
-          ShimmerSkeleton(width: 48, height: 64, borderRadius: 6), SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            ShimmerSkeleton(width: 160, height: 16), SizedBox(height: 6),
-            ShimmerSkeleton(width: 100, height: 12), SizedBox(height: 6),
-            ShimmerSkeleton(width: 70, height: 12),
-          ])),
-          SizedBox(width: 8), ShimmerSkeleton(width: 20, height: 20, borderRadius: 10),
+          ShimmerSkeleton(width: 48, height: 64, borderRadius: 6),
+          SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                ShimmerSkeleton(width: 160, height: 16),
+                SizedBox(height: 6),
+                ShimmerSkeleton(width: 100, height: 12),
+                SizedBox(height: 6),
+                ShimmerSkeleton(width: 70, height: 12),
+              ])),
+          SizedBox(width: 8),
+          ShimmerSkeleton(width: 20, height: 20, borderRadius: 10),
         ]),
       ),
     );
@@ -713,10 +907,13 @@ class _GameTabViewState extends State<_GameTabView>
       padding: const EdgeInsets.only(top: 120),
       child: Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          Icon(Icons.cloud_off_rounded,
+              size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
           Text('加载失败，请检查网络'.tr,
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.45))),
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: _loadFirst,
@@ -728,10 +925,15 @@ class _GameTabViewState extends State<_GameTabView>
   }
 
   Widget _buildEmptyState() {
-    final statusText = widget.mode == 1 ? '' : StatusLabels.label('game', StatusLabels.orderedKeys('game')[widget.index]);
+    final statusText = widget.mode == 1
+        ? ''
+        : StatusLabels.label(
+            'game', StatusLabels.orderedKeys('game')[widget.index]);
     return EmptyState(
       image: 'assets/png_notion/game_empty.png',
-      message: widget.mode == 1 ? '暂无游戏'.tr : '暂无{status}的游戏'.trf({'status': statusText}),
+      message: widget.mode == 1
+          ? '暂无游戏'.tr
+          : '暂无{status}的游戏'.trf({'status': statusText}),
       actionLabel: '添加游戏',
       onAction: () => Navigator.pushNamed(context, '/game-form'),
     );

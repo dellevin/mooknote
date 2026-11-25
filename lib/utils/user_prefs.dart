@@ -7,15 +7,16 @@ import 'package:uuid/uuid.dart';
 class UserPrefs {
   static final UserPrefs _instance = UserPrefs._internal();
   static SharedPreferences? _prefs;
-  
+
   factory UserPrefs() => _instance;
   UserPrefs._internal();
-  
+
   /// 初始化
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     // 迁移旧版 isDarkMode 布尔值到新版 themeMode 三态值
-    if (_prefs!.containsKey('isDarkMode') && !_prefs!.containsKey('themeMode')) {
+    if (_prefs!.containsKey('isDarkMode') &&
+        !_prefs!.containsKey('themeMode')) {
       final oldValue = _prefs!.getBool('isDarkMode') ?? false;
       await _prefs!.setInt('themeMode', oldValue ? 2 : 0);
     }
@@ -32,11 +33,12 @@ class UserPrefs {
   /// 获取实例
   SharedPreferences get prefs {
     if (_prefs == null) {
-      throw Exception('UserPrefs not initialized. Call UserPrefs.init() first.');
+      throw Exception(
+          'UserPrefs not initialized. Call UserPrefs.init() first.');
     }
     return _prefs!;
   }
-  
+
   // ========== 用户信息 ==========
 
   /// 首次使用日期
@@ -49,70 +51,83 @@ class UserPrefs {
   /// 昵称
   String get nickname => prefs.getString('nickname') ?? 'Mook';
   Future<bool> setNickname(String value) => prefs.setString('nickname', value);
-  
+
   /// 座右铭
   String get motto => prefs.getString('motto') ?? '好运不会眷顾一无所有之人。';
   Future<bool> setMotto(String value) => prefs.setString('motto', value);
-  
+
   /// 头像路径
   String? get avatarPath => prefs.getString('avatarPath');
-  Future<bool> setAvatarPath(String value) => prefs.setString('avatarPath', value);
+  Future<bool> setAvatarPath(String value) =>
+      prefs.setString('avatarPath', value);
   Future<bool> clearAvatarPath() => prefs.remove('avatarPath');
 
   /// 「我的」Hero 自定义背景图路径（为空时用海报拼贴/渐变兜底）
   String? get heroBackgroundPath => prefs.getString('heroBackgroundPath');
-  Future<bool> setHeroBackgroundPath(String value) => prefs.setString('heroBackgroundPath', value);
+  Future<bool> setHeroBackgroundPath(String value) =>
+      prefs.setString('heroBackgroundPath', value);
   Future<bool> clearHeroBackgroundPath() => prefs.remove('heroBackgroundPath');
 
   /// 侧边栏个人信息卡片背景：自定义图片路径（优先级高于渐变）
   String? get profileBgImagePath => prefs.getString('profileBgImagePath');
-  Future<bool> setProfileBgImagePath(String value) => prefs.setString('profileBgImagePath', value);
+  Future<bool> setProfileBgImagePath(String value) =>
+      prefs.setString('profileBgImagePath', value);
   Future<bool> clearProfileBgImagePath() => prefs.remove('profileBgImagePath');
 
   /// 侧边栏个人信息卡片背景：预设渐变序号（-1=不使用）
   int get profileBgGradient => prefs.getInt('profileBgGradient') ?? -1;
-  Future<bool> setProfileBgGradient(int value) => prefs.setInt('profileBgGradient', value);
+  Future<bool> setProfileBgGradient(int value) =>
+      prefs.setInt('profileBgGradient', value);
 
   /// 启动时的存储权限说明弹窗：用户已选择（确定/取消）后不再弹出
-  bool get storagePermissionDialogDecided => prefs.getBool('storagePermissionDialogDecided') ?? false;
+  bool get storagePermissionDialogDecided =>
+      prefs.getBool('storagePermissionDialogDecided') ?? false;
   Future<bool> setStoragePermissionDialogDecided(bool value) =>
       prefs.setBool('storagePermissionDialogDecided', value);
-  
+
   // ========== 应用设置 ==========
-  
+
   /// 主题模式: 0=跟随系统, 1=浅色, 2=深色, 3=毛玻璃
   int get themeMode => prefs.getInt('themeMode') ?? 0;
   Future<bool> setThemeMode(int value) => prefs.setInt('themeMode', value);
 
   /// 配色方案: 0=经典, 1=靛蓝, 2=薄荷, 3=琥珀, 4=玫瑰, 5=紫罗兰
   int get colorSchemeIndex => prefs.getInt('colorSchemeIndex') ?? 0;
-  Future<bool> setColorSchemeIndex(int value) => prefs.setInt('colorSchemeIndex', value);
+  Future<bool> setColorSchemeIndex(int value) =>
+      prefs.setInt('colorSchemeIndex', value);
 
   /// 字体: 空字符串=系统默认
   String get fontFamily => prefs.getString('fontFamily') ?? '';
-  Future<bool> setFontFamily(String value) => prefs.setString('fontFamily', value);
+  Future<bool> setFontFamily(String value) =>
+      prefs.setString('fontFamily', value);
 
   /// 语言: 0=跟随系统, 1=中文, 2=English
   int get languageMode => prefs.getInt('languageMode') ?? 0;
-  Future<bool> setLanguageMode(int value) => prefs.setInt('languageMode', value);
+  Future<bool> setLanguageMode(int value) =>
+      prefs.setInt('languageMode', value);
 
   /// 上映日期：显示到日（true）/ 显示到月（false）
-  bool get showExactReleaseDate => prefs.getBool('showExactReleaseDate') ?? true;
-  Future<bool> setShowExactReleaseDate(bool value) => prefs.setBool('showExactReleaseDate', value);
-  
+  bool get showExactReleaseDate =>
+      prefs.getBool('showExactReleaseDate') ?? true;
+  Future<bool> setShowExactReleaseDate(bool value) =>
+      prefs.setBool('showExactReleaseDate', value);
+
   /// 是否首次启动
   bool get isFirstLaunch => prefs.getBool('isFirstLaunch') ?? true;
-  Future<bool> setFirstLaunch(bool value) => prefs.setBool('isFirstLaunch', value);
+  Future<bool> setFirstLaunch(bool value) =>
+      prefs.setBool('isFirstLaunch', value);
 
   /// 是否已同意隐私政策与用户协议（上架合规：未同意前不得初始化采集类 SDK）
   bool get privacyAgreed => prefs.getBool('privacyAgreed') ?? false;
-  Future<bool> setPrivacyAgreed(bool value) => prefs.setBool('privacyAgreed', value);
+  Future<bool> setPrivacyAgreed(bool value) =>
+      prefs.setBool('privacyAgreed', value);
 
   // ========== 详情页样式 ==========
 
   /// 详情页展示样式: 0=标准(封面顶部), 1=叠层(封面+毛玻璃卡片), 2=浅色极简, 3=豆瓣(海报左置+模糊背景头)
   int get detailPageStyle => prefs.getInt('detailPageStyle') ?? 0;
-  Future<bool> setDetailPageStyle(int value) => prefs.setInt('detailPageStyle', value);
+  Future<bool> setDetailPageStyle(int value) =>
+      prefs.setInt('detailPageStyle', value);
 
   /// 按模块（movie/book/game）独立保存的详情页样式；未设置过则回退到全局 detailPageStyle
   int detailPageStyleForType(String type) =>
@@ -157,10 +172,13 @@ class UserPrefs {
   }
 
   /// 保存详情页模块配置，type: movie / book / game
-  Future<bool> setDetailModules(String type, List<({String id, bool visible})> modules) {
+  Future<bool> setDetailModules(
+      String type, List<({String id, bool visible})> modules) {
     return prefs.setString(
       'detailModules_$type',
-      jsonEncode([for (final m in modules) {'id': m.id, 'visible': m.visible}]),
+      jsonEncode([
+        for (final m in modules) {'id': m.id, 'visible': m.visible}
+      ]),
     );
   }
 
@@ -196,10 +214,13 @@ class UserPrefs {
   }
 
   /// 保存「更多入口」子项配置，type: movie / book / game
-  Future<bool> setDetailExtraItems(String type, List<({String id, bool visible})> items) {
+  Future<bool> setDetailExtraItems(
+      String type, List<({String id, bool visible})> items) {
     return prefs.setString(
       'detailExtraItems_$type',
-      jsonEncode([for (final m in items) {'id': m.id, 'visible': m.visible}]),
+      jsonEncode([
+        for (final m in items) {'id': m.id, 'visible': m.visible}
+      ]),
     );
   }
 
@@ -241,14 +262,18 @@ class UserPrefs {
   // ========== 封面位置 ==========
 
   /// 获取封面偏移量（-1.0 到 1.0，0 = 居中）
-  double getCoverOffset(String itemId) => prefs.getDouble('coverOffset_$itemId') ?? 0.0;
-  Future<bool> setCoverOffset(String itemId, double value) => prefs.setDouble('coverOffset_$itemId', value);
+  double getCoverOffset(String itemId) =>
+      prefs.getDouble('coverOffset_$itemId') ?? 0.0;
+  Future<bool> setCoverOffset(String itemId, double value) =>
+      prefs.setDouble('coverOffset_$itemId', value);
 
   // ========== 主界面显示设置 ==========
 
   /// 是否启用底部导航栏滚动隐藏（默认开启）
-  bool get hideBottomNavOnScroll => prefs.getBool('hideBottomNavOnScroll') ?? true;
-  Future<bool> setHideBottomNavOnScroll(bool value) => prefs.setBool('hideBottomNavOnScroll', value);
+  bool get hideBottomNavOnScroll =>
+      prefs.getBool('hideBottomNavOnScroll') ?? true;
+  Future<bool> setHideBottomNavOnScroll(bool value) =>
+      prefs.setBool('hideBottomNavOnScroll', value);
 
   /// 调试模式：记录运行日志（默认关闭）
   bool get debugMode => prefs.getBool('debugMode') ?? false;
@@ -256,273 +281,419 @@ class UserPrefs {
 
   /// 是否显示观影标签
   bool get showMovieTab => prefs.getBool('showMovieTab') ?? true;
-  Future<bool> setShowMovieTab(bool value) => prefs.setBool('showMovieTab', value);
+  Future<bool> setShowMovieTab(bool value) =>
+      prefs.setBool('showMovieTab', value);
 
   /// Excel 导出是否附带封面图片（在线生成）
   bool get exportWithImages => prefs.getBool('exportWithImages') ?? false;
-  Future<bool> setExportWithImages(bool value) => prefs.setBool('exportWithImages', value);
+  Future<bool> setExportWithImages(bool value) =>
+      prefs.setBool('exportWithImages', value);
 
   /// 是否显示阅读标签
   bool get showBookTab => prefs.getBool('showBookTab') ?? true;
-  Future<bool> setShowBookTab(bool value) => prefs.setBool('showBookTab', value);
+  Future<bool> setShowBookTab(bool value) =>
+      prefs.setBool('showBookTab', value);
 
   /// 是否显示笔记标签
   bool get showNoteTab => prefs.getBool('showNoteTab') ?? true;
-  Future<bool> setShowNoteTab(bool value) => prefs.setBool('showNoteTab', value);
+  Future<bool> setShowNoteTab(bool value) =>
+      prefs.setBool('showNoteTab', value);
 
   /// 是否显示游戏标签
   bool get showGameTab => prefs.getBool('showGameTab') ?? false;
-  Future<bool> setShowGameTab(bool value) => prefs.setBool('showGameTab', value);
+  Future<bool> setShowGameTab(bool value) =>
+      prefs.setBool('showGameTab', value);
 
   /// 主页模块显示方式 (0=底部tab切换, 1=顶部下拉切换)
   int get homeModuleSwitchMode => prefs.getInt('homeModuleSwitchMode') ?? 0;
-  Future<bool> setHomeModuleSwitchMode(int value) => prefs.setInt('homeModuleSwitchMode', value);
+  Future<bool> setHomeModuleSwitchMode(int value) =>
+      prefs.setInt('homeModuleSwitchMode', value);
 
   /// 模块标签模式下 AppBar 左上角显示 (0=日期印章, 1=菜单图标+分类名)
   int get homeLeadingStyle => prefs.getInt('homeLeadingStyle') ?? 0;
-  Future<bool> setHomeLeadingStyle(int value) => prefs.setInt('homeLeadingStyle', value);
+  Future<bool> setHomeLeadingStyle(int value) =>
+      prefs.setInt('homeLeadingStyle', value);
 
   /// 默认启动标签 (-1: 主页, 0: 影视, 1: 阅读, 2: 笔记, 3: 游戏)
   int get defaultMainTabIndex => prefs.getInt('defaultMainTabIndex') ?? -1;
-  Future<bool> setDefaultMainTabIndex(int value) => prefs.setInt('defaultMainTabIndex', value);
+  Future<bool> setDefaultMainTabIndex(int value) =>
+      prefs.setInt('defaultMainTabIndex', value);
 
   // ─── 侧边栏功能开关 ───
 
   bool get showSidebarHeatmap => prefs.getBool('showSidebarHeatmap') ?? true;
-  Future<bool> setShowSidebarHeatmap(bool value) => prefs.setBool('showSidebarHeatmap', value);
+  Future<bool> setShowSidebarHeatmap(bool value) =>
+      prefs.setBool('showSidebarHeatmap', value);
 
   bool get showSidebarRecent => prefs.getBool('showSidebarRecent') ?? true;
-  Future<bool> setShowSidebarRecent(bool value) => prefs.setBool('showSidebarRecent', value);
+  Future<bool> setShowSidebarRecent(bool value) =>
+      prefs.setBool('showSidebarRecent', value);
 
-  bool get showSidebarEncounter => prefs.getBool('showSidebarEncounter') ?? true;
-  Future<bool> setShowSidebarEncounter(bool value) => prefs.setBool('showSidebarEncounter', value);
+  bool get showSidebarEncounter =>
+      prefs.getBool('showSidebarEncounter') ?? true;
+  Future<bool> setShowSidebarEncounter(bool value) =>
+      prefs.setBool('showSidebarEncounter', value);
 
   bool get showSidebarStroll => prefs.getBool('showSidebarStroll') ?? true;
-  Future<bool> setShowSidebarStroll(bool value) => prefs.setBool('showSidebarStroll', value);
+  Future<bool> setShowSidebarStroll(bool value) =>
+      prefs.setBool('showSidebarStroll', value);
 
-  bool get showSidebarWatchlist => prefs.getBool('showSidebarWatchlist') ?? true;
-  Future<bool> setShowSidebarWatchlist(bool value) => prefs.setBool('showSidebarWatchlist', value);
+  bool get showSidebarWatchlist =>
+      prefs.getBool('showSidebarWatchlist') ?? true;
+  Future<bool> setShowSidebarWatchlist(bool value) =>
+      prefs.setBool('showSidebarWatchlist', value);
 
   bool get showSidebarReviewed => prefs.getBool('showSidebarReviewed') ?? true;
-  Future<bool> setShowSidebarReviewed(bool value) => prefs.setBool('showSidebarReviewed', value);
+  Future<bool> setShowSidebarReviewed(bool value) =>
+      prefs.setBool('showSidebarReviewed', value);
 
   bool get showSidebarPlaylist => prefs.getBool('showSidebarPlaylist') ?? true;
-  Future<bool> setShowSidebarPlaylist(bool value) => prefs.setBool('showSidebarPlaylist', value);
+  Future<bool> setShowSidebarPlaylist(bool value) =>
+      prefs.setBool('showSidebarPlaylist', value);
 
   bool get showSidebarCalendar => prefs.getBool('showSidebarCalendar') ?? true;
-  Future<bool> setShowSidebarCalendar(bool value) => prefs.setBool('showSidebarCalendar', value);
+  Future<bool> setShowSidebarCalendar(bool value) =>
+      prefs.setBool('showSidebarCalendar', value);
 
   bool get showSidebarPerson => prefs.getBool('showSidebarPerson') ?? true;
-  Future<bool> setShowSidebarPerson(bool value) => prefs.setBool('showSidebarPerson', value);
+  Future<bool> setShowSidebarPerson(bool value) =>
+      prefs.setBool('showSidebarPerson', value);
 
-  bool get showSidebarPublisher => prefs.getBool('showSidebarPublisher') ?? true;
-  Future<bool> setShowSidebarPublisher(bool value) => prefs.setBool('showSidebarPublisher', value);
+  bool get showSidebarPublisher =>
+      prefs.getBool('showSidebarPublisher') ?? true;
+  Future<bool> setShowSidebarPublisher(bool value) =>
+      prefs.setBool('showSidebarPublisher', value);
 
-  bool get showSidebarMovieReview => prefs.getBool('showSidebarMovieReview') ?? true;
-  Future<bool> setShowSidebarMovieReview(bool value) => prefs.setBool('showSidebarMovieReview', value);
+  bool get showSidebarMovieReview =>
+      prefs.getBool('showSidebarMovieReview') ?? true;
+  Future<bool> setShowSidebarMovieReview(bool value) =>
+      prefs.setBool('showSidebarMovieReview', value);
 
-  bool get showSidebarBookReview => prefs.getBool('showSidebarBookReview') ?? true;
-  Future<bool> setShowSidebarBookReview(bool value) => prefs.setBool('showSidebarBookReview', value);
+  bool get showSidebarBookReview =>
+      prefs.getBool('showSidebarBookReview') ?? true;
+  Future<bool> setShowSidebarBookReview(bool value) =>
+      prefs.setBool('showSidebarBookReview', value);
 
   bool get showSidebarExcerpt => prefs.getBool('showSidebarExcerpt') ?? true;
-  Future<bool> setShowSidebarExcerpt(bool value) => prefs.setBool('showSidebarExcerpt', value);
+  Future<bool> setShowSidebarExcerpt(bool value) =>
+      prefs.setBool('showSidebarExcerpt', value);
 
   bool get showSidebarGallery => prefs.getBool('showSidebarGallery') ?? true;
-  Future<bool> setShowSidebarGallery(bool value) => prefs.setBool('showSidebarGallery', value);
+  Future<bool> setShowSidebarGallery(bool value) =>
+      prefs.setBool('showSidebarGallery', value);
 
   bool get showSidebarTags => prefs.getBool('showSidebarTags') ?? true;
-  Future<bool> setShowSidebarTags(bool value) => prefs.setBool('showSidebarTags', value);
+  Future<bool> setShowSidebarTags(bool value) =>
+      prefs.setBool('showSidebarTags', value);
 
-  bool get showSidebarQuickActions => prefs.getBool('showSidebarQuickActions') ?? true;
-  Future<bool> setShowSidebarQuickActions(bool value) => prefs.setBool('showSidebarQuickActions', value);
+  bool get showSidebarQuickActions =>
+      prefs.getBool('showSidebarQuickActions') ?? true;
+  Future<bool> setShowSidebarQuickActions(bool value) =>
+      prefs.setBool('showSidebarQuickActions', value);
 
-  bool get showSidebarCustomModule => prefs.getBool('showSidebarCustomModule') ?? true;
-  Future<bool> setShowSidebarCustomModule(bool value) => prefs.setBool('showSidebarCustomModule', value);
+  bool get showSidebarCustomModule =>
+      prefs.getBool('showSidebarCustomModule') ?? true;
+  Future<bool> setShowSidebarCustomModule(bool value) =>
+      prefs.setBool('showSidebarCustomModule', value);
 
   // 我的页 · 工具栏显示开关
-  bool get showProfileToolStroll => prefs.getBool('showProfileToolStroll') ?? true;
-  Future<bool> setShowProfileToolStroll(bool value) => prefs.setBool('showProfileToolStroll', value);
+  bool get showProfileToolStroll =>
+      prefs.getBool('showProfileToolStroll') ?? true;
+  Future<bool> setShowProfileToolStroll(bool value) =>
+      prefs.setBool('showProfileToolStroll', value);
 
-  bool get showProfileToolStats => prefs.getBool('showProfileToolStats') ?? true;
-  Future<bool> setShowProfileToolStats(bool value) => prefs.setBool('showProfileToolStats', value);
+  bool get showProfileToolStats =>
+      prefs.getBool('showProfileToolStats') ?? true;
+  Future<bool> setShowProfileToolStats(bool value) =>
+      prefs.setBool('showProfileToolStats', value);
 
-  bool get showProfileToolQuickAdd => prefs.getBool('showProfileToolQuickAdd') ?? true;
-  Future<bool> setShowProfileToolQuickAdd(bool value) => prefs.setBool('showProfileToolQuickAdd', value);
+  bool get showProfileToolQuickAdd =>
+      prefs.getBool('showProfileToolQuickAdd') ?? true;
+  Future<bool> setShowProfileToolQuickAdd(bool value) =>
+      prefs.setBool('showProfileToolQuickAdd', value);
 
-  bool get showProfileToolBackup => prefs.getBool('showProfileToolBackup') ?? true;
-  Future<bool> setShowProfileToolBackup(bool value) => prefs.setBool('showProfileToolBackup', value);
+  bool get showProfileToolBackup =>
+      prefs.getBool('showProfileToolBackup') ?? true;
+  Future<bool> setShowProfileToolBackup(bool value) =>
+      prefs.setBool('showProfileToolBackup', value);
 
-  bool get showProfileToolExport => prefs.getBool('showProfileToolExport') ?? true;
-  Future<bool> setShowProfileToolExport(bool value) => prefs.setBool('showProfileToolExport', value);
+  bool get showProfileToolExport =>
+      prefs.getBool('showProfileToolExport') ?? true;
+  Future<bool> setShowProfileToolExport(bool value) =>
+      prefs.setBool('showProfileToolExport', value);
 
-  bool get showProfileToolSettings => prefs.getBool('showProfileToolSettings') ?? true;
-  Future<bool> setShowProfileToolSettings(bool value) => prefs.setBool('showProfileToolSettings', value);
+  bool get showProfileToolSettings =>
+      prefs.getBool('showProfileToolSettings') ?? true;
+  Future<bool> setShowProfileToolSettings(bool value) =>
+      prefs.setBool('showProfileToolSettings', value);
 
-  bool get showProfileToolRecycleBin => prefs.getBool('showProfileToolRecycleBin') ?? true;
-  Future<bool> setShowProfileToolRecycleBin(bool value) => prefs.setBool('showProfileToolRecycleBin', value);
+  bool get showProfileToolRecycleBin =>
+      prefs.getBool('showProfileToolRecycleBin') ?? true;
+  Future<bool> setShowProfileToolRecycleBin(bool value) =>
+      prefs.setBool('showProfileToolRecycleBin', value);
 
-  bool get showProfileToolFeedback => prefs.getBool('showProfileToolFeedback') ?? true;
-  Future<bool> setShowProfileToolFeedback(bool value) => prefs.setBool('showProfileToolFeedback', value);
+  bool get showProfileToolFeedback =>
+      prefs.getBool('showProfileToolFeedback') ?? true;
+  Future<bool> setShowProfileToolFeedback(bool value) =>
+      prefs.setBool('showProfileToolFeedback', value);
 
   /// 笔记布局样式 (0: 列表, 1: 瀑布流, 2: 时间线)
   int get noteLayoutStyle => prefs.getInt('noteLayoutStyle') ?? 0;
-  Future<bool> setNoteLayoutStyle(int value) => prefs.setInt('noteLayoutStyle', value);
+  Future<bool> setNoteLayoutStyle(int value) =>
+      prefs.setInt('noteLayoutStyle', value);
 
   /// 影评/书评/书摘浏览页布局：0 瀑布流，1 列表
-  int get reviewBrowseLayoutStyle => prefs.getInt('reviewBrowseLayoutStyle') ?? 0;
-  Future<bool> setReviewBrowseLayoutStyle(int value) => prefs.setInt('reviewBrowseLayoutStyle', value);
+  int get reviewBrowseLayoutStyle =>
+      prefs.getInt('reviewBrowseLayoutStyle') ?? 0;
+  Future<bool> setReviewBrowseLayoutStyle(int value) =>
+      prefs.setInt('reviewBrowseLayoutStyle', value);
 
   /// 想看清单页布局：0 卡片网格，1 列表
   int get watchlistLayoutStyle => prefs.getInt('watchlistLayoutStyle') ?? 0;
-  Future<bool> setWatchlistLayoutStyle(int value) => prefs.setInt('watchlistLayoutStyle', value);
+  Future<bool> setWatchlistLayoutStyle(int value) =>
+      prefs.setInt('watchlistLayoutStyle', value);
 
   /// 自定义分类模块管理页布局：0 列表，1 网格（一行三个）
-  int get customModuleLayoutStyle => prefs.getInt('customModuleLayoutStyle') ?? 0;
-  Future<bool> setCustomModuleLayoutStyle(int value) => prefs.setInt('customModuleLayoutStyle', value);
+  int get customModuleLayoutStyle =>
+      prefs.getInt('customModuleLayoutStyle') ?? 0;
+  Future<bool> setCustomModuleLayoutStyle(int value) =>
+      prefs.setInt('customModuleLayoutStyle', value);
 
   /// 笔记排序方式 (0: 更新时间, 1: 创建时间)
   int get noteSortMode => prefs.getInt('noteSortMode') ?? 0;
-  Future<bool> setNoteSortMode(int value) => prefs.setInt('noteSortMode', value);
+  Future<bool> setNoteSortMode(int value) =>
+      prefs.setInt('noteSortMode', value);
+
+  /// 笔记详情正文对齐：0 左对齐，1 两侧对齐，2 右对齐
+  int get noteContentAlign => prefs.getInt('noteContentAlign') ?? 0;
+  Future<bool> setNoteContentAlign(int value) =>
+      prefs.setInt('noteContentAlign', value);
 
   /// 书影日历日期模式 (0: 创建日期, 1: 观看/开始阅读日期)
   int get calendarDateMode => prefs.getInt('calendarDateMode') ?? 0;
-  Future<bool> setCalendarDateMode(int value) => prefs.setInt('calendarDateMode', value);
+  Future<bool> setCalendarDateMode(int value) =>
+      prefs.setInt('calendarDateMode', value);
 
   /// 数据统计时间范围 (0: 周, 1: 月, 2: 年)
   int get statsTimeRange => prefs.getInt('statsTimeRange') ?? 2;
-  Future<bool> setStatsTimeRange(int value) => prefs.setInt('statsTimeRange', value);
+  Future<bool> setStatsTimeRange(int value) =>
+      prefs.setInt('statsTimeRange', value);
 
   /// 「我的」页模块数据选中项 (0: 影视, 1: 阅读, 2: 游戏, 3: 笔记)
   int get profileModuleIndex => prefs.getInt('profileModuleIndex') ?? 0;
-  Future<bool> setProfileModuleIndex(int value) => prefs.setInt('profileModuleIndex', value);
+  Future<bool> setProfileModuleIndex(int value) =>
+      prefs.setInt('profileModuleIndex', value);
 
   /// 影视排序方式 (0: 更新时间, 1: 创建时间, 2: 评分, 3: 观看日期, 4: 上映时间)
   int get movieSortMode => prefs.getInt('movieSortMode') ?? 0;
-  Future<bool> setMovieSortMode(int value) => prefs.setInt('movieSortMode', value);
+  Future<bool> setMovieSortMode(int value) =>
+      prefs.setInt('movieSortMode', value);
 
   /// 书籍排序方式 (0: 更新时间, 1: 创建时间, 2: 评分, 3: 开始阅读时间, 4: 出版时间)
   int get bookSortMode => prefs.getInt('bookSortMode') ?? 0;
-  Future<bool> setBookSortMode(int value) => prefs.setInt('bookSortMode', value);
+  Future<bool> setBookSortMode(int value) =>
+      prefs.setInt('bookSortMode', value);
 
-  /// 实际生效的排序方式：年份网格布局强制按日期排序
-  /// （其他排序会让分页随机回填各年份分组，触底加载停摆、分组计数错乱）
-  int get effectiveMovieSortMode => movieLayoutStyle == 3 ? 4 : movieSortMode;
-  int get effectiveBookSortMode => bookLayoutStyle == 2 ? 4 : bookSortMode;
-  int get effectiveGameSortMode => gameLayoutStyle == 3 ? 3 : gameSortMode;
+  /// 年份网格分组依据：影视 (0: 上映时间, 1: 观看日期)
+  int get movieYearGridBasis => prefs.getInt('movieYearGridBasis') ?? 0;
+  Future<bool> setMovieYearGridBasis(int value) =>
+      prefs.setInt('movieYearGridBasis', value);
+
+  /// 年份网格分组依据：书籍 (0: 出版时间, 1: 开始阅读, 2: 读完时间)
+  int get bookYearGridBasis => prefs.getInt('bookYearGridBasis') ?? 0;
+  Future<bool> setBookYearGridBasis(int value) =>
+      prefs.setInt('bookYearGridBasis', value);
+
+  /// 年份网格分组依据：游戏 (0: 发售时间, 1: 游玩时间=最近通关，无通关取购买时间)
+  int get gameYearGridBasis => prefs.getInt('gameYearGridBasis') ?? 0;
+  Future<bool> setGameYearGridBasis(int value) =>
+      prefs.setInt('gameYearGridBasis', value);
+
+  /// 实际生效的排序方式：年份网格布局按所选年份依据排序
+  /// （分组列必须与排序列一致，否则分页会随机回填各年份分组，触底加载停摆、分组计数错乱）
+  /// 排序码 5 仅由年份网格产生：书籍=读完时间，游戏=游玩时间
+  int get effectiveMovieSortMode =>
+      movieLayoutStyle == 3 ? (movieYearGridBasis == 1 ? 3 : 4) : movieSortMode;
+  int get effectiveBookSortMode => bookLayoutStyle == 2
+      ? switch (bookYearGridBasis) { 1 => 3, 2 => 5, _ => 4 }
+      : bookSortMode;
+  int get effectiveGameSortMode =>
+      gameLayoutStyle == 3 ? (gameYearGridBasis == 1 ? 5 : 3) : gameSortMode;
 
   /// 影视布局样式 (0: 海报网格, 1: 列表)
   int get movieLayoutStyle => prefs.getInt('movieLayoutStyle') ?? 0;
-  Future<bool> setMovieLayoutStyle(int value) => prefs.setInt('movieLayoutStyle', value);
+  Future<bool> setMovieLayoutStyle(int value) =>
+      prefs.setInt('movieLayoutStyle', value);
 
   /// 影视显示模式 (0: 观看状态, 1: 分类状态)
   int get movieDisplayMode => prefs.getInt('movieDisplayMode') ?? 0;
-  Future<bool> setMovieDisplayMode(int value) => prefs.setInt('movieDisplayMode', value);
+  Future<bool> setMovieDisplayMode(int value) =>
+      prefs.setInt('movieDisplayMode', value);
 
   /// 书籍显示模式 (0: 阅读状态, 1: 分类状态)
   int get bookDisplayMode => prefs.getInt('bookDisplayMode') ?? 0;
-  Future<bool> setBookDisplayMode(int value) => prefs.setInt('bookDisplayMode', value);
+  Future<bool> setBookDisplayMode(int value) =>
+      prefs.setInt('bookDisplayMode', value);
 
   /// 影视状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
   int get movieStatusBarStyle => prefs.getInt('movieStatusBarStyle') ?? 0;
-  Future<bool> setMovieStatusBarStyle(int value) => prefs.setInt('movieStatusBarStyle', value);
+  Future<bool> setMovieStatusBarStyle(int value) =>
+      prefs.setInt('movieStatusBarStyle', value);
 
   /// 海报网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
   int get movieGridCount => prefs.getInt('movieGridCount') ?? 0;
-  Future<bool> setMovieGridCount(int value) => prefs.setInt('movieGridCount', value);
+  Future<bool> setMovieGridCount(int value) =>
+      prefs.setInt('movieGridCount', value);
 
   /// 阅读网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
   int get bookGridCount => prefs.getInt('bookGridCount') ?? 0;
-  Future<bool> setBookGridCount(int value) => prefs.setInt('bookGridCount', value);
+  Future<bool> setBookGridCount(int value) =>
+      prefs.setInt('bookGridCount', value);
 
   /// 游戏网格每行数量 (0: 自动按宽度, 3/4/5: 固定列数)
   int get gameGridCount => prefs.getInt('gameGridCount') ?? 0;
-  Future<bool> setGameGridCount(int value) => prefs.setInt('gameGridCount', value);
+  Future<bool> setGameGridCount(int value) =>
+      prefs.setInt('gameGridCount', value);
 
   /// 阅读布局样式 (0: 封面网格, 1: 列表, 2: 年份网格, 3: 大图卡片)
   int get bookLayoutStyle => prefs.getInt('bookLayoutStyle') ?? 0;
-  Future<bool> setBookLayoutStyle(int value) => prefs.setInt('bookLayoutStyle', value);
+  Future<bool> setBookLayoutStyle(int value) =>
+      prefs.setInt('bookLayoutStyle', value);
 
   /// 书籍状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
   int get bookStatusBarStyle => prefs.getInt('bookStatusBarStyle') ?? 0;
-  Future<bool> setBookStatusBarStyle(int value) => prefs.setInt('bookStatusBarStyle', value);
+  Future<bool> setBookStatusBarStyle(int value) =>
+      prefs.setInt('bookStatusBarStyle', value);
 
   /// 影视墙模式（不显示分类，按创建时间排序）
   bool get movieWallMode => prefs.getBool('movieWallMode') ?? false;
-  Future<bool> setMovieWallMode(bool value) => prefs.setBool('movieWallMode', value);
+  Future<bool> setMovieWallMode(bool value) =>
+      prefs.setBool('movieWallMode', value);
 
   /// 书架模式（不显示分类，按创建时间排序）
   bool get bookshelfMode => prefs.getBool('bookshelfMode') ?? false;
-  Future<bool> setBookshelfMode(bool value) => prefs.setBool('bookshelfMode', value);
+  Future<bool> setBookshelfMode(bool value) =>
+      prefs.setBool('bookshelfMode', value);
 
   /// 游戏排序方式 (0: 更新时间, 1: 创建时间, 2: 评分, 3: 发售时间, 4: 通关时间)
   int get gameSortMode => prefs.getInt('gameSortMode') ?? 0;
-  Future<bool> setGameSortMode(int value) => prefs.setInt('gameSortMode', value);
+  Future<bool> setGameSortMode(int value) =>
+      prefs.setInt('gameSortMode', value);
 
   /// 游戏布局样式 (0: 网格, 1: 列表, 2: 大图卡片)
   int get gameLayoutStyle => prefs.getInt('gameLayoutStyle') ?? 0;
-  Future<bool> setGameLayoutStyle(int value) => prefs.setInt('gameLayoutStyle', value);
+  Future<bool> setGameLayoutStyle(int value) =>
+      prefs.setInt('gameLayoutStyle', value);
 
   /// 游戏状态栏样式 (0: 胶囊滑块, 1: 下划线, 2: 芯片组, 3: 下拉)
   int get gameStatusBarStyle => prefs.getInt('gameStatusBarStyle') ?? 0;
-  Future<bool> setGameStatusBarStyle(int value) => prefs.setInt('gameStatusBarStyle', value);
+  Future<bool> setGameStatusBarStyle(int value) =>
+      prefs.setInt('gameStatusBarStyle', value);
 
   /// 影视墙模式
   bool get gameWallMode => prefs.getBool('gameWallMode') ?? false;
-  Future<bool> setGameWallMode(bool value) => prefs.setBool('gameWallMode', value);
+  Future<bool> setGameWallMode(bool value) =>
+      prefs.setBool('gameWallMode', value);
 
-  /// 影视海报右下角显示上映日期
+  /// 影视海报右下角是否显示日期；日期来源：0 上映日期，1 观看日期
   bool get showMovieCardDate => prefs.getBool('showMovieCardDate') ?? false;
-  Future<bool> setShowMovieCardDate(bool value) => prefs.setBool('showMovieCardDate', value);
+  Future<bool> setShowMovieCardDate(bool value) =>
+      prefs.setBool('showMovieCardDate', value);
+  int get movieCardDateType => prefs.getInt('movieCardDateType') ?? 0;
+  Future<bool> setMovieCardDateType(int value) =>
+      prefs.setInt('movieCardDateType', value);
 
-  /// 书籍封面右下角显示出版日期
+  /// 书籍封面右下角是否显示日期；日期来源：0 出版时间，1 开始阅读，2 结束阅读
   bool get showBookCardDate => prefs.getBool('showBookCardDate') ?? false;
-  Future<bool> setShowBookCardDate(bool value) => prefs.setBool('showBookCardDate', value);
+  Future<bool> setShowBookCardDate(bool value) =>
+      prefs.setBool('showBookCardDate', value);
+  int get bookCardDateType => prefs.getInt('bookCardDateType') ?? 0;
+  Future<bool> setBookCardDateType(int value) =>
+      prefs.setInt('bookCardDateType', value);
 
-  /// 游戏封面右下角显示发售日期
+  /// 游戏封面右下角是否显示日期；日期来源：0 发售时间，1 购买时间
   bool get showGameCardDate => prefs.getBool('showGameCardDate') ?? false;
-  Future<bool> setShowGameCardDate(bool value) => prefs.setBool('showGameCardDate', value);
+  Future<bool> setShowGameCardDate(bool value) =>
+      prefs.setBool('showGameCardDate', value);
+  int get gameCardDateType => prefs.getInt('gameCardDateType') ?? 0;
+  Future<bool> setGameCardDateType(int value) =>
+      prefs.setInt('gameCardDateType', value);
+
+  /// 卡片标题、评分对齐方式（0: 左对齐, 1: 居中, 2: 右对齐）
+  int get movieCardTitleAlign => prefs.getInt('movieCardTitleAlign') ?? 0;
+  Future<bool> setMovieCardTitleAlign(int value) =>
+      prefs.setInt('movieCardTitleAlign', value);
+  int get movieCardRatingAlign => prefs.getInt('movieCardRatingAlign') ?? 0;
+  Future<bool> setMovieCardRatingAlign(int value) =>
+      prefs.setInt('movieCardRatingAlign', value);
+  int get bookCardTitleAlign => prefs.getInt('bookCardTitleAlign') ?? 0;
+  Future<bool> setBookCardTitleAlign(int value) =>
+      prefs.setInt('bookCardTitleAlign', value);
+  int get bookCardRatingAlign => prefs.getInt('bookCardRatingAlign') ?? 0;
+  Future<bool> setBookCardRatingAlign(int value) =>
+      prefs.setInt('bookCardRatingAlign', value);
+  int get gameCardTitleAlign => prefs.getInt('gameCardTitleAlign') ?? 0;
+  Future<bool> setGameCardTitleAlign(int value) =>
+      prefs.setInt('gameCardTitleAlign', value);
+  int get gameCardRatingAlign => prefs.getInt('gameCardRatingAlign') ?? 0;
+  Future<bool> setGameCardRatingAlign(int value) =>
+      prefs.setInt('gameCardRatingAlign', value);
 
   /// 列表是否显示标题（默认显示）
   bool get showMovieTitle => prefs.getBool('showMovieTitle') ?? true;
-  Future<bool> setShowMovieTitle(bool value) => prefs.setBool('showMovieTitle', value);
+  Future<bool> setShowMovieTitle(bool value) =>
+      prefs.setBool('showMovieTitle', value);
   bool get showBookTitle => prefs.getBool('showBookTitle') ?? true;
-  Future<bool> setShowBookTitle(bool value) => prefs.setBool('showBookTitle', value);
+  Future<bool> setShowBookTitle(bool value) =>
+      prefs.setBool('showBookTitle', value);
   bool get showGameTitle => prefs.getBool('showGameTitle') ?? true;
-  Future<bool> setShowGameTitle(bool value) => prefs.setBool('showGameTitle', value);
+  Future<bool> setShowGameTitle(bool value) =>
+      prefs.setBool('showGameTitle', value);
 
   /// 列表是否显示评分（默认显示）
   bool get showMovieRating => prefs.getBool('showMovieRating') ?? true;
-  Future<bool> setShowMovieRating(bool value) => prefs.setBool('showMovieRating', value);
+  Future<bool> setShowMovieRating(bool value) =>
+      prefs.setBool('showMovieRating', value);
   bool get showBookRating => prefs.getBool('showBookRating') ?? true;
-  Future<bool> setShowBookRating(bool value) => prefs.setBool('showBookRating', value);
+  Future<bool> setShowBookRating(bool value) =>
+      prefs.setBool('showBookRating', value);
   bool get showGameRating => prefs.getBool('showGameRating') ?? true;
-  Future<bool> setShowGameRating(bool value) => prefs.setBool('showGameRating', value);
+  Future<bool> setShowGameRating(bool value) =>
+      prefs.setBool('showGameRating', value);
 
   /// 已阅页布局样式 (0: 列表, 1: 网格)
   int get reviewedLayoutStyle => prefs.getInt('reviewedLayoutStyle') ?? 0;
-  Future<bool> setReviewedLayoutStyle(int value) => prefs.setInt('reviewedLayoutStyle', value);
+  Future<bool> setReviewedLayoutStyle(int value) =>
+      prefs.setInt('reviewedLayoutStyle', value);
 
   /// 已阅页排序字段 (0: 创建时间, 1: 完成时间, 2: 次数, 3: 评分)
   int get reviewedSortKey => prefs.getInt('reviewedSortKey') ?? 0;
-  Future<bool> setReviewedSortKey(int value) => prefs.setInt('reviewedSortKey', value);
+  Future<bool> setReviewedSortKey(int value) =>
+      prefs.setInt('reviewedSortKey', value);
 
   /// 已阅页排序是否升序
-  bool get reviewedSortAscending => prefs.getBool('reviewedSortAscending') ?? false;
-  Future<bool> setReviewedSortAscending(bool value) => prefs.setBool('reviewedSortAscending', value);
+  bool get reviewedSortAscending =>
+      prefs.getBool('reviewedSortAscending') ?? false;
+  Future<bool> setReviewedSortAscending(bool value) =>
+      prefs.setBool('reviewedSortAscending', value);
 
   /// 片单页布局样式 (0: 列表, 1: 网格)
   int get playlistLayoutStyle => prefs.getInt('playlistLayoutStyle') ?? 0;
-  Future<bool> setPlaylistLayoutStyle(int value) => prefs.setInt('playlistLayoutStyle', value);
+  Future<bool> setPlaylistLayoutStyle(int value) =>
+      prefs.setInt('playlistLayoutStyle', value);
 
   /// 片单详情页布局样式 (0: 列表, 1: 海报墙)
-  int get playlistDetailLayoutStyle => prefs.getInt('playlistDetailLayoutStyle') ?? 0;
-  Future<bool> setPlaylistDetailLayoutStyle(int value) => prefs.setInt('playlistDetailLayoutStyle', value);
+  int get playlistDetailLayoutStyle =>
+      prefs.getInt('playlistDetailLayoutStyle') ?? 0;
+  Future<bool> setPlaylistDetailLayoutStyle(int value) =>
+      prefs.setInt('playlistDetailLayoutStyle', value);
 
   // ========== 应用图标设置 ==========
 
   /// 当前选中的应用图标名称（对应 assets/icon/ 下的文件名，不含扩展名）
   String get appIconName => prefs.getString('appIconName') ?? 'app_icon';
-  Future<bool> setAppIconName(String value) => prefs.setString('appIconName', value);
+  Future<bool> setAppIconName(String value) =>
+      prefs.setString('appIconName', value);
 
   // ========== 用户统计设置 ==========
 
@@ -533,14 +704,17 @@ class UserPrefs {
 
   /// 搜索历史记录
   List<String> get searchHistory => prefs.getStringList('searchHistory') ?? [];
-  Future<bool> setSearchHistory(List<String> value) => prefs.setStringList('searchHistory', value);
+  Future<bool> setSearchHistory(List<String> value) =>
+      prefs.setStringList('searchHistory', value);
 
   /// 添加搜索记录（最多 50 条）
   Future<void> addSearchHistory(String keyword) async {
     final list = searchHistory;
     list.remove(keyword);
     list.insert(0, keyword);
-    if (list.length > 50) { list.removeRange(50, list.length); }
+    if (list.length > 50) {
+      list.removeRange(50, list.length);
+    }
     await setSearchHistory(list);
   }
 
@@ -557,24 +731,30 @@ class UserPrefs {
   // ========== 增强搜索 ==========
 
   /// 是否开启增强搜索
-  bool get enhancedSearchEnabled => prefs.getBool('enhancedSearchEnabled') ?? false;
-  Future<bool> setEnhancedSearchEnabled(bool value) => prefs.setBool('enhancedSearchEnabled', value);
+  bool get enhancedSearchEnabled =>
+      prefs.getBool('enhancedSearchEnabled') ?? false;
+  Future<bool> setEnhancedSearchEnabled(bool value) =>
+      prefs.setBool('enhancedSearchEnabled', value);
 
   /// 上次使用的搜索模式：false=本地, true=增强
   bool get lastSearchOnline => prefs.getBool('lastSearchOnline') ?? false;
-  Future<bool> setLastSearchOnline(bool value) => prefs.setBool('lastSearchOnline', value);
+  Future<bool> setLastSearchOnline(bool value) =>
+      prefs.setBool('lastSearchOnline', value);
 
   /// 影视增强搜索 Token
   String get movieSearchToken => prefs.getString('movieSearchToken') ?? '';
-  Future<bool> setMovieSearchToken(String value) => prefs.setString('movieSearchToken', value);
+  Future<bool> setMovieSearchToken(String value) =>
+      prefs.setString('movieSearchToken', value);
 
   /// 书籍增强搜索 Token
   String get bookSearchToken => prefs.getString('bookSearchToken') ?? '';
-  Future<bool> setBookSearchToken(String value) => prefs.setString('bookSearchToken', value);
+  Future<bool> setBookSearchToken(String value) =>
+      prefs.setString('bookSearchToken', value);
 
   /// 上次搜索的 Tab: 0=影视, 1=书籍
   int get lastSearchTab => prefs.getInt('lastSearchTab') ?? 0;
-  Future<bool> setLastSearchTab(int value) => prefs.setInt('lastSearchTab', value);
+  Future<bool> setLastSearchTab(int value) =>
+      prefs.setInt('lastSearchTab', value);
 
   // ========== TMDB 搜索 ==========
 
@@ -585,30 +765,36 @@ class UserPrefs {
 
   /// TMDB API Token（v4 Read Access Token 或 v3 API Key）
   String get tmdbApiToken => prefs.getString('tmdbApiToken') ?? '';
-  Future<bool> setTmdbApiToken(String value) => prefs.setString('tmdbApiToken', value);
+  Future<bool> setTmdbApiToken(String value) =>
+      prefs.setString('tmdbApiToken', value);
 
   /// TMDB 认证方式: bearer(v4) / apikey(v3)
   String get tmdbAuthType => prefs.getString('tmdbAuthType') ?? 'bearer';
-  Future<bool> setTmdbAuthType(String value) => prefs.setString('tmdbAuthType', value);
+  Future<bool> setTmdbAuthType(String value) =>
+      prefs.setString('tmdbAuthType', value);
 
   /// TMDB 专用 HTTP 代理（host:port，空=不走代理）
   String get tmdbProxy => prefs.getString('tmdbProxy') ?? '';
-  Future<bool> setTmdbProxy(String value) => prefs.setString('tmdbProxy', value);
+  Future<bool> setTmdbProxy(String value) =>
+      prefs.setString('tmdbProxy', value);
 
   // ========== Bangumi 搜索 ==========
 
   /// Bangumi 搜索是否在搜索页显示（默认开，凭证缺失时仍自动隐藏）
-  bool get bangumiSearchEnabled => prefs.getBool('bangumiSearchEnabled') ?? true;
+  bool get bangumiSearchEnabled =>
+      prefs.getBool('bangumiSearchEnabled') ?? true;
   Future<bool> setBangumiSearchEnabled(bool value) =>
       prefs.setBool('bangumiSearchEnabled', value);
 
   /// Bangumi Access Token
   String get bangumiAccessToken => prefs.getString('bangumiAccessToken') ?? '';
-  Future<bool> setBangumiAccessToken(String value) => prefs.setString('bangumiAccessToken', value);
+  Future<bool> setBangumiAccessToken(String value) =>
+      prefs.setString('bangumiAccessToken', value);
 
   /// Bangumi 专用 HTTP 代理（host:port，空=不走代理）
   String get bangumiProxy => prefs.getString('bangumiProxy') ?? '';
-  Future<bool> setBangumiProxy(String value) => prefs.setString('bangumiProxy', value);
+  Future<bool> setBangumiProxy(String value) =>
+      prefs.setString('bangumiProxy', value);
 
   /// Bangumi 在线添加后自动打开编辑页（默认关，保持原有静默入库流）
   bool get bangumiOpenEditorAfterAdd =>
@@ -647,7 +833,8 @@ class UserPrefs {
   /// 搜索页模式: 0=本地, 1=增强, 2=TMDB, 3=Bangumi, 4=豆瓣（从旧版 lastSearchOnline 迁移）
   int get lastSearchMode =>
       prefs.getInt('lastSearchMode') ?? (lastSearchOnline ? 1 : 0);
-  Future<bool> setLastSearchMode(int value) => prefs.setInt('lastSearchMode', value);
+  Future<bool> setLastSearchMode(int value) =>
+      prefs.setInt('lastSearchMode', value);
 
   // ========== 豆瓣搜索 ==========
 
@@ -658,16 +845,19 @@ class UserPrefs {
 
   /// WebView 登录收割的豆瓣 cookie（JSON 字符串，至少含 dbcl2）；空=未登录
   String get doubanCookies => prefs.getString('doubanCookies') ?? '';
-  Future<bool> setDoubanCookies(String value) => prefs.setString('doubanCookies', value);
+  Future<bool> setDoubanCookies(String value) =>
+      prefs.setString('doubanCookies', value);
 
   bool get doubanLoggedIn => doubanCookies.isNotEmpty;
 
   /// 豆瓣专用 HTTP 代理（host:port，空=不走代理）
   String get doubanProxy => prefs.getString('doubanProxy') ?? '';
-  Future<bool> setDoubanProxy(String value) => prefs.setString('doubanProxy', value);
+  Future<bool> setDoubanProxy(String value) =>
+      prefs.setString('doubanProxy', value);
 
   /// 豆瓣搜索分段：mix=综合（匿名，仅首屏）/ book=书籍 / movie=影视（后两者登录可翻页）
-  String get doubanSearchSegment => prefs.getString('doubanSearchSegment') ?? 'mix';
+  String get doubanSearchSegment =>
+      prefs.getString('doubanSearchSegment') ?? 'mix';
   Future<bool> setDoubanSearchSegment(String value) =>
       prefs.setString('doubanSearchSegment', value);
 
@@ -675,7 +865,8 @@ class UserPrefs {
 
   /// 播放解锁时间（ISO 字符串），解锁后 7 天有效
   String? get playbackUnlockTime => prefs.getString('playbackUnlockTime');
-  Future<bool> setPlaybackUnlockTime(String value) => prefs.setString('playbackUnlockTime', value);
+  Future<bool> setPlaybackUnlockTime(String value) =>
+      prefs.setString('playbackUnlockTime', value);
 
   /// 当前是否已解锁播放（7 天内有效）
   bool get playbackUnlocked {
@@ -706,75 +897,99 @@ class UserPrefs {
 
   /// 已忽略的版本号（不再提示更新）
   String get dismissedVersion => prefs.getString('dismissedVersion') ?? '';
-  Future<bool> setDismissedVersion(String value) => prefs.setString('dismissedVersion', value);
+  Future<bool> setDismissedVersion(String value) =>
+      prefs.setString('dismissedVersion', value);
 
   /// 更新提醒 snooze 到指定时间戳（ms），24 小时内不弹
   int get dismissedUpdateUntil => prefs.getInt('dismissedUpdateUntil') ?? 0;
-  Future<bool> setDismissedUpdateUntil(int value) => prefs.setInt('dismissedUpdateUntil', value);
+  Future<bool> setDismissedUpdateUntil(int value) =>
+      prefs.setInt('dismissedUpdateUntil', value);
 
   // ========== 字体选择器 ==========
 
   /// 字体选择器上次使用的目录路径
   String? get lastFontDir => prefs.getString('lastFontDir');
-  Future<bool> setLastFontDir(String value) => prefs.setString('lastFontDir', value);
+  Future<bool> setLastFontDir(String value) =>
+      prefs.setString('lastFontDir', value);
 
   // ========== 本地自动备份 ==========
 
   /// 是否启用本地自动备份
-  bool get localAutoBackupEnabled => prefs.getBool('localAutoBackupEnabled') ?? false;
-  Future<bool> setLocalAutoBackupEnabled(bool value) => prefs.setBool('localAutoBackupEnabled', value);
+  bool get localAutoBackupEnabled =>
+      prefs.getBool('localAutoBackupEnabled') ?? false;
+  Future<bool> setLocalAutoBackupEnabled(bool value) =>
+      prefs.setBool('localAutoBackupEnabled', value);
 
   /// 本地自动备份间隔（小时），默认 24
-  int get localAutoBackupIntervalHours => prefs.getInt('localAutoBackupIntervalHours') ?? 24;
-  Future<bool> setLocalAutoBackupIntervalHours(int value) => prefs.setInt('localAutoBackupIntervalHours', value);
+  int get localAutoBackupIntervalHours =>
+      prefs.getInt('localAutoBackupIntervalHours') ?? 24;
+  Future<bool> setLocalAutoBackupIntervalHours(int value) =>
+      prefs.setInt('localAutoBackupIntervalHours', value);
 
   /// 上次本地自动备份时间（ISO8601）
-  String? get lastLocalAutoBackupTime => prefs.getString('lastLocalAutoBackupTime');
-  Future<bool> setLastLocalAutoBackupTime(String value) => prefs.setString('lastLocalAutoBackupTime', value);
+  String? get lastLocalAutoBackupTime =>
+      prefs.getString('lastLocalAutoBackupTime');
+  Future<bool> setLastLocalAutoBackupTime(String value) =>
+      prefs.setString('lastLocalAutoBackupTime', value);
 
   // ========== WebDAV 增量自动同步 ==========
 
   /// WebDAV 备份方式：full 全量 / inc 增量
-  String get webdavBackupMode => prefs.getString('webdav_backup_mode') ?? 'full';
-  Future<bool> setWebdavBackupMode(String value) => prefs.setString('webdav_backup_mode', value);
+  String get webdavBackupMode =>
+      prefs.getString('webdav_backup_mode') ?? 'full';
+  Future<bool> setWebdavBackupMode(String value) =>
+      prefs.setString('webdav_backup_mode', value);
 
   /// 是否启用增量自动同步
-  bool get webdavIncAutoSyncEnabled => prefs.getBool('webdavIncAutoSyncEnabled') ?? false;
-  Future<bool> setWebdavIncAutoSyncEnabled(bool value) => prefs.setBool('webdavIncAutoSyncEnabled', value);
+  bool get webdavIncAutoSyncEnabled =>
+      prefs.getBool('webdavIncAutoSyncEnabled') ?? false;
+  Future<bool> setWebdavIncAutoSyncEnabled(bool value) =>
+      prefs.setBool('webdavIncAutoSyncEnabled', value);
 
   /// 增量自动同步间隔（分钟），默认 30
-  int get webdavIncAutoSyncIntervalMinutes => prefs.getInt('webdavIncAutoSyncIntervalMinutes') ?? 30;
-  Future<bool> setWebdavIncAutoSyncIntervalMinutes(int value) => prefs.setInt('webdavIncAutoSyncIntervalMinutes', value);
+  int get webdavIncAutoSyncIntervalMinutes =>
+      prefs.getInt('webdavIncAutoSyncIntervalMinutes') ?? 30;
+  Future<bool> setWebdavIncAutoSyncIntervalMinutes(int value) =>
+      prefs.setInt('webdavIncAutoSyncIntervalMinutes', value);
 
   // ========== 服务器云同步账号 ==========
 
   /// 是否已确认云同步数据上传说明（记一次，不再弹说明对话框）
   bool get cloudSyncConsented => prefs.getBool('cloudSyncConsented') ?? false;
-  Future<bool> setCloudSyncConsented(bool value) => prefs.setBool('cloudSyncConsented', value);
+  Future<bool> setCloudSyncConsented(bool value) =>
+      prefs.setBool('cloudSyncConsented', value);
 
   String get cloudToken => prefs.getString('cloudToken') ?? '';
-  Future<bool> setCloudToken(String value) => prefs.setString('cloudToken', value);
+  Future<bool> setCloudToken(String value) =>
+      prefs.setString('cloudToken', value);
 
   String get cloudUserId => prefs.getString('cloudUserId') ?? '';
-  Future<bool> setCloudUserId(String value) => prefs.setString('cloudUserId', value);
+  Future<bool> setCloudUserId(String value) =>
+      prefs.setString('cloudUserId', value);
 
   String get cloudUsername => prefs.getString('cloudUsername') ?? '';
-  Future<bool> setCloudUsername(String value) => prefs.setString('cloudUsername', value);
+  Future<bool> setCloudUsername(String value) =>
+      prefs.setString('cloudUsername', value);
 
   String get cloudNickname => prefs.getString('cloudNickname') ?? '';
-  Future<bool> setCloudNickname(String value) => prefs.setString('cloudNickname', value);
+  Future<bool> setCloudNickname(String value) =>
+      prefs.setString('cloudNickname', value);
 
   String get cloudMobile => prefs.getString('cloudMobile') ?? '';
-  Future<bool> setCloudMobile(String value) => prefs.setString('cloudMobile', value);
+  Future<bool> setCloudMobile(String value) =>
+      prefs.setString('cloudMobile', value);
 
   String get cloudEmail => prefs.getString('cloudEmail') ?? '';
-  Future<bool> setCloudEmail(String value) => prefs.setString('cloudEmail', value);
+  Future<bool> setCloudEmail(String value) =>
+      prefs.setString('cloudEmail', value);
 
   String get cloudAvatar => prefs.getString('cloudAvatar') ?? '';
-  Future<bool> setCloudAvatar(String value) => prefs.setString('cloudAvatar', value);
+  Future<bool> setCloudAvatar(String value) =>
+      prefs.setString('cloudAvatar', value);
 
   String get cloudMotto => prefs.getString('cloudMotto') ?? '';
-  Future<bool> setCloudMotto(String value) => prefs.setString('cloudMotto', value);
+  Future<bool> setCloudMotto(String value) =>
+      prefs.setString('cloudMotto', value);
 
   /// 影视分类是否处于云端模式（true=数据以云端为准，图片走网络 URL）
   bool get cloudMovieMode => prefs.getBool(_cloudMovieModeKey) ?? false;

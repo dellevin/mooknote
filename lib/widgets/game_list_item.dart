@@ -16,13 +16,33 @@ class GameListItem extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  const GameListItem({super.key, required this.game, this.selected = false, this.onTap});
+  const GameListItem(
+      {super.key, required this.game, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final showCardDate =
+        context.select<AppProvider, bool>((p) => p.showGameCardDate);
+    final cardDateType =
+        context.select<AppProvider, int>((p) => p.gameCardDateType);
+    final titleAlign =
+        context.select<AppProvider, int>((p) => p.gameCardTitleAlign);
+    final ratingAlign =
+        context.select<AppProvider, int>((p) => p.gameCardRatingAlign);
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return PressableScale(
-      onTap: onTap ?? () => Navigator.pushNamed(context, '/game-detail', arguments: game),
+      onTap: onTap ??
+          () => Navigator.pushNamed(context, '/game-detail', arguments: game),
       onLongPress: () => _showDeleteDialog(context),
       child: Container(
         decoration: selected
@@ -32,41 +52,53 @@ class GameListItem extends StatelessWidget {
               )
             : null,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _buildCoverWithDate(colors),
-          ),
-          if (UserPrefs().showGameTitle) ...[
-            const SizedBox(height: 8),
-            Text(
-              game.title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildCoverWithDate(colors, showCardDate, cardDateType),
             ),
+            if (UserPrefs().showGameTitle) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: titleAlignment,
+                child: Text(
+                  game.title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            if (UserPrefs().showGameRating) ...[
+              const SizedBox(height: 4),
+              if (game.rating != null)
+                Align(
+                  alignment: ratingAlignment,
+                  child: AnimatedStarRating(
+                    rating: game.rating!,
+                    starSize: 12,
+                    showNumber: true,
+                    alignment: ratingAlignment,
+                  ),
+                )
+              else
+                const SizedBox(height: 16),
+            ],
           ],
-          if (UserPrefs().showGameRating) ...[
-            const SizedBox(height: 4),
-            if (game.rating != null)
-              AnimatedStarRating(rating: game.rating!, starSize: 12, showNumber: true)
-            else
-              const SizedBox(height: 16),
-          ],
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _buildCoverWithDate(ColorScheme colors) {
+  Widget _buildCoverWithDate(
+      ColorScheme colors, bool showCardDate, int cardDateType) {
     final cover = _buildCover(colors);
-    if (!UserPrefs().showGameCardDate) return cover;
-    final d = game.releaseDate;
+    if (!showCardDate) return cover;
+    final d = cardDateType == 1 ? game.purchaseDate : game.releaseDate;
     if (d == null) return cover;
     final label = '${d.year}.${d.month.toString().padLeft(2, '0')}';
     return Stack(children: [
@@ -82,7 +114,9 @@ class GameListItem extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
+      child: Text(label,
+          style: const TextStyle(
+              fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -96,8 +130,12 @@ class GameListItem extends StatelessWidget {
       child: FadeInLocalImage(
         path: game.coverPath,
         fit: BoxFit.cover,
-        placeholder: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-        errorWidget: Center(child: Icon(Icons.sports_esports_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        placeholder: Center(
+            child: Icon(Icons.sports_esports_outlined,
+                size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(
+            child: Icon(Icons.sports_esports_outlined,
+                size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }
@@ -119,8 +157,7 @@ class GameListItem extends StatelessWidget {
           ),
         ),
         content: Text(
-          '确定要删除《{title}》吗？删除后可在回收站恢复。'
-              .trf({'title': game.title}),
+          '确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': game.title}),
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -155,7 +192,8 @@ class GameListItem extends StatelessWidget {
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

@@ -9,6 +9,8 @@ import '../movies/movie_detail_page.dart';
 import '../book/book_detail_page.dart';
 import '../game/game_detail_page.dart';
 import 'playlist_add_item_page.dart';
+import 'playlist_share_page.dart';
+import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
 import '../../utils/status_labels.dart';
 import '../../widgets/app_back_button.dart';
@@ -471,6 +473,31 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
 
     final showWall = !_loading && _items.isNotEmpty;
     final colors = Theme.of(context).colorScheme;
+    final shareAction = IconButton(
+      icon: const Icon(Icons.share_outlined, size: 22),
+      tooltip: '分享海报'.tr,
+      onPressed: () {
+        // 分享取全量条目，与顶部海报墙口径一致，不受状态筛选/搜索影响
+        final resolved =
+            _items.map((e) => _resolve(e, provider)).whereType<_ResolvedItem>().toList();
+        if (resolved.isEmpty) {
+          ToastUtil.show(context, '片单里还没有条目'.tr);
+          return;
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PlaylistSharePage(
+              playlist: playlist,
+              entries: [
+                for (final r in resolved)
+                  PlaylistShareEntry(title: r.title, coverPath: r.coverPath),
+              ],
+            ),
+          ),
+        );
+      },
+    );
     final addAction = IconButton(
       icon: const Icon(Icons.add, size: 24),
       onPressed: () async {
@@ -558,7 +585,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> with SingleTick
     // 搜索展开时隐藏布局切换与添加按钮，避免窄屏溢出
     final actions = _isSearching
         ? <Widget>[searchAction]
-        : <Widget>[searchAction, layoutToggle, addAction];
+        : <Widget>[shareAction, searchAction, layoutToggle, addAction];
 
     // 海报墙未滚出视野时用透明 AppBar + 白色图标；滚出后或搜索中切回实色
     final transparentBar = showWall && !_collapsed && !_isSearching;

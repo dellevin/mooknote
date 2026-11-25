@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../widgets/fade_in_local_image.dart';
@@ -55,6 +56,8 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     final note = context.select<AppProvider, Note?>(
       (p) => p.notes.where((n) => n.id == widget.note.id).firstOrNull,
     ) ?? widget.note;
+    final contentAlign =
+        context.select<AppProvider, int>((p) => p.noteContentAlign);
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -129,7 +132,10 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
                     // Markdown 正文
                     Markdown(
                       data: note.content,
-                      styleSheet: _buildMarkdownStyleSheet(colors),
+                      styleSheet: _buildMarkdownStyleSheet(colors, contentAlign),
+                      builders: contentAlign == 1
+                          ? {'p': _DistributedParagraphBuilder(colors)}
+                          : const {},
                       padding: EdgeInsets.zero,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -215,8 +221,15 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     );
   }
 
-  MarkdownStyleSheet _buildMarkdownStyleSheet(ColorScheme colors) {
+  MarkdownStyleSheet _buildMarkdownStyleSheet(
+      ColorScheme colors, int contentAlign) {
     return MarkdownStyleSheet(
+      // spaceBetween 会被 flutter_markdown_plus 映射为 TextAlign.justify
+      textAlign: switch (contentAlign) {
+        1 => WrapAlignment.spaceBetween,
+        2 => WrapAlignment.end,
+        _ => WrapAlignment.start,
+      },
       h1: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
       h2: TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
       h3: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.onSurface, height: 1.4),
@@ -407,6 +420,82 @@ class _NoteDetailPageState extends State<NoteDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => NoteSharePage(note: widget.note)),
+    );
+  }
+}
+
+/// 分散对齐段落：在正文末尾添加一个占满行宽、零高度的占位符，
+/// 让可见的末行不再被文本引擎视为段落最后一行，从而也参与 justify。
+class _DistributedParagraphBuilder extends MarkdownElementBuilder {
+  _DistributedParagraphBuilder(this.colors);
+
+  final ColorScheme colors;
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    // 图片仍交给 Markdown 默认构建器，避免改变图片展示与点击行为。
+    if (_containsImage(element)) return null;
+
+    return LayoutBuilder(
+      builder: (_, constraints) => RichText(
+        textAlign: TextAlign.justify,
+        text: TextSpan(
+          style: preferredStyle,
+          children: [
+            for (final child in element.children ?? const <md.Node>[])
+              _buildSpan(child),
+            WidgetSpan(
+              child: SizedBox(width: constraints.maxWidth, height: 0.1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _containsImage(md.Node node) {
+    if (node is! md.Element) return false;
+    if (node.tag == 'img') return true;
+    return node.children?.any(_containsImage) ?? false;
+  }
+
+  InlineSpan _buildSpan(md.Node node) {
+    if (node is md.Text) return TextSpan(text: node.text);
+    if (node is! md.Element) return TextSpan(text: node.textContent);
+
+    if (node.tag == 'br') return const TextSpan(text: '\n');
+
+    final style = switch (node.tag) {
+      'strong' || 'b' => const TextStyle(fontWeight: FontWeight.w600),
+      'em' || 'i' => const TextStyle(fontStyle: FontStyle.italic),
+      'del' || 's' => TextStyle(
+          decoration: TextDecoration.lineThrough,
+          color: colors.onSurface.withValues(alpha: 0.4),
+        ),
+      'code' => TextStyle(
+          fontSize: 12,
+          fontFamily: 'monospace',
+          color: colors.onSurface,
+          backgroundColor: colors.surfaceContainerHighest,
+        ),
+      'a' => const TextStyle(
+          color: Color(0xFF4A90D9),
+          decoration: TextDecoration.underline,
+        ),
+      _ => null,
+    };
+
+    return TextSpan(
+      style: style,
+      children: [
+        for (final child in node.children ?? const <md.Node>[])
+          _buildSpan(child),
+      ],
     );
   }
 }

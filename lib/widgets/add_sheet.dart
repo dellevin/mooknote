@@ -6,6 +6,7 @@ import '../widgets/app_overlay.dart';
 import '../widgets/custom_module_icon.dart';
 import '../l10n/app_strings.dart';
 import '../pages/custom_module/custom_module_form_page.dart';
+import '../pages/quick_add/quick_add_page.dart';
 
 /// 新增记录弹窗 — 供底部导航栏和 NavigationRail 共用
 
@@ -47,6 +48,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.movie_outlined,
+      accent: const Color(0xFF5B8DEF),
       title: '添加观影'.tr,
       subtitle: '记录你看过的电影'.tr,
       onTap: () {
@@ -56,12 +58,21 @@ void showAddSheet(BuildContext context, AppProvider provider) {
         Navigator.pushNamed(outerContext, '/movie-form',
             arguments: {'initialStatus': s});
       },
+      onQuickAdd: () {
+        Navigator.pop(outerContext);
+        Navigator.push(
+          outerContext,
+          SlideUpPageRoute(
+              page: const QuickAddPage(initialCategory: 'movie')),
+        );
+      },
     ));
   }
   if (userPrefs.showBookTab) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.menu_book_outlined,
+      accent: const Color(0xFF46A758),
       title: '添加阅读'.tr,
       subtitle: '记录你读过的书'.tr,
       onTap: () {
@@ -71,12 +82,21 @@ void showAddSheet(BuildContext context, AppProvider provider) {
         Navigator.pushNamed(outerContext, '/book-form',
             arguments: {'initialStatus': s});
       },
+      onQuickAdd: () {
+        Navigator.pop(outerContext);
+        Navigator.push(
+          outerContext,
+          SlideUpPageRoute(
+              page: const QuickAddPage(initialCategory: 'book')),
+        );
+      },
     ));
   }
   if (userPrefs.showGameTab) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.sports_esports_outlined,
+      accent: const Color(0xFF8E6CEF),
       title: '添加游戏'.tr,
       subtitle: '记录你玩过的游戏'.tr,
       onTap: () {
@@ -86,12 +106,21 @@ void showAddSheet(BuildContext context, AppProvider provider) {
         Navigator.pushNamed(outerContext, '/game-form',
             arguments: {'initialStatus': s});
       },
+      onQuickAdd: () {
+        Navigator.pop(outerContext);
+        Navigator.push(
+          outerContext,
+          SlideUpPageRoute(
+              page: const QuickAddPage(initialCategory: 'game')),
+        );
+      },
     ));
   }
   if (userPrefs.showNoteTab) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.sticky_note_2_outlined,
+      accent: const Color(0xFFF2994A),
       title: '添加笔记'.tr,
       subtitle: '记录你的想法和笔记'.tr,
       onTap: () {
@@ -105,6 +134,7 @@ void showAddSheet(BuildContext context, AppProvider provider) {
     options.add(_buildOption(
       colors: colors,
       icon: Icons.dashboard_customize_outlined,
+      accent: const Color(0xFF26A69A),
       customIcon: m.icon,
       title: m.name,
       subtitle: '自定义分类模块'.tr,
@@ -164,9 +194,11 @@ void showAddSheet(BuildContext context, AppProvider provider) {
 Widget _buildOption({
   required ColorScheme colors,
   required IconData icon,
+  required Color accent,
   required String title,
   required String subtitle,
   required VoidCallback onTap,
+  VoidCallback? onQuickAdd,
   String customIcon = '',
 }) {
   return InkWell(
@@ -176,16 +208,16 @@ Widget _buildOption({
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
             child: customIcon.isNotEmpty
-                ? buildCustomModuleIcon(customIcon, size: 16, color: colors.onSurface.withValues(alpha: 0.6))
-                : Icon(icon, size: 18, color: colors.onSurface.withValues(alpha: 0.6)),
+                ? buildCustomModuleIcon(customIcon, size: 18, color: accent)
+                : Icon(icon, size: 20, color: accent),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -205,8 +237,39 @@ Widget _buildOption({
               ],
             ),
           ),
-          Icon(Icons.chevron_right,
-              color: colors.onSurface.withValues(alpha: 0.25), size: 18),
+          if (onQuickAdd != null)
+            _buildQuickAddButton(onQuickAdd)
+          else
+            Icon(Icons.chevron_right,
+                color: colors.onSurface.withValues(alpha: 0.25), size: 18),
+        ],
+      ),
+    ),
+  );
+}
+
+/// 快捷添加按钮：黑底白字，“快捷 / 添加”两行文字
+Widget _buildQuickAddButton(VoidCallback onTap) {
+  const labelStyle = TextStyle(
+    fontSize: 10,
+    height: 1.15,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+  );
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(10),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('快捷'.tr, style: labelStyle),
+          Text('添加'.tr, style: labelStyle),
         ],
       ),
     ),

@@ -15,6 +15,7 @@ const Map<String, String> enProgress = {
   '章节号': 'Chapter No.',
   '关卡号': 'Level No.',
   '已观看': 'Watched',
+  '标记已看': 'Mark as watched',
   '已阅读': 'Read',
   '已通关': 'Cleared',
   '观看日期': 'Watch Date',

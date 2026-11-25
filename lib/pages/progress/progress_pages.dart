@@ -662,6 +662,31 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
     });
   }
 
+  Future<void> _markSelectedWatched() async {
+    if (_selectedIds.isEmpty) return;
+    final selectedIds = Set<String>.of(_selectedIds);
+    final now = DateTime.now();
+    final provider = context.read<AppProvider>();
+    final items = _items
+        .where((item) =>
+            selectedIds.contains(_cfg.idOf(item)) && !_cfg.doneOf(item))
+        .toList();
+
+    _exitSelect();
+    for (final item in items) {
+      await _cfg.update(
+        provider,
+        _cfg.edit(
+          item,
+          done: true,
+          date: _cfg.dateOf(item) ?? now,
+          updatedAt: now,
+        ),
+      );
+    }
+    await _load();
+  }
+
   Future<void> _confirmDeleteSelected() async {
     final n = _selectedIds.length;
     if (n == 0) return;
@@ -737,6 +762,14 @@ class _ProgressListPageState<T> extends State<ProgressListPage<T>> {
                     }
                   }),
                 ),
+                if (identical(_cfg, ProgressConfig.movie))
+                  IconButton(
+                    tooltip: '标记已看'.tr,
+                    icon: const Icon(Icons.done_all),
+                    onPressed: _selectedIds.isEmpty
+                        ? null
+                        : _markSelectedWatched,
+                  ),
                 IconButton(
                   tooltip: '删除'.tr,
                   icon: const Icon(Icons.delete_outline),

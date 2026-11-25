@@ -16,13 +16,33 @@ class BookListItem extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  const BookListItem({super.key, required this.book, this.selected = false, this.onTap});
+  const BookListItem(
+      {super.key, required this.book, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final showCardDate =
+        context.select<AppProvider, bool>((p) => p.showBookCardDate);
+    final cardDateType =
+        context.select<AppProvider, int>((p) => p.bookCardDateType);
+    final titleAlign =
+        context.select<AppProvider, int>((p) => p.bookCardTitleAlign);
+    final ratingAlign =
+        context.select<AppProvider, int>((p) => p.bookCardRatingAlign);
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return PressableScale(
-      onTap: onTap ?? () => Navigator.pushNamed(context, '/book-detail', arguments: book),
+      onTap: onTap ??
+          () => Navigator.pushNamed(context, '/book-detail', arguments: book),
       onLongPress: () => _showDeleteDialog(context),
       child: Container(
         decoration: selected
@@ -32,41 +52,57 @@ class BookListItem extends StatelessWidget {
               )
             : null,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _buildCoverWithDate(colors),
-          ),
-          if (UserPrefs().showBookTitle) ...[
-            const SizedBox(height: 8),
-            Text(
-              book.title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: colors.onSurface,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildCoverWithDate(colors, showCardDate, cardDateType),
             ),
+            if (UserPrefs().showBookTitle) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: titleAlignment,
+                child: Text(
+                  book.title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: colors.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            if (UserPrefs().showBookRating) ...[
+              const SizedBox(height: 4),
+              if (book.rating != null)
+                Align(
+                  alignment: ratingAlignment,
+                  child: AnimatedStarRating(
+                    rating: book.rating!,
+                    starSize: 12,
+                    showNumber: true,
+                    alignment: ratingAlignment,
+                  ),
+                )
+              else
+                const SizedBox(height: 16),
+            ],
           ],
-          if (UserPrefs().showBookRating) ...[
-            const SizedBox(height: 4),
-            if (book.rating != null)
-              AnimatedStarRating(rating: book.rating!, starSize: 12, showNumber: true)
-            else
-              const SizedBox(height: 16),
-          ],
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _buildCoverWithDate(ColorScheme colors) {
+  Widget _buildCoverWithDate(
+      ColorScheme colors, bool showCardDate, int cardDateType) {
     final cover = _buildCover(colors);
-    if (!UserPrefs().showBookCardDate) return cover;
-    final d = book.publishDate;
+    if (!showCardDate) return cover;
+    final d = switch (cardDateType) {
+      1 => book.startDate,
+      2 => book.finishDate,
+      _ => book.publishDate,
+    };
     if (d == null) return cover;
     final label = '${d.year}.${d.month.toString().padLeft(2, '0')}';
     return Stack(children: [
@@ -82,7 +118,9 @@ class BookListItem extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
+      child: Text(label,
+          style: const TextStyle(
+              fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -96,8 +134,12 @@ class BookListItem extends StatelessWidget {
       child: FadeInLocalImage(
         path: book.coverPath,
         fit: BoxFit.cover,
-        placeholder: Center(child: Icon(Icons.menu_book_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
-        errorWidget: Center(child: Icon(Icons.menu_book_outlined, size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
+        placeholder: Center(
+            child: Icon(Icons.menu_book_outlined,
+                size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(
+            child: Icon(Icons.menu_book_outlined,
+                size: 32, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }
@@ -119,8 +161,7 @@ class BookListItem extends StatelessWidget {
           ),
         ),
         content: Text(
-          '确定要删除《{title}》吗？删除后可在回收站恢复。'
-              .trf({'title': book.title}),
+          '确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': book.title}),
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -155,7 +196,8 @@ class BookListItem extends StatelessWidget {
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

@@ -119,8 +119,8 @@ class _TmdbSettingsPageState extends State<TmdbSettingsPage> {
 
   Future<void> _clear() async {
     await _userPrefs.setTmdbApiToken('');
-    TmdbService.instance.configure('', 'bearer',
-        proxy: _proxyController.text.trim());
+    TmdbService.instance
+        .configure('', 'bearer', proxy: _proxyController.text.trim());
     if (!mounted) return;
     setState(() {
       _saved = false;
@@ -341,8 +341,7 @@ class _TmdbSettingsPageState extends State<TmdbSettingsPage> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    _message ??
-                        (_valid! ? 'Token 有效'.tr : '验证失败'.tr),
+                    _message ?? (_valid! ? 'Token 有效'.tr : '验证失败'.tr),
                     style: TextStyle(
                         fontSize: 11,
                         color:
@@ -403,6 +402,7 @@ class _TmdbSettingsPageState extends State<TmdbSettingsPage> {
             child: OutlinedButton(
               onPressed: _testing ? null : () => _test(),
               style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 side: BorderSide(color: colors.outlineVariant),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -429,6 +429,7 @@ class _TmdbSettingsPageState extends State<TmdbSettingsPage> {
             child: ElevatedButton(
               onPressed: _testing ? null : _save,
               style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 backgroundColor: colors.primary,
                 foregroundColor: colors.onPrimary,
                 elevation: 0,
@@ -454,7 +455,8 @@ class _TmdbSettingsPageState extends State<TmdbSettingsPage> {
         decoration: BoxDecoration(
           color: colors.error.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colors.error.withValues(alpha: 0.3), width: 0.5),
+          border: Border.all(
+              color: colors.error.withValues(alpha: 0.3), width: 0.5),
         ),
         child: Center(
           child: Text('清除已保存的 Token'.tr,

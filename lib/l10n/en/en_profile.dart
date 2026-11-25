@@ -34,12 +34,9 @@ const Map<String, String> enProfile = {
   '未找到匹配的内容': 'No matching content found',
   '搜索内容、作品或评论人': 'Search content, work or reviewer',
   '关联作品已删除': 'The linked work has been deleted',
-  '浏览全部影评，支持瀑布流与列表切换':
-      'Browse all movie reviews in masonry or list view',
-  '浏览全部书评，支持瀑布流与列表切换':
-      'Browse all book reviews in masonry or list view',
-  '浏览全部书摘，支持瀑布流与列表切换':
-      'Browse all book excerpts in masonry or list view',
+  '浏览全部影评，支持瀑布流与列表切换': 'Browse all movie reviews in masonry or list view',
+  '浏览全部书评，支持瀑布流与列表切换': 'Browse all book reviews in masonry or list view',
+  '浏览全部书摘，支持瀑布流与列表切换': 'Browse all book excerpts in masonry or list view',
   '游戏评价': 'Game Review',
   '影视角色': 'Movie Character',
   '书籍角色': 'Book Character',
@@ -134,23 +131,18 @@ const Map<String, String> enProfile = {
   '帮助': 'Help',
   '应用图标': 'App Icon',
   '更换桌面应用图标': 'Change the desktop app icon',
-  '启动标签、模块开关、侧边栏功能':
-      'Startup tab, module toggles, sidebar features',
-  '影视、阅读、笔记的展示样式':
-      'Display styles for movies, reading and notes',
+  '启动标签、模块开关、侧边栏功能': 'Startup tab, module toggles, sidebar features',
+  '影视、阅读、笔记的展示样式': 'Display styles for movies, reading and notes',
   '个人信息': 'Personal Info',
   '修改昵称和座右铭': 'Edit nickname and motto',
   '增强搜索': 'Enhanced Search',
   '在线搜索影视和书籍信息': 'Search for movie and book info online',
   '底部导航栏滚动隐藏': 'Hide bottom nav on scroll',
-  '下滑时自动隐藏底部导航栏':
-      'Auto-hide the bottom nav bar when scrolling down',
+  '下滑时自动隐藏底部导航栏': 'Auto-hide the bottom nav bar when scrolling down',
   '清除缓存数据': 'Clear Cache Data',
-  '清理未在数据库中引用的文件':
-      'Clean up files not referenced in the database',
+  '清理未在数据库中引用的文件': 'Clean up files not referenced in the database',
   '获取系统权限': 'System Permissions',
-  '前往系统设置开启存储权限':
-      'Go to system settings to enable storage permission',
+  '前往系统设置开启存储权限': 'Go to system settings to enable storage permission',
   '存储权限申请': 'Storage Permission',
   '为了将数据备份/导出到手机的 Download 文件夹、以及把图片保存到相册，MookNote 需要获取「所有文件访问」权限。该权限仅用于备份文件的读写，不会读取或上传你的个人文件。不开启不影响日常记录，需要时也可在「设置 - 获取系统权限」中手动开启。':
       'To back up/export data to the Download folder and save images to your gallery, MookNote needs the "All files access" permission. It is used only for reading and writing backup files and will never read or upload your personal files. Daily tracking works without it, and you can grant it later under Settings - System Permissions.',
@@ -167,8 +159,7 @@ const Map<String, String> enProfile = {
       'No images found in public picture directories; check storage permission',
   '扫描失败': 'Scan failed',
   '查看官网': 'Official Website',
-  '在浏览器中打开官方网站':
-      'Open the official website in the browser',
+  '在浏览器中打开官方网站': 'Open the official website in the browser',
   '项目源码': 'Source Code',
   '查看 GitHub 项目仓库': 'View the GitHub repository',
   '查看版本更新内容': 'View version update details',
@@ -201,8 +192,7 @@ const Map<String, String> enProfile = {
   '莫奈取色': 'Monet',
   '配色方案': 'Color Scheme',
   '此设备不支持': 'Not supported on this device',
-  '从系统壁纸自动提取配色':
-      'Automatically extract colors from the system wallpaper',
+  '从系统壁纸自动提取配色': 'Automatically extract colors from the system wallpaper',
   '系统默认': 'System Default',
   '字体': 'Font',
   '语言': 'Language',
@@ -213,8 +203,7 @@ const Map<String, String> enProfile = {
   '系统缓存': 'System Cache',
   '空文件夹': 'Empty Folders',
   '清理失败: {e}': 'Clean failed: {e}',
-  '加载失败，请检查网络':
-      'Load failed, please check your network',
+  '加载失败，请检查网络': 'Load failed, please check your network',
   '共发现 {n} 项可清理缓存': '{n} cleanable cache items found',
   '{n}项  {size}': '{n} items  {size}',
   '立即清理（{size}）': 'Clean Now ({size})',
@@ -232,18 +221,14 @@ const Map<String, String> enProfile = {
   '显示创作活跃度热力图': 'Show creation activity heatmap',
   '显示最近添加的记录': 'Show recently added records',
   '快速新建笔记/影视': 'Quickly create notes/movies',
-  '与应用相遇的天数和数据概览':
-      'Days with the app and data overview',
+  '与应用相遇的天数和数据概览': 'Days with the app and data overview',
   '侧边栏 · 快捷功能': 'Sidebar · Quick Features',
   '随机发现内容': 'Discover content at random',
-  '查看想看/想读/想玩的记录':
-      'View want-to-watch/read/play records',
-  '查看已看/已读/已通关记录':
-      'View watched/read/completed records',
+  '查看想看/想读/想玩的记录': 'View want-to-watch/read/play records',
+  '查看已看/已读/已通关记录': 'View watched/read/completed records',
   '创建和管理自定义片单': 'Create and manage custom playlists',
   '按日历查看记录': 'View records on a calendar',
-  '管理影视、书籍和游戏中的人物':
-      'Manage people in movies, books and games',
+  '管理影视、书籍和游戏中的人物': 'Manage people in movies, books and games',
   '浏览所有保存过的图片': 'Browse all saved images',
   '管理所有标签': 'Manage all tags',
   '关闭后对应功能将从界面中隐藏。':
@@ -253,12 +238,10 @@ const Map<String, String> enProfile = {
   // ─── 更新日志页 ───────────────────────────────────────
   '新版本': 'New Version',
   '检查更新': 'Check for Updates',
-  '已是最新版本（当前 {v}）':
-      "You're on the latest version (current {v})",
+  '已是最新版本（当前 {v}）': "You're on the latest version (current {v})",
   '发现新版本': 'Update Available',
   '当前版本：{v}': 'Current version: {v}',
-  '最新版本 {v} 已发布，是否下载更新？':
-      'Version {v} has been released. Download the update?',
+  '最新版本 {v} 已发布，是否下载更新？': 'Version {v} has been released. Download the update?',
   '稍后再说': 'Later',
   '去官网下载': 'Download from Website',
   '官方网站': 'Official Website',
@@ -283,12 +266,10 @@ const Map<String, String> enProfile = {
   '影视、阅读、游戏状态命名与排序': 'Rename and reorder movie, book and game statuses',
   '留空则使用默认名称，自定义名称最多 8 个字':
       'Leave blank to use the default name. Up to 8 characters each.',
-  '拖动右侧手柄可调整状态显示顺序':
-      'Drag the handle on the right to reorder statuses.',
+  '拖动右侧手柄可调整状态显示顺序': 'Drag the handle on the right to reorder statuses.',
   '字体目录': 'Font Directory',
   '点击选择字体目录': 'Tap to select a font directory',
-  '支持 .ttf / .otf / .ttc 格式':
-      'Supports .ttf / .otf / .ttc formats',
+  '支持 .ttf / .otf / .ttc 格式': 'Supports .ttf / .otf / .ttc formats',
 
   // ─── 布局设置页 ───────────────────────────────────────
   '主页模块显示方式': 'Home module display style',
@@ -327,8 +308,7 @@ const Map<String, String> enProfile = {
   '顶部下拉': 'Top dropdown',
   'AppBar 标题显示当前模块，点击弹出选择菜单。':
       'The app bar title shows the current module; tap it for the selection menu.',
-  '顶部显示模块标签栏，点击切换。':
-      'A module tab bar at the top; tap to switch.',
+  '顶部显示模块标签栏，点击切换。': 'A module tab bar at the top; tap to switch.',
   '左上角显示': 'Top-left',
   '日期印章': 'Date stamp',
   '菜单+分类': 'Menu + category',
@@ -336,8 +316,12 @@ const Map<String, String> enProfile = {
       'Shows a menu icon and the current category at top-left; tap the icon to open the drawer.',
   '影视布局': 'Movie layout',
   '海报显示日期': 'Show date on posters',
-  '海报右下角显示上映日期':
-      'Show release date at the bottom-right of posters',
+  '海报右下角显示上映日期': 'Show release date at the bottom-right of posters',
+  '海报右下角显示所选日期': 'Show the selected date at the bottom-right of posters',
+  '封面右下角显示所选日期': 'Show the selected date at the bottom-right of covers',
+  '日期内容': 'Date shown',
+  '开始阅读时间': 'Reading start date',
+  '结束阅读时间': 'Reading finish date',
   '显示模式': 'Display mode',
   '状态栏样式': 'Status bar style',
   '布局样式': 'Layout style',
@@ -352,27 +336,30 @@ const Map<String, String> enProfile = {
   '按上映时间排序': 'Sort by release date',
   '阅读布局': 'Reading layout',
   '封面显示日期': 'Show date on covers',
-  '封面右下角显示出版日期':
-      'Show publication date at the bottom-right of covers',
+  '封面右下角显示出版日期': 'Show publication date at the bottom-right of covers',
   '按书籍评分排序': 'Sort by book rating',
   '按开始阅读时间排序': 'Sort by reading start date',
   '按出版时间排序': 'Sort by publication date',
   '笔记布局': 'Note layout',
+  '正文对齐': 'Text alignment',
+  '左对齐': 'Align left',
+  '两侧对齐': 'Justify',
+  '右对齐': 'Align right',
   '游戏布局': 'Game layout',
-  '封面右下角显示发售日期':
-      'Show launch date at the bottom-right of covers',
+  '封面右下角显示发售日期': 'Show launch date at the bottom-right of covers',
   '按游戏评分排序': 'Sort by game rating',
   '按发售时间排序': 'Sort by launch date',
   '按通关时间排序': 'Sort by completion date',
   '按通关时间': 'By completion date',
-  '年份网格布局固定按上映时间排序':
-      'Year grid layout is locked to release-date sort',
-  '年份网格布局固定按出版时间排序':
-      'Year grid layout is locked to publication-date sort',
-  '年份网格布局固定按发售时间排序':
-      'Year grid layout is locked to launch-date sort',
+  '年份依据': 'Year basis',
+  '游玩时间': 'Play date',
   '显示标题': 'Show title',
   '显示评分': 'Show rating',
+  '标题对齐': 'Title alignment',
+  '评分对齐': 'Rating alignment',
+  '靠左': 'Left',
+  '居中': 'Center',
+  '靠右': 'Right',
   '卡片上显示影视名称': 'Show movie titles on cards',
   '卡片上显示书籍名称': 'Show book titles on cards',
   '卡片上显示游戏名称': 'Show game titles on cards',
@@ -380,8 +367,7 @@ const Map<String, String> enProfile = {
 
   // ─── 回收站 ───────────────────────────────────────────
   '删除于 {date}': 'Deleted on {date}',
-  '确定要彻底删除吗？此操作不可恢复。':
-      'Permanently delete? This action cannot be undone.',
+  '确定要彻底删除吗？此操作不可恢复。': 'Permanently delete? This action cannot be undone.',
   '删除的项目会显示在这里': 'Deleted items will show up here',
   '回收站是空的': 'The recycle bin is empty',
   '没有删除的项目': 'No deleted items',
@@ -425,26 +411,21 @@ const Map<String, String> enProfile = {
   '重命名标签': 'Rename tag',
   '输入新名称': 'Enter new name',
   '重命名成功': 'Renamed successfully',
-  '重命名失败：标签名已存在':
-      'Rename failed: this tag name already exists',
+  '重命名失败：标签名已存在': 'Rename failed: this tag name already exists',
   '删除标签': 'Delete tag',
   '仅删除标签': 'Delete tag only',
   '保留已有条目上的标签名，不影响数据':
       'Keep the tag name on existing items; does not affect data',
   '更多选项': 'More options',
   '从所有条目中移除': 'Remove from all items',
-  '彻底清除该标签在所有条目中的记录':
-      'Completely remove this tag from all items',
+  '彻底清除该标签在所有条目中的记录': 'Completely remove this tag from all items',
   '替换为其他标签': 'Replace with another tag',
-  '选择一个已有标签替代':
-      'Select an existing tag as replacement',
-  '无其他标签可替换':
-      'No other tags available for replacement',
+  '选择一个已有标签替代': 'Select an existing tag as replacement',
+  '无其他标签可替换': 'No other tags available for replacement',
   '删除成功': 'Deleted successfully',
 
   // ─── 个人中心 ─────────────────────────────────────────
-  '好运不会眷顾一无所有之人。':
-      'Fortune does not favor those who have nothing.',
+  '好运不会眷顾一无所有之人。': 'Fortune does not favor those who have nothing.',
   '选择头像失败': 'Failed to select avatar',
   '更换头像': 'Change avatar',
   '调整头像': 'Adjust Avatar',
@@ -456,11 +437,9 @@ const Map<String, String> enProfile = {
   '选择图片失败': 'Failed to select image',
   '选择备份方式': 'Choose backup method',
   '本地备份': 'Local backup',
-  '备份到本地文件夹，支持恢复':
-      'Back up to a local folder; restore supported',
+  '备份到本地文件夹，支持恢复': 'Back up to a local folder; restore supported',
   '云备份': 'Cloud backup',
-  '云端存储备份数据，多端同步更方便':
-      'Backups stored in the cloud for easy multi-device sync',
+  '云端存储备份数据，多端同步更方便': 'Backups stored in the cloud for easy multi-device sync',
   '选择导出类型': 'Choose export type',
   '导出为 Excel (.xlsx) 格式': 'Export as Excel (.xlsx)',
   '{n} 条记录': '{n} records',
@@ -487,7 +466,8 @@ const Map<String, String> enProfile = {
   '服务器处理超时，请稍后重试': 'Server timed out, please try again later',
   '上传超时，请检查网络后重试': 'Upload timed out, please check your network and try again',
   '服务器无响应，请稍后重试': 'Server not responding, please try again later',
-  '网络连接失败，请检查网络后重试': 'Connection failed, please check your network and try again',
+  '网络连接失败，请检查网络后重试':
+      'Connection failed, please check your network and try again',
   '在线带图导出': 'Online export with images',
   '开启': 'Enable',
   '评论者': 'Reviewer',
@@ -499,8 +479,7 @@ const Map<String, String> enProfile = {
   '额外附带{reviewLabel}工作表': 'Includes an extra {reviewLabel} sheet',
 
   // ─── 应用图标选择页 ───────────────────────────────────
-  '图标已切换，请返回桌面查看':
-      'Icon changed. Go back to the home screen to see it.',
+  '图标已切换，请返回桌面查看': 'Icon changed. Go back to the home screen to see it.',
   '图标切换失败': 'Failed to change icon',
   '切换出错: {e}': 'Error changing icon: {e}',
   '默认图标': 'Default Icon',
@@ -511,6 +490,7 @@ const Map<String, String> enProfile = {
   '详情页设置': 'Detail Page Settings',
   '卡片显示': 'Card Display',
   '详情页模块': 'Detail Page Modules',
+  '更多入口内容': 'More Entry Items',
   '排序与显示': 'Order & Visibility',
   '显示 {a}/{b} 个模块': 'Showing {a}/{b} modules',
   '详情页模块（显示 {a}/{b}）': 'Detail modules ({a}/{b} shown)',

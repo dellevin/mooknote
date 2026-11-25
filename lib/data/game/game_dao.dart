@@ -66,6 +66,10 @@ class GameDao {
         // 最近一次通关时间；无通关记录的排最后
         return '(SELECT MAX(gc.completion_date) FROM game_completions gc WHERE gc.game_id = games.id AND gc.is_deleted = 0) IS NULL, '
             '(SELECT MAX(gc.completion_date) FROM game_completions gc WHERE gc.game_id = games.id AND gc.is_deleted = 0) DESC, updated_at DESC';
+      case 5:
+        // 游玩时间：最近一次通关时间，无通关记录用购买时间兜底；两者皆无的排最后
+        return 'COALESCE((SELECT MAX(gc.completion_date) FROM game_completions gc WHERE gc.game_id = games.id AND gc.is_deleted = 0), purchase_date) IS NULL, '
+            'COALESCE((SELECT MAX(gc.completion_date) FROM game_completions gc WHERE gc.game_id = games.id AND gc.is_deleted = 0), purchase_date) DESC, updated_at DESC';
       default: return 'updated_at DESC';
     }
   }

@@ -115,7 +115,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((layout == 0 || layout == 3) && _userPrefs.movieGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '${_userPrefs.movieGridCount}'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][layout == 3 ? 4 : _userPrefs.movieSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '观看日期'.tr, '上映时间'.tr][_userPrefs.effectiveMovieSortMode]);
     return parts.join(' · ');
   }
 
@@ -134,7 +134,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((layout == 0 || layout == 2) && _userPrefs.bookGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '${_userPrefs.bookGridCount}'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr][layout == 2 ? 4 : _userPrefs.bookSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '开始阅读'.tr, '出版时间'.tr, '读完时间'.tr][_userPrefs.effectiveBookSortMode]);
     return parts.join(' · ');
   }
 
@@ -158,7 +158,7 @@ class _LayoutSettingsPageState extends State<LayoutSettingsPage> {
     if ((layout == 0 || layout == 3) && _userPrefs.gameGridCount > 0) {
       parts.add('每行{n}个'.trf({'n': '${_userPrefs.gameGridCount}'}));
     }
-    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr, '通关时间'.tr][layout == 3 ? 3 : _userPrefs.gameSortMode]);
+    parts.add(['更新时间'.tr, '创建时间'.tr, '评分'.tr, '发售时间'.tr, '通关时间'.tr, '游玩时间'.tr][_userPrefs.effectiveGameSortMode]);
     return parts.join(' · ');
   }
 

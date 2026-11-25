@@ -9,6 +9,7 @@ const Map<String, String> enWidgets = {
   '记录你读过的书': 'Track books you have read',
   '记录你的想法和笔记': 'Capture your thoughts and notes',
   '记录你玩过的游戏': 'Track games you have played',
+  '快捷': 'Quick',
 
   // ── alternate_titles_dialog ──
   '暂无别名': 'No alternate titles yet',

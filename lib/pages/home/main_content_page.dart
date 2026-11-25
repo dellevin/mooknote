@@ -17,7 +17,6 @@ import '../../models/data_models.dart';
 import '../online_search/search_hub_page.dart';
 import '../sync/webdav_sync_page.dart';
 import '../../widgets/app_overlay.dart';
-import '../../utils/toast_util.dart';
 import '../../l10n/app_strings.dart';
 
 /// 朱砂红：与 AppBar 做旧印章同源的古典配色
@@ -491,9 +490,12 @@ class _MainContentPageState extends State<MainContentPage> {
                               },
                               onLongPress: tab.label == '影视'
                                   ? () {
-                                      // 年份网格布局锁定按上映时间排序
+                                      // 年份网格：排序由分组依据决定，仅提供年份依据切换
                                       if (UserPrefs().movieLayoutStyle == 3) {
-                                        ToastUtil.show(context, '年份网格布局固定按上映时间排序'.tr);
+                                        _showSortMenu(context, '年份依据', UserPrefs().movieYearGridBasis, [
+                                          (0, '上映时间', Icons.movie_creation_outlined),
+                                          (1, '观看日期', Icons.visibility_outlined),
+                                        ], (v) { UserPrefs().setMovieYearGridBasis(v); context.read<AppProvider>().loadMovies(); });
                                         return;
                                       }
                                       final isWallMode = UserPrefs().movieWallMode;
@@ -508,7 +510,11 @@ class _MainContentPageState extends State<MainContentPage> {
                                   : tab.label == '阅读'
                                       ? () {
                                           if (UserPrefs().bookLayoutStyle == 2) {
-                                            ToastUtil.show(context, '年份网格布局固定按出版时间排序'.tr);
+                                            _showSortMenu(context, '年份依据', UserPrefs().bookYearGridBasis, [
+                                              (0, '出版时间', Icons.auto_stories_outlined),
+                                              (1, '开始阅读', Icons.auto_stories_outlined),
+                                              (2, '读完时间', Icons.done_all_outlined),
+                                            ], (v) { UserPrefs().setBookYearGridBasis(v); context.read<AppProvider>().loadBooks(); });
                                             return;
                                           }
                                           final isWallMode = UserPrefs().bookshelfMode;
@@ -528,7 +534,10 @@ class _MainContentPageState extends State<MainContentPage> {
                                           : tab.label == '游戏'
                                               ? () {
                                                   if (UserPrefs().gameLayoutStyle == 3) {
-                                                    ToastUtil.show(context, '年份网格布局固定按发售时间排序'.tr);
+                                                    _showSortMenu(context, '年份依据', UserPrefs().gameYearGridBasis, [
+                                                      (0, '发售时间', Icons.event_outlined),
+                                                      (1, '游玩时间', Icons.sports_esports_outlined),
+                                                    ], (v) { UserPrefs().setGameYearGridBasis(v); context.read<AppProvider>().loadGames(); });
                                                     return;
                                                   }
                                                   final isWallMode = UserPrefs().gameWallMode;

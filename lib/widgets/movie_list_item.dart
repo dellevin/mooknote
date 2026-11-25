@@ -16,13 +16,33 @@ class MovieListItem extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  const MovieListItem({super.key, required this.movie, this.selected = false, this.onTap});
+  const MovieListItem(
+      {super.key, required this.movie, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final showCardDate =
+        context.select<AppProvider, bool>((p) => p.showMovieCardDate);
+    final cardDateType =
+        context.select<AppProvider, int>((p) => p.movieCardDateType);
+    final titleAlign =
+        context.select<AppProvider, int>((p) => p.movieCardTitleAlign);
+    final ratingAlign =
+        context.select<AppProvider, int>((p) => p.movieCardRatingAlign);
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return PressableScale(
-      onTap: onTap ?? () => Navigator.pushNamed(context, '/movie-detail', arguments: movie),
+      onTap: onTap ??
+          () => Navigator.pushNamed(context, '/movie-detail', arguments: movie),
       onLongPress: () => _showDeleteDialog(context),
       child: Container(
         decoration: selected
@@ -32,41 +52,53 @@ class MovieListItem extends StatelessWidget {
               )
             : null,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _buildPosterWithDate(colors),
-          ),
-          if (UserPrefs().showMovieTitle) ...[
-            const SizedBox(height: 8),
-            Text(
-              movie.title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildPosterWithDate(colors, showCardDate, cardDateType),
             ),
+            if (UserPrefs().showMovieTitle) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: titleAlignment,
+                child: Text(
+                  movie.title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            if (UserPrefs().showMovieRating) ...[
+              const SizedBox(height: 4),
+              if (movie.rating != null)
+                Align(
+                  alignment: ratingAlignment,
+                  child: AnimatedStarRating(
+                    rating: movie.rating!,
+                    starSize: 12,
+                    showNumber: true,
+                    alignment: ratingAlignment,
+                  ),
+                )
+              else
+                const SizedBox(height: 16),
+            ],
           ],
-          if (UserPrefs().showMovieRating) ...[
-            const SizedBox(height: 4),
-            if (movie.rating != null)
-              AnimatedStarRating(rating: movie.rating!, starSize: 12, showNumber: true)
-            else
-              const SizedBox(height: 16),
-          ],
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _buildPosterWithDate(ColorScheme colors) {
+  Widget _buildPosterWithDate(
+      ColorScheme colors, bool showCardDate, int cardDateType) {
     final poster = _buildPoster(colors);
-    if (!UserPrefs().showMovieCardDate) return poster;
-    final d = movie.releaseDate;
+    if (!showCardDate) return poster;
+    final d = cardDateType == 1 ? movie.watchDate : movie.releaseDate;
     if (d == null) return poster;
     final label = '${d.year}.${d.month.toString().padLeft(2, '0')}';
     return Stack(children: [
@@ -82,7 +114,9 @@ class MovieListItem extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
+      child: Text(label,
+          style: const TextStyle(
+              fontSize: 10, color: Colors.white, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -96,8 +130,12 @@ class MovieListItem extends StatelessWidget {
       child: FadeInLocalImage(
         path: movie.posterPath,
         fit: BoxFit.cover,
-        placeholder: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
-        errorWidget: Center(child: Icon(Icons.movie_outlined, size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        placeholder: Center(
+            child: Icon(Icons.movie_outlined,
+                size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
+        errorWidget: Center(
+            child: Icon(Icons.movie_outlined,
+                size: 24, color: colors.onSurface.withValues(alpha: 0.25))),
       ),
     );
   }
@@ -119,8 +157,7 @@ class MovieListItem extends StatelessWidget {
           ),
         ),
         content: Text(
-          '确定要删除《{title}》吗？删除后可在回收站恢复。'
-              .trf({'title': movie.title}),
+          '确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': movie.title}),
           style: TextStyle(
             fontSize: 14,
             color: colors.onSurface.withValues(alpha: 0.6),
@@ -155,7 +192,8 @@ class MovieListItem extends StatelessWidget {
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

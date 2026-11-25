@@ -6,6 +6,7 @@ class AnimatedStarRating extends StatefulWidget {
   final double starSize;
   final Color color;
   final bool showNumber;
+  final Alignment alignment;
 
   /// 是否播放入场动画（列表中建议 false，详情/表单页建议 true）
   final bool animate;
@@ -16,6 +17,7 @@ class AnimatedStarRating extends StatefulWidget {
     this.starSize = 14,
     this.color = const Color(0xFFFFB800),
     this.showNumber = false,
+    this.alignment = Alignment.centerLeft,
     this.animate = false,
   });
 
@@ -65,52 +67,53 @@ class _AnimatedStarRatingState extends State<AnimatedStarRating>
     // 宽度足够时保持原始尺寸不变
     return FittedBox(
       fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
+      alignment: widget.alignment,
       child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ...List.generate(5, (index) {
-          final starIndex = index + 1;
-          IconData iconData;
-          if (starValue >= starIndex) {
-            iconData = Icons.star;
-          } else if (starValue >= starIndex - 0.5) {
-            iconData = Icons.star_half;
-          } else {
-            iconData = Icons.star_border;
-          }
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...List.generate(5, (index) {
+            final starIndex = index + 1;
+            IconData iconData;
+            if (starValue >= starIndex) {
+              iconData = Icons.star;
+            } else if (starValue >= starIndex - 0.5) {
+              iconData = Icons.star_half;
+            } else {
+              iconData = Icons.star_border;
+            }
 
-          if (!widget.animate) {
-            return Icon(iconData, size: widget.starSize, color: widget.color);
-          }
+            if (!widget.animate) {
+              return Icon(iconData, size: widget.starSize, color: widget.color);
+            }
 
-          // 逐个弹入：每颗星延迟 80ms
-          final start = index * 0.13;
-          final end = (start + 0.5).clamp(0.0, 1.0);
-          final starAnim = CurvedAnimation(
-            parent: _controller,
-            curve: Interval(start, end, curve: Curves.easeOutBack),
-          );
-          return ScaleTransition(
-            scale: starAnim,
-            child: FadeTransition(
-              opacity: starAnim,
-              child: Icon(iconData, size: widget.starSize, color: widget.color),
+            // 逐个弹入：每颗星延迟 80ms
+            final start = index * 0.13;
+            final end = (start + 0.5).clamp(0.0, 1.0);
+            final starAnim = CurvedAnimation(
+              parent: _controller,
+              curve: Interval(start, end, curve: Curves.easeOutBack),
+            );
+            return ScaleTransition(
+              scale: starAnim,
+              child: FadeTransition(
+                opacity: starAnim,
+                child:
+                    Icon(iconData, size: widget.starSize, color: widget.color),
+              ),
+            );
+          }),
+          if (widget.showNumber) ...[
+            const SizedBox(width: 4),
+            Text(
+              widget.rating.toStringAsFixed(1),
+              style: TextStyle(
+                fontSize: widget.starSize,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface.withValues(alpha: 0.6),
+              ),
             ),
-          );
-        }),
-        if (widget.showNumber) ...[
-          const SizedBox(width: 4),
-          Text(
-            widget.rating.toStringAsFixed(1),
-            style: TextStyle(
-              fontSize: widget.starSize,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
+          ],
         ],
-      ],
       ),
     );
   }

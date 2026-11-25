@@ -138,13 +138,25 @@ class AppProvider extends ChangeNotifier {
   // 阅读列表布局样式 (0: 网格, 1: 列表, 2: 年份网格, 3: 大图卡片)
   int _bookLayoutStyle = 0;
 
+  // 笔记详情正文对齐 (0: 左对齐, 1: 两侧对齐, 2: 右对齐)
+  int _noteContentAlign = 0;
+
   // 影视墙模式（不显示分类，按创建时间排序）
   bool _movieWallMode = false;
 
-  // 各模块海报右下角显示日期
+  // 各模块海报右下角是否显示日期及日期来源
   bool _showMovieCardDate = false;
   bool _showBookCardDate = false;
   bool _showGameCardDate = false;
+  int _movieCardDateType = 0;
+  int _bookCardDateType = 0;
+  int _gameCardDateType = 0;
+  int _movieCardTitleAlign = 0;
+  int _movieCardRatingAlign = 0;
+  int _bookCardTitleAlign = 0;
+  int _bookCardRatingAlign = 0;
+  int _gameCardTitleAlign = 0;
+  int _gameCardRatingAlign = 0;
 
   // 各模块列表是否显示标题 / 评分
   bool _showMovieTitle = true;
@@ -194,7 +206,7 @@ class AppProvider extends ChangeNotifier {
 
   // 游戏墙模式
   bool _gameWallMode = false;
-  
+
   // 侧边菜单是否打开
   bool _drawerOpen = false;
 
@@ -251,13 +263,15 @@ class AppProvider extends ChangeNotifier {
     // 独立加载每个 DAO，避免一个失败导致全部中断
     final failedTables = <String>[];
     try {
-      _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().effectiveMovieSortMode);
+      _movies = await _movieDao.getAllMovies(
+          sortMode: UserPrefs().effectiveMovieSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载影视数据失败: $e');
       failedTables.add('movies');
     }
     try {
-      _books = await _bookDao.getAllBooks(sortMode: UserPrefs().effectiveBookSortMode);
+      _books = await _bookDao.getAllBooks(
+          sortMode: UserPrefs().effectiveBookSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载书籍数据失败: $e');
       failedTables.add('books');
@@ -269,7 +283,8 @@ class AppProvider extends ChangeNotifier {
       failedTables.add('notes');
     }
     try {
-      _games = await _gameDao.getAllGames(sortMode: UserPrefs().effectiveGameSortMode);
+      _games = await _gameDao.getAllGames(
+          sortMode: UserPrefs().effectiveGameSortMode);
     } catch (e) {
       debugPrint('[AppProvider] 加载游戏数据失败: $e');
       failedTables.add('games');
@@ -290,7 +305,8 @@ class AppProvider extends ChangeNotifier {
     for (final table in failedTables) {
       try {
         final db = await DatabaseHelper.instance.database;
-        final count = (await db.rawQuery('SELECT COUNT(*) as cnt FROM $table')).first['cnt'] as int;
+        final count = (await db.rawQuery('SELECT COUNT(*) as cnt FROM $table'))
+            .first['cnt'] as int;
         if (count > 0) {
           _dbInitFailed = true;
           break;
@@ -300,7 +316,8 @@ class AppProvider extends ChangeNotifier {
         break;
       }
     }
-    debugPrint('[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}, games=${_games.length}, people=${_people.length}');
+    debugPrint(
+        '[AppProvider] 本地数据: movies=${_movies.length}, books=${_books.length}, notes=${_notes.length}, games=${_games.length}, people=${_people.length}');
     notifyListeners();
   }
 
@@ -309,6 +326,7 @@ class AppProvider extends ChangeNotifier {
     final userPrefs = UserPrefs();
     _movieLayoutStyle = userPrefs.movieLayoutStyle;
     _bookLayoutStyle = userPrefs.bookLayoutStyle;
+    _noteContentAlign = userPrefs.noteContentAlign;
     _movieWallMode = userPrefs.movieWallMode;
     _movieDisplayMode = userPrefs.movieDisplayMode;
     _movieStatusBarStyle = userPrefs.movieStatusBarStyle;
@@ -326,6 +344,15 @@ class AppProvider extends ChangeNotifier {
     _showMovieCardDate = userPrefs.showMovieCardDate;
     _showBookCardDate = userPrefs.showBookCardDate;
     _showGameCardDate = userPrefs.showGameCardDate;
+    _movieCardDateType = userPrefs.movieCardDateType;
+    _bookCardDateType = userPrefs.bookCardDateType;
+    _gameCardDateType = userPrefs.gameCardDateType;
+    _movieCardTitleAlign = userPrefs.movieCardTitleAlign;
+    _movieCardRatingAlign = userPrefs.movieCardRatingAlign;
+    _bookCardTitleAlign = userPrefs.bookCardTitleAlign;
+    _bookCardRatingAlign = userPrefs.bookCardRatingAlign;
+    _gameCardTitleAlign = userPrefs.gameCardTitleAlign;
+    _gameCardRatingAlign = userPrefs.gameCardRatingAlign;
     _showMovieTitle = userPrefs.showMovieTitle;
     _showMovieRating = userPrefs.showMovieRating;
     _showBookTitle = userPrefs.showBookTitle;
@@ -349,10 +376,13 @@ class AppProvider extends ChangeNotifier {
           _mainTabIndex = enabled.indexWhere((e) => e);
           if (_mainTabIndex == -1) {
             // 固定模块全关但有自定义模块时，落到第一个自定义模块
-            _mainTabIndex = enabledCustomModules.isNotEmpty ? customModuleTabBase : 0;
+            _mainTabIndex =
+                enabledCustomModules.isNotEmpty ? customModuleTabBase : 0;
           }
         }
-      } else if (defaultIndex >= 0 && defaultIndex < enabled.length && enabled[defaultIndex]) {
+      } else if (defaultIndex >= 0 &&
+          defaultIndex < enabled.length &&
+          enabled[defaultIndex]) {
         _mainTabIndex = defaultIndex;
       } else {
         // 回退到第一个启用的标签
@@ -371,24 +401,29 @@ class AppProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-  
+
   // 加载影视数据
   Future<void> loadMovies() async {
     final sw = Stopwatch()..start();
     if (_cloudMovieMode) {
       // 云模式纯实时：仅取首页填充内存（毛玻璃封面等），列表翻页走 loadMoviesPaged
       final page = await _cloudMovie.pageMovies(
-        sortMode: UserPrefs().effectiveMovieSortMode, offset: 0, limit: firstPageSize);
+          sortMode: UserPrefs().effectiveMovieSortMode,
+          offset: 0,
+          limit: firstPageSize);
       _movies = page.list;
       _invalidateCloudMainCounts('movies');
       _cloudMainCountCache['movies'] = page.total;
-      debugPrint('[AppProvider] 云端影视加载完成: ${_movies.length} 条, ${sw.elapsedMilliseconds}ms');
+      debugPrint(
+          '[AppProvider] 云端影视加载完成: ${_movies.length} 条, ${sw.elapsedMilliseconds}ms');
       if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
       notifyListeners();
       return;
     }
-    _movies = await _movieDao.getAllMovies(sortMode: UserPrefs().effectiveMovieSortMode);
-    debugPrint('[AppProvider] 影视加载完成: ${_movies.length} 条, ${sw.elapsedMilliseconds}ms');
+    _movies = await _movieDao.getAllMovies(
+        sortMode: UserPrefs().effectiveMovieSortMode);
+    debugPrint(
+        '[AppProvider] 影视加载完成: ${_movies.length} 条, ${sw.elapsedMilliseconds}ms');
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
@@ -398,19 +433,25 @@ class AppProvider extends ChangeNotifier {
     final sw = Stopwatch()..start();
     if (_cloudBookMode) {
       final page = await _cloudDomain.pageMain(
-        'books', Book.fromJson,
-        sortMode: UserPrefs().effectiveBookSortMode, offset: 0, limit: firstPageSize,
+        'books',
+        Book.fromJson,
+        sortMode: UserPrefs().effectiveBookSortMode,
+        offset: 0,
+        limit: firstPageSize,
       );
       _books = page.list;
       _invalidateCloudMainCounts('books');
       _cloudMainCountCache['books'] = page.total;
-      debugPrint('[AppProvider] 云端书籍加载完成: ${_books.length} 条, ${sw.elapsedMilliseconds}ms');
+      debugPrint(
+          '[AppProvider] 云端书籍加载完成: ${_books.length} 条, ${sw.elapsedMilliseconds}ms');
       if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
       notifyListeners();
       return;
     }
-    _books = await _bookDao.getAllBooks(sortMode: UserPrefs().effectiveBookSortMode);
-    debugPrint('[AppProvider] 书籍加载完成: ${_books.length} 条, ${sw.elapsedMilliseconds}ms');
+    _books =
+        await _bookDao.getAllBooks(sortMode: UserPrefs().effectiveBookSortMode);
+    debugPrint(
+        '[AppProvider] 书籍加载完成: ${_books.length} 条, ${sw.elapsedMilliseconds}ms');
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
@@ -420,12 +461,15 @@ class AppProvider extends ChangeNotifier {
     final sw = Stopwatch()..start();
     if (_cloudNoteMode) {
       _notes = await _cloudDomain.listEntities('notes', Note.fromJson);
-      debugPrint('[AppProvider] 云端笔记加载完成: ${_notes.length} 条, ${sw.elapsedMilliseconds}ms');
+      debugPrint(
+          '[AppProvider] 云端笔记加载完成: ${_notes.length} 条, ${sw.elapsedMilliseconds}ms');
       notifyListeners();
       return;
     }
-    _notes = await _noteDao.getAllNotes(sortMode: sortMode ?? UserPrefs().noteSortMode);
-    debugPrint('[AppProvider] 笔记加载完成: ${_notes.length} 条, ${sw.elapsedMilliseconds}ms');
+    _notes = await _noteDao.getAllNotes(
+        sortMode: sortMode ?? UserPrefs().noteSortMode);
+    debugPrint(
+        '[AppProvider] 笔记加载完成: ${_notes.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
@@ -434,19 +478,25 @@ class AppProvider extends ChangeNotifier {
     final sw = Stopwatch()..start();
     if (_cloudGameMode) {
       final page = await _cloudDomain.pageMain(
-        'games', Game.fromJson,
-        sortMode: UserPrefs().effectiveGameSortMode, offset: 0, limit: firstPageSize,
+        'games',
+        Game.fromJson,
+        sortMode: UserPrefs().effectiveGameSortMode,
+        offset: 0,
+        limit: firstPageSize,
       );
       _games = page.list;
       _invalidateCloudMainCounts('games');
       _cloudMainCountCache['games'] = page.total;
-      debugPrint('[AppProvider] 云端游戏加载完成: ${_games.length} 条, ${sw.elapsedMilliseconds}ms');
+      debugPrint(
+          '[AppProvider] 云端游戏加载完成: ${_games.length} 条, ${sw.elapsedMilliseconds}ms');
       if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
       notifyListeners();
       return;
     }
-    _games = await _gameDao.getAllGames(sortMode: UserPrefs().effectiveGameSortMode);
-    debugPrint('[AppProvider] 游戏加载完成: ${_games.length} 条, ${sw.elapsedMilliseconds}ms');
+    _games =
+        await _gameDao.getAllGames(sortMode: UserPrefs().effectiveGameSortMode);
+    debugPrint(
+        '[AppProvider] 游戏加载完成: ${_games.length} 条, ${sw.elapsedMilliseconds}ms');
     if (_frostedActive && _frostedCoverPath == null) refreshFrostedCover();
     notifyListeners();
   }
@@ -455,13 +505,16 @@ class AppProvider extends ChangeNotifier {
   Future<void> loadPlaylists() async {
     final sw = Stopwatch()..start();
     if (_cloudPlaylistMode) {
-      _playlists = await _cloudDomain.listEntities('playlists', Playlist.fromJson);
-      debugPrint('[AppProvider] 云端片单加载完成: ${_playlists.length} 条, ${sw.elapsedMilliseconds}ms');
+      _playlists =
+          await _cloudDomain.listEntities('playlists', Playlist.fromJson);
+      debugPrint(
+          '[AppProvider] 云端片单加载完成: ${_playlists.length} 条, ${sw.elapsedMilliseconds}ms');
       notifyListeners();
       return;
     }
     _playlists = await _playlistDao.getAllPlaylists();
-    debugPrint('[AppProvider] 片单加载完成: ${_playlists.length} 条, ${sw.elapsedMilliseconds}ms');
+    debugPrint(
+        '[AppProvider] 片单加载完成: ${_playlists.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
@@ -470,12 +523,14 @@ class AppProvider extends ChangeNotifier {
     final sw = Stopwatch()..start();
     if (_cloudMovieMode) {
       _people = await _cloudMovie.listEntities('people', Person.fromJson);
-      debugPrint('[AppProvider] 云端人物加载完成: ${_people.length} 条, ${sw.elapsedMilliseconds}ms');
+      debugPrint(
+          '[AppProvider] 云端人物加载完成: ${_people.length} 条, ${sw.elapsedMilliseconds}ms');
       notifyListeners();
       return;
     }
     _people = await _personDao.getAllPeople();
-    debugPrint('[AppProvider] 人物加载完成: ${_people.length} 条, ${sw.elapsedMilliseconds}ms');
+    debugPrint(
+        '[AppProvider] 人物加载完成: ${_people.length} 条, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
@@ -487,7 +542,8 @@ class AppProvider extends ChangeNotifier {
       status == null ? domain : '$domain|$status';
 
   void _invalidateCloudMainCounts(String domain) {
-    _cloudMainCountCache.removeWhere((k, _) => k == domain || k.startsWith('$domain|'));
+    _cloudMainCountCache
+        .removeWhere((k, _) => k == domain || k.startsWith('$domain|'));
   }
 
   /// 同步读计数缓存，未命中返回 null（调用方回退本地 length 或调 fetch 后重建）
@@ -501,7 +557,9 @@ class AppProvider extends ChangeNotifier {
     if (cached != null) return cached;
     final int total;
     if (domain == 'movies') {
-      total = (await _cloudMovie.pageMovies(status: status, offset: 0, limit: 1)).total;
+      total =
+          (await _cloudMovie.pageMovies(status: status, offset: 0, limit: 1))
+              .total;
     } else if (domain == 'books') {
       total = (await _cloudDomain.pageMain('books', Book.fromJson,
               status: status, offset: 0, limit: 1))
@@ -518,8 +576,8 @@ class AppProvider extends ChangeNotifier {
   /// 某域三个状态分类的计数（并发 limit=1 请求），供"我的"页状态分布使用
   Future<Map<String, int>> fetchCloudStatusCounts(
       String domain, List<String> statuses) async {
-    final pairs = await Future.wait(statuses
-        .map((s) async => MapEntry(s, await fetchCloudMainCount(domain, status: s))));
+    final pairs = await Future.wait(statuses.map((s) async =>
+        MapEntry(s, await fetchCloudMainCount(domain, status: s))));
     return Map<String, int>.fromEntries(pairs);
   }
 
@@ -545,7 +603,6 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   // ─── 分页加载（供列表页触底加载使用）────────────────────────
   /// 触底加载每页条数
   static const int pageSize = 20;
@@ -553,7 +610,12 @@ class AppProvider extends ChangeNotifier {
   /// 首屏加载条数（一次多加载，减少首屏滚动触底次数）
   static const int firstPageSize = 50;
 
-  Future<List<Movie>> loadMoviesPaged({String? status, String? category, required int offset, int sortMode = 0, int? limit}) async {
+  Future<List<Movie>> loadMoviesPaged(
+      {String? status,
+      String? category,
+      required int offset,
+      int sortMode = 0,
+      int? limit}) async {
     if (_cloudMovieMode) {
       final page = await _cloudMovie.pageMovies(
         status: status,
@@ -565,7 +627,12 @@ class AppProvider extends ChangeNotifier {
       );
       return page.list;
     }
-    return _movieDao.getMoviesPaged(status: status, category: category, limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
+    return _movieDao.getMoviesPaged(
+        status: status,
+        category: category,
+        limit: limit ?? pageSize,
+        offset: offset,
+        sortMode: sortMode);
   }
 
   /// 云模式服务器搜索关键词（本地模式不用，本地走 SQLite LIKE）
@@ -577,7 +644,8 @@ class AppProvider extends ChangeNotifier {
 
   /// 云模式全局搜索：直接走服务端关键词分页（标题/别名 LIKE），一次取较多条供搜索页展示
   Future<List<Movie>> searchCloudMovies(String keyword) async {
-    final page = await _cloudMovie.pageMovies(keyword: keyword, offset: 0, limit: 100);
+    final page =
+        await _cloudMovie.pageMovies(keyword: keyword, offset: 0, limit: 100);
     return page.list;
   }
 
@@ -632,37 +700,66 @@ class AppProvider extends ChangeNotifier {
   set bookSearchKeyword(String? value) => _bookSearchKeyword = value;
   set gameSearchKeyword(String? value) => _gameSearchKeyword = value;
 
-  Future<List<Book>> loadBooksPaged({String? status, String? category, required int offset, int sortMode = 0, int? limit}) async {
+  Future<List<Book>> loadBooksPaged(
+      {String? status,
+      String? category,
+      required int offset,
+      int sortMode = 0,
+      int? limit}) async {
     if (_cloudBookMode) {
       final page = await _cloudDomain.pageMain(
-        'books', Book.fromJson,
-        status: status, category: category, keyword: _bookSearchKeyword,
-        sortMode: sortMode, offset: offset, limit: limit ?? pageSize,
+        'books',
+        Book.fromJson,
+        status: status,
+        category: category,
+        keyword: _bookSearchKeyword,
+        sortMode: sortMode,
+        offset: offset,
+        limit: limit ?? pageSize,
       );
       return page.list;
     }
-    return _bookDao.getBooksPaged(status: status, category: category, limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
+    return _bookDao.getBooksPaged(
+        status: status,
+        category: category,
+        limit: limit ?? pageSize,
+        offset: offset,
+        sortMode: sortMode);
   }
 
-  Future<List<Note>> loadNotesPaged({required int offset, int sortMode = 0, int? limit}) async {
+  Future<List<Note>> loadNotesPaged(
+      {required int offset, int sortMode = 0, int? limit}) async {
     if (_cloudNoteMode) {
       // 笔记为独立实体，云端一次取全量后在内存做分页（对齐 listEntities 返回顺序）
       if (_notes.isEmpty) await loadNotes(sortMode: sortMode);
       return _notes.skip(offset).take(limit ?? pageSize).toList();
     }
-    return _noteDao.getNotesPaged(limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
+    return _noteDao.getNotesPaged(
+        limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
   }
 
-  Future<List<Game>> loadGamesPaged({String? status, required int offset, int sortMode = 0, int? limit}) async {
+  Future<List<Game>> loadGamesPaged(
+      {String? status,
+      required int offset,
+      int sortMode = 0,
+      int? limit}) async {
     if (_cloudGameMode) {
       final page = await _cloudDomain.pageMain(
-        'games', Game.fromJson,
-        status: status, keyword: _gameSearchKeyword,
-        sortMode: sortMode, offset: offset, limit: limit ?? pageSize,
+        'games',
+        Game.fromJson,
+        status: status,
+        keyword: _gameSearchKeyword,
+        sortMode: sortMode,
+        offset: offset,
+        limit: limit ?? pageSize,
       );
       return page.list;
     }
-    return _gameDao.getGamesPaged(status: status, limit: limit ?? pageSize, offset: offset, sortMode: sortMode);
+    return _gameDao.getGamesPaged(
+        status: status,
+        limit: limit ?? pageSize,
+        offset: offset,
+        sortMode: sortMode);
   }
 
   /// 云模式聚合页用：分页拉全量书籍/游戏（可按状态过滤），绕过内存首页分片
@@ -721,10 +818,20 @@ class AppProvider extends ChangeNotifier {
   int get movieStatusIndex => _movieStatusIndex;
   int get movieLayoutStyle => _movieLayoutStyle;
   int get bookLayoutStyle => _bookLayoutStyle;
+  int get noteContentAlign => _noteContentAlign;
   bool get movieWallMode => _movieWallMode;
   bool get showMovieCardDate => _showMovieCardDate;
   bool get showBookCardDate => _showBookCardDate;
   bool get showGameCardDate => _showGameCardDate;
+  int get movieCardDateType => _movieCardDateType;
+  int get bookCardDateType => _bookCardDateType;
+  int get gameCardDateType => _gameCardDateType;
+  int get movieCardTitleAlign => _movieCardTitleAlign;
+  int get movieCardRatingAlign => _movieCardRatingAlign;
+  int get bookCardTitleAlign => _bookCardTitleAlign;
+  int get bookCardRatingAlign => _bookCardRatingAlign;
+  int get gameCardTitleAlign => _gameCardTitleAlign;
+  int get gameCardRatingAlign => _gameCardRatingAlign;
   bool get showMovieTitle => _showMovieTitle;
   bool get showMovieRating => _showMovieRating;
   bool get showBookTitle => _showBookTitle;
@@ -773,6 +880,7 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   List<Movie> get movies => UnmodifiableListView(_movies);
   List<Book> get books => UnmodifiableListView(_books);
   List<Note> get notes => UnmodifiableListView(_notes);
@@ -800,7 +908,8 @@ class AppProvider extends ChangeNotifier {
   Future<void> loadCustomModules() async {
     final sw = Stopwatch()..start();
     _customModules = await _customModuleDao.getAllModules();
-    debugPrint('[AppProvider] 自定义模块加载完成: ${_customModules.length} 个, ${sw.elapsedMilliseconds}ms');
+    debugPrint(
+        '[AppProvider] 自定义模块加载完成: ${_customModules.length} 个, ${sw.elapsedMilliseconds}ms');
     notifyListeners();
   }
 
@@ -808,7 +917,10 @@ class AppProvider extends ChangeNotifier {
     final now = DateTime.now();
     final maxSort = _customModules.isEmpty
         ? 0
-        : _customModules.map((m) => m.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+        : _customModules
+                .map((m) => m.sortOrder)
+                .reduce((a, b) => a > b ? a : b) +
+            1;
     final module = CustomModule(
       id: const Uuid().v4(),
       name: name,
@@ -846,7 +958,8 @@ class AppProvider extends ChangeNotifier {
         // 当前 tab 正停在被删模块上，回退到第一个固定 tab
         _mainTabIndex = 0;
       } else {
-        final newIdx = enabledCustomModules.indexWhere((m) => m.id == currentModuleId);
+        final newIdx =
+            enabledCustomModules.indexWhere((m) => m.id == currentModuleId);
         _mainTabIndex = newIdx != -1 ? customModuleTabBase + newIdx : 0;
       }
     }
@@ -864,13 +977,15 @@ class AppProvider extends ChangeNotifier {
     await _customModuleDao.setEnabled(id, enabled);
     final idx = _customModules.indexWhere((m) => m.id == id);
     if (idx != -1) {
-      _customModules[idx] = _customModules[idx].copyWith(isEnabled: enabled, updatedAt: DateTime.now());
+      _customModules[idx] = _customModules[idx]
+          .copyWith(isEnabled: enabled, updatedAt: DateTime.now());
     }
     if (currentModuleId != null) {
       if (!enabled && currentModuleId == id) {
         _mainTabIndex = 0;
       } else {
-        final newIdx = enabledCustomModules.indexWhere((m) => m.id == currentModuleId);
+        final newIdx =
+            enabledCustomModules.indexWhere((m) => m.id == currentModuleId);
         _mainTabIndex = newIdx != -1 ? customModuleTabBase + newIdx : 0;
       }
     }
@@ -890,7 +1005,8 @@ class AppProvider extends ChangeNotifier {
   // 本地搜索用：全部模块未删除条目的一次性内存缓存，条目变动时随版本号失效
   List<CustomModuleItem>? _allCustomItemsCache;
   Future<List<CustomModuleItem>> ensureCustomItemsLoaded() async {
-    return _allCustomItemsCache ??= await _customModuleItemDao.getAllActiveItems();
+    return _allCustomItemsCache ??=
+        await _customModuleItemDao.getAllActiveItems();
   }
 
   // ========== 自定义模块条目回收站 ==========
@@ -912,7 +1028,8 @@ class AppProvider extends ChangeNotifier {
       await _customModuleItemDao.permanentDeleteItem(id, txn: txn);
     });
     if (item != null) {
-      await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, id);
+      await ImagePathHelper.instance
+          .deleteCustomModuleItemImages(item.moduleId, id);
     }
     // 失效全局搜索缓存并通知刷新，否则已彻底删除的条目仍残留在搜索结果中
     bumpCustomModuleItemsVersion();
@@ -922,7 +1039,7 @@ class AppProvider extends ChangeNotifier {
   List<Movie> getMoviesByStatus(String status) {
     return _movies.where((movie) => movie.status == status).toList();
   }
-  
+
   // 根据状态获取书籍列表
   List<Book> getBooksByStatus(String status) {
     return _books.where((book) => book.status == status).toList();
@@ -979,7 +1096,12 @@ class AppProvider extends ChangeNotifier {
   void refreshTabSettings() {
     // 当前标签被关闭时，回退到第一个启用的标签
     final userPrefs = UserPrefs();
-    final enabled = [userPrefs.showMovieTab, userPrefs.showBookTab, userPrefs.showNoteTab, userPrefs.showGameTab];
+    final enabled = [
+      userPrefs.showMovieTab,
+      userPrefs.showBookTab,
+      userPrefs.showNoteTab,
+      userPrefs.showGameTab
+    ];
     if (_mainTabIndex >= customModuleTabBase) {
       // 自定义模块标签被停用/删除时回退
       final idx = _mainTabIndex - customModuleTabBase;
@@ -987,10 +1109,13 @@ class AppProvider extends ChangeNotifier {
         _mainTabIndex = enabled.indexWhere((e) => e);
         if (_mainTabIndex == -1) _mainTabIndex = 0;
       }
-    } else if (_mainTabIndex >= 0 && _mainTabIndex < enabled.length && !enabled[_mainTabIndex]) {
+    } else if (_mainTabIndex >= 0 &&
+        _mainTabIndex < enabled.length &&
+        !enabled[_mainTabIndex]) {
       _mainTabIndex = enabled.indexWhere((e) => e);
       if (_mainTabIndex == -1) {
-        _mainTabIndex = enabledCustomModules.isNotEmpty ? customModuleTabBase : 0;
+        _mainTabIndex =
+            enabledCustomModules.isNotEmpty ? customModuleTabBase : 0;
       }
     }
     notifyListeners();
@@ -1075,7 +1200,8 @@ class AppProvider extends ChangeNotifier {
   void setThemeMode(ThemeMode mode) {
     final wasFrosted = _frostedActive;
     _frostedActive = false;
-    UserPrefs().setThemeMode(mode.index); // 0=system, 1=light, 2=dark, 3=frosted
+    UserPrefs()
+        .setThemeMode(mode.index); // 0=system, 1=light, 2=dark, 3=frosted
     if (_themeMode != mode || wasFrosted) {
       _themeMode = mode;
       notifyListeners();
@@ -1094,11 +1220,18 @@ class AppProvider extends ChangeNotifier {
   void refreshFrostedCover() {
     if (!_frostedActive) return;
     final paths = <String>[
-      ..._movies.where((m) => m.posterPath != null && m.posterPath!.isNotEmpty).map((m) => m.posterPath!),
-      ..._books.where((b) => b.coverPath != null && b.coverPath!.isNotEmpty).map((b) => b.coverPath!),
-      ..._games.where((g) => g.coverPath != null && g.coverPath!.isNotEmpty).map((g) => g.coverPath!),
+      ..._movies
+          .where((m) => m.posterPath != null && m.posterPath!.isNotEmpty)
+          .map((m) => m.posterPath!),
+      ..._books
+          .where((b) => b.coverPath != null && b.coverPath!.isNotEmpty)
+          .map((b) => b.coverPath!),
+      ..._games
+          .where((g) => g.coverPath != null && g.coverPath!.isNotEmpty)
+          .map((g) => g.coverPath!),
     ];
-    _frostedCoverPath = paths.isEmpty ? null : paths[Random().nextInt(paths.length)];
+    _frostedCoverPath =
+        paths.isEmpty ? null : paths[Random().nextInt(paths.length)];
     notifyListeners();
   }
 
@@ -1116,7 +1249,8 @@ class AppProvider extends ChangeNotifier {
       default:
         _themeMode = ThemeMode.system;
     }
-    _colorSchemeIndex = prefs.colorSchemeIndex.clamp(-1, AppTheme.seedColors.length - 1);
+    _colorSchemeIndex =
+        prefs.colorSchemeIndex.clamp(-1, AppTheme.seedColors.length - 1);
     _fontFamily = prefs.fontFamily;
     _languageMode = prefs.languageMode;
     AppStrings.isEnglish = _languageMode == 2;
@@ -1142,7 +1276,8 @@ class AppProvider extends ChangeNotifier {
 
   void setFontFamily(String family) {
     if (_fontFamily != family) {
-      debugPrint('[字体] 切换字体: ${_fontFamily.isEmpty ? '默认' : _fontFamily} → ${family.isEmpty ? '默认' : family}');
+      debugPrint(
+          '[字体] 切换字体: ${_fontFamily.isEmpty ? '默认' : _fontFamily} → ${family.isEmpty ? '默认' : family}');
       _fontFamily = family;
       UserPrefs().setFontFamily(family);
       AppTheme.setFontFamily(family);
@@ -1174,6 +1309,12 @@ class AppProvider extends ChangeNotifier {
     if (prefs.effectiveBookSortMode != prevSort) loadBooks();
   }
 
+  void setNoteContentAlign(int align) {
+    _noteContentAlign = align;
+    UserPrefs().setNoteContentAlign(align);
+    notifyListeners();
+  }
+
   void setMovieWallMode(bool enabled) {
     _movieWallMode = enabled;
     UserPrefs().setMovieWallMode(enabled);
@@ -1195,6 +1336,60 @@ class AppProvider extends ChangeNotifier {
   void setShowGameCardDate(bool enabled) {
     _showGameCardDate = enabled;
     UserPrefs().setShowGameCardDate(enabled);
+    notifyListeners();
+  }
+
+  void setMovieCardDateType(int type) {
+    _movieCardDateType = type;
+    UserPrefs().setMovieCardDateType(type);
+    notifyListeners();
+  }
+
+  void setBookCardDateType(int type) {
+    _bookCardDateType = type;
+    UserPrefs().setBookCardDateType(type);
+    notifyListeners();
+  }
+
+  void setGameCardDateType(int type) {
+    _gameCardDateType = type;
+    UserPrefs().setGameCardDateType(type);
+    notifyListeners();
+  }
+
+  void setMovieCardTitleAlign(int align) {
+    _movieCardTitleAlign = align;
+    UserPrefs().setMovieCardTitleAlign(align);
+    notifyListeners();
+  }
+
+  void setMovieCardRatingAlign(int align) {
+    _movieCardRatingAlign = align;
+    UserPrefs().setMovieCardRatingAlign(align);
+    notifyListeners();
+  }
+
+  void setBookCardTitleAlign(int align) {
+    _bookCardTitleAlign = align;
+    UserPrefs().setBookCardTitleAlign(align);
+    notifyListeners();
+  }
+
+  void setBookCardRatingAlign(int align) {
+    _bookCardRatingAlign = align;
+    UserPrefs().setBookCardRatingAlign(align);
+    notifyListeners();
+  }
+
+  void setGameCardTitleAlign(int align) {
+    _gameCardTitleAlign = align;
+    UserPrefs().setGameCardTitleAlign(align);
+    notifyListeners();
+  }
+
+  void setGameCardRatingAlign(int align) {
+    _gameCardRatingAlign = align;
+    UserPrefs().setGameCardRatingAlign(align);
     notifyListeners();
   }
 
@@ -1332,7 +1527,7 @@ class AppProvider extends ChangeNotifier {
     _drawerOpen = false;
     notifyListeners();
   }
-  
+
   // ─── 图片上传辅助 ────────────────────────────────────────────────
 
   /// 日志用标题兜底：空标题/超长标题处理
@@ -1605,8 +1800,8 @@ class AppProvider extends ChangeNotifier {
 
   /// 云端拉取某片单的全部条目（playlist_items 为独立实体，客户端按 playlist_id 过滤）
   Future<List<PlaylistItem>> _cloudPlaylistItems(String playlistId) async {
-    final all = _cloudPlaylistItemsCache ??=
-        await _cloudDomain.listEntities('playlist_items', PlaylistItem.fromJson);
+    final all = _cloudPlaylistItemsCache ??= await _cloudDomain.listEntities(
+        'playlist_items', PlaylistItem.fromJson);
     final rows = all.where((i) => i.playlistId == playlistId).toList();
     rows.sort((a, b) {
       if (a.sortOrder != b.sortOrder) return a.sortOrder.compareTo(b.sortOrder);
@@ -1621,7 +1816,8 @@ class AppProvider extends ChangeNotifier {
     if (idx == -1) return;
     final count = (await _cloudPlaylistItems(playlistId)).length;
     final updated = _playlists[idx].copyWith(itemCount: count);
-    await _cloudDomain.updateEntity('playlists', playlistId, {'item_count': count});
+    await _cloudDomain
+        .updateEntity('playlists', playlistId, {'item_count': count});
     _playlists[idx] = updated;
   }
 
@@ -1701,7 +1897,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> updatePlaylist(Playlist playlist) async {
     if (_cloudPlaylistMode) {
-      await _cloudDomain.updateEntity('playlists', playlist.id, playlist.toJson());
+      await _cloudDomain.updateEntity(
+          'playlists', playlist.id, playlist.toJson());
       final idx = _playlists.indexWhere((p) => p.id == playlist.id);
       if (idx != -1) _playlists[idx] = playlist;
       debugPrint('[云端] 更新片单《${_logTitle(playlist.name)}》');
@@ -1760,7 +1957,9 @@ class AppProvider extends ChangeNotifier {
 
   Future<List<String>> getPlaylistItemIds(String playlistId) async {
     if (_cloudPlaylistMode) {
-      return (await _cloudPlaylistItems(playlistId)).map((i) => i.itemId).toList();
+      return (await _cloudPlaylistItems(playlistId))
+          .map((i) => i.itemId)
+          .toList();
     }
     return _playlistDao.getPlaylistItemIds(playlistId);
   }
@@ -1770,28 +1969,35 @@ class AppProvider extends ChangeNotifier {
       // 并发提交，缩短多条目重排的耗时窗口；任一失败抛出让 UI 感知
       await Future.wait(List.generate(
         playlistIds.length,
-        (i) => _cloudDomain.updateEntity(
-            'playlists', playlistIds[i], {'sort_order': i}),
+        (i) => _cloudDomain
+            .updateEntity('playlists', playlistIds[i], {'sort_order': i}),
       ));
       // 更新内存中的排序
-      final orderMap = {for (int i = 0; i < playlistIds.length; i++) playlistIds[i]: i};
-      _playlists.sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
+      final orderMap = {
+        for (int i = 0; i < playlistIds.length; i++) playlistIds[i]: i
+      };
+      _playlists
+          .sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
       notifyListeners();
       return;
     }
     await _playlistDao.updatePlaylistOrder(playlistIds);
     // 更新内存中的排序
-    final orderMap = {for (int i = 0; i < playlistIds.length; i++) playlistIds[i]: i};
-    _playlists.sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
+    final orderMap = {
+      for (int i = 0; i < playlistIds.length; i++) playlistIds[i]: i
+    };
+    _playlists
+        .sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
     notifyListeners();
   }
 
-  Future<void> reorderPlaylistItems(String playlistId, List<String> itemIds) async {
+  Future<void> reorderPlaylistItems(
+      String playlistId, List<String> itemIds) async {
     if (_cloudPlaylistMode) {
       await Future.wait(List.generate(
         itemIds.length,
-        (i) => _cloudDomain.updateEntity(
-            'playlist_items', itemIds[i], {'sort_order': i}),
+        (i) => _cloudDomain
+            .updateEntity('playlist_items', itemIds[i], {'sort_order': i}),
       ));
       _invalidateCloudPlaylistItems();
       return;
@@ -1820,7 +2026,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> toggleNotePin(String id, bool isPinned) async {
     if (_cloudNoteMode) {
-      await _cloudDomain.updateEntity('notes', id, {'id': id, 'is_pinned': isPinned ? 1 : 0});
+      await _cloudDomain
+          .updateEntity('notes', id, {'id': id, 'is_pinned': isPinned ? 1 : 0});
       final idx = _notes.indexWhere((n) => n.id == id);
       if (idx != -1) {
         _notes[idx] = _notes[idx].copyWith(isPinned: isPinned);
@@ -1835,13 +2042,14 @@ class AppProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-  
+
   // ========== 影评相关方法 ==========
 
   /// 获取影视的所有影评
   Future<List<MovieReview>> getMovieReviews(String movieId) async {
     if (_cloudMovieMode) {
-      return _cloudMovie.listChildren(movieId, 'movie_reviews', MovieReview.fromJson);
+      return _cloudMovie.listChildren(
+          movieId, 'movie_reviews', MovieReview.fromJson);
     }
     return await _reviewDao.getReviewsByMovieId(movieId);
   }
@@ -1849,26 +2057,32 @@ class AppProvider extends ChangeNotifier {
   /// 添加影评
   Future<void> addMovieReview(MovieReview review) async {
     if (_cloudMovieMode) {
-      await _cloudMovie.createChild(review.movieId, 'movie_reviews', review.toJson());
-      debugPrint('[云端] 新增影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
+      await _cloudMovie.createChild(
+          review.movieId, 'movie_reviews', review.toJson());
+      debugPrint(
+          '[云端] 新增影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
       notifyListeners();
       return;
     }
     await _reviewDao.insertReview(review);
-    debugPrint('[数据] 新增影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
+    debugPrint(
+        '[数据] 新增影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 更新影评
   Future<void> updateMovieReview(MovieReview review) async {
     if (_cloudMovieMode) {
-      await _cloudMovie.updateChild('movie_reviews', review.id, review.toJson());
-      debugPrint('[云端] 更新影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
+      await _cloudMovie.updateChild(
+          'movie_reviews', review.id, review.toJson());
+      debugPrint(
+          '[云端] 更新影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
       notifyListeners();
       return;
     }
     await _reviewDao.updateReview(review);
-    debugPrint('[数据] 更新影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
+    debugPrint(
+        '[数据] 更新影评《${_titleById(_movies, review.movieId, (m) => m.id, (m) => m.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
@@ -1931,7 +2145,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取影视的所有海报
   Future<List<MoviePoster>> getMoviePosters(String movieId) async {
     if (_cloudMovieMode) {
-      return _cloudMovie.listChildren(movieId, 'movie_posters', MoviePoster.fromJson);
+      return _cloudMovie.listChildren(
+          movieId, 'movie_posters', MoviePoster.fromJson);
     }
     return await _posterDao.getPostersByMovieId(movieId);
   }
@@ -1951,13 +2166,16 @@ class AppProvider extends ChangeNotifier {
   /// 添加海报
   Future<void> addMoviePoster(MoviePoster poster) async {
     if (_cloudMovieMode) {
-      await _cloudMovie.createChild(poster.movieId, 'movie_posters', poster.toJson());
-      debugPrint('[云端] 新增海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
+      await _cloudMovie.createChild(
+          poster.movieId, 'movie_posters', poster.toJson());
+      debugPrint(
+          '[云端] 新增海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
       notifyListeners();
       return;
     }
     await _posterDao.insertPoster(poster);
-    debugPrint('[数据] 新增海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
+    debugPrint(
+        '[数据] 新增海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
     notifyListeners();
   }
 
@@ -1976,7 +2194,8 @@ class AppProvider extends ChangeNotifier {
       await _posterDao.deletePoster(id);
       // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
       await _touchParentUpdatedAt('movies', poster.movieId);
-      debugPrint('[数据] 删除海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
+      debugPrint(
+          '[数据] 删除海报《${_titleById(_movies, poster.movieId, (m) => m.id, (m) => m.title)}》');
     }
     notifyListeners();
   }
@@ -1990,7 +2209,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 拖动排序海报：持久化新顺序并触碰父行，让增量同步整组推送
-  Future<void> reorderMoviePosters(String movieId, List<String> orderedIds) async {
+  Future<void> reorderMoviePosters(
+      String movieId, List<String> orderedIds) async {
     if (_cloudMovieMode) {
       await _cloudMovie.reorderPosters(movieId, orderedIds);
       notifyListeners();
@@ -2006,7 +2226,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取游戏的所有评价
   Future<List<GameReview>> getGameReviews(String gameId) async {
     if (_cloudGameMode) {
-      return _cloudDomain.listChildren('games', gameId, 'game_reviews', GameReview.fromJson);
+      return _cloudDomain.listChildren(
+          'games', gameId, 'game_reviews', GameReview.fromJson);
     }
     return await _gameReviewDao.getReviewsByGameId(gameId);
   }
@@ -2014,26 +2235,30 @@ class AppProvider extends ChangeNotifier {
   /// 添加游戏评价
   Future<void> addGameReview(GameReview review) async {
     if (_cloudGameMode) {
-      await _cloudDomain.createChild('games', review.gameId, 'game_reviews', review.toJson());
+      await _cloudDomain.createChild(
+          'games', review.gameId, 'game_reviews', review.toJson());
       debugPrint('[云端] 新增游戏评价: ${_logSnippet(review.content)}');
       notifyListeners();
       return;
     }
     await _gameReviewDao.insertReview(review);
-    debugPrint('[数据] 新增游戏评价《${_titleById(_games, review.gameId, (g) => g.id, (g) => g.title)}》: ${_logSnippet(review.content)}');
+    debugPrint(
+        '[数据] 新增游戏评价《${_titleById(_games, review.gameId, (g) => g.id, (g) => g.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 更新游戏评价
   Future<void> updateGameReview(GameReview review) async {
     if (_cloudGameMode) {
-      await _cloudDomain.updateChild('game_reviews', review.id, review.toJson());
+      await _cloudDomain.updateChild(
+          'game_reviews', review.id, review.toJson());
       debugPrint('[云端] 更新游戏评价: ${_logSnippet(review.content)}');
       notifyListeners();
       return;
     }
     await _gameReviewDao.updateReview(review);
-    debugPrint('[数据] 更新游戏评价《${_titleById(_games, review.gameId, (g) => g.id, (g) => g.title)}》: ${_logSnippet(review.content)}');
+    debugPrint(
+        '[数据] 更新游戏评价《${_titleById(_games, review.gameId, (g) => g.id, (g) => g.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
@@ -2067,7 +2292,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取游戏的所有截图
   Future<List<GameScreenshot>> getGameScreenshots(String gameId) async {
     if (_cloudGameMode) {
-      return _cloudDomain.listChildren('games', gameId, 'game_screenshots', GameScreenshot.fromJson);
+      return _cloudDomain.listChildren(
+          'games', gameId, 'game_screenshots', GameScreenshot.fromJson);
     }
     return await _gameScreenshotDao.getScreenshotsByGameId(gameId);
   }
@@ -2075,13 +2301,15 @@ class AppProvider extends ChangeNotifier {
   /// 添加游戏截图
   Future<void> addGameScreenshot(GameScreenshot screenshot) async {
     if (_cloudGameMode) {
-      await _cloudDomain.createChild('games', screenshot.gameId, 'game_screenshots', screenshot.toJson());
+      await _cloudDomain.createChild(
+          'games', screenshot.gameId, 'game_screenshots', screenshot.toJson());
       debugPrint('[云端] 新增游戏截图');
       notifyListeners();
       return;
     }
     await _gameScreenshotDao.insertScreenshot(screenshot);
-    debugPrint('[数据] 新增游戏截图《${_titleById(_games, screenshot.gameId, (g) => g.id, (g) => g.title)}》');
+    debugPrint(
+        '[数据] 新增游戏截图《${_titleById(_games, screenshot.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
@@ -2099,7 +2327,8 @@ class AppProvider extends ChangeNotifier {
       await _gameScreenshotDao.deleteScreenshot(id);
       // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
       await _touchParentUpdatedAt('games', screenshot.gameId);
-      debugPrint('[数据] 删除游戏截图《${_titleById(_games, screenshot.gameId, (g) => g.id, (g) => g.title)}》');
+      debugPrint(
+          '[数据] 删除游戏截图《${_titleById(_games, screenshot.gameId, (g) => g.id, (g) => g.title)}》');
     }
     notifyListeners();
   }
@@ -2113,7 +2342,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 拖动排序截图：持久化新顺序并触碰父行，让增量同步整组推送
-  Future<void> reorderGameScreenshots(String gameId, List<String> orderedIds) async {
+  Future<void> reorderGameScreenshots(
+      String gameId, List<String> orderedIds) async {
     if (_cloudGameMode) {
       await _cloudDomain.reorderMedia('games', gameId, orderedIds);
       notifyListeners();
@@ -2129,7 +2359,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取游戏的所有通关记录
   Future<List<GameCompletion>> getGameCompletions(String gameId) async {
     if (_cloudGameMode) {
-      return _cloudDomain.listChildren('games', gameId, 'game_completions', GameCompletion.fromJson);
+      return _cloudDomain.listChildren(
+          'games', gameId, 'game_completions', GameCompletion.fromJson);
     }
     return await _gameCompletionDao.getCompletionsByGameId(gameId);
   }
@@ -2137,7 +2368,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取全部通关记录并按游戏 id 分组（供 Excel 导出）
   Future<Map<String, List<GameCompletion>>> getGameCompletionsMap() async {
     if (_cloudGameMode) {
-      final all = await _cloudDomain.allChildren('game_completions', GameCompletion.fromJson);
+      final all = await _cloudDomain.allChildren(
+          'game_completions', GameCompletion.fromJson);
       final map = <String, List<GameCompletion>>{};
       for (final c in all) {
         map.putIfAbsent(c.gameId, () => []).add(c);
@@ -2155,21 +2387,24 @@ class AppProvider extends ChangeNotifier {
   /// 添加通关记录
   Future<void> addGameCompletion(GameCompletion completion) async {
     if (_cloudGameMode) {
-      await _cloudDomain.createChild('games', completion.gameId, 'game_completions', completion.toJson());
+      await _cloudDomain.createChild(
+          'games', completion.gameId, 'game_completions', completion.toJson());
       debugPrint('[云端] 新增游戏通关记录');
       notifyListeners();
       return;
     }
     await _gameCompletionDao.insertCompletion(completion);
     await _touchParentUpdatedAt('games', completion.gameId);
-    debugPrint('[数据] 新增游戏通关记录《${_titleById(_games, completion.gameId, (g) => g.id, (g) => g.title)}》');
+    debugPrint(
+        '[数据] 新增游戏通关记录《${_titleById(_games, completion.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
   /// 更新通关记录
   Future<void> updateGameCompletion(GameCompletion completion) async {
     if (_cloudGameMode) {
-      await _cloudDomain.updateChild('game_completions', completion.id, completion.toJson());
+      await _cloudDomain.updateChild(
+          'game_completions', completion.id, completion.toJson());
       notifyListeners();
       return;
     }
@@ -2191,7 +2426,8 @@ class AppProvider extends ChangeNotifier {
     if (completion != null) {
       // 子组行删除不记墓碑，触碰父行 updated_at 让增量同步整组推送
       await _touchParentUpdatedAt('games', completion.gameId);
-      debugPrint('[数据] 删除游戏通关记录《${_titleById(_games, completion.gameId, (g) => g.id, (g) => g.title)}》');
+      debugPrint(
+          '[数据] 删除游戏通关记录《${_titleById(_games, completion.gameId, (g) => g.id, (g) => g.title)}》');
     }
     notifyListeners();
   }
@@ -2200,12 +2436,14 @@ class AppProvider extends ChangeNotifier {
 
   Future<List<MovieEpisode>> getMovieEpisodes(String movieId) async {
     if (_cloudMovieMode) {
-      return _cloudMovie.listChildren(movieId, 'movie_episodes', MovieEpisode.fromJson);
+      return _cloudMovie.listChildren(
+          movieId, 'movie_episodes', MovieEpisode.fromJson);
     }
     return await _movieEpisodeDao.getEpisodesByMovieId(movieId);
   }
 
-  Future<List<MovieEpisode>> getAllMovieEpisodes() => _movieEpisodeDao.getAllEpisodes();
+  Future<List<MovieEpisode>> getAllMovieEpisodes() =>
+      _movieEpisodeDao.getAllEpisodes();
 
   Future<void> addMovieEpisode(MovieEpisode e) async {
     if (_cloudMovieMode) {
@@ -2269,7 +2507,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<List<BookChapter>> getBookChapters(String bookId) async {
     if (_cloudBookMode) {
-      return _cloudDomain.listChildren('books', bookId, 'book_chapters', BookChapter.fromJson);
+      return _cloudDomain.listChildren(
+          'books', bookId, 'book_chapters', BookChapter.fromJson);
     }
     return await _bookChapterDao.getChaptersByBookId(bookId);
   }
@@ -2283,7 +2522,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addBookChapter(BookChapter c) async {
     if (_cloudBookMode) {
-      await _cloudDomain.createChild('books', c.bookId, 'book_chapters', c.toJson());
+      await _cloudDomain.createChild(
+          'books', c.bookId, 'book_chapters', c.toJson());
       notifyListeners();
       return;
     }
@@ -2297,7 +2537,8 @@ class AppProvider extends ChangeNotifier {
     if (list.isEmpty) return;
     if (_cloudBookMode) {
       for (final c in list) {
-        await _cloudDomain.createChild('books', c.bookId, 'book_chapters', c.toJson());
+        await _cloudDomain.createChild(
+            'books', c.bookId, 'book_chapters', c.toJson());
       }
       notifyListeners();
       return;
@@ -2342,7 +2583,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<List<GameLevel>> getGameLevels(String gameId) async {
     if (_cloudGameMode) {
-      return _cloudDomain.listChildren('games', gameId, 'game_levels', GameLevel.fromJson);
+      return _cloudDomain.listChildren(
+          'games', gameId, 'game_levels', GameLevel.fromJson);
     }
     return await _gameLevelDao.getLevelsByGameId(gameId);
   }
@@ -2356,7 +2598,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addGameLevel(GameLevel l) async {
     if (_cloudGameMode) {
-      await _cloudDomain.createChild('games', l.gameId, 'game_levels', l.toJson());
+      await _cloudDomain.createChild(
+          'games', l.gameId, 'game_levels', l.toJson());
       notifyListeners();
       return;
     }
@@ -2370,7 +2613,8 @@ class AppProvider extends ChangeNotifier {
     if (list.isEmpty) return;
     if (_cloudGameMode) {
       for (final l in list) {
-        await _cloudDomain.createChild('games', l.gameId, 'game_levels', l.toJson());
+        await _cloudDomain.createChild(
+            'games', l.gameId, 'game_levels', l.toJson());
       }
       notifyListeners();
       return;
@@ -2416,7 +2660,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取书籍的所有书评
   Future<List<BookReview>> getBookReviews(String bookId) async {
     if (_cloudBookMode) {
-      return _cloudDomain.listChildren('books', bookId, 'book_reviews', BookReview.fromJson);
+      return _cloudDomain.listChildren(
+          'books', bookId, 'book_reviews', BookReview.fromJson);
     }
     return await _bookReviewDao.getReviewsByBookId(bookId);
   }
@@ -2424,26 +2669,30 @@ class AppProvider extends ChangeNotifier {
   /// 添加书评
   Future<void> addBookReview(BookReview review) async {
     if (_cloudBookMode) {
-      await _cloudDomain.createChild('books', review.bookId, 'book_reviews', review.toJson());
+      await _cloudDomain.createChild(
+          'books', review.bookId, 'book_reviews', review.toJson());
       debugPrint('[云端] 新增书评: ${_logSnippet(review.content)}');
       notifyListeners();
       return;
     }
     await _bookReviewDao.insertReview(review);
-    debugPrint('[数据] 新增书评《${_titleById(_books, review.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(review.content)}');
+    debugPrint(
+        '[数据] 新增书评《${_titleById(_books, review.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
   /// 更新书评
   Future<void> updateBookReview(BookReview review) async {
     if (_cloudBookMode) {
-      await _cloudDomain.updateChild('book_reviews', review.id, review.toJson());
+      await _cloudDomain.updateChild(
+          'book_reviews', review.id, review.toJson());
       debugPrint('[云端] 更新书评: ${_logSnippet(review.content)}');
       notifyListeners();
       return;
     }
     await _bookReviewDao.updateReview(review);
-    debugPrint('[数据] 更新书评《${_titleById(_books, review.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(review.content)}');
+    debugPrint(
+        '[数据] 更新书评《${_titleById(_books, review.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(review.content)}');
     notifyListeners();
   }
 
@@ -2477,7 +2726,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取书籍的所有摘抄
   Future<List<BookExcerpt>> getBookExcerpts(String bookId) async {
     if (_cloudBookMode) {
-      return _cloudDomain.listChildren('books', bookId, 'book_excerpts', BookExcerpt.fromJson);
+      return _cloudDomain.listChildren(
+          'books', bookId, 'book_excerpts', BookExcerpt.fromJson);
     }
     return await _bookExcerptDao.getExcerptsByBookId(bookId);
   }
@@ -2485,13 +2735,15 @@ class AppProvider extends ChangeNotifier {
   /// 添加摘抄
   Future<void> addBookExcerpt(BookExcerpt excerpt) async {
     if (_cloudBookMode) {
-      await _cloudDomain.createChild('books', excerpt.bookId, 'book_excerpts', excerpt.toJson());
+      await _cloudDomain.createChild(
+          'books', excerpt.bookId, 'book_excerpts', excerpt.toJson());
       debugPrint('[云端] 新增摘抄: ${_logSnippet(excerpt.content)}');
       notifyListeners();
       return;
     }
     await _bookExcerptDao.insertExcerpt(excerpt);
-    debugPrint('[数据] 新增摘抄《${_titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(excerpt.content)}');
+    debugPrint(
+        '[数据] 新增摘抄《${_titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(excerpt.content)}');
     notifyListeners();
   }
 
@@ -2500,27 +2752,31 @@ class AppProvider extends ChangeNotifier {
     if (excerpts.isEmpty) return;
     if (_cloudBookMode) {
       for (final e in excerpts) {
-        await _cloudDomain.createChild('books', e.bookId, 'book_excerpts', e.toJson());
+        await _cloudDomain.createChild(
+            'books', e.bookId, 'book_excerpts', e.toJson());
       }
       debugPrint('[云端] 批量新增摘抄 ×${excerpts.length}');
       notifyListeners();
       return;
     }
     await _bookExcerptDao.insertExcerpts(excerpts);
-    debugPrint('[数据] 批量新增摘抄《${_titleById(_books, excerpts.first.bookId, (b) => b.id, (b) => b.title)}》×${excerpts.length}');
+    debugPrint(
+        '[数据] 批量新增摘抄《${_titleById(_books, excerpts.first.bookId, (b) => b.id, (b) => b.title)}》×${excerpts.length}');
     notifyListeners();
   }
 
   /// 更新摘抄
   Future<void> updateBookExcerpt(BookExcerpt excerpt) async {
     if (_cloudBookMode) {
-      await _cloudDomain.updateChild('book_excerpts', excerpt.id, excerpt.toJson());
+      await _cloudDomain.updateChild(
+          'book_excerpts', excerpt.id, excerpt.toJson());
       debugPrint('[云端] 更新摘抄: ${_logSnippet(excerpt.content)}');
       notifyListeners();
       return;
     }
     await _bookExcerptDao.updateExcerpt(excerpt);
-    debugPrint('[数据] 更新摘抄《${_titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(excerpt.content)}');
+    debugPrint(
+        '[数据] 更新摘抄《${_titleById(_books, excerpt.bookId, (b) => b.id, (b) => b.title)}》: ${_logSnippet(excerpt.content)}');
     notifyListeners();
   }
 
@@ -2550,7 +2806,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ========== 回收站相关方法 ==========
-  
+
   /// 获取已删除的影视
   Future<List<Movie>> getDeletedMovies() async {
     if (_cloudMovieMode) {
@@ -2692,8 +2948,9 @@ class AppProvider extends ChangeNotifier {
     });
     await ImagePathHelper.instance.deleteGameImages(id);
   }
-  
+
   bool _isClearingRecycleBin = false;
+
   /// 清空回收站进行中：回收站页面据此禁用单条恢复/删除，避免与清空操作交叉
   bool get isClearingRecycleBin => _isClearingRecycleBin;
 
@@ -2703,13 +2960,16 @@ class AppProvider extends ChangeNotifier {
       for (final m in await _cloudMovie.deletedMovies()) {
         await _cloudMovie.permanentDeleteMovie(m.id);
       }
-      for (final r in await _cloudMovie.deletedChildren('movie_reviews', MovieReview.fromJson)) {
+      for (final r in await _cloudMovie.deletedChildren(
+          'movie_reviews', MovieReview.fromJson)) {
         await _cloudMovie.permanentDeleteChild('movie_reviews', r.id);
       }
-      for (final c in await _cloudMovie.deletedChildren('movie_characters', MovieCharacter.fromJson)) {
+      for (final c in await _cloudMovie.deletedChildren(
+          'movie_characters', MovieCharacter.fromJson)) {
         await _cloudMovie.permanentDeleteChild('movie_characters', c.id);
       }
-      for (final p in await _cloudMovie.deletedEntities('people', Person.fromJson)) {
+      for (final p
+          in await _cloudMovie.deletedEntities('people', Person.fromJson)) {
         await _cloudMovie.permanentDeleteEntity('people', p.id);
       }
     }
@@ -2717,13 +2977,16 @@ class AppProvider extends ChangeNotifier {
       for (final b in await _cloudDomain.deletedMain('books', Book.fromJson)) {
         await _cloudDomain.permanentDeleteMain('books', b.id);
       }
-      for (final r in await _cloudDomain.deletedChildren('book_reviews', BookReview.fromJson)) {
+      for (final r in await _cloudDomain.deletedChildren(
+          'book_reviews', BookReview.fromJson)) {
         await _cloudDomain.permanentDeleteChild('book_reviews', r.id);
       }
-      for (final e in await _cloudDomain.deletedChildren('book_excerpts', BookExcerpt.fromJson)) {
+      for (final e in await _cloudDomain.deletedChildren(
+          'book_excerpts', BookExcerpt.fromJson)) {
         await _cloudDomain.permanentDeleteChild('book_excerpts', e.id);
       }
-      for (final c in await _cloudDomain.deletedChildren('book_characters', BookCharacter.fromJson)) {
+      for (final c in await _cloudDomain.deletedChildren(
+          'book_characters', BookCharacter.fromJson)) {
         await _cloudDomain.permanentDeleteChild('book_characters', c.id);
       }
     }
@@ -2731,27 +2994,32 @@ class AppProvider extends ChangeNotifier {
       for (final g in await _cloudDomain.deletedMain('games', Game.fromJson)) {
         await _cloudDomain.permanentDeleteMain('games', g.id);
       }
-      for (final r in await _cloudDomain.deletedChildren('game_reviews', GameReview.fromJson)) {
+      for (final r in await _cloudDomain.deletedChildren(
+          'game_reviews', GameReview.fromJson)) {
         await _cloudDomain.permanentDeleteChild('game_reviews', r.id);
       }
-      for (final c in await _cloudDomain.deletedChildren('game_characters', GameCharacter.fromJson)) {
+      for (final c in await _cloudDomain.deletedChildren(
+          'game_characters', GameCharacter.fromJson)) {
         await _cloudDomain.permanentDeleteChild('game_characters', c.id);
       }
     }
     if (_cloudNoteMode) {
-      for (final n in await _cloudDomain.deletedEntities('notes', Note.fromJson)) {
+      for (final n
+          in await _cloudDomain.deletedEntities('notes', Note.fromJson)) {
         await _cloudDomain.permanentDeleteEntity('notes', n.id);
       }
     }
     if (_cloudPlaylistMode) {
-      for (final p in await _cloudDomain.deletedEntities('playlists', Playlist.fromJson)) {
+      for (final p in await _cloudDomain.deletedEntities(
+          'playlists', Playlist.fromJson)) {
         await permanentDeletePlaylist(p.id);
       }
     }
     if (UserPrefs().cloudAnyMediaMode) {
       for (final item in await _cloudDomain.deletedEntities(
           'custom_module_items', CustomModuleItem.fromJson)) {
-        await _cloudDomain.permanentDeleteEntity('custom_module_items', item.id);
+        await _cloudDomain.permanentDeleteEntity(
+            'custom_module_items', item.id);
       }
     }
   }
@@ -2762,212 +3030,247 @@ class AppProvider extends ChangeNotifier {
     _isClearingRecycleBin = true;
     notifyListeners();
     try {
-    // 先清云端：云域的 getDeleted* 走的是云端列表，永久删除后下方本地流程拿到的列表自然为空
-    await _clearCloudRecycleBin();
-    final deletedMovies = await getDeletedMovies();
-    final deletedBooks = await getDeletedBooks();
-    final deletedNotes = await getDeletedNotes();
-    final deletedGames = await getDeletedGames();
-    final deletedMovieReviews = await getDeletedMovieReviews();
-    final deletedBookReviews = await getDeletedBookReviews();
-    final deletedBookExcerpts = await getDeletedBookExcerpts();
-    final deletedGameReviews = await getDeletedGameReviews();
-    final deletedPeople = await getDeletedPeople();
-    final deletedMovieCharacters = await getDeletedMovieCharacters();
-    final deletedBookCharacters = await getDeletedBookCharacters();
-    final deletedGameCharacters = await getDeletedGameCharacters();
-    final deletedCustomModuleItems = await getDeletedCustomModuleItems();
-    final deletedPlaylists = await getDeletedPlaylists();
+      // 先清云端：云域的 getDeleted* 走的是云端列表，永久删除后下方本地流程拿到的列表自然为空
+      await _clearCloudRecycleBin();
+      final deletedMovies = await getDeletedMovies();
+      final deletedBooks = await getDeletedBooks();
+      final deletedNotes = await getDeletedNotes();
+      final deletedGames = await getDeletedGames();
+      final deletedMovieReviews = await getDeletedMovieReviews();
+      final deletedBookReviews = await getDeletedBookReviews();
+      final deletedBookExcerpts = await getDeletedBookExcerpts();
+      final deletedGameReviews = await getDeletedGameReviews();
+      final deletedPeople = await getDeletedPeople();
+      final deletedMovieCharacters = await getDeletedMovieCharacters();
+      final deletedBookCharacters = await getDeletedBookCharacters();
+      final deletedGameCharacters = await getDeletedGameCharacters();
+      final deletedCustomModuleItems = await getDeletedCustomModuleItems();
+      final deletedPlaylists = await getDeletedPlaylists();
 
-    // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
-    final movieIds = deletedMovies.map((m) => m.id).toList();
-    final bookIds = deletedBooks.map((b) => b.id).toList();
-    final noteIds = deletedNotes.map((n) => n.id).toList();
-    final gameIds = deletedGames.map((g) => g.id).toList();
-    final personIds = deletedPeople.map((p) => p.id).toList();
-    final movieCharacterIds = deletedMovieCharacters.map((c) => c.id).toList();
-    final bookCharacterIds = deletedBookCharacters.map((c) => c.id).toList();
-    final gameCharacterIds = deletedGameCharacters.map((c) => c.id).toList();
+      // 先收集需要删除图片的 ID，再在事务中批量删除数据库记录
+      final movieIds = deletedMovies.map((m) => m.id).toList();
+      final bookIds = deletedBooks.map((b) => b.id).toList();
+      final noteIds = deletedNotes.map((n) => n.id).toList();
+      final gameIds = deletedGames.map((g) => g.id).toList();
+      final personIds = deletedPeople.map((p) => p.id).toList();
+      final movieCharacterIds =
+          deletedMovieCharacters.map((c) => c.id).toList();
+      final bookCharacterIds = deletedBookCharacters.map((c) => c.id).toList();
+      final gameCharacterIds = deletedGameCharacters.map((c) => c.id).toList();
 
-    // 事务内批量删除数据库记录，保证原子性
-    final db = await DatabaseHelper.instance.database;
+      // 事务内批量删除数据库记录，保证原子性
+      final db = await DatabaseHelper.instance.database;
 
-    // 收集将被级联删除的评价ID（评价图片在 reviews/{reviewId} 目录，需单独清理）
-    final movieReviewIds = <String>{...deletedMovieReviews.map((r) => r.id)};
-    final bookReviewIds = <String>{...deletedBookReviews.map((r) => r.id)};
-    final gameReviewIds = <String>{...deletedGameReviews.map((r) => r.id)};
-    for (final id in movieIds) {
-      final rows = await db.query('movie_reviews', columns: ['id'], where: 'movie_id = ?', whereArgs: [id]);
-      movieReviewIds.addAll(rows.map((r) => r['id'] as String));
-    }
-    for (final id in bookIds) {
-      final rows = await db.query('book_reviews', columns: ['id'], where: 'book_id = ?', whereArgs: [id]);
-      bookReviewIds.addAll(rows.map((r) => r['id'] as String));
-    }
-    for (final id in gameIds) {
-      final rows = await db.query('game_reviews', columns: ['id'], where: 'game_id = ?', whereArgs: [id]);
-      gameReviewIds.addAll(rows.map((r) => r['id'] as String));
-    }
-    final reviewIds = <String>{...movieReviewIds, ...bookReviewIds, ...gameReviewIds};
-
-    // 收集将被级联删除的摘抄ID（随书籍硬删一并清除，需记录墓碑）
-    final excerptIds = <String>{...deletedBookExcerpts.map((e) => e.id)};
-    for (final id in bookIds) {
-      final rows = await db.query('book_excerpts', columns: ['id'], where: 'book_id = ?', whereArgs: [id]);
-      excerptIds.addAll(rows.map((r) => r['id'] as String));
-    }
-
-    await db.transaction((txn) async {
-      // 墓碑与删除在同一事务内原子提交：事务失败则墓碑一并回滚，
-      // 不会出现本地数据还在、他端却收到删除的情况（组表随父实体墓碑覆盖，无需单独记录）
+      // 收集将被级联删除的评价ID（评价图片在 reviews/{reviewId} 目录，需单独清理）
+      final movieReviewIds = <String>{...deletedMovieReviews.map((r) => r.id)};
+      final bookReviewIds = <String>{...deletedBookReviews.map((r) => r.id)};
+      final gameReviewIds = <String>{...deletedGameReviews.map((r) => r.id)};
       for (final id in movieIds) {
-        await SyncTombstones.record('movies', id, txn);
+        final rows = await db.query('movie_reviews',
+            columns: ['id'], where: 'movie_id = ?', whereArgs: [id]);
+        movieReviewIds.addAll(rows.map((r) => r['id'] as String));
       }
       for (final id in bookIds) {
-        await SyncTombstones.record('books', id, txn);
-      }
-      for (final id in noteIds) {
-        await SyncTombstones.record('notes', id, txn);
+        final rows = await db.query('book_reviews',
+            columns: ['id'], where: 'book_id = ?', whereArgs: [id]);
+        bookReviewIds.addAll(rows.map((r) => r['id'] as String));
       }
       for (final id in gameIds) {
-        await SyncTombstones.record('games', id, txn);
+        final rows = await db.query('game_reviews',
+            columns: ['id'], where: 'game_id = ?', whereArgs: [id]);
+        gameReviewIds.addAll(rows.map((r) => r['id'] as String));
       }
-      for (final id in movieReviewIds) {
-        await SyncTombstones.record('movie_reviews', id, txn);
-      }
-      for (final id in bookReviewIds) {
-        await SyncTombstones.record('book_reviews', id, txn);
-      }
-      for (final id in gameReviewIds) {
-        await SyncTombstones.record('game_reviews', id, txn);
-      }
-      for (final id in excerptIds) {
-        await SyncTombstones.record('book_excerpts', id, txn);
-      }
-      for (final id in personIds) {
-        await SyncTombstones.record('people', id, txn);
-      }
-      for (final id in movieCharacterIds) {
-        await SyncTombstones.record('movie_characters', id, txn);
-      }
-      for (final id in bookCharacterIds) {
-        await SyncTombstones.record('book_characters', id, txn);
-      }
-      for (final id in gameCharacterIds) {
-        await SyncTombstones.record('game_characters', id, txn);
-      }
-      for (final item in deletedCustomModuleItems) {
-        await SyncTombstones.record('custom_module_items', item.id, txn);
-      }
-      for (final playlist in deletedPlaylists) {
-        await SyncTombstones.record('playlists', playlist.id, txn);
+      final reviewIds = <String>{
+        ...movieReviewIds,
+        ...bookReviewIds,
+        ...gameReviewIds
+      };
+
+      // 收集将被级联删除的摘抄ID（随书籍硬删一并清除，需记录墓碑）
+      final excerptIds = <String>{...deletedBookExcerpts.map((e) => e.id)};
+      for (final id in bookIds) {
+        final rows = await db.query('book_excerpts',
+            columns: ['id'], where: 'book_id = ?', whereArgs: [id]);
+        excerptIds.addAll(rows.map((r) => r['id'] as String));
       }
 
+      await db.transaction((txn) async {
+        // 墓碑与删除在同一事务内原子提交：事务失败则墓碑一并回滚，
+        // 不会出现本地数据还在、他端却收到删除的情况（组表随父实体墓碑覆盖，无需单独记录）
+        for (final id in movieIds) {
+          await SyncTombstones.record('movies', id, txn);
+        }
+        for (final id in bookIds) {
+          await SyncTombstones.record('books', id, txn);
+        }
+        for (final id in noteIds) {
+          await SyncTombstones.record('notes', id, txn);
+        }
+        for (final id in gameIds) {
+          await SyncTombstones.record('games', id, txn);
+        }
+        for (final id in movieReviewIds) {
+          await SyncTombstones.record('movie_reviews', id, txn);
+        }
+        for (final id in bookReviewIds) {
+          await SyncTombstones.record('book_reviews', id, txn);
+        }
+        for (final id in gameReviewIds) {
+          await SyncTombstones.record('game_reviews', id, txn);
+        }
+        for (final id in excerptIds) {
+          await SyncTombstones.record('book_excerpts', id, txn);
+        }
+        for (final id in personIds) {
+          await SyncTombstones.record('people', id, txn);
+        }
+        for (final id in movieCharacterIds) {
+          await SyncTombstones.record('movie_characters', id, txn);
+        }
+        for (final id in bookCharacterIds) {
+          await SyncTombstones.record('book_characters', id, txn);
+        }
+        for (final id in gameCharacterIds) {
+          await SyncTombstones.record('game_characters', id, txn);
+        }
+        for (final item in deletedCustomModuleItems) {
+          await SyncTombstones.record('custom_module_items', item.id, txn);
+        }
+        for (final playlist in deletedPlaylists) {
+          await SyncTombstones.record('playlists', playlist.id, txn);
+        }
+
+        for (final id in movieIds) {
+          await txn
+              .delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
+          await txn
+              .delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
+          await txn
+              .delete('movie_episodes', where: 'movie_id = ?', whereArgs: [id]);
+          await txn
+              .delete('movie_people', where: 'movie_id = ?', whereArgs: [id]);
+          await txn.delete('movie_characters',
+              where: 'movie_id = ?', whereArgs: [id]);
+          await PlaylistDao.removeMediaFromPlaylists(txn, id, 'movie');
+          await txn.delete('movies', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final id in bookIds) {
+          await txn
+              .delete('book_reviews', where: 'book_id = ?', whereArgs: [id]);
+          await txn
+              .delete('book_excerpts', where: 'book_id = ?', whereArgs: [id]);
+          await txn
+              .delete('book_chapters', where: 'book_id = ?', whereArgs: [id]);
+          await txn
+              .delete('book_people', where: 'book_id = ?', whereArgs: [id]);
+          await txn
+              .delete('book_characters', where: 'book_id = ?', whereArgs: [id]);
+          await PlaylistDao.removeMediaFromPlaylists(txn, id, 'book');
+          await txn.delete('books', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final id in noteIds) {
+          await txn.delete('notes', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final id in gameIds) {
+          await txn
+              .delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
+          await txn.delete('game_screenshots',
+              where: 'game_id = ?', whereArgs: [id]);
+          await txn.delete('game_completions',
+              where: 'game_id = ?', whereArgs: [id]);
+          await txn
+              .delete('game_levels', where: 'game_id = ?', whereArgs: [id]);
+          await txn
+              .delete('game_people', where: 'game_id = ?', whereArgs: [id]);
+          await txn
+              .delete('game_characters', where: 'game_id = ?', whereArgs: [id]);
+          await PlaylistDao.removeMediaFromPlaylists(txn, id, 'game');
+          await txn.delete('games', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final review in deletedMovieReviews) {
+          await txn
+              .delete('movie_reviews', where: 'id = ?', whereArgs: [review.id]);
+        }
+        for (final review in deletedBookReviews) {
+          await txn
+              .delete('book_reviews', where: 'id = ?', whereArgs: [review.id]);
+        }
+        for (final excerpt in deletedBookExcerpts) {
+          await txn.delete('book_excerpts',
+              where: 'id = ?', whereArgs: [excerpt.id]);
+        }
+        for (final review in deletedGameReviews) {
+          await txn
+              .delete('game_reviews', where: 'id = ?', whereArgs: [review.id]);
+        }
+        for (final id in personIds) {
+          await txn
+              .delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
+          await txn
+              .delete('book_people', where: 'person_id = ?', whereArgs: [id]);
+          await txn
+              .delete('game_people', where: 'person_id = ?', whereArgs: [id]);
+          await txn.delete('people', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final id in movieCharacterIds) {
+          await txn
+              .delete('movie_characters', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final id in bookCharacterIds) {
+          await txn.delete('book_characters', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final id in gameCharacterIds) {
+          await txn.delete('game_characters', where: 'id = ?', whereArgs: [id]);
+        }
+        for (final item in deletedCustomModuleItems) {
+          await txn.delete('custom_module_items',
+              where: 'id = ?', whereArgs: [item.id]);
+        }
+        for (final playlist in deletedPlaylists) {
+          await _playlistDao.permanentDeletePlaylist(playlist.id, txn: txn);
+        }
+      });
+
+      // 事务成功后，清理关联的图片文件（文件删除失败不影响数据一致性）
       for (final id in movieIds) {
-        await txn.delete('movie_reviews', where: 'movie_id = ?', whereArgs: [id]);
-        await txn.delete('movie_posters', where: 'movie_id = ?', whereArgs: [id]);
-        await txn.delete('movie_episodes', where: 'movie_id = ?', whereArgs: [id]);
-        await txn.delete('movie_people', where: 'movie_id = ?', whereArgs: [id]);
-        await txn.delete('movie_characters', where: 'movie_id = ?', whereArgs: [id]);
-        await PlaylistDao.removeMediaFromPlaylists(txn, id, 'movie');
-        await txn.delete('movies', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deleteMovieImages(id);
       }
       for (final id in bookIds) {
-        await txn.delete('book_reviews', where: 'book_id = ?', whereArgs: [id]);
-        await txn.delete('book_excerpts', where: 'book_id = ?', whereArgs: [id]);
-        await txn.delete('book_chapters', where: 'book_id = ?', whereArgs: [id]);
-        await txn.delete('book_people', where: 'book_id = ?', whereArgs: [id]);
-        await txn.delete('book_characters', where: 'book_id = ?', whereArgs: [id]);
-        await PlaylistDao.removeMediaFromPlaylists(txn, id, 'book');
-        await txn.delete('books', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deleteBookImages(id);
       }
       for (final id in noteIds) {
-        await txn.delete('notes', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deleteNoteImages(id);
       }
       for (final id in gameIds) {
-        await txn.delete('game_reviews', where: 'game_id = ?', whereArgs: [id]);
-        await txn.delete('game_screenshots', where: 'game_id = ?', whereArgs: [id]);
-        await txn.delete('game_completions', where: 'game_id = ?', whereArgs: [id]);
-        await txn.delete('game_levels', where: 'game_id = ?', whereArgs: [id]);
-        await txn.delete('game_people', where: 'game_id = ?', whereArgs: [id]);
-        await txn.delete('game_characters', where: 'game_id = ?', whereArgs: [id]);
-        await PlaylistDao.removeMediaFromPlaylists(txn, id, 'game');
-        await txn.delete('games', where: 'id = ?', whereArgs: [id]);
-      }
-      for (final review in deletedMovieReviews) {
-        await txn.delete('movie_reviews', where: 'id = ?', whereArgs: [review.id]);
-      }
-      for (final review in deletedBookReviews) {
-        await txn.delete('book_reviews', where: 'id = ?', whereArgs: [review.id]);
-      }
-      for (final excerpt in deletedBookExcerpts) {
-        await txn.delete('book_excerpts', where: 'id = ?', whereArgs: [excerpt.id]);
-      }
-      for (final review in deletedGameReviews) {
-        await txn.delete('game_reviews', where: 'id = ?', whereArgs: [review.id]);
+        await ImagePathHelper.instance.deleteGameImages(id);
       }
       for (final id in personIds) {
-        await txn.delete('movie_people', where: 'person_id = ?', whereArgs: [id]);
-        await txn.delete('book_people', where: 'person_id = ?', whereArgs: [id]);
-        await txn.delete('game_people', where: 'person_id = ?', whereArgs: [id]);
-        await txn.delete('people', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deletePersonImages(id);
       }
       for (final id in movieCharacterIds) {
-        await txn.delete('movie_characters', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deleteCharacterImages(id);
       }
       for (final id in bookCharacterIds) {
-        await txn.delete('book_characters', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deleteCharacterImages(id);
       }
       for (final id in gameCharacterIds) {
-        await txn.delete('game_characters', where: 'id = ?', whereArgs: [id]);
+        await ImagePathHelper.instance.deleteCharacterImages(id);
+      }
+      for (final id in reviewIds) {
+        await ImagePathHelper.instance.deleteReviewImages(id);
       }
       for (final item in deletedCustomModuleItems) {
-        await txn.delete('custom_module_items', where: 'id = ?', whereArgs: [item.id]);
+        await ImagePathHelper.instance
+            .deleteCustomModuleItemImages(item.moduleId, item.id);
       }
-      for (final playlist in deletedPlaylists) {
-        await _playlistDao.permanentDeletePlaylist(playlist.id, txn: txn);
-      }
-    });
 
-    // 事务成功后，清理关联的图片文件（文件删除失败不影响数据一致性）
-    for (final id in movieIds) {
-      await ImagePathHelper.instance.deleteMovieImages(id);
-    }
-    for (final id in bookIds) {
-      await ImagePathHelper.instance.deleteBookImages(id);
-    }
-    for (final id in noteIds) {
-      await ImagePathHelper.instance.deleteNoteImages(id);
-    }
-    for (final id in gameIds) {
-      await ImagePathHelper.instance.deleteGameImages(id);
-    }
-    for (final id in personIds) {
-      await ImagePathHelper.instance.deletePersonImages(id);
-    }
-    for (final id in movieCharacterIds) {
-      await ImagePathHelper.instance.deleteCharacterImages(id);
-    }
-    for (final id in bookCharacterIds) {
-      await ImagePathHelper.instance.deleteCharacterImages(id);
-    }
-    for (final id in gameCharacterIds) {
-      await ImagePathHelper.instance.deleteCharacterImages(id);
-    }
-    for (final id in reviewIds) {
-      await ImagePathHelper.instance.deleteReviewImages(id);
-    }
-    for (final item in deletedCustomModuleItems) {
-      await ImagePathHelper.instance.deleteCustomModuleItemImages(item.moduleId, item.id);
-    }
-
-    await loadMovies();
-    await loadBooks();
-    await loadNotes();
-    await loadGames();
-    await loadPlaylists();
-    await loadPeople();
-    bumpCustomModuleItemsVersion();
+      await loadMovies();
+      await loadBooks();
+      await loadNotes();
+      await loadGames();
+      await loadPlaylists();
+      await loadPeople();
+      bumpCustomModuleItemsVersion();
     } finally {
       _isClearingRecycleBin = false;
       notifyListeners();
@@ -3066,7 +3369,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<List<BookExcerpt>> getDeletedBookExcerpts() async {
     if (_cloudBookMode) {
-      return _cloudDomain.deletedChildren('book_excerpts', BookExcerpt.fromJson);
+      return _cloudDomain.deletedChildren(
+          'book_excerpts', BookExcerpt.fromJson);
     }
     return await _bookExcerptDao.getDeletedExcerpts();
   }
@@ -3091,7 +3395,6 @@ class AppProvider extends ChangeNotifier {
     });
   }
 
-
   // ========== 标签管理方法 ==========
 
   /// 标签类型 → 对应媒体域的云模式开关（混合模式下各类型标签各走各的存储）
@@ -3115,20 +3418,22 @@ class AppProvider extends ChangeNotifier {
       final sa = (a['sort_order'] as num?)?.toInt() ?? 0;
       final sb = (b['sort_order'] as num?)?.toInt() ?? 0;
       if (sa != sb) return sa.compareTo(sb);
-      return (a['name']?.toString() ?? '').compareTo(b['name']?.toString() ?? '');
+      return (a['name']?.toString() ?? '')
+          .compareTo(b['name']?.toString() ?? '');
     });
     return rows;
   }
 
-  Map<String, dynamic>? _findTag(
-          List<Map<String, dynamic>> tags, bool Function(Map<String, dynamic>) test) {
+  Map<String, dynamic>? _findTag(List<Map<String, dynamic>> tags,
+      bool Function(Map<String, dynamic>) test) {
     for (final t in tags) {
       if (test(t)) return t;
     }
     return null;
   }
 
-  Set<String> _cloudTagDescendantIds(List<Map<String, dynamic>> tags, String tagId) {
+  Set<String> _cloudTagDescendantIds(
+      List<Map<String, dynamic>> tags, String tagId) {
     final result = <String>{};
     final queue = <String>[tagId];
     while (queue.isNotEmpty) {
@@ -3142,7 +3447,8 @@ class AppProvider extends ChangeNotifier {
     return result;
   }
 
-  List<String> _replaceDedupTags(List<String> list, String oldName, String newName) {
+  List<String> _replaceDedupTags(
+      List<String> list, String oldName, String newName) {
     final result = <String>[];
     for (final item in list) {
       final v = item == oldName ? newName : item;
@@ -3152,7 +3458,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 云端级联：[newName] 非空=重命名替换，null=从条目上移除
-  Future<void> _cloudCascadeTag(String type, String oldName, String? newName) async {
+  Future<void> _cloudCascadeTag(
+      String type, String oldName, String? newName) async {
     switch (type) {
       case 'movie_genre':
         for (final w in await cloudAllMovies()) {
@@ -3168,7 +3475,8 @@ class AppProvider extends ChangeNotifier {
           final genres = newName == null
               ? (List<String>.from(w.genres)..removeWhere((g) => g == oldName))
               : _replaceDedupTags(w.genres, oldName, newName);
-          await _cloudDomain.updateMain('books', w.id, w.copyWith(genres: genres).toJson());
+          await _cloudDomain.updateMain(
+              'books', w.id, w.copyWith(genres: genres).toJson());
         }
       case 'game_genre':
         for (final w in await cloudAllGames()) {
@@ -3176,7 +3484,8 @@ class AppProvider extends ChangeNotifier {
           final genres = newName == null
               ? (List<String>.from(w.genres)..removeWhere((g) => g == oldName))
               : _replaceDedupTags(w.genres, oldName, newName);
-          await _cloudDomain.updateMain('games', w.id, w.copyWith(genres: genres).toJson());
+          await _cloudDomain.updateMain(
+              'games', w.id, w.copyWith(genres: genres).toJson());
         }
       case 'note_tag':
         final notes = await _cloudDomain.listEntities('notes', Note.fromJson);
@@ -3185,12 +3494,14 @@ class AppProvider extends ChangeNotifier {
           final tags = newName == null
               ? (List<String>.from(n.tags)..removeWhere((t) => t == oldName))
               : _replaceDedupTags(n.tags, oldName, newName);
-          await _cloudDomain.updateEntity('notes', n.id, n.copyWith(tags: tags).toJson());
+          await _cloudDomain.updateEntity(
+              'notes', n.id, n.copyWith(tags: tags).toJson());
         }
     }
   }
 
-  Future<List<Map<String, dynamic>>> getTags(String type, {bool excludeHidden = false}) async {
+  Future<List<Map<String, dynamic>>> getTags(String type,
+      {bool excludeHidden = false}) async {
     if (_isCloudTagType(type)) {
       return _cloudTagsByType(type, excludeHidden: excludeHidden);
     }
@@ -3202,7 +3513,8 @@ class AppProvider extends ChangeNotifier {
       final remote = await _cloudDomain.getEntity('tags', tagId);
       if (remote != null) {
         final hidden = (remote['is_hidden'] as num?)?.toInt() == 1;
-        await _cloudDomain.updateEntity('tags', tagId, {'is_hidden': hidden ? 0 : 1});
+        await _cloudDomain
+            .updateEntity('tags', tagId, {'is_hidden': hidden ? 0 : 1});
         debugPrint('[云端] 切换标签显隐「${remote['name'] ?? '?'}」');
         notifyListeners();
         return;
@@ -3214,7 +3526,8 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String> addTag(String name, String type, {String parentId = ''}) async {
+  Future<String> addTag(String name, String type,
+      {String parentId = ''}) async {
     if (_isCloudTagType(type)) {
       final id = 'tag_${const Uuid().v4()}';
       await _cloudDomain.createEntity('tags', {
@@ -3245,7 +3558,8 @@ class AppProvider extends ChangeNotifier {
       if (parentId.isNotEmpty) {
         if (parentId == tagId) return false;
         if (_findTag(tags, (t) => t['id'] == parentId) == null) return false;
-        if (_cloudTagDescendantIds(tags, tagId).contains(parentId)) return false;
+        if (_cloudTagDescendantIds(tags, tagId).contains(parentId))
+          return false;
       }
       await _cloudDomain.updateEntity('tags', tagId, {'parent_id': parentId});
       await _reloadByTagType(type);
@@ -3258,17 +3572,21 @@ class AppProvider extends ChangeNotifier {
 
   /// 重排同级标签顺序（[movedTagId] 跨父级时会顺带改 parent_id）
   /// 只动 tags 表，不影响影视/书籍等数据，无需 _reloadByTagType
-  Future<bool> reorderTags(String type, String parentId, List<String> orderedIds, String movedTagId) async {
+  Future<bool> reorderTags(String type, String parentId,
+      List<String> orderedIds, String movedTagId) async {
     if (_isCloudTagType(type)) {
       final tags = await _cloudTagsByType(type);
       if (parentId.isNotEmpty) {
         if (parentId == movedTagId) return false;
         if (_findTag(tags, (t) => t['id'] == parentId) == null) return false;
-        if (_cloudTagDescendantIds(tags, movedTagId).contains(parentId)) return false;
+        if (_cloudTagDescendantIds(tags, movedTagId).contains(parentId))
+          return false;
       }
-      await _cloudDomain.updateEntity('tags', movedTagId, {'parent_id': parentId});
+      await _cloudDomain
+          .updateEntity('tags', movedTagId, {'parent_id': parentId});
       for (var i = 0; i < orderedIds.length; i++) {
-        await _cloudDomain.updateEntity('tags', orderedIds[i], {'sort_order': i});
+        await _cloudDomain
+            .updateEntity('tags', orderedIds[i], {'sort_order': i});
       }
       return true;
     }
@@ -3282,7 +3600,8 @@ class AppProvider extends ChangeNotifier {
       if (tag == null) return false;
       final oldName = tag['name'] as String;
       if (oldName == newName) return true;
-      if (_findTag(tags, (t) => t['id'] != tagId && t['name'] == newName) != null) {
+      if (_findTag(tags, (t) => t['id'] != tagId && t['name'] == newName) !=
+          null) {
         return false;
       }
       await _cloudDomain.updateEntity('tags', tagId, {'name': newName});
@@ -3315,7 +3634,8 @@ class AppProvider extends ChangeNotifier {
         await _cloudCascadeTag(type, name, null);
       }
       for (final t in tags.where((t) => t['parent_id'] == tagId)) {
-        await _cloudDomain.updateEntity('tags', t['id'] as String, {'parent_id': ''});
+        await _cloudDomain
+            .updateEntity('tags', t['id'] as String, {'parent_id': ''});
       }
       await _cloudDomain.deleteEntity('tags', tagId);
       debugPrint('[云端] 删除标签「$name」($type)'
@@ -3337,7 +3657,8 @@ class AppProvider extends ChangeNotifier {
       final tag = _findTag(tags, (t) => t['id'] == tagId);
       if (tag == null) return;
       for (final t in tags.where((t) => t['parent_id'] == tagId)) {
-        await _cloudDomain.updateEntity('tags', t['id'] as String, {'parent_id': ''});
+        await _cloudDomain
+            .updateEntity('tags', t['id'] as String, {'parent_id': ''});
       }
       await _cloudDomain.deleteEntity('tags', tagId);
       debugPrint('[云端] 移除标签「${tag['name']}」($type，不级联)');
@@ -3373,7 +3694,8 @@ class AppProvider extends ChangeNotifier {
 
     // 云端类型：从云端条目解析，缺失的标签写入云端字典
     Future<void> syncCloudType(String type, List<String> names) async {
-      final existing = (await _cloudTagsByType(type)).map((t) => t['name']).toSet();
+      final existing =
+          (await _cloudTagsByType(type)).map((t) => t['name']).toSet();
       for (final name in names) {
         if (existing.add(name)) {
           await addTag(name, type);
@@ -3383,12 +3705,15 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (_cloudMovieMode) {
-      final names = <String>[for (final m in await cloudAllMovies()) ...m.genres];
+      final names = <String>[
+        for (final m in await cloudAllMovies()) ...m.genres
+      ];
       await syncCloudType('movie_genre', names);
     } else {
       // 影视类型
       final movies = await db.query('movies',
-          where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0', whereArgs: ['[]']);
+          where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0',
+          whereArgs: ['[]']);
       for (final row in movies) {
         for (final genre in parseStringListGeneric(row['genres'])) {
           await insertTag(genre, 'movie_genre');
@@ -3397,12 +3722,15 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (_cloudBookMode) {
-      final names = <String>[for (final b in await cloudAllBooks()) ...b.genres];
+      final names = <String>[
+        for (final b in await cloudAllBooks()) ...b.genres
+      ];
       await syncCloudType('book_genre', names);
     } else {
       // 书籍类型
       final books = await db.query('books',
-          where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0', whereArgs: ['[]']);
+          where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0',
+          whereArgs: ['[]']);
       for (final row in books) {
         for (final genre in parseStringListGeneric(row['genres'])) {
           await insertTag(genre, 'book_genre');
@@ -3417,7 +3745,8 @@ class AppProvider extends ChangeNotifier {
     } else {
       // 笔记标签
       final notes = await db.query('notes',
-          where: 'tags IS NOT NULL AND tags != ? AND tags != ? AND is_deleted = 0',
+          where:
+              'tags IS NOT NULL AND tags != ? AND tags != ? AND is_deleted = 0',
           whereArgs: ['[]', '']);
       for (final row in notes) {
         for (final tag in parseStringListGeneric(row['tags'])) {
@@ -3427,12 +3756,15 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (_cloudGameMode) {
-      final names = <String>[for (final g in await cloudAllGames()) ...g.genres];
+      final names = <String>[
+        for (final g in await cloudAllGames()) ...g.genres
+      ];
       await syncCloudType('game_genre', names);
     } else {
       // 游戏类型
       final games = await db.query('games',
-          where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0', whereArgs: ['[]']);
+          where: 'genres IS NOT NULL AND genres != ? AND is_deleted = 0',
+          whereArgs: ['[]']);
       for (final row in games) {
         for (final genre in parseStringListGeneric(row['genres'])) {
           await insertTag(genre, 'game_genre');
@@ -3487,7 +3819,8 @@ class AppProvider extends ChangeNotifier {
   /// 更新人物封面偏移量
   Future<void> updatePersonCoverOffset(String personId, double offset) async {
     if (_cloudMovieMode) {
-      await _cloudMovie.updateEntity('people', personId, {'cover_offset': offset});
+      await _cloudMovie
+          .updateEntity('people', personId, {'cover_offset': offset});
       return;
     }
     await _personDao.updateCoverOffset(personId, offset);
@@ -3567,7 +3900,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取某部影视的关联人物
   Future<List<MoviePerson>> getMoviePeople(String movieId) async {
     if (_cloudMovieMode) {
-      return _cloudMovie.listChildren(movieId, 'movie_people', MoviePerson.fromJson);
+      return _cloudMovie.listChildren(
+          movieId, 'movie_people', MoviePerson.fromJson);
     }
     return await _moviePersonDao.getByMovieId(movieId);
   }
@@ -3590,7 +3924,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取某本书的关联人物
   Future<List<BookPerson>> getBookPeople(String bookId) async {
     if (_cloudBookMode) {
-      return _cloudDomain.listChildren('books', bookId, 'book_people', BookPerson.fromJson);
+      return _cloudDomain.listChildren(
+          'books', bookId, 'book_people', BookPerson.fromJson);
     }
     return await _bookPersonDao.getByBookId(bookId);
   }
@@ -3613,7 +3948,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取某游戏的关联人物
   Future<List<GamePerson>> getGamePeople(String gameId) async {
     if (_cloudGameMode) {
-      return _cloudDomain.listChildren('games', gameId, 'game_people', GamePerson.fromJson);
+      return _cloudDomain.listChildren(
+          'games', gameId, 'game_people', GamePerson.fromJson);
     }
     return await _gamePersonDao.getByGameId(gameId);
   }
@@ -3663,7 +3999,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 保存某个人物的所有影视关联（事务内先删后插，按 personId 维度）
-  Future<void> savePersonMovieRelations(String personId, List<MoviePerson> relations) async {
+  Future<void> savePersonMovieRelations(
+      String personId, List<MoviePerson> relations) async {
     if (_cloudMovieMode) {
       // movie_people 是影视子组，没有按 person 维度的整组替换接口：
       // 对受影响的每部影视，取当前关联 → 剔除该人物旧行 → 并入新行 → 整组替换
@@ -3677,8 +4014,8 @@ class AppProvider extends ChangeNotifier {
         newByMovie.putIfAbsent(r.movieId, () => []).add(r);
       }
       for (final movieId in affectedMovieIds) {
-        final current =
-            await _cloudMovie.listChildren(movieId, 'movie_people', MoviePerson.fromJson);
+        final current = await _cloudMovie.listChildren(
+            movieId, 'movie_people', MoviePerson.fromJson);
         final merged = current.where((p) => p.personId != personId).toList()
           ..addAll(newByMovie[movieId] ?? const []);
         await _cloudMovie.replaceMoviePeople(movieId, merged);
@@ -3689,7 +4026,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 保存某个人物的所有书籍关联
-  Future<void> savePersonBookRelations(String personId, List<BookPerson> relations) async {
+  Future<void> savePersonBookRelations(
+      String personId, List<BookPerson> relations) async {
     if (_cloudBookMode) {
       // book_people 是书籍子组，没有按 person 维度的整组替换接口：
       // 对受影响的每本书，取当前关联 → 剔除该人物旧行 → 并入新行 → 整组替换
@@ -3703,8 +4041,8 @@ class AppProvider extends ChangeNotifier {
         newByBook.putIfAbsent(r.bookId, () => []).add(r);
       }
       for (final bookId in affectedIds) {
-        final current =
-            await _cloudDomain.listChildren('books', bookId, 'book_people', BookPerson.fromJson);
+        final current = await _cloudDomain.listChildren(
+            'books', bookId, 'book_people', BookPerson.fromJson);
         final merged = current.where((p) => p.personId != personId).toList()
           ..addAll(newByBook[bookId] ?? const []);
         await _cloudDomain.replacePeople(
@@ -3716,7 +4054,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// 保存某个人物的所有游戏关联
-  Future<void> savePersonGameRelations(String personId, List<GamePerson> relations) async {
+  Future<void> savePersonGameRelations(
+      String personId, List<GamePerson> relations) async {
     if (_cloudGameMode) {
       final oldWorks = await _cloudDomain.personWorks('games', personId);
       final affectedIds = <String>{
@@ -3728,8 +4067,8 @@ class AppProvider extends ChangeNotifier {
         newByGame.putIfAbsent(r.gameId, () => []).add(r);
       }
       for (final gameId in affectedIds) {
-        final current =
-            await _cloudDomain.listChildren('games', gameId, 'game_people', GamePerson.fromJson);
+        final current = await _cloudDomain.listChildren(
+            'games', gameId, 'game_people', GamePerson.fromJson);
         final merged = current.where((p) => p.personId != personId).toList()
           ..addAll(newByGame[gameId] ?? const []);
         await _cloudDomain.replacePeople(
@@ -3742,7 +4081,8 @@ class AppProvider extends ChangeNotifier {
 
   /// 扫描所有作品的人物字段，自动创建人物并建立关联
   /// 返回 (新增人物数, 新增关联数, 合并去重数)
-  Future<({int newPersons, int newRelations, int merged})> refreshPersonRelations() async {
+  Future<({int newPersons, int newRelations, int merged})>
+      refreshPersonRelations() async {
     // 先合并已有的同名重复人物
     final merged = await _personDao.mergeDuplicatePeople();
     if (merged > 0) {
@@ -3797,10 +4137,12 @@ class AppProvider extends ChangeNotifier {
           final person = await findOrCreate(trimmed, occupationLabel);
           // 演员角色：若该影视已存在该人物的配音关联，则跳过添加演员关联
           if (roleType == 'actor' &&
-              await _moviePersonDao.existsRelation(movie.id, person.id, 'voiceActor')) {
+              await _moviePersonDao.existsRelation(
+                  movie.id, person.id, 'voiceActor')) {
             continue;
           }
-          if (!await _moviePersonDao.existsRelation(movie.id, person.id, roleType)) {
+          if (!await _moviePersonDao.existsRelation(
+              movie.id, person.id, roleType)) {
             await _moviePersonDao.insert(MoviePerson(
               id: uuid.v4(),
               movieId: movie.id,
@@ -3828,7 +4170,8 @@ class AppProvider extends ChangeNotifier {
           final trimmed = name.trim();
           if (trimmed.isEmpty || !seen.add(trimmed)) continue;
           final person = await findOrCreate(trimmed, occupationLabel);
-          if (!await _bookPersonDao.existsRelation(book.id, person.id, roleType)) {
+          if (!await _bookPersonDao.existsRelation(
+              book.id, person.id, roleType)) {
             await _bookPersonDao.insert(BookPerson(
               id: uuid.v4(),
               bookId: book.id,
@@ -3850,7 +4193,8 @@ class AppProvider extends ChangeNotifier {
         final trimmed = name.trim();
         if (trimmed.isEmpty || !seen.add(trimmed)) continue;
         final person = await findOrCreate(trimmed, '开发者');
-        if (!await _gamePersonDao.existsRelation(game.id, person.id, 'developer')) {
+        if (!await _gamePersonDao.existsRelation(
+            game.id, person.id, 'developer')) {
           await _gamePersonDao.insert(GamePerson(
             id: uuid.v4(),
             gameId: game.id,
@@ -3872,7 +4216,8 @@ class AppProvider extends ChangeNotifier {
   // ─── 影视角色 ───
   Future<List<MovieCharacter>> getMovieCharacters(String movieId) async {
     if (_cloudMovieMode) {
-      return _cloudMovie.listChildren(movieId, 'movie_characters', MovieCharacter.fromJson);
+      return _cloudMovie.listChildren(
+          movieId, 'movie_characters', MovieCharacter.fromJson);
     }
     return await _movieCharacterDao.getByMovieId(movieId);
   }
@@ -3886,25 +4231,29 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addMovieCharacter(MovieCharacter character) async {
     if (_cloudMovieMode) {
-      await _cloudMovie.createChild(character.movieId, 'movie_characters', character.toJson());
+      await _cloudMovie.createChild(
+          character.movieId, 'movie_characters', character.toJson());
       debugPrint('[云端] 新增影视角色「${_logTitle(character.name)}」');
       notifyListeners();
       return;
     }
     await _movieCharacterDao.insert(character);
-    debugPrint('[数据] 新增影视角色「${_logTitle(character.name)}」《${_titleById(_movies, character.movieId, (m) => m.id, (m) => m.title)}》');
+    debugPrint(
+        '[数据] 新增影视角色「${_logTitle(character.name)}」《${_titleById(_movies, character.movieId, (m) => m.id, (m) => m.title)}》');
     notifyListeners();
   }
 
   Future<void> updateMovieCharacter(MovieCharacter character) async {
     if (_cloudMovieMode) {
-      await _cloudMovie.updateChild('movie_characters', character.id, character.toJson());
+      await _cloudMovie.updateChild(
+          'movie_characters', character.id, character.toJson());
       debugPrint('[云端] 更新影视角色「${_logTitle(character.name)}」');
       notifyListeners();
       return;
     }
     await _movieCharacterDao.update(character);
-    debugPrint('[数据] 更新影视角色「${_logTitle(character.name)}」《${_titleById(_movies, character.movieId, (m) => m.id, (m) => m.title)}》');
+    debugPrint(
+        '[数据] 更新影视角色「${_logTitle(character.name)}」《${_titleById(_movies, character.movieId, (m) => m.id, (m) => m.title)}》');
     notifyListeners();
   }
 
@@ -3951,7 +4300,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取已删除的影视角色
   Future<List<MovieCharacter>> getDeletedMovieCharacters() async {
     if (_cloudMovieMode) {
-      return _cloudMovie.deletedChildren('movie_characters', MovieCharacter.fromJson);
+      return _cloudMovie.deletedChildren(
+          'movie_characters', MovieCharacter.fromJson);
     }
     return await _movieCharacterDao.getDeleted();
   }
@@ -3959,7 +4309,8 @@ class AppProvider extends ChangeNotifier {
   // ─── 书籍角色 ───
   Future<List<BookCharacter>> getBookCharacters(String bookId) async {
     if (_cloudBookMode) {
-      return _cloudDomain.listChildren('books', bookId, 'book_characters', BookCharacter.fromJson);
+      return _cloudDomain.listChildren(
+          'books', bookId, 'book_characters', BookCharacter.fromJson);
     }
     return await _bookCharacterDao.getByBookId(bookId);
   }
@@ -3973,25 +4324,29 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addBookCharacter(BookCharacter character) async {
     if (_cloudBookMode) {
-      await _cloudDomain.createChild('books', character.bookId, 'book_characters', character.toJson());
+      await _cloudDomain.createChild(
+          'books', character.bookId, 'book_characters', character.toJson());
       debugPrint('[云端] 新增书籍角色「${_logTitle(character.name)}」');
       notifyListeners();
       return;
     }
     await _bookCharacterDao.insert(character);
-    debugPrint('[数据] 新增书籍角色「${_logTitle(character.name)}」《${_titleById(_books, character.bookId, (b) => b.id, (b) => b.title)}》');
+    debugPrint(
+        '[数据] 新增书籍角色「${_logTitle(character.name)}」《${_titleById(_books, character.bookId, (b) => b.id, (b) => b.title)}》');
     notifyListeners();
   }
 
   Future<void> updateBookCharacter(BookCharacter character) async {
     if (_cloudBookMode) {
-      await _cloudDomain.updateChild('book_characters', character.id, character.toJson());
+      await _cloudDomain.updateChild(
+          'book_characters', character.id, character.toJson());
       debugPrint('[云端] 更新书籍角色「${_logTitle(character.name)}」');
       notifyListeners();
       return;
     }
     await _bookCharacterDao.update(character);
-    debugPrint('[数据] 更新书籍角色「${_logTitle(character.name)}」《${_titleById(_books, character.bookId, (b) => b.id, (b) => b.title)}》');
+    debugPrint(
+        '[数据] 更新书籍角色「${_logTitle(character.name)}」《${_titleById(_books, character.bookId, (b) => b.id, (b) => b.title)}》');
     notifyListeners();
   }
 
@@ -4038,7 +4393,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取已删除的书籍角色
   Future<List<BookCharacter>> getDeletedBookCharacters() async {
     if (_cloudBookMode) {
-      return _cloudDomain.deletedChildren('book_characters', BookCharacter.fromJson);
+      return _cloudDomain.deletedChildren(
+          'book_characters', BookCharacter.fromJson);
     }
     return await _bookCharacterDao.getDeleted();
   }
@@ -4046,7 +4402,8 @@ class AppProvider extends ChangeNotifier {
   // ─── 游戏角色 ───
   Future<List<GameCharacter>> getGameCharacters(String gameId) async {
     if (_cloudGameMode) {
-      return _cloudDomain.listChildren('games', gameId, 'game_characters', GameCharacter.fromJson);
+      return _cloudDomain.listChildren(
+          'games', gameId, 'game_characters', GameCharacter.fromJson);
     }
     return await _gameCharacterDao.getByGameId(gameId);
   }
@@ -4060,25 +4417,29 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addGameCharacter(GameCharacter character) async {
     if (_cloudGameMode) {
-      await _cloudDomain.createChild('games', character.gameId, 'game_characters', character.toJson());
+      await _cloudDomain.createChild(
+          'games', character.gameId, 'game_characters', character.toJson());
       debugPrint('[云端] 新增游戏角色「${_logTitle(character.name)}」');
       notifyListeners();
       return;
     }
     await _gameCharacterDao.insert(character);
-    debugPrint('[数据] 新增游戏角色「${_logTitle(character.name)}」《${_titleById(_games, character.gameId, (g) => g.id, (g) => g.title)}》');
+    debugPrint(
+        '[数据] 新增游戏角色「${_logTitle(character.name)}」《${_titleById(_games, character.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
   Future<void> updateGameCharacter(GameCharacter character) async {
     if (_cloudGameMode) {
-      await _cloudDomain.updateChild('game_characters', character.id, character.toJson());
+      await _cloudDomain.updateChild(
+          'game_characters', character.id, character.toJson());
       debugPrint('[云端] 更新游戏角色「${_logTitle(character.name)}」');
       notifyListeners();
       return;
     }
     await _gameCharacterDao.update(character);
-    debugPrint('[数据] 更新游戏角色「${_logTitle(character.name)}」《${_titleById(_games, character.gameId, (g) => g.id, (g) => g.title)}》');
+    debugPrint(
+        '[数据] 更新游戏角色「${_logTitle(character.name)}」《${_titleById(_games, character.gameId, (g) => g.id, (g) => g.title)}》');
     notifyListeners();
   }
 
@@ -4125,7 +4486,8 @@ class AppProvider extends ChangeNotifier {
   /// 获取已删除的游戏角色
   Future<List<GameCharacter>> getDeletedGameCharacters() async {
     if (_cloudGameMode) {
-      return _cloudDomain.deletedChildren('game_characters', GameCharacter.fromJson);
+      return _cloudDomain.deletedChildren(
+          'game_characters', GameCharacter.fromJson);
     }
     return await _gameCharacterDao.getDeleted();
   }

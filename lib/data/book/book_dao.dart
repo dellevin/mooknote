@@ -55,6 +55,7 @@ class BookDao {
       case 2: return 'rating IS NULL, rating DESC, updated_at DESC';
       case 3: return 'start_date IS NULL, start_date DESC, created_at DESC';
       case 4: return 'publish_date IS NULL, publish_date DESC, created_at DESC';
+      case 5: return 'finish_date IS NULL, finish_date DESC, created_at DESC';
       default: return 'updated_at DESC';
     }
   }

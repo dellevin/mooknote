@@ -23,7 +23,6 @@ import '../../widgets/app_overlay.dart';
 import '../../widgets/detail_popup.dart';
 import 'book_detail_page.dart';
 
-
 /// 阅读标签页（PageView 分页 + 触底加载），左右滑动丝滑切换
 class BookTabPage extends StatefulWidget {
   const BookTabPage({super.key});
@@ -51,7 +50,8 @@ class _BookTabPageState extends State<BookTabPage> {
       final p = context.read<AppProvider>();
       final initial = _activeIndexFor(p).clamp(0, _pageCountFor(p) - 1);
       _currentPage = initial;
-      if (_pageController.hasClients && initial != 0) _pageController.jumpToPage(initial);
+      if (_pageController.hasClients && initial != 0)
+        _pageController.jumpToPage(initial);
     });
   }
 
@@ -62,11 +62,13 @@ class _BookTabPageState extends State<BookTabPage> {
     super.dispose();
   }
 
-  int _pageCountFor(AppProvider p) =>
-      p.bookshelfMode ? 1 : (p.bookDisplayMode == 1 ? BookCategoryBar.count : 4);
+  int _pageCountFor(AppProvider p) => p.bookshelfMode
+      ? 1
+      : (p.bookDisplayMode == 1 ? BookCategoryBar.count : 4);
 
-  int _activeIndexFor(AppProvider p) =>
-      p.bookshelfMode ? 0 : (p.bookDisplayMode == 1 ? p.bookCategoryIndex : p.bookStatusIndex);
+  int _activeIndexFor(AppProvider p) => p.bookshelfMode
+      ? 0
+      : (p.bookDisplayMode == 1 ? p.bookCategoryIndex : p.bookStatusIndex);
 
   int _modeSignature(AppProvider p) =>
       (p.bookshelfMode ? 1 : 0) * 1000 + (p.bookDisplayMode == 1 ? 1 : 0);
@@ -123,7 +125,10 @@ class _BookTabPageState extends State<BookTabPage> {
     }
     // (c) 外部索引变化（bar 点击等）：快照交叉淡化切换，不经过中间页
     final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
-    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && target != _pendingSwitchTarget) {
+    if (pageCount > 1 &&
+        _pageController.hasClients &&
+        target != _currentPage &&
+        target != _pendingSwitchTarget) {
       _pendingSwitchTarget = target;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) {
@@ -164,7 +169,8 @@ class _BookTabPageState extends State<BookTabPage> {
               duration: const Duration(milliseconds: 260),
               curve: Curves.easeOut,
               onEnd: _clearSnapshot,
-              builder: (context, opacity, child) => Opacity(opacity: opacity, child: child),
+              builder: (context, opacity, child) =>
+                  Opacity(opacity: opacity, child: child),
               child: RawImage(image: _switchSnapshot, fit: BoxFit.fill),
             ),
           ),
@@ -178,7 +184,8 @@ class _BookTabPageState extends State<BookTabPage> {
     final renderObject = _repaintKey.currentContext?.findRenderObject();
     if (renderObject is RenderRepaintBoundary) {
       try {
-        image = await renderObject.toImage(pixelRatio: MediaQuery.devicePixelRatioOf(context));
+        image = await renderObject.toImage(
+            pixelRatio: MediaQuery.devicePixelRatioOf(context));
       } catch (_) {
         image = null;
       }
@@ -210,7 +217,9 @@ class _BookTabPageState extends State<BookTabPage> {
     _currentPage = index;
     final wall = provider.bookshelfMode;
     final isCategory = provider.bookDisplayMode == 1;
-    final cur = wall ? 0 : (isCategory ? provider.bookCategoryIndex : provider.bookStatusIndex);
+    final cur = wall
+        ? 0
+        : (isCategory ? provider.bookCategoryIndex : provider.bookStatusIndex);
     // 回显守卫：仅在真实拖动导致索引变化时推送，避免死循环
     if (cur != index) {
       if (isCategory) {
@@ -247,8 +256,10 @@ class _BookTabViewState extends State<_BookTabView>
   int _prevBookCount = -1;
   int _prevSortMode = -1;
 
-  String? get _status => widget.mode == 0 ? StatusLabels.orderedKeys('book')[widget.index] : null;
-  String? get _category => widget.mode == 1 ? BookCategoryBar.categoryValue(widget.index) : null;
+  String? get _status =>
+      widget.mode == 0 ? StatusLabels.orderedKeys('book')[widget.index] : null;
+  String? get _category =>
+      widget.mode == 1 ? BookCategoryBar.categoryValue(widget.index) : null;
 
   @override
   bool get wantKeepAlive => true;
@@ -291,7 +302,8 @@ class _BookTabViewState extends State<_BookTabView>
     }
 
     // 就地编辑：更新本页匹配项，不重置分页
-    if (p.editRefreshCounter > _lastEditRefreshCounter && p.lastEditedItemId != null) {
+    if (p.editRefreshCounter > _lastEditRefreshCounter &&
+        p.lastEditedItemId != null) {
       _lastEditRefreshCounter = p.editRefreshCounter;
       _prevBookCount = p.books.length;
       final id = p.lastEditedItemId!;
@@ -303,7 +315,10 @@ class _BookTabViewState extends State<_BookTabView>
       if (i != -1) {
         if (!belongs) {
           // 状态/分类被改走或条目已删除：移出本页
-          setState(() { _items.removeAt(i); _offset = (_offset - 1).clamp(0, _offset); });
+          setState(() {
+            _items.removeAt(i);
+            _offset = (_offset - 1).clamp(0, _offset);
+          });
         } else {
           setState(() => _items[i] = u);
         }
@@ -325,7 +340,8 @@ class _BookTabViewState extends State<_BookTabView>
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
@@ -350,9 +366,19 @@ class _BookTabViewState extends State<_BookTabView>
     final sortMode = UserPrefs().effectiveBookSortMode;
     if (!mounted) return; // _refresh 的 await 之后可能已被 dispose
     _initialized = true;
-    setState(() { _isLoading = true; _loadError = false; _offset = 0; _hasMore = true; });
+    setState(() {
+      _isLoading = true;
+      _loadError = false;
+      _offset = 0;
+      _hasMore = true;
+    });
     try {
-      final list = await provider.loadBooksPaged(status: _status, category: _category, offset: 0, sortMode: sortMode, limit: AppProvider.firstPageSize);
+      final list = await provider.loadBooksPaged(
+          status: _status,
+          category: _category,
+          offset: 0,
+          sortMode: sortMode,
+          limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.clear();
@@ -366,7 +392,11 @@ class _BookTabViewState extends State<_BookTabView>
     } catch (e) {
       debugPrint('[BookTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _isLoading = false; _hasMore = false; _loadError = true; });
+      setState(() {
+        _isLoading = false;
+        _hasMore = false;
+        _loadError = true;
+      });
     }
   }
 
@@ -377,7 +407,11 @@ class _BookTabViewState extends State<_BookTabView>
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveBookSortMode;
     try {
-      final list = await provider.loadBooksPaged(status: _status, category: _category, offset: _offset, sortMode: sortMode);
+      final list = await provider.loadBooksPaged(
+          status: _status,
+          category: _category,
+          offset: _offset,
+          sortMode: sortMode);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.addAll(list);
@@ -414,9 +448,12 @@ class _BookTabViewState extends State<_BookTabView>
   Widget build(BuildContext context) {
     super.build(context);
     final colors = Theme.of(context).colorScheme;
-    final layoutStyle = context.select<AppProvider, int>((p) => p.bookLayoutStyle);
+    final layoutStyle =
+        context.select<AppProvider, int>((p) => p.bookLayoutStyle);
     context.select<AppProvider, bool>((p) => p.showBookTitle);
     context.select<AppProvider, bool>((p) => p.showBookRating);
+    context.select<AppProvider, int>((p) => p.bookCardTitleAlign);
+    context.select<AppProvider, int>((p) => p.bookCardRatingAlign);
 
     final content = () {
       if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
@@ -461,7 +498,8 @@ class _BookTabViewState extends State<_BookTabView>
   Widget _buildGridView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final fixedCount = context.select<AppProvider, int>((p) => p.bookGridCount);
+        final fixedCount =
+            context.select<AppProvider, int>((p) => p.bookGridCount);
         final crossAxisCount = fixedCount > 0
             ? fixedCount
             : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
@@ -470,7 +508,10 @@ class _BookTabViewState extends State<_BookTabView>
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
           ),
           itemCount: _items.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, index) {
@@ -499,12 +540,17 @@ class _BookTabViewState extends State<_BookTabView>
     );
   }
 
-  /// 年份网格：按出版年份倒序分段，无年份归入"其他"
+  /// 年份网格：按所选年份依据（出版/开始阅读/读完）倒序分段，无年份归入"其他"
   Widget _buildYearGridView() {
     final fixedCount = context.select<AppProvider, int>((p) => p.bookGridCount);
+    final basis = UserPrefs().bookYearGridBasis;
     return YearGridView<Book>(
       items: _items,
-      yearOf: (b) => b.publishDate?.year,
+      yearOf: (b) => switch (basis) {
+        1 => b.startDate?.year,
+        2 => b.finishDate?.year,
+        _ => b.publishDate?.year,
+      },
       controller: _scrollController,
       fixedCrossAxisCount: fixedCount > 0 ? fixedCount : null,
       hasMore: _hasMore,
@@ -521,8 +567,19 @@ class _BookTabViewState extends State<_BookTabView>
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(
         child: _isLoading
-            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary))
-            : Text('没有更多了'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.primary))
+            : Text('没有更多了'.tr,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.3))),
       ),
     );
   }
@@ -531,41 +588,88 @@ class _BookTabViewState extends State<_BookTabView>
     final colors = Theme.of(context).colorScheme;
     final showTitle = context.read<AppProvider>().showBookTitle;
     final showRating = context.read<AppProvider>().showBookRating;
+    final titleAlign = context.read<AppProvider>().bookCardTitleAlign;
+    final ratingAlign = context.read<AppProvider>().bookCardRatingAlign;
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return GestureDetector(
       onTap: () => _onBookTap(book),
       onLongPress: () => _showDeleteDialog(context, book),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           Container(
-            width: 48, height: 64,
-            decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
+            width: 48,
+            height: 64,
+            decoration: BoxDecoration(
+                color: colors.outlineVariant,
+                borderRadius: BorderRadius.circular(6)),
             clipBehavior: Clip.antiAlias,
             child: book.coverPath != null && book.coverPath!.isNotEmpty
-                ? FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover,
-                    errorWidget: Icon(Icons.menu_book_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)))
-                : Icon(Icons.menu_book_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
+                ? FadeInLocalImage(
+                    path: book.coverPath,
+                    fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.menu_book_outlined,
+                        size: 22,
+                        color: colors.onSurface.withValues(alpha: 0.25)))
+                : Icon(Icons.menu_book_outlined,
+                    size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (showTitle)
-              Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            if (book.authors.isNotEmpty) ...[
-              SizedBox(height: showTitle ? 3 : 0),
-              Text(book.authors.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
-            ],
-            if (showRating) ...[
-              const SizedBox(height: 6),
-              if (book.rating != null) AnimatedStarRating(rating: book.rating!, starSize: 12, showNumber: true)
-              else const SizedBox(height: 14),
-            ],
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                if (showTitle)
+                  Align(
+                    alignment: titleAlignment,
+                    child: Text(book.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface)),
+                  ),
+                if (book.authors.isNotEmpty) ...[
+                  SizedBox(height: showTitle ? 3 : 0),
+                  Text(book.authors.take(2).join('、'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurface.withValues(alpha: 0.35))),
+                ],
+                if (showRating) ...[
+                  const SizedBox(height: 6),
+                  if (book.rating != null)
+                    Align(
+                      alignment: ratingAlignment,
+                      child: AnimatedStarRating(
+                          rating: book.rating!,
+                          starSize: 12,
+                          showNumber: true,
+                          alignment: ratingAlignment),
+                    )
+                  else
+                    const SizedBox(height: 14),
+                ],
+              ])),
           const SizedBox(width: 8),
-          Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
+          Icon(Icons.chevron_right,
+              color: colors.onSurface.withValues(alpha: 0.2), size: 20),
         ]),
       ),
     );
@@ -590,6 +694,18 @@ class _BookTabViewState extends State<_BookTabView>
     final colors = Theme.of(context).colorScheme;
     final showTitle = context.read<AppProvider>().showBookTitle;
     final showRating = context.read<AppProvider>().showBookRating;
+    final titleAlign = context.read<AppProvider>().bookCardTitleAlign;
+    final ratingAlign = context.read<AppProvider>().bookCardRatingAlign;
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return GestureDetector(
       onTap: () => _onBookTap(book),
       onLongPress: () => _showDeleteDialog(context, book),
@@ -604,11 +720,15 @@ class _BookTabViewState extends State<_BookTabView>
         child: Stack(fit: StackFit.expand, children: [
           // 封面背景
           if (book.coverPath != null && book.coverPath!.isNotEmpty)
-            FadeInLocalImage(path: book.coverPath, fit: BoxFit.cover,
+            FadeInLocalImage(
+                path: book.coverPath,
+                fit: BoxFit.cover,
                 errorWidget: Container(color: colors.surfaceContainerHighest))
           else
-            Container(color: colors.surfaceContainerHighest,
-                child: Icon(Icons.menu_book_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
+            Container(
+                color: colors.surfaceContainerHighest,
+                child: Icon(Icons.menu_book_outlined,
+                    size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
           // 底部渐变遮罩
           Positioned.fill(
             child: DecoratedBox(
@@ -616,7 +736,10 @@ class _BookTabViewState extends State<_BookTabView>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.75)
+                  ],
                   stops: const [0.4, 1.0],
                 ),
               ),
@@ -624,27 +747,49 @@ class _BookTabViewState extends State<_BookTabView>
           ),
           // 底部信息
           Positioned(
-            left: 14, right: 14, bottom: 14,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              if (showTitle) ...[
-                Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 4),
-              ],
-              Row(children: [
-                Expanded(
-                  child: Text(book.authors.take(2).join('、'), maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
-                ),
-                if (showRating && book.rating != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade400),
-                  const SizedBox(width: 2),
-                  Text(book.rating!.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                ],
-              ]),
-            ]),
+            left: 14,
+            right: 14,
+            bottom: 14,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showTitle) ...[
+                    Align(
+                      alignment: titleAlignment,
+                      child: Text(book.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white)),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  Text(book.authors.take(2).join('、'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.7))),
+                  if (showRating && book.rating != null) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: ratingAlignment,
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.star_rounded,
+                            size: 16, color: Colors.amber.shade400),
+                        const SizedBox(width: 2),
+                        Text(book.rating!.toStringAsFixed(1),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white)),
+                      ]),
+                    ),
+                  ],
+                ]),
           ),
         ]),
       ),
@@ -672,14 +817,25 @@ class _BookTabViewState extends State<_BookTabView>
     appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
+        backgroundColor: colors.surface,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('确认删除'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': book.title}),
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('取消'.tr,
+                  style: TextStyle(
+                      color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeBook(book.id);
@@ -687,13 +843,19 @@ class _BookTabViewState extends State<_BookTabView>
               Navigator.pop(ctx);
               if (mounted) _loadFirst();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -710,10 +872,13 @@ class _BookTabViewState extends State<_BookTabView>
       padding: const EdgeInsets.only(top: 120),
       child: Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          Icon(Icons.cloud_off_rounded,
+              size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
           Text('加载失败，请检查网络'.tr,
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.45))),
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: _loadFirst,
@@ -729,9 +894,11 @@ class _BookTabViewState extends State<_BookTabView>
     if (widget.mode == 2) {
       emptyText = '暂无书籍'.tr;
     } else if (widget.mode == 1) {
-      emptyText = '暂无 {x}'.trf({'x': BookCategoryBar.categoryLabel(widget.index).tr});
+      emptyText =
+          '暂无 {x}'.trf({'x': BookCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      final statusText = StatusLabels.label('book', StatusLabels.orderedKeys('book')[widget.index]);
+      final statusText = StatusLabels.label(
+          'book', StatusLabels.orderedKeys('book')[widget.index]);
       emptyText = '暂无{status}的书籍'.trf({'status': statusText});
     }
     return EmptyState(

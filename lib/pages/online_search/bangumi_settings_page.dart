@@ -115,8 +115,7 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
 
   Future<void> _clear() async {
     await _userPrefs.setBangumiAccessToken('');
-    BangumiService.instance.configure('',
-        proxy: _proxyController.text.trim());
+    BangumiService.instance.configure('', proxy: _proxyController.text.trim());
     if (!mounted) return;
     setState(() {
       _saved = false;
@@ -400,6 +399,7 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
             child: OutlinedButton(
               onPressed: _testing ? null : () => _test(),
               style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 side: BorderSide(color: colors.outlineVariant),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -426,6 +426,7 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
             child: ElevatedButton(
               onPressed: _testing ? null : _save,
               style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 backgroundColor: colors.primary,
                 foregroundColor: colors.onPrimary,
                 elevation: 0,
@@ -496,7 +497,8 @@ class _BangumiSettingsPageState extends State<BangumiSettingsPage> {
         decoration: BoxDecoration(
           color: colors.error.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colors.error.withValues(alpha: 0.3), width: 0.5),
+          border: Border.all(
+              color: colors.error.withValues(alpha: 0.3), width: 0.5),
         ),
         child: Center(
           child: Text('清除已保存的 Token'.tr,

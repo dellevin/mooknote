@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_provider.dart';
-import '../../utils/toast_util.dart';
 import '../../utils/user_prefs.dart';
 import '../../widgets/app_back_button.dart';
+import '../../widgets/app_overlay.dart';
+import 'detail_items_settings_page.dart';
 
 /// 单个模块（影视 / 阅读 / 游戏 / 笔记）的布局设置页
 ///
@@ -23,6 +24,7 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
   final UserPrefs _userPrefs = UserPrefs();
   int _detailPageStyle = 0;
   int _noteLayout = 0;
+  int _noteContentAlign = 0;
   int _movieLayout = 0;
   int _bookLayout = 0;
   int _gameLayout = 0;
@@ -41,17 +43,27 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
   int _bookSortMode = 0;
   int _noteSortMode = 0;
   int _gameSortMode = 0;
+  int _movieYearGridBasis = 0;
+  int _bookYearGridBasis = 0;
+  int _gameYearGridBasis = 0;
   bool _showMovieCardDate = false;
   bool _showBookCardDate = false;
   bool _showGameCardDate = false;
+  int _movieCardDateType = 0;
+  int _bookCardDateType = 0;
+  int _gameCardDateType = 0;
+  int _movieCardTitleAlign = 0;
+  int _movieCardRatingAlign = 0;
+  int _bookCardTitleAlign = 0;
+  int _bookCardRatingAlign = 0;
+  int _gameCardTitleAlign = 0;
+  int _gameCardRatingAlign = 0;
   bool _showMovieTitle = true;
   bool _showMovieRating = true;
   bool _showBookTitle = true;
   bool _showBookRating = true;
   bool _showGameTitle = true;
   bool _showGameRating = true;
-  late List<({String id, bool visible})> _detailModules = [];
-  late List<({String id, bool visible})> _detailExtraItems = [];
 
   static const _titles = {
     'movie': '影视布局',
@@ -65,6 +77,7 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     super.initState();
     _detailPageStyle = _userPrefs.detailPageStyleForType(widget.type);
     _noteLayout = _userPrefs.noteLayoutStyle;
+    _noteContentAlign = _userPrefs.noteContentAlign;
     _movieLayout = _userPrefs.movieLayoutStyle;
     _bookLayout = _userPrefs.bookLayoutStyle;
     _gameLayout = _userPrefs.gameLayoutStyle;
@@ -83,19 +96,27 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     _bookSortMode = _userPrefs.bookSortMode;
     _noteSortMode = _userPrefs.noteSortMode;
     _gameSortMode = _userPrefs.gameSortMode;
+    _movieYearGridBasis = _userPrefs.movieYearGridBasis;
+    _bookYearGridBasis = _userPrefs.bookYearGridBasis;
+    _gameYearGridBasis = _userPrefs.gameYearGridBasis;
     _showMovieCardDate = _userPrefs.showMovieCardDate;
     _showBookCardDate = _userPrefs.showBookCardDate;
     _showGameCardDate = _userPrefs.showGameCardDate;
+    _movieCardDateType = _userPrefs.movieCardDateType;
+    _bookCardDateType = _userPrefs.bookCardDateType;
+    _gameCardDateType = _userPrefs.gameCardDateType;
+    _movieCardTitleAlign = _userPrefs.movieCardTitleAlign;
+    _movieCardRatingAlign = _userPrefs.movieCardRatingAlign;
+    _bookCardTitleAlign = _userPrefs.bookCardTitleAlign;
+    _bookCardRatingAlign = _userPrefs.bookCardRatingAlign;
+    _gameCardTitleAlign = _userPrefs.gameCardTitleAlign;
+    _gameCardRatingAlign = _userPrefs.gameCardRatingAlign;
     _showMovieTitle = _userPrefs.showMovieTitle;
     _showMovieRating = _userPrefs.showMovieRating;
     _showBookTitle = _userPrefs.showBookTitle;
     _showBookRating = _userPrefs.showBookRating;
     _showGameTitle = _userPrefs.showGameTitle;
     _showGameRating = _userPrefs.showGameRating;
-    if (widget.type != 'note') {
-      _detailModules = _userPrefs.getDetailModules(widget.type);
-      _detailExtraItems = _userPrefs.getDetailExtraItems(widget.type);
-    }
   }
 
   @override
@@ -125,19 +146,71 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     return [
       _sectionHeader('卡片显示'.tr, colors),
       _switchRow(
-        title: '海报显示日期'.tr, subtitle: '海报右下角显示上映日期'.tr,
-        value: _showMovieCardDate, onChanged: _setShowMovieCardDate, colors: colors,
+        title: '海报显示日期'.tr,
+        subtitle: '海报右下角显示所选日期'.tr,
+        value: _showMovieCardDate,
+        onChanged: _setShowMovieCardDate,
+        colors: colors,
       ),
       _switchRow(
-        title: '显示标题'.tr, subtitle: '卡片上显示影视名称'.tr,
-        value: _showMovieTitle, onChanged: _setShowMovieTitle, colors: colors,
+        title: '显示标题'.tr,
+        subtitle: '卡片上显示影视名称'.tr,
+        value: _showMovieTitle,
+        onChanged: _setShowMovieTitle,
+        colors: colors,
       ),
       _switchRow(
-        title: '显示评分'.tr, subtitle: '卡片上显示评分'.tr,
-        value: _showMovieRating, onChanged: _setShowMovieRating, colors: colors,
+        title: '显示评分'.tr,
+        subtitle: '卡片上显示评分'.tr,
+        value: _showMovieRating,
+        onChanged: _setShowMovieRating,
+        colors: colors,
+      ),
+      if (_showMovieCardDate)
+        _optionRow(
+          label: '日期内容'.tr,
+          selected: _movieCardDateType,
+          options: [
+            (0, Icons.movie_creation_outlined, '上映日期'.tr),
+            (1, Icons.visibility_outlined, '观看日期'.tr),
+          ],
+          onChanged: (v) {
+            context.read<AppProvider>().setMovieCardDateType(v);
+            setState(() => _movieCardDateType = v);
+          },
+          colors: colors,
+        ),
+      _optionRow(
+        label: '标题对齐'.tr,
+        selected: _movieCardTitleAlign,
+        options: [
+          (0, Icons.format_align_left, '靠左'.tr),
+          (1, Icons.format_align_center, '居中'.tr),
+          (2, Icons.format_align_right, '靠右'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setMovieCardTitleAlign(v);
+          setState(() => _movieCardTitleAlign = v);
+        },
+        colors: colors,
       ),
       _optionRow(
-        label: '显示模式'.tr, selected: _movieWallMode ? 2 : _movieDisplayMode,
+        label: '评分对齐'.tr,
+        selected: _movieCardRatingAlign,
+        options: [
+          (0, Icons.format_align_left, '靠左'.tr),
+          (1, Icons.format_align_center, '居中'.tr),
+          (2, Icons.format_align_right, '靠右'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setMovieCardRatingAlign(v);
+          setState(() => _movieCardRatingAlign = v);
+        },
+        colors: colors,
+      ),
+      _optionRow(
+        label: '显示模式'.tr,
+        selected: _movieWallMode ? 2 : _movieDisplayMode,
         options: [
           (0, Icons.visibility_outlined, '观看状态'.tr),
           (1, Icons.category_outlined, '分类状态'.tr),
@@ -155,7 +228,8 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
       ),
       if (!_movieWallMode && _movieDisplayMode == 0)
         _optionRow(
-          label: '状态栏样式'.tr, selected: _movieStatusBarStyle,
+          label: '状态栏样式'.tr,
+          selected: _movieStatusBarStyle,
           options: [
             (0, Icons.circle, '胶囊'.tr),
             (1, Icons.format_underlined, '下划线'.tr),
@@ -163,34 +237,49 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
             (4, Icons.touch_app_outlined, '模块内点击'.tr),
           ],
-          onChanged: (v) => _setStatusBarStyle('movie', v), colors: colors,
+          onChanged: (v) => _setStatusBarStyle('movie', v),
+          colors: colors,
         ),
       _optionRow(
-        label: '布局样式'.tr, selected: _movieLayout,
+        label: '布局样式'.tr,
+        selected: _movieLayout,
         options: [
           (0, Icons.grid_view_outlined, '海报网格'.tr),
           (1, Icons.view_list_outlined, '列表'.tr),
           (2, Icons.crop_landscape_outlined, '大图卡片'.tr),
           (3, Icons.date_range_outlined, '年份网格'.tr)
         ],
-        onChanged: (v) => _setLayout('movie', v), colors: colors,
+        onChanged: (v) => _setLayout('movie', v),
+        colors: colors,
       ),
       if (_movieLayout == 0 || _movieLayout == 3)
         _optionRow(
-          label: '每行数量'.tr, selected: _movieGridCount,
+          label: '每行数量'.tr,
+          selected: _movieGridCount,
           options: [
             (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
             (3, Icons.looks_3_outlined, '3'),
             (4, Icons.looks_4_outlined, '4'),
             (5, Icons.looks_5_outlined, '5'),
           ],
-          onChanged: (v) => _setGridCount('movie', v), colors: colors,
+          onChanged: (v) => _setGridCount('movie', v),
+          colors: colors,
         ),
       if (_movieLayout == 3)
-        _sortLocked('年份网格布局固定按上映时间排序'.tr, colors)
+        _optionRow(
+          label: '年份依据'.tr,
+          selected: _movieYearGridBasis,
+          options: [
+            (0, Icons.movie_creation_outlined, '上映时间'.tr),
+            (1, Icons.visibility_outlined, '观看日期'.tr),
+          ],
+          onChanged: (v) => _setYearGridBasis('movie', v),
+          colors: colors,
+        )
       else
         _optionRow(
-          label: '排序方式'.tr, selected: _movieSortMode,
+          label: '排序方式'.tr,
+          selected: _movieSortMode,
           options: [
             (0, Icons.update, '更新时间'.tr),
             (1, Icons.calendar_today_outlined, '创建时间'.tr),
@@ -198,7 +287,8 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             (3, Icons.visibility_outlined, '观看日期'.tr),
             (4, Icons.movie_creation_outlined, '上映时间'.tr),
           ],
-          onChanged: (v) => _setSortMode('movie', v), colors: colors,
+          onChanged: (v) => _setSortMode('movie', v),
+          colors: colors,
         ),
       if (widget.type != 'note') ..._buildDetailSection(colors),
     ];
@@ -208,19 +298,72 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     return [
       _sectionHeader('卡片显示'.tr, colors),
       _switchRow(
-        title: '封面显示日期'.tr, subtitle: '封面右下角显示出版日期'.tr,
-        value: _showBookCardDate, onChanged: _setShowBookCardDate, colors: colors,
+        title: '封面显示日期'.tr,
+        subtitle: '封面右下角显示所选日期'.tr,
+        value: _showBookCardDate,
+        onChanged: _setShowBookCardDate,
+        colors: colors,
       ),
       _switchRow(
-        title: '显示标题'.tr, subtitle: '卡片上显示书籍名称'.tr,
-        value: _showBookTitle, onChanged: _setShowBookTitle, colors: colors,
+        title: '显示标题'.tr,
+        subtitle: '卡片上显示书籍名称'.tr,
+        value: _showBookTitle,
+        onChanged: _setShowBookTitle,
+        colors: colors,
       ),
       _switchRow(
-        title: '显示评分'.tr, subtitle: '卡片上显示评分'.tr,
-        value: _showBookRating, onChanged: _setShowBookRating, colors: colors,
+        title: '显示评分'.tr,
+        subtitle: '卡片上显示评分'.tr,
+        value: _showBookRating,
+        onChanged: _setShowBookRating,
+        colors: colors,
+      ),
+      if (_showBookCardDate)
+        _optionRow(
+          label: '日期内容'.tr,
+          selected: _bookCardDateType,
+          options: [
+            (0, Icons.menu_book_outlined, '出版时间'.tr),
+            (1, Icons.play_arrow_outlined, '开始阅读时间'.tr),
+            (2, Icons.check_circle_outline, '结束阅读时间'.tr),
+          ],
+          onChanged: (v) {
+            context.read<AppProvider>().setBookCardDateType(v);
+            setState(() => _bookCardDateType = v);
+          },
+          colors: colors,
+        ),
+      _optionRow(
+        label: '标题对齐'.tr,
+        selected: _bookCardTitleAlign,
+        options: [
+          (0, Icons.format_align_left, '靠左'.tr),
+          (1, Icons.format_align_center, '居中'.tr),
+          (2, Icons.format_align_right, '靠右'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setBookCardTitleAlign(v);
+          setState(() => _bookCardTitleAlign = v);
+        },
+        colors: colors,
       ),
       _optionRow(
-        label: '显示模式'.tr, selected: _bookshelfMode ? 2 : _bookDisplayMode,
+        label: '评分对齐'.tr,
+        selected: _bookCardRatingAlign,
+        options: [
+          (0, Icons.format_align_left, '靠左'.tr),
+          (1, Icons.format_align_center, '居中'.tr),
+          (2, Icons.format_align_right, '靠右'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setBookCardRatingAlign(v);
+          setState(() => _bookCardRatingAlign = v);
+        },
+        colors: colors,
+      ),
+      _optionRow(
+        label: '显示模式'.tr,
+        selected: _bookshelfMode ? 2 : _bookDisplayMode,
         options: [
           (0, Icons.auto_stories_outlined, '阅读状态'.tr),
           (1, Icons.category_outlined, '分类状态'.tr),
@@ -238,7 +381,8 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
       ),
       if (!_bookshelfMode && _bookDisplayMode == 0)
         _optionRow(
-          label: '状态栏样式'.tr, selected: _bookStatusBarStyle,
+          label: '状态栏样式'.tr,
+          selected: _bookStatusBarStyle,
           options: [
             (0, Icons.circle, '胶囊'.tr),
             (1, Icons.format_underlined, '下划线'.tr),
@@ -246,34 +390,50 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
             (4, Icons.touch_app_outlined, '模块内点击'.tr),
           ],
-          onChanged: (v) => _setStatusBarStyle('book', v), colors: colors,
+          onChanged: (v) => _setStatusBarStyle('book', v),
+          colors: colors,
         ),
       _optionRow(
-        label: '布局样式'.tr, selected: _bookLayout,
+        label: '布局样式'.tr,
+        selected: _bookLayout,
         options: [
           (0, Icons.grid_view_outlined, '海报网格'.tr),
           (1, Icons.view_list_outlined, '列表'.tr),
           (3, Icons.crop_landscape_outlined, '大图卡片'.tr),
           (2, Icons.date_range_outlined, '年份网格'.tr)
         ],
-        onChanged: (v) => _setLayout('book', v), colors: colors,
+        onChanged: (v) => _setLayout('book', v),
+        colors: colors,
       ),
       if (_bookLayout == 0 || _bookLayout == 2)
         _optionRow(
-          label: '每行数量'.tr, selected: _bookGridCount,
+          label: '每行数量'.tr,
+          selected: _bookGridCount,
           options: [
             (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
             (3, Icons.looks_3_outlined, '3'),
             (4, Icons.looks_4_outlined, '4'),
             (5, Icons.looks_5_outlined, '5'),
           ],
-          onChanged: (v) => _setGridCount('book', v), colors: colors,
+          onChanged: (v) => _setGridCount('book', v),
+          colors: colors,
         ),
       if (_bookLayout == 2)
-        _sortLocked('年份网格布局固定按出版时间排序'.tr, colors)
+        _optionRow(
+          label: '年份依据'.tr,
+          selected: _bookYearGridBasis,
+          options: [
+            (0, Icons.auto_stories_outlined, '出版时间'.tr),
+            (1, Icons.auto_stories_outlined, '开始阅读'.tr),
+            (2, Icons.done_all_outlined, '读完时间'.tr),
+          ],
+          onChanged: (v) => _setYearGridBasis('book', v),
+          colors: colors,
+        )
       else
         _optionRow(
-          label: '排序方式'.tr, selected: _bookSortMode,
+          label: '排序方式'.tr,
+          selected: _bookSortMode,
           options: [
             (0, Icons.update, '更新时间'.tr),
             (1, Icons.calendar_today_outlined, '创建时间'.tr),
@@ -281,7 +441,8 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             (3, Icons.auto_stories_outlined, '开始阅读'.tr),
             (4, Icons.auto_stories_outlined, '出版时间'.tr),
           ],
-          onChanged: (v) => _setSortMode('book', v), colors: colors,
+          onChanged: (v) => _setSortMode('book', v),
+          colors: colors,
         ),
       ..._buildDetailSection(colors),
     ];
@@ -291,28 +452,82 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     return [
       _sectionHeader('卡片显示'.tr, colors),
       _switchRow(
-        title: '封面显示日期'.tr, subtitle: '封面右下角显示发售日期'.tr,
-        value: _showGameCardDate, onChanged: _setShowGameCardDate, colors: colors,
+        title: '封面显示日期'.tr,
+        subtitle: '封面右下角显示所选日期'.tr,
+        value: _showGameCardDate,
+        onChanged: _setShowGameCardDate,
+        colors: colors,
       ),
       _switchRow(
-        title: '显示标题'.tr, subtitle: '卡片上显示游戏名称'.tr,
-        value: _showGameTitle, onChanged: _setShowGameTitle, colors: colors,
+        title: '显示标题'.tr,
+        subtitle: '卡片上显示游戏名称'.tr,
+        value: _showGameTitle,
+        onChanged: _setShowGameTitle,
+        colors: colors,
       ),
       _switchRow(
-        title: '显示评分'.tr, subtitle: '卡片上显示评分'.tr,
-        value: _showGameRating, onChanged: _setShowGameRating, colors: colors,
+        title: '显示评分'.tr,
+        subtitle: '卡片上显示评分'.tr,
+        value: _showGameRating,
+        onChanged: _setShowGameRating,
+        colors: colors,
+      ),
+      if (_showGameCardDate)
+        _optionRow(
+          label: '日期内容'.tr,
+          selected: _gameCardDateType,
+          options: [
+            (0, Icons.event_outlined, '发售时间'.tr),
+            (1, Icons.shopping_bag_outlined, '购买时间'.tr),
+          ],
+          onChanged: (v) {
+            context.read<AppProvider>().setGameCardDateType(v);
+            setState(() => _gameCardDateType = v);
+          },
+          colors: colors,
+        ),
+      _optionRow(
+        label: '标题对齐'.tr,
+        selected: _gameCardTitleAlign,
+        options: [
+          (0, Icons.format_align_left, '靠左'.tr),
+          (1, Icons.format_align_center, '居中'.tr),
+          (2, Icons.format_align_right, '靠右'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setGameCardTitleAlign(v);
+          setState(() => _gameCardTitleAlign = v);
+        },
+        colors: colors,
       ),
       _optionRow(
-        label: '显示模式'.tr, selected: _gameWallMode ? 1 : 0,
+        label: '评分对齐'.tr,
+        selected: _gameCardRatingAlign,
+        options: [
+          (0, Icons.format_align_left, '靠左'.tr),
+          (1, Icons.format_align_center, '居中'.tr),
+          (2, Icons.format_align_right, '靠右'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setGameCardRatingAlign(v);
+          setState(() => _gameCardRatingAlign = v);
+        },
+        colors: colors,
+      ),
+      _optionRow(
+        label: '显示模式'.tr,
+        selected: _gameWallMode ? 1 : 0,
         options: [
           (0, Icons.sports_esports_outlined, '游玩状态'.tr),
           (1, Icons.grid_view_outlined, '游戏墙'.tr),
         ],
-        onChanged: (v) => _setWallMode('game', v == 1), colors: colors,
+        onChanged: (v) => _setWallMode('game', v == 1),
+        colors: colors,
       ),
       if (!_gameWallMode)
         _optionRow(
-          label: '状态栏样式'.tr, selected: _gameStatusBarStyle,
+          label: '状态栏样式'.tr,
+          selected: _gameStatusBarStyle,
           options: [
             (0, Icons.circle, '胶囊'.tr),
             (1, Icons.format_underlined, '下划线'.tr),
@@ -320,34 +535,49 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             (3, Icons.arrow_drop_down_circle_outlined, '下拉'.tr),
             (4, Icons.touch_app_outlined, '模块内点击'.tr),
           ],
-          onChanged: (v) => _setStatusBarStyle('game', v), colors: colors,
+          onChanged: (v) => _setStatusBarStyle('game', v),
+          colors: colors,
         ),
       _optionRow(
-        label: '布局样式'.tr, selected: _gameLayout,
+        label: '布局样式'.tr,
+        selected: _gameLayout,
         options: [
           (0, Icons.grid_view_outlined, '海报网格'.tr),
           (1, Icons.view_list_outlined, '列表'.tr),
           (2, Icons.crop_landscape_outlined, '大图卡片'.tr),
           (3, Icons.date_range_outlined, '年份网格'.tr)
         ],
-        onChanged: (v) => _setLayout('game', v), colors: colors,
+        onChanged: (v) => _setLayout('game', v),
+        colors: colors,
       ),
       if (_gameLayout == 0 || _gameLayout == 3)
         _optionRow(
-          label: '每行数量'.tr, selected: _gameGridCount,
+          label: '每行数量'.tr,
+          selected: _gameGridCount,
           options: [
             (0, Icons.auto_awesome_mosaic_outlined, '自动'.tr),
             (3, Icons.looks_3_outlined, '3'),
             (4, Icons.looks_4_outlined, '4'),
             (5, Icons.looks_5_outlined, '5'),
           ],
-          onChanged: (v) => _setGridCount('game', v), colors: colors,
+          onChanged: (v) => _setGridCount('game', v),
+          colors: colors,
         ),
       if (_gameLayout == 3)
-        _sortLocked('年份网格布局固定按发售时间排序'.tr, colors)
+        _optionRow(
+          label: '年份依据'.tr,
+          selected: _gameYearGridBasis,
+          options: [
+            (0, Icons.event_outlined, '发售时间'.tr),
+            (1, Icons.sports_esports_outlined, '游玩时间'.tr),
+          ],
+          onChanged: (v) => _setYearGridBasis('game', v),
+          colors: colors,
+        )
       else
         _optionRow(
-          label: '排序方式'.tr, selected: _gameSortMode,
+          label: '排序方式'.tr,
+          selected: _gameSortMode,
           options: [
             (0, Icons.update, '更新时间'.tr),
             (1, Icons.calendar_today_outlined, '创建时间'.tr),
@@ -355,7 +585,8 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             (3, Icons.event_outlined, '发售时间'.tr),
             (4, Icons.emoji_events_outlined, '通关时间'.tr),
           ],
-          onChanged: (v) => _setSortMode('game', v), colors: colors,
+          onChanged: (v) => _setSortMode('game', v),
+          colors: colors,
         ),
       ..._buildDetailSection(colors),
     ];
@@ -364,32 +595,50 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
   List<Widget> _buildNoteSections(ColorScheme colors) {
     return [
       _optionRow(
-        label: '布局样式'.tr, selected: _noteLayout,
+        label: '布局样式'.tr,
+        selected: _noteLayout,
         options: [
           (0, Icons.view_list_outlined, '列表'.tr),
           (1, Icons.grid_view_outlined, '瀑布流'.tr),
           (2, Icons.timeline_outlined, '时间线'.tr)
         ],
-        onChanged: (v) => _setLayout('note', v), colors: colors,
+        onChanged: (v) => _setLayout('note', v),
+        colors: colors,
       ),
       _optionRow(
-        label: '排序方式'.tr, selected: _noteSortMode,
+        label: '排序方式'.tr,
+        selected: _noteSortMode,
         options: [
           (0, Icons.update, '更新时间'.tr),
           (1, Icons.calendar_today_outlined, '创建时间'.tr),
         ],
-        onChanged: (v) => _setSortMode('note', v), colors: colors,
+        onChanged: (v) => _setSortMode('note', v),
+        colors: colors,
+      ),
+      _optionRow(
+        label: '正文对齐'.tr,
+        selected: _noteContentAlign,
+        options: [
+          (0, Icons.format_align_left_outlined, '左对齐'.tr),
+          (1, Icons.format_align_justify_outlined, '两侧对齐'.tr),
+          (2, Icons.format_align_right_outlined, '右对齐'.tr),
+        ],
+        onChanged: (v) {
+          context.read<AppProvider>().setNoteContentAlign(v);
+          setState(() => _noteContentAlign = v);
+        },
+        colors: colors,
       ),
     ];
   }
 
-  /// 详情页分区：样式 4 选 1（按模块独立保存）+ 模块/更多入口子项排序显隐（内联）
+  /// 详情页分区：样式 4 选 1（按模块独立保存）+ 模块/更多入口入口行
+  /// （排序与显隐跳转到独立页面设置）
   List<Widget> _buildDetailSection(ColorScheme colors) {
-    final visible = _detailModules.where((m) => m.visible).length;
-    final extraVisible = _detailExtraItems.where((m) => m.visible).length;
     return [
       _optionRow(
-        label: '详情页样式'.tr, selected: _detailPageStyle,
+        label: '详情页样式'.tr,
+        selected: _detailPageStyle,
         options: [
           (0, Icons.article_outlined, '默认样式'.tr),
           (1, Icons.blur_on_outlined, '毛玻璃层叠'.tr),
@@ -402,207 +651,48 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
           setState(() => _detailPageStyle = v);
         },
       ),
-      _reorderHeader(
-        '详情页模块（显示 {a}/{b}）'.trf({
-          'a': '$visible',
-          'b': '${_detailModules.length}'
-        }),
-        _resetDetailModules,
-        colors,
-      ),
-      _buildReorderList(
-        items: _detailModules,
-        labelOf: _detailModuleLabel,
-        onReorder: _onReorderDetailModules,
-        onToggle: _toggleDetailModule,
-        colors: colors,
-      ),
-      _reorderHeader(
-        '更多入口内容（显示 {a}/{b}）'.trf({
-          'a': '$extraVisible',
-          'b': '${_detailExtraItems.length}'
-        }),
-        _resetExtraItems,
-        colors,
-      ),
-      _buildReorderList(
-        items: _detailExtraItems,
-        labelOf: _extraItemLabel,
-        onReorder: _onReorderExtraItems,
-        onToggle: _toggleExtraItem,
-        colors: colors,
-      ),
+      _detailItemsEntry(colors, isExtra: false),
+      _detailItemsEntry(colors, isExtra: true),
     ];
   }
 
-  /// 排序显隐列表的小标题 + 右侧重置
-  Widget _reorderHeader(String title, VoidCallback onReset, ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 6),
-      child: Row(
-        children: [
+  /// 详情页模块 / 更多入口内容 入口行：右侧显示已开启数量，点击跳转设置页
+  Widget _detailItemsEntry(ColorScheme colors, {required bool isExtra}) {
+    final items = isExtra
+        ? _userPrefs.getDetailExtraItems(widget.type)
+        : _userPrefs.getDetailModules(widget.type);
+    final visible = items.where((m) => m.visible).length;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  DetailItemsSettingsPage(type: widget.type, isExtra: isExtra)),
+        );
+        if (mounted) setState(() {});
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+        child: Row(children: [
           Expanded(
-            child: Text(title,
+            child: Text(isExtra ? '更多入口内容'.tr : '详情页模块'.tr,
                 style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: colors.onSurface.withValues(alpha: 0.6))),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface)),
           ),
-          GestureDetector(
-            onTap: onReset,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text('重置'.tr,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: colors.onSurface.withValues(alpha: 0.5))),
-            ),
-          ),
-        ],
+          Text('$visible/${items.length}',
+              style: TextStyle(
+                  fontSize: 13,
+                  color: colors.onSurface.withValues(alpha: 0.45))),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right,
+              size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+        ]),
       ),
     );
-  }
-
-  /// 可拖拽排序 + 开关显隐的扁平列表
-  Widget _buildReorderList({
-    required List<({String id, bool visible})> items,
-    required String Function(String id) labelOf,
-    required void Function(int oldIndex, int newIndex) onReorder,
-    required void Function(int index, bool visible) onToggle,
-    required ColorScheme colors,
-  }) {
-    return ReorderableListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      buildDefaultDragHandles: false,
-      itemCount: items.length,
-      onReorder: onReorder,
-      itemBuilder: (_, i) {
-        final m = items[i];
-        return Row(
-          key: ValueKey(m.id),
-          children: [
-            ReorderableDragStartListener(
-              index: i,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-                child: Icon(Icons.drag_indicator,
-                    size: 20,
-                    color: colors.onSurface.withValues(alpha: 0.3)),
-              ),
-            ),
-            Expanded(
-              child: Text(labelOf(m.id).tr,
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: m.visible
-                          ? colors.onSurface
-                          : colors.onSurface.withValues(alpha: 0.35))),
-            ),
-            Switch(
-              value: m.visible,
-              onChanged: (v) => onToggle(i, v),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// 详情页模块 id → 显示名（按当前模块区分文案）
-  String _detailModuleLabel(String id) {
-    return switch (id) {
-      'credits' => switch (widget.type) {
-          'book' => '书籍信息',
-          'game' => '游戏信息',
-          _ => '演职员信息',
-        },
-      'genres' => '类型标签',
-      'characters' => '角色',
-      'people' => '关联人物',
-      'summary' => '简介',
-      'reviews' => switch (widget.type) {
-          'book' => '书评预览',
-          'game' => '评价预览',
-          _ => '影评预览',
-        },
-      'extra' => '更多入口',
-      _ => id,
-    };
-  }
-
-  /// 「更多入口」子项 id → 显示名（按当前模块区分文案）
-  String _extraItemLabel(String id) {
-    return switch (id) {
-      'progress' => switch (widget.type) {
-          'book' => '阅读进度',
-          'game' => '游戏进度',
-          _ => '观看进度',
-        },
-      'reviews' => switch (widget.type) {
-          'book' => '书评',
-          'game' => '游戏评价',
-          _ => '影评',
-        },
-      'posters' => '海报墙',
-      'excerpts' => '摘抄',
-      'screenshots' => '游戏截图',
-      'characters' => '角色',
-      _ => id,
-    };
-  }
-
-  void _onReorderDetailModules(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) newIndex--;
-      _detailModules.insert(newIndex, _detailModules.removeAt(oldIndex));
-    });
-    _userPrefs.setDetailModules(widget.type, _detailModules);
-  }
-
-  void _toggleDetailModule(int index, bool visible) {
-    setState(() {
-      _detailModules[index] =
-          (id: _detailModules[index].id, visible: visible);
-    });
-    _userPrefs.setDetailModules(widget.type, _detailModules);
-  }
-
-  void _resetDetailModules() {
-    setState(() {
-      _detailModules = [
-        for (final id in UserPrefs.detailModuleIds) (id: id, visible: true)
-      ];
-    });
-    _userPrefs.setDetailModules(widget.type, _detailModules);
-    ToastUtil.show(context, '已恢复默认'.tr);
-  }
-
-  void _onReorderExtraItems(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) newIndex--;
-      _detailExtraItems.insert(newIndex, _detailExtraItems.removeAt(oldIndex));
-    });
-    _userPrefs.setDetailExtraItems(widget.type, _detailExtraItems);
-  }
-
-  void _toggleExtraItem(int index, bool visible) {
-    setState(() {
-      _detailExtraItems[index] =
-          (id: _detailExtraItems[index].id, visible: visible);
-    });
-    _userPrefs.setDetailExtraItems(widget.type, _detailExtraItems);
-  }
-
-  void _resetExtraItems() {
-    setState(() {
-      _detailExtraItems = [
-        for (final id in UserPrefs.detailExtraItemIds[widget.type] ?? const [])
-          (id: id, visible: true)
-      ];
-    });
-    _userPrefs.setDetailExtraItems(widget.type, _detailExtraItems);
-    ToastUtil.show(context, '已恢复默认'.tr);
   }
 
   // ─── 扁平分区组件 ─────────────────────────────────────────────
@@ -634,9 +724,16 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.onSurface)),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45))),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurface.withValues(alpha: 0.45))),
               ],
             ),
           ),
@@ -646,7 +743,7 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     );
   }
 
-  /// 选项组：label 作小标题，每个选项一行（图标盒 + 文字 + 选中勾），行间细分隔线
+  /// 选项组：一行显示当前选中项，点击从底部弹出固定高度的选择弹窗
   Widget _optionRow({
     required String label,
     required int selected,
@@ -654,27 +751,94 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
     required ValueChanged<int> onChanged,
     required ColorScheme colors,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 16, 4, 6),
-          child: Text(label,
+    final current = options.firstWhere((o) => o.$1 == selected,
+        orElse: () => options.first);
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => _showOptionSheet(
+        label: label,
+        selected: selected,
+        options: options,
+        onChanged: onChanged,
+        colors: colors,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+        child: Row(children: [
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface)),
+          ),
+          Text(current.$3,
               style: TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: colors.onSurface.withValues(alpha: 0.6))),
+                  color: colors.onSurface.withValues(alpha: 0.45))),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right,
+              size: 18, color: colors.onSurface.withValues(alpha: 0.25)),
+        ]),
+      ),
+    );
+  }
+
+  /// 底部选择弹窗：固定高度，选项超出可上下滚动，点选后自动关闭
+  void _showOptionSheet({
+    required String label,
+    required int selected,
+    required List<(int, IconData, String)> options,
+    required ValueChanged<int> onChanged,
+    required ColorScheme colors,
+  }) {
+    appModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: SizedBox(
+          height: 360,
+          child: Column(children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface)),
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: options.length,
+                separatorBuilder: (_, __) => Divider(
+                    height: 0.5,
+                    indent: 48,
+                    endIndent: 4,
+                    color: colors.outlineVariant.withValues(alpha: 0.4)),
+                itemBuilder: (_, i) =>
+                    _optionLine(options[i], selected, colors, (v) {
+                  onChanged(v);
+                  Navigator.pop(ctx);
+                }),
+              ),
+            ),
+          ]),
         ),
-        for (int i = 0; i < options.length; i++) ...[
-          if (i > 0)
-            Divider(
-                height: 0.5,
-                indent: 48,
-                endIndent: 4,
-                color: colors.outlineVariant.withValues(alpha: 0.4)),
-          _optionLine(options[i], selected, colors, onChanged),
-        ],
-      ],
+      ),
     );
   }
 
@@ -710,18 +874,6 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
           if (isSelected) Icon(Icons.check, size: 18, color: colors.primary),
         ]),
       ),
-    );
-  }
-
-  /// 年份网格布局下排序被锁定时的提示行
-  Widget _sortLocked(String text, ColorScheme colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-      child: Row(children: [
-        Icon(Icons.lock_outline, size: 15, color: colors.onSurface.withValues(alpha: 0.45)),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.45)))),
-      ]),
     );
   }
 
@@ -881,6 +1033,26 @@ class _ModuleLayoutSettingsPageState extends State<ModuleLayoutSettingsPage> {
       case 'game':
         await _userPrefs.setGameSortMode(value);
         setState(() => _gameSortMode = value);
+        if (mounted) provider.loadGames();
+    }
+  }
+
+  /// 年份网格分组依据：会改变实际生效的排序，需重载列表
+  /// （tab 页监听生效排序变化后自行重置分页）
+  void _setYearGridBasis(String type, int value) async {
+    final provider = context.read<AppProvider>();
+    switch (type) {
+      case 'movie':
+        await _userPrefs.setMovieYearGridBasis(value);
+        setState(() => _movieYearGridBasis = value);
+        if (mounted) provider.loadMovies();
+      case 'book':
+        await _userPrefs.setBookYearGridBasis(value);
+        setState(() => _bookYearGridBasis = value);
+        if (mounted) provider.loadBooks();
+      case 'game':
+        await _userPrefs.setGameYearGridBasis(value);
+        setState(() => _gameYearGridBasis = value);
         if (mounted) provider.loadGames();
     }
   }

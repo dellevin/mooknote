@@ -50,7 +50,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
       final p = context.read<AppProvider>();
       final initial = _activeIndexFor(p).clamp(0, _pageCountFor(p) - 1);
       _currentPage = initial;
-      if (_pageController.hasClients && initial != 0) _pageController.jumpToPage(initial);
+      if (_pageController.hasClients && initial != 0)
+        _pageController.jumpToPage(initial);
     });
   }
 
@@ -61,11 +62,13 @@ class _MovieTabPageState extends State<MovieTabPage> {
     super.dispose();
   }
 
-  int _pageCountFor(AppProvider p) =>
-      p.movieWallMode ? 1 : (p.movieDisplayMode == 1 ? MovieCategoryBar.count : 4);
+  int _pageCountFor(AppProvider p) => p.movieWallMode
+      ? 1
+      : (p.movieDisplayMode == 1 ? MovieCategoryBar.count : 4);
 
-  int _activeIndexFor(AppProvider p) =>
-      p.movieWallMode ? 0 : (p.movieDisplayMode == 1 ? p.movieCategoryIndex : p.movieStatusIndex);
+  int _activeIndexFor(AppProvider p) => p.movieWallMode
+      ? 0
+      : (p.movieDisplayMode == 1 ? p.movieCategoryIndex : p.movieStatusIndex);
 
   int _modeSignature(AppProvider p) =>
       (p.movieWallMode ? 1 : 0) * 1000 + (p.movieDisplayMode == 1 ? 1 : 0);
@@ -122,7 +125,10 @@ class _MovieTabPageState extends State<MovieTabPage> {
     }
     // (c) 外部索引变化（bar 点击等）：快照交叉淡化切换，不经过中间页
     final target = _activeIndexFor(provider).clamp(0, pageCount - 1);
-    if (pageCount > 1 && _pageController.hasClients && target != _currentPage && target != _pendingSwitchTarget) {
+    if (pageCount > 1 &&
+        _pageController.hasClients &&
+        target != _currentPage &&
+        target != _pendingSwitchTarget) {
       _pendingSwitchTarget = target;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) {
@@ -163,7 +169,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
               duration: const Duration(milliseconds: 260),
               curve: Curves.easeOut,
               onEnd: _clearSnapshot,
-              builder: (context, opacity, child) => Opacity(opacity: opacity, child: child),
+              builder: (context, opacity, child) =>
+                  Opacity(opacity: opacity, child: child),
               child: RawImage(image: _switchSnapshot, fit: BoxFit.fill),
             ),
           ),
@@ -177,7 +184,8 @@ class _MovieTabPageState extends State<MovieTabPage> {
     final renderObject = _repaintKey.currentContext?.findRenderObject();
     if (renderObject is RenderRepaintBoundary) {
       try {
-        image = await renderObject.toImage(pixelRatio: MediaQuery.devicePixelRatioOf(context));
+        image = await renderObject.toImage(
+            pixelRatio: MediaQuery.devicePixelRatioOf(context));
       } catch (_) {
         image = null;
       }
@@ -209,7 +217,11 @@ class _MovieTabPageState extends State<MovieTabPage> {
     _currentPage = index;
     final wall = provider.movieWallMode;
     final isCategory = provider.movieDisplayMode == 1;
-    final cur = wall ? 0 : (isCategory ? provider.movieCategoryIndex : provider.movieStatusIndex);
+    final cur = wall
+        ? 0
+        : (isCategory
+            ? provider.movieCategoryIndex
+            : provider.movieStatusIndex);
     // 回显守卫：仅在真实拖动导致索引变化时推送，避免死循环
     if (cur != index) {
       if (isCategory) {
@@ -246,8 +258,10 @@ class _MovieTabViewState extends State<_MovieTabView>
   int _prevSortMode = -1;
   AppProvider? _provider;
 
-  String? get _status => widget.mode == 0 ? StatusLabels.orderedKeys('movie')[widget.index] : null;
-  String? get _category => widget.mode == 1 ? MovieCategoryBar.categoryValue(widget.index) : null;
+  String? get _status =>
+      widget.mode == 0 ? StatusLabels.orderedKeys('movie')[widget.index] : null;
+  String? get _category =>
+      widget.mode == 1 ? MovieCategoryBar.categoryValue(widget.index) : null;
 
   @override
   bool get wantKeepAlive => true;
@@ -290,7 +304,8 @@ class _MovieTabViewState extends State<_MovieTabView>
     }
 
     // 就地编辑：更新本页匹配项，不重置分页
-    if (p.editRefreshCounter > _lastEditRefreshCounter && p.lastEditedItemId != null) {
+    if (p.editRefreshCounter > _lastEditRefreshCounter &&
+        p.lastEditedItemId != null) {
       _lastEditRefreshCounter = p.editRefreshCounter;
       _prevMovieCount = p.movies.length;
       final id = p.lastEditedItemId!;
@@ -302,7 +317,10 @@ class _MovieTabViewState extends State<_MovieTabView>
       if (i != -1) {
         if (!belongs) {
           // 状态/分类被改走或条目已删除：移出本页
-          setState(() { _items.removeAt(i); _offset = (_offset - 1).clamp(0, _offset); });
+          setState(() {
+            _items.removeAt(i);
+            _offset = (_offset - 1).clamp(0, _offset);
+          });
         } else {
           setState(() => _items[i] = u);
         }
@@ -324,7 +342,8 @@ class _MovieTabViewState extends State<_MovieTabView>
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
@@ -348,10 +367,18 @@ class _MovieTabViewState extends State<_MovieTabView>
     final provider = context.read<AppProvider>();
     final sortMode = UserPrefs().effectiveMovieSortMode;
     _initialized = true;
-    setState(() { _isLoading = true; _loadError = false; _offset = 0; _hasMore = true; });
+    setState(() {
+      _isLoading = true;
+      _loadError = false;
+      _offset = 0;
+      _hasMore = true;
+    });
     try {
       final list = await provider.loadMoviesPaged(
-          status: _status, category: _category, offset: 0, sortMode: sortMode,
+          status: _status,
+          category: _category,
+          offset: 0,
+          sortMode: sortMode,
           limit: AppProvider.firstPageSize);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
@@ -366,7 +393,11 @@ class _MovieTabViewState extends State<_MovieTabView>
     } catch (e) {
       debugPrint('[MovieTab] 首屏加载失败: $e');
       if (!mounted || seq != _loadSeq) return;
-      setState(() { _isLoading = false; _hasMore = false; _loadError = true; });
+      setState(() {
+        _isLoading = false;
+        _hasMore = false;
+        _loadError = true;
+      });
     }
   }
 
@@ -378,7 +409,10 @@ class _MovieTabViewState extends State<_MovieTabView>
     final sortMode = UserPrefs().effectiveMovieSortMode;
     try {
       final list = await provider.loadMoviesPaged(
-          status: _status, category: _category, offset: _offset, sortMode: sortMode);
+          status: _status,
+          category: _category,
+          offset: _offset,
+          sortMode: sortMode);
       if (!mounted || seq != _loadSeq) return;
       setState(() {
         _items.addAll(list);
@@ -416,9 +450,12 @@ class _MovieTabViewState extends State<_MovieTabView>
   Widget build(BuildContext context) {
     super.build(context);
     final colors = Theme.of(context).colorScheme;
-    final layoutStyle = context.select<AppProvider, int>((p) => p.movieLayoutStyle);
+    final layoutStyle =
+        context.select<AppProvider, int>((p) => p.movieLayoutStyle);
     context.select<AppProvider, bool>((p) => p.showMovieTitle);
     context.select<AppProvider, bool>((p) => p.showMovieRating);
+    context.select<AppProvider, int>((p) => p.movieCardTitleAlign);
+    context.select<AppProvider, int>((p) => p.movieCardRatingAlign);
 
     final content = () {
       if (_items.isEmpty && _isLoading) return _buildSkeleton(layoutStyle);
@@ -463,7 +500,8 @@ class _MovieTabViewState extends State<_MovieTabView>
   Widget _buildGridView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final fixedCount = context.select<AppProvider, int>((p) => p.movieGridCount);
+        final fixedCount =
+            context.select<AppProvider, int>((p) => p.movieGridCount);
         final crossAxisCount = fixedCount > 0
             ? fixedCount
             : responsiveCrossAxisCount(constraints.maxWidth, minItemWidth: 110);
@@ -472,7 +510,10 @@ class _MovieTabViewState extends State<_MovieTabView>
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount, childAspectRatio: 0.55, crossAxisSpacing: 12, mainAxisSpacing: 16,
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
           ),
           itemCount: _items.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, index) {
@@ -501,12 +542,14 @@ class _MovieTabViewState extends State<_MovieTabView>
     );
   }
 
-  /// 年份网格：按上映年份倒序分段，无年份归入"其他"
+  /// 年份网格：按所选年份依据（上映/观看）倒序分段，无年份归入"其他"
   Widget _buildYearGridView() {
-    final fixedCount = context.select<AppProvider, int>((p) => p.movieGridCount);
+    final fixedCount =
+        context.select<AppProvider, int>((p) => p.movieGridCount);
+    final byWatchYear = UserPrefs().movieYearGridBasis == 1;
     return YearGridView<Movie>(
       items: _items,
-      yearOf: (m) => m.releaseDate?.year,
+      yearOf: (m) => byWatchYear ? m.watchDate?.year : m.releaseDate?.year,
       controller: _scrollController,
       fixedCrossAxisCount: fixedCount > 0 ? fixedCount : null,
       hasMore: _hasMore,
@@ -523,8 +566,19 @@ class _MovieTabViewState extends State<_MovieTabView>
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(
         child: _isLoading
-            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary))
-            : Text('没有更多了'.tr, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3))),
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.primary))
+            : Text('没有更多了'.tr,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.3))),
       ),
     );
   }
@@ -533,41 +587,88 @@ class _MovieTabViewState extends State<_MovieTabView>
     final colors = Theme.of(context).colorScheme;
     final showTitle = context.read<AppProvider>().showMovieTitle;
     final showRating = context.read<AppProvider>().showMovieRating;
+    final titleAlign = context.read<AppProvider>().movieCardTitleAlign;
+    final ratingAlign = context.read<AppProvider>().movieCardRatingAlign;
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return GestureDetector(
       onTap: () => _onMovieTap(movie),
       onLongPress: () => _showDeleteDialog(context, movie),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           Container(
-            width: 48, height: 64,
-            decoration: BoxDecoration(color: colors.outlineVariant, borderRadius: BorderRadius.circular(6)),
+            width: 48,
+            height: 64,
+            decoration: BoxDecoration(
+                color: colors.outlineVariant,
+                borderRadius: BorderRadius.circular(6)),
             clipBehavior: Clip.antiAlias,
             child: movie.posterPath != null && movie.posterPath!.isNotEmpty
-                ? FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover,
-                    errorWidget: Icon(Icons.movie_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)))
-                : Icon(Icons.movie_outlined, size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
+                ? FadeInLocalImage(
+                    path: movie.posterPath,
+                    fit: BoxFit.cover,
+                    errorWidget: Icon(Icons.movie_outlined,
+                        size: 22,
+                        color: colors.onSurface.withValues(alpha: 0.25)))
+                : Icon(Icons.movie_outlined,
+                    size: 22, color: colors.onSurface.withValues(alpha: 0.25)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (showTitle)
-              Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.onSurface)),
-            ...[
-              SizedBox(height: showTitle ? 3 : 0),
-              Text(_buildSubtitle(movie), maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.35))),
-            ],
-            if (showRating) ...[
-              const SizedBox(height: 6),
-              if (movie.rating != null) AnimatedStarRating(rating: movie.rating!, starSize: 12, showNumber: true)
-              else const SizedBox(height: 14),
-            ],
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                if (showTitle)
+                  Align(
+                    alignment: titleAlignment,
+                    child: Text(movie.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface)),
+                  ),
+                ...[
+                  SizedBox(height: showTitle ? 3 : 0),
+                  Text(_buildSubtitle(movie),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurface.withValues(alpha: 0.35))),
+                ],
+                if (showRating) ...[
+                  const SizedBox(height: 6),
+                  if (movie.rating != null)
+                    Align(
+                      alignment: ratingAlignment,
+                      child: AnimatedStarRating(
+                          rating: movie.rating!,
+                          starSize: 12,
+                          showNumber: true,
+                          alignment: ratingAlignment),
+                    )
+                  else
+                    const SizedBox(height: 14),
+                ],
+              ])),
           const SizedBox(width: 8),
-          Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.2), size: 20),
+          Icon(Icons.chevron_right,
+              color: colors.onSurface.withValues(alpha: 0.2), size: 20),
         ]),
       ),
     );
@@ -600,6 +701,18 @@ class _MovieTabViewState extends State<_MovieTabView>
     final colors = Theme.of(context).colorScheme;
     final showTitle = context.read<AppProvider>().showMovieTitle;
     final showRating = context.read<AppProvider>().showMovieRating;
+    final titleAlign = context.read<AppProvider>().movieCardTitleAlign;
+    final ratingAlign = context.read<AppProvider>().movieCardRatingAlign;
+    final titleAlignment = switch (titleAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
+    final ratingAlignment = switch (ratingAlign) {
+      1 => Alignment.center,
+      2 => Alignment.centerRight,
+      _ => Alignment.centerLeft,
+    };
     return GestureDetector(
       onTap: () => _onMovieTap(movie),
       onLongPress: () => _showDeleteDialog(context, movie),
@@ -614,11 +727,15 @@ class _MovieTabViewState extends State<_MovieTabView>
         child: Stack(fit: StackFit.expand, children: [
           // 海报背景
           if (movie.posterPath != null && movie.posterPath!.isNotEmpty)
-            FadeInLocalImage(path: movie.posterPath, fit: BoxFit.cover,
+            FadeInLocalImage(
+                path: movie.posterPath,
+                fit: BoxFit.cover,
                 errorWidget: Container(color: colors.surfaceContainerHighest))
           else
-            Container(color: colors.surfaceContainerHighest,
-                child: Icon(Icons.movie_outlined, size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
+            Container(
+                color: colors.surfaceContainerHighest,
+                child: Icon(Icons.movie_outlined,
+                    size: 48, color: colors.onSurface.withValues(alpha: 0.15))),
           // 底部渐变遮罩
           Positioned.fill(
             child: DecoratedBox(
@@ -626,7 +743,10 @@ class _MovieTabViewState extends State<_MovieTabView>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.75)
+                  ],
                   stops: const [0.4, 1.0],
                 ),
               ),
@@ -634,27 +754,49 @@ class _MovieTabViewState extends State<_MovieTabView>
           ),
           // 底部信息
           Positioned(
-            left: 14, right: 14, bottom: 14,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              if (showTitle) ...[
-                Text(movie.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 4),
-              ],
-              Row(children: [
-                Expanded(
-                  child: Text(_buildSubtitle(movie), maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
-                ),
-                if (showRating && movie.rating != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade400),
-                  const SizedBox(width: 2),
-                  Text(movie.rating!.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                ],
-              ]),
-            ]),
+            left: 14,
+            right: 14,
+            bottom: 14,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showTitle) ...[
+                    Align(
+                      alignment: titleAlignment,
+                      child: Text(movie.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white)),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  Text(_buildSubtitle(movie),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.7))),
+                  if (showRating && movie.rating != null) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: ratingAlignment,
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.star_rounded,
+                            size: 16, color: Colors.amber.shade400),
+                        const SizedBox(width: 2),
+                        Text(movie.rating!.toStringAsFixed(1),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white)),
+                      ]),
+                    ),
+                  ],
+                ]),
           ),
         ]),
       ),
@@ -682,14 +824,25 @@ class _MovieTabViewState extends State<_MovieTabView>
     appDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface, elevation: 0,
+        backgroundColor: colors.surface,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('确认删除'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colors.onSurface)),
+        title: Text('确认删除'.tr,
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface)),
         content: Text('确定要删除《{title}》吗？删除后可在回收站恢复。'.trf({'title': movie.title}),
-            style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.6), height: 1.5)),
+            style: TextStyle(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                height: 1.5)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('取消'.tr, style: TextStyle(color: colors.onSurface.withValues(alpha: 0.6)))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('取消'.tr,
+                  style: TextStyle(
+                      color: colors.onSurface.withValues(alpha: 0.6)))),
           ElevatedButton(
             onPressed: () async {
               await context.read<AppProvider>().removeMovie(movie.id);
@@ -697,13 +850,19 @@ class _MovieTabViewState extends State<_MovieTabView>
               Navigator.pop(ctx);
               if (mounted) _loadFirst();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: colors.error, foregroundColor: colors.onError, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: colors.error,
+                foregroundColor: colors.onError,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             child: Text('删除'.tr),
           ),
         ],
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
@@ -717,18 +876,29 @@ class _MovieTabViewState extends State<_MovieTabView>
   Widget _buildListSkeleton() {
     final colors = Theme.of(context).colorScheme;
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100), itemCount: 6,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+      itemCount: 6,
       itemBuilder: (_, __) => Container(
-        margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: colors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12)),
         child: const Row(children: [
-          ShimmerSkeleton(width: 48, height: 64, borderRadius: 6), SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            ShimmerSkeleton(width: 160, height: 16), SizedBox(height: 6),
-            ShimmerSkeleton(width: 100, height: 12), SizedBox(height: 6),
-            ShimmerSkeleton(width: 70, height: 12),
-          ])),
-          SizedBox(width: 8), ShimmerSkeleton(width: 20, height: 20, borderRadius: 10),
+          ShimmerSkeleton(width: 48, height: 64, borderRadius: 6),
+          SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                ShimmerSkeleton(width: 160, height: 16),
+                SizedBox(height: 6),
+                ShimmerSkeleton(width: 100, height: 12),
+                SizedBox(height: 6),
+                ShimmerSkeleton(width: 70, height: 12),
+              ])),
+          SizedBox(width: 8),
+          ShimmerSkeleton(width: 20, height: 20, borderRadius: 10),
         ]),
       ),
     );
@@ -740,10 +910,13 @@ class _MovieTabViewState extends State<_MovieTabView>
       padding: const EdgeInsets.only(top: 120),
       child: Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.cloud_off_rounded, size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
+          Icon(Icons.cloud_off_rounded,
+              size: 48, color: colors.onSurface.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
           Text('加载失败，请检查网络'.tr,
-              style: TextStyle(fontSize: 14, color: colors.onSurface.withValues(alpha: 0.45))),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: colors.onSurface.withValues(alpha: 0.45))),
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: _loadFirst,
@@ -759,9 +932,13 @@ class _MovieTabViewState extends State<_MovieTabView>
     if (widget.mode == 2) {
       emptyText = '暂无影片'.tr;
     } else if (widget.mode == 1) {
-      emptyText = '暂无 {x}'.trf({'x': MovieCategoryBar.categoryLabel(widget.index).tr});
+      emptyText =
+          '暂无 {x}'.trf({'x': MovieCategoryBar.categoryLabel(widget.index).tr});
     } else {
-      emptyText = '暂无 {x} 的影片'.trf({'x': StatusLabels.label('movie', StatusLabels.orderedKeys('movie')[widget.index])});
+      emptyText = '暂无 {x} 的影片'.trf({
+        'x': StatusLabels.label(
+            'movie', StatusLabels.orderedKeys('movie')[widget.index])
+      });
     }
     return EmptyState(
       image: 'assets/png_notion/movie_empty.png',

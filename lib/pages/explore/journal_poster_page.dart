@@ -594,8 +594,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
                             color: widget.typeColor(item.type)),
                       ),
                     ),
-                    if (_showRating &&
-                        (item.data as dynamic).rating != null) ...[
+                    if (_showRating && item.rating != null) ...[
                       const SizedBox(width: 8),
                       const Icon(Icons.star_rounded,
                           size: 13, color: Color(0xFFE8A33D)),
@@ -955,7 +954,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   /// 封面底部评分角标（网格/海报墙共用）；无评分返回 null
   Widget? _ratingBadge(JournalItem item) {
     if (!_showRating) return null;
-    final r = (item.data as dynamic).rating as double?;
+    final r = item.rating;
     if (r == null) return null;
     return Positioned(
       left: 4,
@@ -985,7 +984,7 @@ class _JournalPosterPageState extends State<JournalPosterPage> {
   }
 
   String _ratingText(JournalItem item) {
-    final r = (item.data as dynamic).rating as double?;
+    final r = item.rating;
     return r == null
         ? '未评分'.tr
         : '{n}分'
